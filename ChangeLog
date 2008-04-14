@@ -1,3 +1,11 @@
+2008-04-14  Martyn Russell  <martyn@imendio.com>
+
+	* configure.ac:
+	* src/Makefile.am:
+	* src/tracker-indexer/Makefile.am:
+	* src/tracker-indexer/tracker-indexer.c: Created initial binary
+	for tracker-indexer.
+
 2008-04-11  Martyn Russell  <martyn@imendio.com>
 
 	* configure.ac:

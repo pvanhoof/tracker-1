@@ -22,9 +22,9 @@
 #ifndef _TRACKER_SQLITE_DB_H_
 #define _TRACKER_SQLITE_DB_H_
 
-#include <sqlite3.h>
 #include <glib.h>
 
+#include "tracker-db-interface.h"
 #include "tracker-utils.h"
 #include "tracker-service-manager.h"
 
@@ -41,15 +41,14 @@ typedef enum {
 
 
 typedef struct {
-	sqlite3		*db;
-	TrackerDBType    db_type;
+	TrackerDBInterface *db;
+	TrackerDBType   db_type;
 	DBCategory	db_category;
 	char		*err;
 	char		*name;
 	char		*file_name;
 	int		rc;
 	char		*thread; /* name of the thread that created this */
-	GHashTable	*statements;
 
 	guint           in_transaction : 1;
 	guint           in_error : 1;
@@ -79,7 +78,6 @@ int		tracker_get_field_count		(char ***result);
 
 gboolean	tracker_db_needs_setup		(void);
 gboolean 	tracker_db_needs_data 		(void);
-gboolean	tracker_db_initialize		(const char *data_dir);
 void		tracker_db_thread_init		(void);
 void		tracker_db_thread_end		(void);
 void		tracker_db_close		(DBConnection *db_con);
@@ -103,12 +101,9 @@ gboolean	tracker_update_db		(DBConnection *db_con);
 char *		tracker_escape_string		(const char *in);
 
 void		tracker_db_prepare_queries	(DBConnection *db_con);
-char ***	tracker_exec_proc		(DBConnection *db_con, const char *procedure, int param_count, ...);
-gboolean	tracker_exec_proc_no_reply 	(DBConnection *db_con, const char *procedure, int param_count, ...);
-char ***	tracker_exec_sql		(DBConnection *db_con, const char *query);
-char ***	tracker_exec_sql_ignore_nulls	(DBConnection *db_con, const char *query);
-gboolean	tracker_db_exec_no_reply 	(DBConnection *db_con, const char *query);
-void		tracker_log_sql			(DBConnection *db_con, const char *query);
+TrackerDBResultSet * tracker_exec_proc          (DBConnection *db_con, const char *procedure, ...);
+gboolean	tracker_exec_proc_no_reply 	(DBConnection *db_con, const char *procedure, ...);
+gboolean        tracker_db_exec_no_reply        (DBConnection *db_con, const char *query, ...);
 void		tracker_create_db		(void);
 void		tracker_db_load_stored_procs	(DBConnection *db_con);
 void		tracker_db_save_file_contents	(DBConnection *db_con, GHashTable *index_table, GHashTable *old_table, const char *file_name, FileInfo *info);
@@ -132,13 +127,13 @@ void		tracker_db_fsync 		(DBConnection *db_con, gboolean enable);
 char *		tracker_get_related_metadata_names 	(DBConnection *db_con, const char *name);
 char *		tracker_get_metadata_table 		(DataTypes type);
 
-char ***	tracker_db_search_text		(DBConnection *db_con, const char *service, const char *search_string, int offset, int limit, gboolean save_results, gboolean detailed);
-char ***	tracker_db_search_files_by_text	(DBConnection *db_con, const char *text, int offset, int limit, gboolean sort);
-char ***	tracker_db_search_metadata	(DBConnection *db_con, const char *service, const char *field, const char *text, int offset, int limit);
-char ***	tracker_db_search_matching_metadata (DBConnection *db_con, const char *service, const char *id, const char *text);
+TrackerDBResultSet * tracker_db_search_text		(DBConnection *db_con, const char *service, const char *search_string, int offset, int limit, gboolean save_results, gboolean detailed);
+TrackerDBResultSet * tracker_db_search_files_by_text	(DBConnection *db_con, const char *text, int offset, int limit, gboolean sort);
+TrackerDBResultSet * tracker_db_search_metadata	(DBConnection *db_con, const char *service, const char *field, const char *text, int offset, int limit);
+TrackerDBResultSet * tracker_db_search_matching_metadata (DBConnection *db_con, const char *service, const char *id, const char *text);
 
 /* gets metadata as a single row (with multiple values delimited by semicolons) */
-char ***	tracker_db_get_metadata		(DBConnection *db_con, const char *service, const char *id, const char *key);
+TrackerDBResultSet * tracker_db_get_metadata		(DBConnection *db_con, const char *service, const char *id, const char *key);
 
 /* gets metadata using a separate row for each value it has */
 char *		tracker_db_get_metadata_delimited (DBConnection *db_con, const char *service, const char *id, const char *key);
@@ -170,27 +165,27 @@ void		tracker_db_insert_pending_file	(DBConnection *db_con, guint32 file_id, con
 
 gboolean	tracker_db_has_pending_files	(DBConnection *db_con);
 gboolean	tracker_db_has_pending_metadata	(DBConnection *db_con);
-char ***	tracker_db_get_pending_files	(DBConnection *db_con);
+TrackerDBResultSet * tracker_db_get_pending_files	(DBConnection *db_con);
 void		tracker_db_remove_pending_files	(DBConnection *db_con);
-char ***	tracker_db_get_pending_metadata	(DBConnection *db_con);
+TrackerDBResultSet * tracker_db_get_pending_metadata	(DBConnection *db_con);
 void		tracker_db_remove_pending_metadata (DBConnection *db_con);
 void		tracker_db_insert_pending	(DBConnection *db_con, const char *id, const char *action, const char *counter, const char *uri, const char *mime, gboolean is_dir, gboolean is_new, int service_type_id);
 void		tracker_db_update_pending	(DBConnection *db_con, const char *counter, const char *action, const char *uri);
 
-char ***	tracker_db_get_files_by_service	(DBConnection *db_con, const char *service, int offset, int limit);
-char ***	tracker_db_get_files_by_mime	(DBConnection *db_con, char **mimes, int n, int offset, int limit, gboolean vfs);
-char ***	tracker_db_search_text_mime	(DBConnection *db_con, const char *text, char **mime_array, int n);
-char ***	tracker_db_search_text_location	(DBConnection *db_con, const char *text,const char *location);
-char ***	tracker_db_search_text_mime_location (DBConnection *db_con, const char *text, char **mime_array, int n, const char *location);
+TrackerDBResultSet * tracker_db_get_files_by_service	(DBConnection *db_con, const char *service, int offset, int limit);
+TrackerDBResultSet * tracker_db_get_files_by_mime	(DBConnection *db_con, char **mimes, int n, int offset, int limit, gboolean vfs);
+TrackerDBResultSet * tracker_db_search_text_mime	(DBConnection *db_con, const char *text, char **mime_array);
+TrackerDBResultSet * tracker_db_search_text_location	(DBConnection *db_con, const char *text,const char *location);
+TrackerDBResultSet * tracker_db_search_text_mime_location (DBConnection *db_con, const char *text, char **mime_array, const char *location);
 
-char ***	tracker_db_get_file_subfolders	(DBConnection *db_con, const char *uri);
+TrackerDBResultSet * tracker_db_get_file_subfolders	(DBConnection *db_con, const char *uri);
 
-char ***	tracker_db_get_metadata_types	(DBConnection *db_con, const char *class, gboolean writeable);
+TrackerDBResultSet * tracker_db_get_metadata_types	(DBConnection *db_con, const char *class, gboolean writeable);
 
-char ***	tracker_db_get_sub_watches	(DBConnection *db_con, const char *dir);
-char ***	tracker_db_delete_sub_watches	(DBConnection *db_con, const char *dir);
+TrackerDBResultSet * tracker_db_get_sub_watches	(DBConnection *db_con, const char *dir);
+TrackerDBResultSet * tracker_db_delete_sub_watches	(DBConnection *db_con, const char *dir);
 
-char ***	tracker_db_get_keyword_list	(DBConnection *db_con, const char *service);
+TrackerDBResultSet * tracker_db_get_keyword_list	(DBConnection *db_con, const char *service);
 
 void		tracker_db_update_index_multiple_metadata 	(DBConnection *db_con, const char *service, const char *id, const char *key, char **values);
 

@@ -1507,7 +1507,7 @@ tracker_process_files (gpointer data)
 
 		/* Check pending table if we haven't got anything */
 		if (!info) {
-			gchar ***res;
+			TrackerDBResultSet *result_set;
 			gint     k;
 
 			if (!tracker_db_has_pending_files (tracker->index_db)) {
@@ -1527,35 +1527,40 @@ tracker_process_files (gpointer data)
                                 }
                         }
 
-			res = tracker_db_get_pending_files (tracker->index_db);
+			result_set = tracker_db_get_pending_files (tracker->index_db);
 
 			k = 0;
 			pushed_events = FALSE;
 
-			if (res) {
-				gchar **row;
+			if (result_set) {
+				gboolean valid = TRUE;
 
 				tracker->status = STATUS_PENDING;
 
-				while ((row = tracker_db_get_row (res, k))) {
+				while (valid) {
 					FileInfo	    *info_tmp;
-					TrackerChangeAction  tmp_action;
+					TrackerChangeAction tmp_action;
+					gchar *uri;
 
 					if (!tracker->is_running) {
-						tracker_db_free_result (res);
+						g_object_unref (result_set);
 						break;
 					}
 
-					k++;
+					tracker_db_result_set_get (result_set,
+								   1, &uri,
+								   2, &tmp_action,
+								   -1);
 
-					tmp_action = atoi (row[2]);
-
-					info_tmp = tracker_create_file_info (row[1], tmp_action, 0, WATCH_OTHER);
+					info_tmp = tracker_create_file_info (uri, tmp_action, 0, WATCH_OTHER);
 					g_async_queue_push (tracker->file_process_queue, info_tmp);
 					pushed_events = TRUE;
+
+					valid = tracker_db_result_set_iter_next (result_set);
+					g_free (uri);
 				}
 
-				tracker_db_free_result (res);
+				g_object_unref (result_set);
 			}
 
 			if (!tracker->is_running) {
@@ -1611,7 +1616,6 @@ tracker_process_files (gpointer data)
 	xdg_mime_shutdown ();
 
 	tracker_db_close_all (tracker->index_db);
-	tracker_db_thread_end ();
 
 	g_mutex_unlock (tracker->files_stopped_mutex);
 

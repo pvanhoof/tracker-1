@@ -1,3 +1,26 @@
+2008-04-14  Carlos Garnacho  <carlos@imendio.com>
+
+	Implement a database abstraction interface, with a sqlite
+	implementation. Queries/procedures return a TrackerDBResultSet object,
+	which simplifies result data extraction.
+
+	* src/trackerd/tracker-db-interface.[ch]: Added. Interface to access
+	databases.
+
+	* src/trackerd/tracker-db-interface-sqlite.[ch]: Added. Sqlite 
+	implementation.
+
+	* src/trackerd/Makefile.am: add these files.
+
+	* src/trackerd/tracker-db-email.[ch], tracker-db-sqlite.[ch],
+	tracker-db.c, tracker-dbus-files.c, tracker-dbus-keywords.c,
+	tracker-dbus-metadata.c, tracker-dbus-search.c,
+	tracker-email-evolucion.c, tracker-email-modest.c, tracker-inotify.c,
+	tracker-process-files.c, trackerd.c: Use the new API.
+
+	* src/trackerd/tracker-dbus-methods.[ch]: Modify to build a
+	DBusMessage from a TrackerDBResultSet.
+
 2008-04-14  Martyn Russell  <martyn@imendio.com>
 
 	* configure.ac:

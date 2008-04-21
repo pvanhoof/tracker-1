@@ -33,6 +33,8 @@ struct TrackerDBInterfaceSqlitePrivate {
 	GHashTable *procedures;
 
 	GSList *function_data;
+
+	guint in_transaction : 1;
 };
 
 struct SqliteFunctionData {
@@ -44,7 +46,8 @@ static void tracker_db_interface_sqlite_iface_init (TrackerDBInterfaceIface *ifa
 
 enum {
 	PROP_0,
-	PROP_FILENAME
+	PROP_FILENAME,
+	PROP_IN_TRANSACTION
 };
 
 G_DEFINE_TYPE_WITH_CODE (TrackerDBInterfaceSqlite, tracker_db_interface_sqlite, G_TYPE_OBJECT,
@@ -89,6 +92,9 @@ tracker_db_interface_sqlite_set_property (GObject       *object,
 	case PROP_FILENAME:
 		priv->filename = g_value_dup_string (value);
 		break;
+	case PROP_IN_TRANSACTION:
+		priv->in_transaction = g_value_get_boolean (value);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 	}
@@ -108,6 +114,9 @@ tracker_db_interface_sqlite_get_property (GObject    *object,
 	case PROP_FILENAME:
 		g_value_set_string (value, priv->filename);
 		break;
+	case PROP_IN_TRANSACTION:
+		g_value_set_boolean (value, priv->in_transaction);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 	}
@@ -123,7 +132,7 @@ tracker_db_interface_sqlite_finalize (GObject *object)
 	g_free (priv->filename);
 
 	g_hash_table_destroy (priv->statements);
-	g_hash_table_destroy (priv->procedures);
+	g_hash_table_unref (priv->procedures);
 
 	g_slist_foreach (priv->function_data, (GFunc) g_free, NULL);
 	g_slist_free (priv->function_data);
@@ -150,6 +159,11 @@ tracker_db_interface_sqlite_class_init (TrackerDBInterfaceSqliteClass *class)
 							      "DB filename",
 							      NULL,
 							      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+	/* Override properties from interface */
+	g_object_class_override_property (object_class,
+					  PROP_IN_TRANSACTION,
+					  "in-transaction");
+
 	g_type_class_add_private (object_class,
 				  sizeof (TrackerDBInterfaceSqlitePrivate));
 }
@@ -297,27 +311,26 @@ internal_sqlite3_function (sqlite3_context *context,
 }
 
 static void
-tracker_db_interface_sqlite_add_procedure (TrackerDBInterface *db_interface,
-					   const gchar        *procedure_name,
-					   const gchar        *procedure)
+tracker_db_interface_sqlite_set_procedure_table (TrackerDBInterface *db_interface,
+						 GHashTable         *procedure_table)
 {
 	TrackerDBInterfaceSqlitePrivate *priv;
 
 	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (db_interface);
-
-	g_hash_table_insert (priv->procedures,
-			     g_strdup (procedure_name),
-			     g_strdup (procedure));
+	priv->procedures = g_hash_table_ref (procedure_table);
 }
 
 static TrackerDBResultSet *
-create_result_set_from_stmt (sqlite3_stmt *stmt)
+create_result_set_from_stmt (TrackerDBInterfaceSqlite  *interface,
+			     sqlite3_stmt              *stmt,
+			     GError                   **error)
 {
-	TrackerDBResultSet *result_set;
+	TrackerDBInterfaceSqlitePrivate *priv;
+	TrackerDBResultSet *result_set = NULL;
 	gint columns, result, busy_count;
 
+	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (interface);
 	columns = sqlite3_column_count (stmt);
-	result_set = _tracker_db_result_set_new (columns);
 	result = SQLITE_OK;
 
 	while (result == SQLITE_OK  ||
@@ -346,9 +359,36 @@ create_result_set_from_stmt (sqlite3_stmt *stmt)
 
 			break;
 		case SQLITE_ROW:
+			if (G_UNLIKELY (!result_set)) {
+				result_set = _tracker_db_result_set_new (columns);
+			}
+
 			add_row (result_set, stmt);
 			break;
 		}
+	}
+
+	if (result != SQLITE_DONE) {
+		if (result == SQLITE_CORRUPT) {
+			g_critical ("Database %s is corrupt. Can't live without it", priv->filename);
+			g_assert_not_reached ();
+		}
+
+		if (!error) {
+			g_warning (sqlite3_errmsg (priv->db));
+		} else {
+			g_set_error (error,
+				     TRACKER_DB_INTERFACE_ERROR,
+				     TRACKER_DB_QUERY_ERROR,
+				     sqlite3_errmsg (priv->db));
+		}
+
+		/* If there was an error, result set may be invalid or incomplete */
+		if (result_set) {
+			g_object_unref (result_set);
+		}
+
+		return NULL;
 	}
 
 	return result_set;
@@ -390,9 +430,10 @@ get_stored_stmt (TrackerDBInterfaceSqlite *db_interface,
 }
 
 static TrackerDBResultSet *
-tracker_db_interface_sqlite_execute_procedure (TrackerDBInterface *db_interface,
-					       const gchar        *procedure_name,
-					       va_list             args)
+tracker_db_interface_sqlite_execute_procedure (TrackerDBInterface  *db_interface,
+					       GError             **error,
+					       const gchar         *procedure_name,
+					       va_list              args)
 {
 	TrackerDBInterfaceSqlitePrivate *priv;
 	sqlite3_stmt *stmt;
@@ -405,20 +446,21 @@ tracker_db_interface_sqlite_execute_procedure (TrackerDBInterface *db_interface,
 	n_args = 1;
 
 	while ((str = va_arg (args, gchar *)) != NULL) {
-		sqlite3_bind_text (stmt, n_args, str, -1, SQLITE_TRANSIENT);
+		sqlite3_bind_text (stmt, n_args, str, -1, SQLITE_STATIC);
 		n_args++;
 	}
 
 	/* Just panic if the number of arguments don't match */
 	g_assert (n_args != stmt_args);
 
-	return create_result_set_from_stmt (stmt);
+	return create_result_set_from_stmt (db_interface, stmt, error);
 }
 
 static TrackerDBResultSet *
-tracker_db_interface_sqlite_execute_procedure_len (TrackerDBInterface *db_interface,
-						   const gchar        *procedure_name,
-						   va_list             args)
+tracker_db_interface_sqlite_execute_procedure_len (TrackerDBInterface  *db_interface,
+						   GError             **error,
+						   const gchar         *procedure_name,
+						   va_list              args)
 {
 	TrackerDBInterfaceSqlitePrivate *priv;
 	sqlite3_stmt *stmt;
@@ -435,10 +477,10 @@ tracker_db_interface_sqlite_execute_procedure_len (TrackerDBInterface *db_interf
 
 		if (len == -1) {
 			/* Assume we're dealing with strings */
-			sqlite3_bind_text (stmt, n_args, str, len, SQLITE_TRANSIENT);
+			sqlite3_bind_text (stmt, n_args, str, len, SQLITE_STATIC);
 		} else {
 			/* Deal with it as a blob */
-			sqlite3_bind_blob (stmt, n_args, str, len, SQLITE_TRANSIENT);
+			sqlite3_bind_blob (stmt, n_args, str, len, SQLITE_STATIC);
 		}
 
 		n_args++;
@@ -447,12 +489,13 @@ tracker_db_interface_sqlite_execute_procedure_len (TrackerDBInterface *db_interf
 	/* Just panic if the number of arguments don't match */
 	g_assert (n_args != stmt_args);
 
-	return create_result_set_from_stmt (stmt);
+	return create_result_set_from_stmt (db_interface, stmt, error);
 }
 
 static TrackerDBResultSet *
-tracker_db_interface_sqlite_execute_query (TrackerDBInterface *db_interface,
-					   const gchar        *query)
+tracker_db_interface_sqlite_execute_query (TrackerDBInterface  *db_interface,
+					   GError             **error,
+					   const gchar         *query)
 {
 	TrackerDBInterfaceSqlitePrivate *priv;
 	TrackerDBResultSet *result_set;
@@ -463,10 +506,14 @@ tracker_db_interface_sqlite_execute_query (TrackerDBInterface *db_interface,
 	sqlite3_prepare_v2 (priv->db, query, -1, &stmt, NULL);
 
 	if (!stmt) {
+		g_set_error (error,
+			     TRACKER_DB_INTERFACE_ERROR,
+			     TRACKER_DB_QUERY_ERROR,
+			     sqlite3_errmsg (priv->db));
 		return NULL;
 	}
 
-	result_set = create_result_set_from_stmt (stmt);
+	result_set = create_result_set_from_stmt (db_interface, stmt, error);
 	sqlite3_finalize (stmt);
 
 	return result_set;
@@ -475,7 +522,7 @@ tracker_db_interface_sqlite_execute_query (TrackerDBInterface *db_interface,
 static void
 tracker_db_interface_sqlite_iface_init (TrackerDBInterfaceIface *iface)
 {
-	iface->add_procedure = tracker_db_interface_sqlite_add_procedure;
+	iface->set_procedure_table = tracker_db_interface_sqlite_set_procedure_table;
 	iface->execute_procedure = tracker_db_interface_sqlite_execute_procedure;
 	iface->execute_procedure_len = tracker_db_interface_sqlite_execute_procedure_len;
 	iface->execute_query = tracker_db_interface_sqlite_execute_query;

@@ -939,7 +939,7 @@ tracker_dbus_search_query (TrackerDBusSearch  *object,
                                                 FALSE);
 		}
 
-		result_set = tracker_db_interface_execute_query (db_con->db, query_translated);
+		result_set = tracker_db_interface_execute_query (db_con->db, NULL, query_translated);
 		g_free (query_translated);
 	}
 

@@ -38,6 +38,12 @@ G_BEGIN_DECLS
 
 #define TRACKER_TYPE_DB_BLOB                (tracker_db_blob_get_type ())
 
+#define TRACKER_DB_INTERFACE_ERROR          (tracker_db_interface_error_quark ())
+
+typedef enum {
+	TRACKER_DB_QUERY_ERROR,
+	TRACKER_DB_CORRUPT
+} TrackerDBInterfaceError;
 
 typedef struct TrackerDBInterface TrackerDBInterface;
 typedef struct TrackerDBInterfaceIface TrackerDBInterfaceIface;
@@ -47,17 +53,19 @@ typedef struct TrackerDBResultSetClass TrackerDBResultSetClass;
 struct TrackerDBInterfaceIface {
 	GTypeInterface iface;
 
-	void                 (* add_procedure)         (TrackerDBInterface *interface,
-							const gchar        *procedure_name,
-							const gchar        *procedure);
-	TrackerDBResultSet * (* execute_procedure)     (TrackerDBInterface *interface,
-							const gchar        *procedure,
-							va_list             args);
-	TrackerDBResultSet * (* execute_procedure_len) (TrackerDBInterface *interface,
-							const gchar        *procedure,
-							va_list             args);
-	TrackerDBResultSet * (* execute_query)         (TrackerDBInterface *interface,
-							const gchar        *query);
+	void                 (* set_procedure_table)   (TrackerDBInterface  *interface,
+							GHashTable          *procedure_table);
+	TrackerDBResultSet * (* execute_procedure)     (TrackerDBInterface  *interface,
+							GError             **error,
+							const gchar         *procedure,
+							va_list              args);
+	TrackerDBResultSet * (* execute_procedure_len) (TrackerDBInterface  *interface,
+							GError             **error,
+							const gchar         *procedure,
+							va_list              args);
+	TrackerDBResultSet * (* execute_query)         (TrackerDBInterface  *interface,
+							GError             **error,
+							const gchar         *query);
 };
 
 struct TrackerDBResultSet {
@@ -69,34 +77,45 @@ struct TrackerDBResultSetClass {
 };
 
 
+GQuark tracker_db_interface_error_quark (void);
+
 GType tracker_db_interface_get_type (void);
 GType tracker_db_result_set_get_type (void);
 GType tracker_db_blob_get_type (void);
 
 
 /* Functions to create queries/procedures */
-TrackerDBResultSet *    tracker_db_interface_execute_vquery     (TrackerDBInterface   *interface,
-								 const gchar          *query,
-								 va_list               args);
-TrackerDBResultSet *    tracker_db_interface_execute_query      (TrackerDBInterface   *interface,
-								 const gchar          *query,
-								 ...) G_GNUC_PRINTF (2, 3);
-void                    tracker_db_interface_add_procedure      (TrackerDBInterface   *interface,
-								 const gchar          *procedure_name,
-								 const gchar          *procedure);
-TrackerDBResultSet *    tracker_db_interface_execute_vprocedure (TrackerDBInterface   *interface,
-								 const gchar          *procedure,
-								 va_list               args);
-TrackerDBResultSet *    tracker_db_interface_execute_procedure  (TrackerDBInterface   *interface,
-								 const gchar          *procedure,
-								 ...) G_GNUC_NULL_TERMINATED;
+TrackerDBResultSet *    tracker_db_interface_execute_vquery      (TrackerDBInterface   *interface,
+								  GError             **error,
+								  const gchar          *query,
+								  va_list               args);
+TrackerDBResultSet *    tracker_db_interface_execute_query       (TrackerDBInterface   *interface,
+								  GError             **error,
+								  const gchar          *query,
+								  ...) G_GNUC_PRINTF (3, 4);
+void                    tracker_db_interface_set_procedure_table (TrackerDBInterface   *interface,
+								  GHashTable           *procedure_table);
+TrackerDBResultSet *    tracker_db_interface_execute_vprocedure  (TrackerDBInterface   *interface,
+								  GError             **error,
+								  const gchar          *procedure,
+								  va_list               args);
+TrackerDBResultSet *    tracker_db_interface_execute_procedure   (TrackerDBInterface   *interface,
+								  GError             **error,
+								  const gchar          *procedure,
+								  ...) G_GNUC_NULL_TERMINATED;
 
 TrackerDBResultSet *    tracker_db_interface_execute_vprocedure_len (TrackerDBInterface   *interface,
+								     GError             **error,
 								     const gchar          *procedure,
 								     va_list               args);
 TrackerDBResultSet *    tracker_db_interface_execute_procedure_len  (TrackerDBInterface   *interface,
+								     GError             **error,
 								     const gchar          *procedure,
 								     ...) G_GNUC_NULL_TERMINATED;
+
+gboolean                tracker_db_interface_start_transaction      (TrackerDBInterface   *interface);
+gboolean                tracker_db_interface_end_transaction        (TrackerDBInterface   *interface);
+
 
 /* Semi private TrackerDBResultSet functions */
 TrackerDBResultSet *      _tracker_db_result_set_new           (guint               cols);

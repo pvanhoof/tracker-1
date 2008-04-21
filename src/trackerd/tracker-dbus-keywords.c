@@ -603,7 +603,7 @@ tracker_dbus_keywords_search (TrackerDBusKeywords  *object,
 
 	tracker_debug (query);
 
-	result_set = tracker_db_interface_execute_query (db_con->db, query);
+	result_set = tracker_db_interface_execute_query (db_con->db, NULL, query);
 	*values = tracker_dbus_query_result_to_strv (result_set, NULL);
 
 	if (result_set) {

@@ -64,6 +64,7 @@
 
 extern Tracker *tracker;
 
+static GHashTable *prepared_queries;
 //static GMutex *sequence_mutex;
 
 gboolean use_nfs_safe_locking = FALSE;
@@ -393,13 +394,15 @@ unlock_connection (DBConnection *db_con)
 }
 
 
-static gboolean
-tracker_db_initialize (TrackerDBInterface *db)
+gboolean
+tracker_db_initialize (void)
 {
 	FILE	 *file;
 	char	 *sql_file;
 	GTimeVal *tv;
 	int i = 0;
+
+	prepared_queries = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 
 	tracker_log ("Loading prepared queries...");
 
@@ -445,7 +448,7 @@ tracker_db_initialize (TrackerDBInterface *db)
 			name = buffer;
 
 			//tracker_log ("installing query %s with sql %s", name, query);
-			tracker_db_interface_add_procedure (db, name, query);
+			g_hash_table_insert (prepared_queries, g_strdup (name), g_strdup (query));
 		} else {
 			continue;
 		}
@@ -549,7 +552,7 @@ open_user_db (const char *name, gboolean *create_table)
 	}
 
 	db = tracker_db_interface_sqlite_new (dbname);
-	tracker_db_initialize (db);
+	tracker_db_interface_set_procedure_table (db, prepared_queries);
 	g_free (dbname);
 
 	return db;
@@ -576,7 +579,7 @@ open_db (const char *name, gboolean *create_table)
 	}
 
 	db = tracker_db_interface_sqlite_new (dbname);
-	tracker_db_initialize (db);
+	tracker_db_interface_set_procedure_table (db, prepared_queries);
 	g_free (dbname);
 
 	return db;
@@ -777,25 +780,17 @@ tracker_db_close_all (DBConnection *db_con)
 void
 tracker_db_start_index_transaction (DBConnection *db_con)
 {
-	DBConnection *tmp;
 	DBConnection *email_db_con = db_con->emails;
 
-
-	tmp = db_con->common;
-	if (!tmp->in_transaction) tracker_db_start_transaction (tmp);
-	
+	tracker_db_interface_start_transaction (db_con->common->db);
 
 	/* files */
-	if (!db_con->in_transaction) tracker_db_start_transaction (db_con);
-
-	tmp = db_con->blob;
-	if (!tmp->in_transaction) tracker_db_start_transaction (tmp);
+	tracker_db_interface_start_transaction (db_con->db);
+	tracker_db_interface_start_transaction (db_con->blob->db);
 
 	/* emails */
-	if (!email_db_con->in_transaction) tracker_db_start_transaction (email_db_con);
-
-	tmp = email_db_con->blob;
-	if (!tmp->in_transaction) tracker_db_start_transaction (tmp);
+	tracker_db_interface_start_transaction (email_db_con->db);
+	tracker_db_interface_start_transaction (email_db_con->blob->db);
 }
 
 
@@ -803,34 +798,17 @@ tracker_db_start_index_transaction (DBConnection *db_con)
 void
 tracker_db_end_index_transaction (DBConnection *db_con)
 {
-	DBConnection *tmp;
 	DBConnection *email_db_con = db_con->emails;
 
-	tmp = db_con->common;
-	if (tmp->in_transaction) {
-		tracker_db_end_transaction (tmp);
-	}
+	tracker_db_interface_end_transaction (db_con->common->db);
 
 	/* files */
-	if (db_con->in_transaction) {
-		tracker_db_end_transaction (db_con);
-	}
-
-	tmp = db_con->blob;
-	if (tmp->in_transaction) {
-		tracker_db_end_transaction (tmp);
-	}
+	tracker_db_interface_end_transaction (db_con->db);
+	tracker_db_interface_end_transaction (db_con->blob->db);
 
 	/* emails */
-	if (email_db_con->in_transaction) {
-		tracker_db_end_transaction (email_db_con);
-	}
-
-	tmp = email_db_con->blob;
-	if (tmp->in_transaction) {
-		tracker_db_end_transaction (tmp);
-	}
-
+	tracker_db_interface_end_transaction (email_db_con->db);
+	tracker_db_interface_end_transaction (email_db_con->blob->db);
 }
 
 
@@ -866,7 +844,7 @@ tracker_db_connect (void)
 
 	db_con = g_new0 (DBConnection, 1);
 	db_con->db = tracker_db_interface_sqlite_new (dbname);
-	tracker_db_initialize (db_con->db);
+	tracker_db_interface_set_procedure_table (db_con->db, prepared_queries);
 	g_free (dbname);
 
 	db_con->db_type = TRACKER_DB_TYPE_DATA;
@@ -1077,8 +1055,7 @@ tracker_db_refresh_all (DBConnection *db_con)
 	DBConnection *cache = db_con->cache;
 	DBConnection *emails = db_con->emails;
 
-	if (cache && cache->in_transaction) {
-		tracker_db_end_transaction (cache);
+	if (cache && tracker_db_interface_end_transaction (cache->db)) {
 		cache_trans = TRUE;
 	}
 
@@ -1098,7 +1075,7 @@ tracker_db_refresh_all (DBConnection *db_con)
 	open_email_db (emails);
 		
 	if (cache_trans) {
-		tracker_db_start_transaction (cache);
+		tracker_db_interface_start_transaction (cache->db);
 	}
 
 
@@ -1110,8 +1087,7 @@ tracker_db_refresh_email (DBConnection *db_con)
 	gboolean cache_trans = FALSE;
 	DBConnection *cache = db_con->cache;
 
-	if (cache && cache->in_transaction) {
-		tracker_db_end_transaction (cache);
+	if (cache && tracker_db_interface_end_transaction (cache->db)) {
 		cache_trans = TRUE;
 	}
 
@@ -1128,10 +1104,8 @@ tracker_db_refresh_email (DBConnection *db_con)
 	open_email_db (emails);
 
 	if (cache_trans) {
-		tracker_db_start_transaction (cache);
+		tracker_db_interface_start_transaction (cache->db);
 	}
-
-	
 }
 
 DBConnection *
@@ -1156,7 +1130,7 @@ tracker_db_connect_cache (void)
 
 	db_con = g_new0 (DBConnection, 1);
 	db_con->db = tracker_db_interface_sqlite_new (dbname);
-	tracker_db_initialize (db_con->db);
+	tracker_db_interface_set_procedure_table (db_con->db, prepared_queries);
 	g_free (dbname);
 
 	db_con->db_type = TRACKER_DB_TYPE_CACHE;
@@ -1202,7 +1176,7 @@ tracker_db_connect_emails (void)
 
 	db_con = g_new0 (DBConnection, 1);
 	db_con->db = tracker_db_interface_sqlite_new (dbname);
-	tracker_db_initialize (db_con->db);
+	tracker_db_interface_set_procedure_table (db_con->db, prepared_queries);
 	g_free (dbname);
 
 
@@ -1396,10 +1370,13 @@ tracker_db_exec_no_reply (DBConnection *db_con, const char *query, ...)
 	lock_db();
 
 	va_start (args, query);
-	result_set = tracker_db_interface_execute_vquery (db_con->db, query, args);
+	result_set = tracker_db_interface_execute_vquery (db_con->db, NULL, query, args);
 	va_end (args);
 
-	if (result_set) {
+	/* This function is meant for queries that don't return any result set,
+	 * if it's passed some query that returns a result set, just discard it.
+	 */
+	if (G_UNLIKELY (result_set)) {
 		g_object_unref (result_set);
 	}
 
@@ -1438,7 +1415,7 @@ tracker_exec_proc (DBConnection *db_con, const char *procedure, ...)
 	va_list args;
 
 	va_start (args, procedure);
-	result_set = tracker_db_interface_execute_vprocedure (db_con->db, procedure, args);
+	result_set = tracker_db_interface_execute_vprocedure (db_con->db, NULL, procedure, args);
 	va_end (args);
 
 	return result_set;
@@ -1452,7 +1429,7 @@ tracker_exec_proc_no_reply (DBConnection *db_con, const char *procedure, ...)
 	va_list args;
 
 	va_start (args, procedure);
-	result_set = tracker_db_interface_execute_vprocedure (db_con->db, procedure, args);
+	result_set = tracker_db_interface_execute_vprocedure (db_con->db, NULL, procedure, args);
 	va_end (args);
 
 	if (result_set) {
@@ -1562,7 +1539,7 @@ tracker_update_db (DBConnection *db_con)
 	int i;
 
 	result_set = tracker_db_interface_execute_query
-		(db_con->db, "SELECT OptionValue FROM Options WHERE OptionKey = 'DBVersion'");
+		(db_con->db, NULL, "SELECT OptionValue FROM Options WHERE OptionKey = 'DBVersion'");
 
 	if (!result_set) {
 		return FALSE;
@@ -1597,9 +1574,9 @@ tracker_update_db (DBConnection *db_con)
 		load_sql_file (db_con, "sqlite-service-types.sql");
 		load_sql_file (db_con, "sqlite-metadata.sql");
 
-		tracker_db_interface_execute_query (db_con->db,
+		tracker_db_interface_execute_query (db_con->db, NULL,
 						    "update Options set OptionValue = '16' where OptionKey = 'DBVersion'");
-		tracker_db_interface_execute_query (db_con->db, "ANALYZE");
+		tracker_db_interface_execute_query (db_con->db, NULL, "ANALYZE");
 	}
 
 	/* apply and table changes for each version update */
@@ -1692,7 +1669,7 @@ tracker_db_get_file_contents_words (DBConnection *db_con, guint32 id, GHashTable
 	str_file_id = tracker_uint_to_str (id);
 
 	lock_connection (db_con);
-	result_set = tracker_db_interface_execute_procedure (db_con->db, "GetAllContents", str_file_id, NULL);
+	result_set = tracker_db_interface_execute_procedure (db_con->db, NULL, "GetAllContents", str_file_id, NULL);
 	unlock_connection (db_con);
 
 	g_free (str_file_id);
@@ -1796,6 +1773,7 @@ save_full_text_bytes (DBConnection *blob_db_con, const char *str_file_id, GByteA
 	}
 
 	tracker_db_interface_execute_procedure_len (blob_db_con->db,
+						    NULL,
 						    "SaveServiceContents",
 						    str_file_id, -1,
 						    def->id, -1,
@@ -1832,6 +1810,7 @@ save_full_text (DBConnection *blob_db_con, const char *str_file_id, const char *
 	}
 
 	tracker_db_interface_execute_procedure_len (blob_db_con->db,
+						    NULL,
 						    "SaveServiceContents",
 						    str_file_id, -1,
 						    def->id, -1,
@@ -2025,51 +2004,11 @@ tracker_db_save_file_contents (DBConnection *db_con, GHashTable *index_table, GH
 void
 tracker_db_clear_temp (DBConnection *db_con)
 {
-	tracker_db_start_transaction (db_con->cache);
+	tracker_db_interface_start_transaction (db_con->cache->db);
 	tracker_db_exec_no_reply (db_con->cache, "DELETE FROM FilePending");
 	tracker_db_exec_no_reply (db_con->cache, "DELETE FROM FileWatches");
-	tracker_db_end_transaction (db_con->cache);
+	tracker_db_interface_end_transaction (db_con->cache->db);
 }
-
-
-
-gboolean
-tracker_db_start_transaction (DBConnection *db_con)
-{
-	//if (db_con->in_transaction) {
-	//	tracker_error ("Error - cannot start transaction - database is already in a transaction");
-	//}
-
-	if (!tracker_db_exec_no_reply (db_con, "BEGIN TRANSACTION")) {
-		tracker_error ("could not start transaction");
-		return FALSE;
-	}
-
-	db_con->in_transaction = TRUE;
-	return TRUE;
-}
-
-
-gboolean
-tracker_db_end_transaction (DBConnection *db_con)
-{
-
-	if (!db_con->in_transaction) {
-		tracker_error ("Error - cannot end transaction. Rolling back...");
-		return FALSE;
-	}
-
-	db_con->in_transaction = FALSE;
-
-	if (!tracker_db_exec_no_reply (db_con, "COMMIT")) {
-		tracker_error ("could not commit transaction");
-		tracker_db_exec_no_reply (db_con, "ROLLBACK");		
-		return FALSE;
-	}	
-	
-	return TRUE;
-}
-
 
 void
 tracker_db_check_tables (DBConnection *db_con)
@@ -2125,7 +2064,7 @@ tracker_db_search_text (DBConnection *db_con, const char *service, const char *s
 
 		if (count > limit) count = limit;
 	} else {
-		tracker_db_start_transaction (db_con);
+		tracker_db_interface_start_transaction (db_con->db);
 		tracker_exec_proc (db_con, "DeleteSearchResults1", NULL);
 	}
 
@@ -2212,7 +2151,7 @@ tracker_db_search_text (DBConnection *db_con, const char *service, const char *s
 	}
 
 	if (save_results) {
-		tracker_db_end_transaction (db_con);
+		tracker_db_interface_end_transaction (db_con->db);
 	}
 
 	/* delete duds */
@@ -3648,14 +3587,14 @@ tracker_db_delete_directory (DBConnection *db_con, guint32 file_id, const char *
 
 
 	/* delete all files underneath directory 
-	tracker_db_start_transaction (db_con);
+	tracker_db_interface_start_transaction (db_con->db);
 	tracker_exec_proc (db_con, "DeleteService2", uri, NULL);
 	tracker_exec_proc (db_con, "DeleteService3", uri_prefix, NULL);
 	tracker_exec_proc (db_con, "DeleteService4", uri, NULL);
 	tracker_exec_proc (db_con, "DeleteService5", uri_prefix, NULL);
 	tracker_exec_proc (db_con, "DeleteService8", uri, uri_prefix, NULL);
 	tracker_exec_proc (db_con, "DeleteService10", uri, uri_prefix, NULL);
-	tracker_db_end_transaction (db_con);
+	tracker_db_interface_end_transaction (db_con->db);
 	*/
 
 	/* delete directory */
@@ -3785,7 +3724,7 @@ tracker_db_get_pending_files (DBConnection *db_con)
 
 	tracker_db_exec_no_reply (cache, "DELETE FROM FilePending WHERE ID IN (SELECT ID FROM FileTemp)");
 
-	return tracker_db_interface_execute_query (cache->db, "SELECT FileID, FileUri, Action, MimeType, IsDir, IsNew, RefreshEmbedded, RefreshContents, ServiceTypeID FROM FileTemp ORDER BY ID");
+	return tracker_db_interface_execute_query (cache->db, NULL, "SELECT FileID, FileUri, Action, MimeType, IsDir, IsNew, RefreshEmbedded, RefreshContents, ServiceTypeID FROM FileTemp ORDER BY ID");
 }
 
 
@@ -3814,7 +3753,7 @@ tracker_db_get_pending_metadata (DBConnection *db_con)
 	tracker_db_exec_no_reply (cache, str);
 	tracker_db_exec_no_reply (cache, "DELETE FROM FilePending WHERE ID IN (SELECT ID FROM MetadataTemp)");
 
-	return tracker_db_interface_execute_query (cache->db, "SELECT FileID, FileUri, Action, MimeType, IsDir, IsNew, RefreshEmbedded, RefreshContents, ServiceTypeID FROM MetadataTemp ORDER BY ID");
+	return tracker_db_interface_execute_query (cache->db, NULL, "SELECT FileID, FileUri, Action, MimeType, IsDir, IsNew, RefreshEmbedded, RefreshContents, ServiceTypeID FROM MetadataTemp ORDER BY ID");
 }
 
 
@@ -3931,7 +3870,7 @@ tracker_db_get_files_by_mime (DBConnection *db_con, char **mimes, int n, int off
 
 	tracker_debug ("getting files with mimes using sql %s", query);
 
-	result_set = tracker_db_interface_execute_query (db_con->db, query);
+	result_set = tracker_db_interface_execute_query (db_con->db, NULL, query);
 
 	g_free (query);
 
@@ -4291,7 +4230,7 @@ tracker_db_move_file (DBConnection *db_con, const char *moved_from_uri, const ch
 	if (id == 0) {
 		tracker_debug ("WARNING: original file %s not found in DB", moved_from_uri);
 		tracker_db_insert_pending_file (db_con, id, moved_to_uri,  NULL, "unknown", 0, TRACKER_ACTION_WRITABLE_FILE_CLOSED, FALSE, TRUE, -1);
-		tracker_db_end_transaction (db_con);
+		tracker_db_interface_end_transaction (db_con->db);
 		return;
 	}
 
@@ -5312,7 +5251,7 @@ tracker_db_integrity_check (DBConnection *db_con)
 	TrackerDBResultSet *result_set;
 	gboolean integrity_check = TRUE;
 
-	result_set = tracker_db_interface_execute_query (db_con->db, "pragma integrity_check;");
+	result_set = tracker_db_interface_execute_query (db_con->db, NULL, "pragma integrity_check;");
 
 	if (!result_set) {
 		integrity_check = FALSE;

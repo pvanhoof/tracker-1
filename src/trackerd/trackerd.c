@@ -840,12 +840,10 @@ main (gint argc, gchar *argv[])
 	/* Set thread safe DB connection */
 	tracker_db_thread_init ();
 
-#if 0
-        if (!tracker_db_initialize (tracker->data_dir)) {
+        if (!tracker_db_initialize ()) {
 		tracker_error ("Could not initialize database engine!");
 		return EXIT_FAILURE;
         }
-#endif
 
 	/* FIXME: is this actually necessary? */
 	db_con = tracker_db_connect_cache ();

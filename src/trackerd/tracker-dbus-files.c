@@ -991,7 +991,7 @@ tracker_dbus_files_get_metadata_for_files_in_folder (TrackerDBusFiles  *object,
 	g_free (uri_filtered);
 
 	query = g_string_free (sql, FALSE);
-	result_set = tracker_db_interface_execute_query (db_con->db, query);
+	result_set = tracker_db_interface_execute_query (db_con->db, NULL, query);
 	*values = tracker_dbus_query_result_to_ptr_array (result_set);
 
 	if (result_set) {

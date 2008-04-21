@@ -659,14 +659,14 @@ process_index_applications (Tracker *tracker)
         db_con = tracker->index_db;
 
         tracker_db_start_index_transaction (db_con);
-        tracker_db_start_transaction (db_con->cache);
+        tracker_db_interface_start_transaction (db_con->cache->db);
         
         tracker_applications_add_service_directories ();
         
         list = tracker_get_service_dirs ("Applications");
         process_directory_list (tracker, list, FALSE);
 
-        tracker_db_end_transaction (db_con->cache);
+        tracker_db_interface_end_transaction (db_con->cache->db);
         
         g_slist_free (list);
 }
@@ -816,7 +816,7 @@ process_index_files (Tracker *tracker)
                 return;
         }
         
-        tracker_db_start_transaction (db_con->cache);
+        tracker_db_interface_start_transaction (db_con->cache->db);
         
         /* Index watched dirs first */
         process_watch_directories (tracker, index_include);
@@ -845,7 +845,7 @@ process_index_files (Tracker *tracker)
                 crawl_directories = NULL;
         }
         
-        tracker_db_end_transaction (db_con->cache);
+        tracker_db_interface_end_transaction (db_con->cache->db);
 
         /* Signal progress */
         g_signal_emit_by_name (object, "index-progress", 
@@ -922,7 +922,7 @@ process_index_crawl_files (Tracker *tracker)
                 return;
         }
         
-        tracker_db_start_transaction (db_con->cache);
+        tracker_db_interface_start_transaction (db_con->cache->db);
         
         process_index_crawl_add_directories (tracker, crawl_directory_roots);
         
@@ -946,7 +946,7 @@ process_index_crawl_files (Tracker *tracker)
                 crawl_directories = NULL;
         }
         
-        tracker_db_end_transaction (db_con->cache);
+        tracker_db_interface_end_transaction (db_con->cache->db);
 }
 
 static void
@@ -977,9 +977,9 @@ process_index_conversations (Tracker *tracker)
                 db_con = tracker->index_db;
 
                 tracker_log ("Starting chat log indexing...");
-                tracker_db_start_transaction (db_con->cache);
+                tracker_db_interface_start_transaction (db_con->cache->db);
                 process_directory_list (tracker, list, TRUE);
-                tracker_db_end_transaction (db_con->cache);
+                tracker_db_interface_end_transaction (db_con->cache->db);
                 g_slist_free (list);
         }
         
@@ -1005,9 +1005,9 @@ process_index_webhistory (Tracker *tracker)
                 tracker_log ("Starting Firefox web history indexing...");
                 tracker_add_service_path ("WebHistory", firefox_dir);
                 
-                tracker_db_start_transaction (db_con->cache);		
+                tracker_db_interface_start_transaction (db_con->cache->db);
                 process_directory_list (tracker, list, TRUE);
-                tracker_db_end_transaction (db_con->cache);
+                tracker_db_interface_end_transaction (db_con->cache->db);
                 g_slist_free (list);
         }
 
@@ -1056,7 +1056,7 @@ process_index_emails (Tracker *tracker)
                 tracker_email_add_service_directories (db_con->emails);
                 tracker_log ("Starting email indexing...");
                 
-                tracker_db_start_transaction (db_con->cache);
+                tracker_db_interface_start_transaction (db_con->cache->db);
 
 		name = tracker_email_get_name ();
 
@@ -1068,7 +1068,7 @@ process_index_emails (Tracker *tracker)
                         g_slist_free (list);
                 }
                 
-                tracker_db_end_transaction (db_con->cache);
+                tracker_db_interface_end_transaction (db_con->cache->db);
         }
 }
 
@@ -1192,13 +1192,13 @@ process_files (Tracker *tracker)
                 
                 tracker_log ("Updating database stats, please wait...");
                 
-                tracker_db_start_transaction (db_con);
+                tracker_db_interface_start_transaction (db_con->db);
                 tracker_db_exec_no_reply (db_con, "ANALYZE");
-                tracker_db_end_transaction (db_con);
+                tracker_db_interface_end_transaction (db_con->db);
                 
-                tracker_db_start_transaction (db_con->emails);
+                tracker_db_interface_start_transaction (db_con->emails->db);
                 tracker_db_exec_no_reply (db_con->emails, "ANALYZE");
-                tracker_db_end_transaction (db_con->emails);
+                tracker_db_interface_end_transaction (db_con->emails->db);
                 
                 tracker_log ("Finished optimizing, waiting for new events...");
         }
@@ -1528,7 +1528,9 @@ tracker_process_files (gpointer data)
                           tracker);
 
         /* Start processing */
+	g_print ("oooye!\n");
 	g_mutex_lock (tracker->files_signal_mutex);
+	g_print ("oooye2!\n");
 
         /* Signal state change */
         g_signal_emit_by_name (object, 

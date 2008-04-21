@@ -1,3 +1,25 @@
+2008-04-21  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/trackerd/tracker-db-interface.[ch]:
+	* src/trackerd/tracker-db-interface-sqlite.c: Implement API to 
+	start/end a transaction. Do not allocate (and later free) any
+	memory if a stmt doesn't return any rows. Add a GError parameter to
+	all query methods.
+
+	* src/trackerd/tracker-db-sqlite.h: do forward declaration for 
+	DBConnection, so it can hold pointers to structures of the same type 
+	instead of just gpointers.
+
+	* src/trackerd/tracker-db-sqlite.c:
+	* src/trackerd/tracker-dbus-files.c:
+	* src/trackerd/tracker-dbus-keywords.c:
+	* src/trackerd/tracker-dbus-metadata.c:
+	* src/trackerd/tracker-dbus-search.c:
+	* src/trackerd/tracker-email-evolution.c:
+	* src/trackerd/tracker-email-modest.c:
+	* src/trackerd/tracker-process-files.c:
+	* src/trackerd/trackerd.c: Update to use new API.
+
 2008-04-21  Martyn Russell  <martyn@imendio.com>
 
 	Added DBus introspection support for the DBus API and reworked the

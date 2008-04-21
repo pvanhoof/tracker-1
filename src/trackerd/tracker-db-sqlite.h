@@ -38,9 +38,9 @@ typedef enum {
 
 
 
+typedef struct DBConnection DBConnection;
 
-
-typedef struct {
+struct DBConnection {
 	TrackerDBInterface *db;
 	TrackerDBType   db_type;
 	DBCategory	db_category;
@@ -54,19 +54,17 @@ typedef struct {
 	guint           in_error : 1;
 
 	/* pointers to other database connection objects */
-	gpointer	data;
-	gpointer	common;
-	gpointer	files;
-	gpointer	index;
-	gpointer	emails;
-	gpointer	others;
-	gpointer	blob;
-	gpointer	cache;
-	gpointer	user;
+	DBConnection	*data;
+	DBConnection	*common;
+	DBConnection	*files;
+	DBConnection	*index;
+	DBConnection	*emails;
+	DBConnection	*others;
+	DBConnection	*blob;
+	DBConnection	*cache;
+	DBConnection	*user;
 	gpointer	word_index;
-
-
-} DBConnection;
+};
 
 
 char **		tracker_db_get_row		(char ***result, int num);
@@ -78,6 +76,7 @@ int		tracker_get_field_count		(char ***result);
 
 gboolean	tracker_db_needs_setup		(void);
 gboolean 	tracker_db_needs_data 		(void);
+gboolean        tracker_db_initialize           (void);
 void		tracker_db_thread_init		(void);
 void		tracker_db_thread_end		(void);
 void		tracker_db_close		(DBConnection *db_con);

@@ -281,7 +281,7 @@ tracker_email_watch_emails (DBConnection *db_con)
 	if (tracker_db_get_option_int (db_con->common, "InitialIndex") == 1) {
 		char *sql = g_strdup_printf ("update Services set mtime = 0 where path like '%s/.modest/%s'", g_get_home_dir (), "%");
 
-		tracker_db_interface_execute_query (db_con->db, sql);
+		tracker_db_interface_execute_query (db_con->db, NULL, sql);
 		g_free (sql);
 	}
 

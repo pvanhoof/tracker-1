@@ -20,8 +20,14 @@
 #include "tracker.h"
 #include <string.h>
 
+#include "tracker-dbus-daemon-glue.h"
+#include "tracker-dbus-files-glue.h"
+#include "tracker-dbus-keywords-glue.h"
+#include "tracker-dbus-metadata-glue.h"
+#include "tracker-dbus-search-glue.h"
+
 #define TRACKER_SERVICE                 "org.freedesktop.Tracker"
-#define TRACKER_OBJECT			"/org/freedesktop/tracker"
+#define TRACKER_OBJECT			"/org/freedesktop/Tracker"
 #define TRACKER_INTERFACE		"org.freedesktop.Tracker"
 #define TRACKER_INTERFACE_METADATA	"org.freedesktop.Tracker.Metadata"
 #define TRACKER_INTERFACE_KEYWORDS	"org.freedesktop.Tracker.Keywords"
@@ -280,28 +286,28 @@ tracker_connect (gboolean enable_warnings)
 
 	proxy = dbus_g_proxy_new_for_name (connection,
 			TRACKER_SERVICE,
-			TRACKER_OBJECT,
+			TRACKER_OBJECT "/Metadata",
 			TRACKER_INTERFACE_METADATA);
 
 	client->proxy_metadata = proxy;
 
 	proxy = dbus_g_proxy_new_for_name (connection,
 			TRACKER_SERVICE,
-			TRACKER_OBJECT,
+			TRACKER_OBJECT "/Keywords",
 			TRACKER_INTERFACE_KEYWORDS);
 
 	client->proxy_keywords = proxy;
 
 	proxy = dbus_g_proxy_new_for_name (connection,
 			TRACKER_SERVICE,
-			TRACKER_OBJECT,
+			TRACKER_OBJECT "/Search",
 			TRACKER_INTERFACE_SEARCH);
 
 	client->proxy_search = proxy;
 
 	proxy = dbus_g_proxy_new_for_name (connection,
 			TRACKER_SERVICE,
-			TRACKER_OBJECT,
+			TRACKER_OBJECT "/Files",
 			TRACKER_INTERFACE_FILES);
 
 	client->proxy_files = proxy;

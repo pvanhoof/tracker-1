@@ -54,10 +54,12 @@
 #include "tracker-indexer.h"
 #include "tracker-cache.h"
 #include "tracker-dbus.h"
-#include "tracker-service-manager.h"
-#include "tracker-query-tree.h"
+#include "tracker-dbus-daemon.h"
 #include "tracker-hal.h"
 #include "tracker-process-files.h"
+#include "tracker-query-tree.h"
+#include "tracker-service-manager.h"
+#include "tracker-status.h"
 
 extern Tracker *tracker;
 
@@ -366,6 +368,7 @@ has_word (Indexer *index, const char *word)
 void
 tracker_indexer_apply_changes (Indexer *dest, Indexer *src,  gboolean update)
 {
+        GObject *object;
 	char 	*str;
 	char 	buffer[MAX_HIT_BUFFER];
 	int 	bytes;
@@ -401,8 +404,16 @@ tracker_indexer_apply_changes (Indexer *dest, Indexer *src,  gboolean update)
 	tracker->in_merge = TRUE;
 	tracker->merge_count = 1;
 	tracker->merge_processed = 0;
-	tracker_dbus_send_index_progress_signal ("Merging", "");
 	
+        /* Signal progress */
+        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
+        g_signal_emit_by_name (object, 
+                               "index-progress", 
+                               "Merging",
+                               "",
+                               tracker->index_count,
+                               tracker->merge_processed,
+                               tracker->merge_count);
 	
 	while ((str = dpiternext (src->word_index, NULL))) {
 		
@@ -453,8 +464,16 @@ tracker_indexer_apply_changes (Indexer *dest, Indexer *src,  gboolean update)
 	tracker->in_merge = FALSE;
 	tracker->merge_count = 1;
 	tracker->merge_processed = 1;
-	tracker_dbus_send_index_progress_signal ("Merging", "");
 
+        /* Signal progress */
+        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
+        g_signal_emit_by_name (object, 
+			       "index-progress", 
+                               "Merging",                     
+                               "",
+                               tracker->index_count,        
+                               tracker->merge_processed,  
+                               tracker->merge_count);     
 }
 
 gboolean
@@ -555,6 +574,7 @@ move_index (Indexer *src_index, Indexer *dest_index, const char *fname)
 void
 tracker_indexer_merge_indexes (IndexType type)
 {
+        GObject    *object;
 	GSList     *lst;
 	Indexer    *final_index;
 	GSList     *file_list = NULL, *index_list = NULL;
@@ -562,7 +582,11 @@ tracker_indexer_merge_indexes (IndexType type)
 	gint       i = 0, index_count, interval = 5000;
 	gboolean   final_exists;
 
-	if (tracker->shutdown) return;
+	if (tracker->shutdown) {
+                return;
+        }
+
+        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
 
 	if (type == INDEX_TYPE_FILES) {
 
@@ -639,8 +663,15 @@ tracker_indexer_merge_indexes (IndexType type)
 	tracker->in_merge = TRUE;
 	tracker->merge_count = index_count;
 	tracker->merge_processed = 0;
-	tracker_dbus_send_index_progress_signal ("Merging", "");
 	
+        /* Signal progress */
+        g_signal_emit_by_name (object, 
+                               "index-progress", 
+                               "Merging",
+                               "",
+                               tracker->index_count,
+                               tracker->merge_processed,
+                               tracker->merge_count);
 
 	if (index_count == 2 && !final_exists) {
 
@@ -657,7 +688,16 @@ tracker_indexer_merge_indexes (IndexType type)
 		}
 	}
 
-	tracker_dbus_send_index_status_change_signal ();
+	/* Signal state change */
+	g_signal_emit_by_name (object, 
+			       "index-state-change", 
+			       tracker_status_get_as_string (),
+			       tracker->first_time_index,
+			       tracker->in_merge,
+			       tracker->pause_manual,
+			       tracker_pause_on_battery (),
+			       tracker->pause_io,
+			       tracker_config_get_enable_indexing (tracker->config));
 
 	if (type == INDEX_TYPE_FILES) {
 		final_index = tracker_indexer_open ("file-index-final", TRUE);
@@ -690,7 +730,13 @@ tracker_indexer_merge_indexes (IndexType type)
 
 				if (i > 101 && (i % 100 == 0)) {
 					if (!tracker_cache_process_events (NULL, FALSE)) {
-						tracker_set_status (tracker, STATUS_SHUTDOWN, 0, TRUE);
+                                                tracker_status_set_and_signal (TRACKER_STATUS_SHUTDOWN,
+                                                                               tracker->first_time_index,
+                                                                               tracker->in_merge,
+                                                                               tracker->pause_manual,
+                                                                               tracker_pause_on_battery (),
+                                                                               tracker->pause_io,
+                                                                               tracker_config_get_enable_indexing (tracker->config));
 						return;	
 					}
 				}
@@ -774,9 +820,20 @@ tracker_indexer_merge_indexes (IndexType type)
 		if (lst->next) {
 
 			if (index != tracker->file_index && index != tracker->email_index) {
+                                GObject *object;
+
 				tracker_indexer_free (index, TRUE);
 				tracker->merge_processed++;
-				tracker_dbus_send_index_progress_signal ("Merging", "");	
+
+                                /* Signal progress */
+                                object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
+                                g_signal_emit_by_name (object, 
+                                                       "index-progress", 
+                                                       "Merging",
+                                                       "",
+                                                       tracker->index_count,
+                                                       tracker->merge_processed,
+                                                       tracker->merge_count);
 			}
 
 
@@ -801,8 +858,17 @@ tracker_indexer_merge_indexes (IndexType type)
 
  end_of_merging:
 	tracker->in_merge = FALSE;
-	tracker_dbus_send_index_status_change_signal ();
 	
+        /* Signal state change */
+        g_signal_emit_by_name (object, 
+                               "index-state-change", 
+			       tracker_status_get_as_string (),
+                               tracker->first_time_index,
+                               tracker->in_merge,
+                               tracker->pause_manual,
+                               tracker_pause_on_battery (),
+                               tracker->pause_io,
+                               tracker_config_get_enable_indexing (tracker->config));
 }
 
 

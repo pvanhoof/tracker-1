@@ -45,6 +45,7 @@
 
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-utils.h>
 
 #include "tracker-db-interface-sqlite.h"
 #include "tracker-db-sqlite.h"

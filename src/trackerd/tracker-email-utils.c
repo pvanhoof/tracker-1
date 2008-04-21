@@ -32,10 +32,12 @@
 
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-utils.h>
 
 #include "tracker-cache.h"
 #include "tracker-db-email.h"
 #include "tracker-dbus.h"
+#include "tracker-dbus-daemon.h"
 #include "tracker-email-utils.h"
 #include "tracker-watch.h"
 
@@ -113,6 +115,7 @@ email_parse_mail_file_and_save_new_emails (DBConnection *db_con, MailApplication
                                            MakeURIHelperFct uri_helper, gpointer make_uri_user_data,
                                            MailStore *store)
 {
+        GObject     *object;
 	MailFile    *mf;
 	MailMessage *mail_msg;
 	gint        indexed = 0, junk = 0, deleted = 0;
@@ -128,7 +131,16 @@ email_parse_mail_file_and_save_new_emails (DBConnection *db_con, MailApplication
 	mf = email_open_mail_file_at_offset (mail_app, path, store->offset, TRUE);
 
 	tracker->mbox_count++;
-	tracker_dbus_send_index_progress_signal ("Emails", path);
+
+        /* Signal progress */
+        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
+        g_signal_emit_by_name (object,
+                               "index-progress", 
+                               "Emails",                
+                               path,
+                               tracker->index_count,    
+                               tracker->mbox_processed, 
+                               tracker->mbox_count);    
 
 	while ((mail_msg = email_mail_file_parse_next (mf, read_mail_helper, read_mail_user_data, NULL))) {
 
@@ -172,6 +184,7 @@ email_parse_mail_file_and_save_new_emails (DBConnection *db_con, MailApplication
 		}
 
 		if (tracker_db_regulate_transactions (db_con->data, 500)) {
+                        GObject *object;
 
 			if (tracker_config_get_verbosity (tracker->config) == 1) {
 				tracker_log ("indexing #%d - Emails in %s", tracker->index_count, path);
@@ -182,8 +195,16 @@ email_parse_mail_file_and_save_new_emails (DBConnection *db_con, MailApplication
 				tracker_db_refresh_all (db_con->data);
 				tracker_db_start_index_transaction (db_con->data);
 			}
-			tracker_dbus_send_index_progress_signal ("Emails", path);			
 			
+                        /* Signal progress */
+                        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
+                        g_signal_emit_by_name (object, 
+                                               "index-progress", 
+                                               "Emails",                
+                                               path,
+                                               tracker->index_count,    
+                                               tracker->mbox_processed, 
+                                               tracker->mbox_count);    
 		}	
 
 	
@@ -191,7 +212,16 @@ email_parse_mail_file_and_save_new_emails (DBConnection *db_con, MailApplication
 
 	email_free_mail_file (mf);
 	tracker->mbox_processed++;
-	tracker_dbus_send_index_progress_signal ("Emails", path);
+        
+        /* Signal progress */
+        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
+        g_signal_emit_by_name (object,
+                               "index-progress", 
+                               "Emails",                
+                               path,
+                               tracker->index_count,    
+                               tracker->mbox_processed, 
+                               tracker->mbox_count);    
 
 	if (indexed > 0) {
 		tracker_info ("Indexed %d emails in email store %s and ignored %d junk and %d deleted emails",

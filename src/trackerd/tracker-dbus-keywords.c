@@ -1,5 +1,7 @@
-/* Tracker - indexer and metadata database engine
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2008, Nokia
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -17,643 +19,600 @@
  * Boston, MA  02110-1301, USA.
  */
 
+#include <config.h>
+
+#include <stdlib.h>
 #include <string.h>
 
 #include <libtracker-common/tracker-log.h>
+#include <libtracker-common/tracker-utils.h>
 
-#include "tracker-dbus-methods.h"
+#include "tracker-dbus.h"
 #include "tracker-dbus-keywords.h"
+#include "tracker-db.h"
+#include "tracker-marshal.h"
 
-extern Tracker *tracker;
+#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DBUS_KEYWORDS, TrackerDBusKeywordsPriv))
 
-/*
+typedef struct {
+	DBusGProxy   *fd_proxy;
+	DBConnection *db_con;
+} TrackerDBusKeywordsPriv;
+
+enum {
+	PROP_0,
+	PROP_DB_CONNECTION
+};
+
+enum {
+        KEYWORD_ADDED,
+        KEYWORD_REMOVED,
+        LAST_SIGNAL
+};
+
+static void dbus_keywords_finalize     (GObject      *object);
+static void dbus_keywords_set_property (GObject      *object,
+					guint         param_id,
+					const GValue *value,
+					GParamSpec   *pspec);
+
+static guint signals[LAST_SIGNAL] = {0};
+
+G_DEFINE_TYPE(TrackerDBusKeywords, tracker_dbus_keywords, G_TYPE_OBJECT)
+
 static void
-update_keywords_metadata (DBConnection *db_con, const char* service, const char *path, const char *name)
+tracker_dbus_keywords_class_init (TrackerDBusKeywordsClass *klass)
 {
-	char ***res;
-	char *tmp;
-	char *id;
-	char *keywords;
+	GObjectClass *object_class;
 
-	tmp = g_build_filename (path, name, NULL);
-	id = tracker_db_get_id (db_con, service, tmp);
+	object_class = G_OBJECT_CLASS (klass);
 
-	g_free (tmp);
+	object_class->finalize = dbus_keywords_finalize;
+	object_class->set_property = dbus_keywords_set_property;
 
-	if (!id) {
-		return;
-	}
+	g_object_class_install_property (object_class,
+					 PROP_DB_CONNECTION,
+					 g_param_spec_pointer ("db-connection",
+							       "DB connection",
+							       "Database connection to use in transactions",
+							       G_PARAM_WRITABLE));
 
-	res = tracker_exec_proc (db_con, "GetKeywords", 2, path, name);
+        signals[KEYWORD_ADDED] =
+                g_signal_new ("keyword-added",
+                              G_TYPE_FROM_CLASS (klass),
+                              G_SIGNAL_RUN_LAST,
+                              0,
+                              NULL, NULL,
+                              tracker_marshal_VOID__STRING_STRING_STRING,
+                              G_TYPE_NONE,
+                              3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
+        signals[KEYWORD_ADDED] =
+                g_signal_new ("keyword-removed",
+                              G_TYPE_FROM_CLASS (klass),
+                              G_SIGNAL_RUN_LAST,
+                              0,
+                              NULL, NULL,
+                              tracker_marshal_VOID__STRING_STRING_STRING,
+                              G_TYPE_NONE,
+                              3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
 
-	if (res) {
-		GString *words;
-		char	**row;
-		int	i;
-
-		words = g_string_new (" ");
-		i = 0;
-
-		while ((row = tracker_db_get_row (res, i))) {
-			if (row[0]) {
-
-				if (i != 0) {
-					words = g_string_append (words, ",");
-				}
-
-				words = g_string_append (words, row[0]);
-				i++;
-			}
-		}
-
-		tracker_db_free_result (res);
-
-		keywords = g_string_free (words, FALSE);
-
-
-		tracker_db_update_keywords (db_con, service, id, keywords);
-
-		g_free (keywords);
-
-	} else {
-		tracker_db_update_keywords (db_con, service, id, " ");
-	}
-
-	g_free (id);
+	g_type_class_add_private (object_class, sizeof (TrackerDBusKeywordsPriv));
 }
-*/
 
-void
-tracker_dbus_signal_keywords_added (const char *service, const char *uri, const char *keyword)
+static void
+tracker_dbus_keywords_init (TrackerDBusKeywords *object)
 {
-	DBusMessage *msg;
-	dbus_uint32_t serial = 0;
+}
 
-	msg = dbus_message_new_signal (TRACKER_OBJECT, 
-                                       TRACKER_INTERFACE_KEYWORDS, 
-                                       TRACKER_SIGNAL_KEYWORD_ADDED);
-				
-	if (!msg || !tracker->dbus_con) {
-		return;
-    	}
-
-	/*
+static void
+dbus_keywords_finalize (GObject *object)
+{
+	TrackerDBusKeywordsPriv *priv;
 	
-		<signal name="KeywordAdded">
-			<arg type="s" name="service"/>
-			<arg type="s" name="uri" />
-			<arg type="s" name="keyword" />
-		</signal>
-	*/
+	priv = GET_PRIV (object);
 
-	dbus_message_append_args (msg, 
-				  DBUS_TYPE_STRING, &service,
-				  DBUS_TYPE_STRING, &uri,
-				  DBUS_TYPE_STRING, &keyword,
-				  DBUS_TYPE_INVALID);
-
-	dbus_message_set_no_reply (msg, TRUE);
-
-	if (!dbus_connection_send (tracker->dbus_con, msg, &serial)) {
-		tracker_error ("Raising the keyword added signal failed");
-		return;
+	if (priv->fd_proxy) {
+		g_object_unref (priv->fd_proxy);
 	}
 
-	dbus_connection_flush (tracker->dbus_con);
-
-    	dbus_message_unref (msg);
-  
-
+	G_OBJECT_CLASS (tracker_dbus_keywords_parent_class)->finalize (object);
 }
 
-
-void
-tracker_dbus_signal_keywords_removed (const char *service, const char *uri, const char *keyword)
+static void
+dbus_keywords_set_property (GObject      *object,
+			    guint	  param_id,
+			    const GValue *value,
+			    GParamSpec	 *pspec)
 {
-	DBusMessage *msg;
-	dbus_uint32_t serial = 0;
+	TrackerDBusKeywordsPriv *priv;
 
-	msg = dbus_message_new_signal (TRACKER_OBJECT, 
-                                       TRACKER_INTERFACE_KEYWORDS, 
-                                       TRACKER_SIGNAL_KEYWORD_REMOVED);
-				
-	if (!msg || !tracker->dbus_con) {
-		return;
-    	}
+	priv = GET_PRIV (object);
 
-	/*
+	switch (param_id) {
+	case PROP_DB_CONNECTION:
+		tracker_dbus_keywords_set_db_connection (TRACKER_DBUS_KEYWORDS (object),
+							 g_value_get_pointer (value));
+		break;
+
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
+		break;
+	};
+}
+
+TrackerDBusKeywords *
+tracker_dbus_keywords_new (DBConnection *db_con)
+{
+	TrackerDBusKeywords *object;
+
+	object = g_object_new (TRACKER_TYPE_DBUS_KEYWORDS, 
+			       "db-connection", db_con,
+			       NULL);
 	
-		<signal name="KeywordRemoved">
-			<arg type="s" name="service"/>
-			<arg type="s" name="uri" />
-			<arg type="s" name="keyword" />
-		</signal>
-	*/
-
-	dbus_message_append_args (msg, 
-				  DBUS_TYPE_STRING, &service,
-				  DBUS_TYPE_STRING, &uri,
-				  DBUS_TYPE_STRING, &keyword,
-				  DBUS_TYPE_INVALID);
-
-	dbus_message_set_no_reply (msg, TRUE);
-
-	if (!dbus_connection_send (tracker->dbus_con, msg, &serial)) {
-		tracker_error ("Raising the keyword removed signal failed");
-		return;
-	}
-
-	dbus_connection_flush (tracker->dbus_con);
-
-    	dbus_message_unref (msg);
-  
-
+	return object;
 }
 
-
-
 void
-tracker_dbus_method_keywords_get_list (DBusRec *rec)
+tracker_dbus_keywords_set_db_connection (TrackerDBusKeywords *object,
+					 DBConnection        *db_con)
 {
-	TrackerDBResultSet *result_set;
-	DBConnection 	*db_con;
-	DBusError    dbus_error;
-	char 		*service;
+	TrackerDBusKeywordsPriv *priv;
 
-	g_return_if_fail (rec && rec->user_data);
+	g_return_if_fail (TRACKER_IS_DBUS_KEYWORDS (object));
+	g_return_if_fail (db_con != NULL);
 
-	db_con = rec->user_data;
+	priv = GET_PRIV (object);
+
+	priv->db_con = db_con;
+	
+	g_object_notify (G_OBJECT (object), "db-connection");
+}
 
 /*
-		<!-- gets a list of all unique keywords/tags that are in use by the specified service irrespective of the uri or id of the entity
-		     Returns an array of string arrays with the keyword and the total usage count of the keyword as the string array
-		-->
-		<method name="GetList">
-			<arg type="s" name="service" direction="in" />
-			<arg type="aas" name="value" direction="out" />
-		</method>
+ * Functions
+ */
+gboolean
+tracker_dbus_keywords_get_list (TrackerDBusKeywords   *object,
+				const gchar           *service,
+				GPtrArray            **values,
+				GError               **error)
+{
+	TrackerDBusKeywordsPriv *priv;
+	TrackerDBResultSet      *result_set;
+	guint                    request_id;
+	DBConnection    	*db_con;
 
-*/
+	request_id = tracker_dbus_get_next_request_id ();
 
-	dbus_error_init(&dbus_error);
-	if (!dbus_message_get_args (rec->message, NULL,
-			       DBUS_TYPE_STRING, &service,
-			       DBUS_TYPE_INVALID)) {
-		tracker_set_error (rec, "DBusError: %s;%s", dbus_error.name, dbus_error.message);
-		dbus_error_free (&dbus_error);
-		return;
-	}
+	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
+
+	priv = GET_PRIV (object);
+
+	db_con = priv->db_con;
+	
+	tracker_dbus_request_new (request_id,
+				  "DBus request to get keywords list, "
+				  "service:'%s'",
+				  service);
 
 	if (!tracker_service_manager_is_valid_service (service)) {
-		tracker_set_error (rec, "Invalid service %s or service has not been implemented yet", service);
-		return;
+		tracker_dbus_request_failed (request_id,
+					     error, 
+                                             "Service '%s' is invalid or has not been implemented yet", 
+                                             service);
+		return FALSE;
 	}
 
+	/* Check we have the right database connection */
 	db_con = tracker_db_get_service_connection (db_con, service);
 
 	result_set = tracker_db_get_keyword_list (db_con, service);
-
-	tracker_dbus_reply_with_query_result (rec, result_set);
-
-	g_object_unref (result_set);
-}
-
-
-void
-tracker_dbus_method_keywords_get (DBusRec *rec)
-{
-	TrackerDBResultSet *result_set;
-	DBConnection 	*db_con;
-	DBusError    dbus_error;
-	DBusMessage 	*reply;
-	char 		*id, *uri, *service;
-	char 		**array;
-	int 		row_count;
-
-	g_return_if_fail (rec && rec->user_data);
-
-	db_con = rec->user_data;
-
-/*
-		<!-- gets all unique keywords/tags for specified service and id -->
-		<method name="Get">
-			<arg type="s" name="service" direction="in" />
-			<arg type="s" name="id" direction="in" />
-			<arg type="as" name="value" direction="out" />
-		</method>
-*/
-
-	dbus_error_init(&dbus_error);
-	if (!dbus_message_get_args (rec->message, NULL,
-			       DBUS_TYPE_STRING, &service,
-			       DBUS_TYPE_STRING, &uri,
-			       DBUS_TYPE_INVALID)) {
-		tracker_set_error (rec, "DBusError: %s;%s", dbus_error.name, dbus_error.message);
-		dbus_error_free (&dbus_error);
-		return;
-	}
-
-	if (!tracker_service_manager_is_valid_service (service)) {
-		tracker_set_error (rec, "Invalid service %s or service has not been implemented yet", service);
-		return;
-	}
-
-	if (tracker_is_empty_string (uri)) {
-		tracker_set_error (rec, "Uri is invalid");
-		return;
-	}
-
-	db_con = tracker_db_get_service_connection (db_con, service);	
-
-	id = tracker_db_get_id (db_con, service, uri);
-
-	if (!id) {
-		tracker_set_error (rec, "[keywords_get] Entity %s not found in database", uri);
-		return;
-	}
-
-	
-
-	result_set = tracker_db_get_metadata (db_con, service, id, "User:Keywords");
-
-	g_free (id);
-
-	row_count = 0;
-	array = NULL;
+        *values = tracker_dbus_query_result_to_ptr_array (result_set);
 
 	if (result_set) {
-		array = tracker_get_query_result_as_array (result_set, &row_count);
 		g_object_unref (result_set);
 	}
 
-	reply = dbus_message_new_method_return (rec->message);
+	tracker_dbus_request_success (request_id);
 
-	dbus_message_append_args (reply,
-	  			  DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &array, row_count,
-	  			  DBUS_TYPE_INVALID);
-
-	tracker_free_array (array, row_count);
-
-	dbus_connection_send (rec->connection, reply, NULL);
-	dbus_message_unref (reply);
+	return TRUE;
 }
 
-
-void
-tracker_dbus_method_keywords_add (DBusRec *rec)
+gboolean
+tracker_dbus_keywords_get (TrackerDBusKeywords   *object,
+			   const gchar           *service,
+			   const gchar           *uri,
+			   gchar               ***values,
+			   GError               **error)
 {
-	DBConnection 	*db_con;
-	DBusError    dbus_error;
-	DBusMessage 	*reply;
-	char 		*id, *uri, *service;
-	char 		**array = NULL;
-	int 		row_count = 0;
+	TrackerDBusKeywordsPriv *priv;
+	TrackerDBResultSet      *result_set;
+	DBConnection            *db_con;
+	guint                    request_id;
+	gchar                   *id;
 
-	g_return_if_fail (rec && rec->user_data);
+	request_id = tracker_dbus_get_next_request_id ();
 
-	db_con = rec->user_data;
+	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
 
-/*
-		<!-- Adds new keywords/tags for specified service and id -->
-		<method name="Add">
-			<arg type="s" name="service" direction="in" />
-			<arg type="s" name="id" direction="in" />
-			<arg type="as" name="values" direction="in" />
-		</method>
-*/
+	priv = GET_PRIV (object);
 
-	dbus_error_init (&dbus_error);
-
-	if (!dbus_message_get_args (rec->message, NULL,
-			       DBUS_TYPE_STRING, &service,
-			       DBUS_TYPE_STRING, &uri,
-			       DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &array, &row_count,
-			       DBUS_TYPE_INVALID)) {
-		tracker_set_error (rec, "DBusError: %s;%s", dbus_error.name, dbus_error.message);
-		dbus_error_free (&dbus_error);
-		return;
-	}
+	db_con = priv->db_con;
+	
+	tracker_dbus_request_new (request_id,
+				  "DBus request to get keywords, "
+				  "service:'%s', uri:'%s'",
+				  service, 
+				  uri);
 
 	if (!tracker_service_manager_is_valid_service (service)) {
-		tracker_set_error (rec, "Invalid service %s or service has not been implemented yet", service);
-		return;
+		tracker_dbus_request_failed (request_id,
+					     error, 
+                                             "Service '%s' is invalid or has not been implemented yet", 
+                                             service);
+		return FALSE;
 	}
 
-	if (tracker_is_empty_string (uri)) {
-		tracker_set_error (rec, "URI is invalid");
-		return;
-	}
+        if (tracker_is_empty_string (uri)) {
+		tracker_dbus_request_failed (request_id,
+					     error, 
+                                             "URI is empty");
+		return FALSE;
+        }
 
+	/* Check we have the right database connection */
 	db_con = tracker_db_get_service_connection (db_con, service);
-	id = tracker_db_get_id (db_con, service, uri);
 
+	id = tracker_db_get_id (db_con, service, uri);
 	if (!id) {
-		tracker_set_error (rec, "Entity %s not found in database", uri);
-		return;
+		tracker_dbus_request_failed (request_id,
+					     error,
+					     "Entity '%s' was not found", 
+					     uri);
+		return FALSE;
 	}
 
-		
-	if (array && (row_count > 0)) {
-		tracker_db_set_metadata (db_con, service, id, "User:Keywords", array, row_count, TRUE);
+	result_set = tracker_db_get_metadata (db_con, 
+					      service, 
+					      id, 
+					      "User:Keywords");
+	*values = tracker_dbus_query_result_to_strv (result_set, NULL);
+
+	if (result_set) {
+		g_object_unref (result_set);
+	}
+
+	g_free (id);
+
+	tracker_dbus_request_success (request_id);
+
+	return TRUE;
+}
+
+gboolean
+tracker_dbus_keywords_add (TrackerDBusKeywords  *object,
+			   const gchar          *service,
+			   const gchar          *uri,
+			   gchar               **values,
+			   GError              **error)
+{
+	TrackerDBusKeywordsPriv  *priv;
+	DBConnection             *db_con;
+	guint                     request_id;
+	gchar                    *id;
+	gchar                   **p;
+
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (uri != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
+
+	priv = GET_PRIV (object);
+
+	db_con = priv->db_con;
+	
+	tracker_dbus_request_new (request_id,
+				  "DBus request to add keywords, "
+				  "service:'%s', uri:'%s'",
+				  service, 
+				  uri);
+
+	if (!tracker_service_manager_is_valid_service (service)) {
+		tracker_dbus_request_failed (request_id,
+					     error, 
+                                             "Service '%s' is invalid or has not been implemented yet", 
+                                             service);
+		return FALSE;
+	}
+
+        if (tracker_is_empty_string (uri)) {
+		tracker_dbus_request_failed (request_id,
+					     error, 
+                                             "URI is empty");
+		return FALSE;
+        }
+
+	/* Check we have the right database connection */
+	db_con = tracker_db_get_service_connection (db_con, service);
+
+	id = tracker_db_get_id (db_con, service, uri);
+	tracker_dbus_return_val_if_fail (id != NULL, FALSE, error);
+
+	tracker_db_set_metadata (db_con, 
+				 service, 
+				 id, 
+				 "User:Keywords", 
+				 values, 
+				 g_strv_length (values), 
+				 TRUE);
+	g_free (id);
+
+	tracker_notify_file_data_available ();
+
+	for (p = values; *p; p++) {
+		tracker_log ("Added keyword %s to %s with ID %s", *p, uri, id);
+		g_signal_emit (object, signals[KEYWORD_ADDED], 0, service, uri, *p);
+	}
+
+	tracker_dbus_request_success (request_id);
+
+	return TRUE;
+}
+
+gboolean
+tracker_dbus_keywords_remove (TrackerDBusKeywords  *object,
+			      const gchar          *service,
+			      const gchar          *uri,
+			      gchar               **values,
+			      GError              **error)
+{
+	TrackerDBusKeywordsPriv  *priv;
+	DBConnection             *db_con;
+	guint                     request_id;
+	gchar                    *id;
+	gchar                   **p;
+
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (uri != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
+
+	priv = GET_PRIV (object);
+
+	db_con = priv->db_con;
+	
+	tracker_dbus_request_new (request_id,
+				  "DBus request to remove keywords, "
+				  "service:'%s', uri:'%s'",
+				  service, 
+				  uri);
+
+	if (!tracker_service_manager_is_valid_service (service)) {
+		tracker_dbus_request_failed (request_id,
+					     error, 
+                                             "Service '%s' is invalid or has not been implemented yet", 
+                                             service);
+		return FALSE;
+	}
+
+        if (tracker_is_empty_string (uri)) {
+		tracker_dbus_request_failed (request_id,
+					     error, 
+                                             "URI is empty");
+		return FALSE;
+        }
+
+	/* Check we have the right database connection */
+	db_con = tracker_db_get_service_connection (db_con, service);
+
+	id = tracker_db_get_id (db_con, service, uri);
+	if (!id) {
+		tracker_dbus_request_failed (request_id,
+					     error,
+					     "Entity '%s' was not found", 
+					     uri);
+		return FALSE;
+	}
+
+	tracker_notify_file_data_available ();
+
+	for (p = values; *p; p++) {
+		tracker_log ("Removed keyword %s from %s with ID %s", *p, uri, id);
+		tracker_db_delete_metadata_value (db_con, service, id, "User:Keywords", *p);
+
+		/* FIXME: Should we be doing this for EACH keyword? */
 		tracker_notify_file_data_available ();
 
-		int i;
-		for (i=0; i<row_count; i++) {
-			tracker_dbus_signal_keywords_added (service, uri, array[i]);
-			tracker_log ("adding keyword %s to %s", array[i], uri);
-		}
+		g_signal_emit (object, signals[KEYWORD_REMOVED], 0, service, uri, *p);
 	}
 
-	dbus_free_string_array (array);
+	g_free (id);
+
+	tracker_dbus_request_success (request_id);
+
+	return TRUE;
+}
+
+gboolean
+tracker_dbus_keywords_remove_all (TrackerDBusKeywords  *object,
+				  const gchar          *service,
+				  const gchar          *uri,
+				  GError              **error)
+{
+	TrackerDBusKeywordsPriv  *priv;
+	DBConnection             *db_con;
+	guint                     request_id;
+	gchar                    *id;
+
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (uri != NULL, FALSE, error);
+
+	priv = GET_PRIV (object);
+
+	db_con = priv->db_con;
 	
-	g_free (id);
-
-	reply = dbus_message_new_method_return (rec->message);
-
-	dbus_connection_send (rec->connection, reply, NULL);
-
-	dbus_message_unref (reply);
-}
-
-
-void
-tracker_dbus_method_keywords_remove (DBusRec *rec)
-{
-	DBConnection 	*db_con;
-	DBusError    dbus_error;
-	DBusMessage 	*reply;
-	char 		*id, *uri, *service;
-	char 		**array;
-	int 		row_count = 0;
-
-	g_return_if_fail (rec && rec->user_data);
-
-	db_con = rec->user_data;
-
-	array = NULL;
-
-/*
-		<!-- removes all specified keywords/tags for specified service and id -->
-		<method name="Remove">
-			<arg type="s" name="service" direction="in" />
-			<arg type="s" name="id" direction="in" />
-			<arg type="as" name="keywords" direction="in" />
-		</method>
-*/
-
-	dbus_error_init(&dbus_error);
-	if (!dbus_message_get_args (rec->message, NULL,
-			       DBUS_TYPE_STRING, &service,
-			       DBUS_TYPE_STRING, &uri,
-			       DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &array, &row_count,
-			       DBUS_TYPE_INVALID)) {
-		tracker_set_error (rec, "DBusError: %s;%s", dbus_error.name, dbus_error.message);
-		dbus_error_free (&dbus_error);
-		return;
-	}
+	tracker_dbus_request_new (request_id,
+				  "DBus request to remove all keywords, "
+				  "service:'%s', uri:'%s'",
+				  service, 
+				  uri);
 
 	if (!tracker_service_manager_is_valid_service (service)) {
-		tracker_set_error (rec, "Invalid service %s or service has not been implemented yet", service);
-		return;
+		tracker_dbus_request_failed (request_id,
+					     error, 
+                                             "Service '%s' is invalid or has not been implemented yet", 
+                                             service);
+		return FALSE;
 	}
 
-	if (tracker_is_empty_string (uri)) {
-		tracker_set_error (rec, "ID is invalid");
-		return;
-	}
+        if (tracker_is_empty_string (uri)) {
+		tracker_dbus_request_failed (request_id,
+					     error, 
+                                             "URI is empty");
+		return FALSE;
+        }
 
+	/* Check we have the right database connection */
 	db_con = tracker_db_get_service_connection (db_con, service);
 
 	id = tracker_db_get_id (db_con, service, uri);
-
 	if (!id) {
-		tracker_set_error (rec, "Entity %s not found in database", uri);
-		return;
-	}
-
-	if (array && (row_count > 0)) {
-		int i;
-
-		for (i = 0; i < row_count; i++) {
-			if (array[i]) {
-				tracker_log ("deleting keyword %s from %s with ID %s", array[i], uri, id);
-				tracker_db_delete_metadata_value (db_con, service, id, "User:Keywords", array[i]);
-				tracker_notify_file_data_available ();
-				tracker_dbus_signal_keywords_removed (service, uri, array[i]);
-			}
-		}
-	}
-
-	dbus_free_string_array (array);
-
-	g_free (id);
-
-	reply = dbus_message_new_method_return (rec->message);
-
-	dbus_connection_send (rec->connection, reply, NULL);
-
-	dbus_message_unref (reply);
-}
-
-
-void
-tracker_dbus_method_keywords_remove_all (DBusRec *rec)
-{
-	DBConnection 	*db_con;
-	DBusError    dbus_error;
-	DBusMessage 	*reply;
-	char 		*id, *uri, *service;
-
-	g_return_if_fail (rec && rec->user_data);
-
-	db_con = rec->user_data;
-
-/*
-
-		<!-- removes all keywords/tags for specified service and id -->
-		<method name="RemoveAll">
-			<arg type="s" name="service" direction="in" />
-			<arg type="s" name="id" direction="in" />
-		</method>
-*/
-
-	dbus_error_init(&dbus_error);
-	if (!dbus_message_get_args (rec->message, NULL,
-			       DBUS_TYPE_STRING, &service,
-			       DBUS_TYPE_STRING, &uri,
-			       DBUS_TYPE_INVALID)) {
-		tracker_set_error (rec, "DBusError: %s;%s", dbus_error.name, dbus_error.message);
-		dbus_error_free (&dbus_error);
-		return;
-	}
-
-	if (!tracker_service_manager_is_valid_service (service)) {
-		tracker_set_error (rec, "Invalid service %s or service has not been implemented yet", service);
-		return;
-	}
-
-	if (tracker_is_empty_string (uri)) {
-		tracker_set_error (rec, "URI is invalid");
-		return;
-	}
-
-	db_con = tracker_db_get_service_connection (db_con, service);
-	id = tracker_db_get_id (db_con, service, uri);
-
-	if (!id) {
-		tracker_set_error (rec, "Entity %s not found in database", uri);
-		return;
+		tracker_dbus_request_failed (request_id,
+					     error,
+					     "Entity '%s' was not found", 
+					     uri);
+		return FALSE;
 	}
 
 	tracker_db_delete_metadata (db_con, service, id, "User:Keywords", TRUE);
-	tracker_notify_file_data_available ();
-	
 	g_free (id);
-	
-	reply = dbus_message_new_method_return (rec->message);
 
-	dbus_connection_send (rec->connection, reply, NULL);
+	tracker_notify_file_data_available ();
 
-	dbus_message_unref (reply);
+	tracker_dbus_request_success (request_id);
+
+	return TRUE;
 }
 
-
-void
-tracker_dbus_method_keywords_search (DBusRec *rec)
+gboolean
+tracker_dbus_keywords_search (TrackerDBusKeywords  *object,
+			      gint                  live_query_id,
+			      const gchar          *service,
+			      const gchar         **keywords,
+			      gint                  offset,
+			      gint                  max_hits,
+			      gchar              ***values,
+			      GError              **error)
 {
-	TrackerDBResultSet *result_set;
-	DBConnection 	*db_con;
-	DBusError    dbus_error;
-	DBusMessage 	*reply;
-	char 		*service;
-	char 		**array;
-	int 		row_count, limit, query_id, offset;
-	GString		*str_words, *str_select, *str_where;
-	char		*query_sel, *query_where, *query;
-	int		i;
+	TrackerDBusKeywordsPriv  *priv;
+	TrackerDBResultSet       *result_set;
+	DBConnection             *db_con;
+	guint                     request_id;
+	const gchar             **p;
+	GString                  *search;
+	GString                  *select;
+	GString                  *where;
+	gchar                    *related_metadata;
+	gchar                    *query;
 
-	g_return_if_fail (rec && rec->user_data);
+	request_id = tracker_dbus_get_next_request_id ();
 
-	db_con = rec->user_data;
+	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (keywords != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
 
-/*
-		<!-- searches specified service for matching keyword/tag and returns an array of matching id values for the service-->
-		<method name="Search">
-			<arg type="i" name="live_query_id" direction="in" />
-			<arg type="s" name="service" direction="in" />
-			<arg type="as" name="keywords" direction="in" />
-			<arg type="i" name="max_hits" direction="in" />
-			<arg type="as" name="result" direction="out" />
-		</method>
-*/
+	priv = GET_PRIV (object);
 
-	dbus_error_init(&dbus_error);
-	if (!dbus_message_get_args (rec->message, NULL,
-			       DBUS_TYPE_INT32, &query_id,
-			       DBUS_TYPE_STRING, &service,
-			       DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &array, &row_count,
-			       DBUS_TYPE_INT32, &offset,
-			       DBUS_TYPE_INT32, &limit,
-			       DBUS_TYPE_INVALID)) {
-		tracker_set_error (rec, "DBusError: %s;%s", dbus_error.name, dbus_error.message);
-		dbus_error_free (&dbus_error);
-		return;
-	}
+	db_con = priv->db_con;
+
+	tracker_dbus_request_new (request_id,
+				  "DBus request to search keywords, "
+				  "query id:%d, service:'%s', offset:%d, "
+				  "max hits:%d",
+				  live_query_id,
+				  service, 
+				  offset,
+				  max_hits);
 
 	if (!tracker_service_manager_is_valid_service (service)) {
-		tracker_set_error (rec, "Invalid service %s or service has not been implemented yet", service);
-		return;
+		tracker_dbus_request_failed (request_id,
+					     error, 
+                                             "Service '%s' is invalid or has not been implemented yet", 
+                                             service);
+		return FALSE;
 	}
 
-	if (offset < 0) {
-		offset = 0;
-	}
-
-	if (row_count < 1) {
-
-		tracker_set_error (rec, "No keywords supplied");
-		return;
-	}
-
+	/* Check we have the right database connection */
 	db_con = tracker_db_get_service_connection (db_con, service);
 
-	str_words = g_string_new ("");
-	g_string_append_printf (str_words, "'%s'", array[0]);
+	/* Sanity check values */
+	offset = MAX (offset, 0);
+	
+	/* Create keyword search string */
+	search = g_string_new ("");
+	g_string_append_printf (search,
+				"'%s'", 
+				keywords[0]);
 
-	for (i = 1; i < row_count; i++) {
-		g_string_append_printf (str_words, ", '%s'", array[i]);
+	for (p = keywords + 1; *p; p++) {
+		g_string_append_printf (search, ", '%s'", *p);
 	}
 
-	tracker_log ("executing keyword search on %s", str_words->str);
+	tracker_dbus_request_comment (request_id,
+				      "Executing keyword search on %s", 
+				      search->str);
 
-	str_select = g_string_new (" Select distinct S.Path || '");
+	/* Create select string */
+	select = g_string_new (" Select distinct S.Path || '");
+	select = g_string_append (select, G_DIR_SEPARATOR_S);
+	select = g_string_append (select, 
+				  "' || S.Name as EntityName from Services S, ServiceKeywordMetaData M ");
 
-	str_select = g_string_append (str_select, G_DIR_SEPARATOR_S);
+	/* Create where string */
+	related_metadata = tracker_get_related_metadata_names (db_con, "User:Keywords");
 
-	str_select = g_string_append (str_select, "' || S.Name as EntityName from Services S, ServiceKeywordMetaData M ");
-
-	char *related_metadata = tracker_get_related_metadata_names (db_con, "User:Keywords");
-
-	str_where = g_string_new ("");
-
-	g_string_append_printf (str_where, " where S.ID = M.ServiceID and M.MetaDataID in (%s) and M.MetaDataValue in (%s) ", related_metadata, str_words->str);
-
+	where = g_string_new ("");
+	g_string_append_printf (where, 
+				" where S.ID = M.ServiceID and M.MetaDataID in (%s) and M.MetaDataValue in (%s) ", 
+				related_metadata, 
+				search->str);
 	g_free (related_metadata);
+	g_string_free (search, TRUE);
 
-	g_string_free (str_words, TRUE);
+	g_string_append_printf (where, 
+				"  and  (S.ServiceTypeID in (select TypeId from ServiceTypes where TypeName = '%s' or Parent = '%s')) ", 
+				service, 
+				service);
 
-	gint  smin, smax;
-	char *str_min, *str_max;
-	
-	smin = tracker_service_manager_get_id_for_service (service);
+	/* Add offset and max_hits */
+	g_string_append_printf (where, 
+				" Limit %d,%d", 
+				offset, 
+				max_hits);
 
-	if (smin == 0) {
-		smax = 8;
-	} else {
-		smax = smin;
-	}
+	/* Finalize query */
+	query = g_strconcat (select->str, where->str, NULL);
+	g_string_free (select, TRUE);
+	g_string_free (where, TRUE);
 
-	str_min = tracker_int_to_str (smin);
-	str_max = tracker_int_to_str (smax);
+	tracker_debug (query);
 
-
-	g_string_append_printf (str_where, "  and  (S.ServiceTypeID in (select TypeId from ServiceTypes where TypeName = '%s' or Parent = '%s')) ", service, service);
-
-
-	g_free (str_min);
-	g_free (str_max);
-
-	g_string_append_printf (str_where, " Limit %d,%d", offset, limit);
-
-
-	query_sel = g_string_free (str_select, FALSE);
-	query_where = g_string_free (str_where, FALSE);
-	query = g_strconcat (query_sel, query_where, NULL);
-
-	tracker_log (query);
 	result_set = tracker_db_interface_execute_query (db_con->db, query);
+	*values = tracker_dbus_query_result_to_strv (result_set, NULL);
 
-	g_free (query_sel);
-	g_free (query_where);
-	g_free (query);
-
-	dbus_free_string_array (array);
-	row_count = 0;
-	array = NULL;
-	
 	if (result_set) {
-		array = tracker_get_query_result_as_array (result_set, &row_count);
 		g_object_unref (result_set);
 	}
 
-	reply = dbus_message_new_method_return (rec->message);
+	g_free (query);
 
-	dbus_message_append_args (reply,
-	  			  DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &array, row_count,
-	  			  DBUS_TYPE_INVALID);
+	tracker_dbus_request_success (request_id);
 
-	tracker_free_array (array, row_count);
-
-	dbus_connection_send (rec->connection, reply, NULL);
-	dbus_message_unref (reply);
+	return TRUE;
 }

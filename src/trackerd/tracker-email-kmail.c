@@ -26,6 +26,7 @@
 #include <glib/gstdio.h>
 
 #include <libtracker-common/tracker-log.h>
+#include <libtracker-common/tracker-utils.h>
 
 #include "tracker-email-utils.h"
 #include "tracker-db-email.h"

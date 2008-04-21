@@ -52,6 +52,7 @@
 
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-utils.h>
 #include "../xdgmime/xdgmime.h"
 
 #include "tracker-dbus.h"
@@ -632,14 +633,6 @@ tracker_date_to_str (time_t date_time)
 
         return (count > 0) ? g_strdup (buffer) : NULL;
 }
-
-
-inline gboolean
-tracker_is_empty_string (const char *s)
-{
-	return s == NULL || s[0] == '\0';
-}
-
 
 gchar *
 tracker_long_to_str (glong i)
@@ -1656,7 +1649,7 @@ tracker_notify_file_data_available (void)
 
 	/* if file thread is asleep then we just need to wake it up! */
 	if (g_mutex_trylock (tracker->files_signal_mutex)) {
-		g_cond_signal (tracker->file_thread_signal);
+		g_cond_signal (tracker->files_signal_cond);
 		g_mutex_unlock (tracker->files_signal_mutex);
 		return;
 	}
@@ -1683,7 +1676,7 @@ tracker_notify_file_data_available (void)
 		}
 
 		if (g_mutex_trylock (tracker->files_signal_mutex)) {
-			g_cond_signal (tracker->file_thread_signal);
+			g_cond_signal (tracker->files_signal_cond);
 			g_mutex_unlock (tracker->files_signal_mutex);
 			return;
 		}
@@ -1704,7 +1697,7 @@ tracker_notify_meta_data_available (void)
 
 	/* if metadata thread is asleep then we just need to wake it up! */
 	if (g_mutex_trylock (tracker->metadata_signal_mutex)) {
-		g_cond_signal (tracker->metadata_thread_signal);
+		g_cond_signal (tracker->metadata_signal_cond);
 		g_mutex_unlock (tracker->metadata_signal_mutex);
 		return;
 	}
@@ -1729,7 +1722,7 @@ tracker_notify_meta_data_available (void)
 		}
 
 		if (g_mutex_trylock (tracker->metadata_signal_mutex)) {
-			g_cond_signal (tracker->metadata_thread_signal);
+			g_cond_signal (tracker->metadata_signal_cond);
 			g_mutex_unlock (tracker->metadata_signal_mutex);
 			return;
 		}
@@ -1739,43 +1732,6 @@ tracker_notify_meta_data_available (void)
 		tracker_debug ("in check phase");
 	}
 }
-
-
-void
-tracker_notify_request_data_available (void)
-{
-	/* if thread is asleep then we just need to wake it up! */
-	if (g_mutex_trylock (tracker->request_signal_mutex)) {
-		g_cond_signal (tracker->request_thread_signal);
-		g_mutex_unlock (tracker->request_signal_mutex);
-		return;
-	}
-
-	/* if thread not in check phase then we need do nothing */
-	if (g_mutex_trylock (tracker->request_check_mutex)) {
-		g_mutex_unlock (tracker->request_check_mutex);
-		return;
-	}
-
-	/* we are in check phase - we need to wait until either check_mutex is unlocked or thread is asleep then awaken it */
-	while (TRUE) {
-
-		if (g_mutex_trylock (tracker->request_check_mutex)) {
-			g_mutex_unlock (tracker->request_check_mutex);
-			return;
-		}
-
-		if (g_mutex_trylock (tracker->request_signal_mutex)) {
-			g_cond_signal (tracker->request_thread_signal);
-			g_mutex_unlock (tracker->request_signal_mutex);
-			return;
-		}
-
-		g_thread_yield ();
-		g_usleep (10);
-	}
-}
-
 
 GTimeVal *
 tracker_timer_start (void)
@@ -2519,19 +2475,6 @@ tracker_add_io_grace (const gchar *uri)
 	tracker->grace_period++;
 }
 
-
-gchar *
-tracker_get_status (void)
-{
-	if (tracker->status < 7) {
-                gchar *tracker_status[] = {"Initializing", "Watching", "Indexing", "Pending", "Optimizing", "Idle", "Shutdown"};
-                return g_strdup (tracker_status[tracker->status]);
-        } else {
-                return g_strdup ("Idle");
-        }
-}
-
-
 gboolean
 tracker_pause_on_battery (void)
 {
@@ -2619,17 +2562,6 @@ tracker_index_too_big ()
 
 	return FALSE;
 
-}
-
-void
-tracker_set_status (Tracker *tracker, TrackerStatus status, gdouble percentage, gboolean signal)
-{
-	TrackerStatus old = tracker->status;
-
-	tracker->status = status;
-
-	if (signal && old != status)
-		tracker_dbus_send_index_status_change_signal ();
 }
 
 gboolean

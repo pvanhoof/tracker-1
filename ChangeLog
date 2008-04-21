@@ -1,3 +1,87 @@
+2008-04-21  Martyn Russell  <martyn@imendio.com>
+
+	Added DBus introspection support for the DBus API and reworked the
+	code to use the glib bindings.
+	
+	* configure.ac: Added check for DBus bindings tool to create
+	server side and client side glue header files.
+
+	* data/Makefile.am:
+	* data/tracker-dbus-daemon.xml:
+	* data/tracker-dbus-files.xml:
+	* data/tracker-dbus-keywords.xml:
+	* data/tracker-dbus-metadata.xml:
+	* data/tracker-dbus-search.xml: Added to separate DBus interfaces
+	into their respective files.
+	
+	* data/tracker-introspect.xml: Removed in favour of new DBus
+	interface files.
+	
+	* src/libtracker-common/tracker-language.[ch]:
+	* src/libtracker-common/tracker-log.[ch]: Fixed copyright
+	information. 
+
+	* src/libtracker-common/Makefile.am:
+	* src/libtracker-common/tracker-utils.[ch]: 
+	* src/trackerd/tracker-db-sqlite.c: Added tracker-utils.[ch] to
+	handle some of the commonly shared utility functions which are
+	used across more than just the tracker daemon.
+	
+	* src/libtracker/Makefile.am:
+	* src/libtracker/tracker.c: Fixed object paths for DBus
+	connectivity to the various interfaces we use.
+
+	* src/libtracker/tracker.h: For the typedef enum MetadataTypes,
+	use METADATA_ as the prefix to all these values so we don't cause
+	namespace issues elsewhere.
+	
+	* src/tracker-preferences/tracker-preferences.c: Don't depend on
+	the tracker daemon DBus definitions for the various interfaces we
+	connect to, instead define them specifically ourselves.
+
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-dbus-daemon.[ch]: Added to handle daemon
+	specific DBus requests like shutting down and getting the current
+	status, etc.
+	
+	* src/trackerd/tracker-dbus-files.[ch]: 
+	* src/trackerd/tracker-dbus-keywords.[ch]:
+	* src/trackerd/tracker-dbus-metadata.[ch]:
+	* src/trackerd/tracker-dbus-search.[ch]: Rewritten to use the
+	DBus glib bindings. This results in less code and a nicer way to
+	implement DBus APIs with introspection thrown in for free.
+
+	* src/trackerd/tracker-dbus.[ch]: Updated to just initialise DBus
+	support in the tracker daemon and host utility functions needed
+	for each interface.
+
+	* src/trackerd/tracker-dbus-methods.[ch]: 
+	* src/trackerd/tracker-process-requests.[ch]: Removed. None of
+	these functions are necessary any longer.
+
+	* src/trackerd/tracker-cache.c: 
+	* src/trackerd/tracker-email-evolution.c:
+	* src/trackerd/tracker-email-kmail.c:
+	* src/trackerd/tracker-email-modest.c:
+	* src/trackerd/tracker-email-utils.c:
+	* src/trackerd/tracker-indexer.c:
+	* src/trackerd/tracker-inotify.c:
+	* src/trackerd/tracker-process-files.c: 
+	* src/trackerd/tracker-rdf-query.c:
+	* src/trackerd/trackerd.c: Updates reflecting the new DBus changes.
+
+	* src/trackerd/tracker-marshal.list:
+	* src/trackerd/tracker-marshal-main.c: Added to include generated
+	marshal files built for extended signalling with unique	callback
+	signatures. 
+
+	* src/trackerd/tracker-status.[ch]: Added to handle the current
+	state and to also signal changes when the global tracker daemon
+	state changes.
+	
+	* src/trackerd/tracker-utils.[ch]: Moved functions to relevant
+	modules and removed all other unused code. 
+
 2008-04-17  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/trackerd/tracker-email-modest.c

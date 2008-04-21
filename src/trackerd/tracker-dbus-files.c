@@ -1,5 +1,7 @@
-/* Tracker - indexer and metadata database engine
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2008, Nokia
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -16,72 +18,166 @@
  * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  * Boston, MA  02110-1301, USA.
  */
+
+#include <config.h>
+
 #include <stdlib.h>
 #include <string.h>
 
 #include <libtracker-common/tracker-log.h>
+#include <libtracker-common/tracker-utils.h>
 
-#include "tracker-dbus-methods.h"
-#include "tracker-metadata.h"
+#include "tracker-dbus.h"
 #include "tracker-dbus-files.h"
+#include "tracker-db.h"
+#include "tracker-metadata.h"
 #include "tracker-service-manager.h"
+#include "tracker-marshal.h"
+
+#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DBUS_FILES, TrackerDBusFilesPriv))
+
+typedef struct {
+	DBConnection *db_con;
+} TrackerDBusFilesPriv;
+
+enum {
+	PROP_0,
+	PROP_DB_CONNECTION
+};
+
+static void dbus_files_finalize     (GObject      *object);
+static void dbus_files_set_property (GObject      *object,
+                                     guint         param_id,
+                                     const GValue *value,
+                                     GParamSpec   *pspec);
+
+G_DEFINE_TYPE(TrackerDBusFiles, tracker_dbus_files, G_TYPE_OBJECT)
+
+static void
+tracker_dbus_files_class_init (TrackerDBusFilesClass *klass)
+{
+	GObjectClass *object_class;
+
+	object_class = G_OBJECT_CLASS (klass);
+
+	object_class->finalize = dbus_files_finalize;
+	object_class->set_property = dbus_files_set_property;
+
+	g_object_class_install_property (object_class,
+					 PROP_DB_CONNECTION,
+					 g_param_spec_pointer ("db-connection",
+							       "DB connection",
+							       "Database connection to use in transactions",
+							       G_PARAM_WRITABLE));
+
+	g_type_class_add_private (object_class, sizeof (TrackerDBusFilesPriv));
+}
+
+static void
+tracker_dbus_files_init (TrackerDBusFiles *object)
+{
+}
+
+static void
+dbus_files_finalize (GObject *object)
+{
+	TrackerDBusFilesPriv *priv;
+	
+	priv = GET_PRIV (object);
+
+	G_OBJECT_CLASS (tracker_dbus_files_parent_class)->finalize (object);
+}
+
+static void
+dbus_files_set_property (GObject      *object,
+                         guint	       param_id,
+                         const GValue *value,
+                         GParamSpec   *pspec)
+{
+	TrackerDBusFilesPriv *priv;
+
+	priv = GET_PRIV (object);
+
+	switch (param_id) {
+	case PROP_DB_CONNECTION:
+		tracker_dbus_files_set_db_connection (TRACKER_DBUS_FILES (object),
+                                                      g_value_get_pointer (value));
+		break;
+
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
+		break;
+	};
+}
+
+TrackerDBusFiles *
+tracker_dbus_files_new (DBConnection *db_con)
+{
+	TrackerDBusFiles *object;
+
+	object = g_object_new (TRACKER_TYPE_DBUS_FILES, 
+			       "db-connection", db_con,
+			       NULL);
+	
+	return object;
+}
 
 void
-tracker_dbus_method_files_exists (DBusRec *rec)
+tracker_dbus_files_set_db_connection (TrackerDBusFiles *object,
+                                      DBConnection     *db_con)
 {
-	DBusMessage  *reply;
-	DBConnection *db_con;
-	DBusError    dbus_error;
-	char	     *uri;
-	gboolean     auto_create;
-	gboolean     file_valid;
-	gboolean     result;
-	guint32	     file_id;
+	TrackerDBusFilesPriv *priv;
 
-	g_return_if_fail (rec && rec->user_data);
+	g_return_if_fail (TRACKER_IS_DBUS_FILES (object));
+	g_return_if_fail (db_con != NULL);
 
-	db_con = rec->user_data;
+	priv = GET_PRIV (object);
+
+	priv->db_con = db_con;
+	
+	g_object_notify (G_OBJECT (object), "db-connection");
+}
 
 /*
-		<!-- Determines if the file is in tracker's database. The option auto_create if set to TRUE will register the file in the database if not already present -->
-		<method name="Exists">
-			<arg type="s" name="uri" direction="in" />
-			<arg type="b" name="auto_create" direction="in" />
-			<arg type="b" name="result" direction="out" />
-		</method>
-*/
+ * Functions
+ */
+gboolean
+tracker_dbus_files_exist (TrackerDBusFiles  *object,
+                          const gchar       *uri,
+                          gboolean           auto_create,
+                          gboolean          *value,
+                          GError           **error)
+{
+	TrackerDBusFilesPriv *priv;
+	guint                 request_id;
+	DBConnection         *db_con;
+	guint32               file_id;
+	gboolean              exists;
 
-	dbus_error_init(&dbus_error);
-	if (!dbus_message_get_args (rec->message, &dbus_error,
-			       DBUS_TYPE_STRING, &uri,
-			       DBUS_TYPE_BOOLEAN, &auto_create,
-			       DBUS_TYPE_INVALID)) {
-		tracker_set_error(rec, "DBusError: %s;%s", dbus_error.name, dbus_error.message);
-		dbus_error_free(&dbus_error);
-		return;
-	}
+	request_id = tracker_dbus_get_next_request_id ();
 
+	tracker_dbus_return_val_if_fail (uri != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (value != NULL, FALSE, error);
 
-	if (!uri)  {
-		tracker_set_error (rec, "No file was specified");
-		return;
-	}
+	priv = GET_PRIV (object);
+
+	db_con = priv->db_con;
+	
+	tracker_dbus_request_new (request_id,
+				  "DBus request to see if files exist, "
+                                  "uri:'%s'",
+				  uri);
 
 	file_id = tracker_db_get_file_id (db_con, uri);
-	result = (file_id > 0);
+	exists = file_id > 0;
 
-	if (!result && auto_create) {
-		char *str_file_id, *service;
+	if (!exists && auto_create) {
 		FileInfo *info;
-	
-		info = NULL;
-		service = NULL;
-		str_file_id = NULL;
-
+		gchar    *service;
+		
 		info = tracker_create_file_info (uri, 1, 0, 0);
-
+		
 		if (!tracker_file_is_valid (uri)) {
-			file_valid = FALSE;
 			info->mime = g_strdup ("unknown");
 			service = g_strdup ("Files");
 		} else {
@@ -89,88 +185,67 @@ tracker_dbus_method_files_exists (DBusRec *rec)
 			service = tracker_service_manager_get_service_type_for_mime (info->mime);
 			info = tracker_get_file_info (info);
 		}
-
-		file_id = tracker_db_create_service (db_con, "Files", info);
+		
+		tracker_db_create_service (db_con, "Files", info);
 		tracker_free_file_info (info);
 		g_free (service);
-		
 	}
 
-	reply = dbus_message_new_method_return (rec->message);
+	*value = exists;
+	
+        tracker_dbus_request_success (request_id);
 
-	dbus_message_append_args (reply,
-				  DBUS_TYPE_BOOLEAN, &result,
-				  DBUS_TYPE_INVALID);
-
-	dbus_connection_send (rec->connection, reply, NULL);
-	dbus_message_unref (reply);
+        return TRUE;
 }
 
-
-void
-tracker_dbus_method_files_create (DBusRec *rec)
+gboolean
+tracker_dbus_files_create (TrackerDBusFiles  *object,
+                           const gchar       *uri,
+                           gboolean           is_directory,
+                           const gchar       *mime,
+                           gint               size,
+                           gint               mtime,
+                           GError           **error)
 {
-	DBConnection *db_con;
-	DBusMessage  *reply;
-	DBusError    dbus_error;
-	char	     *uri, *name, *path, *mime, *service, *str_mtime, *str_size, *str_file_id;
-	gboolean     is_dir;
-	int	     size, mtime;
-	guint32	     file_id;
+	TrackerDBusFilesPriv *priv;
+	guint                 request_id;
+	DBConnection         *db_con;
+	FileInfo             *info;
+	gchar                *name;
+	gchar                *path;
+	gchar                *service;
+	guint32               file_id;
+	gboolean              created;
 
-	g_return_if_fail (rec && rec->user_data);
+	request_id = tracker_dbus_get_next_request_id ();
 
-	db_con = rec->user_data;
+	tracker_dbus_return_val_if_fail (uri != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (mime != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (size >= 0, FALSE, error);
+	tracker_dbus_return_val_if_fail (mtime >= 0, FALSE, error);
 
-/*
-		<!-- searches specified service for entities that match the specified search_text.
-		     Returns id field of all hits. sort_by_relevance returns results sorted with the biggest hits first (as sorting is slower, you might want to disable this for fast queries) -->
-		<method name="Create">
-			<arg type="s" name="uri" direction="in" />
-			<arg type="b" name="is_directory" direction="in" />
-			<arg type="s" name="mime" direction="in" />
-			<arg type="i" name="size" direction="in" />
-			<arg type="i" name="mtime" direction="in" />
-		</method>
-*/
+	priv = GET_PRIV (object);
 
-	dbus_error_init(&dbus_error);
-	if (!dbus_message_get_args (rec->message, &dbus_error,
-			       DBUS_TYPE_STRING, &uri,
-			       DBUS_TYPE_BOOLEAN, &is_dir,
-			       DBUS_TYPE_STRING, &mime,
-			       DBUS_TYPE_INT32, &size,
-			       DBUS_TYPE_INT32, &mtime,
-			       DBUS_TYPE_INVALID)) {
-		tracker_set_error(rec, "DBusError: %s;%s", dbus_error.name, dbus_error.message);
-		dbus_error_free(&dbus_error);
-		return;
-	}
-
-	if (!uri) {
-		tracker_set_error (rec, "No file was specified");
-		return;
-	}
-
+	db_con = priv->db_con;
 	
-	FileInfo *info;
-	
-	info = NULL;
-	service = NULL;
-	str_file_id = NULL;
+	tracker_dbus_request_new (request_id,
+				  "DBus request to create file, "
+                                  "uri:'%s', is directory:%s, mime:'%s', "
+                                  "size:%d, mtime:%d",
+                                  uri,
+                                  is_directory ? "yes" : "no",
+                                  mime, 
+                                  size,
+                                  mtime);
 
+	/* Create structure */
 	info = tracker_create_file_info (uri, 1, 0, 0);
 
 	info->mime = g_strdup (mime);
-	service = tracker_service_manager_get_service_type_for_mime (mime);
-	info->is_directory = is_dir;
+	info->is_directory = is_directory;
 	info->file_size = size;
 	info->mtime = mtime;
 
-	str_mtime = tracker_int_to_str (mtime);
-	str_size = tracker_int_to_str (size);
-	name = NULL;
-	
 	if (info->uri[0] == G_DIR_SEPARATOR) {
 		name = g_path_get_basename (info->uri);
 		path = g_path_get_dirname (info->uri);
@@ -179,69 +254,110 @@ tracker_dbus_method_files_create (DBusRec *rec)
 		path = tracker_get_vfs_path (info->uri);
 	}
 
-
+	service = tracker_service_manager_get_service_type_for_mime (mime);
 	file_id = tracker_db_create_service (db_con, service, info);
 	tracker_free_file_info (info);
-	str_file_id = tracker_uint_to_str (file_id);
 
-	if (file_id != 0) {
-		tracker_db_set_single_metadata (db_con, service, str_file_id, "File:Modified", str_mtime, FALSE);
-		tracker_db_set_single_metadata (db_con, service, str_file_id, "File:Size", str_size, FALSE);
-		tracker_db_set_single_metadata (db_con, service, str_file_id,  "File:Name", name, FALSE);
-		tracker_db_set_single_metadata (db_con, service, str_file_id, "File:Path", path, FALSE);
-		tracker_db_set_single_metadata (db_con, service, str_file_id, "File:Format", mime, FALSE);
+	created = file_id != 0;
+
+	if (created) {
+		gchar *file_id_str;
+		gchar *mtime_str;
+		gchar *size_str;
+
+		tracker_dbus_request_comment (request_id, 
+					      "File or directory has been created in database, uri:'%s'",
+					      uri);
+
+		file_id_str = tracker_uint_to_str (file_id);
+		mtime_str = tracker_int_to_str (mtime);
+		size_str = tracker_int_to_str (size);
+	
+		tracker_db_set_single_metadata (db_con, 
+						service, 
+						file_id_str, 
+						"File:Modified", 
+						mtime_str, 
+						FALSE);
+		tracker_db_set_single_metadata (db_con, 
+						service, 
+						file_id_str, 
+						"File:Size", 
+						size_str, 
+						FALSE);
+		tracker_db_set_single_metadata (db_con, 
+						service, 
+						file_id_str, 
+						"File:Name", 
+						name, 
+						FALSE);
+		tracker_db_set_single_metadata (db_con, 
+						service, 
+						file_id_str, 
+						"File:Path", 
+						path, 
+						FALSE);
+		tracker_db_set_single_metadata (db_con, 
+						service, 
+						file_id_str,
+						"File:Format",
+						mime, 
+						FALSE);
 		tracker_notify_file_data_available ();
+
+		g_free (size_str);
+		g_free (mtime_str);
+		g_free (file_id_str);
+
+		tracker_dbus_request_success (request_id);
+	} else {
+		tracker_dbus_request_comment (request_id, 
+					      "File/directory was already in the database, uri:'%s'",
+					      uri);
 	}
 
-	g_free (service);
-	g_free (str_mtime);
-	g_free (str_size);
-	g_free (name);
 	g_free (path);
-	g_free (str_file_id);
+	g_free (name);
+	g_free (service);
 
-	reply = dbus_message_new_method_return (rec->message);
-	dbus_message_append_args (reply, DBUS_TYPE_INVALID);
-	dbus_connection_send (rec->connection, reply, NULL);
-	dbus_message_unref (reply);
-	
+        return created;
 }
 
-
-void
-tracker_dbus_method_files_delete (DBusRec *rec)
+gboolean
+tracker_dbus_files_delete (TrackerDBusFiles  *object,
+                           const gchar       *uri,
+                           GError           **error)
 {
-	TrackerDBResultSet *result_set;
-	DBConnection *db_con;
-	DBusMessage  *reply;
-	DBusError    dbus_error;
-	char	     *uri, *name, *path, *str_file_id;
-	guint32	     file_id;
-	gboolean     is_dir;
+	TrackerDBusFilesPriv *priv;
+	TrackerDBResultSet   *result_set;
+	guint                 request_id;
+	DBConnection         *db_con;
+	guint32               file_id;
+	gchar                *name;
+	gchar                *path;
+	gboolean              is_directory;
+	TrackerChangeAction   action;
 
-	g_return_if_fail (rec && rec->user_data);
+	request_id = tracker_dbus_get_next_request_id ();
 
-	db_con = rec->user_data;
+	tracker_dbus_return_val_if_fail (uri != NULL, FALSE, error);
 
-/*
-		<!-- Removes the file entry from tracker's database-->
-		<method name="Delete">
-			<arg type="s" name="uri" direction="in" />
-		</method>
-*/
+	priv = GET_PRIV (object);
 
-	dbus_error_init(&dbus_error);
-	if (!dbus_message_get_args  (rec->message, &dbus_error,
-				DBUS_TYPE_STRING, &uri,
-				DBUS_TYPE_INVALID)) {
-		tracker_set_error(rec, "DBusError: %s;%s", dbus_error.name, dbus_error.message);
-		dbus_error_free(&dbus_error);
-		return;
-	}
+	db_con = priv->db_con;
+	
+	tracker_dbus_request_new (request_id,
+				  "DBus request to delete file, "
+                                  "uri:'%s'",
+                                  uri);
 
-	if (!uri) {
-		tracker_set_error (rec, "No file was specified");
-		return;
+	file_id = tracker_db_get_file_id (db_con, uri);
+	if (file_id == 0) {
+		tracker_dbus_request_comment (request_id, 
+					      "File or directory was not in database to delete, uri:'%s'",
+					      uri);
+		tracker_dbus_request_success (request_id);
+		return TRUE;
 	}
 
 	if (uri[0] == G_DIR_SEPARATOR) {
@@ -252,637 +368,602 @@ tracker_dbus_method_files_delete (DBusRec *rec)
 		path = tracker_get_vfs_path (uri);
 	}
 
-	file_id = tracker_db_get_file_id (db_con, uri);
-	str_file_id = tracker_uint_to_str (file_id);
-	is_dir = FALSE;
-
+	is_directory = FALSE;
+	
 	result_set = tracker_exec_proc (db_con, "GetServiceID", path, name, NULL);
-
 	if (result_set) {
-		tracker_db_result_set_get (result_set, 2, &is_dir, -1);
+		tracker_db_result_set_get (result_set, 2, &is_directory, -1);
 		g_object_unref (result_set);
 	}
 
-	if (file_id != 0) {
-		if (is_dir) {
-			tracker_db_insert_pending_file (db_con, file_id, uri, NULL,  g_strdup ("unknown"), 0, TRACKER_ACTION_DIRECTORY_DELETED, TRUE, FALSE, -1);
-		} else {
-			tracker_db_insert_pending_file (db_con, file_id, uri, NULL,  g_strdup ("unknown"), 0, TRACKER_ACTION_FILE_DELETED, FALSE, FALSE, -1);
-		}
+	if (is_directory) {
+		action = TRACKER_ACTION_DIRECTORY_DELETED;
+	} else {
+		action = TRACKER_ACTION_FILE_DELETED;
 	}
+	
+	tracker_db_insert_pending_file (db_con,
+					file_id, 
+					uri, 
+					NULL,  
+					g_strdup ("unknown"), 
+					0, 
+					action,
+					is_directory, 
+					FALSE, 
+					-1);
 
-	g_free (name);
 	g_free (path);
-	g_free (str_file_id);
+	g_free (name);
 
-	reply = dbus_message_new_method_return (rec->message);
-	dbus_message_append_args (reply, DBUS_TYPE_INVALID);
-	dbus_connection_send (rec->connection, reply, NULL);
-	dbus_message_unref (reply);
+        tracker_dbus_request_success (request_id);
+
+        return TRUE;
 }
 
-
-void
-tracker_dbus_method_files_get_service_type (DBusRec *rec)
+gboolean
+tracker_dbus_files_get_service_type (TrackerDBusFiles  *object,
+                                     const gchar       *uri,
+                                     gchar            **value,  
+                                     GError           **error)
 {
-	DBConnection *db_con;
-	DBusError    dbus_error;
-	DBusMessage  *reply;
-	char	     *uri, *str_id, *mime, *result;
-	guint32	     file_id;
+	TrackerDBusFilesPriv   *priv;
+	TrackerDBResultSet     *result_set;
+	guint                   request_id;
+	DBConnection           *db_con;
+	guint32                 file_id;
+	gchar                  *file_id_str;
+	const gchar            *mime = NULL;
+	gchar                ***result;
 
-/*
-		<!-- Get the Service subtype for the file -->
-		<method name="GetServiceType">
-			<arg type="s" name="uri" direction="in" />
-			<arg type="s" name="result" direction="out" />
-		</method>
-*/
+	request_id = tracker_dbus_get_next_request_id ();
 
-	g_return_if_fail (rec && rec->user_data);
+	tracker_dbus_return_val_if_fail (uri != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (value != NULL, FALSE, error);
 
-	db_con = rec->user_data;
+	priv = GET_PRIV (object);
 
-	dbus_error_init(&dbus_error);
-	if (!dbus_message_get_args (rec->message, &dbus_error,
-			       DBUS_TYPE_STRING, &uri,
-			       DBUS_TYPE_INVALID)) {
-		tracker_set_error(rec, "DBusError: %s;%s", dbus_error.name, dbus_error.message);
-		dbus_error_free(&dbus_error);
-		return;
-	}
-
-	if (!uri)  {
-		tracker_set_error (rec, "No file was specified");
-		return;
-	}
+	db_con = priv->db_con;
+	
+	tracker_dbus_request_new (request_id,
+				  "DBus request to get service type ",
+                                  "uri:'%s'",
+                                  uri);
 
 	file_id = tracker_db_get_file_id (db_con, uri);
 
 	if (file_id < 1) {
-		tracker_set_error (rec, "File %s was not found in Tracker's database", uri);
-		return;
+		tracker_dbus_request_failed (request_id,
+					     error, 
+					     "File '%s' was not found in the database",
+					     uri);
+		return FALSE;
 	}
 
-	str_id = tracker_uint_to_str (file_id);
+	/* Get mime */
+	file_id_str = tracker_uint_to_str (file_id);
 
-	mime = tracker_get_metadata (db_con, "Files", str_id, "File:Mime");
+	mime = NULL;
+	result_set = tracker_db_get_metadata (db_con, 
+					      "Files", 
+					      file_id_str, 
+					      "File:Mime");
 
-	result = tracker_service_manager_get_service_type_for_mime (mime);
+	if (result_set) {
+		tracker_db_result_set_get (result_set, 0, &mime, -1);
+		g_object_unref (result_set);
+	}
 
-	tracker_log ("Info for file %s is : id=%u, mime=%s, service=%s", uri, file_id, mime, result); 
+	g_free (file_id_str);
 
-	g_free (mime);
+	if (!mime) {
+		tracker_dbus_request_failed (request_id,
+					     error, 
+					     "Metadata 'File:Mime' for '%s' doesn't exist",
+					     uri);
+		return FALSE;
+	}
 
-	g_free (str_id);
+	tracker_dbus_request_comment (request_id,
+				      "Metadata 'File:Mime' is '%s'",
+				      mime);
 
-	reply = dbus_message_new_method_return (rec->message);
+	/* Get service from mime */
+	*value = tracker_service_manager_get_service_type_for_mime (mime);
 
-	dbus_message_append_args (reply,
-				  DBUS_TYPE_STRING, &result,
-				  DBUS_TYPE_INVALID);
+	tracker_dbus_request_comment (request_id,
+				      "Info for file '%s', "
+				      "id:%d, mime:'%s', service:'%s'",
+				      uri,
+				      file_id,
+				      mime,
+				      *value);
+	tracker_db_free_result (result);
 
-	g_free (result);
+        tracker_dbus_request_success (request_id);
 
-	dbus_connection_send (rec->connection, reply, NULL);
-
-	dbus_message_unref (reply);
+        return TRUE;
 }
 
-
-void
-tracker_dbus_method_files_get_text_contents (DBusRec *rec)
+gboolean
+tracker_dbus_files_get_text_contents (TrackerDBusFiles  *object,
+                                      const gchar       *uri,
+                                      gint               offset,
+                                      gint               max_length,
+                                      gchar            **value,  
+                                      GError           **error)
 {
-	TrackerDBResultSet *result_set;
-	DBConnection *db_con;
-	DBusError    dbus_error;
-	char	     *uri, *service_id;
-	int	     offset, max_length;
-	char 	     *str_offset, *str_max_length;
+	TrackerDBusFilesPriv *priv;
+	TrackerDBResultSet   *result_set;
+	guint                 request_id;
+	DBConnection         *db_con;
+	gchar                *service_id;
+	gchar                *offset_str;
+	gchar                *max_length_str;
 
-/*
-		<!-- Get the "File.Content" field for a file and allows you to specify the offset and amount of text to retrieve  -->
-		<method name="GetTextContents">
-			<arg type="s" name="uri" direction="in" />
-			<arg type="i" name="offset"  direction="in" />
-			<arg type="i" name="max_length"  direction="in" />
-			<arg type="s" name="result" direction="out" />
-		</method>
-*/
+	request_id = tracker_dbus_get_next_request_id ();
 
-	g_return_if_fail (rec && rec->user_data);
+	tracker_dbus_return_val_if_fail (uri != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (offset >= 0, FALSE, error);
+	tracker_dbus_return_val_if_fail (max_length >= 0, FALSE, error);
+	tracker_dbus_return_val_if_fail (value != NULL, FALSE, error);
 
-	db_con = rec->user_data;
+	priv = GET_PRIV (object);
 
-	dbus_error_init(&dbus_error);
-	if (!dbus_message_get_args  (rec->message, &dbus_error,
-				DBUS_TYPE_STRING, &uri,
-				DBUS_TYPE_INT32, &offset,
-				DBUS_TYPE_INT32, &max_length,
-				DBUS_TYPE_INVALID)) {
-		tracker_set_error(rec, "DBusError: %s;%s", dbus_error.name, dbus_error.message);
-		dbus_error_free(&dbus_error);
-		return;
-	}
-
-	if (!uri) {
-		tracker_set_error (rec, "No uri was specified");
-		return;
-	}
-
-	if (offset < 0) {
-		tracker_set_error (rec, "Offset must be positive");
-		return;
-	}
-
-	if (max_length < 0) {
-		tracker_set_error (rec, "Length of content must be positive");
-		return;
-	}
-
+	db_con = priv->db_con;
+	
+	tracker_dbus_request_new (request_id,
+				  "DBus request to get text contents, "
+                                  "uri:'%s', offset:%d, max length:%d",
+                                  uri,
+                                  offset,
+                                  max_length);
 
 	service_id = tracker_db_get_id (db_con, "Files", uri);
-
 	if (!service_id) {
 		service_id = tracker_db_get_id (db_con, "Emails", uri);
+
+		if (!service_id) {
+			tracker_dbus_request_failed (request_id,
+						     error, 
+						     "Unable to retrieve service ID for uri '%s'",
+						     uri);
+			return FALSE;		
+		} 
 	}
 
-	if (!service_id) {
-		g_free (service_id);
-		tracker_set_error (rec, "Unable to retrieve serviceID for uri %s", uri);
-		return;
-	}
+	offset_str = tracker_int_to_str (offset);
+	max_length_str = tracker_int_to_str (max_length);
 
-	str_offset = tracker_int_to_str (offset);
-	str_max_length = tracker_int_to_str (max_length);
-	result_set = tracker_exec_proc (db_con->blob, "GetFileContents",
-					str_offset, str_max_length, service_id, NULL);
-	g_free (str_offset);
-	g_free (str_max_length);
+	result_set = tracker_exec_proc (db_con->blob,
+					"GetFileContents",
+					offset_str, 
+					max_length_str, 
+					service_id, 
+					NULL);
+
+	g_free (max_length_str);
+	g_free (offset_str);
 	g_free (service_id);
+	
+	if (result_set) {
+		tracker_db_result_set_get (result_set, 0, value, -1);
+		g_object_unref (result_set);
 
-	const gchar *txt;
+		if (*value == NULL) {
+			*value = g_strdup ("");
+		}
+	} else {
+		tracker_dbus_request_failed (request_id,
+					     error, 
+					     "The contents of the uri '%s' are not stored",
+					     uri);
+		return FALSE;		
+	}
+
+        tracker_dbus_request_success (request_id);
+
+        return TRUE;
+}
+
+gboolean
+tracker_dbus_files_search_text_contents (TrackerDBusFiles  *object,
+                                         const gchar       *uri,
+                                         const gchar       *text,
+                                         gint               max_length,
+                                         gchar            **value,  
+                                         GError           **error)
+{
+	TrackerDBusFilesPriv *priv;
+	TrackerDBResultSet   *result_set = NULL;
+	guint                 request_id;
+	DBConnection         *db_con;
+	gchar                *name;
+	gchar                *path;
+	gchar                *max_length_str;
+
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_return_val_if_fail (uri != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (text != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (value != NULL, FALSE, error);
+
+	priv = GET_PRIV (object);
+
+	db_con = priv->db_con;
+	
+	tracker_dbus_request_new (request_id,
+				  "DBus request to search text contents, "
+                                  "in uri:'%s' for text:'%s' with max length:%d",
+                                  uri,
+                                  text,
+                                  max_length);
+
+	if (uri[0] == G_DIR_SEPARATOR) {
+		name = g_path_get_basename (uri);
+		path = g_path_get_dirname (uri);
+	} else {
+		name = tracker_get_vfs_name (uri);
+		path = tracker_get_vfs_path (uri);
+	}
+	
+	max_length_str = tracker_int_to_str (max_length);
+
+	/* result_set = tracker_exec_proc (db_con, */
+	/* 				"SearchFileContents", */
+	/* 				4, */
+	/* 				path, */
+	/* 				name, */
+	/* 				text, */
+	/* 				max_length_str); */
+
+
+	g_free (max_length_str);
+	g_free (path);
+	g_free (name);
 
 	if (result_set) {
-		DBusMessage *reply;
-
-		tracker_db_result_set_get (result_set, 0, &txt, -1);
-		reply = dbus_message_new_method_return (rec->message);
-
-		dbus_message_append_args (reply,
-					  DBUS_TYPE_STRING, &txt,
-					  DBUS_TYPE_INVALID);
-
-		dbus_connection_send (rec->connection, reply, NULL);
-		dbus_message_unref (reply);
+		tracker_db_result_set_get (result_set, 0, value, -1);
 		g_object_unref (result_set);
 	} else {
-		tracker_set_error (rec, "Contents of the URI not stored");
+		*value = g_strdup ("");
 	}
+
+	/* Fixme: when this is implemented, we should return TRUE and
+	 * change this function to the success variant.
+	 */
+        tracker_dbus_request_failed (request_id,
+				     error, 
+                                     "%s not implemented yet",
+                                     __PRETTY_FUNCTION__);
+
+        return FALSE;
 }
 
-
-void
-tracker_dbus_method_files_search_text_contents (DBusRec *rec)
+gboolean
+tracker_dbus_files_get_by_service_type (TrackerDBusFiles   *object,
+                                        gint                live_query_id,
+                                        const gchar        *service,
+                                        gint                offset,
+                                        gint                max_hits,
+                                        gchar            ***values,  
+                                        GError            **error)
 {
-	DBConnection *db_con;
-	DBusError    dbus_error;
-	char	     *uri, *text;
-	int	     max_length;
+	TrackerDBusFilesPriv *priv;
+	TrackerDBResultSet   *result_set;
+	guint                 request_id;
+	DBConnection         *db_con;
 
-/*
-		<!-- Retrieves a chunk of matching text of specified length that contains the search text in the File.Content field -->
-		<method name="SearchTextContents">
-			<arg type="s" name="uri" direction="in" />
-			<arg type="s" name="text"  direction="in" />
-			<arg type="i" name="length"  direction="in" />
-			<arg type="s" name="result" direction="out" />
-		</method>
-*/
+	request_id = tracker_dbus_get_next_request_id ();
 
-	g_return_if_fail (rec && rec->user_data);
+	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (offset >= 0, FALSE, error);
+	tracker_dbus_return_val_if_fail (max_hits >= 0, FALSE, error);
+	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
 
-	db_con = rec->user_data;
+	priv = GET_PRIV (object);
 
-	tracker_set_error (rec, "Method not implemented yet");
-	return;
+	db_con = priv->db_con;
 
-	/* ******************************************************************** */
-
-	dbus_error_init(&dbus_error);
-	if (!dbus_message_get_args  (rec->message, &dbus_error,
-				DBUS_TYPE_STRING, &uri,
-				DBUS_TYPE_STRING, &text,
-				DBUS_TYPE_INT32, &max_length,
-				DBUS_TYPE_INVALID)) {
-		tracker_set_error(rec, "DBusError: %s;%s", dbus_error.name, dbus_error.message);
-		dbus_error_free(&dbus_error);
-		return;
-	}
-
-	if (uri) {
-		TrackerDBResultSet *result_set = NULL;
-		char *path, *name, *str_max_length;
-
-
-		if (uri[0] == G_DIR_SEPARATOR) {
-			name = g_path_get_basename (uri);
-			path = g_path_get_dirname (uri);
-		} else {
-			name = tracker_get_vfs_name (uri);
-			path = tracker_get_vfs_path (uri);
-		}
-
-		str_max_length = tracker_int_to_str (max_length);
-
-		//tracker_exec_proc (db_con, "SearchFileContents", 4, path, name, text, str_max_length);
-
-		g_free (str_max_length);
-		g_free (path);
-		g_free (name);
-
-		if (result_set) {
-			char *result;
-
-			tracker_db_result_set_get (result_set, 0, &result, -1);
-
-			if (result) {
-				DBusMessage *reply;
-
-				reply = dbus_message_new_method_return (rec->message);
-
-				dbus_message_append_args (reply,
-							  DBUS_TYPE_STRING, &result,
-							  DBUS_TYPE_INVALID);
-
-				dbus_connection_send (rec->connection, reply, NULL);
-				dbus_message_unref (reply);
-				g_free (result);
-			}
-
-			g_object_unref (result_set);
-		}
-	}
-}
-
-
-void
-tracker_dbus_method_files_get_mtime (DBusRec *rec)
-{
-	DBConnection *db_con;
-	DBusError    dbus_error;
-	char	     *uri;
-
-/*
-		<!-- returns mtime of file in seconds since epoch -->
-		<method name="GetMTime">
-			<arg type="s" name="uri" direction="in" />
-			<arg type="i" name="result" direction="out" />
-		</method>
-*/
-
-	g_return_if_fail (rec && rec->user_data);
-
-	db_con = rec->user_data;
-
-	dbus_error_init(&dbus_error);
-	if (!dbus_message_get_args (rec->message, &dbus_error,
-			       DBUS_TYPE_STRING, &uri,
-			       DBUS_TYPE_INVALID)) {
-		tracker_set_error(rec, "DBusError: %s;%s", dbus_error.name, dbus_error.message);
-		dbus_error_free(&dbus_error);
-		return;
-	}
-
-	if (uri) {
-		TrackerDBResultSet *result_set;
-		char *path, *name;
-
-		if (uri[0] == G_DIR_SEPARATOR) {
-			name = g_path_get_basename (uri);
-			path = g_path_get_dirname (uri);
-		} else {
-			name = tracker_get_vfs_name (uri);
-			path = tracker_get_vfs_path (uri);
-		}
-
-		result_set = tracker_exec_proc (db_con, "GetFileMTime", path, name, NULL);
-
-		g_free (path);
-		g_free (name);
-
-		if (result_set) {
-			DBusMessage *reply;
-			int result;
-
-			tracker_db_result_set_get (result_set, 0, &result, -1);
-
-			reply = dbus_message_new_method_return (rec->message);
-
-			dbus_message_append_args (reply,
-						  DBUS_TYPE_INT32, &result,
-						  DBUS_TYPE_INVALID);
-
-			dbus_connection_send (rec->connection, reply, NULL);
-			dbus_message_unref (reply);
-
-			g_object_unref (result_set);
-		}
-	}
-}
-
-
-void
-tracker_dbus_method_files_get_by_service_type (DBusRec *rec)
-{
-	TrackerDBResultSet *result_set;
-	DBConnection *db_con;
-	DBusError    dbus_error;
-	DBusMessage  *reply;
-	int 	     query_id, limit, offset, row_count;
-	char 	     *service;
-	char 	     **array;
-
-	g_return_if_fail (rec && rec->user_data);
-
-	db_con = rec->user_data;
-
-/*
-		<!--
-		Retrieves all files that match a service description
-		-->
-		<method name="GetByServiceType">
-			<arg type="i" name="live_query_id" direction="in" />
-			<arg type="s" name="file_service" direction="in" />
-			<arg type="i" name="offset" direction="in" />
-			<arg type="i" name="max_hits" direction="in" />
-			<arg type="as" name="result" direction="out" />
-		</method>
-*/
-
-	dbus_error_init(&dbus_error);
-	if (!dbus_message_get_args  (rec->message, &dbus_error,
-				DBUS_TYPE_INT32, &query_id,
-				DBUS_TYPE_STRING, &service,
-				DBUS_TYPE_INT32, &offset,
-				DBUS_TYPE_INT32, &limit,
-				DBUS_TYPE_INVALID)) {
-		tracker_set_error(rec, "DBusError: %s;%s", dbus_error.name, dbus_error.message);
-		dbus_error_free(&dbus_error);
-		return;
-	}
+	tracker_dbus_request_new (request_id,
+				  "DBus request to get files by service type, "
+                                  "query id:%d, service:'%s', offset:%d, max hits:%d, ",
+                                  live_query_id,
+                                  service,
+                                  offset,
+                                  max_hits);
 
 	if (!tracker_service_manager_is_valid_service (service)) {
-		tracker_set_error (rec, "Invalid service %s or service has not been implemented yet", service);
-		return;
+		tracker_dbus_request_failed (request_id,
+					     error, 
+                                             "Service '%s' is invalid or has not been implemented yet", 
+                                             service);
+		return FALSE;
 	}
+	
+	result_set = tracker_db_get_files_by_service (db_con, 
+						      service, 
+						      offset, 
+						      max_hits);
 
-
-	result_set = tracker_db_get_files_by_service (db_con, service, offset, limit);
-
-	array = NULL;
-	row_count = 0;
+	*values = tracker_dbus_query_result_to_strv (result_set, NULL);
 
 	if (result_set) {
-		array = tracker_get_query_result_as_array (result_set, &row_count);
 		g_object_unref (result_set);
 	}
 
-	reply = dbus_message_new_method_return (rec->message);
+	tracker_dbus_request_success (request_id);
 
-	dbus_message_append_args (reply,
-				  DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &array, row_count,
-				  DBUS_TYPE_INVALID);
-
-	tracker_free_array (array, row_count);
-
-	dbus_connection_send (rec->connection, reply, NULL);
-	dbus_message_unref (reply);
+	return TRUE;	
 }
 
-
-void
-tracker_dbus_method_files_get_by_mime_type (DBusRec *rec)
+gboolean
+tracker_dbus_files_get_by_mime_type (TrackerDBusFiles   *object,
+                                     gint                live_query_id,
+                                     gchar             **mime_types,
+                                     gint                offset,
+                                     gint                max_hits,
+                                     gchar            ***values,  
+                                     GError            **error)
 {
-	TrackerDBResultSet *result_set;
-	DBConnection *db_con;
-	DBusError    dbus_error;
-	DBusMessage  *reply;
-	int	     query_id, n, offset, limit, row_count;
-	char	     **array, **mimes;
+	TrackerDBusFilesPriv *priv;
+	TrackerDBResultSet   *result_set;
+	guint                 request_id;
+	DBConnection         *db_con;
 
-	g_return_if_fail (rec && rec->user_data);
+	request_id = tracker_dbus_get_next_request_id ();
 
-	db_con = rec->user_data;
+	tracker_dbus_return_val_if_fail (mime_types != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (g_strv_length (mime_types) > 0, FALSE, error);
+	tracker_dbus_return_val_if_fail (offset >= 0, FALSE, error);
+	tracker_dbus_return_val_if_fail (max_hits >= 0, FALSE, error);
+	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
 
-/*
-		<!-- Retrieves all non-vfs files of the specified mime type(s) -->
-		<method name="GetByMimeType">
-			<arg type="i" name="live_query_id" direction="in" />
-			<arg type="as" name="mime_types" direction="in" />
-			<arg type="i" name="offset" direction="in" />
-			<arg type="i" name="max_hits" direction="in" />
-			<arg type="as" name="result" direction="out" />
-		</method>
-*/
+	priv = GET_PRIV (object);
 
-	dbus_error_init(&dbus_error);
-	if (!dbus_message_get_args  (rec->message, &dbus_error,
-				DBUS_TYPE_INT32, &query_id,
-				DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &mimes, &n,
-				DBUS_TYPE_INT32, &offset,
-				DBUS_TYPE_INT32, &limit,
-				DBUS_TYPE_INVALID)) {
-		tracker_set_error(rec, "DBusError: %s;%s", dbus_error.name, dbus_error.message);
-		dbus_error_free(&dbus_error);
-		return;
-	}
+	db_con = priv->db_con;
+	
+	tracker_dbus_request_new (request_id,
+				  "DBus request to get files by mime types, "
+                                  "query id:%d, mime types:%d, offset:%d, max hits:%d, ",
+                                  live_query_id,
+                                  g_strv_length (mime_types),
+                                  offset,
+                                  max_hits);
 
-	if (n < 1) {
-		tracker_set_error (rec, "No mimes specified");
-		return;
-	}
+	result_set = tracker_db_get_files_by_mime (db_con, 
+						   mime_types, 
+						   g_strv_length (mime_types), 
+						   offset, 
+						   max_hits, 
+						   FALSE);
 
-	result_set = tracker_db_get_files_by_mime (db_con, mimes, n, offset, limit, FALSE);
-
-	array = NULL;
-	row_count = 0;
+	*values = tracker_dbus_query_result_to_strv (result_set, NULL);
 
 	if (result_set) {
-		array = tracker_get_query_result_as_array (result_set, &row_count);
 		g_object_unref (result_set);
 	}
 
-	reply = dbus_message_new_method_return (rec->message);
+        tracker_dbus_request_success (request_id);
 
-	dbus_message_append_args (reply,
-				  DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &array, row_count,
-				  DBUS_TYPE_INVALID);
-
-	tracker_free_array (array, row_count);
-
-	dbus_connection_send (rec->connection, reply, NULL);
-	dbus_message_unref (reply);
+        return TRUE;
 }
 
-
-void
-tracker_dbus_method_files_get_by_mime_type_vfs (DBusRec *rec)
+gboolean
+tracker_dbus_files_get_by_mime_type_vfs (TrackerDBusFiles   *object,
+					 gint                live_query_id,
+					 gchar             **mime_types,
+					 gint                offset,
+					 gint                max_hits,
+					 gchar            ***values,  
+					 GError            **error)
 {
-	TrackerDBResultSet *result_set;
-	DBConnection *db_con;
-	DBusError    dbus_error;
-	DBusMessage  *reply;
-	int	     query_id, n, offset, limit, row_count;
-	char	     **array, **mimes;
+	TrackerDBusFilesPriv *priv;
+	TrackerDBResultSet   *result_set;
+	guint                 request_id;
+	DBConnection         *db_con;
 
-	g_return_if_fail (rec && rec->user_data);
+	request_id = tracker_dbus_get_next_request_id ();
 
-	db_con = rec->user_data;
+	tracker_dbus_return_val_if_fail (mime_types != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (g_strv_length (mime_types) > 0, FALSE, error);
+	tracker_dbus_return_val_if_fail (offset >= 0, FALSE, error);
+	tracker_dbus_return_val_if_fail (max_hits >= 0, FALSE, error);
+	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
 
-/*
-		<!-- Retrieves all vfs files of the specified mime type(s) -->
-		<method name="GetByMimeTypeVfs">
-			<arg type="i" name="live_query_id" direction="in" />
-			<arg type="as" name="mime_types" direction="in" />
-			<arg type="i" name="offset" direction="in" />
-			<arg type="i" name="max_hits" direction="in" />
-			<arg type="as" name="result" direction="out" />
-		</method>
-*/
+	priv = GET_PRIV (object);
 
-	dbus_error_init(&dbus_error);
-	if (!dbus_message_get_args  (rec->message, &dbus_error,
-				DBUS_TYPE_INT32, &query_id,
-				DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &mimes, &n,
-				DBUS_TYPE_INT32, &offset,
-				DBUS_TYPE_INT32, &limit,
-				DBUS_TYPE_INVALID)) {
-		tracker_set_error(rec, "DBusError: %s;%s", dbus_error.name, dbus_error.message);
-		dbus_error_free(&dbus_error);
-		return;
-	}
+	db_con = priv->db_con;
+	
+	tracker_dbus_request_new (request_id,
+				  "DBus request to get files by mime types (VFS), "
+                                  "query id:%d, mime types:%d, offset:%d, max hits:%d, ",
+                                  live_query_id,
+                                  g_strv_length (mime_types),
+                                  offset,
+                                  max_hits);
 
-	result_set = tracker_db_get_files_by_mime (db_con, mimes, n, offset, limit, TRUE);
+	/* NOTE: The only difference between this function and the
+	 * non-VFS version is the boolean in this function call:
+	 */
+	result_set = tracker_db_get_files_by_mime (db_con, 
+						   mime_types, 
+						   g_strv_length (mime_types), 
+						   offset, 
+						   max_hits, 
+						   TRUE);
 
-	array = NULL;
-	row_count = 0;
-
+	*values = tracker_dbus_query_result_to_strv (result_set, NULL);
+		
 	if (result_set) {
-		array = tracker_get_query_result_as_array (result_set, &row_count);
 		g_object_unref (result_set);
 	}
 
-	reply = dbus_message_new_method_return (rec->message);
+        tracker_dbus_request_success (request_id);
 
-	dbus_message_append_args (reply,
-				  DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &array, row_count,
-				  DBUS_TYPE_INVALID);
-
-	tracker_free_array (array, row_count);
-
-	dbus_connection_send (rec->connection, reply, NULL);
-	dbus_message_unref (reply);
+        return TRUE;
 }
 
-
-void
-tracker_dbus_method_files_get_metadata_for_files_in_folder (DBusRec *rec)
+gboolean
+tracker_dbus_files_get_mtime (TrackerDBusFiles  *object,
+                              const gchar       *uri,
+                              gint              *value,
+                              GError           **error)
 {
-	TrackerDBResultSet *result_set;
-	DBConnection	*db_con;
-	DBusError		dbus_error;
-	int		i, query_id, folder_name_len, file_id, n;
-	char		*tmp_folder, *folder, *str;
-	char		**array;
-	GString		*sql;
-	FieldDef	*defs[255];
-	gboolean 	needs_join[255];
+	TrackerDBusFilesPriv   *priv;
+	TrackerDBResultSet     *result_set;
+	guint                   request_id;
+	DBConnection           *db_con;
+	gchar                  *path;
+	gchar                  *name;
 
-	g_return_if_fail (rec && rec->user_data);
+	request_id = tracker_dbus_get_next_request_id ();
 
-	db_con = rec->user_data;
+	tracker_dbus_return_val_if_fail (uri != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (value != NULL, FALSE, error);
 
-/*
-		<!-- Retrieves all non-vfs files in a folder complete with all requested metadata fields. An array of stringarrays is outpout with uri and field metadata as part of the array  -->
-		<method name="GetMetadataForFilesInFolder">
-			<arg type="i" name="live_query_id" direction="in" />
-			<arg type="s" name="uri" direction="in" />
-			<arg type="as" name="fields" direction="in" />
-			<arg type="aas" name="values" direction="out" />
-		</method>
-*/
+	priv = GET_PRIV (object);
 
+	db_con = priv->db_con;
+	
+	tracker_dbus_request_new (request_id,
+				  "DBus request for mtime, "
+                                  "uri:'%s'",
+                                  uri);
 
-	dbus_error_init(&dbus_error);
-	if (!dbus_message_get_args (rec->message, &dbus_error,
-			       DBUS_TYPE_INT32, &query_id,
-			       DBUS_TYPE_STRING, &tmp_folder,
-			       DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &array, &n,
-			       DBUS_TYPE_INVALID)) {
-		tracker_set_error(rec, "DBusError: %s;%s", dbus_error.name, dbus_error.message);
-		dbus_error_free(&dbus_error);
-		return;
+	if (uri[0] == G_DIR_SEPARATOR) {
+		name = g_path_get_basename (uri);
+		path = g_path_get_dirname (uri);
+	} else {
+		name = tracker_get_vfs_name (uri);
+		path = tracker_get_vfs_path (uri);
 	}
 
+	result_set = tracker_exec_proc (db_con,
+					"GetFileMTime", 
+					path, 
+					name, 
+					NULL);
+	g_free (path);
+	g_free (name);
 
-	for (i = 0; i < n; i++) {
-		defs[i] =   tracker_db_get_field_def (db_con, array[i]);
+	if (!result_set) {
+		tracker_dbus_request_failed (request_id,
+					     error, 
+					     "There is no file mtime in the database for '%s'",
+					     uri);
+		return FALSE;
+	}
+
+	tracker_db_result_set_get (result_set, 0, value, -1);
+	g_object_unref (result_set);
+
+        tracker_dbus_request_success (request_id);
+ 
+        return TRUE;
+}
+
+gboolean
+tracker_dbus_files_get_metadata_for_files_in_folder (TrackerDBusFiles  *object,
+                                                     gint               live_query_id,
+                                                     const gchar       *uri,
+                                                     gchar            **fields,
+                                                     GPtrArray        **values,
+                                                     GError           **error)
+{
+	TrackerDBusFilesPriv *priv;
+	TrackerDBResultSet   *result_set;
+	guint                 request_id;
+	DBConnection         *db_con;
+	FieldDef             *defs[255];
+	guint                 i;
+	gchar                *uri_filtered;
+	guint32               file_id;
+	GString              *sql;
+	gboolean 	      needs_join[255];
+	gchar                *query;
+
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_return_val_if_fail (uri != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (fields != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (g_strv_length (fields) > 0, FALSE, error);
+	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
+
+	priv = GET_PRIV (object);
+
+	db_con = priv->db_con;
+	
+	tracker_dbus_request_new (request_id,
+				  "DBus request for metadata for files in folder, "
+                                  "query id:%d, uri:'%s', fields:%d",
+                                  live_query_id,
+                                  uri,
+                                  g_strv_length (fields));
+
+	/* Get fields for metadata list provided */
+	for (i = 0; i < g_strv_length (fields); i++) {
+		defs[i] = tracker_db_get_field_def (db_con, fields[i]);
 
 		if (!defs[i]) {
-			tracker_set_error(rec, "Error: Metadata field %s was not found", array[i]);
-			dbus_error_free(&dbus_error);
+			tracker_dbus_request_failed (request_id,
+						     error, 
+						     "Metadata field '%s' was not found",
+						     fields[i]);
+			return FALSE;
 		}
 
 	}
 
-
-	folder_name_len = strlen (tmp_folder);
-
-	folder_name_len--;
-
-	if (folder_name_len != 0 && tmp_folder[folder_name_len] == G_DIR_SEPARATOR) {
-		/* remove trailing 'G_DIR_SEPARATOR' */
-		folder = g_strndup (tmp_folder, folder_name_len);
+	if (g_str_has_suffix (uri, G_DIR_SEPARATOR_S)) {
+		/* Remove trailing 'G_DIR_SEPARATOR' */
+		uri_filtered = g_strndup (uri, strlen (uri) - 1);
 	} else {
-		folder = g_strdup (tmp_folder);
+		uri_filtered = g_strdup (uri);
 	}
 
-	file_id = tracker_get_file_id (db_con, folder, FALSE);
-
+	/* Get file ID in database */
+	file_id = tracker_db_get_file_id (db_con, uri_filtered);
 	if (file_id == 0) {
-		tracker_set_error (rec, "Cannot find folder %s in Tracker database", folder);
-		return;
+		g_free (uri_filtered);
+		tracker_dbus_request_failed (request_id,
+					     error, 
+					     "File or directory was not in database, uri:'%s'",
+					     uri);
+		return FALSE;
 	}
 
-	/* build SELECT clause */
-	sql = g_string_new (" SELECT (F.Path || ");
+	/* Build SELECT clause */
+	sql = g_string_new (" ");
+	g_string_append_printf (sql, 
+				"SELECT (F.Path || '%s' || F.Name) as PathName ", 
+				G_DIR_SEPARATOR_S);
 
-	g_string_append_printf (sql, "'%s' || F.Name) as PathName ", G_DIR_SEPARATOR_S);
+	for (i = 1; i <= g_strv_length (fields); i++) {
+		gchar *field;
 
-	for (i = 1; i <= n; i++) {
+		field = tracker_db_get_field_name ("Files", fields[i-1]);
 
-		char *my_field = tracker_db_get_field_name ("Files", array[i-1]);
-
-		if (my_field) {
-			g_string_append_printf (sql, ", F.%s ", my_field);
-			g_free (my_field);
-			needs_join[i-1] = FALSE;
+		if (field) {
+			g_string_append_printf (sql, ", F.%s ", field);
+			g_free (field);
+			needs_join[i - 1] = FALSE;
 		} else {
-			char *disp_field = tracker_db_get_display_field (defs[i]);
-			g_string_append_printf (sql, ", M%d.%s ", i, disp_field);
-			g_free (disp_field);
-			needs_join[i-1] = TRUE;
+			gchar *display_field;
+
+			display_field = tracker_db_get_display_field (defs[i]);
+			g_string_append_printf (sql, ", M%d.%s ", i, display_field);
+			g_free (display_field);
+			needs_join[i - 1] = TRUE;
 		}
 	}
 
+	/* Build FROM clause */
+	g_string_append (sql, 
+			 " FROM Services F ");
 
-	/* build FROM clause */
-	g_string_append (sql, " FROM Services F ");
-
-	for (i = 0; i < n; i++) {
-
-		char *table;
+	for (i = 0; i < g_strv_length (fields); i++) {
+		gchar *table;
 
 		if (!needs_join[i]) {
 			continue;
@@ -890,247 +971,36 @@ tracker_dbus_method_files_get_metadata_for_files_in_folder (DBusRec *rec)
 
 		table = tracker_get_metadata_table (defs[i]->type);
 
-		g_string_append_printf (sql, " LEFT OUTER JOIN %s M%d ON F.ID = M%d.ServiceID AND M%d.MetaDataID = %s ", table, i+1, i+1, i+1, defs[i]->id);
+		g_string_append_printf (sql, 
+					" LEFT OUTER JOIN %s M%d ON "
+					"F.ID = M%d.ServiceID AND "
+					"M%d.MetaDataID = %s ", 
+					table, 
+					i+1, 
+					i+1, 
+					i+1, 
+					defs[i]->id);
 
 		g_free (table);
-
 	}
 
-	dbus_free_string_array(array);
-	
-	/* build WHERE clause */
+	/* Build WHERE clause */
+	g_string_append_printf (sql, 
+				" WHERE F.Path = '%s' ", 
+				uri_filtered);
+	g_free (uri_filtered);
 
-	g_string_append_printf (sql, " WHERE F.Path = '%s' ", folder);
-
-	str = g_string_free (sql, FALSE);
-
-	tracker_debug (str);
-
-	result_set = tracker_db_interface_execute_query (db_con->db, str);
-
-	g_free (str);
-
-	tracker_dbus_reply_with_query_result (rec, result_set);
-
-	g_object_unref (result_set);
-}
-
-
-void
-tracker_dbus_method_files_search_by_text_mime (DBusRec *rec)
-{
-	TrackerDBResultSet *result_set;
-	DBConnection *db_con;
-	DBusError    dbus_error;
-	DBusMessage  *reply;
-	char	     *str;
-	char	     **array;
-	int	     n, row_count;
-
-	g_return_if_fail (rec && rec->user_data);
-
-	db_con = rec->user_data;
-
-	dbus_error_init(&dbus_error);
-	if (!dbus_message_get_args (rec->message, &dbus_error,
-			       DBUS_TYPE_STRING, &str,
-			       DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &array, &n,
-			       DBUS_TYPE_INVALID)) {
-		tracker_set_error(rec, "DBusError: %s;%s", dbus_error.name, dbus_error.message);
-		dbus_error_free(&dbus_error);
-		return;
-	}
-
-	result_set = tracker_db_search_text_mime (db_con, str, array);
-
-	array = NULL;
-	row_count = 0;
+	query = g_string_free (sql, FALSE);
+	result_set = tracker_db_interface_execute_query (db_con->db, query);
+	*values = tracker_dbus_query_result_to_ptr_array (result_set);
 
 	if (result_set) {
-		gboolean valid = TRUE;
-		gchar *prefix, *name;
-		gint i = 0;
-
-		row_count = tracker_db_result_set_get_n_rows (result_set);
-		array = g_new (gchar *, row_count);
-
-		while (valid) {
-			tracker_db_result_set_get (result_set,
-						   0, &prefix,
-						   1, &name,
-						   -1);
-
-			array[i] = g_build_filename (prefix, name, NULL);
-			valid = tracker_db_result_set_iter_next (result_set);
-			i++;
-
-			g_free (prefix);
-			g_free (name);
-		}
-
 		g_object_unref (result_set);
-	} else {
-		array = g_new (char *, 1);
-
-		array[0] = NULL;
 	}
 
+	g_free (query);
 
-	reply = dbus_message_new_method_return (rec->message);
+        tracker_dbus_request_success (request_id);
 
-	dbus_message_append_args (reply,
-				  DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &array, row_count,
-				  DBUS_TYPE_INVALID);
-
-	tracker_free_array (array, row_count);
-
-	dbus_connection_send (rec->connection, reply, NULL);
-	dbus_message_unref (reply);
-}
-
-
-void
-tracker_dbus_method_files_search_by_text_location (DBusRec *rec)
-{
-	TrackerDBResultSet *result_set;
-	DBConnection *db_con;
-	DBusError    dbus_error;
-	DBusMessage  *reply;
-	char	     *str, *location;
-	char	     **array;
-	int	     row_count;
-
-	g_return_if_fail (rec && rec->user_data);
-
-	db_con = rec->user_data;
-
-	dbus_error_init(&dbus_error);
-	if (!dbus_message_get_args (rec->message, &dbus_error,
-			       DBUS_TYPE_STRING, &str,
-			       DBUS_TYPE_STRING, &location,
-			       DBUS_TYPE_INVALID)) {
-		tracker_set_error(rec, "DBusError: %s;%s", dbus_error.name, dbus_error.message);
-		dbus_error_free(&dbus_error);
-		return;
-	}
-
-	result_set = tracker_db_search_text_location (db_con, str, location);
-
-	array = NULL;
-	row_count = 0;
-
-	if (result_set) {
-		gboolean valid = TRUE;
-		gchar *prefix, *name;
-		gint i = 0;
-
-		row_count = tracker_db_result_set_get_n_rows (result_set);
-		array = g_new (char *, row_count);
-
-		while (valid) {
-			tracker_db_result_set_get (result_set,
-						   0, &prefix,
-						   1, &name,
-						   -1);
-
-			array[i] = g_build_filename (prefix, name, NULL);
-			valid = tracker_db_result_set_iter_next (result_set);
-			i++;
-
-			g_free (prefix);
-			g_free (name);
-		}
-
-		g_object_unref (result_set);
-	} else {
-		array = g_new (char *, 1);
-
-		array[0] = NULL;
-	}
-
-
-	reply = dbus_message_new_method_return (rec->message);
-
-	dbus_message_append_args (reply,
-				  DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &array, row_count,
-				  DBUS_TYPE_INVALID);
-
-	tracker_free_array (array, row_count);
-
-	dbus_connection_send (rec->connection, reply, NULL);
-	dbus_message_unref (reply);
-}
-
-
-void
-tracker_dbus_method_files_search_by_text_mime_location (DBusRec *rec)
-{
-	TrackerDBResultSet *result_set;
-	DBConnection *db_con;
-	DBusError    dbus_error;
-	DBusMessage  *reply;
-	char	     *str, *location;
-	char	     **array;
-	int	     n, row_count;
-
-	g_return_if_fail (rec && rec->user_data);
-
-	db_con = rec->user_data;
-
-	dbus_error_init(&dbus_error);
-	if (!dbus_message_get_args (rec->message, &dbus_error,
-			       DBUS_TYPE_STRING, &str,
-			       DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &array, &n,
-			       DBUS_TYPE_STRING, &location,
-			       DBUS_TYPE_INVALID)) {
-		tracker_set_error(rec, "DBusError: %s;%s", dbus_error.name, dbus_error.message);
-		dbus_error_free(&dbus_error);
-		return;
-	}
-
-	result_set = tracker_db_search_text_mime_location (db_con, str, array, location);
-
-	array = NULL;
-	row_count = 0;
-
-	if (result_set) {
-		gboolean valid = TRUE;
-		gchar *prefix, *name;
-		gint i = 0;
-
-		row_count = tracker_db_result_set_get_n_rows (result_set);
-		array = g_new (char *, row_count);
-
-		while (valid) {
-			tracker_db_result_set_get (result_set,
-						   0, &prefix,
-						   1, &name,
-						   -1);
-
-			array[i] = g_build_filename (prefix, name, NULL);
-			valid = tracker_db_result_set_iter_next (result_set);
-			i++;
-
-			g_free (prefix);
-			g_free (name);
-		}
-
-		g_object_unref (result_set);
-	} else {
-		array = g_new (char *, 1);
-
-		array[0] = NULL;
-	}
-
-
-	reply = dbus_message_new_method_return (rec->message);
-
-	dbus_message_append_args (reply,
-				  DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &array, row_count,
-				  DBUS_TYPE_INVALID);
-
-	tracker_free_array (array, row_count);
-
-	dbus_connection_send (rec->connection, reply, NULL);
-	dbus_message_unref (reply);
+        return TRUE;
 }

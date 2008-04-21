@@ -27,8 +27,11 @@
 #include <libtracker-common/tracker-log.h>
 
 #include "tracker-utils.h"
+#include "tracker-db-sqlite.h"
 #include "tracker-dbus.h"
+#include "tracker-dbus-daemon.h"
 #include "tracker-cache.h"
+#include "tracker-status.h"
 
 #define USE_SLICE
 
@@ -305,7 +308,10 @@ tracker_cache_add (const gchar *word, guint32 service_id, gint service_type, gin
 gboolean
 tracker_cache_process_events (DBConnection *db_con, gboolean check_flush) 
 {
+        GObject  *object;
 	gboolean stopped_trans = FALSE;
+	
+        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
 	
 	while (TRUE) {
 
@@ -334,11 +340,20 @@ tracker_cache_process_events (DBConnection *db_con, gboolean check_flush)
 
 			if (db_con) tracker_db_end_index_transaction (db_con);	
 
-			tracker_dbus_send_index_status_change_signal ();
-			
+                        /* Signal state change */
+                        g_signal_emit_by_name (object, 
+                                               "index-state-change", 
+                                               tracker_status_get_as_string (),
+                                               tracker->first_time_index,
+                                               tracker->in_merge,
+                                               tracker->pause_manual,
+                                               tracker_pause_on_battery (),
+                                               tracker->pause_io,
+                                               tracker_config_get_enable_indexing (tracker->config));
 			
 			if (tracker_pause ()) {
-				g_cond_wait (tracker->file_thread_signal, tracker->files_signal_mutex);
+				g_cond_wait (tracker->files_signal_cond, 
+                                             tracker->files_signal_mutex);
 			} else {
 
 				/* set mutex to indicate we are in "check" state to prevent race conditions from other threads resetting gloabl vars */
@@ -347,7 +362,8 @@ tracker_cache_process_events (DBConnection *db_con, gboolean check_flush)
 				if ((!tracker->is_running || 
                                      !tracker_config_get_enable_indexing (tracker->config)) && 
                                     (!tracker->shutdown))  {
-					g_cond_wait (tracker->file_thread_signal, tracker->files_signal_mutex);
+					g_cond_wait (tracker->files_signal_cond, 
+                                                     tracker->files_signal_mutex);
 				}
 
 				g_mutex_unlock (tracker->files_check_mutex);
@@ -358,7 +374,16 @@ tracker_cache_process_events (DBConnection *db_con, gboolean check_flush)
 				if (check_flush) tracker_cache_flush_all ();
 				return FALSE;				
 			} else {
-				tracker_dbus_send_index_status_change_signal ();
+                                /* Signal state change */
+                                g_signal_emit_by_name (object, 
+                                                       "index-state-change", 
+                                                       tracker_status_get_as_string (),
+                                                       tracker->first_time_index,
+                                                       tracker->in_merge,
+                                                       tracker->pause_manual,
+                                                       tracker_pause_on_battery (),
+                                                       tracker->pause_io,
+                                                       tracker_config_get_enable_indexing (tracker->config));
 				continue;
 			}
 				
@@ -377,7 +402,16 @@ tracker_cache_process_events (DBConnection *db_con, gboolean check_flush)
 
 			tracker->pause_io = TRUE;
 
-			tracker_dbus_send_index_status_change_signal ();
+                        /* Signal state change */
+                        g_signal_emit_by_name (object, 
+                                               "index-state-change", 
+                                               tracker_status_get_as_string (),
+                                               tracker->first_time_index,
+                                               tracker->in_merge,
+                                               tracker->pause_manual,
+                                               tracker_pause_on_battery (),
+                                               tracker->pause_io,
+                                               tracker_config_get_enable_indexing (tracker->config));
 		
 			g_usleep (1000 * 1000);
 		
@@ -390,7 +424,17 @@ tracker_cache_process_events (DBConnection *db_con, gboolean check_flush)
 		} else {
 			if (tracker->pause_io) {
 				tracker->pause_io = FALSE;
-				tracker_dbus_send_index_status_change_signal ();
+
+                                /* Signal state change */
+                                g_signal_emit_by_name (object, 
+                                                       "index-state-change", 
+                                                       tracker_status_get_as_string (),
+                                                       tracker->first_time_index,
+                                                       tracker->in_merge,
+                                                       tracker->pause_manual,
+                                                       tracker_pause_on_battery (),
+                                                       tracker->pause_io,
+                                                       tracker_config_get_enable_indexing (tracker->config));
 			}
 		}
 

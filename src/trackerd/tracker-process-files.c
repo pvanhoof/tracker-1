@@ -32,20 +32,22 @@
 
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-log.h>
+#include <libtracker-common/tracker-utils.h>
+
 #include "../xdgmime/xdgmime.h"
 
 #include "tracker-apps.h"
 #include "tracker-db.h"
 #include "tracker-dbus.h"
-#include "tracker-dbus-methods.h"
+#include "tracker-dbus-daemon.h"
 #include "tracker-cache.h"
 #include "tracker-email.h"
 #include "tracker-hal.h"
 #include "tracker-indexer.h"
 #include "tracker-os-dependant.h"
-#include "tracker-utils.h"
 #include "tracker-watch.h"
 #include "tracker-service.h"
+#include "tracker-status.h"
 #include "tracker-process-files.h"
 
 static GSList       *ignore_pattern_list;
@@ -74,12 +76,22 @@ static const gchar  *ignore_name[] = {
 };
 
 static void
+process_iter_main_context (void)
+{
+        GMainContext *context;
+
+        context = g_main_context_default ();
+
+        while (g_main_context_pending (context)) {
+                g_main_context_iteration (context, FALSE);
+        }
+}
+
+static void
 process_my_yield (void)
 {
 #ifndef OS_WIN32
-	while (g_main_context_iteration (NULL, FALSE)) {
-                /* FIXME: do something here? */
-	}
+        process_iter_main_context ();
 #endif
 }
 
@@ -748,36 +760,29 @@ static void
 process_index_files (Tracker *tracker)
 {
         DBConnection *db_con;
+        GObject      *object;
         GSList       *index_include;
         GSList       *index_exclude;
-        gint          initial_sleep;
 
         tracker_log ("Starting file indexing...");
         
         db_con = tracker->index_db;
+        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
 
-        initial_sleep = tracker_config_get_initial_sleep (tracker->config);
-       
-        tracker->pause_io = TRUE;
-
-        tracker_dbus_send_index_status_change_signal ();
         tracker_db_end_index_transaction (db_con);
 
-        /* Sleep for N secs before watching/indexing any of the major services */
-        tracker_log ("Sleeping for %d secs before starting...", initial_sleep);
-        
-        while (initial_sleep > 0) {
-                g_usleep (G_USEC_PER_SEC);
-                
-                initial_sleep --;
-                
-                if (!tracker->is_running || tracker->shutdown) {
-                        return;
-                }		
-        }
-        
         tracker->pause_io = FALSE;
-        tracker_dbus_send_index_status_change_signal ();
+
+        /* Signal state change */
+        g_signal_emit_by_name (object, 
+                               "index-state-change", 
+                               tracker_status_get_as_string (),
+                               tracker->first_time_index,
+                               tracker->in_merge,
+                               tracker->pause_manual,
+                               tracker_pause_on_battery (),
+                               tracker->pause_io,
+                               tracker_config_get_enable_indexing (tracker->config));
 
         /* FIXME: Is this safe? shouldn't we free first? */
         crawl_directories = NULL;
@@ -841,7 +846,14 @@ process_index_files (Tracker *tracker)
         }
         
         tracker_db_end_transaction (db_con->cache);
-        tracker_dbus_send_index_progress_signal ("Files", "");
+
+        /* Signal progress */
+        g_signal_emit_by_name (object, "index-progress", 
+                               "Files",
+                               "",
+                               tracker->index_count,
+                               tracker->folders_processed,
+                               tracker->folders_count);       
 
         g_slist_free (index_include);
 }
@@ -1007,6 +1019,7 @@ process_index_emails (Tracker *tracker)
 {
         DBConnection  *db_con;
         TrackerConfig *config;
+        GObject       *daemon;
        
         db_con = tracker->index_db;
         config = tracker->config;
@@ -1022,7 +1035,14 @@ process_index_emails (Tracker *tracker)
 	
         tracker->index_status = INDEX_EMAILS;
         
-        tracker_dbus_send_index_progress_signal ("Emails", "");
+        /* Signal progress */
+        daemon = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
+        g_signal_emit_by_name (daemon, "index-progress", 
+                               "Emails",
+                               "",
+                               tracker->index_count,
+                               tracker->mbox_processed,
+                               tracker->mbox_count);
         
         if (tracker->word_update_count > 0) {
                 tracker_indexer_apply_changes (tracker->file_index, tracker->file_update_index, TRUE);
@@ -1056,8 +1076,10 @@ static gboolean
 process_files (Tracker *tracker)
 {
         DBConnection *db_con;
+        GObject      *object;
 
         db_con = tracker->index_db;
+        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
 
         /* Check dir_queue in case there are
          * directories waiting to be indexed.
@@ -1139,16 +1161,31 @@ process_files (Tracker *tracker)
         }
         
         tracker->index_status = INDEX_FILES;
-        tracker_dbus_send_index_progress_signal ("Files","");
+
+        /* Signal progress */
+        g_signal_emit_by_name (object,
+                               "index-progress", 
+                               "Files",
+                               "",
+                               tracker->index_count,
+                               tracker->folders_processed,
+                               tracker->folders_count);
+
         tracker->index_status = INDEX_FINISHED;
         
         if (tracker->is_running && tracker->first_time_index) {
-                tracker_set_status (tracker, STATUS_OPTIMIZING, 0, FALSE);
+                gint time_taken;
+
+                tracker_status_set (TRACKER_STATUS_OPTIMIZING);
                 tracker->do_optimize = FALSE;
                 
                 tracker->first_time_index = FALSE;
 		
-                tracker_dbus_send_index_finished_signal ();
+                time_taken = time (NULL) - tracker->index_time_start;
+                g_signal_emit_by_name (object, 
+                                       "index-finished", 
+                                       time_taken);
+
                 tracker_db_set_option_int (db_con, "InitialIndex", 0);
                 
                 tracker->update_count = 0;
@@ -1166,13 +1203,29 @@ process_files (Tracker *tracker)
                 tracker_log ("Finished optimizing, waiting for new events...");
         }
         
-        /* We have no stuff to process so
-         * sleep until awoken by a new
+        /* We have no stuff to process so sleep until awoken by a new
          * signal.
          */
-        tracker_set_status (tracker, STATUS_IDLE, 0, TRUE);
+        tracker_status_set_and_signal (TRACKER_STATUS_IDLE,
+                                       tracker->first_time_index,
+                                       tracker->in_merge,
+                                       tracker->pause_manual,
+                                       tracker_pause_on_battery (),
+                                       tracker->pause_io,
+                                       tracker_config_get_enable_indexing (tracker->config));
+
+        /* Signal state change */
+        g_signal_emit_by_name (object, 
+                               "index-state-change", 
+                               tracker_status_get_as_string (),
+                               tracker->first_time_index,
+                               tracker->in_merge,
+                               tracker->pause_manual,
+                               tracker_pause_on_battery (),
+                               tracker->pause_io,
+                               tracker_config_get_enable_indexing (tracker->config));
         
-        g_cond_wait (tracker->file_thread_signal, 
+        g_cond_wait (tracker->files_signal_cond, 
                      tracker->files_signal_mutex);
         
         tracker->grace_period = 0;
@@ -1427,17 +1480,24 @@ gpointer
 tracker_process_files (gpointer data)
 {
 	Tracker      *tracker;
-        DBConnection *db_con;
+        GObject  *object;
 	GSList	     *moved_from_list; /* List to hold moved_from
                                         * events whilst waiting for a
                                         * matching moved_to event.
                                         */
 	gboolean      pushed_events;
         gboolean      first_run;
+        gint      initial_sleep;
+
+        process_block_signals (); 
+
+        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
 
         tracker = (Tracker*) data;
 
-        process_block_signals ();
+ 	g_mutex_lock (tracker->files_signal_mutex);
+
+        tracker->pause_io = TRUE;
 
         /* When initially run, we set up variables */
         if (!ignore_pattern_list) {
@@ -1469,13 +1529,38 @@ tracker_process_files (gpointer data)
 
         /* Start processing */
 	g_mutex_lock (tracker->files_signal_mutex);
-	g_mutex_lock (tracker->files_stopped_mutex);
 
-	/* Set thread safe DB connection */
-	tracker_db_thread_init ();
+        /* Signal state change */
+        g_signal_emit_by_name (object, 
+                               "index-state-change", 
+                               tracker_status_get_as_string (),
+                               tracker->first_time_index,
+                               tracker->in_merge,
+                               tracker->pause_manual,
+                               tracker_pause_on_battery (),
+                               tracker->pause_io,
+                               tracker_config_get_enable_indexing (tracker->config));
 
-	tracker->index_db = tracker_db_connect_all (TRUE);
+        /* Sleep for N secs before watching/indexing any of the major services */
+        initial_sleep = tracker_config_get_initial_sleep (tracker->config);
+        tracker_log ("Sleeping for %d secs before starting...", initial_sleep);
+        
+        while (initial_sleep > 0) {
+                g_usleep (G_USEC_PER_SEC);
+                
+                initial_sleep --;
+                
+                if (!tracker->is_running || tracker->shutdown) {
+                        g_mutex_unlock (tracker->files_signal_mutex);
+                        return NULL;
+                }
+        }
+
+        tracker_log ("Proceeding with indexing...");
+
 	tracker->index_status = INDEX_CONFIG;
+
+        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
 
 	pushed_events = FALSE;
 	first_run = TRUE;
@@ -1489,14 +1574,24 @@ tracker_process_files (gpointer data)
 		FileInfo *info;
 		gboolean  need_index;
 
-		db_con = tracker->index_db;
-
 		if (!tracker_cache_process_events (tracker->index_db, TRUE) ) {
-			tracker_set_status (tracker, STATUS_SHUTDOWN, 0, TRUE);
+                        tracker_status_set_and_signal (TRACKER_STATUS_SHUTDOWN,
+                                                       tracker->first_time_index,
+                                                       tracker->in_merge,
+                                                       tracker->pause_manual,
+                                                       tracker_pause_on_battery (),
+                                                       tracker->pause_io,
+                                                       tracker_config_get_enable_indexing (tracker->config));
 			break;	
 		}
 
-		tracker_set_status (tracker, STATUS_INDEXING, 0, TRUE);
+                tracker_status_set_and_signal (TRACKER_STATUS_INDEXING,
+                                               tracker->first_time_index,
+                                               tracker->in_merge,
+                                               tracker->pause_manual,
+                                               tracker_pause_on_battery (),
+                                               tracker->pause_io,
+                                               tracker_config_get_enable_indexing (tracker->config));
 
 		info = g_async_queue_try_pop (tracker->file_process_queue);
 
@@ -1530,7 +1625,7 @@ tracker_process_files (gpointer data)
 			if (result_set) {
 				gboolean valid = TRUE;
 
-				tracker_set_status (tracker, STATUS_PENDING, 0, FALSE);
+                                tracker_status_set (TRACKER_STATUS_PENDING);
 
 				while (valid) {
 					FileInfo	    *info_tmp;
@@ -1576,7 +1671,13 @@ tracker_process_files (gpointer data)
 			continue;
 		}
 
-		tracker_set_status (tracker, STATUS_INDEXING, 0, TRUE);
+                tracker_status_set_and_signal (TRACKER_STATUS_INDEXING,
+                                               tracker->first_time_index,
+                                               tracker->in_merge,
+                                               tracker->pause_manual,
+                                               tracker_pause_on_battery (),
+                                               tracker->pause_io,
+                                               tracker_config_get_enable_indexing (tracker->config));
 
                 if (process_action_prechecks (tracker, info)) {
                         continue;
@@ -1591,11 +1692,18 @@ tracker_process_files (gpointer data)
 					tracker_log ("indexing #%d - %s", tracker->index_count, info->uri);
 				}
 
-				tracker_dbus_send_index_progress_signal ("Files", info->uri);
+                                /* Signal progress */
+                                object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
+                                g_signal_emit_by_name (object, 
+                                                       "index-progress", 
+                                                       "Files",
+                                                       info->uri,
+                                                       tracker->index_count,
+                                                       tracker->folders_processed,
+                                                       tracker->folders_count);
 			}
 
 			process_index_entity (tracker, info);
-			tracker->index_db = tracker->index_db;	
 		}
 
 		tracker_dec_info_ref (info);
@@ -1612,7 +1720,7 @@ tracker_process_files (gpointer data)
 
 	tracker_db_close_all (tracker->index_db);
 
-	g_mutex_unlock (tracker->files_stopped_mutex);
+        g_mutex_unlock (tracker->files_signal_mutex);
 
         return NULL;
 }

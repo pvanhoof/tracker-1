@@ -12,7 +12,9 @@ libtracker_common_la_SOURCES = 		\
 	tracker-language.c		\
 	tracker-language.h		\
 	tracker-log.c	 		\
-	tracker-log.h
+	tracker-log.h			\
+	tracker-utils.c			\
+	tracker-utils.h
 
 libtracker_common_la_LDFLAGS = -version-info 0:0:0
 libtracker_common_la_LIBADD = $(GLIB2_LIBS)

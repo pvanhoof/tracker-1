@@ -83,17 +83,6 @@ typedef enum {
 
 
 typedef enum {
-	STATUS_INIT,		/* tracker is initializing */
-	STATUS_WATCHING,	/* tracker is setting up watches for directories */
-	STATUS_INDEXING,	/* tracker is indexing stuff */
-	STATUS_PENDING, 	/* tracker has entities awaiting index */
-	STATUS_OPTIMIZING,	/* tracker is optimizing its databases */
-	STATUS_IDLE,		/* tracker is idle and awaiting new events or requests */
-	STATUS_SHUTDOWN		/* tracker is in the shutdown process */
-} TrackerStatus;
-
-
-typedef enum {
 	INDEX_CONFIG,
 	INDEX_APPLICATIONS,
 	INDEX_FILES,
@@ -164,10 +153,8 @@ typedef struct {
 
 	gboolean	readonly;
 
-	TrackerStatus	status;
 	int		pid;
 
-	gpointer	dbus_con;
 	gpointer	hal;
 
 	gboolean	reindex;
@@ -292,8 +279,6 @@ typedef struct {
 	int		file_update_count;
 	int		email_update_count;
 
- 	GMutex 		*scheduler_mutex;
-
  	gboolean 	is_running;
 	gboolean	is_dir_scan;
 	GMainLoop 	*loop;
@@ -303,27 +288,16 @@ typedef struct {
 
 	GAsyncQueue 	*file_process_queue;
 	GAsyncQueue 	*file_metadata_queue;
-	GAsyncQueue 	*user_request_queue;
 
 	GAsyncQueue 	*dir_queue;
 
 	GMutex		*files_check_mutex;
-	GMutex		*metadata_check_mutex;
-	GMutex		*request_check_mutex;
-
-	GMutex		*files_stopped_mutex;
-	GMutex		*metadata_stopped_mutex;
-	GMutex		*request_stopped_mutex;
-
-	GThread 	*file_metadata_thread;
-
-	GCond 		*file_thread_signal;
-	GCond 		*metadata_thread_signal;
-	GCond 		*request_thread_signal;
-
-	GMutex		*metadata_signal_mutex;
 	GMutex		*files_signal_mutex;
-	GMutex		*request_signal_mutex;
+	GCond 		*files_signal_cond;
+
+	GMutex		*metadata_check_mutex;
+	GMutex		*metadata_signal_mutex;
+	GCond 		*metadata_signal_cond;
 
 } Tracker;
 
@@ -439,7 +413,6 @@ gchar **	tracker_gslist_to_string_list 		(GSList *list);
 gchar **	tracker_make_array_null_terminated 	(gchar **array, gint length);
 
 void		tracker_free_array 		(char **array, int row_count);
-gboolean        tracker_is_empty_string         (const char *s);
 gchar *         tracker_long_to_str             (glong i);
 gchar *		tracker_int_to_str		(gint i);
 gchar *		tracker_uint_to_str		(guint i);
@@ -528,8 +501,6 @@ void		tracker_file_close 		(int fd, gboolean no_longer_needed);
 
 void		tracker_add_io_grace 		(const char *uri);
 
-char *		tracker_get_status 		(void);
-
 void		free_file_change		(FileChange **user_data);
 gboolean	tracker_do_cleanup 		(const gchar *sig_msg);
 gboolean        tracker_watch_dir               (const gchar *uri);
@@ -538,7 +509,5 @@ void            tracker_scan_directory          (const gchar *uri);
 gboolean	tracker_pause_on_battery 	(void);
 gboolean	tracker_low_diskspace		(void);
 gboolean	tracker_pause			(void);
-
-void		tracker_set_status		(Tracker *tracker, TrackerStatus status, gdouble percentage, gboolean signal);
 
 #endif

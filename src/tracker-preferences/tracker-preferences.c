@@ -27,11 +27,15 @@
 #include <stdlib.h>
 
 #include "../libtracker/tracker.h"
-#include "../trackerd/tracker-dbus.h"
+/* #include "../trackerd/tracker-dbus.h" */
 #include "../libtracker-common/tracker-configuration.h"
 
 #include "tracker-preferences.h"
 #include "tracker-preferences-dialogs.h"
+
+#define TRACKER_DBUS_SERVICE   "org.freedesktop.Tracker"
+#define TRACKER_DBUS_PATH      "/org/freedesktop/Tracker"
+#define TRACKER_DBUS_INTERFACE "org.freedesktop.Tracker"
 
 #define TRACKER_PREFERENCES_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE((obj), TRACKER_TYPE_PREFERENCES, TrackerPreferencesPrivate))
 
@@ -207,8 +211,8 @@ tracker_preferences_init (GTypeInstance *instance, gpointer g_class)
 
 	priv->tracker_proxy = dbus_g_proxy_new_for_name (priv->connection,
 							 TRACKER_DBUS_SERVICE,
-							 TRACKER_OBJECT,
-							 TRACKER_INTERFACE);
+							 TRACKER_DBUS_PATH,
+							 TRACKER_DBUS_INTERFACE);
 
 	if (!priv->tracker_proxy) {
 		g_warning ("could not create proxy");

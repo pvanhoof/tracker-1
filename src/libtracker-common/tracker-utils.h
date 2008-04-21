@@ -1,5 +1,7 @@
-/* Tracker - indexer and metadata database engine
- * Copyright (C) 2008, Mr Jamie McCracken (jamiemcc@gnome.org)
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
+ * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2008, Nokia
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -17,9 +19,9 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_PROCESS_REQUESTS_H__
-#define __TRACKER_PROCESS_REQUESTS_H__
+#ifndef __TRACKER_UTILS_H__
+#define __TRACKER_UTILS_H__
 
-gpointer tracker_process_requests (gpointer data);
+gboolean tracker_is_empty_string (const char *str);
 
-#endif /* __TRACKER_PROCESS_REQUESTS_H__ */
+#endif /* __TRACKER_DBUS_UTILS_H__ */

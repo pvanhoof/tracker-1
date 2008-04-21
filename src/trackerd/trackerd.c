@@ -1,6 +1,8 @@
-/* Tracker - indexer and metadata database engine
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
- *
+ * Copyright (C) 2008, Nokia
+
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation; either
@@ -48,11 +50,10 @@
 #include "tracker-email.h"
 #include "tracker-indexer.h"
 #include "tracker-process-files.h"
-#include "tracker-process-requests.h"
 #include "tracker-watch.h"
 #include "tracker-hal.h"
-
 #include "tracker-service-manager.h"
+#include "tracker-status.h"
   
 #ifdef OS_WIN32
 #include <windows.h>
@@ -101,8 +102,6 @@ DBConnection	       *main_thread_cache_con;
  *  asynchronous queue where potentially multiple threads are waiting to process them.
  */
 
-
-gchar *type_array[] =   {"index", "string", "numeric", "date", NULL};
 
 static gchar **no_watch_dirs = NULL;
 static gchar **watch_dirs = NULL;
@@ -210,7 +209,10 @@ tracker_do_cleanup (const gchar *sig_msg)
 {
         GSList *black_list;
 
-	tracker_set_status (tracker, STATUS_SHUTDOWN, 0, FALSE);
+	tracker->shutdown = TRUE;
+	tracker->in_flush = TRUE;
+
+	tracker_status_set (TRACKER_STATUS_SHUTDOWN);
 
 	if (sig_msg) {
 		tracker_log ("Received signal '%s' so now shutting down", sig_msg);
@@ -228,8 +230,6 @@ tracker_do_cleanup (const gchar *sig_msg)
 
 	/* stop threads from further processing of events if possible */
 
-	tracker->in_flush = TRUE;
-
 	//set_update_count (main_thread_db_con, tracker->update_count);
 
 	/* wait for files thread to sleep */
@@ -245,39 +245,24 @@ tracker_do_cleanup (const gchar *sig_msg)
 
 	g_mutex_unlock (tracker->metadata_signal_mutex);
 
-	tracker_log ("shutting down threads");
+	tracker_log ("Shutting down threads");
 
 	/* send signals to each thread to wake them up and then stop them */
-
-
-	tracker->shutdown = TRUE;
-
-	g_mutex_lock (tracker->request_signal_mutex);
-	g_cond_signal (tracker->request_thread_signal);
-	g_mutex_unlock (tracker->request_signal_mutex);
-
 	g_mutex_lock (tracker->metadata_signal_mutex);
-	g_cond_signal (tracker->metadata_thread_signal);
+	g_cond_signal (tracker->metadata_signal_cond);
 	g_mutex_unlock (tracker->metadata_signal_mutex);
 
 	g_mutex_unlock (tracker->files_check_mutex);
 
 	g_mutex_lock (tracker->files_signal_mutex);
-	g_cond_signal (tracker->file_thread_signal);
+	g_cond_signal (tracker->files_signal_cond);
 	g_mutex_unlock (tracker->files_signal_mutex);
-
 
 	/* wait for threads to exit and unlock check mutexes to prevent any deadlocks*/
 
-	g_mutex_unlock (tracker->request_check_mutex);
-	g_mutex_lock (tracker->request_stopped_mutex);
-
 	g_mutex_unlock (tracker->metadata_check_mutex);
-	g_mutex_lock (tracker->metadata_stopped_mutex);
 
 	g_mutex_unlock (tracker->files_check_mutex);
-	g_mutex_lock (tracker->files_stopped_mutex);
-
 
 	tracker_indexer_close (tracker->file_index);
 	tracker_indexer_close (tracker->file_update_index);
@@ -394,52 +379,6 @@ queue_dir (const gchar *uri)
 {
 	FileInfo *info = tracker_create_file_info (uri, TRACKER_ACTION_DIRECTORY_CHECK, 0, 0);
 	g_async_queue_push (tracker->file_process_queue, info);
-}
-
-
-static void
-unregistered_func (DBusConnection *connection, gpointer data)
-{
-}
-
-
-static DBusHandlerResult
-local_dbus_connection_monitoring_message_func (DBusConnection *connection, DBusMessage *message, gpointer data)
-{
-	/* DBus connection has been lost! */
-	if (dbus_message_is_signal (message, DBUS_INTERFACE_LOCAL, "Disconnected")) {
-		dbus_message_ref (message);
-
-		tracker_error ("DBus connection has been lost, trackerd will now shutdown");
-
-		tracker->is_running = FALSE;
-		tracker_end_watching ();
-		tracker_do_cleanup ("DBus connection lost");
-	}
-
-	return DBUS_HANDLER_RESULT_HANDLED;
-}
-
-
-static gboolean
-add_local_dbus_connection_monitoring (DBusConnection *connection)
-{
-	DBusObjectPathVTable dbus_daemon_vtable = {
-		unregistered_func,
-		local_dbus_connection_monitoring_message_func,
-		NULL,
-		NULL,
-		NULL,
-		NULL
-	};
-
-	if (!dbus_connection_register_object_path (connection, DBUS_PATH_LOCAL, &dbus_daemon_vtable, NULL)) {
-		tracker_log ("could not register local D-BUS connection handler");
-		return FALSE;
-
-	} else {
-		return TRUE;
-	}
 }
 
 
@@ -643,7 +582,8 @@ main (gint argc, gchar *argv[])
 	GOptionContext    *context = NULL;
 	GError            *error = NULL;
 	gchar             *example;
-	gboolean 	   need_index, need_data;
+	gboolean 	   need_index = FALSE;
+        gboolean           need_data;
 	DBConnection      *db_con;
 	gchar             *tmp_dir;
 	gchar             *old_tracker_dir;
@@ -738,35 +678,17 @@ main (gint argc, gchar *argv[])
                           fatal_errors);
 	tracker_log ("Starting log");
 
-        /* Set up the DBus IPC */
-	tracker->dbus_con = tracker_dbus_init ();
-
-	add_local_dbus_connection_monitoring (tracker->dbus_con);
-
-	tracker_set_status (tracker, STATUS_INIT, 0, FALSE);
-
+        /* Set up mutexes and intitial state */
  	tracker->is_running = FALSE;
 	tracker->shutdown = FALSE;
 
 	tracker->files_check_mutex = g_mutex_new ();
-	tracker->metadata_check_mutex = g_mutex_new ();
-	tracker->request_check_mutex = g_mutex_new ();
-
-	tracker->files_stopped_mutex = g_mutex_new ();
-	tracker->metadata_stopped_mutex = g_mutex_new ();
-	tracker->request_stopped_mutex = g_mutex_new ();
-
-	tracker->file_metadata_thread = NULL;
-
-	tracker->file_thread_signal = g_cond_new ();
-	tracker->metadata_thread_signal = g_cond_new ();
-	tracker->request_thread_signal = g_cond_new ();
-
-	tracker->metadata_signal_mutex = g_mutex_new ();
 	tracker->files_signal_mutex = g_mutex_new ();
-	tracker->request_signal_mutex = g_mutex_new ();
+	tracker->files_signal_cond = g_cond_new ();
 
-	tracker->scheduler_mutex = g_mutex_new ();
+	tracker->metadata_check_mutex = g_mutex_new ();
+	tracker->metadata_signal_mutex = g_mutex_new ();
+	tracker->metadata_signal_cond = g_cond_new ();
 
 	/* Remove an existing one */
 	if (g_file_test (tracker->sys_tmp_root_dir, G_FILE_TEST_EXISTS)) {
@@ -795,11 +717,6 @@ main (gint argc, gchar *argv[])
 	g_mkdir_with_parents (tracker->email_attachements_dir, 00700);
 	tracker_log ("Made email attachments directory %s\n", tracker->email_attachements_dir);
 
-	need_index = FALSE;
-	need_data = FALSE;
-
-	//tracker->cached_word_table_mutex = g_mutex_new ();
-
 	tracker->dir_queue = g_async_queue_new ();
 
 	tracker->xesam_dir = g_build_filename (g_get_home_dir (), ".xesam", NULL);
@@ -810,14 +727,9 @@ main (gint argc, gchar *argv[])
 		need_index = TRUE;
 	}
 
-
-	need_data = tracker_db_needs_data ();
-
 	umask (077);
 
 	str = g_strconcat (g_get_user_name (), "_tracker_lock", NULL);
-
-	
 
 	/* check if setup for NFS usage (and enable atomic NFS safe locking) */
 	//lock_str = tracker_get_config_option ("NFSLocking");
@@ -925,28 +837,33 @@ main (gint argc, gchar *argv[])
         /* Initialize the service manager */
         tracker_service_manager_init ();
 
-	/* set thread safe DB connection */
+	/* Set thread safe DB connection */
 	tracker_db_thread_init ();
 
-	/* create cache db */
-	DBConnection *db2 = tracker_db_connect_cache ();
-	tracker_db_close (db2);
+#if 0
+        if (!tracker_db_initialize (tracker->data_dir)) {
+		tracker_error ("Could not initialize database engine!");
+		return EXIT_FAILURE;
+        }
+#endif
 
+	/* FIXME: is this actually necessary? */
+	db_con = tracker_db_connect_cache ();
+	tracker_db_close (db_con);
+
+	need_data = tracker_db_needs_data ();
 
 	if (need_data) {
 		tracker_create_db ();
 	}
 
-	/* create database if needed */
 	if (!tracker->readonly && need_index) {
-
 		create_index (need_data);
-
 	} else {
 		tracker->first_time_index = FALSE;
 	}
 
-	
+        /* Set up main database connection */
 	db_con = tracker_db_connect ();
 	db_con->thread = "main";
 
@@ -1042,11 +959,9 @@ main (gint argc, gchar *argv[])
 		tracker->file_process_queue = g_async_queue_new ();
 	}
 
-	tracker->user_request_queue = g_async_queue_new ();
+  	tracker->loop = g_main_loop_new (NULL, FALSE);
 
 	tracker_email_init ();
-
-  	tracker->loop = g_main_loop_new (NULL, TRUE);
 
 #ifdef HAVE_HAL 
         /* Create tracker HAL object */
@@ -1056,19 +971,20 @@ main (gint argc, gchar *argv[])
 	/* this var is used to tell the threads when to quit */
 	tracker->is_running = TRUE;
 
-        g_thread_create_full ((GThreadFunc) tracker_process_requests, 
-                              tracker,
-                              (gulong) tracker_config_get_thread_stack_size (tracker->config),
-                              FALSE, 
-                              FALSE, 
-                              G_THREAD_PRIORITY_NORMAL,  
-                              NULL);
+        tracker->index_db = tracker_db_connect_all (TRUE);
+
+        /* If we are already running, this should return some
+         * indication.
+         */
+        if (!tracker_dbus_init (tracker)) {
+                return EXIT_FAILURE;
+        }
 
 	if (!tracker->readonly) {
 		if (!tracker_start_watching ()) {
 			tracker_error ("ERROR: file monitoring failed to start");
 			tracker_do_cleanup ("File watching failure");
-			exit (1);
+			return EXIT_FAILURE;
 		}
 
                 g_thread_create_full ((GThreadFunc) tracker_process_files, 

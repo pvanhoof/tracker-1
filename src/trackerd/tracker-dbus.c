@@ -1,5 +1,7 @@
-/* Tracker - indexer and metadata database engine
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2008, Nokia
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -22,643 +24,482 @@
 
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-utils.h>
 
+#include "tracker-db-sqlite.h"
 #include "tracker-dbus.h"
+#include "tracker-dbus-daemon.h"
+#include "tracker-dbus-daemon-glue.h"
+#include "tracker-dbus-files.h"
+#include "tracker-dbus-files-glue.h"
+#include "tracker-dbus-keywords.h"
+#include "tracker-dbus-keywords-glue.h"
+#include "tracker-dbus-metadata.h"
+#include "tracker-dbus-metadata-glue.h"
+#include "tracker-dbus-search.h"
+#include "tracker-dbus-search-glue.h"
 #include "tracker-utils.h"
 #include "tracker-watch.h"
 
-extern Tracker *tracker;
+static GSList *objects;
 
-
-static void  unregistered_func (DBusConnection *conn, gpointer data);
-
-static DBusHandlerResult  message_func (DBusConnection *conn, DBusMessage *message, gpointer data);
-
-static DBusObjectPathVTable tracker_vtable = {
-	unregistered_func,
-	message_func,
-	NULL,
-	NULL,
-	NULL,
-	NULL
-};
-
-DBusConnection *
-tracker_dbus_init (void)
+gboolean
+static dbus_register_service (DBusGProxy  *proxy,
+                              const gchar *name)
 {
-	DBusError      error;
-	DBusConnection *connection;
-	int ret;
+        GError *error = NULL;
+        guint   result;
 
-	dbus_error_init (&error);
+        tracker_log ("Registering DBus service...\n"
+                       "  Name '%s'", 
+                       name);
 
-	connection = dbus_bus_get (DBUS_BUS_SESSION, &error);
+        if (!org_freedesktop_DBus_request_name (proxy,
+                                                name,
+                                                DBUS_NAME_FLAG_DO_NOT_QUEUE,
+                                                &result, &error)) {
+                tracker_error ("Could not aquire name: %s, %s",
+                               name,
+                               error ? error->message : "no error given");
 
-	if ((connection == NULL) || dbus_error_is_set (&error)) {
-		if (dbus_error_is_set (&error)) {
-			tracker_error ("DBUS ERROR: %s occurred with message %s", error.name, error.message);
-			dbus_error_free (&error);
+                g_error_free (error);
+                return FALSE;
 		}
 
-		tracker_error ("ERROR: could not get the dbus session bus - exiting");
-		exit (EXIT_FAILURE);
-
+        if (result != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER) {
+                tracker_error ("DBus service name %s is already taken, "
+                               "perhaps the daemon is already running?",
+                               name);
+                return FALSE;
 	}
 
-	dbus_connection_setup_with_g_main (connection, NULL);
-
-	dbus_error_init (&error);
-
-	ret = dbus_bus_request_name (connection, 
-                                     TRACKER_DBUS_SERVICE, 
-                                     DBUS_NAME_FLAG_DO_NOT_QUEUE, 
-                                     &error);
-
-	if (dbus_error_is_set (&error)) {
-		tracker_error ("ERROR: could not acquire service name due to '%s'", error.message);
-		exit (EXIT_FAILURE);
-	}
-
-	if (ret != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER) {
-		tracker_error ("ERROR: trackerd already running on your session dbus - exiting...");
-		exit (EXIT_FAILURE);
-	}
-
-	if (!dbus_connection_register_object_path (connection, 
-                                                   TRACKER_OBJECT, 
-                                                   &tracker_vtable, 
-                                                   NULL)) {
-		tracker_error ("ERROR: could not register D-BUS handlers");
-		connection = NULL;
-	}
-
-
-	if (connection != NULL) {
-		dbus_connection_set_exit_on_disconnect (connection, FALSE);
-	}
-
-	return connection;
+        return TRUE;
 }
 
-
-void
-tracker_dbus_shutdown (DBusConnection *conn)
+static gpointer
+dbus_register_object (DBusGConnection       *connection,
+                      DBusGProxy            *proxy,
+                      GType                  object_type,
+                      const DBusGObjectInfo *info,
+                      const gchar           *path)
 {
-	if (!conn) {
-		return;
-	}
+        GObject *object;
 
-	dbus_connection_close (conn);
-	dbus_connection_unref (conn);
+        tracker_log ("Registering DBus object...");
+        tracker_log ("  Path '%s'", path);
+        tracker_log ("  Type '%s'", g_type_name (object_type));
+
+        object = g_object_new (object_type, NULL);
+
+        dbus_g_object_type_install_info (object_type, info);
+        dbus_g_connection_register_g_object (connection, path, object);
+
+        return object;
 }
 
-
-void
-tracker_dbus_send_index_status_change_signal ()
+static GValue *
+tracker_dbus_g_value_slice_new (GType type)
 {
-	DBusMessage   *msg;
-	dbus_uint32_t  serial = 0;
-	gchar         *status;
-	gboolean       battery_pause;
-        gboolean       enable_indexing;
+	GValue *value;
 
-	msg = dbus_message_new_signal (TRACKER_OBJECT, 
-                                       TRACKER_INTERFACE, 
-                                       TRACKER_SIGNAL_INDEX_STATUS_CHANGE);
-				
-	if (!msg || !tracker->dbus_con) {
-		return;
-    	}
+	value = g_slice_new0 (GValue);
+	g_value_init (value, type);
 
-        status = tracker_get_status ();
-        battery_pause = tracker_pause_on_battery ();
-
-        enable_indexing = tracker_config_get_enable_indexing (tracker->config);
-
-	/*
-		<signal name="IndexStateChange">
-			<arg type="s" name="state" />
-			<arg type="b" name="initial_index" />
-			<arg type="b" name="in_merge" />
- 			<arg type="b" name="is_manual_paused" />
-                        <arg type="b" name="is_battery_paused" />
-                        <arg type="b" name="is_io_paused" />
-                        <arg type="b" name="is_indexing_enabled" />
-		</signal>
-	*/
-
-	dbus_message_append_args (msg, 
-				  DBUS_TYPE_STRING, &status,
-				  DBUS_TYPE_BOOLEAN, &tracker->first_time_index,
-				  DBUS_TYPE_BOOLEAN, &tracker->in_merge,
-				  DBUS_TYPE_BOOLEAN, &tracker->pause_manual,
-				  DBUS_TYPE_BOOLEAN, &battery_pause,
-				  DBUS_TYPE_BOOLEAN, &tracker->pause_io,
-				  DBUS_TYPE_BOOLEAN, &enable_indexing,
-				  DBUS_TYPE_INVALID);
-
-	g_free (status);
-
-	dbus_message_set_no_reply (msg, TRUE);
-
-	if (!dbus_connection_send (tracker->dbus_con, msg, &serial)) {
-		tracker_error ("Raising the index status changed signal failed");
-		return;
-	}
-
-	dbus_connection_flush (tracker->dbus_con);
-
-    	dbus_message_unref (msg);
-  
-
+	return value;
 }
-
-void
-tracker_dbus_send_index_progress_signal (const char *service, const char *uri)
-{
-	DBusMessage *msg;
-	dbus_uint32_t serial = 0;
-	int count, processed;
-
-	msg = dbus_message_new_signal (TRACKER_OBJECT, 
-                                       TRACKER_INTERFACE, 
-                                       TRACKER_SIGNAL_INDEX_PROGRESS);
-				
-	if (!msg || !tracker->dbus_con) {
-		return;
-    	}
-
-
-	if (strcmp (service, "Emails") == 0) {
-		count = tracker->mbox_count;
-		processed = tracker->mbox_processed;
-		
-	} else if (strcmp (service, "Merging") == 0) {
-	
-		count = tracker->merge_count;
-		processed = tracker->merge_processed;
-	
-	} else {
-	
-		count = tracker->folders_count;
-		processed = tracker->folders_processed;
-	}
-
-	
-	/*
-	
-		<signal name="IndexProgress">
-			<arg type="s" name="service"/>
-			<arg type="s" name="current_uri" />
-			<arg type="i" name="index_count"/>
-			<arg type="i" name="folders_processed"/>
-			<arg type="i" name="folders_total"/>
-		</signal>
-	*/
-
-	dbus_message_append_args (msg, 
-				  DBUS_TYPE_STRING, &service,
-				  DBUS_TYPE_STRING, &uri,
-				  DBUS_TYPE_INT32, &tracker->index_count,
-				  DBUS_TYPE_INT32, &processed,
-				  DBUS_TYPE_INT32, &count,	
-				  DBUS_TYPE_INVALID);
-
-	dbus_message_set_no_reply (msg, TRUE);
-
-	if (!dbus_connection_send (tracker->dbus_con, msg, &serial)) {
-		tracker_error ("Raising the index status changed signal failed");
-		return;
-	}
-
-	dbus_connection_flush (tracker->dbus_con);
-
-    	dbus_message_unref (msg);
-  
-
-}
-
-
-
-
-
-
-void
-tracker_dbus_send_index_finished_signal ()
-{
-	DBusMessage *msg;
-	dbus_uint32_t serial = 0;
-	int i =  time (NULL) - tracker->index_time_start;
-
-	msg = dbus_message_new_signal (TRACKER_OBJECT, 
-                                       TRACKER_INTERFACE, 
-                                       TRACKER_SIGNAL_INDEX_FINISHED);
-				
-	if (!msg || !tracker->dbus_con) {
-		return;
-    	}
-
-	/*
-		<signal name="IndexFinished">
-			<arg type="i" name="time_taken"/>
-		</signal>
-	*/
-
-	dbus_message_append_args (msg,
-				  DBUS_TYPE_INT32, &i,
-				  DBUS_TYPE_INVALID);
-
-	dbus_message_set_no_reply (msg, TRUE);
-
-	if (!dbus_connection_send (tracker->dbus_con, msg, &serial)) {
-		tracker_error ("Raising the index status changed signal failed");
-		return;
-	}
-
-	dbus_connection_flush (tracker->dbus_con);
-
-    	dbus_message_unref (msg);
-  
-
-}
-
 
 static void
-unregistered_func (DBusConnection *conn,
-		   gpointer        data)
+tracker_dbus_g_value_slice_free (GValue *value)
 {
+	g_value_unset (value);
+	g_slice_free (GValue, value);
 }
 
-
-static DBusHandlerResult
-message_func (DBusConnection *conn,
-	      DBusMessage    *message,
-	      gpointer        data)
+gboolean
+tracker_dbus_init (gpointer tracker_pointer)
 {
-	DBusRec *rec;
+        Tracker         *tracker;
+        DBusGConnection *connection;
+        DBusGProxy      *proxy;
+        GObject         *object;
+        GError          *error = NULL;
 
-	rec = g_new (DBusRec, 1);
-	rec->connection = conn;
-	rec->message = message;
+        g_return_val_if_fail (tracker_pointer != NULL, FALSE);
 
-	if (!tracker->is_running) {
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_NONE;
+        tracker = (Tracker*) tracker_pointer;
 
-		return DBUS_HANDLER_RESULT_HANDLED;
+        connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
+
+        if (!connection) {
+                tracker_error ("Could not connect to the DBus session bus, %s",
+                               error ? error->message : "no error given.");
+                return FALSE;
+        }
+
+        /* Don't reinitialize */
+        if (objects) {
+                return TRUE;
 	}
 
-	/* process shutdown calls in this thread */
-	if (dbus_message_is_method_call (message, 
-                                         TRACKER_INTERFACE, 
-                                         TRACKER_METHOD_SHUTDOWN)) {
+        /* The definitions below (DBUS_SERVICE_DBUS, etc) are
+         * predefined for us to just use.
+         */
+        proxy = dbus_g_proxy_new_for_name (connection,
+                                           DBUS_SERVICE_DBUS,
+                                           DBUS_PATH_DBUS,
+                                           DBUS_INTERFACE_DBUS);
+
+        /* Set up the main tracker service */
+        if (!dbus_register_service (proxy, TRACKER_DBUS_DAEMON_SERVICE)) {
+                return FALSE;
+        }
+
+        /* Add org.freedesktop.Tracker */
+        if (!(object = dbus_register_object (connection, 
+                                             proxy,
+                                             TRACKER_TYPE_DBUS_DAEMON,
+                                             &dbus_glib_tracker_dbus_daemon_object_info,
+                                             TRACKER_DBUS_DAEMON_PATH))) {
+                return FALSE;
+        }
+
+        g_object_set (object, "db-connection", tracker->index_db, NULL);
+        g_object_set (object, "config", tracker->config, NULL);
+        g_object_set (object, "tracker", tracker, NULL);
+        objects = g_slist_prepend (objects, object);
+
+        /* Add org.freedesktop.Tracker.Files */
+        if (!(object = dbus_register_object (connection, 
+                                             proxy,
+                                             TRACKER_TYPE_DBUS_FILES,
+                                             &dbus_glib_tracker_dbus_files_object_info,
+                                             TRACKER_DBUS_FILES_PATH))) {
+                return FALSE;
+        }
+
+        g_object_set (object, "db-connection", tracker->index_db, NULL);
+        objects = g_slist_prepend (objects, object);
+
+        /* Add org.freedesktop.Tracker.Keywords */
+        if (!(object = dbus_register_object (connection, 
+                                             proxy,
+                                             TRACKER_TYPE_DBUS_KEYWORDS,
+                                             &dbus_glib_tracker_dbus_keywords_object_info,
+                                             TRACKER_DBUS_KEYWORDS_PATH))) {
+                return FALSE;
+        }
+
+        g_object_set (object, "db-connection", tracker->index_db, NULL);
+        objects = g_slist_prepend (objects, object);
+
+        /* Add org.freedesktop.Tracker.Metadata */
+        if (!(object = dbus_register_object (connection, 
+                                             proxy,
+                                             TRACKER_TYPE_DBUS_METADATA,
+                                             &dbus_glib_tracker_dbus_metadata_object_info,
+                                             TRACKER_DBUS_METADATA_PATH))) {
+                return FALSE;
+        }
+
+        g_object_set (object, "db-connection", tracker->index_db, NULL);
+        objects = g_slist_prepend (objects, object);
+
+        /* Add org.freedesktop.Tracker.Search */
+        if (!(object = dbus_register_object (connection, 
+                                             proxy,
+                                             TRACKER_TYPE_DBUS_SEARCH,
+                                             &dbus_glib_tracker_dbus_search_object_info,
+                                             TRACKER_DBUS_SEARCH_PATH))) {
+                return FALSE;
+        }
+
+        g_object_set (object, "db-connection", tracker->index_db, NULL);
+        g_object_set (object, "file-index", tracker->file_index, NULL);
+        g_object_set (object, "email-index", tracker->email_index, NULL);
+        objects = g_slist_prepend (objects, object);
+
+        /* Reverse list since we added objects at the top each time */
+        objects = g_slist_reverse (objects);
+  
+        /* Clean up */
+        g_object_unref (proxy);
+
+        return TRUE;
+}
+
+void
+tracker_dbus_shutdown (void)
+{
+        if (!objects) {
+		return;
+    	}
+
+        g_slist_foreach (objects, (GFunc) g_object_unref, NULL);
+        g_slist_free (objects);
+        objects = NULL;
+}
+
+guint
+tracker_dbus_get_next_request_id (void)
+{
+        static guint request_id = 1;
 	
-		DBusMessage 	*reply;
-		DBusError   	dbus_error;
-		gboolean 	reindex = FALSE;
+        return request_id++;
+}
 	
-		if (!dbus_message_get_args (message, NULL, DBUS_TYPE_BOOLEAN, &reindex, DBUS_TYPE_INVALID)) {
-			//tracker_set_error (rec, "DBusError: %s;%s", dbus_error.name, dbus_error.message);
-			dbus_error_free (&dbus_error);
-			return 0;
+GObject *
+tracker_dbus_get_object (GType type)
+{
+        GSList *l;
+	
+        for (l = objects; l; l = l->next) {
+                if (G_OBJECT_TYPE (l->data) == type) {
+                        return l->data;
+	}
+	}
+
+        return NULL;
+}
+
+GQuark
+tracker_dbus_error_quark (void)
+{
+	return g_quark_from_static_string (TRACKER_DBUS_ERROR_DOMAIN);
+}
+
+TrackerDBusData *
+tracker_dbus_data_new (const gpointer arg1, 
+                       const gpointer arg2)
+{
+        TrackerDBusData *data;
+
+        data = g_new0 (TrackerDBusData, 1);
+
+        data->id = tracker_dbus_get_next_request_id ();
+
+        data->data1 = arg1;
+        data->data2 = arg2;
+
+        return data;
+}
+
+gchar **
+tracker_dbus_slist_to_strv (GSList *list)
+{
+	GSList  *l;
+	gchar  **strv;
+	gint     i = 0;
+
+	strv = g_new0 (gchar*, g_slist_length (list) + 1);
+				
+        for (l = list; l != NULL; l = l->next) {
+                strv[i++] = g_strdup (l->data);
+	}
+
+        strv[i] = NULL;
+
+	return strv;
+}
+
+gchar **
+tracker_dbus_query_result_to_strv (TrackerDBResultSet *result_set, 
+                                   gint               *count)
+{
+	gchar **strv = NULL;
+        gint    rows = 0;
+
+	if (result_set) {
+		gboolean valid = TRUE;
+		gint     i = 0;
+
+                rows = tracker_db_result_set_get_n_rows (result_set);
+		strv = g_new (gchar*, rows);
+		
+		while (valid) {
+			tracker_db_result_set_get (result_set, 0, &strv[i], -1);
+			valid = tracker_db_result_set_iter_next (result_set);
+			i++;
+		}
+	}
+
+        if (count) {
+                *count = rows;
+        }
+
+	return strv;
+}
+
+GHashTable *
+tracker_dbus_query_result_to_hash_table (TrackerDBResultSet *result_set)
+{
+        GHashTable *hash_table;
+	gint        field_count;
+	gboolean    valid = FALSE;
+
+	hash_table = g_hash_table_new_full (g_str_hash,
+                                            g_str_equal,
+                                            (GDestroyNotify) g_free,
+                                            (GDestroyNotify) tracker_dbus_g_value_slice_free);       
+
+	if (result_set) {
+		valid = TRUE;
+		field_count = tracker_db_result_set_get_n_columns (result_set);
+        }
+
+	while (valid) {
+		GValue   transform;
+		GValue  *values;
+                gchar  **p;
+                gint     field_count;
+                gint     i = 0;
+		gchar   *key;
+		GSList  *list = NULL;
+
+		g_value_init (&transform, G_TYPE_STRING);
+
+		tracker_db_result_set_get (result_set, 0, &key, -1);
+		values = tracker_dbus_g_value_slice_new (G_TYPE_STRV);
+
+                for (i = 1; i < field_count; i++) {
+			GValue       value;
+			const gchar *str;
+
+			_tracker_db_result_set_get_value (result_set, i, &value);
+
+			if (g_value_transform (&value, &transform)) {
+				str = g_value_dup_string (&transform);
+			} else {
+				str = g_strdup ("");
+			}
+
+			list = g_slist_prepend (list, (gchar*) str);
 		}
 
-		tracker_log ("attempting restart");
+		list = g_slist_reverse (list);
+		p = tracker_dbus_slist_to_strv (list);
+		g_slist_free (list);
+		g_value_take_boxed (values, p);
+		g_hash_table_insert (hash_table, key, values);
 
-		tracker->reindex = reindex;
+		valid = tracker_db_result_set_iter_next (result_set);
+        }
+
+        return hash_table;
+}
+
+GPtrArray *
+tracker_dbus_query_result_to_ptr_array (TrackerDBResultSet *result_set)
+{
+        GPtrArray *ptr_array;
+	gboolean   valid = FALSE;
+	gint       columns;
+        gint       i;
+
+	ptr_array = g_ptr_array_new ();
+
+	if (result_set) {
+		valid = TRUE;
+		columns = tracker_db_result_set_get_n_columns (result_set);
+	}
+
+	while (valid) {
+		GSList  *list = NULL;
+		GValue   transform = { 0, };
+		gchar  **p;
+
+		g_value_init (&transform, G_TYPE_STRING);
+
+		/* Append fields to the array */
+		for (i = 0; i < columns; i++) {
+			GValue       value = { 0, };
+			const gchar *str;
+
+			_tracker_db_result_set_get_value (result_set, i, &value);
+			
+			if (g_value_transform (&value, &transform)) {
+				str = g_value_dup_string (&transform);
+			} else {
+				str = g_strdup ("");
+			}
+
+			list = g_slist_prepend (list, (gchar*) str);
+
+			g_value_unset (&value);
+			g_value_reset (&transform);
+		}
 		
-		tracker->is_running = FALSE;
-		tracker_end_watching ();
-
-		g_timeout_add_full (G_PRIORITY_LOW,
-		     		    1,
-	 	    		    (GSourceFunc) tracker_do_cleanup,
-		     		    g_strdup ("dbus shutdown"), NULL
-		   		    );
-
-
-		reply = dbus_message_new_method_return (message);
-
-		dbus_connection_send (conn, reply, NULL);
-
-		dbus_message_unref (reply);
-	
-		return DBUS_HANDLER_RESULT_HANDLED;
-	
-	}
-	
-
-
-	if (dbus_message_is_method_call (message, TRACKER_INTERFACE, TRACKER_METHOD_PING)) {
-		/* ref the message here because we are going to reply to it in a different thread */
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_PING;
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE, TRACKER_METHOD_GET_STATS)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_GET_STATS;
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE, TRACKER_METHOD_GET_SERVICES)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_GET_SERVICES;
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE, TRACKER_METHOD_GET_VERSION)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_GET_VERSION;
-
-
-        } else if (dbus_message_is_method_call (message, TRACKER_INTERFACE, TRACKER_METHOD_GET_STATUS)) {
-
-                dbus_message_ref (message);
-                rec->action = DBUS_ACTION_GET_STATUS;
-
-
-        } else if (dbus_message_is_method_call (message, TRACKER_INTERFACE, TRACKER_METHOD_SET_BOOL_OPTION)) {
-
-                dbus_message_ref (message);
-                rec->action = DBUS_ACTION_SET_BOOL_OPTION;
-
-
-        } else if (dbus_message_is_method_call (message, TRACKER_INTERFACE, TRACKER_METHOD_SET_INT_OPTION)) {
-
-                dbus_message_ref (message);
-                rec->action = DBUS_ACTION_SET_INT_OPTION;
-
-        } else if (dbus_message_is_method_call (message, TRACKER_INTERFACE, TRACKER_METHOD_SHUTDOWN)) {
-
-                dbus_message_ref (message);
-                rec->action = DBUS_ACTION_SHUTDOWN;
-
-        } else if (dbus_message_is_method_call (message, TRACKER_INTERFACE, TRACKER_METHOD_PROMPT_INDEX_SIGNALS)) {
-
-                dbus_message_ref (message);
-                rec->action = DBUS_ACTION_PROMPT_INDEX_SIGNALS;
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_METADATA, TRACKER_METHOD_METADATA_GET)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_METADATA_GET;
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_METADATA, TRACKER_METHOD_METADATA_SET)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_METADATA_SET;
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_METADATA, TRACKER_METHOD_METADATA_REGISTER_TYPE)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_METADATA_REGISTER_TYPE;
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_METADATA, TRACKER_METHOD_METADATA_GET_TYPE_DETAILS )) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_METADATA_GET_TYPE_DETAILS;
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_METADATA, TRACKER_METHOD_METADATA_GET_REGISTERED_TYPES)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_METADATA_GET_REGISTERED_TYPES;
-
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_METADATA, TRACKER_METHOD_METADATA_GET_WRITEABLE_TYPES)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_METADATA_GET_WRITEABLE_TYPES;
-
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_METADATA, TRACKER_METHOD_METADATA_GET_REGISTERED_CLASSES)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_METADATA_GET_REGISTERED_CLASSES;
-
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_KEYWORDS, TRACKER_METHOD_KEYWORDS_GET_LIST)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_KEYWORDS_GET_LIST;
-
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_KEYWORDS, TRACKER_METHOD_KEYWORDS_GET)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_KEYWORDS_GET;
-
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_KEYWORDS, TRACKER_METHOD_KEYWORDS_ADD)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_KEYWORDS_ADD;
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_KEYWORDS, TRACKER_METHOD_KEYWORDS_REMOVE)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_KEYWORDS_REMOVE;
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_KEYWORDS, TRACKER_METHOD_KEYWORDS_REMOVE_ALL)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_KEYWORDS_REMOVE_ALL;
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_KEYWORDS, TRACKER_METHOD_KEYWORDS_SEARCH)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_KEYWORDS_SEARCH;
-
-
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_SEARCH, TRACKER_METHOD_SEARCH_GET_HIT_COUNT)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_SEARCH_GET_HIT_COUNT;
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_SEARCH, TRACKER_METHOD_SEARCH_GET_HIT_COUNT_ALL)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_SEARCH_GET_HIT_COUNT_ALL;
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_SEARCH, TRACKER_METHOD_SEARCH_TEXT)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_SEARCH_TEXT;
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_SEARCH, TRACKER_METHOD_SEARCH_TEXT_DETAILED)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_SEARCH_TEXT_DETAILED;
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_SEARCH, TRACKER_METHOD_SEARCH_GET_SNIPPET)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_SEARCH_GET_SNIPPET;
-
-
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_SEARCH, TRACKER_METHOD_SEARCH_FILES_BY_TEXT )) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_SEARCH_FILES_BY_TEXT;
-
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_SEARCH, TRACKER_METHOD_SEARCH_METADATA)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_SEARCH_METADATA;
-
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_SEARCH, TRACKER_METHOD_SEARCH_MATCHING_FIELDS)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_SEARCH_MATCHING_FIELDS;
-
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_SEARCH, TRACKER_METHOD_SEARCH_QUERY)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_SEARCH_QUERY;
-
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_SEARCH, TRACKER_METHOD_SEARCH_SUGGEST)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_SEARCH_SUGGEST;
-
-
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_FILES, TRACKER_METHOD_FILES_EXISTS)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_FILES_EXISTS;
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_FILES, TRACKER_METHOD_FILES_CREATE)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_FILES_CREATE;
-
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_FILES, TRACKER_METHOD_FILES_DELETE)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_FILES_DELETE;
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_FILES, TRACKER_METHOD_FILES_GET_SERVICE_TYPE)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_FILES_GET_SERVICE_TYPE;
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_FILES, TRACKER_METHOD_FILES_GET_TEXT_CONTENTS )) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_FILES_GET_TEXT_CONTENTS ;
-
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_FILES, TRACKER_METHOD_FILES_SEARCH_TEXT_CONTENTS)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_FILES_SEARCH_TEXT_CONTENTS;
-
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_FILES, TRACKER_METHOD_FILES_GET_BY_SERVICE_TYPE)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_FILES_GET_BY_SERVICE_TYPE;
-
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_FILES, TRACKER_METHOD_FILES_GET_BY_MIME_TYPE)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_FILES_GET_BY_MIME_TYPE;
-
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_FILES, TRACKER_METHOD_FILES_GET_BY_MIME_TYPE_VFS)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_FILES_GET_BY_MIME_TYPE_VFS;
-
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_FILES, TRACKER_METHOD_FILES_REFRESH_METADATA)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_FILES_REFRESH_METADATA;
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_FILES, TRACKER_METHOD_FILES_GET_MTIME)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_FILES_GET_MTIME;
-
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_FILES, TRACKER_METHOD_FILES_GET_METADATA_FOLDER_FILES)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_FILES_GET_METADATA_FOLDER_FILES;
-
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_FILES, TRACKER_METHOD_FILES_SEARCH_BY_TEXT_MIME)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_FILES_SEARCH_BY_TEXT_MIME;
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_FILES, TRACKER_METHOD_FILES_SEARCH_BY_TEXT_MIME_LOCATION)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_FILES_SEARCH_BY_TEXT_MIME_LOCATION;
-
-
-	} else if (dbus_message_is_method_call (message, TRACKER_INTERFACE_FILES, TRACKER_METHOD_FILES_SEARCH_BY_TEXT_LOCATION)) {
-
-		dbus_message_ref (message);
-		rec->action = DBUS_ACTION_FILES_SEARCH_BY_TEXT_LOCATION;
-
-
-	} else {
-		g_free (rec);
-		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+		list = g_slist_reverse (list);
+		p = tracker_dbus_slist_to_strv (list);
+		g_slist_free (list);
+		g_ptr_array_add (ptr_array, p);
+
+		valid = tracker_db_result_set_iter_next (result_set);
 	}
 
+        return ptr_array;
+}
 
-	g_async_queue_push (tracker->user_request_queue, rec);
+void
+tracker_dbus_request_new (gint          request_id,
+			  const gchar  *format, 
+			  ...)
+{
+	gchar   *str;
+	va_list  args;
 
-	tracker_notify_request_data_available ();
+	va_start (args, format);
+	str = g_strdup_vprintf (format, args);
+	va_end (args);
+	
+	tracker_log ("<--- [%d] %s",
+		     request_id,
+		     str);
 
-	return DBUS_HANDLER_RESULT_HANDLED;
+	g_free (str);
+}
+
+void
+tracker_dbus_request_success (gint request_id)
+{
+	tracker_log ("---> [%d] Success, no error given", 
+		     request_id);
+}
+
+void
+tracker_dbus_request_failed (gint          request_id,
+			     GError      **error,
+			     const gchar  *format, 
+			     ...)
+{
+	gchar   *str;
+	va_list  args;
+
+	va_start (args, format);
+	str = g_strdup_vprintf (format, args);
+	va_end (args);
+
+	g_set_error (error, TRACKER_DBUS_ERROR, 0, str);
+
+	tracker_log ("---> [%d] Failed, %s",
+		     request_id,
+		     str);
+	g_free (str);
+}
+
+void
+tracker_dbus_request_comment (gint         request_id,
+			      const gchar *format,
+			      ...)
+{
+	gchar   *str;
+	va_list  args;
+
+	va_start (args, format);
+	str = g_strdup_vprintf (format, args);
+	va_end (args);
+
+	tracker_log ("---- [%d] %s", 
+		     request_id, 
+		     str);
+	g_free (str);
 }

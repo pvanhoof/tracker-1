@@ -35,10 +35,10 @@ typedef void (*TrackerVoidReply) (GError *error, gpointer user_data);
 
 
 typedef enum {
-	DATA_STRING_INDEXABLE,
-	DATA_STRING,
-	DATA_NUMERIC,
-	DATA_DATE
+        METADATA_STRING_INDEXABLE, 
+        METADATA_STRING, 
+ 	METADATA_NUMERIC, 
+        METADATA_DATE 
 } MetadataTypes;
 
 typedef enum {

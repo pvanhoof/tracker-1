@@ -38,7 +38,9 @@
 #include "tracker-db-email.h"
 #include "tracker-cache.h"
 #include "tracker-dbus.h"
+#include "tracker-dbus-daemon.h"
 #include "tracker-watch.h"
+#include "tracker-status.h"
 
 #define EVOLUTION_MAIL_DIR_S ".evolution/mail"
 
@@ -1265,6 +1267,7 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
 				     SkipMailMessageFct           skip_mail,
 				     SaveOnDiskMailMessageFct     save_ondisk_mail)
 {
+        GObject     *object;
 	SummaryFile *summary = NULL;
 
 	if (!tracker->is_running) { 
@@ -1274,6 +1277,8 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
         if (!tracker_config_get_enable_indexing (tracker->config)) {
                 return;
         }
+
+        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
 
 	if (open_summary_file (summary_file_path, &summary)) {
 		SummaryFileHeader *header;
@@ -1354,7 +1359,15 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
 				store->mail_count, store->junk_count, store->delete_count, header->saved_count, header->junk_count, header->deleted_count);
 
 		tracker->mbox_count++;
-		tracker_dbus_send_index_progress_signal ("Emails", dir);
+
+                /* Signal progress */
+                g_signal_emit_by_name (object, 
+                                       "index-progress", 
+                                       "Emails",
+                                       dir,
+                                       tracker->index_count,
+                                       tracker->mbox_processed,
+                                       tracker->mbox_count);
 
 		if (header->saved_count > store->mail_count) {
 			/* assume new emails received */
@@ -1425,8 +1438,14 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
 				email_free_mail_message (mail_msg);
 
 				if (!tracker_cache_process_events (db_con->data, TRUE)) {
-					tracker_set_status (tracker, STATUS_SHUTDOWN, 0, TRUE);
 					tracker->shutdown = TRUE;
+                                        tracker_status_set_and_signal (TRACKER_STATUS_SHUTDOWN,
+                                                                       tracker->first_time_index,
+                                                                       tracker->in_merge,
+                                                                       tracker->pause_manual,
+                                                                       tracker_pause_on_battery (),
+                                                                       tracker->pause_io,
+                                                                       tracker_config_get_enable_indexing (tracker->config));
 					return;
 				}
 
@@ -1441,8 +1460,14 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
 						tracker_db_start_index_transaction (db_con->data);
 					}
 					
-					tracker_dbus_send_index_progress_signal ("Emails", dir);
-								
+                                        /* Signal progress */
+                                        g_signal_emit_by_name (object, 
+                                                               "index-progress", 
+                                                               "Emails",
+                                                               dir,
+                                                               tracker->index_count,
+                                                               tracker->mbox_processed,
+                                                               tracker->mbox_count);
 				}
 
 			
@@ -1458,7 +1483,14 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
 		}
 
 		tracker->mbox_processed++;
-		tracker_dbus_send_index_progress_signal ("Emails", dir);
+
+                g_signal_emit_by_name (object, 
+                                       "index-progress", 
+                                       "Emails",
+                                       dir,
+                                       tracker->index_count,
+                                       tracker->mbox_processed,
+                                       tracker->mbox_count);
 
 		tracker_db_email_free_mail_store (store);
 		free_summary_file (summary);

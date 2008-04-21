@@ -1,11 +1,9 @@
-module_flags = -module -avoid-version -no-undefined
-mail_modulesdir = $(libdir)/tracker/mail-modules
-
 INCLUDES =								\
 	-g 		\
 	-DSHAREDIR=\""$(datadir)"\"					\
 	-DLIBDIR=\""$(libdir)"\"					\
 	-DLOCALEDIR=\""$(localedir)"\" 					\
+	-DMAIL_MODULES_DIR=\""$(libdir)"/tracker/mail-modules\"         \
 	$(GLIB2_CFLAGS)							\
 	$(GMODULE_CFLAGS)						\
 	$(PANGO_CFLAGS)							\
@@ -16,7 +14,6 @@ INCLUDES =								\
 	$(SQLITE3_CFLAGS)						\
 	$(QDBM_CFLAGS)							\
 	$(UNAC_CFLAGS)							\
-	-DMAIL_MODULES_DIR=\"$(mail_modulesdir)\"			\
 	-I$(top_srcdir)/src
 
 if HAVE_INOTIFY
@@ -63,6 +60,31 @@ db_sources =								\
 	tracker-db-email.c						\
 	tracker-db-email.h
 
+mail_modulesdir = $(libdir)/tracker/mail-modules
+mail_modules_LTLIBRARIES = \
+	libemail-evolution.la \
+	libemail-thunderbird.la \
+	libemail-kmail.la \
+	libemail-modest.la
+
+module_flags = -module -avoid-version -no-undefined
+
+libemail_modest_la_SOURCES = tracker-email-modest.c
+libemail_modest_la_LDFLAGS = $(module_flags)
+libemail_modest_la_LIBADD = $(GLIB2_LIBS)
+
+libemail_evolution_la_SOURCES = tracker-email-evolution.c
+libemail_evolution_la_LDFLAGS = $(module_flags)
+libemail_evolution_la_LIBADD = $(GLIB2_LIBS)
+
+libemail_thunderbird_la_SOURCES = tracker-email-thunderbird.c
+libemail_thunderbird_la_LDFLAGS = $(module_flags)
+libemail_thunderbird_la_LIBADD = $(GLIB2_LIBS)
+
+libemail_kmail_la_SOURCES = tracker-email-kmail.c
+libemail_kmail_la_LDFLAGS = $(module_flags)
+libemail_kmail_la_LIBADD = $(GLIB2_LIBS)
+
 
 bin_PROGRAMS = trackerd
 
@@ -73,20 +95,21 @@ trackerd_SOURCES =							\
 	$(unix_sources)							\
 	$(hal_sources)							\
 	$(db_sources)							\
+	$(foo_sources)							\
 	tracker-apps.c							\
 	tracker-apps.h							\
 	tracker-db.c							\
 	tracker-db.h							\
 	tracker-dbus.c							\
 	tracker-dbus.h							\
+	tracker-dbus-daemon.c						\
+	tracker-dbus-daemon.h						\
 	tracker-dbus-files.c						\
 	tracker-dbus-files.h						\
-	tracker-dbus-methods.c						\
-	tracker-dbus-methods.h						\
-	tracker-dbus-metadata.c						\
-	tracker-dbus-metadata.h						\
 	tracker-dbus-keywords.c						\
 	tracker-dbus-keywords.h						\
+	tracker-dbus-metadata.c						\
+	tracker-dbus-metadata.h						\
 	tracker-dbus-search.c						\
 	tracker-dbus-search.h						\
 	tracker-email.c							\
@@ -97,8 +120,6 @@ trackerd_SOURCES =							\
 	tracker-metadata.h						\
 	tracker-process-files.c						\
 	tracker-process-files.h						\
-	tracker-process-requests.c					\
-	tracker-process-requests.h					\
 	tracker-query-tree.c						\
 	tracker-query-tree.h						\
 	tracker-rdf-query.c						\
@@ -112,7 +133,10 @@ trackerd_SOURCES =							\
 	tracker-ioprio.c						\
 	tracker-ioprio.h						\
 	tracker-os-dependant.h						\
-	tracker-watch.h
+	tracker-watch.h							\
+	tracker-status.c						\
+	tracker-status.h						\
+	tracker-marshal-main.c
 
 if OS_WIN32
 trackerd_win_libs = -lws2_32 -lkernel32
@@ -137,24 +161,38 @@ trackerd_LDADD =							\
 	$(top_builddir)/src/xdgmime/libxdgmime.la 			\
 	$(trackerd_win_libs)
 
-mail_modules_LTLIBRARIES = \
-	libemail-evolution.la \
-	libemail-thunderbird.la \
-	libemail-kmail.la \
-	libemail-modest.la
+tracker-marshal.h: tracker-marshal.list
+	($(GLIB_GENMARSHAL) --prefix=tracker_marshal tracker-marshal.list --header) > xgen-gmh \
+	&& (cmp -s xgen-gmh tracker-marshal.h || cp xgen-gmh tracker-marshal.h) \
+	&& rm -f xgen-gmh xgen-gmh~
 
-libemail_modest_la_SOURCES = tracker-email-modest.c
-libemail_modest_la_LDFLAGS = $(module_flags)
-libemail_modest_la_LIBADD = $(GLIB2_LIBS)
+tracker-marshal.c: tracker-marshal.list
+	($(GLIB_GENMARSHAL) --prefix=tracker_marshal tracker-marshal.list --body) > xgen-gmc \
+	&& cp xgen-gmc tracker-marshal.c \
+	&& rm -f xgen-gmc xgen-gmc~
 
-libemail_evolution_la_SOURCES = tracker-email-evolution.c
-libemail_evolution_la_LDFLAGS = $(module_flags)
-libemail_evolution_la_LIBADD = $(GLIB2_LIBS)
+tracker-marshal-main.c: tracker-marshal.c tracker-marshal.h
 
-libemail_thunderbird_la_SOURCES = tracker-email-thunderbird.c
-libemail_thunderbird_la_LDFLAGS = $(module_flags)
-libemail_thunderbird_la_LIBADD = $(GLIB2_LIBS)
+marshal_sources =                                         		\
+        tracker-marshal.h                             			\
+        tracker-marshal.c
 
-libemail_kmail_la_SOURCES = tracker-email-kmail.c
-libemail_kmail_la_LDFLAGS = $(module_flags)
-libemail_kmail_la_LIBADD = $(GLIB2_LIBS)
+dbus_sources = 								\
+	tracker-dbus-daemon-glue.h					\
+	tracker-dbus-files-glue.h					\
+	tracker-dbus-keywords-glue.h					\
+	tracker-dbus-metadata-glue.h					\
+	tracker-dbus-search-glue.h
+
+%-glue.h: $(top_builddir)/data/%.xml
+	$(DBUSBINDINGTOOL) --mode=glib-server --output=$@ --prefix=$(subst -,_,$*) $^
+
+BUILT_SOURCES = 							\
+	$(dbus_sources)							\
+	$(marshal_sources)
+
+CLEANFILES = $(BUILT_SOURCES)
+
+EXTRA_DIST = 								\
+	tracker-marshal.list
+

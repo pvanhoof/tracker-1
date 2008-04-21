@@ -211,7 +211,14 @@ fi
 
 AM_CONDITIONAL(HAVE_RECENT_GLIB, test "$have_recent_glib" = "yes")
 
+# Check we have the DBUS binding tool we need
+AC_PATH_PROG(DBUSBINDINGTOOL, dbus-binding-tool)
+if test -z $DBUSBINDINGTOOL; then
+        AC_MSG_ERROR([Could not find 'dbus-binding-tool'])
+fi
 
+GLIB_GENMARSHAL=`$PKG_CONFIG glib-2.0 --variable=glib_genmarshal`
+AC_SUBST(GLIB_GENMARSHAL)
 
 ####################################################################
 # External QDBM check

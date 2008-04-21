@@ -1,3 +1,9 @@
+2008-04-21  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker/tracker.[ch]: Fixed some left over issues from
+	the DBus patch which were caused by left over cruft in
+	$prefix/include. 
+
 2008-04-21  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/trackerd/tracker-db-interface.[ch]:

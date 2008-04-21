@@ -20,9 +20,11 @@
 #ifndef TRACKER_H
 #define TRACKER_H
 
-#include "tracker-client.h"
-
 G_BEGIN_DECLS
+
+#include <dbus/dbus.h> 
+#include <dbus/dbus-glib-lowlevel.h> 
+#include <dbus/dbus-glib.h> 
 
 typedef void (*TrackerArrayReply) (char **result, GError *error, gpointer user_data);
 typedef void (*TrackerHashTableReply) (GHashTable *result, GError *error, gpointer user_data);

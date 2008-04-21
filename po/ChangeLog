@@ -1,3 +1,7 @@
+2008-04-21  Martyn Russell  <martyn@imendio.com>
+
+	* POTFILES.in: Fixed make distcheck issues.
+
 2008-04-17  Takeshi AIHANA <takeshi.aihana@gmail.com>
 
 	* LINGUAS: Added 'ja' (Japanese).

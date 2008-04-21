@@ -69,7 +69,7 @@ mail_modules_LTLIBRARIES = \
 
 module_flags = -module -avoid-version -no-undefined
 
-libemail_modest_la_SOURCES = tracker-email-modest.c
+libemail_modest_la_SOURCES = tracker-email-modest.c tracker-email-modest.h
 libemail_modest_la_LDFLAGS = $(module_flags)
 libemail_modest_la_LIBADD = $(GLIB2_LIBS)
 
@@ -89,13 +89,12 @@ libemail_kmail_la_LIBADD = $(GLIB2_LIBS)
 bin_PROGRAMS = trackerd
 
 trackerd_SOURCES =							\
-	trackerd.c							\
 	$(watch_sources)						\
 	$(win_sources)							\
 	$(unix_sources)							\
 	$(hal_sources)							\
 	$(db_sources)							\
-	$(foo_sources)							\
+	trackerd.c							\
 	tracker-apps.c							\
 	tracker-apps.h							\
 	tracker-db.c							\
@@ -118,6 +117,7 @@ trackerd_SOURCES =							\
 	tracker-email-utils.h						\
 	tracker-metadata.c						\
 	tracker-metadata.h						\
+	tracker-marshal-main.c						\
 	tracker-process-files.c						\
 	tracker-process-files.h						\
 	tracker-query-tree.c						\
@@ -135,8 +135,7 @@ trackerd_SOURCES =							\
 	tracker-os-dependant.h						\
 	tracker-watch.h							\
 	tracker-status.c						\
-	tracker-status.h						\
-	tracker-marshal-main.c
+	tracker-status.h
 
 if OS_WIN32
 trackerd_win_libs = -lws2_32 -lkernel32
@@ -194,5 +193,6 @@ BUILT_SOURCES = 							\
 CLEANFILES = $(BUILT_SOURCES)
 
 EXTRA_DIST = 								\
+	$(BUILT_SOURCES)						\
 	tracker-marshal.list
 

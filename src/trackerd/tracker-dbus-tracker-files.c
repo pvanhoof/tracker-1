@@ -24,22 +24,25 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 #include <libtracker-common/tracker-log.h>
+#include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-utils.h>
 #include <libtracker-common/tracker-type-utils.h>
 
 #include "tracker-dbus.h"
-#include "tracker-dbus-files.h"
+#include "tracker-dbus-tracker-files.h"
 #include "tracker-db.h"
 #include "tracker-metadata.h"
 #include "tracker-service-manager.h"
 #include "tracker-marshal.h"
 
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DBUS_FILES, TrackerDBusFilesPriv))
+
+#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DBUS_TRACKER_FILES, TrackerDBusTrackerFilesPriv))
 
 typedef struct {
 	DBConnection *db_con;
-} TrackerDBusFilesPriv;
+} TrackerDBusTrackerFilesPriv;
 
 enum {
 	PROP_0,
@@ -52,10 +55,10 @@ static void dbus_files_set_property (GObject      *object,
                                      const GValue *value,
                                      GParamSpec   *pspec);
 
-G_DEFINE_TYPE(TrackerDBusFiles, tracker_dbus_files, G_TYPE_OBJECT)
+G_DEFINE_TYPE(TrackerDBusTrackerFiles, tracker_dbus_tracker_files, G_TYPE_OBJECT)
 
 static void
-tracker_dbus_files_class_init (TrackerDBusFilesClass *klass)
+tracker_dbus_tracker_files_class_init (TrackerDBusTrackerFilesClass *klass)
 {
 	GObjectClass *object_class;
 
@@ -71,22 +74,22 @@ tracker_dbus_files_class_init (TrackerDBusFilesClass *klass)
 							       "Database connection to use in transactions",
 							       G_PARAM_WRITABLE));
 
-	g_type_class_add_private (object_class, sizeof (TrackerDBusFilesPriv));
+	g_type_class_add_private (object_class, sizeof (TrackerDBusTrackerFilesPriv));
 }
 
 static void
-tracker_dbus_files_init (TrackerDBusFiles *object)
+tracker_dbus_tracker_files_init (TrackerDBusTrackerFiles *object)
 {
 }
 
 static void
 dbus_files_finalize (GObject *object)
 {
-	TrackerDBusFilesPriv *priv;
+	TrackerDBusTrackerFilesPriv *priv;
 	
 	priv = GET_PRIV (object);
 
-	G_OBJECT_CLASS (tracker_dbus_files_parent_class)->finalize (object);
+	G_OBJECT_CLASS (tracker_dbus_tracker_files_parent_class)->finalize (object);
 }
 
 static void
@@ -95,13 +98,13 @@ dbus_files_set_property (GObject      *object,
                          const GValue *value,
                          GParamSpec   *pspec)
 {
-	TrackerDBusFilesPriv *priv;
+	TrackerDBusTrackerFilesPriv *priv;
 
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
 	case PROP_DB_CONNECTION:
-		tracker_dbus_files_set_db_connection (TRACKER_DBUS_FILES (object),
+		tracker_dbus_tracker_files_set_db_connection (TRACKER_DBUS_TRACKER_FILES (object),
                                                       g_value_get_pointer (value));
 		break;
 
@@ -111,12 +114,12 @@ dbus_files_set_property (GObject      *object,
 	};
 }
 
-TrackerDBusFiles *
-tracker_dbus_files_new (DBConnection *db_con)
+TrackerDBusTrackerFiles *
+tracker_dbus_tracker_files_new (DBConnection *db_con)
 {
-	TrackerDBusFiles *object;
+	TrackerDBusTrackerFiles *object;
 
-	object = g_object_new (TRACKER_TYPE_DBUS_FILES, 
+	object = g_object_new (TRACKER_TYPE_DBUS_TRACKER_FILES, 
 			       "db-connection", db_con,
 			       NULL);
 	
@@ -124,12 +127,12 @@ tracker_dbus_files_new (DBConnection *db_con)
 }
 
 void
-tracker_dbus_files_set_db_connection (TrackerDBusFiles *object,
+tracker_dbus_tracker_files_set_db_connection (TrackerDBusTrackerFiles *object,
                                       DBConnection     *db_con)
 {
-	TrackerDBusFilesPriv *priv;
+	TrackerDBusTrackerFilesPriv *priv;
 
-	g_return_if_fail (TRACKER_IS_DBUS_FILES (object));
+	g_return_if_fail (TRACKER_IS_DBUS_TRACKER_FILES (object));
 	g_return_if_fail (db_con != NULL);
 
 	priv = GET_PRIV (object);
@@ -143,13 +146,13 @@ tracker_dbus_files_set_db_connection (TrackerDBusFiles *object,
  * Functions
  */
 gboolean
-tracker_dbus_files_exist (TrackerDBusFiles  *object,
+tracker_dbus_tracker_files_exist (TrackerDBusTrackerFiles  *object,
                           const gchar       *uri,
                           gboolean           auto_create,
                           gboolean          *value,
                           GError           **error)
 {
-	TrackerDBusFilesPriv *priv;
+	TrackerDBusTrackerFilesPriv *priv;
 	guint                 request_id;
 	DBConnection         *db_con;
 	guint32               file_id;
@@ -200,7 +203,7 @@ tracker_dbus_files_exist (TrackerDBusFiles  *object,
 }
 
 gboolean
-tracker_dbus_files_create (TrackerDBusFiles  *object,
+tracker_dbus_tracker_files_create (TrackerDBusTrackerFiles  *object,
                            const gchar       *uri,
                            gboolean           is_directory,
                            const gchar       *mime,
@@ -208,7 +211,7 @@ tracker_dbus_files_create (TrackerDBusFiles  *object,
                            gint               mtime,
                            GError           **error)
 {
-	TrackerDBusFilesPriv *priv;
+	TrackerDBusTrackerFilesPriv *priv;
 	guint                 request_id;
 	DBConnection         *db_con;
 	FileInfo             *info;
@@ -325,11 +328,11 @@ tracker_dbus_files_create (TrackerDBusFiles  *object,
 }
 
 gboolean
-tracker_dbus_files_delete (TrackerDBusFiles  *object,
+tracker_dbus_tracker_files_delete (TrackerDBusTrackerFiles  *object,
                            const gchar       *uri,
                            GError           **error)
 {
-	TrackerDBusFilesPriv *priv;
+	TrackerDBusTrackerFilesPriv *priv;
 	TrackerDBResultSet   *result_set;
 	guint                 request_id;
 	DBConnection         *db_con;
@@ -403,12 +406,12 @@ tracker_dbus_files_delete (TrackerDBusFiles  *object,
 }
 
 gboolean
-tracker_dbus_files_get_service_type (TrackerDBusFiles  *object,
+tracker_dbus_tracker_files_get_service_type (TrackerDBusTrackerFiles  *object,
                                      const gchar       *uri,
                                      gchar            **value,  
                                      GError           **error)
 {
-	TrackerDBusFilesPriv   *priv;
+	TrackerDBusTrackerFilesPriv   *priv;
 	TrackerDBResultSet     *result_set;
 	guint                   request_id;
 	DBConnection           *db_con;
@@ -487,14 +490,14 @@ tracker_dbus_files_get_service_type (TrackerDBusFiles  *object,
 }
 
 gboolean
-tracker_dbus_files_get_text_contents (TrackerDBusFiles  *object,
+tracker_dbus_tracker_files_get_text_contents (TrackerDBusTrackerFiles  *object,
                                       const gchar       *uri,
                                       gint               offset,
                                       gint               max_length,
                                       gchar            **value,  
                                       GError           **error)
 {
-	TrackerDBusFilesPriv *priv;
+	TrackerDBusTrackerFilesPriv *priv;
 	TrackerDBResultSet   *result_set;
 	guint                 request_id;
 	DBConnection         *db_con;
@@ -568,14 +571,14 @@ tracker_dbus_files_get_text_contents (TrackerDBusFiles  *object,
 }
 
 gboolean
-tracker_dbus_files_search_text_contents (TrackerDBusFiles  *object,
+tracker_dbus_tracker_files_search_text_contents (TrackerDBusTrackerFiles  *object,
                                          const gchar       *uri,
                                          const gchar       *text,
                                          gint               max_length,
                                          gchar            **value,  
                                          GError           **error)
 {
-	TrackerDBusFilesPriv *priv;
+	TrackerDBusTrackerFilesPriv *priv;
 	TrackerDBResultSet   *result_set = NULL;
 	guint                 request_id;
 	DBConnection         *db_con;
@@ -642,7 +645,7 @@ tracker_dbus_files_search_text_contents (TrackerDBusFiles  *object,
 }
 
 gboolean
-tracker_dbus_files_get_by_service_type (TrackerDBusFiles   *object,
+tracker_dbus_tracker_files_get_by_service_type (TrackerDBusTrackerFiles   *object,
                                         gint                live_query_id,
                                         const gchar        *service,
                                         gint                offset,
@@ -650,7 +653,7 @@ tracker_dbus_files_get_by_service_type (TrackerDBusFiles   *object,
                                         gchar            ***values,  
                                         GError            **error)
 {
-	TrackerDBusFilesPriv *priv;
+	TrackerDBusTrackerFilesPriv *priv;
 	TrackerDBResultSet   *result_set;
 	guint                 request_id;
 	DBConnection         *db_con;
@@ -699,7 +702,7 @@ tracker_dbus_files_get_by_service_type (TrackerDBusFiles   *object,
 }
 
 gboolean
-tracker_dbus_files_get_by_mime_type (TrackerDBusFiles   *object,
+tracker_dbus_tracker_files_get_by_mime_type (TrackerDBusTrackerFiles   *object,
                                      gint                live_query_id,
                                      gchar             **mime_types,
                                      gint                offset,
@@ -707,7 +710,7 @@ tracker_dbus_files_get_by_mime_type (TrackerDBusFiles   *object,
                                      gchar            ***values,  
                                      GError            **error)
 {
-	TrackerDBusFilesPriv *priv;
+	TrackerDBusTrackerFilesPriv *priv;
 	TrackerDBResultSet   *result_set;
 	guint                 request_id;
 	DBConnection         *db_con;
@@ -751,7 +754,7 @@ tracker_dbus_files_get_by_mime_type (TrackerDBusFiles   *object,
 }
 
 gboolean
-tracker_dbus_files_get_by_mime_type_vfs (TrackerDBusFiles   *object,
+tracker_dbus_tracker_files_get_by_mime_type_vfs (TrackerDBusTrackerFiles   *object,
 					 gint                live_query_id,
 					 gchar             **mime_types,
 					 gint                offset,
@@ -759,7 +762,7 @@ tracker_dbus_files_get_by_mime_type_vfs (TrackerDBusFiles   *object,
 					 gchar            ***values,  
 					 GError            **error)
 {
-	TrackerDBusFilesPriv *priv;
+	TrackerDBusTrackerFilesPriv *priv;
 	TrackerDBResultSet   *result_set;
 	guint                 request_id;
 	DBConnection         *db_con;
@@ -806,12 +809,12 @@ tracker_dbus_files_get_by_mime_type_vfs (TrackerDBusFiles   *object,
 }
 
 gboolean
-tracker_dbus_files_get_mtime (TrackerDBusFiles  *object,
+tracker_dbus_tracker_files_get_mtime (TrackerDBusTrackerFiles  *object,
                               const gchar       *uri,
                               gint              *value,
                               GError           **error)
 {
-	TrackerDBusFilesPriv   *priv;
+	TrackerDBusTrackerFilesPriv   *priv;
 	TrackerDBResultSet     *result_set;
 	guint                   request_id;
 	DBConnection           *db_con;
@@ -865,14 +868,14 @@ tracker_dbus_files_get_mtime (TrackerDBusFiles  *object,
 }
 
 gboolean
-tracker_dbus_files_get_metadata_for_files_in_folder (TrackerDBusFiles  *object,
+tracker_dbus_tracker_files_get_metadata_for_files_in_folder (TrackerDBusTrackerFiles  *object,
                                                      gint               live_query_id,
                                                      const gchar       *uri,
                                                      gchar            **fields,
                                                      GPtrArray        **values,
                                                      GError           **error)
 {
-	TrackerDBusFilesPriv *priv;
+	TrackerDBusTrackerFilesPriv *priv;
 	TrackerDBResultSet   *result_set;
 	guint                 request_id;
 	DBConnection         *db_con;

@@ -28,16 +28,16 @@
 #include <libtracker-common/tracker-utils.h>
 
 #include "tracker-dbus.h"
-#include "tracker-dbus-keywords.h"
+#include "tracker-dbus-tracker-keywords.h"
 #include "tracker-db.h"
 #include "tracker-marshal.h"
 
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DBUS_KEYWORDS, TrackerDBusKeywordsPriv))
+#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DBUS_TRACKER_KEYWORDS, TrackerDBusTrackerKeywordsPriv))
 
 typedef struct {
 	DBusGProxy   *fd_proxy;
 	DBConnection *db_con;
-} TrackerDBusKeywordsPriv;
+} TrackerDBusTrackerKeywordsPriv;
 
 enum {
 	PROP_0,
@@ -58,10 +58,10 @@ static void dbus_keywords_set_property (GObject      *object,
 
 static guint signals[LAST_SIGNAL] = {0};
 
-G_DEFINE_TYPE(TrackerDBusKeywords, tracker_dbus_keywords, G_TYPE_OBJECT)
+G_DEFINE_TYPE(TrackerDBusTrackerKeywords, tracker_dbus_tracker_keywords, G_TYPE_OBJECT)
 
 static void
-tracker_dbus_keywords_class_init (TrackerDBusKeywordsClass *klass)
+tracker_dbus_tracker_keywords_class_init (TrackerDBusTrackerKeywordsClass *klass)
 {
 	GObjectClass *object_class;
 
@@ -96,18 +96,18 @@ tracker_dbus_keywords_class_init (TrackerDBusKeywordsClass *klass)
                               G_TYPE_NONE,
                               3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
 
-	g_type_class_add_private (object_class, sizeof (TrackerDBusKeywordsPriv));
+	g_type_class_add_private (object_class, sizeof (TrackerDBusTrackerKeywordsPriv));
 }
 
 static void
-tracker_dbus_keywords_init (TrackerDBusKeywords *object)
+tracker_dbus_tracker_keywords_init (TrackerDBusTrackerKeywords *object)
 {
 }
 
 static void
 dbus_keywords_finalize (GObject *object)
 {
-	TrackerDBusKeywordsPriv *priv;
+	TrackerDBusTrackerKeywordsPriv *priv;
 	
 	priv = GET_PRIV (object);
 
@@ -115,7 +115,7 @@ dbus_keywords_finalize (GObject *object)
 		g_object_unref (priv->fd_proxy);
 	}
 
-	G_OBJECT_CLASS (tracker_dbus_keywords_parent_class)->finalize (object);
+	G_OBJECT_CLASS (tracker_dbus_tracker_keywords_parent_class)->finalize (object);
 }
 
 static void
@@ -124,13 +124,13 @@ dbus_keywords_set_property (GObject      *object,
 			    const GValue *value,
 			    GParamSpec	 *pspec)
 {
-	TrackerDBusKeywordsPriv *priv;
+	TrackerDBusTrackerKeywordsPriv *priv;
 
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
 	case PROP_DB_CONNECTION:
-		tracker_dbus_keywords_set_db_connection (TRACKER_DBUS_KEYWORDS (object),
+		tracker_dbus_tracker_keywords_set_db_connection (TRACKER_DBUS_TRACKER_KEYWORDS (object),
 							 g_value_get_pointer (value));
 		break;
 
@@ -140,12 +140,12 @@ dbus_keywords_set_property (GObject      *object,
 	};
 }
 
-TrackerDBusKeywords *
-tracker_dbus_keywords_new (DBConnection *db_con)
+TrackerDBusTrackerKeywords *
+tracker_dbus_tracker_keywords_new (DBConnection *db_con)
 {
-	TrackerDBusKeywords *object;
+	TrackerDBusTrackerKeywords *object;
 
-	object = g_object_new (TRACKER_TYPE_DBUS_KEYWORDS, 
+	object = g_object_new (TRACKER_TYPE_DBUS_TRACKER_KEYWORDS, 
 			       "db-connection", db_con,
 			       NULL);
 	
@@ -153,12 +153,12 @@ tracker_dbus_keywords_new (DBConnection *db_con)
 }
 
 void
-tracker_dbus_keywords_set_db_connection (TrackerDBusKeywords *object,
+tracker_dbus_tracker_keywords_set_db_connection (TrackerDBusTrackerKeywords *object,
 					 DBConnection        *db_con)
 {
-	TrackerDBusKeywordsPriv *priv;
+	TrackerDBusTrackerKeywordsPriv *priv;
 
-	g_return_if_fail (TRACKER_IS_DBUS_KEYWORDS (object));
+	g_return_if_fail (TRACKER_IS_DBUS_TRACKER_KEYWORDS (object));
 	g_return_if_fail (db_con != NULL);
 
 	priv = GET_PRIV (object);
@@ -172,12 +172,12 @@ tracker_dbus_keywords_set_db_connection (TrackerDBusKeywords *object,
  * Functions
  */
 gboolean
-tracker_dbus_keywords_get_list (TrackerDBusKeywords   *object,
+tracker_dbus_tracker_keywords_get_list (TrackerDBusTrackerKeywords   *object,
 				const gchar           *service,
 				GPtrArray            **values,
 				GError               **error)
 {
-	TrackerDBusKeywordsPriv *priv;
+	TrackerDBusTrackerKeywordsPriv *priv;
 	TrackerDBResultSet      *result_set;
 	guint                    request_id;
 	DBConnection    	*db_con;
@@ -220,13 +220,13 @@ tracker_dbus_keywords_get_list (TrackerDBusKeywords   *object,
 }
 
 gboolean
-tracker_dbus_keywords_get (TrackerDBusKeywords   *object,
+tracker_dbus_tracker_keywords_get (TrackerDBusTrackerKeywords   *object,
 			   const gchar           *service,
 			   const gchar           *uri,
 			   gchar               ***values,
 			   GError               **error)
 {
-	TrackerDBusKeywordsPriv *priv;
+	TrackerDBusTrackerKeywordsPriv *priv;
 	TrackerDBResultSet      *result_set;
 	DBConnection            *db_con;
 	guint                    request_id;
@@ -292,13 +292,13 @@ tracker_dbus_keywords_get (TrackerDBusKeywords   *object,
 }
 
 gboolean
-tracker_dbus_keywords_add (TrackerDBusKeywords  *object,
+tracker_dbus_tracker_keywords_add (TrackerDBusTrackerKeywords  *object,
 			   const gchar          *service,
 			   const gchar          *uri,
 			   gchar               **values,
 			   GError              **error)
 {
-	TrackerDBusKeywordsPriv  *priv;
+	TrackerDBusTrackerKeywordsPriv  *priv;
 	DBConnection             *db_con;
 	guint                     request_id;
 	gchar                    *id;
@@ -363,13 +363,13 @@ tracker_dbus_keywords_add (TrackerDBusKeywords  *object,
 }
 
 gboolean
-tracker_dbus_keywords_remove (TrackerDBusKeywords  *object,
+tracker_dbus_tracker_keywords_remove (TrackerDBusTrackerKeywords  *object,
 			      const gchar          *service,
 			      const gchar          *uri,
 			      gchar               **values,
 			      GError              **error)
 {
-	TrackerDBusKeywordsPriv  *priv;
+	TrackerDBusTrackerKeywordsPriv  *priv;
 	DBConnection             *db_con;
 	guint                     request_id;
 	gchar                    *id;
@@ -438,12 +438,12 @@ tracker_dbus_keywords_remove (TrackerDBusKeywords  *object,
 }
 
 gboolean
-tracker_dbus_keywords_remove_all (TrackerDBusKeywords  *object,
+tracker_dbus_tracker_keywords_remove_all (TrackerDBusTrackerKeywords  *object,
 				  const gchar          *service,
 				  const gchar          *uri,
 				  GError              **error)
 {
-	TrackerDBusKeywordsPriv  *priv;
+	TrackerDBusTrackerKeywordsPriv  *priv;
 	DBConnection             *db_con;
 	guint                     request_id;
 	gchar                    *id;
@@ -501,7 +501,7 @@ tracker_dbus_keywords_remove_all (TrackerDBusKeywords  *object,
 }
 
 gboolean
-tracker_dbus_keywords_search (TrackerDBusKeywords  *object,
+tracker_dbus_tracker_keywords_search (TrackerDBusTrackerKeywords  *object,
 			      gint                  live_query_id,
 			      const gchar          *service,
 			      const gchar         **keywords,
@@ -510,7 +510,7 @@ tracker_dbus_keywords_search (TrackerDBusKeywords  *object,
 			      gchar              ***values,
 			      GError              **error)
 {
-	TrackerDBusKeywordsPriv  *priv;
+	TrackerDBusTrackerKeywordsPriv  *priv;
 	TrackerDBResultSet       *result_set;
 	DBConnection             *db_con;
 	guint                     request_id;

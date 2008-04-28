@@ -19,8 +19,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_DBUS_SEARCH_H__
-#define __TRACKER_DBUS_SEARCH_H__
+#ifndef __TRACKER_DBUS_TRACKER_SEARCH_H__
+#define __TRACKER_DBUS_TRACKER_SEARCH_H__
 
 #include <dbus/dbus-glib.h>
 #include <dbus/dbus-glib-bindings.h>
@@ -29,50 +29,50 @@
 #include "tracker-db-sqlite.h"
 #include "tracker-indexer.h"
 
-#define TRACKER_DBUS_SEARCH_SERVICE         "org.freedesktop.Tracker"
-#define TRACKER_DBUS_SEARCH_PATH            "/org/freedesktop/Tracker/Search"
-#define TRACKER_DBUS_SEARCH_INTERFACE       "org.freedesktop.Tracker.Search"
+#define TRACKER_DBUS_TRACKER_SEARCH_SERVICE         "org.freedesktop.Tracker"
+#define TRACKER_DBUS_TRACKER_SEARCH_PATH            "/org/freedesktop/Tracker/Search"
+#define TRACKER_DBUS_TRACKER_SEARCH_INTERFACE       "org.freedesktop.Tracker.Search"
 
 G_BEGIN_DECLS
 
-#define TRACKER_TYPE_DBUS_SEARCH            (tracker_dbus_search_get_type ())
-#define TRACKER_DBUS_SEARCH(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), TRACKER_TYPE_DBUS_SEARCH, TrackerDBusSearch))
-#define TRACKER_DBUS_SEARCH_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), TRACKER_TYPE_DBUS_SEARCH, TrackerDBusSearchClass))
-#define TRACKER_IS_DBUS_SEARCH(object)      (G_TYPE_CHECK_INSTANCE_TYPE ((object), TRACKER_TYPE_DBUS_SEARCH))
-#define TRACKER_IS_DBUS_SEARCH_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), TRACKER_TYPE_DBUS_SEARCH))
-#define TRACKER_DBUS_SEARCH_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), TRACKER_TYPE_DBUS_SEARCH, TrackerDBusSearchClass))
+#define TRACKER_TYPE_DBUS_TRACKER_SEARCH            (tracker_dbus_tracker_search_get_type ())
+#define TRACKER_DBUS_TRACKER_SEARCH(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), TRACKER_TYPE_DBUS_TRACKER_SEARCH, TrackerDBusTrackerSearch))
+#define TRACKER_DBUS_TRACKER_SEARCH_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), TRACKER_TYPE_DBUS_TRACKER_SEARCH, TrackerDBusTrackerSearchClass))
+#define TRACKER_IS_DBUS_TRACKER_SEARCH(object)      (G_TYPE_CHECK_INSTANCE_TYPE ((object), TRACKER_TYPE_DBUS_TRACKER_SEARCH))
+#define TRACKER_IS_DBUS_TRACKER_SEARCH_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), TRACKER_TYPE_DBUS_TRACKER_SEARCH))
+#define TRACKER_DBUS_TRACKER_SEARCH_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), TRACKER_TYPE_DBUS_TRACKER_SEARCH, TrackerDBusTrackerSearchClass))
 
-typedef struct TrackerDBusSearch      TrackerDBusSearch;
-typedef struct TrackerDBusSearchClass TrackerDBusSearchClass;
+typedef struct TrackerDBusTrackerSearch      TrackerDBusTrackerSearch;
+typedef struct TrackerDBusTrackerSearchClass TrackerDBusTrackerSearchClass;
 
-struct TrackerDBusSearch {
+struct TrackerDBusTrackerSearch {
 	GObject parent;
 };
 
-struct TrackerDBusSearchClass {
+struct TrackerDBusTrackerSearchClass {
 	GObjectClass parent;
 };
 
-GType    tracker_dbus_search_get_type          (void);
+GType    tracker_dbus_tracker_search_get_type          (void);
 
-TrackerDBusSearch *
-         tracker_dbus_search_new               (DBConnection          *db_con);
-void     tracker_dbus_search_set_db_connection (TrackerDBusSearch   *object,
+TrackerDBusTrackerSearch *
+         tracker_dbus_tracker_search_new               (DBConnection          *db_con);
+void     tracker_dbus_tracker_search_set_db_connection (TrackerDBusTrackerSearch   *object,
 						DBConnection        *db_con);
-void     tracker_dbus_search_set_file_index    (TrackerDBusSearch   *object,
+void     tracker_dbus_tracker_search_set_file_index    (TrackerDBusTrackerSearch   *object,
 						Indexer             *file_index);
-void     tracker_dbus_search_set_email_index   (TrackerDBusSearch   *object,
+void     tracker_dbus_tracker_search_set_email_index   (TrackerDBusTrackerSearch   *object,
 						Indexer             *email_index);
-gboolean tracker_dbus_search_get_hit_count     (TrackerDBusSearch   *object,
+gboolean tracker_dbus_tracker_search_get_hit_count     (TrackerDBusTrackerSearch   *object,
 						const gchar         *service,
 						const gchar         *search_text,
 						gint                *result,
 						GError             **error);
-gboolean tracker_dbus_search_get_hit_count_all (TrackerDBusSearch   *object,
+gboolean tracker_dbus_tracker_search_get_hit_count_all (TrackerDBusTrackerSearch   *object,
 						const gchar         *search_text,
 						GPtrArray          **values,
 						GError             **error);
-gboolean tracker_dbus_search_text              (TrackerDBusSearch   *object,
+gboolean tracker_dbus_tracker_search_text              (TrackerDBusTrackerSearch   *object,
 						gint                 live_query_id,
 						const gchar         *service,
 						const gchar         *search_text,
@@ -80,7 +80,7 @@ gboolean tracker_dbus_search_text              (TrackerDBusSearch   *object,
 						gint                 max_hits,
 						gchar             ***values,
 						GError             **error);
-gboolean tracker_dbus_search_text_detailed     (TrackerDBusSearch   *object,
+gboolean tracker_dbus_tracker_search_text_detailed     (TrackerDBusTrackerSearch   *object,
 						gint                 live_query_id,
 						const gchar         *service,
 						const gchar         *search_text,
@@ -88,13 +88,13 @@ gboolean tracker_dbus_search_text_detailed     (TrackerDBusSearch   *object,
 						gint                 max_hits,
 						GPtrArray          **values,
 						GError             **error);
-gboolean tracker_dbus_search_get_snippet       (TrackerDBusSearch   *object,
+gboolean tracker_dbus_tracker_search_get_snippet       (TrackerDBusTrackerSearch   *object,
 						const gchar         *service,
 						const gchar         *id,
 						const gchar         *search_text,
 						gchar              **result,
 						GError             **error);
-gboolean tracker_dbus_search_files_by_text     (TrackerDBusSearch   *object,
+gboolean tracker_dbus_tracker_search_files_by_text     (TrackerDBusTrackerSearch   *object,
 						gint                 live_query_id,
 						const gchar         *search_text,
 						gint                 offset,
@@ -102,7 +102,7 @@ gboolean tracker_dbus_search_files_by_text     (TrackerDBusSearch   *object,
 						gboolean             group_results,
 						GHashTable         **values,
 						GError             **error);
-gboolean tracker_dbus_search_metadata          (TrackerDBusSearch   *object,
+gboolean tracker_dbus_tracker_search_metadata          (TrackerDBusTrackerSearch   *object,
 						const gchar         *service,
 						const gchar         *field,
 						const gchar         *search_text,
@@ -110,13 +110,13 @@ gboolean tracker_dbus_search_metadata          (TrackerDBusSearch   *object,
 						gint                 max_hits,
 						gchar             ***values,
 						GError             **error);
-gboolean tracker_dbus_search_matching_fields   (TrackerDBusSearch   *object,
+gboolean tracker_dbus_tracker_search_matching_fields   (TrackerDBusTrackerSearch   *object,
 						const gchar         *service,
 						const gchar         *id,
 						const gchar         *search_text,
 						GHashTable         **values,
 						GError             **error);
-gboolean tracker_dbus_search_query             (TrackerDBusSearch   *object,
+gboolean tracker_dbus_tracker_search_query             (TrackerDBusTrackerSearch   *object,
 						gint                 live_query_id,
 						const gchar         *service,
 						gchar              **fields,
@@ -128,7 +128,7 @@ gboolean tracker_dbus_search_query             (TrackerDBusSearch   *object,
 						gint                 max_hits,
 						GPtrArray          **values,
 						GError             **error);
-gboolean tracker_dbus_search_suggest           (TrackerDBusSearch   *object,
+gboolean tracker_dbus_tracker_search_suggest           (TrackerDBusTrackerSearch   *object,
 						const gchar         *search_text,
 						gint                 max_dist,
 						gchar              **value,
@@ -136,4 +136,4 @@ gboolean tracker_dbus_search_suggest           (TrackerDBusSearch   *object,
 
 G_END_DECLS
 
-#endif /* __TRACKER_DBUS_SEARCH_H__ */
+#endif /* __TRACKER_DBUS_TRACKER_SEARCH_H__ */

@@ -21,7 +21,7 @@
 
 #include "tracker-status.h"
 #include "tracker-dbus.h"
-#include "tracker-dbus-daemon.h"
+#include "tracker-dbus-tracker-daemon.h"
 
 static TrackerStatus status = TRACKER_STATUS_INITIALIZING;
 
@@ -130,7 +130,7 @@ tracker_status_set_and_signal (TrackerStatus new_status,
                 return;
         }
 
-        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
+        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_TRACKER_DAEMON);
 
         g_signal_emit_by_name (object, 
                                "index-state-change", 

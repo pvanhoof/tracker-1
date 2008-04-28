@@ -38,7 +38,7 @@
 #include "tracker-cache.h"
 #include "tracker-db-email.h"
 #include "tracker-dbus.h"
-#include "tracker-dbus-daemon.h"
+#include "tracker-dbus-tracker-daemon.h"
 #include "tracker-email-utils.h"
 #include "tracker-watch.h"
 
@@ -134,7 +134,7 @@ email_parse_mail_file_and_save_new_emails (DBConnection *db_con, MailApplication
 	tracker->mbox_count++;
 
         /* Signal progress */
-        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
+        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_TRACKER_DAEMON);
         g_signal_emit_by_name (object,
                                "index-progress", 
                                "Emails",                
@@ -198,7 +198,7 @@ email_parse_mail_file_and_save_new_emails (DBConnection *db_con, MailApplication
 			}
 			
                         /* Signal progress */
-                        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
+                        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_TRACKER_DAEMON);
                         g_signal_emit_by_name (object, 
                                                "index-progress", 
                                                "Emails",                
@@ -215,7 +215,7 @@ email_parse_mail_file_and_save_new_emails (DBConnection *db_con, MailApplication
 	tracker->mbox_processed++;
         
         /* Signal progress */
-        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
+        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_TRACKER_DAEMON);
         g_signal_emit_by_name (object,
                                "index-progress", 
                                "Emails",                

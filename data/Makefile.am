@@ -3,12 +3,12 @@ SUBDIRS = languages icons services
 configdir = $(datadir)/tracker
 
 config_DATA =					\
-	tracker-dbus-daemon.xml			\
-	tracker-dbus-files.xml			\
-	tracker-dbus-keywords.xml		\
-	tracker-dbus-metadata.xml		\
-	tracker-dbus-search.xml			\
-	tracker-xesam-search.xml		\
+	tracker-dbus-tracker-daemon.xml		\
+	tracker-dbus-tracker-files.xml		\
+	tracker-dbus-tracker-keywords.xml	\
+	tracker-dbus-tracker-metadata.xml	\
+	tracker-dbus-tracker-search.xml		\
+	tracker-dbus-xesam-search.xml		\
 		sqlite-tracker.sql \
 		sqlite-cache.sql \
 		sqlite-email.sql \

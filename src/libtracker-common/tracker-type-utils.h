@@ -22,26 +22,23 @@
 #ifndef __TRACKER_TYPE_UTILS_H__
 #define __TRACKER_TYPE_UTILS_H__
 
-gchar *  tracker_format_date                (const gchar  *time_string);
-time_t   tracker_str_to_date                (const gchar  *time_string);
-gchar *  tracker_date_to_str                (time_t        date_time);
-gchar *  tracker_long_to_str                (glong         i);
-gchar *  tracker_int_to_str                 (gint          i);
-gchar *  tracker_uint_to_str                (guint         i);
-gchar *  tracker_gint32_to_str              (gint32        i);
-gchar *  tracker_guint32_to_str             (guint32       i);
-gboolean tracker_str_to_uint                (const gchar  *s,
+gchar *  tracker_date_format                (const gchar  *time_string);
+time_t   tracker_string_to_date             (const gchar  *time_string);
+gchar *  tracker_date_to_string             (time_t        date_time);
+
+gchar *  tracker_long_to_string             (glong         i);
+gchar *  tracker_int_to_string              (gint          i);
+gchar *  tracker_uint_to_string             (guint         i);
+gchar *  tracker_gint32_to_string           (gint32        i);
+gchar *  tracker_guint32_to_string          (guint32       i);
+
+gboolean tracker_string_to_uint             (const gchar  *s,
 					     guint        *ret);
-gint     tracker_str_in_array               (const gchar  *str,
+gint     tracker_string_in_string_list      (const gchar  *str,
 					     gchar       **strv);
-GSList * tracker_string_list_to_gslist      (const gchar **strv);
 gchar ** tracker_gslist_to_string_list      (GSList       *list);
-gchar *  tracker_array_to_str               (gchar       **strv,
+gchar *  tracker_string_list_to_string      (gchar       **strv,
 					     gint          length,
 					     gchar         sep);
-gchar ** tracker_make_array_null_terminated (gchar       **strv,
-					     gint          length);
-void     tracker_free_array                 (gchar       **strv,
-					     gint          row_count);
 
 #endif /* __TRACKER_TYPE_UTILS_H__ */

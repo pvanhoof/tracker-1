@@ -260,7 +260,7 @@ tracker_db_save_metadata (DBConnection *db_con, GHashTable *table, GHashTable *i
 
 	db_action.db_con = db_con;
 	db_action.table = index_table;
-	db_action.file_id = tracker_uint_to_str (file_id);
+	db_action.file_id = tracker_uint_to_string (file_id);
 	db_action.service = (char *) service;
 
 	if (table) {
@@ -278,7 +278,7 @@ tracker_db_save_thumbs (DBConnection *db_con, const char *small_thumb, const cha
 {
 	char *str_file_id;
 
-	str_file_id = tracker_uint_to_str (file_id);
+	str_file_id = tracker_uint_to_string (file_id);
 
 	g_return_if_fail (str_file_id);
 
@@ -412,9 +412,9 @@ make_pending_file (DBConnection *db_con, guint32 file_id, const char *uri, const
 
 	g_return_if_fail (tracker_check_uri (uri));
 
-	str_file_id = tracker_uint_to_str ( file_id);
-	str_action = tracker_int_to_str (action);
-	str_counter = tracker_int_to_str (counter);
+	str_file_id = tracker_uint_to_string ( file_id);
+	str_action = tracker_int_to_string (action);
+	str_counter = tracker_int_to_string (counter);
 
 	if (tracker->is_running) {
 
@@ -484,8 +484,8 @@ tracker_db_update_pending_file (DBConnection *db_con, const char *uri, int count
 
 	g_return_if_fail (tracker_check_uri (uri));
 
-	str_counter = tracker_int_to_str (counter);
-	str_action = tracker_int_to_str (action);
+	str_counter = tracker_int_to_string (counter);
+	str_action = tracker_int_to_string (action);
 
 	if (tracker->is_running) {
 		tracker_db_update_pending (db_con, str_counter, str_action, uri);
@@ -866,11 +866,11 @@ tracker_db_index_service (DBConnection *db_con, FileInfo *info, const char *serv
 		}
 
 		if (info->service_type_id == -1) {
-			tracker_error ("ERROR: unknown service type for %s with service %s and mime %s", uri, service, info->mime);
+                        tracker_error ("ERROR: unknown service type for %s with service %s and mime %s", uri, service, info->mime);
 		}
 	}
 
-	str_file_id = tracker_uint_to_str (info->file_id);
+	str_file_id = tracker_uint_to_string (info->file_id);
 
 	if (get_thumbs && tracker_config_get_enable_thumbnails (tracker->config)) {
 		char *small_thumb_file = NULL;
@@ -1119,9 +1119,9 @@ tracker_db_index_file (DBConnection *db_con, FileInfo *info, const char *attachm
 		} 
 
 		tracker_add_metadata_to_table  (meta_table, g_strdup ("File:Mime"), g_strdup (info->mime));
-		tracker_add_metadata_to_table  (meta_table, g_strdup ("File:Size"), tracker_uint_to_str (info->file_size));
-		tracker_add_metadata_to_table  (meta_table, g_strdup ("File:Modified"), tracker_date_to_str (info->mtime));
-		tracker_add_metadata_to_table  (meta_table, g_strdup ("File:Accessed"), tracker_date_to_str (info->atime));
+		tracker_add_metadata_to_table  (meta_table, g_strdup ("File:Size"), tracker_uint_to_string (info->file_size));
+		tracker_add_metadata_to_table  (meta_table, g_strdup ("File:Modified"), tracker_date_to_string (info->mtime));
+		tracker_add_metadata_to_table  (meta_table, g_strdup ("File:Accessed"), tracker_date_to_string (info->atime));
 
                 /* need to add special data for web history */
                 if (attachment_service != NULL && strcmp(attachment_service,"WebHistory") == 0)  {

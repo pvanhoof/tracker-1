@@ -159,7 +159,7 @@ email_parse_mail_file_and_save_new_emails (DBConnection *db_con, MailApplication
                         if (mail_msg->uri) {
                                 g_free (mail_msg->uri);
                         }
-                        gchar *str_id = tracker_int_to_str (mail_msg->id);
+                        gchar *str_id = tracker_int_to_string (mail_msg->id);
                         mail_msg->uri = g_strconcat (store->uri_prefix, str_id, NULL);
                         g_free (str_id);
                 } else {
@@ -794,7 +794,7 @@ email_make_tmp_name_for_mail_attachment (const gchar *filename)
         g_return_val_if_fail (filename, NULL);
         g_return_val_if_fail (tracker->email_attachements_dir, NULL);
 
-        str_uint = tracker_uint_to_str (g_random_int ());
+        str_uint = tracker_uint_to_string (g_random_int ());
         tmp_filename = g_strconcat (str_uint, "-", filename, NULL);
         g_free (str_uint);
         tmp_name = g_build_filename (tracker->email_attachements_dir, tmp_filename, NULL);

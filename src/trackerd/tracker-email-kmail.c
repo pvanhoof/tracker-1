@@ -328,7 +328,7 @@ load_kmail_config (KMailConfig **conf)
                         goto error;
                 }
 
-                if (!tracker_str_to_uint (str_nb_accounts, &nb_accounts)) {
+                if (!tracker_string_to_uint (str_nb_accounts, &nb_accounts)) {
                         g_free (str_nb_accounts);
                         g_key_file_free (key_file);
                         goto error;

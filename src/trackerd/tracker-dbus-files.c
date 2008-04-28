@@ -270,9 +270,9 @@ tracker_dbus_files_create (TrackerDBusFiles  *object,
 					      "File or directory has been created in database, uri:'%s'",
 					      uri);
 
-		file_id_str = tracker_uint_to_str (file_id);
-		mtime_str = tracker_int_to_str (mtime);
-		size_str = tracker_int_to_str (size);
+		file_id_str = tracker_uint_to_string (file_id);
+		mtime_str = tracker_int_to_string (mtime);
+		size_str = tracker_int_to_string (size);
 	
 		tracker_db_set_single_metadata (db_con, 
 						service, 
@@ -442,7 +442,7 @@ tracker_dbus_files_get_service_type (TrackerDBusFiles  *object,
 	}
 
 	/* Get mime */
-	file_id_str = tracker_uint_to_str (file_id);
+	file_id_str = tracker_uint_to_string (file_id);
 
 	mime = NULL;
 	result_set = tracker_db_get_metadata (db_con, 
@@ -533,8 +533,8 @@ tracker_dbus_files_get_text_contents (TrackerDBusFiles  *object,
 		} 
 	}
 
-	offset_str = tracker_int_to_str (offset);
-	max_length_str = tracker_int_to_str (max_length);
+	offset_str = tracker_int_to_string (offset);
+	max_length_str = tracker_int_to_string (max_length);
 
 	result_set = tracker_exec_proc (db_con->blob,
 					"GetFileContents",
@@ -608,7 +608,7 @@ tracker_dbus_files_search_text_contents (TrackerDBusFiles  *object,
 		path = tracker_get_vfs_path (uri);
 	}
 	
-	max_length_str = tracker_int_to_str (max_length);
+	max_length_str = tracker_int_to_string (max_length);
 
 	/* result_set = tracker_exec_proc (db_con, */
 	/* 				"SearchFileContents", */

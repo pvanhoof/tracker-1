@@ -74,7 +74,7 @@ parse_month (const gchar *month)
 
 /* Determine date format and convert to ISO 8601 format */
 gchar *
-tracker_format_date (const gchar *timestamp)
+tracker_date_format (const gchar *timestamp)
 {
 	gchar buf[30];
 	gint  len;
@@ -391,7 +391,7 @@ is_valid_8601_datetime (const gchar *timestamp)
 }
 
 time_t
-tracker_str_to_date (const gchar *timestamp)
+tracker_string_to_date (const gchar *timestamp)
 {
 	struct tm tm;
 	long	  val;
@@ -500,7 +500,7 @@ tracker_str_to_date (const gchar *timestamp)
 }
 
 gchar *
-tracker_date_to_str (time_t date_time)
+tracker_date_to_string (time_t date_time)
 {
 	gchar  	  buffer[30];
 	struct tm local_time;
@@ -518,38 +518,38 @@ tracker_date_to_str (time_t date_time)
 }
 
 gchar *
-tracker_long_to_str (glong i)
+tracker_long_to_string (glong i)
 {
         return g_strdup_printf ("%ld", i);
 }
 
 gchar *
-tracker_int_to_str (gint i)
+tracker_int_to_string (gint i)
 {
 	return g_strdup_printf ("%d", i);
 }
 
 gchar *
-tracker_uint_to_str (guint i)
+tracker_uint_to_string (guint i)
 {
 	return g_strdup_printf ("%u", i);
 }
 
 gchar *
-tracker_gint32_to_str (gint32 i)
+tracker_gint32_to_string (gint32 i)
 {
         return g_strdup_printf ("%" G_GINT32_FORMAT, i);
 }
 
 gchar *
-tracker_guint32_to_str (guint32 i)
+tracker_guint32_to_string (guint32 i)
 {
         return g_strdup_printf ("%" G_GUINT32_FORMAT, i);
 }
 
 gboolean
-tracker_str_to_uint (const gchar *s, 
-		     guint       *value)
+tracker_string_to_uint (const gchar *s, 
+			guint       *value)
 {
 	unsigned long int n;
 
@@ -568,8 +568,8 @@ tracker_str_to_uint (const gchar *s,
 }
 
 gint
-tracker_str_in_array (const gchar  *str, 
-		      gchar       **strv)
+tracker_string_in_string_list (const gchar  *str, 
+			       gchar       **strv)
 {
 	gchar **p;
 	gint    i = 0;
@@ -581,23 +581,6 @@ tracker_str_in_array (const gchar  *str,
 	}
 
 	return -1;
-}
-
-GSList *
-tracker_string_list_to_gslist (const gchar **strv)
-{
-	GSList       *l = NULL;
-	const gchar **p;
-
-	for (p = strv; *p; p++) {
-		if (tracker_is_empty_string (*p)) {
-			continue;
-		}
-
-		l = g_slist_prepend (l, g_strdup (*p));
-	}
-
-	return g_slist_reverse (l);
 }
 
 gchar **
@@ -623,9 +606,9 @@ tracker_gslist_to_string_list (GSList *list)
 }
 
 gchar *
-tracker_array_to_str (gchar **strv, 
-		      gint    length, 
-		      gchar   sep)
+tracker_string_list_to_string (gchar **strv, 
+			       gint    length, 
+			       gchar   sep)
 {
 	GString *string;
 	gint     i;
@@ -646,39 +629,3 @@ tracker_array_to_str (gchar **strv,
 
 	return g_string_free (string, FALSE);
 }
-
-gchar **
-tracker_make_array_null_terminated (gchar **strv, 
-				    gint    length)
-{
-	gchar **values = NULL;
-	gint    i;
-
-	values = g_new (gchar*, length + 1);
-
-	for (i = 0; i < length; i++) {
-		values[i] = strv[i];
-	}
-
-	values[length] = NULL;
-
-	return values;
-}
-
-void
-tracker_free_array (gchar **strv, 
-		    gint    length)
-{
-	if (strv && length > 0) {
-		gint i;
-
-		for (i = 0; i < length; i++) {
-			if (strv[i]) {
-	        		g_free (strv[i]);
-			}
-		}
-
-		g_free (strv);
-	}
-}
-

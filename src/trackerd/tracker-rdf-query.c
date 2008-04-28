@@ -694,11 +694,11 @@ build_sql (ParserData *data)
 		char *bvalue;
 		int cvalue;
 
-		bvalue = tracker_format_date (avalue);
+		bvalue = tracker_date_format (avalue);
 		tracker_debug (bvalue);
-		cvalue = tracker_str_to_date (bvalue);
+		cvalue = tracker_string_to_date (bvalue);
 		tracker_debug ("%d", cvalue);
-		value = tracker_int_to_str (cvalue);
+		value = tracker_int_to_string (cvalue);
 		g_free (bvalue);
 	} else {
 		value = g_strdup (avalue);

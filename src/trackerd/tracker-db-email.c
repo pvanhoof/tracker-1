@@ -60,8 +60,8 @@ tracker_db_email_register_mbox (DBConnection    *db_con,
 {
 	gchar *types[6] = {"MBOX", "IMAP", "IMAP4", "MAIL_TYPE_MAILDIR", "MAIL_TYPE_MH", "MAIL_TYPE_POP"};
 
-	gchar *str_mail_app = tracker_int_to_str (mail_app);
-	gchar *str_mail_type = tracker_int_to_str (mail_type);
+	gchar *str_mail_app = tracker_int_to_string (mail_app);
+	gchar *str_mail_type = tracker_int_to_string (mail_type);
 
 	tracker_exec_proc (db_con, "InsertMboxDetails", str_mail_app, str_mail_type, filename, path, uri_prefix, NULL);
 
@@ -102,8 +102,8 @@ tracker_db_email_insert_junk (DBConnection *db_con, const gchar *mbox_uri, guint
 		return;
 	}
 
-	gchar *str_mbox_id = tracker_int_to_str (mbox_id);
-	gchar *str_uid = tracker_uint_to_str (uid);
+	gchar *str_mbox_id = tracker_int_to_string (mbox_id);
+	gchar *str_uid = tracker_uint_to_string (uid);
 
 	if (!tracker_db_email_lookup_junk (db_con, str_mbox_id, uid)) {
 
@@ -255,9 +255,9 @@ tracker_db_email_set_message_counts (DBConnection *db_con,
 	if (tracker_db_email_get_mbox_offset (db_con, dir_path) != -1) {
 		gchar *str_mail_count, *str_junk_count, *str_delete_count;
 
-		str_mail_count = tracker_uint_to_str (mail_count);
-		str_junk_count = tracker_uint_to_str (junk_count);
-		str_delete_count = tracker_uint_to_str (delete_count);
+		str_mail_count = tracker_uint_to_string (mail_count);
+		str_junk_count = tracker_uint_to_string (junk_count);
+		str_delete_count = tracker_uint_to_string (delete_count);
 
 		tracker_exec_proc (db_con, "UpdateMboxCounts", str_mail_count, str_junk_count, str_delete_count, dir_path, NULL);
 
@@ -305,7 +305,7 @@ tracker_db_email_update_mbox_offset (DBConnection *db_con, MailFile *mf)
 	if (tracker_db_email_get_mbox_offset (db_con, mf->path) != -1) {
 		gchar *str_offset;
 
-		str_offset = tracker_uint_to_str (mf->next_email_offset);
+		str_offset = tracker_uint_to_string (mf->next_email_offset);
 		tracker_exec_proc (db_con, "UpdateMboxOffset", str_offset, mf->path, NULL);
 
 		g_free (str_offset);
@@ -516,8 +516,8 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
 		tracker_info ("saving email service %d with uri \"%s\" and subject \"%s\" from \"%s\"", type_id, mm->uri, mm->subject, mm->from);
 
 		index_table = g_hash_table_new (g_str_hash, g_str_equal);
-		str_id = tracker_int_to_str (id);
-                str_date = tracker_date_to_str (mm->date);
+		str_id = tracker_int_to_string (id);
+                str_date = tracker_date_to_string (mm->date);
  
 		if (mm->body) {
 			gchar *value = get_utf8 (mm->body);
@@ -782,7 +782,7 @@ tracker_db_email_lookup_junk (DBConnection *db_con, const gchar *mbox_id, gint u
         gchar *str_uid;
 	gint id;
 
-	str_uid = tracker_uint_to_str (uid);
+	str_uid = tracker_uint_to_string (uid);
 
 	result_set = tracker_exec_proc (db_con, "LookupJunk", str_uid, mbox_id, NULL);
 

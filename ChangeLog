@@ -1,5 +1,19 @@
 2008-04-28  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-type-utils.c:
+	* src/libtracker-common/tracker-type-utils.h:
+	* src/trackerd/tracker-db-email.c:
+	* src/trackerd/tracker-db-sqlite.c:
+	* src/trackerd/tracker-db.c: 
+	* src/trackerd/tracker-dbus-files.c:
+	* src/trackerd/tracker-email-evolution.c:
+	* src/trackerd/tracker-email-kmail.c:
+	* src/trackerd/tracker-email-utils.c:
+	* src/trackerd/tracker-rdf-query.c: Clean up the
+	tracker-type-utils function names to be more consistent.
+
+2008-04-28  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/Makefile.am:
 	* src/libtracker-common/tracker-type-utils.[ch]:
 	* src/trackerd/tracker-db-email.c:

@@ -670,7 +670,7 @@ check_summary_file (DBConnection *db_con, const gchar *filename, MailStore *stor
 
 		if ((header->junk_count > store->junk_count) || (header->deleted_count > store->delete_count)) {
 
-			gchar *mbox_id = tracker_int_to_str (tracker_db_email_get_mbox_id (db_con, path));
+			gchar *mbox_id = tracker_int_to_string (tracker_db_email_get_mbox_id (db_con, path));
 			gint i;
 
 			for (i = 0; i < header->saved_count ; i++) {
@@ -680,7 +680,7 @@ check_summary_file (DBConnection *db_con, const gchar *filename, MailStore *stor
 					if (uid > 0) {
 						gchar *uri, *str_uid;
 
-						str_uid = tracker_uint_to_str (uid);
+						str_uid = tracker_uint_to_string (uid);
 
 						tracker_db_email_insert_junk (db_con, path, uid);
 
@@ -1413,7 +1413,7 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
 				mail_msg->path = g_strdup_printf ("%s%s%d.", sum_file_dir, G_DIR_SEPARATOR_S, mail_msg->id);
 				g_free (sum_file_dir);
 
-				gchar *str_id = tracker_int_to_str (mail_msg->id);
+				gchar *str_id = tracker_int_to_string (mail_msg->id);
 				mail_msg->uri = g_strconcat (store->uri_prefix, str_id, NULL);
 				g_free (str_id);
 
@@ -2426,7 +2426,7 @@ index_mail_parts (DBConnection *db_con, MailMessage *mail_msg, const gchar *mail
 		gchar    *str_i;
 		MailPart *m;
 
-		str_i = tracker_int_to_str (i);
+		str_i = tracker_int_to_string (i);
 		m = g_slice_new0 (MailPart);
 		m->mail_file = g_strconcat (mail_part_radix, str_i, NULL);
 		m->mime_file = g_strconcat (m->mail_file, ".MIME", NULL);
@@ -2466,7 +2466,7 @@ break_multipart_loop:
 				gchar		*str_j;
 				MailPart	*inner_m;
 
-				str_j = tracker_int_to_str (j);
+				str_j = tracker_int_to_string (j);
 				inner_m = g_slice_new0 (MailPart);
 				inner_m->mail_file = g_strconcat (m->mail_file, ".", str_j, NULL);
 				inner_m->mime_file = g_strconcat (inner_m->mail_file, ".MIME", NULL);

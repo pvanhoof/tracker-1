@@ -54,7 +54,8 @@
 #include "tracker-hal.h"
 #include "tracker-service-manager.h"
 #include "tracker-status.h"
-  
+#include "tracker-xesam.h"
+
 #ifdef OS_WIN32
 #include <windows.h>
 #include <pthread.h>
@@ -653,6 +654,8 @@ main (gint argc, gchar *argv[])
 #endif
 
 	tracker = g_new0 (Tracker, 1);
+
+	tracker_xesam_init ();
 
 	/* Set up directories */
 	tracker->pid = (int) getpid ();

@@ -111,6 +111,8 @@ trackerd_SOURCES =							\
 	tracker-dbus-metadata.h						\
 	tracker-dbus-search.c						\
 	tracker-dbus-search.h						\
+	tracker-xesam-search.c						\
+	tracker-xesam-search.h						\
 	tracker-email.c							\
 	tracker-email.h							\
 	tracker-email-utils.c						\
@@ -135,7 +137,13 @@ trackerd_SOURCES =							\
 	tracker-os-dependant.h						\
 	tracker-watch.h							\
 	tracker-status.c						\
-	tracker-status.h
+	tracker-status.h						\
+	tracker-xesam.h							\
+	tracker-xesam.c							\
+	tracker-xesam-session.c						\
+	tracker-xesam-session.h						\
+	tracker-xesam-live-search.c					\
+	tracker-xesam-live-search.h
 
 if OS_WIN32
 trackerd_win_libs = -lws2_32 -lkernel32
@@ -181,7 +189,8 @@ dbus_sources = 								\
 	tracker-dbus-files-glue.h					\
 	tracker-dbus-keywords-glue.h					\
 	tracker-dbus-metadata-glue.h					\
-	tracker-dbus-search-glue.h
+	tracker-dbus-search-glue.h					\
+	tracker-xesam-search-glue.h
 
 %-glue.h: $(top_builddir)/data/%.xml
 	$(DBUSBINDINGTOOL) --mode=glib-server --output=$@ --prefix=$(subst -,_,$*) $^

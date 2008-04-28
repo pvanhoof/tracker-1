@@ -8,6 +8,7 @@ config_DATA =					\
 	tracker-dbus-keywords.xml		\
 	tracker-dbus-metadata.xml		\
 	tracker-dbus-search.xml			\
+	tracker-xesam-search.xml		\
 		sqlite-tracker.sql \
 		sqlite-cache.sql \
 		sqlite-email.sql \

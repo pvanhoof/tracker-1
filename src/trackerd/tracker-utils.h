@@ -299,6 +299,8 @@ typedef struct {
 	GMutex		*metadata_signal_mutex;
 	GCond 		*metadata_signal_cond;
 
+	GHashTable	*xesam_sessions;
+
 } Tracker;
 
 
@@ -509,5 +511,7 @@ void            tracker_scan_directory          (const gchar *uri);
 gboolean	tracker_pause_on_battery 	(void);
 gboolean	tracker_low_diskspace		(void);
 gboolean	tracker_pause			(void);
+gchar*		tracker_unique_key		(void);
+
 
 #endif

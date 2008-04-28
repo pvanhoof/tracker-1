@@ -1,3 +1,13 @@
 VOID:STRING,STRING,INT,INT,INT
 VOID:STRING,STRING,STRING
 VOID:STRING,BOOLEAN,BOOLEAN,BOOLEAN,BOOLEAN,BOOLEAN,BOOLEAN
+
+# HitsRemoved, HitsModified DBus signals
+VOID:STRING,BOXED
+
+# HitsAdded DBus signal
+VOID:STRING,UINT
+
+#hits-added, hits-modified, hits-removed GObject signals
+VOID:OBJECT
+

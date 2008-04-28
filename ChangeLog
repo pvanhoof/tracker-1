@@ -1,3 +1,25 @@
+2008-04-28  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* Merged branches/xesam-support back to brances/indexer-split
+
+2008-04-25  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* Adapted the TrackerXesamSearch DBus proxy to use 
+	org.freedesktop.DBus.GLib.Async
+
+2008-04-23  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* Added error reporting
+	* Added some more ad-hoc implementations in TrackerXesamSearch
+
+2008-04-22  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* Branched as xesam-support
+	* Added Xesam skeleton
+	* Introduced TrackerXesamSearch
+	* Introduced TrackerXesamLiveSearch
+	* Introduced TrackerXesamSession
+
 2008-04-21  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/Makefile.am: Fixed make distcheck issues.

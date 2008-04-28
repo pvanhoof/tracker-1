@@ -1,3 +1,20 @@
+2008-04-28  Martyn Russell  <martyn@imendio.com>
+
+	* configure.ac:
+ 	* src/Makefile.am: 
+	* src/libtracker-db/Makefile.am: Created new libtracker-db to
+	handle the shared database API between daemon and other
+	components of Tracker. 
+	
+	* src/trackerd/tracker-db-interface-sqlite.[ch]: 
+	* src/trackerd/tracker-db-interface.[ch]: Moved to libtracker-db.
+	
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-db-sqlite.[ch]: 
+	* src/trackerd/tracker-dbus.h:
+	* src/trackerd/tracker-indexer.h: Updated files to include new
+	libtracker-db files.
+
 2008-04-28  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* Merged branches/xesam-support back to brances/indexer-split

@@ -22,11 +22,13 @@
 #ifndef _TRACKER_INDEXER_H
 #define _TRACKER_INDEXER_H
 
-
 #include <stdlib.h>
+
 #include <glib.h>
+
+#include <libtracker-db/tracker-db-interface.h>
+
 #include "tracker-utils.h"
-#include "tracker-db-interface.h"
 
 typedef struct {                         /* type of structure for an element of search result */
 	guint32 	id;              /* Service ID number of the document */

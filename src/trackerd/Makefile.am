@@ -51,10 +51,6 @@ db_sources =								\
 	tracker-cache.h							\
 	tracker-parser.c						\
 	tracker-parser.h						\
-	tracker-db-interface.c						\
-	tracker-db-interface.h						\
-	tracker-db-interface-sqlite.c					\
-	tracker-db-interface-sqlite.h					\
 	tracker-db-sqlite.c						\
 	tracker-db-sqlite.h						\
 	tracker-db-email.c						\
@@ -163,6 +159,7 @@ trackerd_LDADD =							\
 	$(GTHREAD_LIBS)							\
 	-lz								\
 	-lm								\
+	$(top_builddir)/src/libtracker-db/libtracker-db.la 		\
 	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
 	$(top_builddir)/src/libstemmer/libstemmer-private.la 		\
 	$(top_builddir)/src/xdgmime/libxdgmime.la 			\

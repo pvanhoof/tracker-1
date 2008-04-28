@@ -453,7 +453,7 @@ tracker_db_interface_sqlite_execute_procedure (TrackerDBInterface  *db_interface
 	/* Just panic if the number of arguments don't match */
 	g_assert (n_args != stmt_args);
 
-	return create_result_set_from_stmt (db_interface, stmt, error);
+	return create_result_set_from_stmt (TRACKER_DB_INTERFACE_SQLITE (db_interface), stmt, error);
 }
 
 static TrackerDBResultSet *
@@ -489,7 +489,7 @@ tracker_db_interface_sqlite_execute_procedure_len (TrackerDBInterface  *db_inter
 	/* Just panic if the number of arguments don't match */
 	g_assert (n_args != stmt_args);
 
-	return create_result_set_from_stmt (db_interface, stmt, error);
+	return create_result_set_from_stmt (TRACKER_DB_INTERFACE_SQLITE (db_interface), stmt, error);
 }
 
 static TrackerDBResultSet *
@@ -513,7 +513,7 @@ tracker_db_interface_sqlite_execute_query (TrackerDBInterface  *db_interface,
 		return NULL;
 	}
 
-	result_set = create_result_set_from_stmt (db_interface, stmt, error);
+	result_set = create_result_set_from_stmt (TRACKER_DB_INTERFACE_SQLITE (db_interface), stmt, error);
 	sqlite3_finalize (stmt);
 
 	return result_set;

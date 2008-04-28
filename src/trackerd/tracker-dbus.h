@@ -32,7 +32,7 @@
 #include <dbus/dbus-glib-lowlevel.h>
 #include <dbus/dbus-glib.h>
 
-#include "tracker-db-interface.h"
+#include <libtracker-db/tracker-db-interface.h>
 
 #define TRACKER_DBUS_ERROR_DOMAIN "TrackerDBus"
 #define TRACKER_DBUS_ERROR        tracker_dbus_error_quark()

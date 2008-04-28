@@ -18,5 +18,19 @@ if ENABLE_TRACKERAPPLET
 trackerapplet_dir = tracker-applet
 endif
 
-SUBDIRS = libstemmer xdgmime $(qdbm_dir) text-filters libtracker-common trackerd libtracker tracker-extract tracker-thumbnailer tracker-indexer $(libtrackergtk_dir) $(tracker_gui_dir) $(trackerapplet_dir) $(tracker_preferences_dir)
-
+SUBDIRS = 					\
+	libstemmer				\
+	xdgmime					\
+	$(qdbm_dir)				\
+	text-filters				\
+	libtracker-common 			\
+	libtracker-db				\
+	trackerd				\
+	libtracker				\
+	tracker-extract				\
+	tracker-thumbnailer			\
+	tracker-indexer				\
+	$(libtrackergtk_dir)			\
+	$(tracker_gui_dir)			\
+	$(trackerapplet_dir) 			\
+	$(tracker_preferences_dir)

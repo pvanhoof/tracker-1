@@ -816,15 +816,15 @@ AC_CONFIG_FILES([
 	thumbnailers/application/Makefile
 	thumbnailers/image/Makefile
 	src/Makefile
-	src/libstemmer/Makefile
 	src/qdbm/Makefile
 	src/text-filters/Makefile
 	src/text-filters/ooo_converter/Makefile
 	src/tracker-extract/Makefile
 	src/tracker-thumbnailer/Makefile
+	src/libstemmer/Makefile
 	src/libtracker-common/Makefile
-	src/trackerd/Makefile
 	src/libtracker/Makefile
+	src/libtracker-db/Makefile
 	src/libtracker-gtk/Makefile
 	src/tracker-indexer/Makefile
 	src/tracker-applet/Makefile
@@ -833,6 +833,7 @@ AC_CONFIG_FILES([
 	src/tracker-search-tool/tracker-search-tool.desktop.in
 	src/tracker-preferences/Makefile
 	src/tracker-preferences/tracker-preferences.desktop.in	
+	src/trackerd/Makefile
 	src/xdgmime/Makefile
 	po/Makefile.in
 	python/Makefile

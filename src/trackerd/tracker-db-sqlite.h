@@ -24,7 +24,8 @@
 
 #include <glib.h>
 
-#include "tracker-db-interface.h"
+#include <libtracker-db/tracker-db-interface.h>
+
 #include "tracker-utils.h"
 #include "tracker-service-manager.h"
 

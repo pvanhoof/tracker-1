@@ -27,6 +27,7 @@
 
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-type-utils.h>
 
 #include "tracker-db.h"
 #include "tracker-email.h"

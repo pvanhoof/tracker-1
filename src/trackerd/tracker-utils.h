@@ -409,23 +409,6 @@ typedef struct {
 
 } FileInfo;
 
-GSList *	tracker_filename_array_to_list		(gchar **array);
-GSList *	tracker_string_list_to_gslist   	(const gchar **array);
-gchar **	tracker_gslist_to_string_list 		(GSList *list);
-gchar **	tracker_make_array_null_terminated 	(gchar **array, gint length);
-
-void		tracker_free_array 		(char **array, int row_count);
-gchar *         tracker_long_to_str             (glong i);
-gchar *		tracker_int_to_str		(gint i);
-gchar *		tracker_uint_to_str		(guint i);
-gchar *		tracker_gint32_to_str		(gint32 i);
-gchar *		tracker_guint32_to_str		(guint32 i);
-gboolean	tracker_str_to_uint		(const char *s, guint *ret);
-char *		tracker_format_date 		(const char *time_string);
-time_t		tracker_str_to_date 		(const char *time_string);
-char *		tracker_date_to_str 		(time_t date_time);
-int		tracker_str_in_array 		(const char *str, char **array);
-
 char *		tracker_get_radix_by_suffix	(const char *str, const char *suffix);
 
 char *		tracker_escape_metadata 	(const char *in);

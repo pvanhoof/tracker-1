@@ -1,5 +1,21 @@
 2008-04-28  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/Makefile.am:
+	* src/libtracker-common/tracker-type-utils.[ch]:
+	* src/trackerd/tracker-db-email.c:
+	* src/trackerd/tracker-db-sqlite.c:
+	* src/trackerd/tracker-db.c:
+	* src/trackerd/tracker-dbus-files.c:
+	* src/trackerd/tracker-email-evolution.c:
+	* src/trackerd/tracker-email-kmail.c:
+	* src/trackerd/tracker-email-utils.c:
+	* src/trackerd/tracker-process-files.c:
+	* src/trackerd/tracker-rdf-query.c:
+	* src/trackerd/tracker-utils.[ch]: Created tracker-type-utils.[ch]
+	to handle type a to type b conversions (e.g. GSList* to gchar **).
+
+2008-04-28  Martyn Russell  <martyn@imendio.com>
+
 	* configure.ac:
  	* src/Makefile.am: 
 	* src/libtracker-db/Makefile.am: Created new libtracker-db to

@@ -13,6 +13,8 @@ libtracker_common_la_SOURCES = 		\
 	tracker-language.h		\
 	tracker-log.c	 		\
 	tracker-log.h			\
+	tracker-type-utils.c		\
+	tracker-type-utils.h		\
 	tracker-utils.c			\
 	tracker-utils.h
 

@@ -1,3 +1,4 @@
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /* 
  * Copyright (C) 2008, Nokia
  * Authors: Philip Van Hoof (pvanhoof@gnome.org)
@@ -20,7 +21,7 @@
 
 #include "tracker-xesam.h"
 
-extern Tracker	*tracker;
+extern Tracker *tracker;
 
 void 
 tracker_xesam_init (void)

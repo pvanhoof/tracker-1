@@ -1,5 +1,4 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-
 /*
  * Copyright (C) 2008, Nokia
  * Authors: Philip Van Hoof (pvanhoof@gnome.org)
@@ -27,7 +26,6 @@ struct _TrackerXesamSessionPriv {
 	gchar *session_id;
 };
 
-
 G_DEFINE_TYPE(TrackerXesamSession, tracker_xesam_session, G_TYPE_OBJECT)
 
 static void
@@ -41,7 +39,6 @@ tracker_xesam_session_init (TrackerXesamSession *self)
 		(GDestroyNotify) g_object_unref);
 }
 
-
 static void
 tracker_xesam_session_finalize (GObject *object)
 {
@@ -53,7 +50,7 @@ tracker_xesam_session_finalize (GObject *object)
 }
 
 static void 
-tracker_xesam_session_class_init (TrackerXesamSessionClass * klass) 
+tracker_xesam_session_class_init (TrackerXesamSessionClass *klass) 
 {
 	GObjectClass *object_class;
 	object_class = G_OBJECT_CLASS (klass);
@@ -68,7 +65,8 @@ tracker_xesam_session_class_init (TrackerXesamSessionClass * klass)
  * Set a read-only unique ID string for @self.
  **/
 void 
-tracker_xesam_session_set_id (TrackerXesamSession *self, const gchar *session_id)
+tracker_xesam_session_set_id (TrackerXesamSession *self, 
+			      const gchar         *session_id)
 {
 	TrackerXesamSessionPriv *priv = self->priv;
 
@@ -93,8 +91,6 @@ tracker_xesam_session_get_id (TrackerXesamSession *self)
 	return (const gchar*) priv->session_id;
 }
 
-
-
 /**
  * tracker_xesam_session_get_searches:
  * @self: A #TrackerXesamSession
@@ -111,8 +107,6 @@ tracker_xesam_session_get_searches (TrackerXesamSession *self)
 
 	return g_hash_table_get_values (priv->searches);
 }
-
-
 
 /**
  * tracker_xesam_session_set_property:
@@ -141,12 +135,14 @@ tracker_xesam_session_get_searches (TrackerXesamSession *self)
  * is invalid.
  **/
 void 
-tracker_xesam_session_set_property (TrackerXesamSession *self, const gchar *prop, const GValue *val, GValue **new_val, GError **error) 
+tracker_xesam_session_set_property (TrackerXesamSession  *self, 
+				    const gchar          *prop, 
+				    const GValue         *val, 
+				    GValue              **new_val, 
+				    GError              **error) 
 {
 	// todo
 }
-
-
 
 /**
  * tracker_xesam_session_get_property:
@@ -161,14 +157,15 @@ tracker_xesam_session_set_property (TrackerXesamSession *self, const gchar *prop
  * prop is not a valid session property.
  **/
 void
-tracker_xesam_session_get_property (TrackerXesamSession *self, const gchar *prop, GValue **value, GError **error) 
+tracker_xesam_session_get_property (TrackerXesamSession  *self, 
+				    const gchar          *prop, 
+				    GValue              **value, 
+				    GError              **error) 
 {
 	// todo
 
 	return;
 }
-
-
 
 /**
  * tracker_xesam_session_create_search:
@@ -187,7 +184,10 @@ tracker_xesam_session_get_property (TrackerXesamSession *self, const gchar *prop
  * @returns: (caller-owns): a new non-activated #TrackerXesamLiveSearch
  **/
 TrackerXesamLiveSearch* 
-tracker_xesam_session_create_search (TrackerXesamSession *self, const gchar *query_xml, gchar **search_id, GError **error) 
+tracker_xesam_session_create_search (TrackerXesamSession  *self, 
+				     const gchar          *query_xml, 
+				     gchar               **search_id, 
+				     GError              **error) 
 {
 	TrackerXesamLiveSearch *search;
 	TrackerXesamSessionPriv *priv = self->priv;
@@ -207,7 +207,6 @@ tracker_xesam_session_create_search (TrackerXesamSession *self, const gchar *que
 	return search;
 }
 
-
 /**
  * tracker_xesam_session_get_search:
  * @self: A #TrackerXesamSession
@@ -219,7 +218,9 @@ tracker_xesam_session_create_search (TrackerXesamSession *self, const gchar *que
  * @returns: (null-ok) (caller-owns): a #TrackerXesamLiveSearch or NULL
  **/
 TrackerXesamLiveSearch* 
-tracker_xesam_session_get_search (TrackerXesamSession *self, const gchar *search_id, GError **error)
+tracker_xesam_session_get_search (TrackerXesamSession  *self, 
+				  const gchar          *search_id, 
+				  GError              **error)
 {
 	TrackerXesamSessionPriv *priv = self->priv;
 	TrackerXesamLiveSearch *search = g_hash_table_lookup (priv->searches, search_id);

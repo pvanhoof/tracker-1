@@ -1,5 +1,16 @@
 2008-04-29  Martyn Russell  <martyn@imendio.com>
 
+	* data/Makefile.am:
+	* data/tracker-xesam-search.xml: Renamed to
+	tracker-dbus-xesam.xml.
+	
+	* src/trackerd/tracker-xesam-live-search.[ch]:
+	* src/trackerd/tracker-xesam-search.[ch]:
+	* src/trackerd/tracker-xesam-session.[ch]:
+	* src/trackerd/tracker-xesam.[ch]: Code clean ups.
+
+2008-04-29  Martyn Russell  <martyn@imendio.com>
+
 	* Reverted Philips changes.
 
 2008-04-28  Martyn Russell  <martyn@imendio.com>

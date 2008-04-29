@@ -1,8 +1,4 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-
-#ifndef _TRACKER_XESAM_LIVE_SEARCH_H_
-#define _TRACKER_XESAM_LIVE_SEARCH_H_
-
 /*
  * Copyright (C) 2008, Nokia
  *
@@ -22,11 +18,13 @@
  * Boston, MA  02110-1301, USA.
  */
 
+#ifndef _TRACKER_XESAM_LIVE_SEARCH_H_
+#define _TRACKER_XESAM_LIVE_SEARCH_H_
+
 #include <glib.h>
 #include <glib-object.h>
 
 G_BEGIN_DECLS
-
 
 #define TRACKER_TYPE_XESAM_LIVE_SEARCH (tracker_xesam_live_search_get_type ())
 #define TRACKER_XESAM_LIVE_SEARCH(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), TRACKER_TYPE_XESAM_LIVE_SEARCH, TrackerXesamLiveSearch))
@@ -47,23 +45,37 @@ struct _TrackerXesamLiveSearchClass {
 	GObjectClass parent_class;
 };
 
-TrackerXesamLiveSearch* tracker_xesam_live_search_new (const gchar *query_xml);
-GType tracker_xesam_live_search_get_type (void);
-
-void tracker_xesam_live_search_set_id (TrackerXesamLiveSearch *self, const gchar *search_id);
-const gchar* tracker_xesam_live_search_get_id (TrackerXesamLiveSearch *self);
-const gchar* tracker_xesam_live_search_get_query (TrackerXesamLiveSearch *self);
-void tracker_xesam_live_search_activate (TrackerXesamLiveSearch *self, GError **error);
-gboolean tracker_xesam_live_search_is_active (TrackerXesamLiveSearch *self);
-void tracker_xesam_live_search_get_hit_data (TrackerXesamLiveSearch *self, GArray *hit_ids, GStrv fields, GPtrArray **hit_data, GError **error);
-void tracker_xesam_live_search_get_hits (TrackerXesamLiveSearch *self, guint count, GPtrArray **hits, GError **error);
-void tracker_xesam_live_search_get_hit_count (TrackerXesamLiveSearch *self, guint *count, GError **error);
-void tracker_xesam_live_search_close (TrackerXesamLiveSearch *self, GError **error);
-
-void tracker_xesam_live_search_emit_hits_added (TrackerXesamLiveSearch *self, guint count);
-void tracker_xesam_live_search_emit_hits_removed (TrackerXesamLiveSearch *self, GArray *hit_ids);
-void tracker_xesam_live_search_emit_hits_modified (TrackerXesamLiveSearch *self, GArray *hit_ids);
-void tracker_xesam_live_search_emit_done (TrackerXesamLiveSearch *self);
+TrackerXesamLiveSearch * 
+             tracker_xesam_live_search_new                (const gchar             *query_xml);
+GType        tracker_xesam_live_search_get_type           (void);
+void         tracker_xesam_live_search_set_id             (TrackerXesamLiveSearch  *self,
+							   const gchar             *search_id);
+const gchar* tracker_xesam_live_search_get_id             (TrackerXesamLiveSearch  *self);
+const gchar* tracker_xesam_live_search_get_query          (TrackerXesamLiveSearch  *self);
+void         tracker_xesam_live_search_activate           (TrackerXesamLiveSearch  *self,
+							   GError                 **error);
+gboolean     tracker_xesam_live_search_is_active          (TrackerXesamLiveSearch  *self);
+void         tracker_xesam_live_search_get_hit_data       (TrackerXesamLiveSearch  *self,
+							   GArray                  *hit_ids,
+							   GStrv                    fields,
+							   GPtrArray              **hit_data,
+							   GError                 **error);
+void         tracker_xesam_live_search_get_hits           (TrackerXesamLiveSearch  *self,
+							   guint                    count,
+							   GPtrArray              **hits,
+							   GError                 **error);
+void         tracker_xesam_live_search_get_hit_count      (TrackerXesamLiveSearch  *self,
+							   guint                   *count,
+							   GError                 **error);
+void         tracker_xesam_live_search_close              (TrackerXesamLiveSearch  *self,
+							   GError                 **error);
+void         tracker_xesam_live_search_emit_hits_added    (TrackerXesamLiveSearch  *self,
+							   guint                    count);
+void         tracker_xesam_live_search_emit_hits_removed  (TrackerXesamLiveSearch  *self,
+							   GArray                  *hit_ids);
+void         tracker_xesam_live_search_emit_hits_modified (TrackerXesamLiveSearch  *self,
+							   GArray                  *hit_ids);
+void         tracker_xesam_live_search_emit_done          (TrackerXesamLiveSearch  *self);
 
 G_END_DECLS
 

@@ -1,11 +1,4 @@
-#ifndef _TRACKER_XESAM_H_
-#define _TRACKER_XESAM_H_
-
-#include "tracker-utils.h"
-#include "tracker-dbus.h"
-#include "tracker-xesam-session.h"
-#include "tracker-xesam-live-search.h"
-
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /* 
  * Copyright (C) 2008, Nokia
  * Authors: Philip Van Hoof (pvanhoof@gnome.org)
@@ -26,11 +19,13 @@
  * Boston, MA  02110-1301, USA. 
  */  
 
-TrackerXesamSession* tracker_xesam_get_session (const gchar *session_id, GError **error);
-TrackerXesamSession* tracker_xesam_get_session_for_search (const gchar *search_id, TrackerXesamLiveSearch **search_in, GError **error);
-TrackerXesamLiveSearch* tracker_xesam_get_live_search (const gchar *search_id, GError **error);
-TrackerXesamSession* tracker_xesam_create_session (TrackerXesamSearch *dbus_proxy, gchar **session_id, GError **error);
-void tracker_xesam_close_session (const gchar *session_id, GError **error);
+#ifndef _TRACKER_XESAM_H_
+#define _TRACKER_XESAM_H_
+
+#include "tracker-utils.h"
+#include "tracker-dbus.h"
+#include "tracker-xesam-session.h"
+#include "tracker-xesam-live-search.h"
 
 typedef enum {
 	TRACKER_XESAM_ERROR = 1
@@ -43,7 +38,18 @@ typedef enum {
 	TRACKER_XESAM_ERROR_SEARCH_NOT_ACTIVE = 4
 } TrackerXesamError;
 
-
-void tracker_xesam_init (void);
+TrackerXesamSession*    tracker_xesam_get_session            (const gchar             *session_id,
+                                                              GError                 **error);
+TrackerXesamSession*    tracker_xesam_get_session_for_search (const gchar             *search_id,
+                                                              TrackerXesamLiveSearch **search_in,
+                                                              GError                 **error);
+TrackerXesamLiveSearch* tracker_xesam_get_live_search        (const gchar             *search_id,
+                                                              GError                 **error);
+TrackerXesamSession*    tracker_xesam_create_session         (TrackerXesamSearch      *dbus_proxy,
+                                                              gchar                  **session_id,
+                                                              GError                 **error);
+void                    tracker_xesam_close_session          (const gchar             *session_id,
+                                                              GError                 **error);
+void                    tracker_xesam_init                   (void);
 
 #endif

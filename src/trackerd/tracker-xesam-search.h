@@ -67,59 +67,54 @@ enum {
 extern guint *xesam_signals;
 #endif
 
-GType    tracker_xesam_search_get_type          (void);
-
+GType tracker_xesam_search_get_type           (void);
 TrackerXesamSearch *
-         tracker_xesam_search_new              (void);
-
-
-void     tracker_xesam_search_new_session      (TrackerXesamSearch   *object,
-					        DBusGMethodInvocation *context);
-void     tracker_xesam_search_set_property     (TrackerXesamSearch   *object,
-						const gchar         *session_id,
-						const gchar         *prop,
-						GValue              *val,  /* not sure */
-					        DBusGMethodInvocation *context);
-void     tracker_xesam_search_get_property     (TrackerXesamSearch  *object,
-						const gchar         *session_id,
-						const gchar         *prop,
-					        DBusGMethodInvocation *context);
-void     tracker_xesam_search_close_session    (TrackerXesamSearch  *object,
-						const gchar         *session_id,
-					        DBusGMethodInvocation *context);
-void     tracker_xesam_search_new_search       (TrackerXesamSearch  *object,
-						const gchar         *session_id,
-						const gchar         *query_xml,
-					        DBusGMethodInvocation *context);
-void     tracker_xesam_search_start_search     (TrackerXesamSearch  *object,
-						const gchar         *search_id,
-					        DBusGMethodInvocation *context);
-void     tracker_xesam_search_get_hit_count    (TrackerXesamSearch  *object,
-						const gchar         *search_id,
-					        DBusGMethodInvocation *context);
-void     tracker_xesam_search_get_hits        (TrackerXesamSearch  *object,
-						const gchar         *search_id,
-						guint                count,
-					        DBusGMethodInvocation *context);
-void     tracker_xesam_search_get_hit_data     (TrackerXesamSearch  *object,
-						const gchar         *search_id,
-						GArray              *hit_ids,  /* not sure */
-						GStrv               fields, 
-					        DBusGMethodInvocation *context);
-void     tracker_xesam_search_close_search     (TrackerXesamSearch  *object,
-						const gchar         *search_id,
-					        DBusGMethodInvocation *context);
-void     tracker_xesam_search_get_state       (TrackerXesamSearch   *object,
-					        DBusGMethodInvocation *context);
-
-
-void tracker_xesam_search_emit_state_changed (TrackerXesamSearch *self, GStrv state_info);
-
-void tracker_xesam_search_name_owner_changed (DBusGProxy        *proxy,
-					      const char        *name,
-					      const char        *prev_owner,
-					      const char        *new_owner,
-					      TrackerXesamSearch *self);
+      tracker_xesam_search_new                (void); 
+void  tracker_xesam_search_new_session        (TrackerXesamSearch    *object,
+					       DBusGMethodInvocation *context);
+void  tracker_xesam_search_set_property       (TrackerXesamSearch    *object,
+					       const gchar           *session_id,
+					       const gchar           *prop,
+					       GValue                *val,
+					       DBusGMethodInvocation *context);
+void  tracker_xesam_search_get_property       (TrackerXesamSearch    *object,
+					       const gchar           *session_id,
+					       const gchar           *prop,
+					       DBusGMethodInvocation *context);
+void  tracker_xesam_search_close_session      (TrackerXesamSearch    *object,
+					       const gchar           *session_id,
+					       DBusGMethodInvocation *context);
+void  tracker_xesam_search_new_search         (TrackerXesamSearch    *object,
+					       const gchar           *session_id,
+					       const gchar           *query_xml,
+					       DBusGMethodInvocation *context);
+void  tracker_xesam_search_start_search       (TrackerXesamSearch    *object,
+					       const gchar           *search_id,
+					       DBusGMethodInvocation *context);
+void  tracker_xesam_search_get_hit_count      (TrackerXesamSearch    *object,
+					       const gchar           *search_id,
+					       DBusGMethodInvocation *context);
+void  tracker_xesam_search_get_hits           (TrackerXesamSearch    *object,
+					       const gchar           *search_id,
+					       guint                  count,
+					       DBusGMethodInvocation *context);
+void  tracker_xesam_search_get_hit_data       (TrackerXesamSearch    *object,
+					       const gchar           *search_id,
+					       GArray                *hit_ids,
+					       GStrv                  fields,
+					       DBusGMethodInvocation *context);
+void  tracker_xesam_search_close_search       (TrackerXesamSearch    *object,
+					       const gchar           *search_id,
+					       DBusGMethodInvocation *context);
+void  tracker_xesam_search_get_state          (TrackerXesamSearch    *object,
+					       DBusGMethodInvocation *context);
+void  tracker_xesam_search_emit_state_changed (TrackerXesamSearch    *self,
+					       GStrv                  state_info);
+void  tracker_xesam_search_name_owner_changed (DBusGProxy            *proxy,
+					       const char            *name,
+					       const char            *prev_owner,
+					       const char            *new_owner,
+					       TrackerXesamSearch    *self);
 
 G_END_DECLS
 

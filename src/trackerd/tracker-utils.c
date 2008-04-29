@@ -63,26 +63,12 @@
 
 extern Tracker	*tracker;
 
-char *tracker_actions[] = {
-		"TRACKER_ACTION_IGNORE", "TRACKER_ACTION_CHECK", "TRACKER_ACTION_DELETE", "TRACKER_ACTION_DELETE_SELF", "TRACKER_ACTION_CREATE","TRACKER_ACTION_MOVED_FROM",
-		"TRACKER_ACTION_MOVED_TO","TRACKER_ACTION_FILE_CHECK", "TRACKER_ACTION_FILE_CHANGED","TRACKER_ACTION_FILE_DELETED", "TRACKER_ACTION_FILE_CREATED",
-		"TRACKER_ACTION_FILE_MOVED_FROM", "TRACKER_ACTION_FILE_MOVED_TO", "TRACKER_ACTION_WRITABLE_FILE_CLOSED","TRACKER_ACTION_DIRECTORY_CHECK",
-		"TRACKER_ACTION_DIRECTORY_CREATED","TRACKER_ACTION_DIRECTORY_DELETED","TRACKER_ACTION_DIRECTORY_UNMOUNTED", "TRACKER_ACTION_DIRECTORY_MOVED_FROM",
-		"TRACKER_ACTION_DIRECTORY_MOVED_TO", "TRACKER_ACTION_DIRECTORY_REFRESH", "TRACKER_ACTION_EXTRACT_METADATA",
-		NULL};
-
-
 #define ZLIBBUFSIZ 8192
 #define TEXT_SNIFF_SIZE 4096
 #define MAX_INDEX_FILE_SIZE 2000000000
 
 static int info_allocated = 0;
 static int info_deallocated = 0;
-
-
-
-
-
 
 char *
 tracker_get_radix_by_suffix (const char *str, const char *suffix)
@@ -269,7 +255,7 @@ tracker_print_object_allocations (void)
 
 
 FileInfo *
-tracker_create_file_info (const char *uri, TrackerChangeAction action, int counter, WatchTypes watch)
+tracker_create_file_info (const char *uri, TrackerAction action, int counter, WatchTypes watch)
 {
 	FileInfo *info;
 
@@ -380,7 +366,7 @@ tracker_dec_info_ref (FileInfo *info)
 
 
 FileInfo *
-tracker_get_pending_file_info (guint32 file_id, const char *uri, const char *mime, int counter, TrackerChangeAction action, gboolean is_directory)
+tracker_get_pending_file_info (guint32 file_id, const char *uri, const char *mime, int counter, TrackerAction action, gboolean is_directory)
 {
 	FileInfo *info;
 

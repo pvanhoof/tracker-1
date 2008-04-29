@@ -39,7 +39,7 @@ FieldDef *	tracker_db_get_field_def	(DBConnection *db_con, const char *field_nam
 void		tracker_db_free_field_def	(FieldDef *def);
 gboolean	tracker_metadata_is_date 	(DBConnection *db_con, const char *meta);
 FileInfo *	tracker_db_get_pending_file	(DBConnection *db_con, const char *uri);
-void		tracker_db_update_pending_file	(DBConnection *db_con, const char *uri, int counter, TrackerChangeAction action);
+void		tracker_db_update_pending_file	(DBConnection *db_con, const char *uri, int counter, TrackerAction action);
 void		tracker_db_add_to_extract_queue	(DBConnection *db_con, FileInfo *info);
 gboolean	tracker_db_has_pending_files	(DBConnection *db_con);
 gboolean	tracker_db_has_pending_metadata	(DBConnection *db_con);

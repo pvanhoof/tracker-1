@@ -38,6 +38,7 @@
 
 #include "tracker-watch.h"
 #include "tracker-process-files.h"
+#include "tracker-action.h"
 
 #define INOTIFY_WATCH_LIMIT "/proc/sys/fs/inotify/max_user_watches"
 
@@ -84,7 +85,7 @@ tracker_is_directory_watched (const char * dir, DBConnection *db_con)
 
 
 static gboolean
-is_delete_event (TrackerChangeAction event_type)
+is_delete_event (TrackerAction event_type)
 {
 	return (event_type == TRACKER_ACTION_DELETE ||
 		event_type == TRACKER_ACTION_DELETE_SELF ||
@@ -95,7 +96,7 @@ is_delete_event (TrackerChangeAction event_type)
 
 
 static void
-process_event (const char *uri, gboolean is_dir, TrackerChangeAction action, guint32 cookie)
+process_event (const char *uri, gboolean is_dir, TrackerAction action, guint32 cookie)
 {
 	FileInfo *info;
 
@@ -209,7 +210,9 @@ process_event (const char *uri, gboolean is_dir, TrackerChangeAction action, gui
 
 	}
 
-	tracker_log ("WARNING: not processing event %s for uri %s", tracker_actions[info->action], info->uri);
+	tracker_log ("WARNING: not processing event %s for uri %s", 
+                     tracker_action_to_string (info->action), 
+                     info->uri);
 	tracker_free_file_info (info);
 }
 
@@ -261,7 +264,7 @@ process_moved_events ()
 }
 
 
-static TrackerChangeAction
+static TrackerAction
 get_event (guint32 event_type)
 {
 	if (event_type & IN_DELETE) {
@@ -319,10 +322,10 @@ process_inotify_events (void)
 {
 	while (g_queue_get_length (inotify_queue) > 0) {
 		TrackerDBResultSet   *result_set;
-		TrackerChangeAction  action_type;
+		TrackerAction         action_type;
 		char		     *str = NULL, *filename = NULL, *monitor_name = NULL, *str_wd;
 		char		     *file_utf8_uri = NULL, *dir_utf8_uri = NULL;
-		guint		     cookie;
+		guint		      cookie;
 
 		struct inotify_event *event;
 

@@ -1365,7 +1365,7 @@ process_action_prechecks (Tracker  *tracker,
         
         tracker_debug ("Processing %s with action %s and counter %d ",
                        info->uri, 
-                       tracker_actions[info->action], 
+                       tracker_action_to_string (info->action), 
                        info->counter);
         
         /* Preprocess ambiguous actions when we need to work
@@ -1631,9 +1631,9 @@ tracker_process_files (gpointer data)
                                 tracker_status_set (TRACKER_STATUS_PENDING);
 
 				while (valid) {
-					FileInfo	    *info_tmp;
-					TrackerChangeAction tmp_action;
-					gchar *uri;
+					FileInfo      *info_tmp;
+					TrackerAction  tmp_action;
+					gchar         *uri;
 
 					if (!tracker->is_running) {
 						g_object_unref (result_set);

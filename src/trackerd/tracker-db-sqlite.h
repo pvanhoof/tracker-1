@@ -161,7 +161,7 @@ void		tracker_db_move_file 		(DBConnection *db_con, const char *moved_from_uri, 
 void		tracker_db_move_directory 	(DBConnection *db_con, const char *moved_from_uri, const char *moved_to_uri);
 
 guint32		tracker_db_get_file_id		(DBConnection *db_con, const char *uri);
-void		tracker_db_insert_pending_file	(DBConnection *db_con, guint32 file_id, const char *uri, const char *moved_to_uri, const char *mime, int counter, TrackerChangeAction action, gboolean is_directory, gboolean is_new, int service_type_id);
+void		tracker_db_insert_pending_file	(DBConnection *db_con, guint32 file_id, const char *uri, const char *moved_to_uri, const char *mime, int counter, TrackerAction action, gboolean is_directory, gboolean is_new, int service_type_id);
 
 gboolean	tracker_db_has_pending_files	(DBConnection *db_con);
 gboolean	tracker_db_has_pending_metadata	(DBConnection *db_con);

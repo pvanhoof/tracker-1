@@ -109,7 +109,7 @@ tracker_end_watching (void)
 
 
 static gboolean
-is_delete_event (TrackerChangeAction event_type)
+is_delete_event (TrackerAction event_type)
 {
 	return (event_type == TRACKER_ACTION_DELETE ||
 		event_type == TRACKER_ACTION_DELETE_SELF ||
@@ -128,9 +128,9 @@ fam_callback (GIOChannel *source,
 	counter = 1;
 
 	while (FAMPending (&fc)) {
-		FAMEvent	    ev;
-		DirWatch	    *watch;
-		TrackerChangeAction event_type;
+		FAMEvent       ev;
+		DirWatch      *watch;
+		TrackerAction  event_type;
 
 		if (FAMNextEvent (&fc, &ev) != 1) {
 			tracker_end_watching ();

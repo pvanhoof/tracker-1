@@ -337,7 +337,7 @@ tracker_dbus_files_delete (TrackerDBusFiles  *object,
 	gchar                *name;
 	gchar                *path;
 	gboolean              is_directory;
-	TrackerChangeAction   action;
+	TrackerAction         action;
 
 	request_id = tracker_dbus_get_next_request_id ();
 

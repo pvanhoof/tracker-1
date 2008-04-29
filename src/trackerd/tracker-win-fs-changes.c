@@ -117,11 +117,11 @@ VOID CALLBACK callback(DWORD error_code,
 
     FILE_NOTIFY_INFORMATION *p = (FILE_NOTIFY_INFORMATION *) buffer[callback_dir_id];
 
-    TrackerChangeAction event_type = TRACKER_ACTION_IGNORE;
+    TrackerAction event_type = TRACKER_ACTION_IGNORE;
     int counter = 1;
 
     while (p) {
-      TrackerChangeAction event_type;
+      TrackerAction event_type;
 
       switch (p->Action) {
       case FILE_ACTION_MODIFIED:

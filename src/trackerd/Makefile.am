@@ -91,6 +91,8 @@ trackerd_SOURCES =							\
 	$(hal_sources)							\
 	$(db_sources)							\
 	trackerd.c							\
+	tracker-action.c						\
+	tracker-action.h						\
 	tracker-apps.c							\
 	tracker-apps.h							\
 	tracker-db.c							\

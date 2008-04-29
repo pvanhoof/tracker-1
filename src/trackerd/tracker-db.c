@@ -406,7 +406,7 @@ tracker_db_get_pending_file (DBConnection *db_con, const char *uri)
 
 
 static void
-make_pending_file (DBConnection *db_con, guint32 file_id, const char *uri, const char *moved_to_uri, const char *mime, int counter, TrackerChangeAction action, gboolean is_directory, gboolean is_new, int service_type_id)
+make_pending_file (DBConnection *db_con, guint32 file_id, const char *uri, const char *moved_to_uri, const char *mime, int counter, TrackerAction action, gboolean is_directory, gboolean is_new, int service_type_id)
 {
 	char *str_file_id, *str_action, *str_counter;
 
@@ -478,7 +478,7 @@ make_pending_file (DBConnection *db_con, guint32 file_id, const char *uri, const
 
 
 void
-tracker_db_update_pending_file (DBConnection *db_con, const char *uri, int counter, TrackerChangeAction action)
+tracker_db_update_pending_file (DBConnection *db_con, const char *uri, int counter, TrackerAction action)
 {
 	char *str_counter, *str_action;
 
@@ -685,7 +685,7 @@ check_uri_changed_frequently (const char *uri)
 }
 
 void
-tracker_db_insert_pending_file (DBConnection *db_con, guint32 file_id, const char *uri, const char *moved_to_uri, const char *mime, int counter, TrackerChangeAction action, gboolean is_directory, gboolean is_new, int service_type_id)
+tracker_db_insert_pending_file (DBConnection *db_con, guint32 file_id, const char *uri, const char *moved_to_uri, const char *mime, int counter, TrackerAction action, gboolean is_directory, gboolean is_new, int service_type_id)
 {
 	FileInfo *info;
 

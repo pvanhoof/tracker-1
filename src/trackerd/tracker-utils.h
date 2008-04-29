@@ -28,13 +28,12 @@ extern char *service_table_names[];
 extern char *service_metadata_table_names[];
 extern char *service_metadata_join_names[];
 
-extern char *tracker_actions[];
-
 #include <time.h>
 #include <glib.h>
 
 #include "config.h"
 #include "tracker-parser.h"
+#include "tracker-action.h"
 
 #define MAX_HITS_FOR_WORD 30000
 
@@ -303,45 +302,6 @@ typedef struct {
 
 } Tracker;
 
-
-/* Actions can represent events from FAM/iNotify or be artificially created */
-typedef enum {
-
-	TRACKER_ACTION_IGNORE,  		/* do nothing for this action */
-
-	/* actions for when we dont know whether they are on a file or a directory */
-	TRACKER_ACTION_CHECK,
-	TRACKER_ACTION_DELETE,
-	TRACKER_ACTION_DELETE_SELF,		/* actual file/dir being watched was deleted */
-	TRACKER_ACTION_CREATE,
-	TRACKER_ACTION_MOVED_FROM,		/* file or dir was moved from (must be a pair with MOVED_TO action)*/
-	TRACKER_ACTION_MOVED_TO,		/* file or dir was moved to */
-//6
-	/* file specific actions */
-	TRACKER_ACTION_FILE_CHECK, 		/* checks file is up to date and indexed */
-	TRACKER_ACTION_FILE_CHANGED, 		/* Inotify must ignore this - see below */
-	TRACKER_ACTION_FILE_DELETED,
-	TRACKER_ACTION_FILE_CREATED,
-	TRACKER_ACTION_FILE_MOVED_FROM,
-	TRACKER_ACTION_FILE_MOVED_TO,
-	TRACKER_ACTION_WRITABLE_FILE_CLOSED, 	/* inotify should use this instead of File Changed action*/
-//13
-	/* directory specific actions */
-	TRACKER_ACTION_DIRECTORY_CHECK,
-	TRACKER_ACTION_DIRECTORY_CREATED,
-	TRACKER_ACTION_DIRECTORY_DELETED,
-	TRACKER_ACTION_DIRECTORY_UNMOUNTED,
-	TRACKER_ACTION_DIRECTORY_MOVED_FROM,
-	TRACKER_ACTION_DIRECTORY_MOVED_TO,
-	TRACKER_ACTION_DIRECTORY_REFRESH, 	/* re checks all files in folder */
-
-	TRACKER_ACTION_EXTRACT_METADATA,
-
-	TRACKER_ACTION_FORCE_REFRESH
-
-} TrackerChangeAction;
-
-
 /* service type that the file represents */
 typedef enum {
 	FILE_ORDINARY,
@@ -371,7 +331,7 @@ typedef struct {
 	char 			*uri;
 	guint32			file_id;
 
-	TrackerChangeAction  	action;
+	TrackerAction           action;
 	guint32        		cookie;
 	int  		     	counter;
 	FileTypes		file_type;
@@ -428,7 +388,7 @@ void		tracker_del_service_path 	(const char *service,  const char *path);
 char *		tracker_get_service_for_uri 	(const char *uri);
 gboolean	tracker_is_service_file 	(const char *uri);
 
-FileInfo *	tracker_create_file_info 	(const char *uri, TrackerChangeAction action, int counter, WatchTypes watch);
+FileInfo *	tracker_create_file_info 	(const char *uri, TrackerAction action, int counter, WatchTypes watch);
 FileInfo * 	tracker_get_file_info  	 	(FileInfo *info);
 FileInfo * 	tracker_copy_file_info   	(FileInfo *info);
 FileInfo *	tracker_inc_info_ref 		(FileInfo *info);

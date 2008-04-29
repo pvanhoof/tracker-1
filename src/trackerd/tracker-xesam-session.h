@@ -28,7 +28,7 @@
 #include <string.h>
 
 #include "tracker-xesam-live-search.h"
-#include "tracker-xesam-search.h"
+#include "tracker-dbus-xesam.h"
 
 G_BEGIN_DECLS
 

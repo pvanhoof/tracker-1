@@ -1,5 +1,16 @@
 2008-04-29  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-dbus-xesam.[ch]:
+	* src/trackerd/tracker-dbus.c: 
+	* src/trackerd/tracker-xesam-live-search.c:
+	* src/trackerd/tracker-xesam-search.[ch]:
+	* src/trackerd/tracker-xesam-session.h:
+	* src/trackerd/tracker-xesam.[ch]: Renamed tracker-xesam-search to
+	tracker-dbus-xesam. 
+
+2008-04-29  Martyn Russell  <martyn@imendio.com>
+
 	* data/Makefile.am:
 	* data/tracker-xesam-search.xml: Renamed to
 	tracker-dbus-xesam.xml.

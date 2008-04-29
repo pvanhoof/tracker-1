@@ -20,7 +20,7 @@
  */
 
 #include "tracker-xesam-live-search.h"
-#include "tracker-xesam-search.h"
+#include "tracker-dbus-xesam.h"
 #include "tracker-dbus.h"
 #include "tracker-xesam.h"
 
@@ -68,10 +68,9 @@ void
 tracker_xesam_live_search_emit_hits_added (TrackerXesamLiveSearch *self, 
 					   guint                   count) 
 {
-	TrackerXesamSearch *proxy = TRACKER_XESAM_SEARCH (tracker_dbus_get_object (TRACKER_TYPE_XESAM_SEARCH));
+	TrackerDBusXesam *proxy = TRACKER_DBUS_XESAM (tracker_dbus_get_object (TRACKER_TYPE_DBUS_XESAM));
 
-	g_signal_emit (proxy, xesam_signals[XESAM_HITS_ADDED], 0, 
-		tracker_xesam_live_search_get_id (self), count);
+	g_signal_emit_by_name (proxy, "hits-added", tracker_xesam_live_search_get_id (self), count);
 }
 
 /**
@@ -89,10 +88,9 @@ void
 tracker_xesam_live_search_emit_hits_removed (TrackerXesamLiveSearch *self, 
 					     GArray                 *hit_ids) 
 {
-	TrackerXesamSearch *proxy = TRACKER_XESAM_SEARCH (tracker_dbus_get_object (TRACKER_TYPE_XESAM_SEARCH));
+	TrackerDBusXesam *proxy = TRACKER_DBUS_XESAM (tracker_dbus_get_object (TRACKER_TYPE_DBUS_XESAM));
 
-	g_signal_emit (proxy, xesam_signals[XESAM_HITS_REMOVED], 0, 
-		tracker_xesam_live_search_get_id (self), hit_ids); 
+	g_signal_emit_by_name (proxy, "hits-removed", tracker_xesam_live_search_get_id (self), hit_ids); 
 }
 
 /**
@@ -110,10 +108,9 @@ void
 tracker_xesam_live_search_emit_hits_modified (TrackerXesamLiveSearch *self, 
 					      GArray                 *hit_ids) 
 {
-	TrackerXesamSearch *proxy = TRACKER_XESAM_SEARCH (tracker_dbus_get_object (TRACKER_TYPE_XESAM_SEARCH));
+	TrackerDBusXesam *proxy = TRACKER_DBUS_XESAM (tracker_dbus_get_object (TRACKER_TYPE_DBUS_XESAM));
 
-	g_signal_emit (proxy, xesam_signals[XESAM_HITS_MODIFIED], 0, 
-		tracker_xesam_live_search_get_id (self), hit_ids); 
+	g_signal_emit_by_name (proxy, "hits-modified", tracker_xesam_live_search_get_id (self), hit_ids); 
 }
 
 /**
@@ -130,10 +127,9 @@ tracker_xesam_live_search_emit_hits_modified (TrackerXesamLiveSearch *self,
 void 
 tracker_xesam_live_search_emit_done (TrackerXesamLiveSearch *self) 
 {
-	TrackerXesamSearch *proxy = TRACKER_XESAM_SEARCH (tracker_dbus_get_object (TRACKER_TYPE_XESAM_SEARCH));
+	TrackerDBusXesam *proxy = TRACKER_DBUS_XESAM (tracker_dbus_get_object (TRACKER_TYPE_DBUS_XESAM));
 
-	g_signal_emit (proxy, xesam_signals[XESAM_SEARCH_DONE], 0, 
-		tracker_xesam_live_search_get_id (self)); 
+	g_signal_emit_by_name (proxy, "search-done", tracker_xesam_live_search_get_id (self)); 
 }
 
 /**

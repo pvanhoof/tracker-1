@@ -45,7 +45,7 @@ TrackerXesamSession*    tracker_xesam_get_session_for_search (const gchar       
                                                               GError                 **error);
 TrackerXesamLiveSearch* tracker_xesam_get_live_search        (const gchar             *search_id,
                                                               GError                 **error);
-TrackerXesamSession*    tracker_xesam_create_session         (TrackerXesamSearch      *dbus_proxy,
+TrackerXesamSession*    tracker_xesam_create_session         (TrackerDBusXesam       *dbus_proxy,
                                                               gchar                  **session_id,
                                                               GError                 **error);
 void                    tracker_xesam_close_session          (const gchar             *session_id,

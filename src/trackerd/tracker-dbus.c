@@ -38,8 +38,8 @@
 #include "tracker-dbus-metadata-glue.h"
 #include "tracker-dbus-search.h"
 #include "tracker-dbus-search-glue.h"
-#include "tracker-xesam-search.h"
-#include "tracker-xesam-search-glue.h"
+#include "tracker-dbus-xesam.h"
+#include "tracker-dbus-xesam-glue.h"
 
 #include "tracker-utils.h"
 #include "tracker-watch.h"
@@ -231,20 +231,20 @@ tracker_dbus_init (gpointer tracker_pointer)
         /* Add org.freedesktop.xesam.Search */
         if (!(object = dbus_register_object (connection, 
                                              proxy,
-                                             TRACKER_TYPE_XESAM_SEARCH,
-                                             &dbus_glib_tracker_xesam_search_object_info,
-                                             TRACKER_XESAM_SEARCH_PATH))) {
+                                             TRACKER_TYPE_DBUS_XESAM,
+                                             &dbus_glib_tracker_dbus_xesam_object_info,
+                                             TRACKER_DBUS_XESAM_PATH))) {
                 return FALSE;
         }
 
         dbus_g_proxy_add_signal (proxy, "NameOwnerChanged",
-                           G_TYPE_STRING, G_TYPE_STRING,
-                           G_TYPE_STRING, G_TYPE_INVALID);
-
+				 G_TYPE_STRING, G_TYPE_STRING,
+				 G_TYPE_STRING, G_TYPE_INVALID);
+	
         dbus_g_proxy_connect_signal (proxy, "NameOwnerChanged", 
-                  G_CALLBACK (tracker_xesam_search_name_owner_changed), 
-                  g_object_ref (object),
-                  name_owner_changed_done);
+				     G_CALLBACK (tracker_dbus_xesam_name_owner_changed), 
+				     g_object_ref (object),
+				     name_owner_changed_done);
 
         objects = g_slist_prepend (objects, object);
 

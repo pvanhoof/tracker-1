@@ -107,8 +107,8 @@ trackerd_SOURCES =							\
 	tracker-dbus-metadata.h						\
 	tracker-dbus-search.c						\
 	tracker-dbus-search.h						\
-	tracker-xesam-search.c						\
-	tracker-xesam-search.h						\
+	tracker-dbus-xesam.c						\
+	tracker-dbus-xesam.h						\
 	tracker-email.c							\
 	tracker-email.h							\
 	tracker-email-utils.c						\
@@ -187,7 +187,7 @@ dbus_sources = 								\
 	tracker-dbus-keywords-glue.h					\
 	tracker-dbus-metadata-glue.h					\
 	tracker-dbus-search-glue.h					\
-	tracker-xesam-search-glue.h
+	tracker-dbus-xesam-glue.h
 
 %-glue.h: $(top_builddir)/data/%.xml
 	$(DBUSBINDINGTOOL) --mode=glib-server --output=$@ --prefix=$(subst -,_,$*) $^

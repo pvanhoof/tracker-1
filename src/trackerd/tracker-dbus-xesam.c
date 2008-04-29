@@ -24,31 +24,37 @@
 #include <libtracker-common/tracker-utils.h>
 
 #include "tracker-dbus.h"
+#include "tracker-dbus-xesam.h"
 #include "tracker-status.h"
-
-#define TRACKER_XESAM_SEARCH_C
-#include "tracker-xesam-search.h"
 #include "tracker-xesam.h"
-#undef TRACER_XESAM_SEARCH_C
-
 #include "tracker-rdf-query.h"
 #include "tracker-query-tree.h"
 #include "tracker-indexer.h"
 #include "tracker-service-manager.h"
 #include "tracker-marshal.h"
 
-guint xesam_signals[XESAM_LAST_SIGNAL] = {0};
+enum {
+	XESAM_HITS_ADDED,
+	XESAM_HITS_REMOVED,
+	XESAM_HITS_MODIFIED,
+	XESAM_SEARCH_DONE,
+	XESAM_STATE_CHANGED,
+	XESAM_LAST_SIGNAL
+};
 
-G_DEFINE_TYPE(TrackerXesamSearch, tracker_xesam_search, G_TYPE_OBJECT)
+static GHashTable *sessions = NULL;
+static guint       signals[XESAM_LAST_SIGNAL] = {0};
+
+G_DEFINE_TYPE(TrackerDBusXesam, tracker_dbus_xesam, G_TYPE_OBJECT)
 
 static void
 xesam_search_finalize (GObject *object)
 {
-	G_OBJECT_CLASS (tracker_xesam_search_parent_class)->finalize (object);
+	G_OBJECT_CLASS (tracker_dbus_xesam_parent_class)->finalize (object);
 }
 
 static void
-tracker_xesam_search_class_init (TrackerXesamSearchClass *klass)
+tracker_dbus_xesam_class_init (TrackerDBusXesamClass *klass)
 {
 	GObjectClass *object_class;
 
@@ -56,7 +62,7 @@ tracker_xesam_search_class_init (TrackerXesamSearchClass *klass)
 
 	object_class->finalize = xesam_search_finalize;
 
-	xesam_signals[XESAM_HITS_ADDED] =
+	signals[XESAM_HITS_ADDED] =
 		g_signal_new ("hits-added",
 			G_TYPE_FROM_CLASS (klass),
 			G_SIGNAL_RUN_LAST,
@@ -68,7 +74,7 @@ tracker_xesam_search_class_init (TrackerXesamSearchClass *klass)
 			G_TYPE_STRING,
 			G_TYPE_UINT);
 
-	xesam_signals[XESAM_HITS_REMOVED] =
+	signals[XESAM_HITS_REMOVED] =
 		g_signal_new ("hits-removed",
 			G_TYPE_FROM_CLASS (klass),
 			G_SIGNAL_RUN_LAST,
@@ -80,7 +86,7 @@ tracker_xesam_search_class_init (TrackerXesamSearchClass *klass)
 			G_TYPE_STRING,
 			DBUS_TYPE_G_UINT_ARRAY);
 
-	xesam_signals[XESAM_HITS_MODIFIED] =
+	signals[XESAM_HITS_MODIFIED] =
 		g_signal_new ("hits-modified",
 			G_TYPE_FROM_CLASS (klass),
 			G_SIGNAL_RUN_LAST,
@@ -92,7 +98,7 @@ tracker_xesam_search_class_init (TrackerXesamSearchClass *klass)
 			G_TYPE_STRING,
 			DBUS_TYPE_G_UINT_ARRAY);
 
-	xesam_signals[XESAM_SEARCH_DONE] =
+	signals[XESAM_SEARCH_DONE] =
 		g_signal_new ("search-done",
 			G_TYPE_FROM_CLASS (klass),
 			G_SIGNAL_RUN_LAST,
@@ -104,7 +110,7 @@ tracker_xesam_search_class_init (TrackerXesamSearchClass *klass)
 			G_TYPE_STRING);
 
 
-	xesam_signals[XESAM_STATE_CHANGED] =
+	signals[XESAM_STATE_CHANGED] =
 		g_signal_new ("state-changed",
 			G_TYPE_FROM_CLASS (klass),
 			G_SIGNAL_RUN_LAST,
@@ -117,19 +123,19 @@ tracker_xesam_search_class_init (TrackerXesamSearchClass *klass)
 }
 
 static void
-tracker_xesam_search_init (TrackerXesamSearch *object)
+tracker_dbus_xesam_init (TrackerDBusXesam *object)
 {
 }
 
-TrackerXesamSearch *
-tracker_xesam_search_new (void)
+TrackerDBusXesam *
+tracker_dbus_xesam_new (void)
 {
-	return g_object_new (TRACKER_TYPE_XESAM_SEARCH, NULL);
+	return g_object_new (TRACKER_TYPE_DBUS_XESAM, NULL);
 }
 
 static void
-tracker_xesam_search_close_session_interal (const gchar         *session_id,
-					    GError             **error)
+tracker_dbus_xesam_close_session_interal (const gchar  *session_id,
+					  GError      **error)
 {
 	TrackerXesamSession *session = tracker_xesam_get_session (session_id, error);
 	if (session) {
@@ -146,8 +152,6 @@ tracker_xesam_search_close_session_interal (const gchar         *session_id,
 	}
 }
 
-static GHashTable *sessions = NULL;
-
 static void
 my_sessions_cleanup (GList *data)
 {
@@ -156,11 +160,11 @@ my_sessions_cleanup (GList *data)
 }
 
 void 
-tracker_xesam_search_name_owner_changed (DBusGProxy        *proxy,
+tracker_dbus_xesam_name_owner_changed (DBusGProxy        *proxy,
 					 const char        *name,
 					 const char        *prev_owner,
 					 const char        *new_owner,
-					 TrackerXesamSearch *self)
+					 TrackerDBusXesam *self)
 {
 	if (sessions) {
 		GList *my_sessions = g_hash_table_lookup (sessions, prev_owner);
@@ -168,7 +172,7 @@ tracker_xesam_search_name_owner_changed (DBusGProxy        *proxy,
 			GList *copy = my_sessions;
 			while (copy) {
 				gchar *session_id = copy->data;
-				tracker_xesam_search_close_session_interal (session_id, NULL);
+				tracker_dbus_xesam_close_session_interal (session_id, NULL);
 				copy = g_list_next (copy);
 			}
 			my_sessions_cleanup (my_sessions);
@@ -181,7 +185,7 @@ tracker_xesam_search_name_owner_changed (DBusGProxy        *proxy,
  * Functions
  */
 void 
-tracker_xesam_search_new_session (TrackerXesamSearch    *object,
+tracker_dbus_xesam_new_session (TrackerDBusXesam    *object,
 				  DBusGMethodInvocation *context)
 {
 	gchar *session_id = NULL;
@@ -227,7 +231,7 @@ tracker_xesam_search_new_session (TrackerXesamSearch    *object,
 }
 
 void 
-tracker_xesam_search_close_session (TrackerXesamSearch    *object,
+tracker_dbus_xesam_close_session (TrackerDBusXesam    *object,
 				    const gchar           *session_id,
 				    DBusGMethodInvocation *context)
 {
@@ -235,7 +239,7 @@ tracker_xesam_search_close_session (TrackerXesamSearch    *object,
 	GError *error = NULL;
 	gchar *key = dbus_g_method_get_sender (context);
 
-	tracker_xesam_search_close_session_interal (session_id, &error);
+	tracker_dbus_xesam_close_session_interal (session_id, &error);
 
 	if (error) {
 		dbus_g_method_return_error (context, error);
@@ -267,7 +271,7 @@ tracker_xesam_search_close_session (TrackerXesamSearch    *object,
 }
 
 void 
-tracker_xesam_search_set_property (TrackerXesamSearch    *object,
+tracker_dbus_xesam_set_property (TrackerDBusXesam    *object,
 				   const gchar           *session_id,
 				   const gchar           *prop,
 				   GValue                *val, 
@@ -299,7 +303,7 @@ tracker_xesam_search_set_property (TrackerXesamSearch    *object,
 }
 
 void
-tracker_xesam_search_get_property (TrackerXesamSearch    *object,
+tracker_dbus_xesam_get_property (TrackerDBusXesam    *object,
 				   const gchar           *session_id,
 				   const gchar           *prop,
 				   DBusGMethodInvocation *context)
@@ -333,7 +337,7 @@ tracker_xesam_search_get_property (TrackerXesamSearch    *object,
 
 
 void
-tracker_xesam_search_new_search (TrackerXesamSearch    *object,
+tracker_dbus_xesam_new_search (TrackerDBusXesam    *object,
 				 const gchar           *session_id,
 				 const gchar           *query_xml,
 				 DBusGMethodInvocation *context)
@@ -368,7 +372,7 @@ tracker_xesam_search_new_search (TrackerXesamSearch    *object,
 }
 
 void
-tracker_xesam_search_start_search (TrackerXesamSearch    *object,
+tracker_dbus_xesam_start_search (TrackerDBusXesam    *object,
 				   const gchar           *search_id,
 				   DBusGMethodInvocation *context)
 {
@@ -395,7 +399,7 @@ tracker_xesam_search_start_search (TrackerXesamSearch    *object,
 }
 
 void
-tracker_xesam_search_get_hit_count (TrackerXesamSearch  *object,
+tracker_dbus_xesam_get_hit_count (TrackerDBusXesam  *object,
 				    const gchar         *search_id,
 				    DBusGMethodInvocation *context)
 {
@@ -444,7 +448,7 @@ freeup_hits_data (GPtrArray *hits_data)
 }
 
 void
-tracker_xesam_search_get_hits (TrackerXesamSearch    *object,
+tracker_dbus_xesam_get_hits (TrackerDBusXesam    *object,
 			       const gchar           *search_id,
 			       guint                  count,
 			       DBusGMethodInvocation *context)
@@ -475,7 +479,7 @@ tracker_xesam_search_get_hits (TrackerXesamSearch    *object,
 }
 
 void 
-tracker_xesam_search_get_hit_data (TrackerXesamSearch    *object,
+tracker_dbus_xesam_get_hit_data (TrackerDBusXesam    *object,
 				   const gchar           *search_id,
 				   GArray                *hit_ids, /* not sure */
 				   GStrv                  fields, 
@@ -508,7 +512,7 @@ tracker_xesam_search_get_hit_data (TrackerXesamSearch    *object,
 }
 
 void 
-tracker_xesam_search_close_search (TrackerXesamSearch    *object,
+tracker_dbus_xesam_close_search (TrackerDBusXesam    *object,
 				   const gchar           *search_id,
 				   DBusGMethodInvocation *context)
 {
@@ -535,7 +539,7 @@ tracker_xesam_search_close_search (TrackerXesamSearch    *object,
 }
 
 void 
-tracker_xesam_search_get_state (TrackerXesamSearch    *object,
+tracker_dbus_xesam_get_state (TrackerDBusXesam    *object,
 				DBusGMethodInvocation *context)
 {
 	guint request_id = tracker_dbus_get_next_request_id ();
@@ -552,8 +556,8 @@ tracker_xesam_search_get_state (TrackerXesamSearch    *object,
 }
 
 /**
- * tracker_xesam_search_emit_state_changed:
- * @self: A #TrackerXesamSearch
+ * tracker_dbus_xesam_emit_state_changed:
+ * @self: A #TrackerDBusXesam
  * @state_info: (in): an array of strings that contain the state
  *
  * Emits the @state-changed signal on the DBus proxy for Xesam.
@@ -568,8 +572,8 @@ tracker_xesam_search_get_state (TrackerXesamSearch    *object,
  * interface.
  **/
 void 
-tracker_xesam_search_emit_state_changed (TrackerXesamSearch *self, 
-					 GStrv               state_info) 
+tracker_dbus_xesam_emit_state_changed (TrackerDBusXesam *self, 
+				       GStrv               state_info) 
 {
-	g_signal_emit (self, xesam_signals[XESAM_STATE_CHANGED], 0, state_info);
+	g_signal_emit (self, signals[XESAM_STATE_CHANGED], 0, state_info);
 }

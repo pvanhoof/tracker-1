@@ -97,18 +97,18 @@ trackerd_SOURCES =							\
 	tracker-db.h							\
 	tracker-dbus.c							\
 	tracker-dbus.h							\
-	tracker-dbus-tracker-daemon.c					\
-	tracker-dbus-tracker-daemon.h					\
-	tracker-dbus-tracker-files.c					\
-	tracker-dbus-tracker-files.h					\
-	tracker-dbus-tracker-keywords.c					\
-	tracker-dbus-tracker-keywords.h					\
-	tracker-dbus-tracker-metadata.c					\
-	tracker-dbus-tracker-metadata.h					\
-	tracker-dbus-tracker-search.c					\
-	tracker-dbus-tracker-search.h					\
-	tracker-dbus-xesam-search.c					\
-	tracker-dbus-xesam-search.h					\
+	tracker-dbus-daemon.c						\
+	tracker-dbus-daemon.h						\
+	tracker-dbus-files.c						\
+	tracker-dbus-files.h						\
+	tracker-dbus-keywords.c						\
+	tracker-dbus-keywords.h						\
+	tracker-dbus-metadata.c						\
+	tracker-dbus-metadata.h						\
+	tracker-dbus-search.c						\
+	tracker-dbus-search.h						\
+	tracker-xesam-search.c						\
+	tracker-xesam-search.h						\
 	tracker-email.c							\
 	tracker-email.h							\
 	tracker-email-utils.c						\
@@ -182,12 +182,12 @@ marshal_sources =                                         		\
         tracker-marshal.c
 
 dbus_sources = 								\
-	tracker-dbus-tracker-daemon-glue.h				\
-	tracker-dbus-tracker-files-glue.h				\
-	tracker-dbus-tracker-keywords-glue.h				\
-	tracker-dbus-tracker-metadata-glue.h				\
-	tracker-dbus-tracker-search-glue.h				\
-	tracker-dbus-xesam-search-glue.h
+	tracker-dbus-daemon-glue.h					\
+	tracker-dbus-files-glue.h					\
+	tracker-dbus-keywords-glue.h					\
+	tracker-dbus-metadata-glue.h					\
+	tracker-dbus-search-glue.h					\
+	tracker-xesam-search-glue.h
 
 %-glue.h: $(top_builddir)/data/%.xml
 	$(DBUSBINDINGTOOL) --mode=glib-server --output=$@ --prefix=$(subst -,_,$*) $^

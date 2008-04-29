@@ -29,7 +29,7 @@
 #include "tracker-utils.h"
 #include "tracker-db-sqlite.h"
 #include "tracker-dbus.h"
-#include "tracker-dbus-tracker-daemon.h"
+#include "tracker-dbus-daemon.h"
 #include "tracker-cache.h"
 #include "tracker-status.h"
 
@@ -311,7 +311,7 @@ tracker_cache_process_events (DBConnection *db_con, gboolean check_flush)
         GObject  *object;
 	gboolean stopped_trans = FALSE;
 	
-        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_TRACKER_DAEMON);
+        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
 	
 	while (TRUE) {
 

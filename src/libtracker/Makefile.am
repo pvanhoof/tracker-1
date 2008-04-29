@@ -54,11 +54,11 @@ tracker_status_LDADD = $(libs) libtrackerclient.la
 
 # Generate DBus files from XML data.
 dbus_sources = 					\
-	tracker-dbus-tracker-daemon-glue.h	\
-	tracker-dbus-tracker-files-glue.h	\
-	tracker-dbus-tracker-keywords-glue.h	\
-	tracker-dbus-tracker-metadata-glue.h	\
-	tracker-dbus-tracker-search-glue.h
+	tracker-dbus-daemon-glue.h		\
+	tracker-dbus-files-glue.h		\
+	tracker-dbus-keywords-glue.h		\
+	tracker-dbus-metadata-glue.h		\
+	tracker-dbus-search-glue.h
 
 %-glue.h: $(top_builddir)/data/%.xml
 	$(DBUSBINDINGTOOL) --mode=glib-client --output=$@ --prefix=$(subst -,_,$*) $^

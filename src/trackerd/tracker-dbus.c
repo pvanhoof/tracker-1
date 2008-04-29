@@ -28,18 +28,18 @@
 
 #include "tracker-db-sqlite.h"
 #include "tracker-dbus.h"
-#include "tracker-dbus-tracker-daemon.h"
-#include "tracker-dbus-tracker-daemon-glue.h"
-#include "tracker-dbus-tracker-files.h"
-#include "tracker-dbus-tracker-files-glue.h"
-#include "tracker-dbus-tracker-keywords.h"
-#include "tracker-dbus-tracker-keywords-glue.h"
-#include "tracker-dbus-tracker-metadata.h"
-#include "tracker-dbus-tracker-metadata-glue.h"
-#include "tracker-dbus-tracker-search.h"
-#include "tracker-dbus-tracker-search-glue.h"
-#include "tracker-dbus-xesam-search.h"
-#include "tracker-dbus-xesam-search-glue.h"
+#include "tracker-dbus-daemon.h"
+#include "tracker-dbus-daemon-glue.h"
+#include "tracker-dbus-files.h"
+#include "tracker-dbus-files-glue.h"
+#include "tracker-dbus-keywords.h"
+#include "tracker-dbus-keywords-glue.h"
+#include "tracker-dbus-metadata.h"
+#include "tracker-dbus-metadata-glue.h"
+#include "tracker-dbus-search.h"
+#include "tracker-dbus-search-glue.h"
+#include "tracker-xesam-search.h"
+#include "tracker-xesam-search-glue.h"
 
 #include "tracker-utils.h"
 #include "tracker-watch.h"
@@ -159,16 +159,16 @@ tracker_dbus_init (gpointer tracker_pointer)
                                            DBUS_INTERFACE_DBUS);
 
         /* Set up the main tracker service */
-        if (!dbus_register_service (proxy, TRACKER_DBUS_TRACKER_DAEMON_SERVICE)) {
+        if (!dbus_register_service (proxy, TRACKER_DBUS_DAEMON_SERVICE)) {
                 return FALSE;
         }
 
         /* Add org.freedesktop.Tracker */
         if (!(object = dbus_register_object (connection, 
                                              proxy,
-                                             TRACKER_TYPE_DBUS_TRACKER_DAEMON,
-                                             &dbus_glib_tracker_dbus_tracker_daemon_object_info,
-                                             TRACKER_DBUS_TRACKER_DAEMON_PATH))) {
+                                             TRACKER_TYPE_DBUS_DAEMON,
+                                             &dbus_glib_tracker_dbus_daemon_object_info,
+                                             TRACKER_DBUS_DAEMON_PATH))) {
                 return FALSE;
         }
 
@@ -180,9 +180,9 @@ tracker_dbus_init (gpointer tracker_pointer)
         /* Add org.freedesktop.Tracker.Files */
         if (!(object = dbus_register_object (connection, 
                                              proxy,
-                                             TRACKER_TYPE_DBUS_TRACKER_FILES,
-                                             &dbus_glib_tracker_dbus_tracker_files_object_info,
-                                             TRACKER_DBUS_TRACKER_FILES_PATH))) {
+                                             TRACKER_TYPE_DBUS_FILES,
+                                             &dbus_glib_tracker_dbus_files_object_info,
+                                             TRACKER_DBUS_FILES_PATH))) {
                 return FALSE;
         }
 
@@ -192,9 +192,9 @@ tracker_dbus_init (gpointer tracker_pointer)
         /* Add org.freedesktop.Tracker.Keywords */
         if (!(object = dbus_register_object (connection, 
                                              proxy,
-                                             TRACKER_TYPE_DBUS_TRACKER_KEYWORDS,
-                                             &dbus_glib_tracker_dbus_tracker_keywords_object_info,
-                                             TRACKER_DBUS_TRACKER_KEYWORDS_PATH))) {
+                                             TRACKER_TYPE_DBUS_KEYWORDS,
+                                             &dbus_glib_tracker_dbus_keywords_object_info,
+                                             TRACKER_DBUS_KEYWORDS_PATH))) {
                 return FALSE;
         }
 
@@ -204,9 +204,9 @@ tracker_dbus_init (gpointer tracker_pointer)
         /* Add org.freedesktop.Tracker.Metadata */
         if (!(object = dbus_register_object (connection, 
                                              proxy,
-                                             TRACKER_TYPE_DBUS_TRACKER_METADATA,
-                                             &dbus_glib_tracker_dbus_tracker_metadata_object_info,
-                                             TRACKER_DBUS_TRACKER_METADATA_PATH))) {
+                                             TRACKER_TYPE_DBUS_METADATA,
+                                             &dbus_glib_tracker_dbus_metadata_object_info,
+                                             TRACKER_DBUS_METADATA_PATH))) {
                 return FALSE;
         }
 
@@ -216,9 +216,9 @@ tracker_dbus_init (gpointer tracker_pointer)
         /* Add org.freedesktop.Tracker.Search */
         if (!(object = dbus_register_object (connection, 
                                              proxy,
-                                             TRACKER_TYPE_DBUS_TRACKER_SEARCH,
-                                             &dbus_glib_tracker_dbus_tracker_search_object_info,
-                                             TRACKER_DBUS_TRACKER_SEARCH_PATH))) {
+                                             TRACKER_TYPE_DBUS_SEARCH,
+                                             &dbus_glib_tracker_dbus_search_object_info,
+                                             TRACKER_DBUS_SEARCH_PATH))) {
                 return FALSE;
         }
 
@@ -231,9 +231,9 @@ tracker_dbus_init (gpointer tracker_pointer)
         /* Add org.freedesktop.xesam.Search */
         if (!(object = dbus_register_object (connection, 
                                              proxy,
-                                             TRACKER_TYPE_DBUS_XESAM_SEARCH,
-                                             &dbus_glib_tracker_dbus_xesam_search_object_info,
-                                             TRACKER_DBUS_XESAM_SEARCH_PATH))) {
+                                             TRACKER_TYPE_XESAM_SEARCH,
+                                             &dbus_glib_tracker_xesam_search_object_info,
+                                             TRACKER_XESAM_SEARCH_PATH))) {
                 return FALSE;
         }
 
@@ -242,7 +242,7 @@ tracker_dbus_init (gpointer tracker_pointer)
                            G_TYPE_STRING, G_TYPE_INVALID);
 
         dbus_g_proxy_connect_signal (proxy, "NameOwnerChanged", 
-                  G_CALLBACK (tracker_dbus_xesam_search_name_owner_changed), 
+                  G_CALLBACK (tracker_xesam_search_name_owner_changed), 
                   g_object_ref (object),
                   name_owner_changed_done);
 

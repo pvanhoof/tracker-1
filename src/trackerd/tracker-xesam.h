@@ -29,7 +29,7 @@
 TrackerXesamSession* tracker_xesam_get_session (const gchar *session_id, GError **error);
 TrackerXesamSession* tracker_xesam_get_session_for_search (const gchar *search_id, TrackerXesamLiveSearch **search_in, GError **error);
 TrackerXesamLiveSearch* tracker_xesam_get_live_search (const gchar *search_id, GError **error);
-TrackerXesamSession* tracker_xesam_create_session (TrackerDBusXesamSearch *dbus_proxy, gchar **session_id, GError **error);
+TrackerXesamSession* tracker_xesam_create_session (TrackerXesamSearch *dbus_proxy, gchar **session_id, GError **error);
 void tracker_xesam_close_session (const gchar *session_id, GError **error);
 
 typedef enum {

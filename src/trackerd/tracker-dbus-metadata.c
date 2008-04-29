@@ -28,15 +28,15 @@
 #include <libtracker-common/tracker-utils.h>
 
 #include "tracker-dbus.h"
-#include "tracker-dbus-tracker-metadata.h"
+#include "tracker-dbus-metadata.h"
 #include "tracker-db.h"
 #include "tracker-marshal.h"
 
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DBUS_TRACKER_METADATA, TrackerDBusTrackerMetadataPriv))
+#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DBUS_METADATA, TrackerDBusMetadataPriv))
 
 typedef struct {
 	DBConnection *db_con;
-} TrackerDBusTrackerMetadataPriv;
+} TrackerDBusMetadataPriv;
 
 enum {
 	PROP_0,
@@ -57,10 +57,10 @@ static const gchar *types[] = {
 	NULL
 };
 
-G_DEFINE_TYPE(TrackerDBusTrackerMetadata, tracker_dbus_tracker_metadata, G_TYPE_OBJECT)
+G_DEFINE_TYPE(TrackerDBusMetadata, tracker_dbus_metadata, G_TYPE_OBJECT)
 
 static void
-tracker_dbus_tracker_metadata_class_init (TrackerDBusTrackerMetadataClass *klass)
+tracker_dbus_metadata_class_init (TrackerDBusMetadataClass *klass)
 {
 	GObjectClass *object_class;
 
@@ -76,22 +76,22 @@ tracker_dbus_tracker_metadata_class_init (TrackerDBusTrackerMetadataClass *klass
 							       "Database connection to use in transactions",
 							       G_PARAM_WRITABLE));
 
-	g_type_class_add_private (object_class, sizeof (TrackerDBusTrackerMetadataPriv));
+	g_type_class_add_private (object_class, sizeof (TrackerDBusMetadataPriv));
 }
 
 static void
-tracker_dbus_tracker_metadata_init (TrackerDBusTrackerMetadata *object)
+tracker_dbus_metadata_init (TrackerDBusMetadata *object)
 {
 }
 
 static void
 dbus_metadata_finalize (GObject *object)
 {
-	TrackerDBusTrackerMetadataPriv *priv;
+	TrackerDBusMetadataPriv *priv;
 	
 	priv = GET_PRIV (object);
 
-	G_OBJECT_CLASS (tracker_dbus_tracker_metadata_parent_class)->finalize (object);
+	G_OBJECT_CLASS (tracker_dbus_metadata_parent_class)->finalize (object);
 }
 
 static void
@@ -100,13 +100,13 @@ dbus_metadata_set_property (GObject      *object,
 			    const GValue *value,
 			    GParamSpec	 *pspec)
 {
-	TrackerDBusTrackerMetadataPriv *priv;
+	TrackerDBusMetadataPriv *priv;
 
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
 	case PROP_DB_CONNECTION:
-		tracker_dbus_tracker_metadata_set_db_connection (TRACKER_DBUS_TRACKER_METADATA (object),
+		tracker_dbus_metadata_set_db_connection (TRACKER_DBUS_METADATA (object),
 							 g_value_get_pointer (value));
 		break;
 
@@ -116,12 +116,12 @@ dbus_metadata_set_property (GObject      *object,
 	};
 }
 
-TrackerDBusTrackerMetadata *
-tracker_dbus_tracker_metadata_new (DBConnection *db_con)
+TrackerDBusMetadata *
+tracker_dbus_metadata_new (DBConnection *db_con)
 {
-	TrackerDBusTrackerMetadata *object;
+	TrackerDBusMetadata *object;
 
-	object = g_object_new (TRACKER_TYPE_DBUS_TRACKER_METADATA, 
+	object = g_object_new (TRACKER_TYPE_DBUS_METADATA, 
 			       "db-connection", db_con,
 			       NULL);
 	
@@ -129,12 +129,12 @@ tracker_dbus_tracker_metadata_new (DBConnection *db_con)
 }
 
 void
-tracker_dbus_tracker_metadata_set_db_connection (TrackerDBusTrackerMetadata *object,
+tracker_dbus_metadata_set_db_connection (TrackerDBusMetadata *object,
 					 DBConnection        *db_con)
 {
-	TrackerDBusTrackerMetadataPriv *priv;
+	TrackerDBusMetadataPriv *priv;
 
-	g_return_if_fail (TRACKER_IS_DBUS_TRACKER_METADATA (object));
+	g_return_if_fail (TRACKER_IS_DBUS_METADATA (object));
 	g_return_if_fail (db_con != NULL);
 
 	priv = GET_PRIV (object);
@@ -148,14 +148,14 @@ tracker_dbus_tracker_metadata_set_db_connection (TrackerDBusTrackerMetadata *obj
  * Functions
  */
 gboolean
-tracker_dbus_tracker_metadata_get (TrackerDBusTrackerMetadata   *object,
+tracker_dbus_metadata_get (TrackerDBusMetadata   *object,
 			   const gchar           *service,
 			   const gchar           *id,
 			   gchar                **keys,
 			   gchar               ***values,
 			   GError               **error)
 {
-	TrackerDBusTrackerMetadataPriv *priv;
+	TrackerDBusMetadataPriv *priv;
 	TrackerDBResultSet      *result_set;
 	guint                    request_id;
 	DBConnection    	*db_con;
@@ -291,14 +291,14 @@ tracker_dbus_tracker_metadata_get (TrackerDBusTrackerMetadata   *object,
 }
 
 gboolean
-tracker_dbus_tracker_metadata_set (TrackerDBusTrackerMetadata   *object,
+tracker_dbus_metadata_set (TrackerDBusMetadata   *object,
 			   const gchar           *service,
 			   const gchar           *id,
 			   gchar                **keys,
 			   gchar                **values,
 			   GError               **error)
 {
-	TrackerDBusTrackerMetadataPriv *priv;
+	TrackerDBusMetadataPriv *priv;
 	guint                    request_id;
 	DBConnection    	*db_con;
 	gchar                   *service_id;
@@ -378,12 +378,12 @@ tracker_dbus_tracker_metadata_set (TrackerDBusTrackerMetadata   *object,
 }
 
 gboolean
-tracker_dbus_tracker_metadata_register_type (TrackerDBusTrackerMetadata  *object,
+tracker_dbus_metadata_register_type (TrackerDBusMetadata  *object,
 				     const gchar          *metadata,
 				     const gchar          *type,
 				     GError              **error)
 {
-	TrackerDBusTrackerMetadataPriv *priv;
+	TrackerDBusMetadataPriv *priv;
 	guint                    request_id;
 	DBConnection    	*db_con;
 	const gchar             *type_id;
@@ -444,14 +444,14 @@ tracker_dbus_tracker_metadata_register_type (TrackerDBusTrackerMetadata  *object
 }
 
 gboolean
-tracker_dbus_tracker_metadata_get_type_details (TrackerDBusTrackerMetadata   *object,
+tracker_dbus_metadata_get_type_details (TrackerDBusMetadata   *object,
 					const gchar           *metadata,
 					gchar                **type,
 					gboolean              *is_embedded,
 					gboolean              *is_writable,
 					GError               **error)
 {
-	TrackerDBusTrackerMetadataPriv *priv;
+	TrackerDBusMetadataPriv *priv;
 	TrackerDBResultSet      *result_set;
 	guint                    request_id;
 	DBConnection            *db_con;
@@ -498,12 +498,12 @@ tracker_dbus_tracker_metadata_get_type_details (TrackerDBusTrackerMetadata   *ob
 }
 
 gboolean
-tracker_dbus_tracker_metadata_get_registered_types (TrackerDBusTrackerMetadata   *object,
+tracker_dbus_metadata_get_registered_types (TrackerDBusMetadata   *object,
 					    const gchar           *class,
 					    gchar               ***values,
 					    GError               **error)
 {
-	TrackerDBusTrackerMetadataPriv   *priv;
+	TrackerDBusMetadataPriv   *priv;
 	TrackerDBResultSet        *result_set;
 	guint                      request_id;
 	DBConnection    	  *db_con;
@@ -534,12 +534,12 @@ tracker_dbus_tracker_metadata_get_registered_types (TrackerDBusTrackerMetadata  
 }
 
 gboolean
-tracker_dbus_tracker_metadata_get_writable_types (TrackerDBusTrackerMetadata   *object,
+tracker_dbus_metadata_get_writable_types (TrackerDBusMetadata   *object,
 					  const gchar           *class,
 					  gchar               ***values,
 					  GError               **error)
 {
-	TrackerDBusTrackerMetadataPriv *priv;
+	TrackerDBusMetadataPriv *priv;
 	TrackerDBResultSet      *result_set;
 	guint                    request_id;
 	DBConnection    	*db_con;
@@ -576,11 +576,11 @@ tracker_dbus_tracker_metadata_get_writable_types (TrackerDBusTrackerMetadata   *
 }
 
 gboolean
-tracker_dbus_tracker_metadata_get_registered_classes (TrackerDBusTrackerMetadata   *object,
+tracker_dbus_metadata_get_registered_classes (TrackerDBusMetadata   *object,
 					      gchar               ***values,
 					      GError               **error)
 {
-	TrackerDBusTrackerMetadataPriv *priv;
+	TrackerDBusMetadataPriv *priv;
 	TrackerDBResultSet      *result_set;
 	guint                    request_id;
 	DBConnection            *db_con;

@@ -19,8 +19,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_DBUS_TRACKER_FILES_H__
-#define __TRACKER_DBUS_TRACKER_FILES_H__
+#ifndef __TRACKER_DBUS_FILES_H__
+#define __TRACKER_DBUS_FILES_H__
 
 #include <dbus/dbus-glib.h>
 #include <dbus/dbus-glib-bindings.h>
@@ -28,94 +28,94 @@
 
 #include "tracker-db-sqlite.h"
 
-#define TRACKER_DBUS_TRACKER_FILES_SERVICE         "org.freedesktop.Tracker"
-#define TRACKER_DBUS_TRACKER_FILES_PATH            "/org/freedesktop/Tracker/Files"
-#define TRACKER_DBUS_TRACKER_FILES_INTERFACE       "org.freedesktop.Tracker.Files"
+#define TRACKER_DBUS_FILES_SERVICE         "org.freedesktop.Tracker"
+#define TRACKER_DBUS_FILES_PATH            "/org/freedesktop/Tracker/Files"
+#define TRACKER_DBUS_FILES_INTERFACE       "org.freedesktop.Tracker.Files"
 
 G_BEGIN_DECLS
 
-#define TRACKER_TYPE_DBUS_TRACKER_FILES            (tracker_dbus_tracker_files_get_type ())
-#define TRACKER_DBUS_TRACKER_FILES(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), TRACKER_TYPE_DBUS_TRACKER_FILES, TrackerDBusTrackerFiles))
-#define TRACKER_DBUS_TRACKER_FILES_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), TRACKER_TYPE_DBUS_TRACKER_FILES, TrackerDBusTrackerFilesClass))
-#define TRACKER_IS_DBUS_TRACKER_FILES(object)      (G_TYPE_CHECK_INSTANCE_TYPE ((object), TRACKER_TYPE_DBUS_TRACKER_FILES))
-#define TRACKER_IS_DBUS_TRACKER_FILES_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), TRACKER_TYPE_DBUS_TRACKER_FILES))
-#define TRACKER_DBUS_TRACKER_FILES_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), TRACKER_TYPE_DBUS_TRACKER_FILES, TrackerDBusTrackerFilesClass))
+#define TRACKER_TYPE_DBUS_FILES            (tracker_dbus_files_get_type ())
+#define TRACKER_DBUS_FILES(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), TRACKER_TYPE_DBUS_FILES, TrackerDBusFiles))
+#define TRACKER_DBUS_FILES_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), TRACKER_TYPE_DBUS_FILES, TrackerDBusFilesClass))
+#define TRACKER_IS_DBUS_FILES(object)      (G_TYPE_CHECK_INSTANCE_TYPE ((object), TRACKER_TYPE_DBUS_FILES))
+#define TRACKER_IS_DBUS_FILES_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), TRACKER_TYPE_DBUS_FILES))
+#define TRACKER_DBUS_FILES_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), TRACKER_TYPE_DBUS_FILES, TrackerDBusFilesClass))
 
-typedef struct TrackerDBusTrackerFiles      TrackerDBusTrackerFiles;
-typedef struct TrackerDBusTrackerFilesClass TrackerDBusTrackerFilesClass;
+typedef struct TrackerDBusFiles      TrackerDBusFiles;
+typedef struct TrackerDBusFilesClass TrackerDBusFilesClass;
 
-struct TrackerDBusTrackerFiles {
+struct TrackerDBusFiles {
 	GObject parent;
 };
 
-struct TrackerDBusTrackerFilesClass {
+struct TrackerDBusFilesClass {
 	GObjectClass parent;
 };
 
-GType    tracker_dbus_tracker_files_get_type                         (void);
+GType    tracker_dbus_files_get_type                         (void);
 
-TrackerDBusTrackerFiles *
-         tracker_dbus_tracker_files_new                              (DBConnection      *db_con);
-void     tracker_dbus_tracker_files_set_db_connection                (TrackerDBusTrackerFiles  *object,
+TrackerDBusFiles *
+         tracker_dbus_files_new                              (DBConnection      *db_con);
+void     tracker_dbus_files_set_db_connection                (TrackerDBusFiles  *object,
 							      DBConnection      *db_con);
 
-gboolean tracker_dbus_tracker_files_exist                            (TrackerDBusTrackerFiles   *object,
+gboolean tracker_dbus_files_exist                            (TrackerDBusFiles   *object,
 							      const gchar        *uri,
 							      gboolean            auto_create,
 							      gboolean           *value,
 							      GError            **error);
-gboolean tracker_dbus_tracker_files_create                           (TrackerDBusTrackerFiles   *object,
+gboolean tracker_dbus_files_create                           (TrackerDBusFiles   *object,
 							      const gchar        *uri,
 							      gboolean            is_directory,
 							      const gchar        *mime,
 							      gint                size,
 							      gint                mtime,
 							      GError            **error);
-gboolean tracker_dbus_tracker_files_delete                           (TrackerDBusTrackerFiles   *object,
+gboolean tracker_dbus_files_delete                           (TrackerDBusFiles   *object,
 							      const gchar        *uri,
 							      GError            **error);
-gboolean tracker_dbus_tracker_files_get_service_type                 (TrackerDBusTrackerFiles   *object,
+gboolean tracker_dbus_files_get_service_type                 (TrackerDBusFiles   *object,
 							      const gchar        *uri,
 							      gchar             **value,
 							      GError            **error);
-gboolean tracker_dbus_tracker_files_get_text_contents                (TrackerDBusTrackerFiles   *object,
+gboolean tracker_dbus_files_get_text_contents                (TrackerDBusFiles   *object,
 							      const gchar        *uri,
 							      gint                offset,
 							      gint                max_length,
 							      gchar             **value,
 							      GError            **error);
-gboolean tracker_dbus_tracker_files_search_text_contents             (TrackerDBusTrackerFiles   *object,
+gboolean tracker_dbus_files_search_text_contents             (TrackerDBusFiles   *object,
 							      const gchar        *uri,
 							      const gchar        *text,
 							      gint                max_length,
 							      gchar             **value,
 							      GError            **error);
-gboolean tracker_dbus_tracker_files_get_by_service_type              (TrackerDBusTrackerFiles   *object,
+gboolean tracker_dbus_files_get_by_service_type              (TrackerDBusFiles   *object,
 							      gint                live_query_id,
 							      const gchar        *service,
 							      gint                offset,
 							      gint                max_hits,
 							      gchar            ***values,
 							      GError            **error);
-gboolean tracker_dbus_tracker_files_get_by_mime_type                 (TrackerDBusTrackerFiles   *object,
+gboolean tracker_dbus_files_get_by_mime_type                 (TrackerDBusFiles   *object,
 							      gint                live_query_id,
 							      gchar             **mime_types,
 							      gint                offset,
 							      gint                max_hits,
 							      gchar            ***values,
 							      GError            **error);
-gboolean tracker_dbus_tracker_files_get_by_mime_type_vfs             (TrackerDBusTrackerFiles   *object,
+gboolean tracker_dbus_files_get_by_mime_type_vfs             (TrackerDBusFiles   *object,
 							      gint                live_query_id,
 							      gchar             **mime_types,
 							      gint                offset,
 							      gint                max_hits,
 							      gchar            ***values,
 							      GError            **error);
-gboolean tracker_dbus_tracker_files_get_mtime                        (TrackerDBusTrackerFiles   *object,
+gboolean tracker_dbus_files_get_mtime                        (TrackerDBusFiles   *object,
 							      const gchar        *uri,
 							      gint               *value,
 							      GError            **error);
-gboolean tracker_dbus_tracker_files_get_metadata_for_files_in_folder (TrackerDBusTrackerFiles   *object,
+gboolean tracker_dbus_files_get_metadata_for_files_in_folder (TrackerDBusFiles   *object,
 							      gint                live_query_id,
 							      const gchar        *uri,
 							      gchar             **fields,
@@ -124,4 +124,4 @@ gboolean tracker_dbus_tracker_files_get_metadata_for_files_in_folder (TrackerDBu
 
 G_END_DECLS
 
-#endif /* __TRACKER_DBUS_TRACKER_FILES_H__ */
+#endif /* __TRACKER_DBUS_FILES_H__ */

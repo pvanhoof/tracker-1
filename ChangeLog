@@ -1,11 +1,6 @@
-2008-04-28  Philip Van Hoof  <pvanhoof@gnome.org>
+2008-04-29  Martyn Russell  <martyn@imendio.com>
 
-	* Renamed TrackerXesamSearch to TrackerDBusXesamSearch
-	* Renamed TrackerDBusSearch to TrackerDBusTrackerSearch
-	* Renamed TrackerDBusDaemon to TrackerDBusTrackerDaemon
-	* Renamed TrackerDBusFiles to TrackerDBusTrackerFiles
-	* Renamed TrackerDBusMetadata to TrackerDBusTrackerMetadata
-	* Renamed TrackerDBusKeywords to TrackerDBusTrackerKeyWords
+	* Reverted Philips changes.
 
 2008-04-28  Martyn Russell  <martyn@imendio.com>
 

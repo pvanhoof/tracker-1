@@ -40,7 +40,7 @@
 #include "tracker-apps.h"
 #include "tracker-db.h"
 #include "tracker-dbus.h"
-#include "tracker-dbus-tracker-daemon.h"
+#include "tracker-dbus-daemon.h"
 #include "tracker-cache.h"
 #include "tracker-email.h"
 #include "tracker-hal.h"
@@ -768,7 +768,7 @@ process_index_files (Tracker *tracker)
         tracker_log ("Starting file indexing...");
         
         db_con = tracker->index_db;
-        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_TRACKER_DAEMON);
+        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
 
         tracker_db_end_index_transaction (db_con);
 
@@ -1037,7 +1037,7 @@ process_index_emails (Tracker *tracker)
         tracker->index_status = INDEX_EMAILS;
         
         /* Signal progress */
-        daemon = tracker_dbus_get_object (TRACKER_TYPE_DBUS_TRACKER_DAEMON);
+        daemon = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
         g_signal_emit_by_name (daemon, "index-progress", 
                                "Emails",
                                "",
@@ -1080,7 +1080,7 @@ process_files (Tracker *tracker)
         GObject      *object;
 
         db_con = tracker->index_db;
-        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_TRACKER_DAEMON);
+        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
 
         /* Check dir_queue in case there are
          * directories waiting to be indexed.
@@ -1492,7 +1492,7 @@ tracker_process_files (gpointer data)
 
         process_block_signals (); 
 
-        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_TRACKER_DAEMON);
+        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
 
         tracker = (Tracker*) data;
 
@@ -1563,7 +1563,7 @@ tracker_process_files (gpointer data)
 
 	tracker->index_status = INDEX_CONFIG;
 
-        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_TRACKER_DAEMON);
+        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
 
 	pushed_events = FALSE;
 	first_run = TRUE;
@@ -1696,7 +1696,7 @@ tracker_process_files (gpointer data)
 				}
 
                                 /* Signal progress */
-                                object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_TRACKER_DAEMON);
+                                object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
                                 g_signal_emit_by_name (object, 
                                                        "index-progress", 
                                                        "Files",

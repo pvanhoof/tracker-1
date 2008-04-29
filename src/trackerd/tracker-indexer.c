@@ -54,7 +54,7 @@
 #include "tracker-indexer.h"
 #include "tracker-cache.h"
 #include "tracker-dbus.h"
-#include "tracker-dbus-tracker-daemon.h"
+#include "tracker-dbus-daemon.h"
 #include "tracker-hal.h"
 #include "tracker-process-files.h"
 #include "tracker-query-tree.h"
@@ -406,7 +406,7 @@ tracker_indexer_apply_changes (Indexer *dest, Indexer *src,  gboolean update)
 	tracker->merge_processed = 0;
 	
         /* Signal progress */
-        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_TRACKER_DAEMON);
+        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
         g_signal_emit_by_name (object, 
                                "index-progress", 
                                "Merging",
@@ -466,7 +466,7 @@ tracker_indexer_apply_changes (Indexer *dest, Indexer *src,  gboolean update)
 	tracker->merge_processed = 1;
 
         /* Signal progress */
-        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_TRACKER_DAEMON);
+        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
         g_signal_emit_by_name (object, 
 			       "index-progress", 
                                "Merging",                     
@@ -586,7 +586,7 @@ tracker_indexer_merge_indexes (IndexType type)
                 return;
         }
 
-        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_TRACKER_DAEMON);
+        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
 
 	if (type == INDEX_TYPE_FILES) {
 
@@ -826,7 +826,7 @@ tracker_indexer_merge_indexes (IndexType type)
 				tracker->merge_processed++;
 
                                 /* Signal progress */
-                                object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_TRACKER_DAEMON);
+                                object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
                                 g_signal_emit_by_name (object, 
                                                        "index-progress", 
                                                        "Merging",

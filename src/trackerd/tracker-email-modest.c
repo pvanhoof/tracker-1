@@ -38,7 +38,7 @@
 #include "tracker-email-utils.h"
 #include "tracker-db-email.h"
 #include "tracker-dbus.h"
-#include "tracker-dbus-tracker-daemon.h"
+#include "tracker-dbus-daemon.h"
 #include "tracker-cache.h"
 #include "tracker-status.h"
 #include "tracker-watch.h"
@@ -709,7 +709,7 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
 	if (!tracker->is_running)
 		return; 
 
-        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_TRACKER_DAEMON);
+        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
 
 	if (open_summary_file (summary_file_path, &summary)) {
 		SummaryFileHeader *header;

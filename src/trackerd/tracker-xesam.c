@@ -32,7 +32,7 @@ tracker_xesam_init (void)
 }
 
 TrackerXesamSession *
-tracker_xesam_create_session (TrackerDBusXesamSearch *dbus_proxy, gchar **session_id, GError **error)
+tracker_xesam_create_session (TrackerXesamSearch *dbus_proxy, gchar **session_id, GError **error)
 {
 	TrackerXesamSession *session;
 

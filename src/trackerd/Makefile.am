@@ -32,12 +32,6 @@ endif
 endif
 endif
 
-if OS_WIN32
-win_sources = tracker-os-dependant-win.c
-else
-unix_sources = tracker-os-dependant-unix.c
-endif
-
 if HAVE_HAL
 hal_sources = 								\
 	tracker-hal.c             					\

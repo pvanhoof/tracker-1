@@ -27,12 +27,13 @@
 
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-type-utils.h>
+#include <libtracker-common/tracker-os-dependant.h>
 
 #include "tracker-db.h"
 #include "tracker-email.h"
 #include "tracker-metadata.h"
-#include "tracker-os-dependant.h"
 #include "tracker-service-manager.h"
 #include "tracker-process-files.h"
 
@@ -73,8 +74,8 @@ tracker_db_is_file_up_to_date (DBConnection *db_con, const char *uri, guint32 *i
 		name = g_path_get_basename (uri);
 		path = g_path_get_dirname (uri);
 	} else {
-		name = tracker_get_vfs_name (uri);
-		path = tracker_get_vfs_path (uri);
+		name = tracker_file_get_vfs_name (uri);
+		path = tracker_file_get_vfs_path (uri);
 	}
 
 	result_set = tracker_exec_proc (db_con, "GetServiceID", path, name, NULL);
@@ -96,7 +97,7 @@ tracker_db_is_file_up_to_date (DBConnection *db_con, const char *uri, guint32 *i
 		return FALSE;
 	}
 
-	if (index_time < (gint32) tracker_get_file_mtime (uri)) {
+	if (index_time < (gint32) tracker_file_get_mtime (uri)) {
 		return FALSE;
 	}
 
@@ -118,8 +119,8 @@ tracker_db_get_file_id (DBConnection *db_con, const char *uri)
 		name = g_path_get_basename (uri);
 		path = g_path_get_dirname (uri);
 	} else {
-		name = tracker_get_vfs_name (uri);
-		path = tracker_get_vfs_path (uri);
+		name = tracker_file_get_vfs_name (uri);
+		path = tracker_file_get_vfs_path (uri);
 	}
 
 	result_set = tracker_exec_proc (db_con->index, "GetServiceID", path, name, NULL);
@@ -955,8 +956,8 @@ tracker_db_index_service (DBConnection *db_con, FileInfo *info, const char *serv
 	/* check for backup user defined metadata */
 	if (info->is_new) {
 		TrackerDBResultSet *result_set;
-		char *name = tracker_get_vfs_name (info->uri);
-		char *path = tracker_get_vfs_path (info->uri);
+		char *name = tracker_file_get_vfs_name (info->uri);
+		char *path = tracker_file_get_vfs_path (info->uri);
 
 		result_set = tracker_exec_proc (db_con->common, "GetBackupMetadata", path, name, NULL);
 
@@ -1075,7 +1076,7 @@ tracker_db_index_file (DBConnection *db_con, FileInfo *info, const char *attachm
 		info->mime = g_strdup ("Folder");
 		info->file_size = 0;
 	} else {
-		info->mime = tracker_get_mime_type (info->uri);
+		info->mime = tracker_file_get_mime_type (info->uri);
 
 		if (!info->mime) {
 			info->mime = g_strdup ("unknown");
@@ -1233,7 +1234,7 @@ tracker_db_index_file (DBConnection *db_con, FileInfo *info, const char *attachm
 	g_free (service_name);
 
 	if (attachment_uri ) {
-		tracker_unlink (info->uri);
+		tracker_file_unlink (info->uri);
 	}
 
 	tracker_dec_info_ref (info);

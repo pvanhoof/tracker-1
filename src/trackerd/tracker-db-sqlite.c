@@ -45,6 +45,7 @@
 
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-utils.h>
 
@@ -3266,8 +3267,8 @@ tracker_db_create_service (DBConnection *db_con, const char *service, FileInfo *
 		name = g_path_get_basename (info->uri);
 		path = g_path_get_dirname (info->uri);
 	} else {
-		name = tracker_get_vfs_name (info->uri);
-		path = tracker_get_vfs_path (info->uri);
+		name = tracker_file_get_vfs_name (info->uri);
+		path = tracker_file_get_vfs_path (info->uri);
 	}
 
 

@@ -32,6 +32,8 @@
 
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-log.h>
+#include <libtracker-common/tracker-os-dependant.h>
+#include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-utils.h>
 
@@ -45,7 +47,6 @@
 #include "tracker-email.h"
 #include "tracker-hal.h"
 #include "tracker-indexer.h"
-#include "tracker-os-dependant.h"
 #include "tracker-watch.h"
 #include "tracker-service.h"
 #include "tracker-status.h"
@@ -160,7 +161,7 @@ process_get_files (Tracker    *tracker,
                                 continue;
                         }
 
-			if (!dir_only || tracker_is_directory (built_filename)) {
+			if (!dir_only || tracker_file_is_directory (built_filename)) {
 				if (tracker_process_files_should_be_watched (tracker->config, built_filename)) {
 					files = g_slist_prepend (files, built_filename);
                                 } else {
@@ -246,7 +247,7 @@ process_watch_directories (Tracker *tracker,
                                 continue;
                         }
                         
-                        if (!tracker_is_directory (dir)) {
+                        if (!tracker_file_is_directory (dir)) {
                                 g_free (dir);
                                 continue;
                         }
@@ -314,7 +315,7 @@ process_schedule_file_check_foreach (const gchar  *uri,
 	/* Keep mainloop responsive */
 	process_my_yield ();
 
-	if (!tracker_is_directory (uri)) {
+	if (!tracker_file_is_directory (uri)) {
 		tracker_db_insert_pending_file (tracker->index_db, 0, uri, NULL, "unknown", 0, 
                                                 TRACKER_ACTION_CHECK, 0, FALSE, -1);
 	} else {
@@ -364,7 +365,7 @@ process_scan_directory (Tracker     *tracker,
 
 	g_return_if_fail (tracker->index_db);
 	g_return_if_fail (tracker_check_uri (uri));
-	g_return_if_fail (tracker_is_directory (uri));
+	g_return_if_fail (tracker_file_is_directory (uri));
 
 	/* Keep mainloop responsive */
 	process_my_yield ();
@@ -624,7 +625,7 @@ process_check_directory (Tracker     *tracker,
 	}
 
 	g_return_if_fail (tracker_check_uri (uri));
-	g_return_if_fail (tracker_is_directory (uri));
+	g_return_if_fail (tracker_file_is_directory (uri));
 
         files = process_get_files (tracker, uri, FALSE, TRUE, NULL);
 	tracker_debug ("Checking %s for %d files", uri, g_slist_length (files));

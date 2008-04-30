@@ -32,6 +32,7 @@
 #include <glib/gstdio.h>
 
 #include <libtracker-common/tracker-log.h>
+#include <libtracker-common/tracker-file-utils.h>
 
 #include "tracker-metadata.h"
 #include "tracker-utils.h"

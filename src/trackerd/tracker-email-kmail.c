@@ -27,7 +27,9 @@
 
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-utils.h>
+#include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-type-utils.h>
+#include <libtracker-common/tracker-utils.h>
 
 #include "tracker-email-utils.h"
 #include "tracker-db-email.h"
@@ -664,7 +666,7 @@ get_dirs_to_watch (DBConnection *db_con, const gchar *dir_path, gboolean in_imap
                                 /* if we are in a maildir directory, we will only index emails in directory "cur" */
                                 gchar *dir_cur = g_build_filename (dir_path, "cur", NULL);
 
-                                if (tracker_is_directory (dir_cur)) {
+                                if (tracker_file_is_directory (dir_cur)) {
                                         dirs = g_slist_prepend (dirs, g_strdup (dir_cur));
                                 }
                                 g_free (dir_cur);
@@ -738,7 +740,7 @@ index_mail_file_in_maildir_dir (DBConnection *db_con, const gchar *dir, FileInfo
 
                 mail_msg->uri = g_strdup (mail_msg->path);
                 mail_msg->store = store;
-                mail_msg->mtime = tracker_get_file_mtime (mail_msg->path);
+                mail_msg->mtime = tracker_file_get_mtime (mail_msg->path);
                 tracker_db_email_save_email (db_con, mail_msg, MAIL_APP_KMAIL);
 
                 email_free_mail_file (mail_msg->parent_mail_file);

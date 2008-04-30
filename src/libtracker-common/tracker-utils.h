@@ -22,6 +22,9 @@
 #ifndef __TRACKER_UTILS_H__
 #define __TRACKER_UTILS_H__
 
-gboolean tracker_is_empty_string (const char *str);
+gboolean tracker_is_empty_string (const char  *str);
+gchar *  tracker_string_replace  (const gchar *haystack,
+				  gchar       *needle,
+				  gchar       *replacement);
 
-#endif /* __TRACKER_DBUS_UTILS_H__ */
+#endif /* __TRACKER_UTILS_H__ */

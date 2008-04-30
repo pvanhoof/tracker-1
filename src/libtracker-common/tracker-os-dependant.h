@@ -1,5 +1,7 @@
-/* Tracker - indexer and metadata database engine
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
  * Copyright (C) 2007, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2008, Nokia
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -17,16 +19,18 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef _TRACKER_OS_DEPENDANT_H_
-#define _TRACKER_OS_DEPENDANT_H_
+#ifndef __TRACKER_OS_DEPENDANT_H__
+#define __TRACKER_OS_DEPENDANT_H__
 
 #include <glib.h>
 #include <glib/gstdio.h>
 
-gboolean        tracker_check_uri       (const gchar *uri);
-gboolean        tracker_spawn           (gchar **argv, gint timeout, gchar **tmp_stdout, gint *exit_status);
-void            tracker_child_cb        (gpointer user_data);
+gboolean tracker_check_uri                (const gchar  *uri);
+gboolean tracker_spawn                    (gchar       **argv,
+                                           gint          timeout,
+                                           gchar       **tmp_stdout,
+                                           gint         *exit_status);
+void     tracker_child_cb                 (gpointer      user_data);
+gchar *  tracker_create_permission_string (struct stat   finfo);
 
-gchar *         tracker_create_permission_string        (struct stat finfo);
-
-#endif
+#endif /* __TRACKER_OS_DEPENDANT_H__ */

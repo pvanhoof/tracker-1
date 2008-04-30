@@ -45,6 +45,7 @@
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-language.h>
 #include <libtracker-common/tracker-log.h>
+#include <libtracker-common/tracker-file-utils.h>
 
 #include "tracker-dbus.h"
 #include "tracker-email.h"
@@ -674,7 +675,7 @@ main (gint argc, gchar *argv[])
 
 	/* Set up the log */
 	log_filename = g_build_filename (tracker->root_dir, "tracker.log", NULL);
-	tracker_unlink (log_filename);
+	tracker_file_unlink (log_filename);
 
 	tracker_log_init (log_filename, 
                           tracker_config_get_verbosity (tracker->config), 

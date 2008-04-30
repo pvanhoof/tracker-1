@@ -34,6 +34,7 @@
 #include <glib/gstdio.h>
 
 #include <libtracker-common/tracker-log.h>
+#include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-utils.h>
 
 #include "tracker-watch.h"
@@ -175,7 +176,7 @@ process_event (const char *uri, gboolean is_dir, TrackerAction action, guint32 c
 				tracker->grace_period = 2;
 				tracker->request_waiting = TRUE;
 
-				if (!tracker_is_directory (moved_to_info->uri)) {
+				if (!tracker_file_is_directory (moved_to_info->uri)) {
 					tracker_db_insert_pending_file (main_thread_db_con, moved_from_info->file_id, moved_from_info->uri, moved_to_info->uri, moved_from_info->mime, 0, TRACKER_ACTION_FILE_MOVED_FROM, FALSE, TRUE, -1);
 					
 //					tracker_db_move_file (main_thread_db_con, moved_from_info->uri, moved_to_info->uri);
@@ -192,7 +193,7 @@ process_event (const char *uri, gboolean is_dir, TrackerAction action, guint32 c
 
 		/* matching pair not found so treat as a create action */
 		tracker_debug ("no matching pair found for inotify move event for %s", info->uri);
-		if (tracker_is_directory (info->uri)) {
+		if (tracker_file_is_directory (info->uri)) {
 			info->action = TRACKER_ACTION_DIRECTORY_CREATED;
 		} else {
 			info->action = TRACKER_ACTION_WRITABLE_FILE_CLOSED;
@@ -411,7 +412,7 @@ process_inotify_events (void)
                      action_type == TRACKER_ACTION_DIRECTORY_MOVED_FROM) && 
                     tracker_process_files_should_be_crawled (tracker, str) && 
                     tracker_process_files_should_be_watched (tracker->config, str)) {
-			process_event (str, tracker_is_directory (str), action_type, cookie);
+			process_event (str, tracker_file_is_directory (str), action_type, cookie);
 		} else {
 			tracker_debug ("ignoring action %d on file %s", action_type, str);
 		}

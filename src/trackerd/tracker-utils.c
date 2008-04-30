@@ -17,12 +17,6 @@
  * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  * Boston, MA  02110-1301, USA.
  */
-
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
-
 #include "config.h"
 
 #include <sys/time.h>
@@ -52,19 +46,19 @@
 
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-os-dependant.h>
+#include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-utils.h>
-#include "../xdgmime/xdgmime.h"
+
 
 #include "tracker-dbus.h"
 #include "tracker-utils.h"
 #include "tracker-indexer.h"
 #include "tracker-process-files.h"
-#include "tracker-os-dependant.h"
 
 extern Tracker	*tracker;
 
 #define ZLIBBUFSIZ 8192
-#define TEXT_SNIFF_SIZE 4096
 #define MAX_INDEX_FILE_SIZE 2000000000
 
 static int info_allocated = 0;
@@ -410,31 +404,6 @@ tracker_get_pending_file_info (guint32 file_id, const char *uri, const char *mim
 }
 
 
-gint32
-tracker_get_file_mtime (const char *uri)
-{
-	struct stat  	finfo;
-	char 		*uri_in_locale;
-
-	uri_in_locale = g_filename_from_utf8 (uri, -1, NULL, NULL, NULL);
-
-	if (uri_in_locale) {
-		if (g_lstat (uri_in_locale, &finfo) == -1) {
-			g_free (uri_in_locale);
-
-			return 0;
-		}
-
-	} else {
-		tracker_error ("ERROR: uri could not be converted to locale format");
-
-		return 0;
-	}
-
-	g_free (uri_in_locale);
-
-	return (gint32) finfo.st_mtime;
-}
 
 
 FileInfo *
@@ -525,7 +494,9 @@ tracker_get_service_dirs (const char *service)
 void
 tracker_add_service_path (const char *service,  const char *path)
 {
-	if (!service || !path || !tracker_file_is_valid (path)) {
+	if (!service || 
+            !path || 
+            !tracker_file_is_valid (path)) {
 		return;
 	}
 
@@ -584,303 +555,6 @@ tracker_is_service_file (const char *uri)
 	g_free (service);
 
 	return result;
-}
-
-
-gboolean
-tracker_file_is_valid (const char *uri)
-{
-	gboolean convert_ok;
-	char	 *uri_in_locale;
-
-	uri_in_locale = g_filename_from_utf8 (uri, -1, NULL, NULL, NULL);
-
-	if (!uri_in_locale) {
-		tracker_error ("ERROR: uri could not be converted to locale format");
-		g_free (uri_in_locale);
-		return FALSE;
-	}
-
-	/* g_file_test(file,G_FILE_TEST_EXISTS) uses the access() system call and so needs locale filenames. */
-	convert_ok = (tracker_check_uri (uri) && g_file_test (uri_in_locale, G_FILE_TEST_IS_REGULAR|G_FILE_TEST_IS_DIR|G_FILE_TEST_IS_SYMLINK));
-
-	g_free (uri_in_locale);
-
-	return convert_ok;
-}
-
-
-gboolean
-tracker_file_is_indexable (const char *uri)
-{
-	char	 *uri_in_locale;
-	struct stat finfo;
-	gboolean convert_ok;
-
-	uri_in_locale = g_filename_from_utf8 (uri, -1, NULL, NULL, NULL);
-
-	if (!uri_in_locale) {
-		tracker_error ("ERROR: uri could not be converted to locale format");
-		return FALSE;
-	}
-
-	g_lstat (uri_in_locale, &finfo);
-
-	g_free (uri_in_locale);
-
-	convert_ok = (!S_ISDIR (finfo.st_mode) && S_ISREG (finfo.st_mode));
-
-	if (convert_ok) {
-		 tracker_debug ("file %s is indexable", uri);
-	} else {
-		 tracker_debug ("file %s is *not* indexable", uri);
-	}
-
-	return convert_ok;
-}
-
-
-static inline gboolean
-is_utf8 (const gchar *buffer, gint buffer_length)
-{
-	gchar *end;
-
-	/* code in this function modified from gnome-vfs */
-
-	if (g_utf8_validate ((gchar *)buffer, buffer_length, (const gchar**)&end)) {
-		return TRUE;
-	} else {
-		/* Check whether the string was truncated in the middle of
-		 * a valid UTF8 char, or if we really have an invalid
-		 * UTF8 string
-     		 */
-		gint remaining_bytes = buffer_length;
-
-		remaining_bytes -= (end-((gchar *)buffer));
-
-		if (remaining_bytes > 4) {
-			return FALSE;
-		}
-
- 		if (g_utf8_get_char_validated (end, (gsize) remaining_bytes) == (gunichar) -2) {
-			return TRUE;
-		}
-	}
-
-	return FALSE;
-}
-
-
-static gboolean
-is_text_file (const gchar *uri)
-{
-	char 	buffer[TEXT_SNIFF_SIZE];
-	int 	buffer_length = 0;
-	GError	*err = NULL;
-	int 	fd;
-
-	fd = tracker_file_open (uri, FALSE);
-
-	buffer_length = read (fd, buffer, TEXT_SNIFF_SIZE);
-
-	if (buffer_length < 3) {
-		goto return_false;
-	}
-
-	/* Don't allow embedded zeros in textfiles. */
-	if (memchr (buffer, 0, buffer_length) != NULL) {
-		goto return_false;
-	}
-
-	if (is_utf8 (buffer, buffer_length)) {
-		 goto return_true;
-	} else {
-		gchar *tmp = g_locale_to_utf8 (buffer, buffer_length, NULL, NULL, &err);
-		g_free (tmp);
-
-		if (err) {
-			gboolean result = FALSE;
-
-			if (err->code != G_CONVERT_ERROR_ILLEGAL_SEQUENCE && err->code !=  G_CONVERT_ERROR_FAILED && err->code != G_CONVERT_ERROR_NO_CONVERSION) {
-				result = TRUE;
-			}
-
-			g_error_free (err);
-
-			if (result) goto return_true;
-
-		}
-	}
-
-return_false:
-	tracker_file_close (fd, TRUE);
-	return FALSE;
-
-return_true:
-	tracker_file_close (fd, FALSE);
-	return TRUE;
-}
-
-
-char *
-tracker_get_mime_type (const char *uri)
-{
-	struct stat finfo;
-	char	    *uri_in_locale;
-	const char  *result;
-	char *mime;
-
-	if (!tracker_file_is_valid (uri)) {
-		tracker_log ("WARNING: file %s is no longer valid", uri);
-		return g_strdup ("unknown");
-	}
-
-	uri_in_locale = g_filename_from_utf8 (uri, -1, NULL, NULL, NULL);
-
-	if (!uri_in_locale) {
-		tracker_error ("ERROR: uri could not be converted to locale format");
-		return g_strdup ("unknown");
-	}
-
-	g_lstat (uri_in_locale, &finfo);
-
-	if (S_ISLNK (finfo.st_mode) && S_ISDIR (finfo.st_mode)) {
-	        g_free (uri_in_locale);
-		return g_strdup ("symlink");
-	}
-
-
-	/* handle iso files as they can be mistaken for video files */
-	
-	if (g_str_has_suffix (uri, ".iso")) {
-		return g_strdup ("application/x-cd-image");
-	}
-
-	result = xdg_mime_get_mime_type_for_file (uri, NULL);
-
-	if (!result || (result == XDG_MIME_TYPE_UNKNOWN)) {
-
-		if (is_text_file (uri_in_locale)) {
-			mime = g_strdup ("text/plain");
-		} else {
-			mime = g_strdup ("unknown");
-		}
-	} else {
-		mime = g_strdup (result);
-	}
-
-	g_free (uri_in_locale);
-
-	return mime;
-}
-
-
-char *
-tracker_get_vfs_path (const char* uri)
-{
-	if (uri != NULL && strchr (uri, G_DIR_SEPARATOR) != NULL) {
-		char *p;
-		int  len;
-
-		len = strlen (uri);
-		p = (char *) (uri + (len - 1));
-
-		/* Skip trailing slash  */
-		if (p != uri && *p == G_DIR_SEPARATOR) {
-			p--;
-		}
-
-		/* Search backwards to the next slash.  */
-		while (p != uri && *p != G_DIR_SEPARATOR) {
-			p--;
-		}
-
-		if (p[0] != '\0') {
-
-			char *new_uri_text;
-			int  length;
-
-			length = p - uri;
-
-			if (length == 0) {
-				new_uri_text = g_strdup (G_DIR_SEPARATOR_S);
-			} else {
-				new_uri_text = g_malloc (length + 1);
-				memcpy (new_uri_text, uri, length);
-				new_uri_text[length] = '\0';
-			}
-
-			return new_uri_text;
-		} else {
-			return g_strdup (G_DIR_SEPARATOR_S);
-		}
-	}
-
-	return NULL;
-}
-
-
-char *
-tracker_get_vfs_name (const char* uri)
-{
-	if (uri != NULL && strchr (uri, G_DIR_SEPARATOR) != NULL) {
-		char *p, *res, *tmp, *result;
-		int  len;
-
-		len = strlen (uri);
-
-		tmp = g_strdup (uri);
-
-		p = (tmp + (len - 1));
-
-		/* Skip trailing slash  */
-		if (p != tmp && *p == G_DIR_SEPARATOR) {
-			*p = '\0';
-		}
-
-		/* Search backwards to the next slash.  */
-		while (p != tmp && *p != G_DIR_SEPARATOR) {
-			p--;
-		}
-
-		res = p+1;
-
-		if (res && res[0] != '\0') {
-			result =  g_strdup (res);
-			g_free (tmp);
-
-			return result;
-		}
-
-		g_free (tmp);
-
-	}
-
-	return g_strdup (" ");
-}
-
-
-gboolean
-tracker_is_directory (const char *dir)
-{
-	char *dir_in_locale;
-
-	dir_in_locale = g_filename_from_utf8 (dir, -1, NULL, NULL, NULL);
-
-	if (dir_in_locale) {
-		struct stat finfo;
-
-		g_lstat (dir_in_locale, &finfo);
-
-		g_free (dir_in_locale);
-
-		return S_ISDIR (finfo.st_mode);
-
-	} else {
-		tracker_error ("ERROR: dir could not be converted to locale format");
-	}
-
-	return FALSE;
 }
 
 void
@@ -1527,37 +1201,6 @@ tracker_get_snippet (const char *txt, char **terms, int length)
 	}
 }
 
-gchar *
-tracker_string_replace (const gchar *haystack, gchar *needle, gchar *replacement)
-{
-        GString *str;
-        gint pos, needle_len;
-
-	g_return_val_if_fail (haystack && needle, NULL);
-
-	needle_len = strlen (needle);
-
-        str = g_string_new ("");
-
-        for (pos = 0; haystack[pos]; pos++)
-        {
-                if (strncmp (&haystack[pos], needle, needle_len) == 0)
-                {
-			if (replacement) {
-	                        str = g_string_append (str, replacement);
-			}
-
-                        pos += needle_len - 1;
-
-                } else {
-                        str = g_string_append_c (str, haystack[pos]);
-		}
-        }
-
-        return g_string_free (str, FALSE);
-}
-
-
 void
 tracker_add_metadata_to_table (GHashTable *meta_table, const gchar *key, const gchar *value)
 {
@@ -1604,22 +1247,6 @@ tracker_free_metadata_field (FieldData *field_data)
 }
 
 
-gboolean
-tracker_unlink (const gchar *uri)
-{
-	gchar *locale_uri = g_filename_from_utf8 (uri, -1, NULL, NULL, NULL);
-
-	if (!g_file_test (locale_uri, G_FILE_TEST_EXISTS)) {						
-		g_free (locale_uri);
-		return FALSE;
-	}
-
-	g_unlink (locale_uri);
-
-	g_free (locale_uri);
-
-	return TRUE;
-}
 
 
 int 
@@ -1670,59 +1297,6 @@ tracker_get_memory_usage (void)
 	
 #endif
 	return 0;
-}
-
-guint32
-tracker_file_size (const gchar *name)
-{
-	struct stat finfo;
-	
-	if (g_lstat (name, &finfo) == -1) {
-		return 0;
-	} else {
-                return (guint32) finfo.st_size;
-        }
-}
-
-int
-tracker_file_open (const gchar *file_name, gboolean readahead)
-{
-	int fd;
-
-#if defined(__linux__)
-	fd = open (file_name, O_RDONLY|O_NOATIME);
-
-	if (fd == -1) {
-		fd = open (file_name, O_RDONLY); 
-	}
-#else
-	fd = open (file_name, O_RDONLY); 
-#endif
-
-	if (fd == -1) return -1;
-	
-#ifdef HAVE_POSIX_FADVISE
-	if (readahead) {
-		posix_fadvise (fd, 0, 0, POSIX_FADV_SEQUENTIAL);
-	} else {
-		posix_fadvise (fd, 0, 0, POSIX_FADV_RANDOM);
-	}
-#endif
-
-	return fd;
-}
-
-
-void
-tracker_file_close (int fd, gboolean no_longer_needed)
-{
-
-#ifdef HAVE_POSIX_FADVISE
-	if (no_longer_needed) {
-		posix_fadvise (fd, 0, 0, POSIX_FADV_DONTNEED);
-	}
-#endif
-	close (fd);
 }
 
 void
@@ -1788,7 +1362,7 @@ tracker_index_too_big ()
 
 	
 	char *file_index = g_build_filename (tracker->data_dir, "file-index.db", NULL);
-	if (tracker_file_size (file_index) > MAX_INDEX_FILE_SIZE) {
+	if (tracker_file_get_size (file_index) > MAX_INDEX_FILE_SIZE) {
 		tracker_error ("file index is too big - discontinuing index");
 		g_free (file_index);
 		return TRUE;	
@@ -1797,7 +1371,7 @@ tracker_index_too_big ()
 
 
 	char *email_index = g_build_filename (tracker->data_dir, "email-index.db", NULL);
-	if (tracker_file_size (email_index) > MAX_INDEX_FILE_SIZE) {
+	if (tracker_file_get_size (email_index) > MAX_INDEX_FILE_SIZE) {
 		tracker_error ("email index is too big - discontinuing index");
 		g_free (email_index);
 		return TRUE;	
@@ -1806,7 +1380,7 @@ tracker_index_too_big ()
 
 
 	char *file_meta = g_build_filename (tracker->data_dir, "file-meta.db", NULL);
-	if (tracker_file_size (file_meta) > MAX_INDEX_FILE_SIZE) {
+	if (tracker_file_get_size (file_meta) > MAX_INDEX_FILE_SIZE) {
 		tracker_error ("file metadata is too big - discontinuing index");
 		g_free (file_meta);
 		return TRUE;	
@@ -1815,7 +1389,7 @@ tracker_index_too_big ()
 
 
 	char *email_meta = g_build_filename (tracker->data_dir, "email-meta.db", NULL);
-	if (tracker_file_size (email_meta) > MAX_INDEX_FILE_SIZE) {
+	if (tracker_file_get_size (email_meta) > MAX_INDEX_FILE_SIZE) {
 		tracker_error ("email metadata is too big - discontinuing index");
 		g_free (email_meta);
 		return TRUE;	

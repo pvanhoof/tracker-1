@@ -377,10 +377,6 @@ char *		tracker_unescape_metadata 	(const char *in);
 void		tracker_remove_dirs 		(const char *root_dir);
 char *		tracker_format_search_terms 	(const char *str, gboolean *do_bool_search);
 
-gint32		tracker_get_file_mtime 		(const char *uri);
-
-char *		tracker_array_to_str 		(char **array, int length, char sep);
-
 GSList *	tracker_get_service_dirs 	(const char *service);
 void		tracker_add_service_path 	(const char *service, const char *path);
 void		tracker_del_service_path 	(const char *service,  const char *path);
@@ -395,20 +391,6 @@ FileInfo *	tracker_inc_info_ref 		(FileInfo *info);
 FileInfo *	tracker_dec_info_ref 		(FileInfo *info);
 
 FileInfo *	tracker_free_file_info   	(FileInfo *info);
-
-char *		tracker_get_vfs_path 		(const char *uri);
-
-char *		tracker_get_vfs_name 		(const char *uri);
-char * 		tracker_get_mime_type 	 	(const char *uri);
-
-gboolean 	tracker_file_is_valid 		(const char *uri);
-
-gboolean	tracker_file_is_indexable 	(const char *uri);
-
-gboolean	tracker_is_mounted	        (const char *dir);
-gboolean 	tracker_is_directory 		(const char *dir);
-
-void		tracker_load_config_file 	(void);
 
 GSList * 	tracker_get_watch_root_dirs 	(void);
 
@@ -430,19 +412,11 @@ char *		tracker_get_snippet 		(const char *txt, char **terms, int length);
 
 gboolean	tracker_spawn 			(char **argv, int timeout, char **tmp_stdout, int *exit_status);
 
-char*	 	tracker_string_replace 		(const char *haystack, char *needle, char *replacement);
-
 void		tracker_add_metadata_to_table 	(GHashTable *meta_table, const char *key, const char *value);
 
 void		tracker_free_metadata_field 	(FieldData *field_data);
 
-gboolean	tracker_unlink 			(const char *uri);
-
 int 		tracker_get_memory_usage 	(void);
-
-guint32		tracker_file_size 		(const char *name);
-int		tracker_file_open 		(const char *file_name, gboolean readahead);
-void		tracker_file_close 		(int fd, gboolean no_longer_needed);
 
 void		tracker_add_io_grace 		(const char *uri);
 

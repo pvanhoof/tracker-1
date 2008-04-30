@@ -22,9 +22,6 @@
 #define _GNU_SOURCE
 #endif
 
-#include <libtracker-common/tracker-log.h>
-#include <libtracker-common/tracker-config.h>
-
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,6 +30,11 @@
 #include <unistd.h>
 #include <glib/gstdio.h>
 #include <dirent.h>
+
+#include <libtracker-common/tracker-log.h>
+#include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-file-utils.h>
+#include <libtracker-common/tracker-utils.h>
 
 #include "tracker-email-modest.h"
 #include "tracker-email-utils.h"

@@ -1,4 +1,5 @@
-/* Tracker - indexer and metadata database engine
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
  * Copyright (C) 2007, Mr Jamie McCracken (jamiemcc@gnome.org)
  *
  * This library is free software; you can redistribute it and/or
@@ -23,25 +24,29 @@
 #include "mingw-compat.h"
 #include "tracker-os-dependant.h"
 
-
 gboolean
 tracker_check_uri (const gchar *uri)
 {
         return uri != NULL;
 }
 
-
 gboolean
-tracker_spawn (gchar **argv, gint timeout, gchar **tmp_stdout, gint *exit_status)
+tracker_spawn (gchar **argv, 
+               gint    timeout, 
+               gchar **tmp_stdout, 
+               gint   *exit_status)
 {
-        gint length;
-        gint i;
+	GSpawnFlags   flags;
+	GError       *error = NULL;
+        gchar       **new_argv;
+        gboolean      status;
+        gint          length;
+        gint          i;
 
-        for (i = 0; argv[i]; i++)
-                ;
+        for (i = 0; argv[i]; i++);
         length = i;
 
-        gchar **new_argv = g_new0 (gchar *, length + 3);
+        new_argv = g_new0 (gchar*, length + 3);
 
         new_argv[0] = "cmd.exe";
         new_argv[1] = "/c";
@@ -50,25 +55,23 @@ tracker_spawn (gchar **argv, gint timeout, gchar **tmp_stdout, gint *exit_status
                 new_argv[i + 2] = argv[i];
         }
 
-	GSpawnFlags     flags;
-	GError          *error = NULL;
+        flags = G_SPAWN_SEARCH_PATH | 
+                G_SPAWN_STDERR_TO_DEV_NULL;
 
 	if (!tmp_stdout) {
-		flags = G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL;
-	} else {
-		flags = G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL;
+		flags = flags | G_SPAWN_STDOUT_TO_DEV_NULL;
 	}
 
-	gboolean status = g_spawn_sync (NULL,
-                                        new_argv,
-                                        NULL,
-                                        flags,
-                                        NULL,
-                                        GINT_TO_POINTER (timeout),
-                                        tmp_stdout,
-                                        NULL,
-                                        exit_status,
-                                        &error);
+	status = g_spawn_sync (NULL,
+                               new_argv,
+                               NULL,
+                               flags,
+                               NULL,
+                               GINT_TO_POINTER (timeout),
+                               tmp_stdout,
+                               NULL,
+                               exit_status,
+                               &error);
 
 	if (!status) {
                 tracker_log (error->message);
@@ -80,14 +83,18 @@ tracker_spawn (gchar **argv, gint timeout, gchar **tmp_stdout, gint *exit_status
 	return status;
 }
 
+void
+tracker_child_cb (gpointer user_data)
+{
+}
 
 gchar *
 tracker_create_permission_string (struct stat finfo)
 {
-        gchar   *str;
-	gint    n, bit;
+        gchar *str;
+	gint   n, bit;
 
-	/* create permissions string */
+	/* Create permissions string */
 	str = g_strdup ("?rwxrwxrwx");
 
 	for (bit = 0400, n = 1; bit; bit >>= 1, ++n) {
@@ -111,8 +118,3 @@ tracker_create_permission_string (struct stat finfo)
 	return str;
 }
 
-
-void
-tracker_child_cb (gpointer user_data)
-{
-}

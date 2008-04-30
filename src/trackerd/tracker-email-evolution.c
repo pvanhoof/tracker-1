@@ -33,7 +33,9 @@
 
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-type-utils.h>
+#include <libtracker-common/tracker-utils.h>
 
 #include "tracker-email-utils.h"
 #include "tracker-db-email.h"
@@ -338,7 +340,7 @@ evolution_file_is_interesting (FileInfo *info)
 		dir_path = dir->data;
 
 		if (g_str_has_prefix (info->uri, dir_path)) {
-			mime = tracker_get_mime_type (info->uri);
+			mime = tracker_file_get_mime_type (info->uri);
 			result = (strcmp (mime, "message/rfc822") == 0);
 			g_free (mime);
 
@@ -355,7 +357,7 @@ evolution_file_is_interesting (FileInfo *info)
 		dir_path = dir->data;
 
 		if (g_str_has_prefix (info->uri, dir_path)) {
-			mime = tracker_get_mime_type (info->uri);
+			mime = tracker_file_get_mime_type (info->uri);
 			result = (strcmp (mime, "message/rfc822") == 0);
 			g_free (mime);
 

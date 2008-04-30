@@ -26,6 +26,7 @@
 
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-utils.h>
+#include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-type-utils.h>
 
 #include "tracker-dbus.h"
@@ -182,7 +183,7 @@ tracker_dbus_files_exist (TrackerDBusFiles  *object,
 			info->mime = g_strdup ("unknown");
 			service = g_strdup ("Files");
 		} else {
-			info->mime = tracker_get_mime_type (uri);
+			info->mime = tracker_file_get_mime_type (uri);
 			service = tracker_service_manager_get_service_type_for_mime (info->mime);
 			info = tracker_get_file_info (info);
 		}
@@ -251,8 +252,8 @@ tracker_dbus_files_create (TrackerDBusFiles  *object,
 		name = g_path_get_basename (info->uri);
 		path = g_path_get_dirname (info->uri);
 	} else {
-		name = tracker_get_vfs_name (info->uri);
-		path = tracker_get_vfs_path (info->uri);
+		name = tracker_file_get_vfs_name (info->uri);
+		path = tracker_file_get_vfs_path (info->uri);
 	}
 
 	service = tracker_service_manager_get_service_type_for_mime (mime);
@@ -365,8 +366,8 @@ tracker_dbus_files_delete (TrackerDBusFiles  *object,
 		name = g_path_get_basename (uri);
 		path = g_path_get_dirname (uri);
 	} else {
-		name = tracker_get_vfs_name (uri);
-		path = tracker_get_vfs_path (uri);
+		name = tracker_file_get_vfs_name (uri);
+		path = tracker_file_get_vfs_path (uri);
 	}
 
 	is_directory = FALSE;
@@ -604,8 +605,8 @@ tracker_dbus_files_search_text_contents (TrackerDBusFiles  *object,
 		name = g_path_get_basename (uri);
 		path = g_path_get_dirname (uri);
 	} else {
-		name = tracker_get_vfs_name (uri);
-		path = tracker_get_vfs_path (uri);
+		name = tracker_file_get_vfs_name (uri);
+		path = tracker_file_get_vfs_path (uri);
 	}
 	
 	max_length_str = tracker_int_to_string (max_length);
@@ -836,8 +837,8 @@ tracker_dbus_files_get_mtime (TrackerDBusFiles  *object,
 		name = g_path_get_basename (uri);
 		path = g_path_get_dirname (uri);
 	} else {
-		name = tracker_get_vfs_name (uri);
-		path = tracker_get_vfs_path (uri);
+		name = tracker_file_get_vfs_name (uri);
+		path = tracker_file_get_vfs_path (uri);
 	}
 
 	result_set = tracker_exec_proc (db_con,

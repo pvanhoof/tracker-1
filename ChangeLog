@@ -1,3 +1,27 @@
+2008-04-30  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/Makefile.am:
+	* src/libtracker-common/tracker-os-dependant-unix.c:
+	* src/libtracker-common/tracker-os-dependant-win.c:
+	* src/libtracker-common/tracker-os-dependant.h: Moved to
+	libtracker-common from trackerd.
+	
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-db-sqlite.c: 
+	* src/trackerd/tracker-db.c: 
+	* src/trackerd/tracker-dbus-files.c:
+	* src/trackerd/tracker-email-evolution.c:
+	* src/trackerd/tracker-email-kmail.c:
+	* src/trackerd/tracker-inotify.c:
+	* src/trackerd/tracker-metadata.c:
+	* src/trackerd/tracker-os-dependant-unix.c:
+	* src/trackerd/tracker-os-dependant-win.c:
+	* src/trackerd/tracker-os-dependant.h:
+	* src/trackerd/tracker-process-files.c:
+	* src/trackerd/tracker-utils.c:
+	* src/trackerd/tracker-utils.h: Moved file utility functions to
+	libtracker-common. 
+
 2008-04-29  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/Makefile.am:

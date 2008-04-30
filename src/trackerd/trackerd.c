@@ -379,7 +379,7 @@ signal_handler (gint signo)
 static inline void
 queue_dir (const gchar *uri)
 {
-	FileInfo *info = tracker_create_file_info (uri, TRACKER_ACTION_DIRECTORY_CHECK, 0, 0);
+	TrackerDBFileInfo *info = tracker_db_file_info_new (uri, TRACKER_DB_ACTION_DIRECTORY_CHECK, 0, 0);
 	g_async_queue_push (tracker->file_process_queue, info);
 }
 

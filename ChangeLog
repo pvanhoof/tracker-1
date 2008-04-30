@@ -1,6 +1,37 @@
 2008-04-30  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/Makefile.am:
+	* src/libtracker-common/tracker-file-utils.[ch]: Added to handle
+	IO operations.
+	
+	* src/libtracker-db/Makefile.am:
+	* src/libtracker-db/tracker-db-action.[ch]:
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-action.[ch]: Moved TrackerAction to
+	libtracker-db and renamed to TrackerDBAction.
+	
+	* src/trackerd/tracker-apps.[ch]:
+	* src/trackerd/tracker-db-email.c:
+	* src/trackerd/tracker-db-sqlite.[ch]:
+	* src/trackerd/tracker-db.[ch]:
+	* src/trackerd/tracker-dbus-files.c: 
+	* src/trackerd/tracker-email-evolution.c:
+	* src/trackerd/tracker-email-kmail.c:
+	* src/trackerd/tracker-email-modest.c:
+	* src/trackerd/tracker-email-thunderbird.c:
+	* src/trackerd/tracker-email.c:
+	* src/trackerd/tracker-email.h:
+	* src/trackerd/tracker-inotify.c: 
+	* src/trackerd/tracker-process-files.[ch]:
+	* src/trackerd/tracker-status.[ch]:
+	* src/trackerd/tracker-utils.[ch]:
+	* src/trackerd/trackerd.c: Moved FileInfo and WatchTypes to
+	libtracker-db and renamed to TrackerDBFileInfo and
+	TrackerDBWatch. 
+
+2008-04-30  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/Makefile.am:
 	* src/libtracker-common/tracker-os-dependant-unix.c:
 	* src/libtracker-common/tracker-os-dependant-win.c:
 	* src/libtracker-common/tracker-os-dependant.h: Moved to

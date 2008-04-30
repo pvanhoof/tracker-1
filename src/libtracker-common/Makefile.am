@@ -17,6 +17,8 @@ libtracker_common_la_SOURCES = 		\
 	tracker-configuration.h 	\
 	tracker-config.c 		\
 	tracker-config.h		\
+	tracker-file-utils.c		\
+	tracker-file-utils.h		\
 	tracker-language.c		\
 	tracker-language.h		\
 	tracker-log.c	 		\
@@ -24,8 +26,6 @@ libtracker_common_la_SOURCES = 		\
 	tracker-os-dependant.h		\
 	tracker-type-utils.c		\
 	tracker-type-utils.h		\
-	tracker-file-utils.c		\
-	tracker-file-utils.h		\
 	tracker-utils.c			\
 	tracker-utils.h
 

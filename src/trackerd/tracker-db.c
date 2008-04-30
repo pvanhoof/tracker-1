@@ -1,4 +1,5 @@
-/* Tracker - indexer and metadata database engine
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2007, Jason Kivlighn (jkivlighn@gmail.com)
  * Copyright (C) 2007, Creative Commons (http://creativecommons.org) 
@@ -139,8 +140,8 @@ tracker_db_get_file_id (DBConnection *db_con, const char *uri)
 }
 
 
-FileInfo *
-tracker_db_get_file_info (DBConnection *db_con, FileInfo *info)
+TrackerDBFileInfo *
+tracker_db_get_file_info (DBConnection *db_con, TrackerDBFileInfo *info)
 {
 	TrackerDBResultSet *result_set;
 	gchar *path, *name;
@@ -367,11 +368,11 @@ tracker_metadata_is_date (DBConnection *db_con, const char *meta)
 }
 
 
-FileInfo *
+TrackerDBFileInfo *
 tracker_db_get_pending_file (DBConnection *db_con, const char *uri)
 {
 	TrackerDBResultSet *result_set;
-	FileInfo *info;
+	TrackerDBFileInfo  *info;
 
 	info = NULL;
 	result_set = tracker_exec_proc (db_con->cache, "SelectPendingByUri", uri, NULL);
@@ -391,7 +392,7 @@ tracker_db_get_pending_file (DBConnection *db_con, const char *uri)
 					   8, &service_type_id,
 					   -1);
 
-		info = tracker_create_file_info (uri, counter, 0, 0);
+		info = tracker_db_file_info_new (uri, counter, 0, 0);
 		info->mime = mimetype;
 		info->is_directory = is_directory;
 		info->is_new = is_new;
@@ -405,9 +406,8 @@ tracker_db_get_pending_file (DBConnection *db_con, const char *uri)
 	return info;
 }
 
-
 static void
-make_pending_file (DBConnection *db_con, guint32 file_id, const char *uri, const char *moved_to_uri, const char *mime, int counter, TrackerAction action, gboolean is_directory, gboolean is_new, int service_type_id)
+make_pending_file (DBConnection *db_con, guint32 file_id, const char *uri, const char *moved_to_uri, const char *mime, int counter, TrackerDBAction action, gboolean is_directory, gboolean is_new, int service_type_id)
 {
 	char *str_file_id, *str_action, *str_counter;
 
@@ -419,7 +419,7 @@ make_pending_file (DBConnection *db_con, guint32 file_id, const char *uri, const
 
 	if (tracker->is_running) {
 
-		gboolean move_file = (action == TRACKER_ACTION_FILE_MOVED_FROM || action == TRACKER_ACTION_DIRECTORY_MOVED_FROM);
+		gboolean move_file = (action == TRACKER_DB_ACTION_FILE_MOVED_FROM || action == TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM);
 			
 		if (!move_file && ((counter > 0) || (g_async_queue_length (tracker->file_process_queue) > tracker->max_process_queue_size))) {
 
@@ -432,9 +432,9 @@ make_pending_file (DBConnection *db_con, guint32 file_id, const char *uri, const
 
 		} else {
 
-			FileInfo *info;
+			TrackerDBFileInfo *info;
 
-			info = tracker_create_file_info (uri, action, 0, WATCH_OTHER);
+			info = tracker_db_file_info_new (uri, action, 0, TRACKER_DB_WATCH_OTHER);
 
 			info->is_directory = is_directory;
 			info->is_new = is_new;
@@ -445,11 +445,11 @@ make_pending_file (DBConnection *db_con, guint32 file_id, const char *uri, const
 				info->mime = g_strdup (mime);
 			}
 
-			if (action == TRACKER_ACTION_FILE_MOVED_FROM || action == TRACKER_ACTION_DIRECTORY_MOVED_FROM) {
+			if (action == TRACKER_DB_ACTION_FILE_MOVED_FROM || action == TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM) {
 				info->moved_to_uri = g_strdup (moved_to_uri);
 			}
 
-			if (action != TRACKER_ACTION_EXTRACT_METADATA) {
+			if (action != TRACKER_DB_ACTION_EXTRACT_METADATA) {
 				g_async_queue_push (tracker->file_process_queue, info);
 			} else {
 				g_async_queue_push (tracker->file_metadata_queue, info);
@@ -466,7 +466,7 @@ make_pending_file (DBConnection *db_con, guint32 file_id, const char *uri, const
 	/* tracker_log ("inserting pending file for %s with action %s", uri, tracker_actions[action]); */
 
 	/* signal respective thread that data is available and awake it if its asleep */
-	if (action == TRACKER_ACTION_EXTRACT_METADATA) {
+	if (action == TRACKER_DB_ACTION_EXTRACT_METADATA) {
 		tracker_notify_meta_data_available ();
 	} else {
 		tracker_notify_file_data_available ();
@@ -479,7 +479,7 @@ make_pending_file (DBConnection *db_con, guint32 file_id, const char *uri, const
 
 
 void
-tracker_db_update_pending_file (DBConnection *db_con, const char *uri, int counter, TrackerAction action)
+tracker_db_update_pending_file (DBConnection *db_con, const char *uri, int counter, TrackerDBAction action)
 {
 	char *str_counter, *str_action;
 
@@ -498,7 +498,7 @@ tracker_db_update_pending_file (DBConnection *db_con, const char *uri, int count
 
 
 void
-tracker_db_add_to_extract_queue (DBConnection *db_con, FileInfo *info)
+tracker_db_add_to_extract_queue (DBConnection *db_con, TrackerDBFileInfo *info)
 {
 	int i;
 
@@ -510,12 +510,12 @@ tracker_db_add_to_extract_queue (DBConnection *db_con, FileInfo *info)
 	if (i < tracker->max_extract_queue_size) {
 
 		/* inc ref count to prevent it being deleted */
-		info = tracker_inc_info_ref (info);
+		info = tracker_db_file_info_ref (info);
 
 		g_async_queue_push (tracker->file_metadata_queue, info);
 
 	} else {
-		tracker_db_insert_pending_file (db_con, info->file_id, info->uri, NULL, info->mime, 0, TRACKER_ACTION_EXTRACT_METADATA, info->is_directory, info->is_new, info->service_type_id);
+		tracker_db_insert_pending_file (db_con, info->file_id, info->uri, NULL, info->mime, 0, TRACKER_DB_ACTION_EXTRACT_METADATA, info->is_directory, info->is_new, info->service_type_id);
 	}
 
 	tracker_notify_meta_data_available ();
@@ -581,9 +581,9 @@ print_file_change_queue ()
 static void
 index_blacklist_file (char *uri)
 {
-	FileInfo *info;
+	TrackerDBFileInfo *info;
 
-	info = tracker_create_file_info (uri, TRACKER_ACTION_FILE_CHECK, 0, WATCH_OTHER);
+	info = tracker_db_file_info_new (uri, TRACKER_DB_ACTION_FILE_CHECK, 0, TRACKER_DB_WATCH_OTHER);
 
 	info->is_directory = FALSE;
 	
@@ -686,15 +686,15 @@ check_uri_changed_frequently (const char *uri)
 }
 
 void
-tracker_db_insert_pending_file (DBConnection *db_con, guint32 file_id, const char *uri, const char *moved_to_uri, const char *mime, int counter, TrackerAction action, gboolean is_directory, gboolean is_new, int service_type_id)
+tracker_db_insert_pending_file (DBConnection *db_con, guint32 file_id, const char *uri, const char *moved_to_uri, const char *mime, int counter, TrackerDBAction action, gboolean is_directory, gboolean is_new, int service_type_id)
 {
-	FileInfo *info;
+	TrackerDBFileInfo *info;
 
 	g_return_if_fail (tracker_check_uri (uri));
 
 	/* check if uri changed too frequently */
-	if (((action == TRACKER_ACTION_CHECK) ||
-		(action == TRACKER_ACTION_FILE_CHECK) || (action == TRACKER_ACTION_WRITABLE_FILE_CLOSED)) &&
+	if (((action == TRACKER_DB_ACTION_CHECK) ||
+		(action == TRACKER_DB_ACTION_FILE_CHECK) || (action == TRACKER_DB_ACTION_WRITABLE_FILE_CLOSED)) &&
 		check_uri_changed_frequently (uri)) {
 		
 		return;
@@ -707,45 +707,45 @@ tracker_db_insert_pending_file (DBConnection *db_con, guint32 file_id, const cha
 	if (info) {
 		switch (action) {
 
-		case TRACKER_ACTION_FILE_CHECK:
+		case TRACKER_DB_ACTION_FILE_CHECK:
 
 			/* update counter for any existing event in the file_scheduler */
 
-			if ((info->action == TRACKER_ACTION_FILE_CHECK) ||
-			    (info->action == TRACKER_ACTION_FILE_CREATED) ||
-			    (info->action == TRACKER_ACTION_FILE_CHANGED)) {
+			if ((info->action == TRACKER_DB_ACTION_FILE_CHECK) ||
+			    (info->action == TRACKER_DB_ACTION_FILE_CREATED) ||
+			    (info->action == TRACKER_DB_ACTION_FILE_CHANGED)) {
 
 				tracker_db_update_pending_file (db_con, uri, counter, action);
 			}
 
 			break;
 
-		case TRACKER_ACTION_FILE_CHANGED:
+		case TRACKER_DB_ACTION_FILE_CHANGED:
 
 			tracker_db_update_pending_file (db_con, uri, counter, action);
 
 			break;
 
-		case TRACKER_ACTION_WRITABLE_FILE_CLOSED:
+		case TRACKER_DB_ACTION_WRITABLE_FILE_CLOSED:
 
 			tracker_db_update_pending_file (db_con, uri, 0, action);
 
 			break;
 
-		case TRACKER_ACTION_FILE_DELETED:
-		case TRACKER_ACTION_FILE_CREATED:
-		case TRACKER_ACTION_DIRECTORY_DELETED:
-		case TRACKER_ACTION_DIRECTORY_CREATED:
+		case TRACKER_DB_ACTION_FILE_DELETED:
+		case TRACKER_DB_ACTION_FILE_CREATED:
+		case TRACKER_DB_ACTION_DIRECTORY_DELETED:
+		case TRACKER_DB_ACTION_DIRECTORY_CREATED:
 
 			/* overwrite any existing event in the file_scheduler */
 			tracker_db_update_pending_file (db_con, uri, 0, action);
 
 			break;
 
-		case TRACKER_ACTION_EXTRACT_METADATA:
+		case TRACKER_DB_ACTION_EXTRACT_METADATA:
 
 			/* we only want to continue extracting metadata if file is not being changed/deleted in any way */
-			if (info->action == TRACKER_ACTION_FILE_CHECK) {
+			if (info->action == TRACKER_DB_ACTION_FILE_CHECK) {
 				tracker_db_update_pending_file (db_con, uri, 0, action);
 			}
 
@@ -755,7 +755,7 @@ tracker_db_insert_pending_file (DBConnection *db_con, guint32 file_id, const cha
 			break;
 		}
 
-		tracker_free_file_info (info);
+		tracker_db_file_info_free (info);
 
 	} else {
 		make_pending_file (db_con, file_id, uri, moved_to_uri, mime, counter, action, is_directory, is_new, service_type_id);
@@ -788,7 +788,7 @@ restore_backup_data (gpointer mtype,
 
 
 void
-tracker_db_index_service (DBConnection *db_con, FileInfo *info, const char *service, GHashTable *meta_table, const char *attachment_uri, const char *attachment_service,  gboolean get_embedded, gboolean get_full_text, gboolean get_thumbs)
+tracker_db_index_service (DBConnection *db_con, TrackerDBFileInfo *info, const char *service, GHashTable *meta_table, const char *attachment_uri, const char *attachment_service,  gboolean get_embedded, gboolean get_full_text, gboolean get_thumbs)
 {
 	char		*str_file_id;
 	const char	*uri;
@@ -1020,7 +1020,7 @@ tracker_db_index_master_files (DBConnection *db_con, const gchar *dirname, const
 		const gchar *curr_ext;
 		const gchar *curr_filename;
 
-		FileInfo *master_info;
+		TrackerDBFileInfo *master_info;
 		gchar *master_uri;
 
 		while ((curr_filename = g_dir_read_name (dir)) != NULL) {
@@ -1036,7 +1036,7 @@ tracker_db_index_master_files (DBConnection *db_con, const gchar *dirname, const
 				tracker_debug ("master file, %s, about to be updated", curr_filename);
 
 				master_uri = g_build_filename (dirname, curr_filename, NULL);
-				master_info = tracker_create_file_info (master_uri, TRACKER_ACTION_FILE_CHANGED, 0, 0);
+				master_info = tracker_db_file_info_new (master_uri, TRACKER_DB_ACTION_FILE_CHANGED, 0, 0);
 				master_info = tracker_db_get_file_info (db_con, master_info);
 				g_free (master_uri);
 
@@ -1050,7 +1050,7 @@ tracker_db_index_master_files (DBConnection *db_con, const gchar *dirname, const
 
 
 void
-tracker_db_index_file (DBConnection *db_con, FileInfo *info, const char *attachment_uri, const char *attachment_service)
+tracker_db_index_file (DBConnection *db_con, TrackerDBFileInfo *info, const char *attachment_uri, const char *attachment_service)
 {
 
 	GHashTable	*meta_table;
@@ -1237,12 +1237,12 @@ tracker_db_index_file (DBConnection *db_con, FileInfo *info, const char *attachm
 		tracker_file_unlink (info->uri);
 	}
 
-	tracker_dec_info_ref (info);
+	tracker_db_file_info_unref (info);
 }
 
 
 void
-tracker_db_index_conversation (DBConnection *db_con, FileInfo *info)
+tracker_db_index_conversation (DBConnection *db_con, TrackerDBFileInfo *info)
 {
 	/* to do use offsets */
 
@@ -1250,7 +1250,7 @@ tracker_db_index_conversation (DBConnection *db_con, FileInfo *info)
 }
 
 void 
-tracker_db_index_webhistory(DBConnection *db_con, FileInfo *info)
+tracker_db_index_webhistory(DBConnection *db_con, TrackerDBFileInfo *info)
 {
 	tracker_db_index_file (db_con, info, NULL, "WebHistory");
 }

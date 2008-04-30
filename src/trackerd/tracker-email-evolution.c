@@ -1,5 +1,5 @@
-/* Tracker
- * routines for emails with Evolution
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/* 
  * Copyright (C) 2006, Laurent Aguerreche (laurent.aguerreche@free.fr)
  *
  * This library is free software; you can redistribute it and/or
@@ -36,6 +36,8 @@
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-utils.h>
+
+#include <libtracker-db/tracker-db-file-info.h>
 
 #include "tracker-email-utils.h"
 #include "tracker-db-email.h"
@@ -314,7 +316,7 @@ tracker_email_watch_emails (DBConnection *db_con)
 
 
 static gboolean
-evolution_file_is_interesting (FileInfo *info)
+evolution_file_is_interesting (TrackerDBFileInfo *info)
 {
 	GSList *dir;
 
@@ -370,7 +372,7 @@ evolution_file_is_interesting (FileInfo *info)
 
 
 gboolean
-tracker_email_index_file (DBConnection *db_con, FileInfo *info)
+tracker_email_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
 {
 	gchar *file_name;
 

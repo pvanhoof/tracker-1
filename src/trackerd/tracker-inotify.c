@@ -37,9 +37,10 @@
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-utils.h>
 
+#include <libtracker-db/tracker-db-action.h>
+
 #include "tracker-watch.h"
 #include "tracker-process-files.h"
-#include "tracker-action.h"
 
 #define INOTIFY_WATCH_LIMIT "/proc/sys/fs/inotify/max_user_watches"
 
@@ -86,24 +87,24 @@ tracker_is_directory_watched (const char * dir, DBConnection *db_con)
 
 
 static gboolean
-is_delete_event (TrackerAction event_type)
+is_delete_event (TrackerDBAction event_type)
 {
-	return (event_type == TRACKER_ACTION_DELETE ||
-		event_type == TRACKER_ACTION_DELETE_SELF ||
-		event_type == TRACKER_ACTION_FILE_DELETED ||
-		event_type == TRACKER_ACTION_DIRECTORY_DELETED);
+	return (event_type == TRACKER_DB_ACTION_DELETE ||
+		event_type == TRACKER_DB_ACTION_DELETE_SELF ||
+		event_type == TRACKER_DB_ACTION_FILE_DELETED ||
+		event_type == TRACKER_DB_ACTION_DIRECTORY_DELETED);
 }
 
 
 
 static void
-process_event (const char *uri, gboolean is_dir, TrackerAction action, guint32 cookie)
+process_event (const char *uri, gboolean is_dir, TrackerDBAction action, guint32 cookie)
 {
-	FileInfo *info;
+	TrackerDBFileInfo *info;
 
 	g_return_if_fail (uri && (uri[0] == '/'));
 
-	info = tracker_create_file_info (uri, action, 1, WATCH_OTHER);
+	info = tracker_db_file_info_new (uri, action, 1, TRACKER_DB_WATCH_OTHER);
 
 	if (!tracker_process_files_is_file_info_valid (info)) {
 		return;
@@ -120,7 +121,8 @@ process_event (const char *uri, gboolean is_dir, TrackerAction action, guint32 c
 			g_async_queue_push (tracker->file_process_queue, info);
 			tracker_notify_file_data_available ();
 		} else {
-			info = tracker_free_file_info (info);
+			tracker_db_file_info_free (info);
+                        info = NULL;
 		}
 
 		g_free (parent);
@@ -128,20 +130,20 @@ process_event (const char *uri, gboolean is_dir, TrackerAction action, guint32 c
 	}
 
 	/* we are not interested in create events for non-folders (we use writable file closed instead) */
-	if (action == TRACKER_ACTION_DIRECTORY_CREATED) {
+	if (action == TRACKER_DB_ACTION_DIRECTORY_CREATED) {
 
-		info->action = TRACKER_ACTION_DIRECTORY_CREATED;
+		info->action = TRACKER_DB_ACTION_DIRECTORY_CREATED;
 		info->is_directory = TRUE;
 		tracker_db_insert_pending_file (main_thread_db_con, info->file_id, info->uri,  NULL, info->mime, 0, info->action, info->is_directory, TRUE, -1);
-		info = tracker_free_file_info (info);
+		tracker_db_file_info_free (info);
 		return;
 
-	} else if (action == TRACKER_ACTION_FILE_CREATED) {
+	} else if (action == TRACKER_DB_ACTION_FILE_CREATED) {
 		tracker_add_io_grace (info->uri);
-		info = tracker_free_file_info (info);
+		tracker_db_file_info_free (info);
 		return;
 
-	} else	if (action == TRACKER_ACTION_DIRECTORY_MOVED_FROM || action == TRACKER_ACTION_FILE_MOVED_FROM) {
+	} else	if (action == TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM || action == TRACKER_DB_ACTION_FILE_MOVED_FROM) {
 		tracker_add_io_grace (info->uri);
 		info->cookie = cookie;
 		info->counter = 1;
@@ -153,16 +155,16 @@ process_event (const char *uri, gboolean is_dir, TrackerAction action, guint32 c
 		    );
 		return;
 
-	} else if (action == TRACKER_ACTION_FILE_MOVED_TO || action == TRACKER_ACTION_DIRECTORY_MOVED_TO) {
-		FileInfo *moved_to_info;
+	} else if (action == TRACKER_DB_ACTION_FILE_MOVED_TO || action == TRACKER_DB_ACTION_DIRECTORY_MOVED_TO) {
+		TrackerDBFileInfo *moved_to_info;
 		GSList   *tmp;
 
 		moved_to_info = info;
 		tracker_add_io_grace (info->uri);
 		for (tmp = move_list; tmp; tmp = tmp->next) {
-			FileInfo *moved_from_info;
+			TrackerDBFileInfo *moved_from_info;
 
-			moved_from_info = (FileInfo *) tmp->data;
+			moved_from_info = (TrackerDBFileInfo *) tmp->data;
 
 			if (!moved_from_info) {
 				tracker_error ("ERROR: bad FileInfo struct found in move list. Skipping...");
@@ -177,11 +179,11 @@ process_event (const char *uri, gboolean is_dir, TrackerAction action, guint32 c
 				tracker->request_waiting = TRUE;
 
 				if (!tracker_file_is_directory (moved_to_info->uri)) {
-					tracker_db_insert_pending_file (main_thread_db_con, moved_from_info->file_id, moved_from_info->uri, moved_to_info->uri, moved_from_info->mime, 0, TRACKER_ACTION_FILE_MOVED_FROM, FALSE, TRUE, -1);
+					tracker_db_insert_pending_file (main_thread_db_con, moved_from_info->file_id, moved_from_info->uri, moved_to_info->uri, moved_from_info->mime, 0, TRACKER_DB_ACTION_FILE_MOVED_FROM, FALSE, TRUE, -1);
 					
 //					tracker_db_move_file (main_thread_db_con, moved_from_info->uri, moved_to_info->uri);
 				} else {
-					tracker_db_insert_pending_file (main_thread_db_con, moved_from_info->file_id, moved_from_info->uri, moved_to_info->uri, moved_from_info->mime, 0, TRACKER_ACTION_DIRECTORY_MOVED_FROM, TRUE, TRUE, -1);
+					tracker_db_insert_pending_file (main_thread_db_con, moved_from_info->file_id, moved_from_info->uri, moved_to_info->uri, moved_from_info->mime, 0, TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM, TRUE, TRUE, -1);
 //					tracker_db_move_directory (main_thread_db_con, moved_from_info->uri, moved_to_info->uri);
 				}
 
@@ -194,27 +196,27 @@ process_event (const char *uri, gboolean is_dir, TrackerAction action, guint32 c
 		/* matching pair not found so treat as a create action */
 		tracker_debug ("no matching pair found for inotify move event for %s", info->uri);
 		if (tracker_file_is_directory (info->uri)) {
-			info->action = TRACKER_ACTION_DIRECTORY_CREATED;
+			info->action = TRACKER_DB_ACTION_DIRECTORY_CREATED;
 		} else {
-			info->action = TRACKER_ACTION_WRITABLE_FILE_CLOSED;
+			info->action = TRACKER_DB_ACTION_WRITABLE_FILE_CLOSED;
 		}
 		tracker_db_insert_pending_file (main_thread_db_con, info->file_id, info->uri,  NULL, info->mime, 10, info->action, info->is_directory, TRUE, -1);
-		info = tracker_free_file_info (info);
+		tracker_db_file_info_free (info);
 		return;
 
-	} else if (action == TRACKER_ACTION_WRITABLE_FILE_CLOSED) {
+	} else if (action == TRACKER_DB_ACTION_WRITABLE_FILE_CLOSED) {
 		tracker_add_io_grace (info->uri);
 		tracker_info ("File %s has finished changing", info->uri);
 		tracker_db_insert_pending_file (main_thread_db_con, info->file_id, info->uri,  NULL, info->mime, 0, info->action, info->is_directory, TRUE, -1);
-		info = tracker_free_file_info (info);
+		tracker_db_file_info_free (info);
 		return;
 
 	}
 
 	tracker_log ("WARNING: not processing event %s for uri %s", 
-                     tracker_action_to_string (info->action), 
+                     tracker_db_action_to_string (info->action), 
                      info->uri);
-	tracker_free_file_info (info);
+	tracker_db_file_info_free (info);
 }
 
 
@@ -232,25 +234,25 @@ process_moved_events ()
 	}
 
 	for (tmp = move_list; tmp; tmp = tmp->next) {
-		FileInfo *info;
+		TrackerDBFileInfo *info;
 
-		info = (FileInfo *) tmp->data;
+		info = (TrackerDBFileInfo *) tmp->data;
 
 		/* make it a DELETE if we have not received a corresponding MOVED_TO event after a certain period */
-		if ((info->counter < 1) && ((info->action == TRACKER_ACTION_FILE_MOVED_FROM) || (info->action == TRACKER_ACTION_DIRECTORY_MOVED_FROM))) {
+		if ((info->counter < 1) && ((info->action == TRACKER_DB_ACTION_FILE_MOVED_FROM) || (info->action == TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM))) {
 
 			/* make sure file no longer exists before issuing a "delete" */
 
 			if (!tracker_file_is_valid (info->uri)) {
-				if (info->action == TRACKER_ACTION_DIRECTORY_MOVED_FROM) {
-					process_event (info->uri, TRUE, TRACKER_ACTION_DIRECTORY_DELETED, 0);
+				if (info->action == TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM) {
+					process_event (info->uri, TRUE, TRACKER_DB_ACTION_DIRECTORY_DELETED, 0);
 				} else {
-					process_event (info->uri, FALSE, TRACKER_ACTION_FILE_DELETED, 0);
+					process_event (info->uri, FALSE, TRACKER_DB_ACTION_FILE_DELETED, 0);
 				}
 			}
 
 			move_list = g_slist_remove (move_list, info);
-			tracker_free_file_info (info);
+			tracker_db_file_info_free (info);
 			continue;
 
 		} else {
@@ -265,57 +267,57 @@ process_moved_events ()
 }
 
 
-static TrackerAction
+static TrackerDBAction
 get_event (guint32 event_type)
 {
 	if (event_type & IN_DELETE) {
 		if (event_type & IN_ISDIR) {
-			return TRACKER_ACTION_DIRECTORY_DELETED;
+			return TRACKER_DB_ACTION_DIRECTORY_DELETED;
 		} else {
-			return TRACKER_ACTION_FILE_DELETED;
+			return TRACKER_DB_ACTION_FILE_DELETED;
 		}
 	}
 
 	if (event_type & IN_DELETE_SELF) {
 		if (event_type & IN_ISDIR) {
-			return TRACKER_ACTION_DIRECTORY_DELETED;
+			return TRACKER_DB_ACTION_DIRECTORY_DELETED;
 		} else {
-			return TRACKER_ACTION_FILE_DELETED;
+			return TRACKER_DB_ACTION_FILE_DELETED;
 		}
 	}
 
 
 	if (event_type & IN_MOVED_FROM) {
 		if (event_type & IN_ISDIR) {
-			return TRACKER_ACTION_DIRECTORY_MOVED_FROM;
+			return TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM;
 		} else {
-			return TRACKER_ACTION_FILE_MOVED_FROM;
+			return TRACKER_DB_ACTION_FILE_MOVED_FROM;
 		}
 	}
 
 	if (event_type & IN_MOVED_TO) {
 		if (event_type & IN_ISDIR) {
-			return TRACKER_ACTION_DIRECTORY_MOVED_TO;
+			return TRACKER_DB_ACTION_DIRECTORY_MOVED_TO;
 		} else {
-			return TRACKER_ACTION_FILE_MOVED_TO;
+			return TRACKER_DB_ACTION_FILE_MOVED_TO;
 		}
 	}
 
 
 	if (event_type & IN_CLOSE_WRITE) {
-		return TRACKER_ACTION_WRITABLE_FILE_CLOSED;
+		return TRACKER_DB_ACTION_WRITABLE_FILE_CLOSED;
 	}
 
 
 	if (event_type & IN_CREATE) {
 		if (event_type & IN_ISDIR) {
-			return TRACKER_ACTION_DIRECTORY_CREATED;
+			return TRACKER_DB_ACTION_DIRECTORY_CREATED;
 		} else {
-			return TRACKER_ACTION_FILE_CREATED;
+			return TRACKER_DB_ACTION_FILE_CREATED;
 		}
 	}
 
-	return TRACKER_ACTION_IGNORE;
+	return TRACKER_DB_ACTION_IGNORE;
 }
 
 static gboolean
@@ -323,7 +325,7 @@ process_inotify_events (void)
 {
 	while (g_queue_get_length (inotify_queue) > 0) {
 		TrackerDBResultSet   *result_set;
-		TrackerAction         action_type;
+		TrackerDBAction         action_type;
 		char		     *str = NULL, *filename = NULL, *monitor_name = NULL, *str_wd;
 		char		     *file_utf8_uri = NULL, *dir_utf8_uri = NULL;
 		guint		      cookie;
@@ -342,7 +344,7 @@ process_inotify_events (void)
 
 		action_type = get_event (event->mask);
 
-		if (action_type == TRACKER_ACTION_IGNORE) {
+		if (action_type == TRACKER_DB_ACTION_IGNORE) {
 			g_free (event);
 			continue;
 		}
@@ -409,7 +411,7 @@ process_inotify_events (void)
 
 		if (str && str[0] == '/' && 
                     (!tracker_process_files_should_be_ignored (str) || 
-                     action_type == TRACKER_ACTION_DIRECTORY_MOVED_FROM) && 
+                     action_type == TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM) && 
                     tracker_process_files_should_be_crawled (tracker, str) && 
                     tracker_process_files_should_be_watched (tracker->config, str)) {
 			process_event (str, tracker_file_is_directory (str), action_type, cookie);

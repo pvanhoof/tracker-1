@@ -1,5 +1,5 @@
-/* Tracker
- * routines for emails
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
  * Copyright (C) 2006, Laurent Aguerreche (laurent.aguerreche@free.fr)
  *
  * This library is free software; you can redistribute it and/or
@@ -18,28 +18,29 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef _TRACKER_EMAIL_H_
-#define _TRACKER_EMAIL_H_
-
-#include "tracker-utils.h"
+#ifndef __TRACKER_EMAIL_H__
+#define __TRACKER_EMAIL_H__
 
 #include "config.h"
 
+#include <libtracker-db/tracker-db-file-info.h>
+
+#include "tracker-utils.h"
 #include "tracker-db-sqlite.h"
 
 typedef gboolean      (* TrackerMailInit)          (void);
 typedef void          (* TrackerMailFinalize)      (void);
 typedef void          (* TrackerMailWatchEmails)   (DBConnection *db_con);
 typedef gboolean      (* TrackerMailIndexFile)     (DBConnection *db_con,
-						    FileInfo     *info);
+						    TrackerDBFileInfo     *info);
 typedef const gchar * (* TrackerMailGetName)       (void);
 
-gboolean        tracker_email_init                      (void);
-void		tracker_email_add_service_directories	(DBConnection *db_con);
-void		tracker_email_end_email_watching	(void);
-gboolean	tracker_email_file_is_interesting	(FileInfo *info);
-gboolean	tracker_email_index_file		(DBConnection *db_con, FileInfo *info);
-const gchar *   tracker_email_get_name                  (void);
-
+gboolean     tracker_email_init                    (void);
+void         tracker_email_add_service_directories (DBConnection      *db_con);
+void         tracker_email_end_email_watching      (void);
+gboolean     tracker_email_file_is_interesting     (TrackerDBFileInfo *info);
+gboolean     tracker_email_index_file              (DBConnection      *db_con,
+                                                    TrackerDBFileInfo *info);
+const gchar *tracker_email_get_name                (void);
 
 #endif

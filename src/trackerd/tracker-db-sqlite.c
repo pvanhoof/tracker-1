@@ -1,4 +1,5 @@
-/* Tracker - indexer and metadata database engine
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  *
  * This library is free software; you can redistribute it and/or
@@ -1824,7 +1825,7 @@ save_full_text (DBConnection *blob_db_con, const char *str_file_id, const char *
 
 
 void
-tracker_db_save_file_contents (DBConnection *db_con, GHashTable *index_table, GHashTable *old_table, const char *file_name, FileInfo *info)
+tracker_db_save_file_contents (DBConnection *db_con, GHashTable *index_table, GHashTable *old_table, const char *file_name, TrackerDBFileInfo *info)
 {
 	char 		buffer[MAX_TEXT_BUFFER], out[MAX_COMPRESS_BUFFER];
 	int  		fd, bytes_read = 0, bytes_compressed = 0, flush;
@@ -3245,7 +3246,7 @@ tracker_db_delete_metadata (DBConnection *db_con, const char *service, const cha
 }
 
 guint32
-tracker_db_create_service (DBConnection *db_con, const char *service, FileInfo *info)
+tracker_db_create_service (DBConnection *db_con, const char *service, TrackerDBFileInfo *info)
 {
 	TrackerDBResultSet *result_set;
 	int	   i;
@@ -3618,7 +3619,7 @@ tracker_db_delete_service (DBConnection *db_con, guint32 id, const char *uri)
 
 
 void
-tracker_db_update_file (DBConnection *db_con, FileInfo *info)
+tracker_db_update_file (DBConnection *db_con, TrackerDBFileInfo *info)
 {
 	char *str_file_id;
 	char *str_service_type_id;
@@ -4232,7 +4233,7 @@ tracker_db_move_file (DBConnection *db_con, const char *moved_from_uri, const ch
 	guint32 id = tracker_db_get_file_id (db_con, moved_from_uri);
 	if (id == 0) {
 		tracker_debug ("WARNING: original file %s not found in DB", moved_from_uri);
-		tracker_db_insert_pending_file (db_con, id, moved_to_uri,  NULL, "unknown", 0, TRACKER_ACTION_WRITABLE_FILE_CLOSED, FALSE, TRUE, -1);
+		tracker_db_insert_pending_file (db_con, id, moved_to_uri,  NULL, "unknown", 0, TRACKER_DB_ACTION_WRITABLE_FILE_CLOSED, FALSE, TRUE, -1);
 		tracker_db_interface_end_transaction (db_con->db);
 		return;
 	}

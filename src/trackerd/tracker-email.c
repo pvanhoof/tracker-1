@@ -1,5 +1,5 @@
-/* Tracker
- * routines for emails
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
  * Copyright (C) 2006, Laurent Aguerreche (laurent.aguerreche@free.fr)
  *
  * This library is free software; you can redistribute it and/or
@@ -64,7 +64,7 @@ tracker_email_end_email_watching (void)
 
 
 gboolean
-tracker_email_index_file (DBConnection *db_con, FileInfo *info)
+tracker_email_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
 {
 	TrackerMailIndexFile func;
 

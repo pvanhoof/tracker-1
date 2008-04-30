@@ -298,7 +298,7 @@ process_schedule_directory_check_foreach (const gchar  *uri,
 	g_return_if_fail (tracker->index_db);
 
 	tracker_db_insert_pending_file (tracker->index_db, 0, uri, NULL, "unknown", 0, 
-                                        TRACKER_ACTION_DIRECTORY_REFRESH, TRUE, FALSE, -1);
+                                        TRACKER_DB_ACTION_DIRECTORY_REFRESH, TRUE, FALSE, -1);
 }
 
 static void
@@ -317,7 +317,7 @@ process_schedule_file_check_foreach (const gchar  *uri,
 
 	if (!tracker_file_is_directory (uri)) {
 		tracker_db_insert_pending_file (tracker->index_db, 0, uri, NULL, "unknown", 0, 
-                                                TRACKER_ACTION_CHECK, 0, FALSE, -1);
+                                                TRACKER_DB_ACTION_CHECK, 0, FALSE, -1);
 	} else {
 		process_schedule_directory_check_foreach (uri, tracker);
 	}
@@ -390,22 +390,22 @@ process_scan_directory (Tracker     *tracker,
 }
 
 static void
-process_action_verify (FileInfo *info)
+process_action_verify (TrackerDBFileInfo *info)
 {
         /* Determines whether an action applies to a file or a
          * directory.
          */
 
-	if (info->action == TRACKER_ACTION_CHECK) {
+	if (info->action == TRACKER_DB_ACTION_CHECK) {
 		if (info->is_directory) {
-			info->action = TRACKER_ACTION_DIRECTORY_CHECK;
+			info->action = TRACKER_DB_ACTION_DIRECTORY_CHECK;
 			info->counter = 0;
 		} else {
-			info->action = TRACKER_ACTION_FILE_CHECK;
+			info->action = TRACKER_DB_ACTION_FILE_CHECK;
 		}
 
 	} else {
-		if (info->action == TRACKER_ACTION_DELETE || info->action == TRACKER_ACTION_DELETE_SELF) {
+		if (info->action == TRACKER_DB_ACTION_DELETE || info->action == TRACKER_DB_ACTION_DELETE_SELF) {
 
 			/* we are in trouble if we cant find the deleted uri in the DB - assume its a directory (worst case) */
 			if (info->file_id == 0) {
@@ -414,36 +414,36 @@ process_action_verify (FileInfo *info)
 
 			info->counter = 0;
 			if (info->is_directory) {
-				info->action = TRACKER_ACTION_DIRECTORY_DELETED;
+				info->action = TRACKER_DB_ACTION_DIRECTORY_DELETED;
 			} else {
-				info->action = TRACKER_ACTION_FILE_DELETED;
+				info->action = TRACKER_DB_ACTION_FILE_DELETED;
 			}
 		} else {
-			if (info->action == TRACKER_ACTION_MOVED_FROM) {
+			if (info->action == TRACKER_DB_ACTION_MOVED_FROM) {
 				info->counter = 1;
 				if (info->is_directory) {
-					info->action = TRACKER_ACTION_DIRECTORY_MOVED_FROM;
+					info->action = TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM;
 				} else {
-					info->action = TRACKER_ACTION_FILE_MOVED_FROM;
+					info->action = TRACKER_DB_ACTION_FILE_MOVED_FROM;
 				}
 
 			} else {
 
-				if (info->action == TRACKER_ACTION_CREATE) {
+				if (info->action == TRACKER_DB_ACTION_CREATE) {
 					if (info->is_directory) {
-						info->action = TRACKER_ACTION_DIRECTORY_CREATED;
+						info->action = TRACKER_DB_ACTION_DIRECTORY_CREATED;
 						info->counter = 0; /* do not reschedule a created directory */
 					} else {
-						info->action = TRACKER_ACTION_FILE_CREATED;
+						info->action = TRACKER_DB_ACTION_FILE_CREATED;
 					}
 
 				} else {
-					if (info->action == TRACKER_ACTION_FILE_MOVED_TO) {
+					if (info->action == TRACKER_DB_ACTION_FILE_MOVED_TO) {
 						info->counter = 0;
 						if (info->is_directory) {
-							info->action = TRACKER_ACTION_DIRECTORY_MOVED_TO;
+							info->action = TRACKER_DB_ACTION_DIRECTORY_MOVED_TO;
 						} else {
-							info->action = TRACKER_ACTION_FILE_MOVED_TO;
+							info->action = TRACKER_DB_ACTION_FILE_MOVED_TO;
 						}
 					}
 				}
@@ -453,8 +453,8 @@ process_action_verify (FileInfo *info)
 }
 
 static void
-process_index_entity (Tracker  *tracker, 
-                      FileInfo *info)
+process_index_entity (Tracker           *tracker, 
+                      TrackerDBFileInfo *info)
 {
         TrackerService *def;
 	gchar      *service_info;
@@ -524,8 +524,8 @@ process_index_entity (Tracker  *tracker,
 }
 
 static void
-process_index_delete_file (Tracker  *tracker, 
-                           FileInfo *info)
+process_index_delete_file (Tracker           *tracker, 
+                           TrackerDBFileInfo *info)
 {
 	/* Info struct may have been deleted in transit here so check
          * if still valid and intact.
@@ -545,8 +545,8 @@ process_index_delete_file (Tracker  *tracker,
 }
 
 static void
-process_index_delete_directory (Tracker  *tracker, 
-                                FileInfo *info)
+process_index_delete_directory (Tracker           *tracker, 
+                                TrackerDBFileInfo *info)
 {
 	/* Info struct may have been deleted in transit here so check
          * if still valid and intact.
@@ -585,9 +585,9 @@ process_index_delete_directory_check (Tracker     *tracker,
 		gchar *str = *p;
 
 		if (!tracker_file_is_valid (str)) {
-                        FileInfo *info;
+                        TrackerDBFileInfo *info;
 
-			info = tracker_create_file_info (str, 1, 0, 0);
+			info = tracker_db_file_info_new (str, 1, 0, 0);
 			info = tracker_db_get_file_info (tracker->index_db, info);
 
 			if (!info->is_directory) {
@@ -595,7 +595,7 @@ process_index_delete_directory_check (Tracker     *tracker,
 			} else {
 				process_index_delete_directory (tracker, info);
 			}
-			tracker_free_file_info (info);
+			tracker_db_file_info_free (info);
 		}
 	}
 
@@ -606,11 +606,11 @@ static inline void
 process_queue_files_foreach (const gchar *uri, 
                              gpointer     user_data)
 {
-        Tracker  *tracker;
-	FileInfo *info;
+        Tracker           *tracker;
+	TrackerDBFileInfo *info;
         
         tracker = (Tracker*) user_data;
-        info = tracker_create_file_info (uri, TRACKER_ACTION_CHECK, 0, 0);
+        info = tracker_db_file_info_new (uri, TRACKER_DB_ACTION_CHECK, 0, 0);
 	g_async_queue_push (tracker->file_process_queue, info);
 }
 
@@ -1244,8 +1244,8 @@ process_files (Tracker *tracker)
 }
 
 static gboolean 
-process_action (Tracker  *tracker,
-                FileInfo *info)
+process_action (Tracker           *tracker,
+                TrackerDBFileInfo *info)
 {
         DBConnection *db_con;
         gboolean      need_index;
@@ -1254,22 +1254,22 @@ process_action (Tracker  *tracker,
         need_index = info->mtime > info->indextime;
         
         switch (info->action) {
-        case TRACKER_ACTION_FILE_CHECK:
+        case TRACKER_DB_ACTION_FILE_CHECK:
                 break;
                 
-        case TRACKER_ACTION_FILE_CHANGED:
-        case TRACKER_ACTION_FILE_CREATED:
-        case TRACKER_ACTION_WRITABLE_FILE_CLOSED:
+        case TRACKER_DB_ACTION_FILE_CHANGED:
+        case TRACKER_DB_ACTION_FILE_CREATED:
+        case TRACKER_DB_ACTION_WRITABLE_FILE_CLOSED:
                 need_index = TRUE;
                 break;
                 
-        case TRACKER_ACTION_FILE_MOVED_FROM:
+        case TRACKER_DB_ACTION_FILE_MOVED_FROM:
                 need_index = FALSE;
                 tracker_log ("Starting moving file %s to %s", info->uri, info->moved_to_uri);
                 tracker_db_move_file (db_con, info->uri, info->moved_to_uri);
                 break;
                 
-        case TRACKER_ACTION_DIRECTORY_REFRESH:
+        case TRACKER_DB_ACTION_DIRECTORY_REFRESH:
                 if (need_index && 
                     tracker_process_files_should_be_watched (tracker->config, info->uri)) {
                         g_async_queue_push (tracker->dir_queue, g_strdup (info->uri));
@@ -1282,7 +1282,7 @@ process_action (Tracker  *tracker,
                 need_index = FALSE;
                 break;
                 
-        case TRACKER_ACTION_DIRECTORY_CHECK:
+        case TRACKER_DB_ACTION_DIRECTORY_CHECK:
                 if (need_index && 
                     tracker_process_files_should_be_watched (tracker->config, info->uri)) {
                         g_async_queue_push (tracker->dir_queue, g_strdup (info->uri));
@@ -1294,12 +1294,12 @@ process_action (Tracker  *tracker,
                 
                 break;
                 
-        case TRACKER_ACTION_DIRECTORY_MOVED_FROM:
+        case TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM:
                 tracker_db_move_directory (db_con, info->uri, info->moved_to_uri);
                 need_index = FALSE;
                 break;
                 
-        case TRACKER_ACTION_DIRECTORY_CREATED:
+        case TRACKER_DB_ACTION_DIRECTORY_CREATED:
                 need_index = TRUE;
                 tracker_debug ("Processing created directory %s", info->uri);
                 
@@ -1333,8 +1333,8 @@ process_action (Tracker  *tracker,
 }
 
 static gboolean
-process_action_prechecks (Tracker  *tracker, 
-                          FileInfo *info)
+process_action_prechecks (Tracker           *tracker, 
+                          TrackerDBFileInfo *info)
 {
         DBConnection *db_con;
 
@@ -1348,14 +1348,14 @@ process_action_prechecks (Tracker  *tracker,
         db_con = tracker->index_db;
         
         if (info->file_id == 0 && 
-            info->action != TRACKER_ACTION_CREATE &&
-            info->action != TRACKER_ACTION_DIRECTORY_CREATED && 
-            info->action != TRACKER_ACTION_FILE_CREATED) {
+            info->action != TRACKER_DB_ACTION_CREATE &&
+            info->action != TRACKER_DB_ACTION_DIRECTORY_CREATED && 
+            info->action != TRACKER_DB_ACTION_FILE_CREATED) {
                 info = tracker_db_get_file_info (db_con, info);
                 
                 /* Get more file info if db retrieval returned nothing */
                 if (info->file_id == 0) {
-                        info = tracker_get_file_info (info);
+                        info = tracker_db_file_info_get (info);
                         info->is_new = TRUE;
                 } else {
                         info->is_new = FALSE;
@@ -1366,7 +1366,7 @@ process_action_prechecks (Tracker  *tracker,
         
         tracker_debug ("Processing %s with action %s and counter %d ",
                        info->uri, 
-                       tracker_action_to_string (info->action), 
+                       tracker_db_action_to_string (info->action), 
                        info->counter);
         
         /* Preprocess ambiguous actions when we need to work
@@ -1375,10 +1375,10 @@ process_action_prechecks (Tracker  *tracker,
          */
         process_action_verify (info);
         
-        if (info->action != TRACKER_ACTION_DELETE &&
-            info->action != TRACKER_ACTION_DIRECTORY_DELETED &&
-            info->action != TRACKER_ACTION_DIRECTORY_UNMOUNTED &&
-            info->action != TRACKER_ACTION_FILE_DELETED) {
+        if (info->action != TRACKER_DB_ACTION_DELETE &&
+            info->action != TRACKER_DB_ACTION_DIRECTORY_DELETED &&
+            info->action != TRACKER_DB_ACTION_DIRECTORY_UNMOUNTED &&
+            info->action != TRACKER_DB_ACTION_FILE_DELETED) {
                 if (!tracker_file_is_valid (info->uri) ) {
                         gboolean invalid = TRUE;
                         
@@ -1387,7 +1387,7 @@ process_action_prechecks (Tracker  *tracker,
                         }
                         
                         if (invalid) {
-                                tracker_free_file_info (info);
+                                tracker_db_file_info_free (info);
                                 return TRUE;
                         }
                 }
@@ -1397,16 +1397,16 @@ process_action_prechecks (Tracker  *tracker,
                  * is newly created.
                  */
         } else {
-                if (info->action == TRACKER_ACTION_FILE_DELETED) {
+                if (info->action == TRACKER_DB_ACTION_FILE_DELETED) {
                         process_index_delete_file (tracker, info);
-                        info = tracker_dec_info_ref (info);
+                        info = tracker_db_file_info_unref (info);
                         return TRUE;
                 } else {
-                        if (info->action == TRACKER_ACTION_DIRECTORY_DELETED ||
-                            info->action == TRACKER_ACTION_DIRECTORY_UNMOUNTED) {
+                        if (info->action == TRACKER_DB_ACTION_DIRECTORY_DELETED ||
+                            info->action == TRACKER_DB_ACTION_DIRECTORY_UNMOUNTED) {
                                 process_index_delete_file (tracker, info);
                                 process_index_delete_directory (tracker, info);
-                                info = tracker_dec_info_ref (info);
+                                info = tracker_db_file_info_unref (info);
                                 return TRUE;
                         }
                 }
@@ -1414,7 +1414,7 @@ process_action_prechecks (Tracker  *tracker,
         
         /* Get latest file info from disk */
         if (info->mtime == 0) {
-                info = tracker_get_file_info (info);
+                info = tracker_db_file_info_get (info);
         }
 
         return FALSE;
@@ -1575,8 +1575,8 @@ tracker_process_files (gpointer data)
 	tracker->index_time_start = time (NULL);
 
 	while (TRUE) {
-		FileInfo *info;
-		gboolean  need_index;
+		TrackerDBFileInfo *info;
+		gboolean           need_index;
 
 		if (!tracker_cache_process_events (tracker->index_db, TRUE) ) {
                         tracker_status_set_and_signal (TRACKER_STATUS_SHUTDOWN,
@@ -1632,9 +1632,9 @@ tracker_process_files (gpointer data)
                                 tracker_status_set (TRACKER_STATUS_PENDING);
 
 				while (valid) {
-					FileInfo      *info_tmp;
-					TrackerAction  tmp_action;
-					gchar         *uri;
+					TrackerDBFileInfo *info_tmp;
+					TrackerDBAction    tmp_action;
+					gchar             *uri;
 
 					if (!tracker->is_running) {
 						g_object_unref (result_set);
@@ -1646,7 +1646,7 @@ tracker_process_files (gpointer data)
 								   2, &tmp_action,
 								   -1);
 
-					info_tmp = tracker_create_file_info (uri, tmp_action, 0, WATCH_OTHER);
+					info_tmp = tracker_db_file_info_new (uri, tmp_action, 0, TRACKER_DB_WATCH_OTHER);
 					g_async_queue_push (tracker->file_process_queue, info_tmp);
 					pushed_events = TRUE;
 
@@ -1710,7 +1710,7 @@ tracker_process_files (gpointer data)
 			process_index_entity (tracker, info);
 		}
 
-		tracker_dec_info_ref (info);
+		tracker_db_file_info_unref (info);
 	}
 
         g_signal_handlers_disconnect_by_func (tracker->hal, 
@@ -1977,17 +1977,17 @@ tracker_process_files_get_files_with_prefix (Tracker    *tracker,
 }
 
 gboolean
-tracker_process_files_is_file_info_valid (FileInfo *info)
+tracker_process_files_is_file_info_valid (TrackerDBFileInfo *info)
 {
         g_return_val_if_fail (info != NULL, FALSE);
         g_return_val_if_fail (info->uri != NULL, FALSE);
 
         if (!g_utf8_validate (info->uri, -1, NULL)) {
-                tracker_log ("Expected UTF-8 validation of FileInfo URI");
+                tracker_log ("Expected UTF-8 validation of TrackerDBFileInfo URI");
                 return FALSE;
         }
 
-        if (info->action == TRACKER_ACTION_IGNORE) {
+        if (info->action == TRACKER_DB_ACTION_IGNORE) {
                 return FALSE;
         }
                                

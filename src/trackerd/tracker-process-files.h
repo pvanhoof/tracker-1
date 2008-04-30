@@ -22,6 +22,8 @@
 
 #include <libtracker-common/tracker-config.h>
 
+#include <libtracker-db/tracker-db-file-info.h>
+
 #include "tracker-utils.h"
 
 /* Thread entry point */
@@ -45,6 +47,6 @@ void     tracker_process_files_get_all_dirs           (Tracker        *tracker,
 GSList * tracker_process_files_get_files_with_prefix  (Tracker        *tracker,
                                                        const char     *dir,
                                                        const char     *prefix);
-gboolean tracker_process_files_is_file_info_valid     (FileInfo       *info);
+gboolean tracker_process_files_is_file_info_valid     (TrackerDBFileInfo       *info);
 
 #endif /* __TRACKER_PROCESS_FILES_H__ */

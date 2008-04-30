@@ -1,5 +1,5 @@
-/* Tracker
- * routines for applications
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/* 
  * Copyright (C) 2007, Marcus Rosell (mudflap75@gmail.com)
  *
  * This library is free software; you can redistribute it and/or
@@ -84,7 +84,7 @@ free_metadata_list (gpointer key, gpointer value, gpointer data)
 }
 
 void
-tracker_db_index_application (DBConnection *db_con, FileInfo *info)
+tracker_db_index_application (DBConnection *db_con, TrackerDBFileInfo *info)
 {
 	/* Index application metadata from .desktop files */
 	

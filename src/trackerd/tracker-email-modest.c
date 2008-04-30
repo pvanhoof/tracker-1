@@ -319,7 +319,7 @@ tracker_email_watch_emails (DBConnection *db_con)
 }
 
 static gboolean
-modest_file_is_interesting (FileInfo *info)
+modest_file_is_interesting (TrackerDBFileInfo *info)
 {
 	g_return_val_if_fail (info, FALSE);
 	g_return_val_if_fail (info->uri, FALSE);
@@ -338,7 +338,7 @@ modest_file_is_interesting (FileInfo *info)
 
 
 gboolean
-tracker_email_index_file (DBConnection *db_con, FileInfo *info)
+tracker_email_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
 {
 	gchar *file_name;
 

@@ -91,7 +91,7 @@ thunderbird_module_is_running (void)
 }
 
 static gboolean
-thunderbird_file_is_interesting (FileInfo *info)
+thunderbird_file_is_interesting (TrackerDBFileInfo *info)
 {
         //Filename should be objectX.tms (Thunderbird Message Summary)
         return g_str_has_suffix (info->uri, ".tms") ;
@@ -135,7 +135,7 @@ tracker_email_watch_emails (DBConnection *db_con)
 
 
 gboolean
-tracker_email_index_file (DBConnection *db_con, FileInfo *info)
+tracker_email_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
 {
 	g_return_val_if_fail (db_con, FALSE);
 	g_return_val_if_fail (info, FALSE);

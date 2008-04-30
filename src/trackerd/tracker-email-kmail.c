@@ -81,7 +81,7 @@ static void             free_kmail_account              (KMailAccount *account);
 static GSList *         get_dirs_to_watch               (DBConnection *db_con, const gchar *dir_path, gboolean in_imap_dir);
 static gboolean         ignore_email                    (const gchar *uri);
 static KMailMailProtocol find_mail_protocol             (const gchar *mail_path);
-static gboolean         index_mail_file_in_maildir_dir  (DBConnection *db_con, const gchar *dir, FileInfo *info, MailType mail_type);
+static gboolean         index_mail_file_in_maildir_dir  (DBConnection *db_con, const gchar *dir, TrackerDBFileInfo *info, MailType mail_type);
 //static void           watch_imap_cache                (DBConnection *db_con, const gchar *imap_dir_path);
 //static void           watch_local_maildir_dir         (DBConnection *db_con, const gchar *dir_path);
 
@@ -159,7 +159,7 @@ tracker_email_watch_emails (DBConnection *db_con)
 
 
 static gboolean
-kmail_file_is_interesting (FileInfo *info)
+kmail_file_is_interesting (TrackerDBFileInfo *info)
 {
         const GSList *account;
 
@@ -185,7 +185,7 @@ kmail_file_is_interesting (FileInfo *info)
 
 
 gboolean
-tracker_email_index_file (DBConnection *db_con, FileInfo *info)
+tracker_email_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
 {
         KMailMailProtocol mail_protocol;
 
@@ -703,7 +703,7 @@ find_mail_protocol (const gchar *mail_path)
 
 
 static gboolean
-index_mail_file_in_maildir_dir (DBConnection *db_con, const gchar *dir, FileInfo *info, MailType mail_type)
+index_mail_file_in_maildir_dir (DBConnection *db_con, const gchar *dir, TrackerDBFileInfo *info, MailType mail_type)
 {
         MailStore *store;
 

@@ -496,7 +496,7 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
 		return TRUE;
 	}
 
-	FileInfo *info = tracker_create_file_info (mm->uri, 0,0,0);
+	TrackerDBFileInfo *info = tracker_db_file_info_new (mm->uri, 0,0,0);
 
 	info->mime = mime;
 	info->offset = mm->offset;
@@ -505,7 +505,7 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
 
 	id = tracker_db_create_service (db_con->index, service, info);
 
-	tracker_free_file_info (info);
+	tracker_db_file_info_free (info);
 
 	if (id != 0) {
 		GHashTable *index_table;
@@ -677,7 +677,7 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
 			MailAttachment *ma = tmp->data;
 
                         if (ma->tmp_decoded_file) {
-                                FileInfo *attachment_info;
+                                TrackerDBFileInfo *attachment_info;
                                 gchar 	 *locale_path, *uri;
 
         			locale_path = g_filename_from_utf8 (ma->tmp_decoded_file, -1, NULL, NULL, NULL);
@@ -687,7 +687,7 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
                                         continue;
                                 }
 
-                                attachment_info = tracker_create_file_info (ma->tmp_decoded_file, TRACKER_ACTION_CHECK, 0, WATCH_OTHER);
+                                attachment_info = tracker_db_file_info_new (ma->tmp_decoded_file, TRACKER_DB_ACTION_CHECK, 0, TRACKER_DB_WATCH_OTHER);
                                 attachment_info->is_directory = FALSE;
                                 attachment_info->mime = g_strdup (ma->mime);
 
@@ -696,7 +696,7 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
                                 tracker_db_index_file (db_con, attachment_info, uri, attachment_service);
                                 g_free (uri);
 
-                                tracker_dec_info_ref (attachment_info);
+                                tracker_db_file_info_unref (attachment_info);
 
                                 /* remove temporary and indexed attachment file */
                                 g_unlink (locale_path);

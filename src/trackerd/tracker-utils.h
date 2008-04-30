@@ -28,12 +28,15 @@ extern char *service_table_names[];
 extern char *service_metadata_table_names[];
 extern char *service_metadata_join_names[];
 
+#include "config.h"
+
 #include <time.h>
+
 #include <glib.h>
 
-#include "config.h"
+#include <libtracker-db/tracker-db-action.h>
+
 #include "tracker-parser.h"
-#include "tracker-action.h"
 
 #define MAX_HITS_FOR_WORD 30000
 
@@ -302,72 +305,6 @@ typedef struct {
 
 } Tracker;
 
-/* service type that the file represents */
-typedef enum {
-	FILE_ORDINARY,
-	FILE_DESKTOP,
-	FILE_BOOKMARKS,
-	FILE_SMARTBOOKMARKS,
-	FILE_WEBHISTORY,
-	FILE_EMAILS,
-	FILE_CONVERSATIONS,
-	FILE_CONTACTS
-} FileTypes;
-
-
-typedef enum {
-	WATCH_ROOT,
-	WATCH_SUBFOLDER,
-	WATCH_SPECIAL_FOLDER,
-	WATCH_SPECIAL_FILE,
-	WATCH_NO_INDEX,
-	WATCH_OTHER
-} WatchTypes;
-
-
-typedef struct {
-
-	/* file name/path related info */
-	char 			*uri;
-	guint32			file_id;
-
-	TrackerAction           action;
-	guint32        		cookie;
-	int  		     	counter;
-	FileTypes		file_type;
-	WatchTypes		watch_type;
-
-	/* symlink info - File ID of link might not be in DB so need to store path/filename too */
-	gint32                  link_id;
-	char                    *link_path;
-	char                    *link_name;
-
-	char                    *mime;
-	int                     service_type_id;
-	guint32                 file_size;
-	char                    *permissions;
-	gint32                  mtime;
-	gint32                  atime;
-	gint32                  indextime;
-	gint32                  offset;
-
-	/* options */
-	char			*moved_to_uri;
-
-	int			aux_id;
-
-	guint                   is_new : 1;
-	guint                   is_directory : 1;
-	guint                   is_link : 1;
-	guint                   extract_embedded : 1;
-	guint                   extract_contents : 1;
-	guint                   extract_thumbs : 1;
-	guint                   is_hidden : 1;
-
-	/* we ref count FileInfo as it has a complex lifespan and is tossed between various threads, lists, queues and hash tables */
-	int			ref_count;
-
-} FileInfo;
 
 char *		tracker_get_radix_by_suffix	(const char *str, const char *suffix);
 
@@ -383,14 +320,6 @@ void		tracker_del_service_path 	(const char *service,  const char *path);
 
 char *		tracker_get_service_for_uri 	(const char *uri);
 gboolean	tracker_is_service_file 	(const char *uri);
-
-FileInfo *	tracker_create_file_info 	(const char *uri, TrackerAction action, int counter, WatchTypes watch);
-FileInfo * 	tracker_get_file_info  	 	(FileInfo *info);
-FileInfo * 	tracker_copy_file_info   	(FileInfo *info);
-FileInfo *	tracker_inc_info_ref 		(FileInfo *info);
-FileInfo *	tracker_dec_info_ref 		(FileInfo *info);
-
-FileInfo *	tracker_free_file_info   	(FileInfo *info);
 
 GSList * 	tracker_get_watch_root_dirs 	(void);
 

@@ -174,10 +174,10 @@ tracker_dbus_files_exist (TrackerDBusFiles  *object,
 	exists = file_id > 0;
 
 	if (!exists && auto_create) {
-		FileInfo *info;
+		TrackerDBFileInfo *info;
 		gchar    *service;
 		
-		info = tracker_create_file_info (uri, 1, 0, 0);
+		info = tracker_db_file_info_new (uri, 1, 0, 0);
 		
 		if (!tracker_file_is_valid (uri)) {
 			info->mime = g_strdup ("unknown");
@@ -185,11 +185,11 @@ tracker_dbus_files_exist (TrackerDBusFiles  *object,
 		} else {
 			info->mime = tracker_file_get_mime_type (uri);
 			service = tracker_service_manager_get_service_type_for_mime (info->mime);
-			info = tracker_get_file_info (info);
+			info = tracker_db_file_info_get (info);
 		}
 		
 		tracker_db_create_service (db_con, "Files", info);
-		tracker_free_file_info (info);
+		tracker_db_file_info_free (info);
 		g_free (service);
 	}
 
@@ -212,7 +212,7 @@ tracker_dbus_files_create (TrackerDBusFiles  *object,
 	TrackerDBusFilesPriv *priv;
 	guint                 request_id;
 	DBConnection         *db_con;
-	FileInfo             *info;
+	TrackerDBFileInfo    *info;
 	gchar                *name;
 	gchar                *path;
 	gchar                *service;
@@ -241,7 +241,7 @@ tracker_dbus_files_create (TrackerDBusFiles  *object,
                                   mtime);
 
 	/* Create structure */
-	info = tracker_create_file_info (uri, 1, 0, 0);
+	info = tracker_db_file_info_new (uri, 1, 0, 0);
 
 	info->mime = g_strdup (mime);
 	info->is_directory = is_directory;
@@ -258,7 +258,7 @@ tracker_dbus_files_create (TrackerDBusFiles  *object,
 
 	service = tracker_service_manager_get_service_type_for_mime (mime);
 	file_id = tracker_db_create_service (db_con, service, info);
-	tracker_free_file_info (info);
+	tracker_db_file_info_free (info);
 
 	created = file_id != 0;
 
@@ -338,7 +338,7 @@ tracker_dbus_files_delete (TrackerDBusFiles  *object,
 	gchar                *name;
 	gchar                *path;
 	gboolean              is_directory;
-	TrackerAction         action;
+	TrackerDBAction       action;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -379,9 +379,9 @@ tracker_dbus_files_delete (TrackerDBusFiles  *object,
 	}
 
 	if (is_directory) {
-		action = TRACKER_ACTION_DIRECTORY_DELETED;
+		action = TRACKER_DB_ACTION_DIRECTORY_DELETED;
 	} else {
-		action = TRACKER_ACTION_FILE_DELETED;
+		action = TRACKER_DB_ACTION_FILE_DELETED;
 	}
 	
 	tracker_db_insert_pending_file (db_con,

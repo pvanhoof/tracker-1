@@ -252,6 +252,8 @@ tracker_xesam_live_search_match_with_events (TrackerXesamLiveSearch *self, Track
 
 	ls_valid = TRUE;
 
+	// For ottela to review (add columns and tables)
+
 	result_set = tracker_db_get_live_search_new_ids (db_con, 
 		tracker_xesam_live_search_get_id (self),
 		"", /* Columns */

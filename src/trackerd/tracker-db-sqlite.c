@@ -3254,7 +3254,7 @@ TrackerDBResultSet*
 tracker_db_get_live_search_hit_count (DBConnection *db_con, const gchar *search_id)
 {
 	TrackerDBResultSet *result;
-	result = tracker_exec_proc (db_con->common, "GetXesamHitCount", search_id, NULL);
+	result = tracker_exec_proc (db_con->common, "GetLiveSearchHitCount", search_id, NULL);
 	return result;
 }
 
@@ -3263,7 +3263,7 @@ TrackerDBResultSet*
 tracker_db_get_live_search_modified_ids (DBConnection *db_con, const gchar *search_id)
 {
 	TrackerDBResultSet *result;
-	result = tracker_exec_proc (db_con->common, "GetXesamLiveSearchModifiedIDs", search_id, NULL);
+	result = tracker_exec_proc (db_con->common, "GetLiveSearchModifiedIDs", search_id, NULL);
 	return result;
 }
 
@@ -3294,7 +3294,7 @@ tracker_db_get_events (DBConnection *db_con)
 {
 	TrackerDBResultSet *result_set, *result;
 	result = tracker_exec_proc (db_con->common, "GetEvents", NULL);
-	result_set = tracker_exec_proc (db_con->common, "SetBeingHandled", NULL);
+	result_set = tracker_exec_proc (db_con->common, "SetEventsBeingHandled", NULL);
 	g_object_unref (result_set);
 	return result;
 }
@@ -3303,7 +3303,7 @@ void
 tracker_db_delete_handled_events (DBConnection *db_con, TrackerDBResultSet *events)
 {
 	TrackerDBResultSet *result_set;
-	result_set = tracker_exec_proc (db_con->common, "DeleteHandled", NULL);
+	result_set = tracker_exec_proc (db_con->common, "DeleteHandledEvents", NULL);
 	g_object_unref (result_set);
 }
 

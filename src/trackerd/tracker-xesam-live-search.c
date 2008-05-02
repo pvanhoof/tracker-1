@@ -223,9 +223,10 @@ tracker_xesam_live_search_match_with_events (TrackerXesamLiveSearch *self, Track
 
 			if (ev_i_value == g_value_get_int (&ls_value)) {
 				GValue ev_type = { 0, };
-				const gchar *str = g_value_get_string (&ev_type);
+				const gchar *str;
 
 				_tracker_db_result_set_get_value (events, 2, &ev_type);
+				str = g_value_get_string (&ev_type);
 
 				if (!strcmp (str, "Update")) {
 					if (m_modified == NULL)
@@ -262,17 +263,41 @@ tracker_xesam_live_search_match_with_events (TrackerXesamLiveSearch *self, Track
 
 	while (ls_valid) {
 		GValue ls_value = { 0, };
+		GValue ev_type = { 0, };
 		gint ls_i_value;
+		const gchar *str;
 
 		_tracker_db_result_set_get_value (result_set, 0, &ls_value);
+		_tracker_db_result_set_get_value (result_set, 1, &ev_type);
+
+		str = g_value_get_string (&ev_type);
 
 		ls_i_value = g_value_get_int (&ls_value);
 
-		if (m_added == NULL)
-			m_added = g_array_new (FALSE, TRUE, sizeof (guint32));
-		g_array_append_val (m_added, ls_i_value);
+		if (!strcmp (str, "Update")) {
+			gboolean noadd = FALSE;
+			guint i;
 
+			if (m_modified == NULL) {
+				m_modified = g_array_new (FALSE, TRUE, sizeof (guint32));
+			} else {
+				for (i = 0 ; i < m_modified->len; i++)
+					if (g_array_index (m_modified, guint32, i) == (guint32) ls_i_value) {
+						noadd = TRUE;
+						break;
+					}
+			}
+			if (!noadd)
+				g_array_append_val (m_modified, ls_i_value);
+		} else {
+			if (m_added == NULL)
+				m_added = g_array_new (FALSE, TRUE, sizeof (guint32));
+			g_array_append_val (m_added, ls_i_value);
+		}
+
+		g_value_unset (&ev_type);
 		g_value_unset (&ls_value);
+
 		ls_valid = tracker_db_result_set_iter_next (result_set);
 	}
 

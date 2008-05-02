@@ -3274,6 +3274,10 @@ tracker_db_get_live_search_new_ids (DBConnection *db_con, const gchar *search_id
 
 	// todo: this is a query for ottela to review
 
+	// Contract, in @result:
+	// ServiceID is #1
+	// EventType is #2
+
 	gchar *m_query = g_strdup_printf (
 			"SELECT E.ServiceID, E.EventType, %s "
 			"FROM XesamLiveSearches as X, Events as E, %s "

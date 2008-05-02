@@ -165,18 +165,21 @@ live_search_handler (gpointer data)
 
 				tracker_xesam_live_search_match_with_events (search, result_set, &added, &removed, &modified);
 
-				if (added && added->len > 0) {
+				if (added && added->len > 0)
 					tracker_xesam_live_search_emit_hits_added (search, added->len);
+				if (added)
 					g_array_free (added, TRUE);
-				}
-				if (removed && removed->len > 0) {
+
+				if (removed && removed->len > 0)
 					tracker_xesam_live_search_emit_hits_removed (search, removed);
+				if (removed)
 					g_array_free (removed, TRUE);
-				}
-				if (modified && modified->len > 0) {
+
+				if (modified && modified->len > 0)
 					tracker_xesam_live_search_emit_hits_modified (search, modified);
+				if (modified)
 					g_array_free (modified, TRUE);
-				}
+
 
 				searches = g_list_next (searches);
 			}

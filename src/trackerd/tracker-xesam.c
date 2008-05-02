@@ -153,7 +153,7 @@ live_search_handler (gpointer data)
 	result_set = tracker_db_get_events (db_con);
 	// lock (indexer)
 
-	if (result_set /* TODO: If there are events */) {
+	if (tracker_db_result_set_get_n_rows (result_set) > 0) {
 
 		reason_to_live = TRUE;
 

@@ -42,16 +42,60 @@ enum {
 	XESAM_LAST_SIGNAL
 };
 
+enum {
+	PROP_0,
+	PROP_DB_CONNECTION,
+};
+
+typedef struct {
+	DBConnection *db_con;
+} TrackerDBusXesamPriv;
+
 static GHashTable *sessions = NULL;
 static guint       signals[XESAM_LAST_SIGNAL] = {0};
 
 G_DEFINE_TYPE(TrackerDBusXesam, tracker_dbus_xesam, G_TYPE_OBJECT)
+
+#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DBUS_XESAM, TrackerDBusXesamPriv))
 
 static void
 xesam_search_finalize (GObject *object)
 {
 	G_OBJECT_CLASS (tracker_dbus_xesam_parent_class)->finalize (object);
 }
+
+
+void
+tracker_dbus_xesam_set_db_connection (TrackerDBusXesam *object,
+				     DBConnection      *db_con)
+{
+	TrackerDBusXesamPriv *priv;
+
+	priv = GET_PRIV (object);
+
+	priv->db_con = db_con;
+
+	g_object_notify (G_OBJECT (object), "db-connection");
+}
+
+static void
+xesam_set_property (GObject      *object,
+		    guint param_id,
+		    const GValue *value,
+		    GParamSpec   *pspec)
+{
+	switch (param_id) {
+	case PROP_DB_CONNECTION:
+		tracker_dbus_xesam_set_db_connection (TRACKER_DBUS_XESAM (object),
+						      g_value_get_pointer (value));
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
+		break;
+	};
+}
+
+
 
 static void
 tracker_dbus_xesam_class_init (TrackerDBusXesamClass *klass)
@@ -61,6 +105,15 @@ tracker_dbus_xesam_class_init (TrackerDBusXesamClass *klass)
 	object_class = G_OBJECT_CLASS (klass);
 
 	object_class->finalize = xesam_search_finalize;
+
+	object_class->set_property = xesam_set_property;
+
+	g_object_class_install_property (object_class,
+					 PROP_DB_CONNECTION,
+					 g_param_spec_pointer ("db-connection",
+							       "DB connection",
+							       "Database connection to use in transactions",
+							       G_PARAM_WRITABLE));
 
 	signals[XESAM_HITS_ADDED] =
 		g_signal_new ("hits-added",
@@ -120,17 +173,23 @@ tracker_dbus_xesam_class_init (TrackerDBusXesamClass *klass)
 			G_TYPE_NONE,
 			1, 
 			G_TYPE_STRV);
+
+	g_type_class_add_private (object_class, sizeof (TrackerDBusXesamPriv));
 }
 
 static void
 tracker_dbus_xesam_init (TrackerDBusXesam *object)
 {
+	TrackerDBusXesamPriv *priv = GET_PRIV (object);
+	priv->db_con = NULL;
 }
 
 TrackerDBusXesam *
-tracker_dbus_xesam_new (void)
+tracker_dbus_xesam_new (DBConnection *db_con)
 {
-	return g_object_new (TRACKER_TYPE_DBUS_XESAM, NULL);
+	return g_object_new (TRACKER_TYPE_DBUS_XESAM, 
+			       "db-connection", db_con,
+			       NULL);
 }
 
 static void

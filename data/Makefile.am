@@ -19,7 +19,8 @@ config_DATA =					\
 	sqlite-stored-procs.sql 		\
 	sqlite-service.sql			\
 	sqlite-service-types.sql 		\
-	sqlite-metadata.sql 
+	sqlite-metadata.sql 			\
+	sqlite-temp-tables.sql
 
 servicedir       = $(DBUS_SERVICES_DIR)
 service_in_files = tracker.service.in

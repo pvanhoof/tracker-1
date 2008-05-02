@@ -88,13 +88,20 @@ tracker_xesam_get_session_for_search (const gchar *search_id, TrackerXesamLiveSe
 	while (sessions) {
 		TrackerXesamLiveSearch *search = tracker_xesam_session_get_search (sessions->data, search_id, NULL);
 		if (search) {
+
+			/* Search got a reference added already */
 			if (search_in)
-				*search_in = g_object_ref (search);
+				*search_in = search;
+			else
+				g_object_unref (search);
+
 			retval = g_object_ref (sessions->data);
 			break;
 		}
 		sessions = g_list_next (sessions);
 	}
+
+	g_list_free (sessions);
 
 	if (!retval) 
 		g_set_error (error, TRACKER_XESAM_ERROR, 
@@ -114,11 +121,14 @@ tracker_xesam_get_live_search  (const gchar *search_id, GError **error)
 	while (sessions) {
 		TrackerXesamLiveSearch *search = tracker_xesam_session_get_search (sessions->data, search_id, NULL);
 		if (search) {
-			retval = g_object_ref (search);
+			/* Search got a reference added already */
+			retval = search;
 			break;
 		}
 		sessions = g_list_next (sessions);
 	}
+
+	g_list_free (sessions);
 
 	if (!retval) 
 		g_set_error (error, TRACKER_XESAM_ERROR, 
@@ -126,6 +136,90 @@ tracker_xesam_get_live_search  (const gchar *search_id, GError **error)
 				"Search ID is not registered");
 
 	return retval;
+}
+
+static gboolean 
+live_search_handler (gpointer data)
+{
+	gboolean reason_to_live = FALSE;
+	GList * sessions = g_hash_table_get_values (tracker->xesam_sessions);
+	TrackerDBResultSet *result_set;
+	TrackerDBusXesam *proxy = TRACKER_DBUS_XESAM (tracker_dbus_get_object (TRACKER_TYPE_DBUS_XESAM));
+	DBConnection *db_con = NULL;
+
+	g_object_get (proxy, "db-connection", &db_con, NULL);
+
+	// lock (indexer)
+	result_set = tracker_db_get_events (db_con);
+	// lock (indexer)
+
+	if (result_set /* TODO: If there are events */) {
+
+		reason_to_live = TRUE;
+
+		while (sessions) {
+			GList *searches = tracker_xesam_session_get_searches (sessions->data);
+			while (searches) {
+				GArray *added = NULL, *removed = NULL, *modified = NULL;
+				TrackerXesamLiveSearch *search = searches->data;
+
+				tracker_xesam_live_search_match_with_events (search, result_set, &added, &removed, &modified);
+
+				if (added && added->len > 0) {
+					tracker_xesam_live_search_emit_hits_added (search, added->len);
+					g_array_free (added, TRUE);
+				}
+				if (removed && removed->len > 0) {
+					tracker_xesam_live_search_emit_hits_removed (search, removed);
+					g_array_free (removed, TRUE);
+				}
+				if (modified && modified->len > 0) {
+					tracker_xesam_live_search_emit_hits_modified (search, modified);
+					g_array_free (modified, TRUE);
+				}
+
+				searches = g_list_next (searches);
+			}
+			g_list_free (searches);
+
+			sessions = g_list_next (sessions);
+		}
+		g_list_free (sessions);
+
+		// lock (indexer)
+		tracker_db_delete_handled (db_con, result_set);
+		// unlock (indexer)
+	}
+
+	g_object_unref (result_set);
+
+	return reason_to_live;
+}
+
+/* Should be set initially to FALSE instead (but then we activate this 
+ * unfinished code)*/
+
+static gboolean live_search_handler_running = TRUE;
+
+static void 
+live_search_handler_destroy (gpointer data)
+{
+	live_search_handler_running = FALSE;
+}
+
+void 
+tracker_xesam_wakeup (guint32 last_id)
+{
+	// This happens each time a new event is created
+
+	if (!live_search_handler_running) {
+		live_search_handler_running = TRUE;
+		g_timeout_add_full (G_PRIORITY_DEFAULT_IDLE,
+			2000, /* 2 seconds */
+			live_search_handler,
+			NULL,
+			live_search_handler_destroy);
+	}
 }
 
 

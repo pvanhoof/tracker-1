@@ -344,5 +344,15 @@ void                tracker_db_set_option_int                  (DBConnection   *
                                                                 const gchar    *option,
                                                                 gint            value);
 gboolean            tracker_db_integrity_check                 (DBConnection   *db_con);
+TrackerDBResultSet *tracker_db_get_events                      (DBConnection *db_con);
+void                tracker_db_delete_handled                  (DBConnection   *db_con, 
+                                                                TrackerDBResultSet *events);
+TrackerDBResultSet *tracker_db_get_xesam_live_search_mod_ids   (DBConnection *db_con, 
+                                                                const gchar *search_id);
+TrackerDBResultSet *tracker_db_get_xesam_live_search_creat_ids (DBConnection *db_con, 
+                                                                const gchar *search_id,
+                                                                const gchar *query);
+TrackerDBResultSet *tracker_db_get_xeam_hit_count              (DBConnection *db_con, 
+                                                                const gchar *search_id);
 
 #endif

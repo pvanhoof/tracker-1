@@ -227,27 +227,29 @@ tracker_dbus_init (gpointer tracker_pointer)
         g_object_set (object, "email-index", tracker->email_index, NULL);
         objects = g_slist_prepend (objects, object);
 
-
-        /* Add org.freedesktop.xesam.Search */
-        if (!(object = dbus_register_object (connection, 
+        if (tracker_config_get_enable_xesam (tracker->config)) {
+            /* Add org.freedesktop.xesam.Search */
+            if (!(object = dbus_register_object (connection, 
                                              proxy,
                                              TRACKER_TYPE_DBUS_XESAM,
                                              &dbus_glib_tracker_dbus_xesam_object_info,
                                              TRACKER_DBUS_XESAM_PATH))) {
-                return FALSE;
-        }
+                    return FALSE;
+            }
 
-        dbus_g_proxy_add_signal (proxy, "NameOwnerChanged",
+            g_object_set (object, "db-connection", tracker->index_db, NULL);
+
+            dbus_g_proxy_add_signal (proxy, "NameOwnerChanged",
 				 G_TYPE_STRING, G_TYPE_STRING,
 				 G_TYPE_STRING, G_TYPE_INVALID);
 	
-        dbus_g_proxy_connect_signal (proxy, "NameOwnerChanged", 
+            dbus_g_proxy_connect_signal (proxy, "NameOwnerChanged", 
 				     G_CALLBACK (tracker_dbus_xesam_name_owner_changed), 
 				     g_object_ref (object),
 				     name_owner_changed_done);
 
-        objects = g_slist_prepend (objects, object);
-
+            objects = g_slist_prepend (objects, object);
+        }
 
         /* Reverse list since we added objects at the top each time */
         objects = g_slist_reverse (objects);

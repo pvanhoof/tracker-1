@@ -60,6 +60,7 @@
 #include "tracker-watch.h"
 #include "tracker-service-manager.h"
 #include "tracker-query-tree.h"
+#include "tracker-xesam.h"
 
 #define MAX_TEXT_BUFFER 65567
 #define MAX_COMPRESS_BUFFER 65565
@@ -896,6 +897,7 @@ tracker_db_connect (void)
 		tracker_db_exec_no_reply (db_con, "ANALYZE");
 	}
 
+	load_sql_file (db_con, "sqlite-temp-tables.sql");
 
 	tracker_db_attach_db (db_con, "common");
 	tracker_db_attach_db (db_con, "cache");
@@ -3245,6 +3247,96 @@ tracker_db_delete_metadata (DBConnection *db_con, const char *service, const cha
 
 }
 
+TrackerDBResultSet* 
+tracker_db_get_xeam_hit_count (DBConnection *db_con, const gchar *search_id)
+{
+	TrackerDBResultSet *result;
+	result = tracker_exec_proc (db_con->common, "GetXesamHitCount", search_id, NULL);
+	return result;
+}
+
+
+TrackerDBResultSet* 
+tracker_db_get_xesam_live_search_mod_ids (DBConnection *db_con, const gchar *search_id)
+{
+	TrackerDBResultSet *result;
+	result = tracker_exec_proc (db_con->common, "GetXesamLiveSearchModifiedIDs", search_id, NULL);
+	return result;
+}
+
+TrackerDBResultSet* 
+tracker_db_get_xesam_live_search_creat_ids (DBConnection *db_con, const gchar *search_id, const gchar *query)
+{
+	TrackerDBResultSet *result;
+
+	// todo: this is a query for ottela to review
+
+	gchar *m_query = g_strdup_printf (
+			"SELECT ServiceID, ... FROM XesamLiveSearches as X, ... "
+			"INNER JOIN ... "
+			"WHERE X.SearchID = ? AND X.EventType IS 'Create' AND "
+			"(%s)", query);
+
+	result = tracker_db_interface_execute_query (db_con->db, NULL, m_query);
+
+	g_free (m_query);
+
+	return result;
+}
+
+TrackerDBResultSet* 
+tracker_db_get_events (DBConnection *db_con)
+{
+	TrackerDBResultSet *result_set, *result;
+	result = tracker_exec_proc (db_con->common, "GetEvents", NULL);
+	result_set = tracker_exec_proc (db_con->common, "SetBeingHandled", NULL);
+	g_object_unref (result_set);
+	return result;
+}
+
+void 
+tracker_db_delete_handled (DBConnection *db_con, TrackerDBResultSet *events)
+{
+	TrackerDBResultSet *result_set;
+	result_set = tracker_exec_proc (db_con->common, "DeleteHandled", NULL);
+	g_object_unref (result_set);
+}
+
+static guint32
+tracker_db_create_event (DBConnection *db_con, const gchar *service_id_str, const gchar *type)
+{
+	TrackerDBResultSet *result_set;
+	char	   *eid;
+	int	   i;
+	guint32	   id = 0;
+
+	result_set = tracker_exec_proc (db_con->common, "GetNewEventID", NULL);
+
+	if (!result_set) {
+		tracker_error ("ERROR: could not create event - GetNewEventID failed");
+		return 0;
+	}
+
+	tracker_db_result_set_get (result_set, 0, &eid, -1);
+	i = atoi (eid);
+	g_free (eid);
+	i++;
+	eid = tracker_int_to_string (i);
+
+	result_set = tracker_exec_proc (db_con->common, "UpdateNewEventID", eid, NULL);
+	g_object_unref (result_set);
+
+	result_set = tracker_exec_proc (db_con, "CreateEvent", eid, service_id_str, type, NULL);
+	id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (db_con->db));
+	g_object_unref (result_set);
+
+	tracker_xesam_wakeup (id);
+
+	g_free (eid);
+
+	return id;
+}
+
 guint32
 tracker_db_create_service (DBConnection *db_con, const char *service, TrackerDBFileInfo *info)
 {
@@ -3361,7 +3453,9 @@ tracker_db_create_service (DBConnection *db_con, const char *service, TrackerDBF
 			g_free (parent);
 		}
 
+		tracker_db_create_event (db_con, sid, "Create");
 	}
+
 	g_free (name);
 	g_free (path);
 	g_free (str_aux);
@@ -3549,6 +3643,8 @@ tracker_db_delete_file (DBConnection *db_con, guint32 file_id)
 			tracker_exec_proc (db_con->common, "DeleteService7", path, name, NULL);
 			tracker_exec_proc (db_con->common, "DeleteService9", path, name, NULL);
 
+			tracker_db_create_event (db_con, str_file_id, "Delete");
+
 			g_free (name);
 			g_free (path);
 		}
@@ -3638,7 +3734,9 @@ tracker_db_update_file (DBConnection *db_con, TrackerDBFileInfo *info)
 	path = g_path_get_dirname (info->uri);
 
 	tracker_exec_proc (db_con->index, "UpdateFile", str_service_type_id, path, name, info->mime, str_size, str_mtime, str_offset, str_file_id, NULL);
-	
+
+	tracker_db_create_event (db_con, str_file_id, "Update");
+
 	g_free (str_service_type_id);
 	g_free (str_size);
 	g_free (str_offset);
@@ -4247,6 +4345,8 @@ tracker_db_move_file (DBConnection *db_con, const char *moved_from_uri, const ch
 
 	/* update db so that fileID reflects new uri */
 	tracker_exec_proc (db_con, "UpdateFileMove", path, name, str_file_id, NULL);
+
+	tracker_db_create_event (db_con, str_file_id, "Update");
 
 	/* update File:Path and File:Filename metadata */
 	tracker_db_set_single_metadata (db_con, "Files", str_file_id, "File:Path", path, FALSE);

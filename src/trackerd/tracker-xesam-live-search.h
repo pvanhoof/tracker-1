@@ -24,6 +24,8 @@
 #include <glib.h>
 #include <glib-object.h>
 
+#include <libtracker-db/tracker-db-interface-sqlite.h>
+
 G_BEGIN_DECLS
 
 #define TRACKER_TYPE_XESAM_LIVE_SEARCH (tracker_xesam_live_search_get_type ())
@@ -52,6 +54,8 @@ void         tracker_xesam_live_search_set_id             (TrackerXesamLiveSearc
 							   const gchar             *search_id);
 const gchar* tracker_xesam_live_search_get_id             (TrackerXesamLiveSearch  *self);
 const gchar* tracker_xesam_live_search_get_query          (TrackerXesamLiveSearch  *self);
+void         tracker_xesam_live_search_set_xml_query      (TrackerXesamLiveSearch *self, 
+							   const gchar *xml_query);
 void         tracker_xesam_live_search_activate           (TrackerXesamLiveSearch  *self,
 							   GError                 **error);
 gboolean     tracker_xesam_live_search_is_active          (TrackerXesamLiveSearch  *self);
@@ -76,6 +80,11 @@ void         tracker_xesam_live_search_emit_hits_removed  (TrackerXesamLiveSearc
 void         tracker_xesam_live_search_emit_hits_modified (TrackerXesamLiveSearch  *self,
 							   GArray                  *hit_ids);
 void         tracker_xesam_live_search_emit_done          (TrackerXesamLiveSearch  *self);
+void         tracker_xesam_live_search_match_with_events  (TrackerXesamLiveSearch  *self, 
+							   TrackerDBResultSet      *events,
+							   GArray                 **added, 
+							   GArray                 **removed, 
+							   GArray                 **modified);
 
 G_END_DECLS
 

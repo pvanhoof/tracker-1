@@ -24,6 +24,16 @@ GetAllServices SELECT TypeID, TypeName, Parent, Enabled, Embedded, HasMetadata, 
 
 GetNewID SELECT OptionValue FROM Options WHERE OptionKey = 'Sequence';
 UpdateNewID UPDATE Options set OptionValue = ? WHERE OptionKey = 'Sequence';
+CreateEvent INSERT INTO Events (ID, ServiceID, EventType) VALUES (?,?,?); 
+DeleteHandled DELETE FROM Events WHERE BeingHandled = 1;
+GetEvents SELECT ID, ServiceID, EventType FROM Events WHERE BeingHandled = 0;
+SetBeingHandled UPDATE Events SET BeingHandled = 1;
+
+GetXesamLiveSearchModifiedIDs SELECT E.ServiceID FROM Events as E, XesamLiveSearches as X WHERE E.ServiceID = X.ServiceID AND SearchID = ? AND EventType IS NOT 'Create';
+GetXesamHitCount SELECT count(*) FROM XesamLiveSearches WHERE SearchID = ?;
+
+GetNewEventID SELECT OptionValue FROM Options WHERE OptionKey = 'EventSequence';
+UpdateNewEventID UPDATE Options set OptionValue = ? WHERE OptionKey = 'EventSequence';
 
 GetUpdateCount SELECT OptionValue FROM Options WHERE OptionKey = 'UpdateCount';
 SetUpdateCount UPDATE Options set OptionValue = ?  WHERE OptionKey = 'UpdateCount';
@@ -32,6 +42,7 @@ GetOption SELECT OptionValue FROM Options WHERE OptionKey = ?;
 SetOption REPLACE into Options (OptionKey, OptionValue) values (?,?);
 
 CreateService INSERT INTO Services (ID, Path, Name, ServiceTypeID, Mime, Size, IsDirectory, IsLink, Offset, IndexTime, AuxilaryID) VALUES (?,?,?,?,?,?,?,?,?,?,?); 
+
 
 GetServiceID SELECT ID, IndexTime, IsDirectory, ServiceTypeID FROM Services WHERE Path = ? AND Name = ?;
 

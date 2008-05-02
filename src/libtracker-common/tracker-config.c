@@ -75,6 +75,9 @@
 #define KEY_PADDING				 "Padding"
 #define KEY_THREAD_STACK_SIZE			 "ThreadStackSize"
 
+#define GROUP_SERVICES				 "Services"
+#define KEY_ENABLE_XESAM			 "EnableXesam"
+
 /* Default values */
 #define DEFAULT_VERBOSITY			 0
 #define DEFAULT_INITIAL_SLEEP			 45	  /* 0->1000 */
@@ -82,6 +85,7 @@
 #define DEFAULT_ENABLE_WATCHES			 TRUE
 #define DEFAULT_THROTTLE			 0	  /* 0->20 */
 #define DEFAULT_ENABLE_INDEXING			 TRUE
+#define DEFAULT_ENABLE_XESAM			 FALSE
 #define DEFAULT_ENABLE_CONTENT_INDEXING		 TRUE
 #define DEFAULT_ENABLE_THUMBNAILS		 TRUE
 #define DEFAULT_FAST_MERGES			 FALSE
@@ -149,6 +153,9 @@ struct _TrackerConfigPriv {
 	gint	  bucket_ratio;
 	gint	  padding;
 	gint	  thread_stack_size;
+
+	/* Services*/
+	gboolean enable_xesam;
 };
 
 static void config_finalize	(GObject      *object);
@@ -205,7 +212,10 @@ enum {
 	PROP_DIVISIONS,
 	PROP_BUCKET_RATIO,
 	PROP_PADDING,
-	PROP_THREAD_STACK_SIZE
+	PROP_THREAD_STACK_SIZE,
+
+	/* Services*/
+	PROP_ENABLE_XESAM
 };
 
 G_DEFINE_TYPE (TrackerConfig, tracker_config, G_TYPE_OBJECT);
@@ -505,6 +515,15 @@ tracker_config_class_init (TrackerConfigClass *klass)
 							   DEFAULT_THREAD_STACK_SIZE,
 							   G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
 
+	/* Services */
+	g_object_class_install_property (object_class,
+					 PROP_ENABLE_XESAM,
+					 g_param_spec_boolean ("enable-xesam",
+							       "Enable Xesam",
+							       "Xesam DBus service",
+							       DEFAULT_ENABLE_XESAM,
+							       G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
+
 	g_type_class_add_private (object_class, sizeof (TrackerConfigPriv));
 }
 
@@ -639,6 +658,12 @@ config_get_property (GObject	*object,
 	case PROP_THREAD_STACK_SIZE:
 		g_value_set_int (value, priv->thread_stack_size);
 		break;
+
+	/* Services */
+	case PROP_ENABLE_XESAM:
+		g_value_set_boolean (value, priv->enable_xesam);
+		break;
+
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -783,6 +808,13 @@ config_set_property (GObject	  *object,
 		tracker_config_set_thread_stack_size (TRACKER_CONFIG (object),
 						      g_value_get_int (value));
 		break;
+
+	/* Services */
+	case PROP_ENABLE_XESAM:
+		tracker_config_set_enable_xesam (TRACKER_CONFIG (object),
+						    g_value_get_boolean (value));
+		break;
+
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -1096,6 +1128,12 @@ config_create_with_defaults (const gchar *filename)
 				" 0 uses the default stack size for this platform",
 				NULL);
 
+	/* Services */
+	g_key_file_set_boolean (key_file, GROUP_SERVICES, KEY_ENABLE_XESAM, DEFAULT_ENABLE_XESAM);
+	g_key_file_set_comment (key_file, GROUP_SERVICES, KEY_ENABLE_XESAM,
+				" Xesam DBus service.\n",
+				NULL);
+
 	content = g_key_file_to_data (key_file, NULL, &error);
 	g_free (language);
 	g_key_file_free (key_file);
@@ -1334,6 +1372,9 @@ config_load (TrackerConfig *config)
 	config_load_int (config, "padding", key_file, GROUP_PERFORMANCE, KEY_PADDING);
 	config_load_int (config, "thread-stack-size", key_file, GROUP_PERFORMANCE, KEY_THREAD_STACK_SIZE);
 
+	/* Services */
+	config_load_boolean (config, "enable-xesam", key_file, GROUP_SERVICES, KEY_ENABLE_XESAM);
+
 	g_key_file_free (key_file);
 }
 
@@ -1478,6 +1519,18 @@ tracker_config_get_enable_indexing (TrackerConfig *config)
 	priv = GET_PRIV (config);
 
 	return priv->enable_indexing;
+}
+
+gboolean
+tracker_config_get_enable_xesam (TrackerConfig *config)
+{
+	TrackerConfigPriv *priv;
+
+	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_ENABLE_XESAM);
+
+	priv = GET_PRIV (config);
+
+	return priv->enable_xesam;
 }
 
 gboolean
@@ -1850,6 +1903,20 @@ tracker_config_set_enable_indexing (TrackerConfig *config,
 
 	priv->enable_indexing = value;
 	g_object_notify (G_OBJECT (config), "enable-indexing");
+}
+
+void
+tracker_config_set_enable_xesam (TrackerConfig *config,
+				 gboolean	   value)
+{
+	TrackerConfigPriv *priv;
+
+	g_return_if_fail (TRACKER_IS_CONFIG (config));
+
+	priv = GET_PRIV (config);
+
+	priv->enable_xesam = value;
+	g_object_notify (G_OBJECT (config), "enable-xesam");
 }
 
 void

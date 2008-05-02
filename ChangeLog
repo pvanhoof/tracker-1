@@ -1,3 +1,20 @@
+2008-05-02  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-xesam-live-search.c
+	* src/trackerd/tracker-xesam-live-search.h
+	* src/trackerd/tracker-dbus.c
+	* src/trackerd/tracker-dbus-xesam.c
+	* src/trackerd/tracker-dbus-xesam.h
+	* src/trackerd/tracker-xesam.c
+	* src/trackerd/tracker-xesam.h
+	* src/trackerd/tracker-db-sqlite.c
+	* src/trackerd/tracker-db-sqlite.h
+	* src/libtracker-common/tracker-config.c
+	* src/libtracker-common/tracker-config.h
+	* data/sqlite-stored-procs.sql
+	* data/sqlite-tracker.sql
+	* data/Makefile.am: Xesam support infrastructure
+
 2008-04-30  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/Makefile.am:

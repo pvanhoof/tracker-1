@@ -51,5 +51,6 @@ TrackerXesamSession*    tracker_xesam_create_session         (TrackerDBusXesam  
 void                    tracker_xesam_close_session          (const gchar             *session_id,
                                                               GError                 **error);
 void                    tracker_xesam_init                   (void);
+void                    tracker_xesam_wakeup                 (guint32 last_id);
 
 #endif

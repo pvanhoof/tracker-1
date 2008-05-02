@@ -60,6 +60,7 @@ GSList *       tracker_config_get_no_watch_directory_roots         (TrackerConfi
 gboolean       tracker_config_get_enable_watches                   (TrackerConfig *config);
 gint           tracker_config_get_throttle                         (TrackerConfig *config);
 gboolean       tracker_config_get_enable_indexing                  (TrackerConfig *config);
+gboolean       tracker_config_get_enable_xesam                     (TrackerConfig *config);
 gboolean       tracker_config_get_enable_content_indexing          (TrackerConfig *config);
 gboolean       tracker_config_get_enable_thumbnails                (TrackerConfig *config);
 gboolean       tracker_config_get_fast_merges                      (TrackerConfig *config);
@@ -94,6 +95,8 @@ void           tracker_config_set_enable_watches                   (TrackerConfi
 void           tracker_config_set_throttle                         (TrackerConfig *config,
 								    gint           value);
 void           tracker_config_set_enable_indexing                  (TrackerConfig *config,
+								    gboolean       value);
+void           tracker_config_set_enable_xesam                     (TrackerConfig *config,
 								    gboolean       value);
 void           tracker_config_set_enable_content_indexing          (TrackerConfig *config,
 								    gboolean       value);

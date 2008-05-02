@@ -6,6 +6,7 @@ CREATE TABLE Options (
 
 insert Into Options (OptionKey, OptionValue) values ('DBVersion', '20');
 insert Into Options (OptionKey, OptionValue) values ('Sequence', '1');
+insert Into Options (OptionKey, OptionValue) values ('EventSequence', '1');
 insert Into Options (OptionKey, OptionValue) values ('UpdateCount', '0');
 
 

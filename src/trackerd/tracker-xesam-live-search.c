@@ -247,6 +247,7 @@ tracker_xesam_live_search_match_with_events (TrackerXesamLiveSearch *self, Track
 
 		tracker_db_result_set_rewind (events);
 
+		ls_valid = tracker_db_result_set_iter_next (result_set);
 	}
 
 	g_object_unref (result_set);

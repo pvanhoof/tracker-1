@@ -187,7 +187,7 @@ live_search_handler (gpointer data)
 		g_list_free (sessions);
 
 		// lock (indexer)
-		tracker_db_delete_handled (db_con, result_set);
+		tracker_db_delete_handled_events (db_con, result_set);
 		// unlock (indexer)
 	}
 

@@ -3251,7 +3251,7 @@ tracker_db_delete_metadata (DBConnection *db_con, const char *service, const cha
 }
 
 TrackerDBResultSet* 
-tracker_db_get_xeam_hit_count (DBConnection *db_con, const gchar *search_id)
+tracker_db_get_live_search_hit_count (DBConnection *db_con, const gchar *search_id)
 {
 	TrackerDBResultSet *result;
 	result = tracker_exec_proc (db_con->common, "GetXesamHitCount", search_id, NULL);
@@ -3260,7 +3260,7 @@ tracker_db_get_xeam_hit_count (DBConnection *db_con, const gchar *search_id)
 
 
 TrackerDBResultSet* 
-tracker_db_get_xesam_live_search_mod_ids (DBConnection *db_con, const gchar *search_id)
+tracker_db_get_live_search_modified_ids (DBConnection *db_con, const gchar *search_id)
 {
 	TrackerDBResultSet *result;
 	result = tracker_exec_proc (db_con->common, "GetXesamLiveSearchModifiedIDs", search_id, NULL);
@@ -3268,17 +3268,19 @@ tracker_db_get_xesam_live_search_mod_ids (DBConnection *db_con, const gchar *sea
 }
 
 TrackerDBResultSet* 
-tracker_db_get_xesam_live_search_creat_ids (DBConnection *db_con, const gchar *search_id, const gchar *query)
+tracker_db_get_live_search_new_ids (DBConnection *db_con, const gchar *search_id, const gchar *columns, const gchar *tables, const gchar *query)
 {
 	TrackerDBResultSet *result;
 
 	// todo: this is a query for ottela to review
 
 	gchar *m_query = g_strdup_printf (
-			"SELECT ServiceID, ... FROM XesamLiveSearches as X, ... "
-			"INNER JOIN ... "
-			"WHERE X.SearchID = ? AND X.EventType IS 'Create' AND "
-			"(%s)", query);
+			"SELECT E.ServiceID, E.EventType, %s "
+			"FROM XesamLiveSearches as X, Events as E, %s "
+			"X.ServiceID = E.ServiceID "
+			"AND X.SearchID = ? "
+			"AND X.EventType IS 'Create' OR X.EventType IS 'Update' "
+			"AND (%s)", columns, tables, query);
 
 	result = tracker_db_interface_execute_query (db_con->db, NULL, m_query);
 
@@ -3298,7 +3300,7 @@ tracker_db_get_events (DBConnection *db_con)
 }
 
 void 
-tracker_db_delete_handled (DBConnection *db_con, TrackerDBResultSet *events)
+tracker_db_delete_handled_events (DBConnection *db_con, TrackerDBResultSet *events)
 {
 	TrackerDBResultSet *result_set;
 	result_set = tracker_exec_proc (db_con->common, "DeleteHandled", NULL);

@@ -204,7 +204,7 @@ tracker_xesam_live_search_match_with_events (TrackerXesamLiveSearch *self, Track
 
 	g_object_get (proxy, "db-connection", &db_con, NULL);
 
-	result_set = tracker_db_get_xesam_live_search_mod_ids (db_con, 
+	result_set = tracker_db_get_live_search_modified_ids (db_con, 
 		tracker_xesam_live_search_get_id (self));
 
 	while (ls_valid) {
@@ -252,9 +252,11 @@ tracker_xesam_live_search_match_with_events (TrackerXesamLiveSearch *self, Track
 
 	ls_valid = TRUE;
 
-	result_set = tracker_db_get_xesam_live_search_creat_ids (db_con, 
+	result_set = tracker_db_get_live_search_new_ids (db_con, 
 		tracker_xesam_live_search_get_id (self),
-		tracker_xesam_live_search_get_query (self));
+		"", /* Columns */
+		"", /* Tables */
+		tracker_xesam_live_search_get_query (self)); /* Query */
 
 	while (ls_valid) {
 		GValue ls_value = { 0, };
@@ -330,7 +332,7 @@ tracker_xesam_live_search_get_hit_count (TrackerXesamLiveSearch  *self,
 
 		g_object_get (proxy, "db-connection", &db_con, NULL);
 
-		result_set = tracker_db_get_xeam_hit_count (db_con, 
+		result_set = tracker_db_get_live_search_hit_count (db_con, 
 			tracker_xesam_live_search_get_id (self));
 		_tracker_db_result_set_get_value (result_set, 0, &value);
 		*count = g_value_get_int (&value);

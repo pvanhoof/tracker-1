@@ -29,7 +29,7 @@ DeleteHandled DELETE FROM Events WHERE BeingHandled = 1;
 GetEvents SELECT ID, ServiceID, EventType FROM Events WHERE BeingHandled = 0;
 SetBeingHandled UPDATE Events SET BeingHandled = 1;
 
-GetXesamLiveSearchModifiedIDs SELECT E.ServiceID FROM Events as E, XesamLiveSearches as X WHERE E.ServiceID = X.ServiceID AND SearchID = ? AND E.EventType IS NOT 'Create';
+GetXesamLiveSearchModifiedIDs SELECT E.ServiceID FROM Events as E, XesamLiveSearches as X WHERE E.ServiceID = X.ServiceID AND X.SearchID = ? AND E.EventType IS NOT 'Create';
 GetXesamHitCount SELECT count(*) FROM XesamLiveSearches WHERE SearchID = ?;
 
 GetNewEventID SELECT OptionValue FROM Options WHERE OptionKey = 'EventSequence';

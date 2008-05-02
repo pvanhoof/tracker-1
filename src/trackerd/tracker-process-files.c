@@ -1531,7 +1531,7 @@ tracker_process_files (gpointer data)
 
         /* Start processing */
 	g_print ("oooye!\n");
-	g_mutex_lock (tracker->files_signal_mutex);
+	g_mutex_unlock (tracker->files_signal_mutex);
 	g_print ("oooye2!\n");
 
         /* Signal state change */

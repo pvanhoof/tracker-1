@@ -897,7 +897,10 @@ tracker_db_connect (void)
 		tracker_db_exec_no_reply (db_con, "ANALYZE");
 	}
 
-	load_sql_file (db_con, "sqlite-temp-tables.sql");
+	// TODO: move tables Events and XesamLiveSearches from sqlite-service.sql
+	// to TEMPORARY tables in sqlite-temp-tables.sql:
+
+	// load_sql_file (db_con, "sqlite-temp-tables.sql");
 
 	tracker_db_attach_db (db_con, "common");
 	tracker_db_attach_db (db_con, "cache");
@@ -3324,11 +3327,13 @@ tracker_db_create_event (DBConnection *db_con, const gchar *service_id_str, cons
 	eid = tracker_int_to_string (i);
 
 	result_set = tracker_exec_proc (db_con->common, "UpdateNewEventID", eid, NULL);
-	g_object_unref (result_set);
+	if (result_set)
+		g_object_unref (result_set);
 
 	result_set = tracker_exec_proc (db_con, "CreateEvent", eid, service_id_str, type, NULL);
 	id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (db_con->db));
-	g_object_unref (result_set);
+	if (result_set)
+		g_object_unref (result_set);
 
 	tracker_xesam_wakeup (id);
 

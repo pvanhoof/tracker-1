@@ -79,6 +79,23 @@ tracker_dbus_xesam_set_db_connection (TrackerDBusXesam *object,
 }
 
 static void
+xesam_get_property (GObject * object, guint prop_id, GValue * value, GParamSpec * pspec)
+{
+	TrackerDBusXesamPriv *priv;
+
+	priv = GET_PRIV (object);;
+
+	switch (prop_id) {
+		case PROP_DB_CONNECTION:
+			g_value_set_pointer (value, priv->db_con);
+			break;
+		default:
+			G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+			break;
+	};
+}
+
+static void
 xesam_set_property (GObject      *object,
 		    guint param_id,
 		    const GValue *value,
@@ -107,13 +124,14 @@ tracker_dbus_xesam_class_init (TrackerDBusXesamClass *klass)
 	object_class->finalize = xesam_search_finalize;
 
 	object_class->set_property = xesam_set_property;
+	object_class->get_property = xesam_get_property;
 
 	g_object_class_install_property (object_class,
 					 PROP_DB_CONNECTION,
 					 g_param_spec_pointer ("db-connection",
 							       "DB connection",
 							       "Database connection to use in transactions",
-							       G_PARAM_WRITABLE));
+							       G_PARAM_WRITABLE|G_PARAM_READABLE));
 
 	signals[XESAM_HITS_ADDED] =
 		g_signal_new ("hits-added",

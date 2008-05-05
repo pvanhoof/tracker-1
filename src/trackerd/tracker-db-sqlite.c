@@ -3250,10 +3250,13 @@ tracker_db_delete_metadata (DBConnection *db_con, const char *service, const cha
 
 }
 
+GStaticRecMutex events_table_lock = G_STATIC_REC_MUTEX_INIT;
+
 TrackerDBResultSet* 
 tracker_db_get_live_search_hit_count (DBConnection *db_con, const gchar *search_id)
 {
 	TrackerDBResultSet *result;
+	tracker_debug ("GetLiveSearchHitCount");
 	result = tracker_exec_proc (db_con->common, "GetLiveSearchHitCount", search_id, NULL);
 	return result;
 }
@@ -3263,14 +3266,28 @@ TrackerDBResultSet*
 tracker_db_get_live_search_modified_ids (DBConnection *db_con, const gchar *search_id)
 {
 	TrackerDBResultSet *result;
+
+	/* This happens in the GMainLoop */
+	g_static_rec_mutex_lock (&events_table_lock);
+
+	/* Uses the Events table */
+	tracker_debug ("GetLiveSearchModifiedIDs");
+
 	result = tracker_exec_proc (db_con->common, "GetLiveSearchModifiedIDs", search_id, NULL);
+
+	g_static_rec_mutex_unlock (&events_table_lock);
+
 	return result;
 }
+
 
 TrackerDBResultSet* 
 tracker_db_get_live_search_new_ids (DBConnection *db_con, const gchar *search_id, const gchar *columns, const gchar *tables, const gchar *query)
 {
 	TrackerDBResultSet *result;
+
+	/* This happens in the GMainLoop */
+	g_static_rec_mutex_lock (&events_table_lock);
 
 	// todo: this is a query for ottela to review
 
@@ -3278,15 +3295,23 @@ tracker_db_get_live_search_new_ids (DBConnection *db_con, const gchar *search_id
 	// ServiceID is #1
 	// EventType is #2
 
+	/* Uses the Events table */
 	gchar *m_query = g_strdup_printf (
-			"SELECT E.ServiceID, E.EventType, %s "
-			"FROM XesamLiveSearches as X, Events as E, %s "
+			"SELECT E.ServiceID, E.EventType%s %s "
+			"FROM XesamLiveSearches as X, Events as E%s %s "
 			"X.ServiceID = E.ServiceID "
 			"AND X.SearchID = ? "
 			"AND X.EventType IS 'Create' OR X.EventType IS 'Update' "
-			"AND (%s)", columns, tables, query);
+			"%s%s%s", 
+			columns?",":"", columns, 
+			tables?",":"", tables, 
+			query?"AND (":"", query, query?")":"");
+
+	tracker_debug ("LiveSearchUpdateQuery: %s", m_query);
 
 	result = tracker_db_interface_execute_query (db_con->db, NULL, m_query);
+
+	g_static_rec_mutex_unlock (&events_table_lock);
 
 	g_free (m_query);
 
@@ -3297,9 +3322,19 @@ TrackerDBResultSet*
 tracker_db_get_events (DBConnection *db_con)
 {
 	TrackerDBResultSet *result_set, *result;
+
+	/* This happens in the GMainLoop */
+	g_static_rec_mutex_lock (&events_table_lock);
+
+	/* Uses the Events table */
+	tracker_debug ("GetEvents");
 	result = tracker_exec_proc (db_con->common, "GetEvents", NULL);
+	tracker_debug ("SetEventsBeingHandled");
 	result_set = tracker_exec_proc (db_con->common, "SetEventsBeingHandled", NULL);
 	g_object_unref (result_set);
+
+	g_static_rec_mutex_unlock (&events_table_lock);
+
 	return result;
 }
 
@@ -3307,8 +3342,18 @@ void
 tracker_db_delete_handled_events (DBConnection *db_con, TrackerDBResultSet *events)
 {
 	TrackerDBResultSet *result_set;
+
+	/* This happens in the GMainLoop */
+	g_static_rec_mutex_lock (&events_table_lock);
+
+	/* Uses the Events table */
+	tracker_debug ("DeleteHandledEvents");
+
 	result_set = tracker_exec_proc (db_con->common, "DeleteHandledEvents", NULL);
 	g_object_unref (result_set);
+
+	g_static_rec_mutex_unlock (&events_table_lock);
+
 }
 
 static guint32
@@ -3319,10 +3364,14 @@ tracker_db_create_event (DBConnection *db_con, const gchar *service_id_str, cons
 	int	   i;
 	guint32	   id = 0;
 
+	/* This happens in the indexer's thread */
+	g_static_rec_mutex_lock (&events_table_lock);
+
 	result_set = tracker_exec_proc (db_con->common, "GetNewEventID", NULL);
 
 	if (!result_set) {
 		tracker_error ("ERROR: could not create event - GetNewEventID failed");
+		g_static_rec_mutex_unlock (&events_table_lock);
 		return 0;
 	}
 
@@ -3336,6 +3385,9 @@ tracker_db_create_event (DBConnection *db_con, const gchar *service_id_str, cons
 	if (result_set)
 		g_object_unref (result_set);
 
+	/* Uses the Events table */
+	tracker_debug ("CreateEvent %s", eid);
+
 	result_set = tracker_exec_proc (db_con, "CreateEvent", eid, service_id_str, type, NULL);
 	id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (db_con->db));
 	if (result_set)
@@ -3344,6 +3396,8 @@ tracker_db_create_event (DBConnection *db_con, const gchar *service_id_str, cons
 	tracker_xesam_wakeup (id);
 
 	g_free (eid);
+
+	g_static_rec_mutex_unlock (&events_table_lock);
 
 	return id;
 }
@@ -3361,8 +3415,11 @@ tracker_db_create_service (DBConnection *db_con, const char *service, TrackerDBF
 	int	   service_type_id;
 	char	   *str_service_type_id, *path, *name;
 
+	g_static_rec_mutex_lock (&events_table_lock);
+
 	if (!info || !info->uri || !info->uri[0] || !service || !db_con) {
 		tracker_error ("ERROR: cannot create service");
+		g_static_rec_mutex_unlock (&events_table_lock);
 		return 0;
 
 	}
@@ -3382,6 +3439,7 @@ tracker_db_create_service (DBConnection *db_con, const char *service, TrackerDBF
 
 	if (!result_set) {
 		tracker_error ("ERROR: could not create service - GetNewID failed");
+		g_static_rec_mutex_unlock (&events_table_lock);
 		return 0;
 	}
 
@@ -3445,6 +3503,7 @@ tracker_db_create_service (DBConnection *db_con, const char *service, TrackerDBF
 			g_free (str_filesize);
 			g_free (str_mtime);
 			g_free (str_offset);
+			g_static_rec_mutex_unlock (&events_table_lock);
 			return 0;
 		}
 		id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (db_con->db));
@@ -3464,7 +3523,8 @@ tracker_db_create_service (DBConnection *db_con, const char *service, TrackerDBF
 			g_free (parent);
 		}
 
-		tracker_db_create_event (db_con, sid, "Create");
+		if (tracker_config_get_enable_xesam (tracker->config))
+			tracker_db_create_event (db_con, sid, "Create");
 	}
 
 	g_free (name);
@@ -3475,6 +3535,8 @@ tracker_db_create_service (DBConnection *db_con, const char *service, TrackerDBF
 	g_free (str_filesize);
 	g_free (str_mtime);
 	g_free (str_offset);
+
+	g_static_rec_mutex_unlock (&events_table_lock);
 
 	return id;
 }

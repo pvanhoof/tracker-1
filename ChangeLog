@@ -1,3 +1,10 @@
+2008-05-05  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-dbus-xesam.c
+	* src/trackerd/tracker-xesam.c
+	* src/trackerd/tracker-db-sqlite.c: Added proper locking for the db
+	while dealing with Events for LiveSearches
+
 2008-05-02  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/trackerd/tracker-xesam-live-search.c

@@ -20,6 +20,7 @@
  */ 
 
 #include "tracker-xesam.h"
+#include <libtracker-common/tracker-config.h>
 
 extern Tracker *tracker;
 
@@ -147,11 +148,15 @@ live_search_handler (gpointer data)
 	TrackerDBusXesam *proxy = TRACKER_DBUS_XESAM (tracker_dbus_get_object (TRACKER_TYPE_DBUS_XESAM));
 	DBConnection *db_con = NULL;
 
+	if (!proxy)
+		return FALSE;
+
 	g_object_get (proxy, "db-connection", &db_con, NULL);
 
-	// lock (indexer)
+	if (!db_con)
+		return FALSE;
+
 	result_set = tracker_db_get_events (db_con);
-	// lock (indexer)
 
 	if (tracker_db_result_set_get_n_rows (result_set) > 0) {
 
@@ -189,9 +194,7 @@ live_search_handler (gpointer data)
 		}
 		g_list_free (sessions);
 
-		// lock (indexer)
 		tracker_db_delete_handled_events (db_con, result_set);
-		// unlock (indexer)
 	}
 
 	g_object_unref (result_set);
@@ -199,10 +202,7 @@ live_search_handler (gpointer data)
 	return reason_to_live;
 }
 
-/* Should be set initially to FALSE instead (but then we activate this 
- * unfinished code)*/
-
-static gboolean live_search_handler_running = TRUE;
+static gboolean live_search_handler_running = FALSE;
 
 static void 
 live_search_handler_destroy (gpointer data)
@@ -213,7 +213,7 @@ live_search_handler_destroy (gpointer data)
 void 
 tracker_xesam_wakeup (guint32 last_id)
 {
-	// This happens each time a new event is created
+	/* This happens each time a new event is created */
 
 	if (!live_search_handler_running) {
 		live_search_handler_running = TRUE;

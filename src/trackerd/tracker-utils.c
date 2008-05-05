@@ -451,35 +451,6 @@ tracker_notify_meta_data_available (void)
 	}
 }
 
-GTimeVal *
-tracker_timer_start (void)
-{
-	GTimeVal  *before;
-
-	before = g_new0 (GTimeVal, 1);
-
-	g_get_current_time (before);
-
-	return before;
-}
-
-
-void
-tracker_timer_end (GTimeVal *before, const char *str)
-{
-	GTimeVal  after;
-	double	  elapsed;
-
-	g_get_current_time (&after);
-
-	elapsed = (1000 * (after.tv_sec - before->tv_sec))  +  ((after.tv_usec - before->tv_usec) / 1000.0);
-
-	g_free (before);
-
-	tracker_log ("%s %f ms", str, elapsed);
-}
-
-
 char *
 tracker_compress (const char *ptr, int size, int *compressed_size)
 {

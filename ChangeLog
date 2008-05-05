@@ -1,3 +1,11 @@
+2008-05-05  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-utils.[ch]:
+	* src/trackerd/tracker-db-sqlite.c: Removed tracker_timer_start()
+	and tracker_timer_end() since they are only used in one place.
+	Used a GTimer instead of GTimeVal and also optimised the loading
+	of the prepared queries by using the GMappedFile API.
+
 2008-05-05  Ivan Frade  <ivan.frade@nokia.com>
 	
 	* src/trackerd/tracker-cache.c

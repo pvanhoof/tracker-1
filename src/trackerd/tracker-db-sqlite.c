@@ -311,70 +311,85 @@ tracker_db_free_field_def (FieldDef *def)
 gboolean
 tracker_db_initialize (void)
 {
-	FILE	 *file;
-	char	 *sql_file;
-	GTimeVal *tv;
-	int i = 0;
-
-	prepared_queries = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+	GTimer      *t;
+	GError      *error = NULL;
+	GMappedFile *mapped_file;
+	GStrv        queries;
+	gchar       *sql_filename;
+	gdouble      secs;
 
 	tracker_log ("Loading prepared queries...");
 
-	sql_file = g_build_filename (SHAREDIR, "tracker", "sqlite-stored-procs.sql", NULL);
+	prepared_queries = g_hash_table_new_full (g_str_hash, 
+						  g_str_equal, 
+						  g_free, 
+						  g_free);
 
-	if (!g_file_test (sql_file, G_FILE_TEST_EXISTS)) {
-		tracker_error ("ERROR: Tracker cannot read required file %s - Please reinstall tracker or check read permissions on the file if it exists", sql_file);
-		g_assert (FALSE);
+	sql_filename = g_build_filename (SHAREDIR, 
+					 "tracker", 
+					 "sqlite-stored-procs.sql", 
+					 NULL);
+
+	t = g_timer_new ();
+
+	mapped_file = g_mapped_file_new (sql_filename, FALSE, &error);
+
+	if (error || !mapped_file) {
+		tracker_debug ("Could not get contents of SQL file:'%s', %s",
+			       sql_filename,
+			       error ? error->message : "no error given");
+
+		if (mapped_file) {
+			g_mapped_file_free (mapped_file);
+		}
+
+		g_timer_destroy (t);
+		g_free (sql_filename);
+
+		return FALSE;
 	}
 
+	tracker_debug ("Opened prepared queries file:'%s' size:%" G_GSIZE_FORMAT " bytes", 
+		       sql_filename,
+		       g_mapped_file_get_length (mapped_file));
 
-	file = g_fopen (sql_file, "r");
+	queries = g_strsplit (g_mapped_file_get_contents (mapped_file), "\n", -1);
+	g_free (sql_filename);
+
+	if (queries) {
+		GStrv p;
+
+		for (p = queries; *p; p++) {
+			GStrv details;
+
+			details = g_strsplit (*p, " ", 2); 
+			
+			if (!details) {
+				continue;
+			}
+
+			if (!details[0] || !details[1]) {
+				continue;
+			}
+
+			tracker_debug ("  Adding query:'%s'", details[0]);
+
+			g_hash_table_insert (prepared_queries, 
+					     g_strdup (details[0]), 
+					     g_strdup (details[1]));
+			g_strfreev (details);
+		}
+
+		g_strfreev (queries);
+	}
+
+	secs = g_timer_elapsed (t, NULL);
+	g_timer_destroy (t);
+	g_mapped_file_free (mapped_file);
 	
-
-	tv = tracker_timer_start ();
-
-	while (!feof (file)) {
-		char buffer[8192];
-		char *sep;
-
-		i++;
-
-		if (!fgets (buffer, 8192, file)) {
-                  /* An "if" to avoid warnings about value returned by fgets()
-                     not handled...
-                     We do not look the returned value since we will have NULL
-                     with a file which terminates with '\n' on a empty line...
-                  */
-                }
-
-		if (strlen (buffer) < 5) {
-			continue;
-		}
-
-		sep = strchr (buffer, ' ');
-
-		if (sep) {
-			const char *query, *name;
-
-			*sep = '\0';
-
-			query = sep + 1;
-			name = buffer;
-
-			//tracker_log ("installing query %s with sql %s", name, query);
-			g_hash_table_insert (prepared_queries, g_strdup (name), g_strdup (query));
-		} else {
-			continue;
-		}
-
-
-	}
-
-	fclose (file);
-
-	g_free (sql_file);
-
-	tracker_timer_end (tv, "File loaded in ");
+	tracker_log ("Found %d prepared queries in %4.4f seconds", 
+		     g_hash_table_size (prepared_queries), 
+		     secs);
 
 	return TRUE;
 }

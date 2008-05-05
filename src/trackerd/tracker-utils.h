@@ -155,7 +155,7 @@ typedef struct {
 
 	gboolean	readonly;
 
-	int		pid;
+	int		pid; 
 
 	gpointer	hal;
 
@@ -330,9 +330,6 @@ void		tracker_throttle 		(int multiplier);
 void		tracker_notify_file_data_available 	(void);
 void		tracker_notify_meta_data_available 	(void);
 void		tracker_notify_request_data_available 	(void);
-
-GTimeVal *	tracker_timer_start 		(void);
-void		tracker_timer_end 		(GTimeVal *before, const char *str);
 
 char *		tracker_compress 		(const char *ptr, int size, int *compressed_size);
 char *		tracker_uncompress 		(const char *ptr, int size, int *uncompressed_size);

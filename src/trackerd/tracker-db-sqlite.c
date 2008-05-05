@@ -81,9 +81,6 @@ typedef struct {
 } ServiceTypeInfo;
 
 
-
-
-
 /* sqlite utf-8 user defined collation sequence */
 
 static int 
@@ -311,18 +308,6 @@ tracker_db_free_field_def (FieldDef *def)
 }
 
 
-static inline void
-lock_connection (DBConnection *db_con) 
-{
-}
-
-
-static inline void
-unlock_connection (DBConnection *db_con) 
-{
-}
-
-
 gboolean
 tracker_db_initialize (void)
 {
@@ -414,53 +399,15 @@ close_db (DBConnection *db_con)
 		db_con->db = NULL;
 	}
 
-	tracker_debug ("Database closed for thread %s", db_con->thread);
+	tracker_debug ("Database closed");
 }
 
 
 void
 tracker_db_close (DBConnection *db_con)
 {
-	if (!db_con->thread) {
-		db_con->thread = "main";
-	}
-
 	close_db (db_con);
 }
-
-
-
-
-
-/*
-static void
-test_data (gpointer key,
-	   gpointer value,
-	   gpointer user_data)
-{
-	DBConnection *db_con;
-	sqlite3_stmt *stmt;
-	int	     rc;
-
-	db_con = user_data;
-
-	rc = sqlite3_prepare (db_con->db, query, -1, &stmt, 0);
-
-	if (rc == SQLITE_OK && stmt != NULL) {
-		char *procedure, *query;
-
-		procedure = (char *) key;
-		query = (char *) value;
-
-		//tracker_log ("successfully prepared query %s", procedure);
-		//g_hash_table_insert (db_con->statements, g_strdup (procedure), stmt);
-	} else {
-		tracker_error ("ERROR: failed to prepare query %s with sql %s due to %s", procedure, query, sqlite3_errmsg (db_con->db));
-		return;
-	}
-}
-*/
-
 
 static TrackerDBInterface *
 open_user_db (const char *name, gboolean *create_table)
@@ -568,17 +515,10 @@ tracker_db_connect_common (void)
 
 	open_common_db (db_con);
 
-	db_con->db_type = TRACKER_DB_TYPE_COMMON;
-	
 	db_con->cache = NULL;
 	db_con->emails = NULL;
-	db_con->others = NULL;
 	db_con->blob = NULL;
 	db_con->common = db_con;
-
-	db_con->thread = NULL;
-
-	db_con->in_transaction = FALSE;
 
 	return db_con;
 }
@@ -706,6 +646,16 @@ tracker_db_close_all (DBConnection *db_con)
 
 }
 
+gboolean
+tracker_db_is_in_transaction (DBConnection *db_con) 
+{
+	gboolean in_transaction;
+
+	g_object_get (db_con->db, "in-transaction", &in_transaction, NULL);
+	
+	return in_transaction;
+}
+
 void
 tracker_db_start_index_transaction (DBConnection *db_con)
 {
@@ -776,9 +726,6 @@ tracker_db_connect (void)
 	tracker_db_interface_set_procedure_table (db_con->db, prepared_queries);
 	g_free (dbname);
 
-	db_con->db_type = TRACKER_DB_TYPE_DATA;
-	db_con->db_category = DB_CATEGORY_FILES;
-
 	db_con->data = db_con;
 
 	tracker_db_set_default_pragmas (db_con);
@@ -832,8 +779,6 @@ tracker_db_connect (void)
 	db_con->cache = db_con;
 	db_con->common = db_con;
 
-	db_con->thread = NULL;
-
 	return db_con;
 }
 
@@ -866,13 +811,9 @@ tracker_db_connect_file_meta (void)
 
 	db_con = g_new0 (DBConnection, 1);
 
-	db_con->db_type = TRACKER_DB_TYPE_INDEX;
-	db_con->db_category = DB_CATEGORY_FILES;
 	db_con->index = db_con;
 
 	open_file_db (db_con);
-
-	db_con->thread = NULL;
 
 	return db_con;
 }
@@ -895,15 +836,10 @@ tracker_db_connect_email_meta (void)
 
 	db_con = g_new0 (DBConnection, 1);
 
-	db_con->db_type = TRACKER_DB_TYPE_INDEX;
-	db_con->db_category = DB_CATEGORY_EMAILS;
-
 	db_con->index = db_con;
 	db_con->emails = db_con;
 
 	open_email_db (db_con);
-
-	db_con->thread = NULL;
 
 	return db_con;
 }
@@ -933,13 +869,9 @@ tracker_db_connect_file_content (void)
 
 	db_con = g_new0 (DBConnection, 1);
 
-	db_con->db_type = TRACKER_DB_TYPE_CONTENT;
-	db_con->db_category = DB_CATEGORY_FILES;
 	db_con->blob = db_con;
 
 	open_file_content_db (db_con);
-
-	db_con->thread = NULL;
 
 	return db_con;
 }
@@ -969,13 +901,9 @@ tracker_db_connect_email_content (void)
 
 	db_con = g_new0 (DBConnection, 1);
 
-	db_con->db_type = TRACKER_DB_TYPE_CONTENT;
-	db_con->db_category = DB_CATEGORY_EMAILS;
 	db_con->blob = db_con;
 
 	open_email_content_db (db_con);
-
-	db_con->thread = NULL;
 
 	return db_con;
 }
@@ -1066,9 +994,6 @@ tracker_db_connect_cache (void)
 	tracker_db_interface_set_procedure_table (db_con->db, prepared_queries);
 	g_free (dbname);
 
-	db_con->db_type = TRACKER_DB_TYPE_CACHE;
-	db_con->cache = db_con;
-
 	tracker_db_set_default_pragmas (db_con);
 
 	if (!tracker_config_get_low_memory_mode (tracker->config)) {
@@ -1082,8 +1007,6 @@ tracker_db_connect_cache (void)
 		load_sql_file (db_con, "sqlite-cache.sql");
 		tracker_db_exec_no_reply (db_con, "ANALYZE");
 	}
-
-	db_con->thread = NULL;
 
 	return db_con;
 }
@@ -1112,9 +1035,6 @@ tracker_db_connect_emails (void)
 	tracker_db_interface_set_procedure_table (db_con->db, prepared_queries);
 	g_free (dbname);
 
-
-	db_con->db_type = TRACKER_DB_TYPE_EMAIL;
-	db_con->db_category = DB_CATEGORY_EMAILS;
 
 	db_con->emails = db_con;
 
@@ -1148,8 +1068,6 @@ tracker_db_connect_emails (void)
 
 	tracker_db_attach_db (db_con, "common");
 	tracker_db_attach_db (db_con, "cache");
-
-	db_con->thread = NULL;
 
 	return db_con;
 }
@@ -1475,9 +1393,7 @@ tracker_db_get_file_contents_words (DBConnection *db_con, guint32 id, GHashTable
 
 	str_file_id = tracker_uint_to_string (id);
 
-	lock_connection (db_con);
 	result_set = tracker_db_interface_execute_procedure (db_con->db, NULL, "GetAllContents", str_file_id, NULL);
-	unlock_connection (db_con);
 
 	g_free (str_file_id);
 
@@ -3090,7 +3006,7 @@ tracker_db_get_live_search_new_ids (DBConnection *db_con, const gchar *search_id
 
 	tracker_debug ("LiveSearchUpdateQuery: %s", m_query);
 
-	result = tracker_db_interface_execute_query (db_con->common, NULL, m_query);
+	result = tracker_db_interface_execute_query (db_con->common->db, NULL, m_query);
 
 	g_static_rec_mutex_unlock (&events_table_lock);
 
@@ -3270,19 +3186,15 @@ tracker_db_create_service (DBConnection *db_con, const char *service, TrackerDBF
 	if (service_type_id != -1) {
 		gchar *parent;
 
-              //  gchar *apath = tracker_escape_string (path);
-             //   gchar *aname = tracker_escape_string (name);
-
 		b = tracker_exec_proc (db_con, "CreateService", sid, path, name,
                                    str_service_type_id, info->mime, str_filesize,
                                    str_is_dir, str_is_link, str_offset, str_mtime, str_aux, NULL);
-              //  g_free (apath);
-             //   g_free (aname);
 
-		if (b)
+		if (b) {
 			g_object_unref (b);
-
-		if (db_con->in_error) {
+		} 
+		/*
+		  Undetectable error
 			tracker_error ("ERROR: CreateService uri is %s/%s", path, name);
 			g_free (name);
 			g_free (path);
@@ -3294,7 +3206,7 @@ tracker_db_create_service (DBConnection *db_con, const char *service, TrackerDBF
 			g_free (str_offset);
 			g_static_rec_mutex_unlock (&events_table_lock);
 			return 0;
-		}
+		*/
 		id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (db_con->db));
 
 		if (info->is_hidden) {

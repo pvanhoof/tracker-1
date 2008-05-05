@@ -452,7 +452,11 @@ tracker_cache_process_events (DBConnection *db_con, gboolean check_flush)
 		}
 
 		
-		if (stopped_trans && db_con && !db_con->in_transaction) tracker_db_start_index_transaction (db_con);
+		if (stopped_trans 
+                    && db_con 
+                    && !tracker_db_is_in_transaction (db_con)) {
+                        tracker_db_start_index_transaction (db_con);
+                }
 
 		tracker_throttle (5000);
 

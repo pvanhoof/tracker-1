@@ -33,27 +33,14 @@ typedef struct DBConnection DBConnection;
 
 struct DBConnection {
 	TrackerDBInterface *db;
-	TrackerDBType   db_type;
-	DBCategory	db_category;
-	char		*err;
-	char		*name;
-	char		*file_name;
-	int		rc;
-	char		*thread; /* name of the thread that created this */
-
-	guint           in_transaction : 1;
-	guint           in_error : 1;
 
 	/* pointers to other database connection objects */
 	DBConnection	*data;
 	DBConnection	*common;
-	DBConnection	*files;
 	DBConnection	*index;
 	DBConnection	*emails;
-	DBConnection	*others;
 	DBConnection	*blob;
 	DBConnection	*cache;
-	DBConnection	*user;
 	gpointer	word_index;
 };
 
@@ -306,6 +293,7 @@ FieldData *         tracker_db_get_metadata_field              (DBConnection   *
                                                                 gint            field_count,
                                                                 gboolean        is_select,
                                                                 gboolean        is_condition);
+gboolean            tracker_db_is_in_transaction               (DBConnection   *db_con);
 void                tracker_db_start_index_transaction         (DBConnection   *db_con);
 void                tracker_db_end_index_transaction           (DBConnection   *db_con);
 gboolean            tracker_db_regulate_transactions           (DBConnection   *db_con,

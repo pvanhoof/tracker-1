@@ -1,4 +1,11 @@
-2008-05-05  Ivan Frade  <ivan.frade@nokia.com
+2008-05-05  Ivan Frade  <ivan.frade@nokia.com>
+	
+	* src/trackerd/tracker-cache.c
+	* src/trackerd/trackerd.c
+	* src/trackerd/tracker-db-sqlite.c
+	* src/trackerd/tracker-db-sqlite.h: Removed unused fields in DBConnection
+
+2008-05-05  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/trackerd/tracker-db-sqlite.c
 	* src/trackerd/tracker-db-sqlite.h: Removed unused code and empty

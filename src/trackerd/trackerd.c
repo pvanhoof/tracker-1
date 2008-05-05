@@ -867,8 +867,6 @@ main (gint argc, gchar *argv[])
 
         /* Set up main database connection */
 	db_con = tracker_db_connect ();
-	db_con->thread = "main";
-
 
 	/* check db integrity if not previously shut down cleanly */
 	if (!tracker->readonly && !need_index && tracker_db_get_option_int (db_con, "IntegrityCheck") == 1) {

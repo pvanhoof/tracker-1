@@ -158,7 +158,7 @@ live_search_handler (gpointer data)
 
 	result_set = tracker_db_get_events (db_con);
 
-	if (tracker_db_result_set_get_n_rows (result_set) > 0) {
+	if (result_set && tracker_db_result_set_get_n_rows (result_set) > 0) {
 
 		reason_to_live = TRUE;
 
@@ -197,7 +197,8 @@ live_search_handler (gpointer data)
 		tracker_db_delete_handled_events (db_con, result_set);
 	}
 
-	g_object_unref (result_set);
+	if (result_set)
+		g_object_unref (result_set);
 
 	return reason_to_live;
 }

@@ -207,6 +207,9 @@ tracker_xesam_live_search_match_with_events (TrackerXesamLiveSearch *self, Track
 	result_set = tracker_db_get_live_search_modified_ids (db_con, 
 		tracker_xesam_live_search_get_id (self));
 
+	if (!result_set)
+		return;
+
 	while (ls_valid) {
 		GValue ls_value = { 0, };
 		gboolean ev_valid = TRUE;
@@ -261,6 +264,9 @@ tracker_xesam_live_search_match_with_events (TrackerXesamLiveSearch *self, Track
 		"", /* Columns */
 		"", /* Tables */
 		tracker_xesam_live_search_get_query (self)); /* Query */
+
+	if (!result_set)
+		return;
 
 	while (ls_valid) {
 		GValue ls_value = { 0, };

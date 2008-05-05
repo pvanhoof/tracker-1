@@ -3331,8 +3331,8 @@ tracker_db_get_events (DBConnection *db_con)
 	result = tracker_exec_proc (db_con->common, "GetEvents", NULL);
 	tracker_debug ("SetEventsBeingHandled");
 	result_set = tracker_exec_proc (db_con->common, "SetEventsBeingHandled", NULL);
-	g_object_unref (result_set);
-
+	if (result_set)
+		g_object_unref (result_set);
 	g_static_rec_mutex_unlock (&events_table_lock);
 
 	return result;
@@ -3350,7 +3350,8 @@ tracker_db_delete_handled_events (DBConnection *db_con, TrackerDBResultSet *even
 	tracker_debug ("DeleteHandledEvents");
 
 	result_set = tracker_exec_proc (db_con->common, "DeleteHandledEvents", NULL);
-	g_object_unref (result_set);
+	if (result_set)
+		g_object_unref (result_set);
 
 	g_static_rec_mutex_unlock (&events_table_lock);
 
@@ -3405,7 +3406,7 @@ tracker_db_create_event (DBConnection *db_con, const gchar *service_id_str, cons
 guint32
 tracker_db_create_service (DBConnection *db_con, const char *service, TrackerDBFileInfo *info)
 {
-	TrackerDBResultSet *result_set;
+	TrackerDBResultSet *result_set, *b;
 	int	   i;
 	guint32	   id = 0;
 	char	   *sid;
@@ -3449,9 +3450,13 @@ tracker_db_create_service (DBConnection *db_con, const char *service, TrackerDBF
 	i++;
 
 	sid = tracker_int_to_string (i);
-	tracker_exec_proc (db_con->common, "UpdateNewID", sid, NULL);
+	b = tracker_exec_proc (db_con->common, "UpdateNewID", sid, NULL);
 
-	g_object_unref (result_set);
+	if (b)
+		g_object_unref (b);
+
+	if (result_set)
+		g_object_unref (result_set);
 
 	if (info->is_directory) {
 		str_is_dir = "1";
@@ -3487,11 +3492,14 @@ tracker_db_create_service (DBConnection *db_con, const char *service, TrackerDBF
               //  gchar *apath = tracker_escape_string (path);
              //   gchar *aname = tracker_escape_string (name);
 
-		tracker_exec_proc (db_con, "CreateService", sid, path, name,
+		b = tracker_exec_proc (db_con, "CreateService", sid, path, name,
                                    str_service_type_id, info->mime, str_filesize,
                                    str_is_dir, str_is_link, str_offset, str_mtime, str_aux, NULL);
               //  g_free (apath);
              //   g_free (aname);
+
+		if (b)
+			g_object_unref (b);
 
 		if (db_con->in_error) {
 			tracker_error ("ERROR: CreateService uri is %s/%s", path, name);
@@ -3514,12 +3522,17 @@ tracker_db_create_service (DBConnection *db_con, const char *service, TrackerDBF
 						  (int) id);
 		}
 
-		tracker_exec_proc (db_con->common, "IncStat", service, NULL);
+		b = tracker_exec_proc (db_con->common, "IncStat", service, NULL);
+
+		if (b)
+			g_object_unref (b);
 
                 parent = tracker_service_manager_get_parent_service (service);
 		
 		if (parent) {
-			tracker_exec_proc (db_con->common, "IncStat", parent, NULL);
+			b = tracker_exec_proc (db_con->common, "IncStat", parent, NULL);
+			if (b)
+				g_object_unref (b);
 			g_free (parent);
 		}
 

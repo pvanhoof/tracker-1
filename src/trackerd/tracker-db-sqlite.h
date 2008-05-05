@@ -29,13 +29,6 @@
 #include "tracker-utils.h"
 #include "tracker-service-manager.h"
 
-typedef enum {
-	METADATA_INDEX,
-	METADATA_REINDEX,
-	METADATA_USER,
-	METADATA_USER_REPLACE
-} MetadataAction;
-
 typedef struct DBConnection DBConnection;
 
 struct DBConnection {
@@ -64,13 +57,6 @@ struct DBConnection {
 	gpointer	word_index;
 };
 
-gchar **            tracker_db_get_row                         (gchar        ***result,
-                                                                gint            num);
-unsigned int        tracker_db_get_last_id                     (DBConnection   *db_con);
-void                tracker_db_free_result                     (gchar        ***result);
-void                tracker_db_log_result                      (gchar        ***result);
-gint                tracker_get_row_count                      (gchar        ***result);
-gint                tracker_get_field_count                    (gchar        ***result);
 gboolean            tracker_db_needs_setup                     (void);
 gboolean            tracker_db_needs_data                      (void);
 gboolean            tracker_db_initialize                      (void);
@@ -90,9 +76,7 @@ DBConnection *      tracker_db_connect_all                     (gboolean        
 void                tracker_db_close_all                       (DBConnection   *db_con);
 void                tracker_db_refresh_all                     (DBConnection   *db_con);
 void                tracker_db_refresh_email                   (DBConnection   *db_con);
-gboolean            tracker_update_db                          (DBConnection   *db_con);
 gchar *             tracker_escape_string                      (const gchar    *in);
-void                tracker_db_prepare_queries                 (DBConnection   *db_con);
 TrackerDBResultSet *tracker_exec_proc                          (DBConnection   *db_con,
                                                                 const gchar    *procedure,
                                                                 ...);
@@ -103,14 +87,11 @@ gboolean            tracker_db_exec_no_reply                   (DBConnection   *
                                                                 const gchar    *query,
                                                                 ...);
 void                tracker_create_db                          (void);
-void                tracker_db_load_stored_procs               (DBConnection   *db_con);
 void                tracker_db_save_file_contents              (DBConnection   *db_con,
                                                                 GHashTable     *index_table,
                                                                 GHashTable     *old_table,
                                                                 const gchar    *file_name,
                                                                 TrackerDBFileInfo *info);
-void                tracker_db_clear_temp                      (DBConnection   *db_con);
-void                tracker_db_check_tables                    (DBConnection   *db_con);
 gboolean            tracker_db_start_transaction               (DBConnection   *db_con);
 gboolean            tracker_db_end_transaction                 (DBConnection   *db_con);
 void                tracker_db_update_indexes_for_new_service  (guint32         service_id,
@@ -125,7 +106,6 @@ void                tracker_db_update_index_file_contents      (DBConnection   *
                                                                 GHashTable     *index_table);
 gint                tracker_db_flush_words_to_qdbm             (DBConnection   *db_con,
                                                                 gint            limit);
-void                tracker_db_release_memory                  (void);
 void                tracker_db_set_default_pragmas             (DBConnection   *db_con);
 void                tracker_db_fsync                           (DBConnection   *db_con,
                                                                 gboolean        enable);
@@ -242,11 +222,8 @@ void                tracker_db_insert_pending_file             (DBConnection   *
                                                                 gboolean        is_new,
                                                                 gint            service_type_id);
 gboolean            tracker_db_has_pending_files               (DBConnection   *db_con);
-gboolean            tracker_db_has_pending_metadata            (DBConnection   *db_con);
 TrackerDBResultSet *tracker_db_get_pending_files               (DBConnection   *db_con);
 void                tracker_db_remove_pending_files            (DBConnection   *db_con);
-TrackerDBResultSet *tracker_db_get_pending_metadata            (DBConnection   *db_con);
-void                tracker_db_remove_pending_metadata         (DBConnection   *db_con);
 void                tracker_db_insert_pending                  (DBConnection   *db_con,
                                                                 const gchar    *id,
                                                                 const gchar    *action,

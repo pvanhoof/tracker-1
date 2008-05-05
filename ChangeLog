@@ -1,3 +1,15 @@
+2008-05-05  Ivan Frade  <ivan.frade@nokia.com
+
+	* src/trackerd/tracker-db-sqlite.c
+	* src/trackerd/tracker-db-sqlite.h: Removed unused code and empty
+	functions.
+
+	* src/trackerd/tracker-db.c
+	* src/trackerd/tracker-db.h:
+	* src/trackerd/tracker-dbus-files.c:
+	(tracker_db_get_field_def) Removed db_con parameter (unused)
+
+	
 2008-05-05  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/trackerd/tracker-dbus-xesam.c

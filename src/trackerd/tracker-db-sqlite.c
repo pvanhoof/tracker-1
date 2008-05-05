@@ -291,7 +291,7 @@ load_sql_trigger (DBConnection *db_con, const char *sql_file)
 
 
 FieldDef *
-tracker_db_get_field_def (DBConnection *db_con, const char *field_name)
+tracker_db_get_field_def (const char *field_name)
 {
 	FieldDef *def;
 	char *name;
@@ -310,82 +310,6 @@ tracker_db_free_field_def (FieldDef *def)
 {
 }
 
-
-char **
-tracker_db_get_row (char ***result, int num)
-{
-	if (!result) {
-		return NULL;
-	}
-
-	if (result[num]) {
-		return result[num];
-	}
-
-	return NULL;
-}
-
-void
-tracker_db_free_result (char ***result)
-{
-	char ***rows;
-
-	if (!result) {
-		return;
-	}
-
-	for (rows = result; *rows; rows++) {
-		g_strfreev (*rows);
-	}
-
-	g_free (result);
-}
-
-
-int
-tracker_get_row_count (char ***result)
-{
-	char ***rows;
-	int  i;
-
-	if (!result) {
-		return 0;
-	}
-
-	i = 0;
-
-	for (rows = result; *rows; rows++) {
-		i++;
-	}
-
-	return i;
-}
-
-
-int
-tracker_get_field_count (char ***result)
-{
-	char **row, **p;
-	int  i;
-
-	if (!result) {
-		return 0;
-	}
-
-	row = tracker_db_get_row (result, 0);
-
-	if (!row) {
-		return 0;
-	}
-
-	i = 0;
-
-	for (p = row; *p; p++) {
-		i++;
-	}
-
-	return i;
-}
 
 static inline void
 lock_connection (DBConnection *db_con) 
@@ -1231,34 +1155,6 @@ tracker_db_connect_emails (void)
 }
 
 
-char *
-tracker_db_get_alias (const char *service)
-{
-	gchar *parent;
-	gint   id;
-
-        id = tracker_service_manager_get_id_for_parent_service (service);
-        parent = tracker_service_manager_get_service_by_id (id);
-
-	if (strcmp (parent, "Files") == 0) {
-		g_free (parent);
-		return g_strdup ("files");
-	}
-
-	if (strcmp (parent, "Emails") == 0) {
-		g_free (parent);
-		return g_strdup ("emails");
-	}
-
-	g_free (parent);
-	return g_strdup ("misc");
-
-
-
-
-}
-
-
 /* get no of links to a file - used for safe NFS atomic file locking */
 static int
 get_nlinks (const char *name)
@@ -1364,12 +1260,6 @@ unlock_db (void)
 }
 
 
-void
-tracker_db_prepare_queries (DBConnection *db_con)
-{
-}
-
-
 gboolean
 tracker_db_exec_no_reply (DBConnection *db_con, const char *query, ...)
 {
@@ -1392,12 +1282,6 @@ tracker_db_exec_no_reply (DBConnection *db_con, const char *query, ...)
 	unlock_db ();
 
 	return TRUE;
-}
-
-void
-tracker_db_release_memory (void)
-{
-
 }
 
 char *
@@ -1447,13 +1331,6 @@ tracker_exec_proc_no_reply (DBConnection *db_con, const char *procedure, ...)
 
 	return TRUE;
 }
-
-void
-tracker_db_load_stored_procs (DBConnection *db_con)
-{
-}
-
-
 
 
 void
@@ -1537,85 +1414,6 @@ tracker_db_needs_data ()
 
 	return need_setup;
 
-}
-
-
-gboolean
-tracker_update_db (DBConnection *db_con)
-{
-	TrackerDBResultSet *result_set;
-	char *version;
-	int i;
-
-	result_set = tracker_db_interface_execute_query
-		(db_con->db, NULL, "SELECT OptionValue FROM Options WHERE OptionKey = 'DBVersion'");
-
-	if (!result_set) {
-		return FALSE;
-	}
-
-	tracker_db_result_set_get (result_set, 0, &version, -1);
-	i = atoi (version);
-
-	g_object_unref (result_set);
-	g_free (version);
-
-	tracker_log ("Checking tracker DB version...Current version is %d and needed version is %d", i, TRACKER_DB_VERSION_REQUIRED);
-
-	if (i < TRACKER_DB_VERSION_REQUIRED) {
-		tracker_log ("Your database is too out of date and will need to be rebuilt and all your files reindexed.\nPlease wait while we reindex...\n");
-		tracker_remove_dirs (tracker->data_dir);
-		return TRUE;
-	}
-
-	if (i < 15) {
-		tracker_db_exec_no_reply (db_con, "delete from MetaDataTypes where MetaName = 'Email:Body'");
-		tracker_db_exec_no_reply (db_con, "delete from MetaDataTypes where MetaName = 'File:Contents'");
-		tracker_db_exec_no_reply (db_con, "insert Into MetaDataTypes (MetaName, DatatypeID, MultipleValues, Weight) values  ('Email:Body', 0, 0, 1)");
-		
-	} 
-
-	if (i < 16) {
-		tracker_db_exec_no_reply (db_con, "drop table ServiceTypes");
-		tracker_db_exec_no_reply (db_con, "drop table MetaDataTypes");
-		tracker_db_exec_no_reply (db_con, "drop table MetaDataChildren");
-
-		load_sql_file (db_con, "sqlite-service-types.sql");
-		load_sql_file (db_con, "sqlite-metadata.sql");
-
-		tracker_db_interface_execute_query (db_con->db, NULL,
-						    "update Options set OptionValue = '16' where OptionKey = 'DBVersion'");
-		tracker_db_interface_execute_query (db_con->db, NULL, "ANALYZE");
-	}
-
-	/* apply and table changes for each version update */
-/*	while (i < TRACKER_DB_VERSION_REQUIRED) {
-		char *sql_file, *query;
-
-		i++;
-
-		sql_file = g_strconcat (TRACKER_DATADIR, "/tracker/tracker-db-table-update", version, ".sql", NULL);
-
-		tracker_log ("Please wait while database is being updated to the latest version");
-
-		if (g_file_get_contents (sql_file, &query, NULL, NULL)) {
-			char **queries, **queries_p ;
-
-			queries = g_strsplit_set (query, ";", -1);
-
-			for (queries_p = queries; *queries_p; queries_p++) {
-				tracker_exec_sql (db, *queries_p);
-			}
-
-			g_strfreev (queries);
-			g_free (query);
-		}
-
-		g_free (sql_file);
-	}
-*/
-
-	return FALSE;
 }
 
 
@@ -1774,7 +1572,7 @@ save_full_text_bytes (DBConnection *blob_db_con, const char *str_file_id, GByteA
 {
 	FieldDef *def;
 
-	def = tracker_db_get_field_def (blob_db_con, "File:Contents");
+	def = tracker_db_get_field_def ("File:Contents");
 
 	if (!def) {
 		tracker_error ("WARNING: metadata not found for type %s", "File:Contents");
@@ -1810,7 +1608,7 @@ save_full_text (DBConnection *blob_db_con, const char *str_file_id, const char *
 	}
 
 
-	def = tracker_db_get_field_def (blob_db_con, "File:Contents");
+	def = tracker_db_get_field_def ("File:Contents");
 
 	if (!def) {
 		tracker_error ("WARNING: metadata not found for type %s", "File:Contents");
@@ -2008,23 +1806,6 @@ tracker_db_save_file_contents (DBConnection *db_con, GHashTable *index_table, GH
 	
 }
 
-
-
-void
-tracker_db_clear_temp (DBConnection *db_con)
-{
-	tracker_db_interface_start_transaction (db_con->cache->db);
-	tracker_db_exec_no_reply (db_con->cache, "DELETE FROM FilePending");
-	tracker_db_exec_no_reply (db_con->cache, "DELETE FROM FileWatches");
-	tracker_db_interface_end_transaction (db_con->cache->db);
-}
-
-void
-tracker_db_check_tables (DBConnection *db_con)
-{
-}
-
-
 TrackerDBResultSet *
 tracker_db_search_text (DBConnection *db_con, const char *service, const char *search_string, int offset, int limit, gboolean save_results, gboolean detailed)
 {
@@ -2210,7 +1991,7 @@ tracker_db_search_metadata (DBConnection *db_con, const char *service, const cha
 
 	g_return_val_if_fail ((service && field && text), NULL);
 
-	def = tracker_db_get_field_def (db_con, field);
+	def = tracker_db_get_field_def (field);
 
 	if (!def) {
 		tracker_error ("ERROR: metadata not found for type %s", field);
@@ -2251,7 +2032,7 @@ tracker_db_get_metadata (DBConnection *db_con, const char *service, const char *
 
 	g_return_val_if_fail (id, NULL);
 
-	def = tracker_db_get_field_def (db_con, key);
+	def = tracker_db_get_field_def (key);
 
 	if (!def) {
 		tracker_error ("ERROR: metadata not found for id %s and type %s", id, key);
@@ -2461,7 +2242,7 @@ tracker_db_insert_embedded_metadata (DBConnection *db_con, const gchar *service,
 		return;
 	}
 
-	FieldDef *def = tracker_db_get_field_def (db_con, key);
+	FieldDef *def = tracker_db_get_field_def (key);
 
 	if (!def) {
 		tracker_error ("ERROR: metadata %s not found", key);
@@ -2734,7 +2515,7 @@ tracker_db_set_metadata (DBConnection *db_con, const char *service, const char *
 		return NULL;
 	}
 
-	def = tracker_db_get_field_def (db_con, key);
+	def = tracker_db_get_field_def (key);
 
 	if (!def) {
 		tracker_error ("metadata type %s not found", key);
@@ -3034,7 +2815,7 @@ tracker_db_delete_metadata_value (DBConnection *db_con, const char *service, con
 	g_return_if_fail (id && key && service && db_con);
 
 	/* get type details */
-	def = tracker_db_get_field_def (db_con, key);
+	def = tracker_db_get_field_def (key);
 
 	if (!def) {
 		return;
@@ -3166,7 +2947,7 @@ tracker_db_delete_metadata (DBConnection *db_con, const char *service, const cha
 
 
 	/* get type details */
-	def = tracker_db_get_field_def (db_con, key);
+	def = tracker_db_get_field_def (key);
 
 	if (!def) {
 		return;
@@ -3860,33 +3641,6 @@ tracker_db_has_pending_files (DBConnection *db_con)
 }
 
 
-gboolean
-tracker_db_has_pending_metadata (DBConnection *db_con)
-{
-	TrackerDBResultSet *result_set;
-	gboolean has_pending;
-
-	if (!tracker->is_running) {
-		return FALSE;
-	}
-
-	has_pending = FALSE;
-
-	result_set = tracker_exec_proc (db_con->cache, "CountPendingMetadataFiles", 0);
-
-	if (result_set) {
-		gint pending_file_count;
-
-		tracker_db_result_set_get (result_set, 0, &pending_file_count, -1);
-		has_pending = (pending_file_count > 0);
-
-		g_object_unref (result_set);
-	}
-
-	return has_pending;
-}
-
-
 TrackerDBResultSet *
 tracker_db_get_pending_files (DBConnection *db_con)
 {
@@ -3920,35 +3674,6 @@ void
 tracker_db_remove_pending_files (DBConnection *db_con)
 {
 	tracker_db_exec_no_reply (db_con->cache, "DELETE FROM FileTemp");
-}
-
-
-TrackerDBResultSet *
-tracker_db_get_pending_metadata (DBConnection *db_con)
-{
-	DBConnection *cache;
-	const char *str;
-
-	if (!tracker->is_running) {
-		return NULL;
-	}
-
-	cache = db_con->cache;
-
-	str = "INSERT INTO MetadataTemp (ID, FileID, Action, FileUri, MimeType, IsDir, IsNew, RefreshEmbedded, RefreshContents, ServiceTypeID) SELECT ID, FileID, Action, FileUri, MimeType, IsDir, IsNew, RefreshEmbedded, RefreshContents, ServiceTypeID FROM FilePending WHERE Action = 20 LIMIT 250";
-
-	tracker_db_exec_no_reply (cache, "DELETE FROM MetadataTemp");
-	tracker_db_exec_no_reply (cache, str);
-	tracker_db_exec_no_reply (cache, "DELETE FROM FilePending WHERE ID IN (SELECT ID FROM MetadataTemp)");
-
-	return tracker_db_interface_execute_query (cache->db, NULL, "SELECT FileID, FileUri, Action, MimeType, IsDir, IsNew, RefreshEmbedded, RefreshContents, ServiceTypeID FROM MetadataTemp ORDER BY ID");
-}
-
-
-void
-tracker_db_remove_pending_metadata (DBConnection *db_con)
-{
-	tracker_db_exec_no_reply (db_con->cache, "DELETE FROM MetadataTemp");
 }
 
 
@@ -4612,30 +4337,6 @@ tracker_db_get_file_subfolders (DBConnection *db_con, const char *uri)
 	return result_set;
 }
 
-
-
-
-
-
-static inline guint8
-get_service_type_from_detail (WordDetails *details)
-{
-	return (details->amalgamated >> 24) & 0xFF;
-}
-
-static inline guint16
-get_score_from_detail (WordDetails *details)
-{
-	unsigned char a[2];
-
-	a[0] = (details->amalgamated >> 16) & 0xFF;
-	a[1] = (details->amalgamated >> 8) & 0xFF;
-
-	return (a[0] << 8) | (a[1]);
-	
-}
-
-
 static void
 append_index_data (gpointer key,
 		   gpointer value,
@@ -5045,14 +4746,14 @@ tracker_db_metadata_is_child (DBConnection *db_con, const char *child, const cha
 {
 	FieldDef *def_child, *def_parent;
 
-	def_child = tracker_db_get_field_def (db_con, child);
+	def_child = tracker_db_get_field_def (child);
 
 	if (!def_child) {
 		return FALSE;
 	}
 
 
-	def_parent = tracker_db_get_field_def (db_con, parent);
+	def_parent = tracker_db_get_field_def (parent);
 
 	if (!def_parent) {
 		return FALSE;
@@ -5117,7 +4818,7 @@ tracker_db_load_service_file (DBConnection *db_con, const char *filename, gboole
 		for (array = groups; *array; array++) {
 
 			if (is_metadata) {
-				FieldDef *def = tracker_db_get_field_def (db_con, *array);
+				FieldDef *def = tracker_db_get_field_def (*array);
 
 				if (!def) {
 					tracker_exec_proc (db_con, "InsertMetadataType", *array, NULL);
@@ -5314,7 +5015,7 @@ tracker_db_get_metadata_field (DBConnection *db_con, const char *service, const 
 	field_data->is_condition = is_condition;
 	field_data->field_name = g_strdup (field_name);
 
-	def = tracker_db_get_field_def (db_con, field_name);
+	def = tracker_db_get_field_def (field_name);
 
 	if (def) {
 	

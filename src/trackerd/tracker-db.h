@@ -52,8 +52,7 @@ void               tracker_db_save_thumbs          (DBConnection      *db_con,
                                                     guint32            file_id);
 gchar **           tracker_db_get_files_in_folder  (DBConnection      *db_con,
                                                     const gchar       *folder_uri);
-FieldDef *         tracker_db_get_field_def        (DBConnection      *db_con,
-                                                    const gchar       *field_name);
+FieldDef *         tracker_db_get_field_def        (const gchar       *field_name);
 void               tracker_db_free_field_def       (FieldDef          *def);
 gboolean           tracker_metadata_is_date        (DBConnection      *db_con,
                                                     const gchar       *meta);

@@ -416,7 +416,6 @@ tracker_dbus_files_get_service_type (TrackerDBusFiles  *object,
 	guint32                 file_id;
 	gchar                  *file_id_str;
 	const gchar            *mime = NULL;
-	gchar                ***result;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -480,7 +479,6 @@ tracker_dbus_files_get_service_type (TrackerDBusFiles  *object,
 				      file_id,
 				      mime,
 				      *value);
-	tracker_db_free_result (result);
 
         tracker_dbus_request_success (request_id);
 
@@ -905,7 +903,7 @@ tracker_dbus_files_get_metadata_for_files_in_folder (TrackerDBusFiles  *object,
 
 	/* Get fields for metadata list provided */
 	for (i = 0; i < g_strv_length (fields); i++) {
-		defs[i] = tracker_db_get_field_def (db_con, fields[i]);
+		defs[i] = tracker_db_get_field_def (fields[i]);
 
 		if (!defs[i]) {
 			tracker_dbus_request_failed (request_id,

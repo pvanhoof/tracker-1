@@ -351,7 +351,7 @@ tracker_metadata_is_date (DBConnection *db_con, const char *meta)
 	FieldDef *def;
 	gboolean res;
 
-	def = tracker_db_get_field_def (db_con, meta);
+	def = tracker_db_get_field_def (meta);
 
 	if (!def) {
 		tracker_error ("ERROR: failed to get info for metadata type %s", meta);

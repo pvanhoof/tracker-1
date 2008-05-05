@@ -42,23 +42,6 @@ CREATE TABLE  Services
 
 CREATE INDEX  ServiceIndex1 ON Services (ServiceTypeID);
 
-/* This should become a TEMPORARY table */
-CREATE TABLE Events
-(
-	ID		Integer primary key not null,
-	ServiceID	Integer not null,
-	BeingHandled	Integer default 0,
-	EventType	Text
-);
-
-/* This should become a TEMPORARY table */
-CREATE TABLE LiveSearches
-(
-	ID		Integer primary key not null,
-	ServiceID	Integer not null,
-	SearchID	Text
-);
-
 
 /* child service relationships for a specific group/struct metadata */
 CREATE TABLE ChildServices

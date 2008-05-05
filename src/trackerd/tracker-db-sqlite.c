@@ -3309,7 +3309,7 @@ tracker_db_get_live_search_new_ids (DBConnection *db_con, const gchar *search_id
 
 	tracker_debug ("LiveSearchUpdateQuery: %s", m_query);
 
-	result = tracker_db_interface_execute_query (db_con->db, NULL, m_query);
+	result = tracker_db_interface_execute_query (db_con->common, NULL, m_query);
 
 	g_static_rec_mutex_unlock (&events_table_lock);
 
@@ -3389,7 +3389,7 @@ tracker_db_create_event (DBConnection *db_con, const gchar *service_id_str, cons
 	/* Uses the Events table */
 	tracker_debug ("CreateEvent %s", eid);
 
-	result_set = tracker_exec_proc (db_con, "CreateEvent", eid, service_id_str, type, NULL);
+	result_set = tracker_exec_proc (db_con->common, "CreateEvent", eid, service_id_str, type, NULL);
 	id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (db_con->db));
 	if (result_set)
 		g_object_unref (result_set);

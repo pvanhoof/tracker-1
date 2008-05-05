@@ -376,10 +376,7 @@ tracker_xesam_live_search_get_hit_count (TrackerXesamLiveSearch  *self,
 
 }
 
-static void
-get_hit_data (TrackerXesamLiveSearch  *self, 
-	      GPtrArray              **hit_data)
-{
+
 /**
  * Retrieving Hits
  * The return value of GetHits and GetHitData is a sorted array of hits. A hit 
@@ -402,6 +399,33 @@ get_hit_data (TrackerXesamLiveSearch  *self,
  * It's a root GPtrArray with 'GPtrArray' typed elements. Those child GPtrArray
  * elements contain GValue instances.
  **/
+static void
+get_hit_data (TrackerXesamLiveSearch  *self, 
+	      TrackerDBResultSet *result_set,
+	      GPtrArray **hit_data)
+{
+	gboolean valid = TRUE;
+	gint hitfields_columns = 0, column;
+	GType hitfields_columns_types[100];
+	GPtrArray *result = g_ptr_array_new ();
+
+	while (valid) {
+		GPtrArray *row = g_ptr_array_new ();
+
+		for (column = 0; column < hitfields_columns; column++) {
+			GValue *value = g_value_init (value, hitfields_columns_types[column]);
+
+			_tracker_db_result_set_get_value (result_set, column, value);
+
+			g_ptr_array_add (row, value);
+		}
+
+		g_ptr_array_add (result, row);
+
+		valid = tracker_db_result_set_iter_next (result_set);
+	}
+
+	*hit_data = result;
 }
 
 /**
@@ -431,7 +455,7 @@ tracker_xesam_live_search_get_hits (TrackerXesamLiveSearch  *self,
 				TRACKER_XESAM_ERROR_SEARCH_NOT_ACTIVE,
 				"Search is not active");
 	else {
-		get_hit_data (self, hits);
+		get_hit_data (self, NULL, hits);
 	}
 }
 
@@ -476,7 +500,7 @@ tracker_xesam_live_search_get_hit_data (TrackerXesamLiveSearch  *self,
 				TRACKER_XESAM_ERROR_SEARCH_NOT_ACTIVE,
 				"Search is not active yet");
 	else {
-		get_hit_data (self, hit_data);
+		get_hit_data (self, NULL, hit_data);
 	}
 }
 

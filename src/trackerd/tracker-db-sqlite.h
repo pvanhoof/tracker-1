@@ -37,7 +37,6 @@ struct DBConnection {
 	/* pointers to other database connection objects */
 	DBConnection	*data;
 	DBConnection	*common;
-	DBConnection	*index;
 	DBConnection	*emails;
 	DBConnection	*blob;
 	DBConnection	*cache;

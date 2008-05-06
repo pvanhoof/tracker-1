@@ -124,7 +124,7 @@ tracker_db_get_file_id (DBConnection *db_con, const char *uri)
 		path = tracker_file_get_vfs_path (uri);
 	}
 
-	result_set = tracker_exec_proc (db_con->index, "GetServiceID", path, name, NULL);
+	result_set = tracker_exec_proc (db_con, "GetServiceID", path, name, NULL);
 
 	g_free (path);
 	g_free (name);
@@ -159,7 +159,7 @@ tracker_db_get_file_info (DBConnection *db_con, TrackerDBFileInfo *info)
 	//apath = tracker_escape_string (path);
 	//aname = tracker_escape_string (name);
 
-	result_set = tracker_exec_proc (db_con->index, "GetServiceID", path, name, NULL);
+	result_set = tracker_exec_proc (db_con, "GetServiceID", path, name, NULL);
 
 //	g_free (aname);
 //	g_free (apath);
@@ -312,11 +312,10 @@ tracker_db_get_files_in_folder (DBConnection *db_con, const char *folder_uri)
 	GPtrArray *array;
 
 	g_return_val_if_fail (db_con, NULL);
-	g_return_val_if_fail (db_con->index, NULL);
 	g_return_val_if_fail (folder_uri, NULL);
 	g_return_val_if_fail (folder_uri[0] != '\0', NULL);
 
-	result_set = tracker_exec_proc (db_con->index, "SelectFileChild", folder_uri, NULL);
+	result_set = tracker_exec_proc (db_con, "SelectFileChild", folder_uri, NULL);
 	array = g_ptr_array_new ();
 
 	if (result_set) {
@@ -780,7 +779,7 @@ restore_backup_data (gpointer mtype,
         string_list = tracker_gslist_to_string_list (value);
 	tracker_log ("restoring keyword list with %d items", g_slist_length (value));
 
-	tracker_db_set_metadata (db_action->db_con->index, db_action->service, db_action->file_id, mtype, string_list, g_slist_length (value), FALSE);
+	tracker_db_set_metadata (db_action->db_con, db_action->service, db_action->file_id, mtype, string_list, g_slist_length (value), FALSE);
 
 	g_strfreev (string_list);
 }
@@ -854,9 +853,9 @@ tracker_db_index_service (DBConnection *db_con, TrackerDBFileInfo *info, const c
 		info->uri = (char *) uri;
 
 		if (attachment_service) {
-			info->file_id = tracker_db_create_service (db_con->index, attachment_service, info);
+			info->file_id = tracker_db_create_service (db_con, attachment_service, info);
 		} else {
-			info->file_id = tracker_db_create_service (db_con->index, service, info);
+			info->file_id = tracker_db_create_service (db_con, service, info);
 		}
 
 		info->uri = old_uri;
@@ -935,7 +934,7 @@ tracker_db_index_service (DBConnection *db_con, TrackerDBFileInfo *info, const c
 	}
 
 	if (meta_table && (g_hash_table_size (meta_table) > 0)) {
-		tracker_db_save_metadata (db_con->index, meta_table, index_table, service, info->file_id, info->is_new);
+		tracker_db_save_metadata (db_con, meta_table, index_table, service, info->file_id, info->is_new);
 	}
 
 	

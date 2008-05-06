@@ -897,7 +897,6 @@ main (gint argc, gchar *argv[])
 
 	db_con->cache = tracker_db_connect_cache ();
 	db_con->common = tracker_db_connect_common ();
-	db_con->index = db_con;
 
 	main_thread_db_con = db_con;
 	

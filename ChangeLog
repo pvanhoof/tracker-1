@@ -1,4 +1,13 @@
 2008-05-06  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/trackerd/tracker-db-email.c
+	* src/trackerd/tracker-db-sqlite.c
+	* src/trackerd/tracker-db-sqlite.h
+	* src/trackerd/tracker-db.c
+	* src/trackerd/trackerd.c: Removed DBConnection->index. It was
+	always a pointer to the struct itself.
+
+2008-05-06  Ivan Frade  <ivan.frade@nokia.com>
 	
 	* src/trackerd/tracker-parser.c: Renamed WordType to
 	TrackerParserWordType to avoid conflicts.

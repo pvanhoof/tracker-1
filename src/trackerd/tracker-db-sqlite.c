@@ -593,13 +593,11 @@ tracker_db_connect_all ()
 	db_con->emails = emails_db_con;
 	db_con->common = common_db_con;
 	db_con->word_index = word_index_db_con;
-	db_con->index = db_con;
 
 	emails_db_con->common = common_db_con;
 	emails_db_con->blob = emails_blob_db_con;
 	emails_db_con->data = db_con;
 	emails_db_con->word_index = email_word_index_db_con;
-	emails_db_con->index = emails_db_con;
 	emails_db_con->cache = db_con->cache;
 	
 	return db_con;
@@ -821,8 +819,6 @@ tracker_db_connect_file_meta (void)
 
 	db_con = g_new0 (DBConnection, 1);
 
-	db_con->index = db_con;
-
 	open_file_db (db_con);
 
 	return db_con;
@@ -846,7 +842,6 @@ tracker_db_connect_email_meta (void)
 
 	db_con = g_new0 (DBConnection, 1);
 
-	db_con->index = db_con;
 	db_con->emails = db_con;
 
 	open_email_db (db_con);
@@ -3522,7 +3517,7 @@ tracker_db_update_file (DBConnection *db_con, TrackerDBFileInfo *info)
 	name = g_path_get_basename (info->uri);
 	path = g_path_get_dirname (info->uri);
 
-	tracker_exec_proc (db_con->index, "UpdateFile", str_service_type_id, path, name, info->mime, str_size, str_mtime, str_offset, str_file_id, NULL);
+	tracker_exec_proc (db_con, "UpdateFile", str_service_type_id, path, name, info->mime, str_size, str_mtime, str_offset, str_file_id, NULL);
 
 	tracker_db_create_event (db_con, str_file_id, "Update");
 

@@ -519,7 +519,7 @@ tracker_xesam_live_search_get_hit_data (TrackerXesamLiveSearch  *self,
 
 		// For ottela: fetch results for get_hit_data
 
-		get_hit_data (self, result_set, hits);
+		get_hit_data (self, result_set, hit_data);
 	}
 }
 

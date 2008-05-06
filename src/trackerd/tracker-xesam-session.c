@@ -47,12 +47,14 @@ tracker_xesam_session_g_value_free (GValue *value)
  * an integer, a boolean or an array (either TRACKER_XESAM_TYPE_STRV_ARRAY or 
  * G_TYPE_STRV).
  *
- * returns: a read-only hash-table with Xesam properties
+ * The returned value must be unreferenced using @g_hash_table_unref.
+ *
+ * returns (caller-owns): a read-only hash-table with Xesam properties
  **/
-const GHashTable *
+GHashTable *
 tracker_xesam_session_get_props (TrackerXesamSession *self)
 {
-	return (const GHashTable *) self->priv->props;
+	return g_hash_table_ref (self->priv->props);
 }
 
 static void

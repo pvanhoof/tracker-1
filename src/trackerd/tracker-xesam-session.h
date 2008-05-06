@@ -76,7 +76,7 @@ void                    tracker_xesam_session_set_id        (TrackerXesamSession
 const gchar*            tracker_xesam_session_get_id        (TrackerXesamSession  *self);
 TrackerXesamSession*    tracker_xesam_session_new           (void);
 GType                   tracker_xesam_session_get_type      (void);
-const GHashTable*       tracker_xesam_session_get_props     (TrackerXesamSession *self);
+GHashTable*             tracker_xesam_session_get_props     (TrackerXesamSession *self);
 
 G_END_DECLS
 

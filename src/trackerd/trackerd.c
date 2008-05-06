@@ -967,7 +967,7 @@ main (gint argc, gchar *argv[])
 	/* this var is used to tell the threads when to quit */
 	tracker->is_running = TRUE;
 
-        tracker->index_db = tracker_db_connect_all (TRUE);
+        tracker->index_db = tracker_db_connect_all ();
 
         /* If we are already running, this should return some
          * indication.

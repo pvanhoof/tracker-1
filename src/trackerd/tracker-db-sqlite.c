@@ -563,26 +563,21 @@ free_db_con (DBConnection *db_con)
 
 /* convenience function for process files thread */
 DBConnection *
-tracker_db_connect_all (gboolean indexer_process)
+tracker_db_connect_all ()
 {
 
 	DBConnection *db_con;
 	DBConnection *blob_db_con = NULL;
-	DBConnection *word_index_db_con = NULL;
+	Indexer *word_index_db_con = NULL;
 
 	DBConnection *common_db_con = NULL;
 
 	DBConnection *emails_blob_db_con = NULL;
 	DBConnection *emails_db_con= NULL;
-	DBConnection *email_word_index_db_con= NULL;
+	Indexer *email_word_index_db_con= NULL;
 
-	if (!indexer_process) {
-		db_con = tracker_db_connect ();
-		emails_db_con = tracker_db_connect_emails ();
-	} else {
-		db_con = tracker_db_connect_file_meta ();
-		emails_db_con = tracker_db_connect_email_meta ();
-	}
+	db_con = tracker_db_connect_file_meta ();
+	emails_db_con = tracker_db_connect_email_meta ();
 
 	blob_db_con = tracker_db_connect_file_content ();
 	emails_blob_db_con = tracker_db_connect_email_content ();

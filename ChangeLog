@@ -1,3 +1,18 @@
+2008-05-06  Ivan Frade  <ivan.frade@nokia.com>
+	
+	* src/trackerd/tracker-parser.c: Renamed WordType to
+	TrackerParserWordType to avoid conflicts.
+	
+	* src/trackerd/tracker-db-sqlite.c
+	* src/trackerd/tracker-db-sqlite.h
+	* src/trackerd/tracker-utils.h
+	* src/trackerd/trackerd.c: 
+	(tracker_db_connect_all): Removed unused param.
+	Replaced gpointer with Indexer in Tracker struct.
+
+	* src/trackerd/tracker-indexer.c
+	* src/trackerd/tracker-indexer.h: Removed unused code.
+	
 2008-05-06  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-apps.c:

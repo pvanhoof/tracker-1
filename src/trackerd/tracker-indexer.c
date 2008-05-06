@@ -67,8 +67,6 @@ struct Indexer_ {
 	DEPOT  		*word_index;	/* file hashtable handle for the word -> {serviceID, ServiceTypeID, Score}  */
 	GMutex 		*word_mutex;
 	char   		*name;
-	gpointer  	emails; /* pointer to email indexer */
-	gpointer  	data; /* pointer to file indexer */
 	gboolean	main_index;
 	gboolean	needs_merge; /* should new stuff be added directly or merged later on from a new index */
 };

@@ -59,11 +59,11 @@ typedef enum {
 	WORD_ALPHA,
 	WORD_ALPHA_NUM,
 	WORD_IGNORE
-} WordType;
+} TrackerParserWordType;
 
 
 
-static inline WordType
+static inline TrackerParserWordType
 get_word_type (gunichar c)
 {
 	/* fast ascii handling */
@@ -181,13 +181,13 @@ analyze_text (const char *text, char **index_word, gboolean filter_words, gboole
 		gboolean 	do_strip = FALSE, is_valid = TRUE;
 		int		length = 0;
 		glong		bytes = 0;
-		WordType	word_type = WORD_IGNORE;
+		TrackerParserWordType	word_type = WORD_IGNORE;
 
 		for (p = text; *p; p = g_utf8_next_char (p)) {
 
 			gunichar c = g_utf8_get_char (p);
 
-			WordType type = get_word_type (c);
+			TrackerParserWordType  type = get_word_type (c);
 
 			if (type == WORD_IGNORE || (delimit_hyphen && (type == WORD_HYPHEN || type == WORD_UNDERSCORE))) {
 

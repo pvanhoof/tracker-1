@@ -28,7 +28,6 @@
 
 #include <libtracker-db/tracker-db-interface.h>
 
-#include "tracker-utils.h"
 
 typedef struct {                         /* type of structure for an element of search result */
 	guint32 	id;              /* Service ID number of the document */

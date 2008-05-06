@@ -37,6 +37,7 @@ extern char *service_metadata_join_names[];
 #include <libtracker-db/tracker-db-action.h>
 
 #include "tracker-parser.h"
+#include "tracker-indexer.h"
 
 #define MAX_HITS_FOR_WORD 30000
 
@@ -197,9 +198,9 @@ typedef struct {
 	gboolean	pause_io;
 
 	/* indexing options */
-	gpointer	file_index;
-	gpointer	file_update_index;
-	gpointer	email_index;
+        Indexer         *file_index;
+        Indexer	        *file_update_index;
+        Indexer   	*email_index;
 
 	guint32		merge_limit; 		/* size of index in MBs when merging is triggered -1 == no merging*/
 	gboolean	active_file_merge;

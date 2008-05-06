@@ -35,8 +35,8 @@ tracker_xesam_init (void)
 
 TrackerXesamSession *
 tracker_xesam_create_session (TrackerDBusXesam  *dbus_proxy, 
-                              gchar            **session_id, 
-                              GError           **error)
+			      gchar            **session_id, 
+			      GError           **error)
 {
 	TrackerXesamSession *session;
 
@@ -215,6 +215,14 @@ void
 tracker_xesam_wakeup (guint32 last_id)
 {
 	/* This happens each time a new event is created */
+
+	/* We could do this in a thread too, in case blocking the GMainLoop is
+	 * not ideal (it's not, because during these blocks of code, no DBus
+	 * request handler can run). I have added sufficient locking to let a
+	 * thread do it too (although untested).
+	 * 
+	 * In case of a thread we could use usleep() and stop the thread if
+	 * we didn't get a wakeup-call nor we had items to process this loop */
 
 	if (!live_search_handler_running) {
 		live_search_handler_running = TRUE;

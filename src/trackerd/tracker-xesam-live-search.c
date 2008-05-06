@@ -37,7 +37,7 @@ enum {
 	PROP_XMLQUERY
 };
 
-G_DEFINE_TYPE(TrackerXesamLiveSearch, tracker_xesam_live_search, G_TYPE_OBJECT)
+G_DEFINE_TYPE (TrackerXesamLiveSearch, tracker_xesam_live_search, G_TYPE_OBJECT)
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_XESAM_LIVE_SEARCH, TrackerXesamLiveSearch))
 
@@ -65,9 +65,9 @@ tracker_xesam_live_search_set_xml_query (TrackerXesamLiveSearch *self, const gch
 
 static void
 xexam_search_set_property (GObject      *object,
-                          guint 	param_id,
-                          const GValue *value,
-                          GParamSpec   *pspec)
+			   guint 	param_id,
+			   const GValue *value,
+			   GParamSpec   *pspec)
 {
 	switch (param_id) {
 	case PROP_XMLQUERY:
@@ -416,6 +416,11 @@ get_hit_data (TrackerXesamLiveSearch  *self,
 			GValue *value = g_new0 (GValue, 1);
 			GValue value_in = {0, };
 
+			// Question for ottela: how will we do list-values like
+			// xesam:userKeywords? That's a column with comma's? or
+			// how is this done? An extra result_set to loop? An
+			// extra query? A union?
+
 			_tracker_db_result_set_get_value (result_set, column, &value_in);
 
 			g_value_init (value, G_VALUE_TYPE (&value_in));
@@ -461,7 +466,11 @@ tracker_xesam_live_search_get_hits (TrackerXesamLiveSearch  *self,
 				TRACKER_XESAM_ERROR_SEARCH_NOT_ACTIVE,
 				"Search is not active");
 	else {
-		get_hit_data (self, NULL, hits);
+		TrackerDBResultSet *result_set = NULL;
+
+		// For ottela: fetch results for get_hits
+
+		get_hit_data (self, result_set, hits);
 	}
 }
 
@@ -506,7 +515,11 @@ tracker_xesam_live_search_get_hit_data (TrackerXesamLiveSearch  *self,
 				TRACKER_XESAM_ERROR_SEARCH_NOT_ACTIVE,
 				"Search is not active yet");
 	else {
-		get_hit_data (self, NULL, hit_data);
+		TrackerDBResultSet *result_set = NULL;
+
+		// For ottela: fetch results for get_hit_data
+
+		get_hit_data (self, result_set, hits);
 	}
 }
 

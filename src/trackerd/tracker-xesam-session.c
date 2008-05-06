@@ -28,8 +28,7 @@ struct _TrackerXesamSessionPriv {
 	GHashTable *props;
 };
 
-G_DEFINE_TYPE(TrackerXesamSession, tracker_xesam_session, G_TYPE_OBJECT)
-
+G_DEFINE_TYPE (TrackerXesamSession, tracker_xesam_session, G_TYPE_OBJECT)
 
 static void
 tracker_xesam_session_g_value_free (GValue *value)
@@ -371,6 +370,7 @@ tracker_xesam_session_create_search (TrackerXesamSession  *self,
 	TrackerXesamLiveSearch *search;
 	TrackerXesamSessionPriv *priv = self->priv;
 
+	// ottela!
 	// todo: parse the query and pass the parsed query or throw an error
 
 	search = tracker_xesam_live_search_new (query_xml);

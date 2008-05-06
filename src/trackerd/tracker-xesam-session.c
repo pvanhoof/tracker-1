@@ -295,15 +295,17 @@ tracker_xesam_session_set_property (TrackerXesamSession  *self,
 	if (!found)
 		property = g_hash_table_lookup (priv->props, prop);
 
-	if (!property)
+	if (!property) {
 		g_set_error (error, TRACKER_XESAM_ERROR, 
 				TRACKER_XESAM_ERROR_PROPERTY_NOT_SUPPORTED,
 				"Property not supported");
-	else {
+		*new_val = NULL;
+	} else {
 		GValue *target_val = g_new0 (GValue, 1);
 		g_value_init (target_val, G_VALUE_TYPE (property));
 		g_value_transform (val, property);
 		g_value_transform (val, target_val);
+		*new_val = target_val;
 	}
 }
 
@@ -329,14 +331,16 @@ tracker_xesam_session_get_property (TrackerXesamSession  *self,
 
 	GValue *property = g_hash_table_lookup (priv->props, prop);
 
-	if (!property)
+	if (!property) {
 		g_set_error (error, TRACKER_XESAM_ERROR, 
 				TRACKER_XESAM_ERROR_PROPERTY_NOT_SUPPORTED,
 				"Property not supported");
-	else {
+		*value = NULL;
+	} else {
 		GValue *target_val = g_new0 (GValue, 1);
 		g_value_init (target_val, G_VALUE_TYPE (property));
 		g_value_transform (property, target_val);
+		*value = target_val;
 	}
 
 	return;

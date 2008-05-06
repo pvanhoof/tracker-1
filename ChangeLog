@@ -1,5 +1,12 @@
 2008-05-06  Philip Van Hoof  <pvanhoof@gnome.org>
 
+	* Bumped the version of SQLite from 3.4 to 3.5 because
+		- We require --enable-threadsafe
+		- This version allows concurrent access from different
+		threads sharing the same connection
+
+2008-05-06  Philip Van Hoof  <pvanhoof@gnome.org>
+
 	* Xesam property setters and getters
 
 2008-05-05  Martyn Russell  <martyn@imendio.com>

@@ -399,6 +399,7 @@ tracker_dbus_xesam_get_property (TrackerDBusXesam    *object,
 		} else {
 			dbus_g_method_return (context, value);
 			g_value_unset (value);
+			g_free (value);
 		}
 
 		g_object_unref (session);
@@ -509,6 +510,7 @@ unsetvalue (gpointer data,
 	    gpointer user_data)
 {
 	g_value_unset (data);
+	g_free (data);
 }
 
 inline static void 

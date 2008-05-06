@@ -21,22 +21,150 @@
 
 #include "tracker-xesam.h"
 
+
 struct _TrackerXesamSessionPriv {
 	GHashTable *searches;
 	gchar *session_id;
+	GHashTable *props;
 };
 
 G_DEFINE_TYPE(TrackerXesamSession, tracker_xesam_session, G_TYPE_OBJECT)
+
+
+static void
+tracker_xesam_session_g_value_free (GValue *value)
+{
+	g_value_unset(value);
+	g_free(value);
+}
+
+/**
+ * tracker_xesam_session_get_props:
+ * @self: A #TrackerXesamSession
+ *
+ * Get the properties of @self. The returned value is a hashtable with key as
+ * Xesam session property key strings and value a #GValue being either a string,
+ * an integer, a boolean or an array (either TRACKER_XESAM_TYPE_STRV_ARRAY or 
+ * G_TYPE_STRV).
+ *
+ * returns: a read-only hash-table with Xesam properties
+ **/
+const GHashTable *
+tracker_xesam_session_get_props (TrackerXesamSession *self)
+{
+	return (const GHashTable *) self->priv->props;
+}
 
 static void
 tracker_xesam_session_init (TrackerXesamSession *self)
 {
 	TrackerXesamSessionPriv *priv = self->priv;
+	GValue *value;
+	const gchar *hit_fields[2] = {"xesam:url", NULL};
+	const gchar *hit_fields_extended[1] = {NULL};
+	const gchar *fields[3] = {"xesam:url", "xesam:relevancyRating", NULL};
+	const gchar *contents[2] = {"xesam:Content", NULL};
+	const gchar *sources[2] = {"xesam:Source", NULL};
+	const gchar *exts[1] = {NULL};
+	const gchar *dummy_onto[4] = {"dummy-onto","0.1","/usr/share/xesam/ontologies/dummy-onto-0.1", NULL};
+	GPtrArray *ontos = g_ptr_array_new ();
+	g_ptr_array_add (ontos, dummy_onto);
 
 	priv->session_id = NULL;
 	priv->searches = g_hash_table_new_full (g_str_hash, g_str_equal, 
-		(GDestroyNotify) g_free,
-		(GDestroyNotify) g_object_unref);
+				(GDestroyNotify) g_free,
+				(GDestroyNotify) g_object_unref);
+
+	priv->props = g_hash_table_new_full (g_str_hash, g_str_equal,
+				(GDestroyNotify) g_free,
+				(GDestroyNotify) tracker_xesam_session_g_value_free);
+
+	value = g_new0 (GValue, 1);
+	g_value_init(value, G_TYPE_BOOLEAN);
+	g_value_set_boolean (value, FALSE);
+	g_hash_table_insert (priv->props, g_strdup ("search.live"), value);
+
+
+	value = g_new0 (GValue, 1);
+	g_value_init(value, G_TYPE_STRV);
+	g_value_set_boxed (value, hit_fields);
+	g_hash_table_insert (priv->props, g_strdup ("hit.fields"), value);
+
+	value = g_new0 (GValue, 1);
+	g_value_init(value, G_TYPE_STRV);
+	g_value_set_boxed (value, hit_fields_extended);
+	g_hash_table_insert (priv->props, g_strdup ("hit.fields.extended"), value);
+
+	value = g_new0 (GValue, 1);
+	g_value_init(value, G_TYPE_UINT);
+	g_value_set_uint (value, 200);
+	g_hash_table_insert (priv->props, g_strdup ("hit.snippet.length"), value);
+
+	value = g_new0 (GValue, 1);
+	g_value_init(value, G_TYPE_STRING);
+	g_value_set_string (value, "xesam:relevancyRating");
+	g_hash_table_insert (priv->props, g_strdup ("sort.primary"), value);
+
+	value = g_new0 (GValue, 1);
+	g_value_init(value, G_TYPE_STRING);
+	g_value_set_string (value, "");
+	g_hash_table_insert (priv->props, g_strdup ("sort.secondary"), value);
+
+	value = g_new0 (GValue, 1);
+	g_value_init(value, G_TYPE_STRING);
+	g_value_set_string (value, "descending");
+	g_hash_table_insert (priv->props, g_strdup ("sort.order"), value);
+
+	value = g_new0 (GValue, 1);
+	g_value_init(value, G_TYPE_STRING);
+	g_value_set_string (value, "TrackerXesamSession");
+	g_hash_table_insert (priv->props, g_strdup ("vendor.id"), value);
+
+	value = g_new0 (GValue, 1);
+	g_value_init(value, G_TYPE_UINT);
+	g_value_set_uint (value, 1);
+	g_hash_table_insert (priv->props, g_strdup ("vendor.version"), value);
+
+	value = g_new0 (GValue, 1);
+	g_value_init(value, G_TYPE_STRING);
+	g_value_set_string (value, "Tracker Xesam Service");
+	g_hash_table_insert (priv->props, g_strdup ("vendor.display"), value);
+
+	value = g_new0 (GValue, 1);
+	g_value_init(value, G_TYPE_UINT);
+	g_value_set_uint (value, 90);
+	g_hash_table_insert (priv->props, g_strdup ("vendor.xesam"), value);
+
+	value = g_new0 (GValue, 1);
+	g_value_init(value, G_TYPE_STRV);
+	g_value_set_boxed (value, fields);
+	g_hash_table_insert (priv->props, g_strdup ("vendor.ontology.fields"), value);
+
+	value = g_new0 (GValue, 1);
+	g_value_init(value, G_TYPE_STRV);
+	g_value_set_boxed (value, contents);
+	g_hash_table_insert (priv->props, g_strdup ("vendor.ontology.contents"), value);
+
+	value = g_new0 (GValue, 1);
+	g_value_init(value, G_TYPE_STRV);
+	g_value_set_boxed (value, sources);
+	g_hash_table_insert (priv->props, g_strdup ("vendor.ontology.sources"), value);
+
+	value = g_new0 (GValue, 1);
+	g_value_init(value, G_TYPE_STRV);
+	g_value_set_boxed (value, exts);
+	g_hash_table_insert (priv->props, g_strdup ("vendor.extensions"), value);
+
+	value = g_new0 (GValue, 1);
+	g_value_init(value, TRACKER_XESAM_TYPE_STRV_ARRAY);
+	g_value_set_boxed(value, ontos);
+	g_hash_table_insert (priv->props, g_strdup ("vendor.ontologies"), value);
+
+	value = g_new0 (GValue, 1);
+	g_value_init(value, G_TYPE_UINT);
+	g_value_set_uint (value, 50);
+	g_hash_table_insert (priv->props, g_strdup ("vendor.maxhits"), value);
+
 }
 
 static void
@@ -47,6 +175,8 @@ tracker_xesam_session_finalize (GObject *object)
 
 	g_free (priv->session_id);
 	g_hash_table_destroy (priv->searches);
+	g_hash_table_destroy (priv->props);
+
 }
 
 static void 
@@ -141,7 +271,36 @@ tracker_xesam_session_set_property (TrackerXesamSession  *self,
 				    GValue              **new_val, 
 				    GError              **error) 
 {
-	// todo
+	TrackerXesamSessionPriv *priv = self->priv;
+	const gchar *read_only[11] = {"vendor.id", "vendor.version", "vendor.display", 
+		"vendor.xesam", "vendor.ontology.fields", "vendor.ontology.contents", 
+		"vendor.ontology.sources", "vendor.extensions", "vendor.ontologies", 
+		"vendor.maxhits", NULL};
+	GValue *property = NULL;
+	gboolean found = FALSE;
+	gint i = 0;
+
+	while (read_only[i]) {
+		if (!strcmp (prop, read_only[i])) {
+			found = TRUE;
+			break;
+		}
+		i++;
+	}
+
+	if (!found)
+		property = g_hash_table_lookup (priv->props, prop);
+
+	if (!property)
+		g_set_error (error, TRACKER_XESAM_ERROR, 
+				TRACKER_XESAM_ERROR_PROPERTY_NOT_SUPPORTED,
+				"Property not supported");
+	else {
+		GValue *target_val = g_new0 (GValue, 1);
+		g_value_init (target_val, G_VALUE_TYPE (property));
+		g_value_transform (val, property);
+		g_value_transform (val, target_val);
+	}
 }
 
 /**
@@ -162,7 +321,19 @@ tracker_xesam_session_get_property (TrackerXesamSession  *self,
 				    GValue              **value, 
 				    GError              **error) 
 {
-	// todo
+	TrackerXesamSessionPriv *priv = self->priv;
+
+	GValue *property = g_hash_table_lookup (priv->props, prop);
+
+	if (!property)
+		g_set_error (error, TRACKER_XESAM_ERROR, 
+				TRACKER_XESAM_ERROR_PROPERTY_NOT_SUPPORTED,
+				"Property not supported");
+	else {
+		GValue *target_val = g_new0 (GValue, 1);
+		g_value_init (target_val, G_VALUE_TYPE (property));
+		g_value_transform (property, target_val);
+	}
 
 	return;
 }

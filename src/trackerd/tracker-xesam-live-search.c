@@ -24,6 +24,7 @@
 #include "tracker-dbus.h"
 #include "tracker-xesam.h"
 
+
 struct _TrackerXesamLiveSearchPriv {
 	gchar *search_id;
 	gboolean active;
@@ -406,16 +407,21 @@ get_hit_data (TrackerXesamLiveSearch  *self,
 {
 	gboolean valid = TRUE;
 	gint hitfields_columns = 0, column;
-	GType hitfields_columns_types[100];
 	GPtrArray *result = g_ptr_array_new ();
 
 	while (valid) {
 		GPtrArray *row = g_ptr_array_new ();
 
 		for (column = 0; column < hitfields_columns; column++) {
-			GValue *value = g_value_init (value, hitfields_columns_types[column]);
+			GValue *value = g_new0 (GValue, 1);
+			GValue value_in = {0, };
 
-			_tracker_db_result_set_get_value (result_set, column, value);
+			_tracker_db_result_set_get_value (result_set, column, &value_in);
+
+			g_value_init (value, G_VALUE_TYPE (&value_in));
+			g_value_copy (&value_in, value);
+
+			g_value_unset (&value_in);
 
 			g_ptr_array_add (row, value);
 		}

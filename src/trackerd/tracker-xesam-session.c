@@ -160,6 +160,8 @@ tracker_xesam_session_init (TrackerXesamSession *self)
 	value = g_new0 (GValue, 1);
 	g_value_init(value, TRACKER_TYPE_XESAM_STRV_ARRAY);
 	g_value_set_boxed(value, ontos);
+	/* Comment by Philip Van Hoof: I don't see how we are freeing this one ,
+	 * up. So we are most likely just leaking the GPtrArray per session ... */
 	g_hash_table_insert (priv->props, g_strdup ("vendor.ontologies"), value);
 
 	value = g_new0 (GValue, 1);

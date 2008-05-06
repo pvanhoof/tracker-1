@@ -231,10 +231,6 @@ typedef struct {
 
 	char *		xesam_dir;
 
-	/* service directory table - this is used to store a ServiceInfo struct for a directory path - used for determining which service a uri belongs to for things like files, emails, conversations etc*/
-	GHashTable	*service_directory_table;
-	GSList		*service_directory_list;
-
 	/* lookup tables for service and metadata IDs */
 	GHashTable	*metadata_table;
 
@@ -311,15 +307,7 @@ char *		tracker_get_radix_by_suffix	(const char *str, const char *suffix);
 char *		tracker_escape_metadata 	(const char *in);
 char *		tracker_unescape_metadata 	(const char *in);
 
-void		tracker_remove_dirs 		(const char *root_dir);
 char *		tracker_format_search_terms 	(const char *str, gboolean *do_bool_search);
-
-GSList *	tracker_get_service_dirs 	(const char *service);
-void		tracker_add_service_path 	(const char *service, const char *path);
-void		tracker_del_service_path 	(const char *service,  const char *path);
-
-char *		tracker_get_service_for_uri 	(const char *uri);
-gboolean	tracker_is_service_file 	(const char *uri);
 
 GSList * 	tracker_get_watch_root_dirs 	(void);
 

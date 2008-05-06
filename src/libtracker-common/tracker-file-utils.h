@@ -36,4 +36,6 @@ gchar *  tracker_file_get_mime_type (const gchar *uri);
 gchar *  tracker_file_get_vfs_path  (const gchar *uri);
 gchar *  tracker_file_get_vfs_name  (const gchar *uri);
 
+void     tracker_dir_remove         (const gchar *uri);
+
 #endif /* __TRACKER_FILE_UTILS_H__ */

@@ -24,6 +24,9 @@
 
 #include <glib.h>
 
+#include <libtracker-common/tracker-log.h>
+#include <libtracker-common/tracker-file-utils.h>
+
 #include "tracker-service-manager.h"
 
 typedef struct {
@@ -41,7 +44,14 @@ static GHashTable *service_table;
 static GHashTable *mime_service;       
 
 /* List of ServiceMimePrefixes */
-static GSList *mime_prefix_service; 
+static GSList     *mime_prefix_service; 
+
+/* The service directory table is used to store a ServiceInfo struct
+ * for a directory path - used for determining which service a uri
+ * belongs to for things like files, emails, conversations etc 
+ */ 
+static GHashTable *service_directory_table;
+static GSList	  *service_directory_list;
 
 static void
 service_manager_mime_prefix_foreach (gpointer data, 
@@ -105,11 +115,17 @@ tracker_service_manager_init (void)
 					      g_str_equal, 
 					      NULL, 
 					      NULL);
+
+	service_directory_table = g_hash_table_new_full (g_str_hash, 
+							 g_str_equal, 
+							 g_free, 
+							 g_free);
 }
 
 void
 tracker_service_manager_term (void)
 {
+	g_hash_table_remove_all (service_directory_table);
 	g_hash_table_remove_all (service_id_table);
 	g_hash_table_remove_all (service_table);
 	g_hash_table_remove_all (mime_service);
@@ -430,4 +446,96 @@ tracker_service_manager_show_service_directories (const gchar *service_str)
 	}
 
 	return tracker_service_get_show_service_directories (service);
+}
+
+/*
+ * Service directories
+ */
+GSList *
+tracker_service_directories_get (const gchar *service)
+{
+	GSList *list = NULL;
+	GSList *l;
+
+	g_return_val_if_fail (service != NULL, NULL);
+
+	for (l = service_directory_list; l; l = l->next) {
+		gchar *str;
+		
+		str = g_hash_table_lookup (service_directory_table, l->data);
+
+		if (strcasecmp (service, str) == 0) {
+			list = g_slist_prepend (list, l->data);
+		}
+	}
+
+	return list;
+}
+
+void
+tracker_service_directories_add (const gchar *service,  
+				 const gchar *path)
+{
+	g_return_if_fail (service != NULL);
+	g_return_if_fail (path != NULL);
+	
+	if (!tracker_file_is_valid (path)) {
+		tracker_debug ("Path:'%s' not valid, not adding it for service:'%s'", path, service);
+		return;
+	}
+
+	tracker_debug ("Adding path:'%s' for service:'%s'", path, service);
+
+	service_directory_list = g_slist_prepend (service_directory_list, 
+						  g_strdup (path));
+
+	g_hash_table_insert (service_directory_table, 
+			     g_strdup (path), 
+			     g_strdup (service));
+}
+
+void
+tracker_service_directories_remove (const gchar *service,  
+				    const gchar *path)
+{
+	GSList *found;
+
+	g_return_if_fail (service != NULL);
+	g_return_if_fail (path != NULL);
+
+	tracker_debug ("Removing path:'%s' for service:'%s'", path, service);
+
+	found = g_slist_find_custom (service_directory_list, 
+				     path, 
+				     (GCompareFunc) strcmp);
+	if (found) {
+		service_directory_list = g_slist_remove_link (service_directory_list, found);
+		g_free (found->data);
+		g_slist_free (found);
+	}
+
+	g_hash_table_remove (service_directory_table, path);
+}
+
+gchar *
+tracker_service_directories_get_service (const gchar *path)
+{
+	GSList *l;
+
+	g_return_val_if_fail (path != NULL, g_strdup ("Files"));
+
+	/* Check service dir list to see if a prefix */
+	for (l = service_directory_list; l; l = l->next) {
+		const gchar *str;
+
+		if (!l->data || !g_str_has_prefix (path, l->data)) {
+                        continue;
+                }
+		
+		str = g_hash_table_lookup (service_directory_table, l->data);
+
+		return g_strdup (str);
+	}
+
+	return g_strdup ("Files");
 }

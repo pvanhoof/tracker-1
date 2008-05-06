@@ -471,7 +471,7 @@ process_index_entity (Tracker           *tracker,
 		tracker_throttle (100);
 	}
 
-	service_info = tracker_get_service_for_uri (info->uri);
+	service_info = tracker_service_directories_get_service (info->uri);
 
 	if (!service_info) {
 		tracker_error ("ERROR: cannot find service for path %s", info->uri);
@@ -665,7 +665,7 @@ process_index_applications (Tracker *tracker)
         
         tracker_applications_add_service_directories ();
         
-        list = tracker_get_service_dirs ("Applications");
+        list = tracker_service_directories_get ("Applications");
         process_directory_list (tracker, list, FALSE);
 
         tracker_db_interface_end_transaction (db_con->cache->db);
@@ -963,13 +963,13 @@ process_index_conversations (Tracker *tracker)
         
         if (tracker_file_is_valid (gaim)) {
                 has_logs = TRUE;
-                tracker_add_service_path ("GaimConversations", gaim);
+                tracker_service_directories_add ("GaimConversations", gaim);
                 list = g_slist_prepend (NULL, gaim);
         }
 
         if (tracker_file_is_valid (purple)) {
                 has_logs = TRUE;
-                tracker_add_service_path ("GaimConversations", purple);
+                tracker_service_directories_add ("GaimConversations", purple);
                 list = g_slist_prepend (NULL, purple);
         }
         
@@ -1005,7 +1005,7 @@ process_index_webhistory (Tracker *tracker)
                 list = g_slist_prepend( NULL, firefox_dir);
                 
                 tracker_log ("Starting Firefox web history indexing...");
-                tracker_add_service_path ("WebHistory", firefox_dir);
+                tracker_service_directories_add ("WebHistory", firefox_dir);
                 
                 tracker_db_interface_start_transaction (db_con->cache->db);
                 process_directory_list (tracker, list, TRUE);
@@ -1065,7 +1065,7 @@ process_index_emails (Tracker *tracker)
                 if (name) {
                         GSList *list;
 
-                        list = tracker_get_service_dirs (name);
+                        list = tracker_service_directories_get (name);
                         process_directory_list (tracker, list, TRUE);
                         g_slist_free (list);
                 }

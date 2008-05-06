@@ -290,7 +290,7 @@ tracker_do_cleanup (const gchar *sig_msg)
 
 
 	if (tracker->reindex) {
-		tracker_remove_dirs (tracker->data_dir);
+		tracker_dir_remove (tracker->data_dir);
 		g_mkdir_with_parents (tracker->data_dir, 00755);
 	}
 
@@ -305,7 +305,7 @@ tracker_do_cleanup (const gchar *sig_msg)
 
 	/* remove sys tmp directory */
 	if (tracker->sys_tmp_root_dir) {
-		tracker_remove_dirs (tracker->sys_tmp_root_dir);
+		tracker_dir_remove (tracker->sys_tmp_root_dir);
 	}
 
 	/* remove file change queue */
@@ -533,10 +533,6 @@ sanity_check_option_values (void)
                                                          g_str_equal, 
                                                          NULL, 
                                                          NULL);
-	tracker->service_directory_table = g_hash_table_new_full (g_str_hash, 
-                                                                  g_str_equal, 
-                                                                  g_free, 
-                                                                  g_free);
 }
 
 static void
@@ -696,14 +692,14 @@ main (gint argc, gchar *argv[])
 
 	/* Remove an existing one */
 	if (g_file_test (tracker->sys_tmp_root_dir, G_FILE_TEST_EXISTS)) {
-		tracker_remove_dirs (tracker->sys_tmp_root_dir);
+		tracker_dir_remove (tracker->sys_tmp_root_dir);
 	}
 
 	/* Remove old tracker dirs */
         old_tracker_dir = g_build_filename (g_get_home_dir (), ".Tracker", NULL);
 
 	if (g_file_test (old_tracker_dir ,G_FILE_TEST_EXISTS)) {
-		tracker_remove_dirs (old_tracker_dir);
+		tracker_dir_remove (old_tracker_dir);
 	}
 
 	g_free (old_tracker_dir);
@@ -726,7 +722,7 @@ main (gint argc, gchar *argv[])
 	tracker->xesam_dir = g_build_filename (g_get_home_dir (), ".xesam", NULL);
 
 	if (reindex || tracker_db_needs_setup ()) {
-		tracker_remove_dirs (tracker->data_dir);
+		tracker_dir_remove (tracker->data_dir);
 		g_mkdir_with_parents (tracker->data_dir, 00755);
 		need_index = TRUE;
 	}
@@ -880,7 +876,7 @@ main (gint argc, gchar *argv[])
 			tracker_error ("db or index corruption detected - prepare for reindex...");
 			tracker_db_close (db_con);	
 
-			tracker_remove_dirs (tracker->data_dir);
+			tracker_dir_remove (tracker->data_dir);
 			g_mkdir_with_parents (tracker->data_dir, 00755);
 			create_index (need_data);
 			db_con = tracker_db_connect ();

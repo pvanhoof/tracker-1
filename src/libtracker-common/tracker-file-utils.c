@@ -418,3 +418,50 @@ tracker_file_get_vfs_name (const gchar *uri)
 
 	return g_strdup (" ");
 }
+
+void
+tracker_dir_remove (const gchar *uri)
+{
+	GQueue *dirs;
+	GSList *dirs_to_remove = NULL;
+
+	g_return_if_fail (uri != NULL);
+
+	dirs = g_queue_new ();
+
+	g_queue_push_tail (dirs, g_strdup (uri));
+
+	while (!g_queue_is_empty (dirs)) {
+		GDir  *p;
+		gchar *dir;
+
+		dir = g_queue_pop_head (dirs);
+		dirs_to_remove = g_slist_prepend (dirs_to_remove, dir);
+
+		if ((p = g_dir_open (dir, 0, NULL))) {
+			const gchar *file;
+
+			while ((file = g_dir_read_name (p))) {
+				gchar *full_filename;
+
+				full_filename = g_build_filename (dir, file, NULL);
+
+				if (g_file_test (full_filename, G_FILE_TEST_IS_DIR)) {
+					g_queue_push_tail (dirs, full_filename);
+				} else {
+					g_unlink (full_filename);
+					g_free (full_filename);
+				}
+			}
+
+			g_dir_close (p);
+		}
+	}
+
+	g_queue_free (dirs);
+
+	/* Remove directories (now they are empty) */
+	g_slist_foreach (dirs_to_remove, (GFunc) g_rmdir, NULL);
+	g_slist_foreach (dirs_to_remove, (GFunc) g_free, NULL);
+	g_slist_free (dirs_to_remove);
+}

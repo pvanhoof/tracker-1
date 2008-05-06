@@ -63,14 +63,14 @@ void
 email_unwatch_directory (const gchar *dir, const gchar *service)
 {
 	tracker_log ("Registering path %s as belonging to service %s", dir, service);
-	tracker_del_service_path (service, dir);
+	tracker_service_directories_remove (service, dir);
 }
 
 void
 email_watch_directory (const gchar *dir, const gchar *service)
 {
 	tracker_log ("Registering path %s as belonging to service %s", dir, service);
-	tracker_add_service_path (service, dir);
+	tracker_service_directories_add (service, dir);
 }
 
 

@@ -1,3 +1,17 @@
+2008-05-06  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-apps.c:
+	* src/trackerd/tracker-email-utils.c:
+	* src/trackerd/tracker-process-files.c:
+	* src/trackerd/tracker-service-manager.[ch]:
+	* src/trackerd/tracker-utils.[ch]:
+	* src/trackerd/trackerd.c: Moved all tracker_add_service_dir() API
+	to tracker-service-manager and renamed it accordingly. This was
+	moved out of tracker-utils.[ch].
+
+	* src/libtracker-common/tracker-file-utils.[ch]: Moved the
+	function which removes directory roots to here from the daemon. 
+
 2008-05-06  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* Bumped the version of SQLite from 3.4 to 3.5 because

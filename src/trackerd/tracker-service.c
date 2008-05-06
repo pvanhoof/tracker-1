@@ -785,3 +785,4 @@ tracker_service_set_show_service_directories (TrackerService *service,
 	priv->show_service_directories = value;
 	g_object_notify (G_OBJECT (service), "show-service-directories");
 }
+

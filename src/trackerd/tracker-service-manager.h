@@ -52,6 +52,14 @@ gint            tracker_service_manager_metadata_in_service          (const gcha
 gboolean        tracker_service_manager_show_service_directories     (const gchar    *service_str);
 gboolean        tracker_service_manager_show_service_files           (const gchar    *service_str);
 
+/* Service directories */
+GSList *        tracker_service_directories_get                      (const gchar    *service);
+void            tracker_service_directories_add                      (const gchar    *service,
+								      const gchar    *path);
+void            tracker_service_directories_remove                   (const gchar    *service,
+								      const gchar    *path);
+gchar *         tracker_service_directories_get_service              (const gchar    *path);
+
 G_END_DECLS
 
 #endif /* __TRACKER_SERVICE_MANAGER_H__ */

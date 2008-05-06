@@ -93,8 +93,6 @@ void                tracker_db_update_index_file_contents      (DBConnection   *
 gint                tracker_db_flush_words_to_qdbm             (DBConnection   *db_con,
                                                                 gint            limit);
 void                tracker_db_set_default_pragmas             (DBConnection   *db_con);
-void                tracker_db_fsync                           (DBConnection   *db_con,
-                                                                gboolean        enable);
 gchar *             tracker_get_related_metadata_names         (DBConnection   *db_con,
                                                                 const gchar    *name);
 gchar *             tracker_get_metadata_table                 (DataTypes       type);

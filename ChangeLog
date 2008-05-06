@@ -1,5 +1,13 @@
 2008-05-06  Ivan Frade  <ivan.frade@nokia.com>
 
+	* src/trackerd/tracker-db-sqlite.c
+	* src/trackerd/tracker-db-sqlite.h:
+	(tracker_db_fsync): Removed function. Never used.
+	Removed temporal variable: Easier to know who is using what in
+	DBConnection.
+
+2008-05-06  Ivan Frade  <ivan.frade@nokia.com>
+
 	* src/trackerd/tracker-db-email.c
 	* src/trackerd/tracker-db-sqlite.c
 	* src/trackerd/tracker-db-sqlite.h

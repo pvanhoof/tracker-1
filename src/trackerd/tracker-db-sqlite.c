@@ -790,18 +790,6 @@ tracker_db_connect (void)
 	return db_con;
 }
 
-
-void
-tracker_db_fsync (DBConnection *db_con, gboolean enable)
-{
-	if (!enable) {
-		tracker_db_exec_no_reply (db_con, "PRAGMA synchronous = OFF;");
-	} else {
-		tracker_db_exec_no_reply (db_con, "PRAGMA synchronous = NORMAL;");
-	}
-
-}
-
 static inline void
 open_file_db (DBConnection *db_con)
 {
@@ -3561,19 +3549,17 @@ tracker_db_has_pending_files (DBConnection *db_con)
 TrackerDBResultSet *
 tracker_db_get_pending_files (DBConnection *db_con)
 {
-	DBConnection *cache;
 	time_t time_now;
 
 	if (!tracker->is_running) {
 		return NULL;
 	}
 
-	cache = db_con->cache;
 	time (&time_now);
 
-	tracker_db_exec_no_reply (cache, "DELETE FROM FileTemp");
+	tracker_db_exec_no_reply (db_con->cache, "DELETE FROM FileTemp");
 
-	tracker_db_exec_no_reply (cache,
+	tracker_db_exec_no_reply (db_con->cache,
 				  "INSERT INTO FileTemp (ID, FileID, Action, FileUri, MimeType,"
 				  " IsDir, IsNew, RefreshEmbedded, RefreshContents, ServiceTypeID) "
 				  "SELECT ID, FileID, Action, FileUri, MimeType,"
@@ -3581,9 +3567,9 @@ tracker_db_get_pending_files (DBConnection *db_con)
 				  "FROM FilePending WHERE (PendingDate < %d) AND (Action <> 20) LIMIT 250",
 				  (gint) time_now);
 
-	tracker_db_exec_no_reply (cache, "DELETE FROM FilePending WHERE ID IN (SELECT ID FROM FileTemp)");
+	tracker_db_exec_no_reply (db_con->cache, "DELETE FROM FilePending WHERE ID IN (SELECT ID FROM FileTemp)");
 
-	return tracker_db_interface_execute_query (cache->db, NULL, "SELECT FileID, FileUri, Action, MimeType, IsDir, IsNew, RefreshEmbedded, RefreshContents, ServiceTypeID FROM FileTemp ORDER BY ID");
+	return tracker_db_interface_execute_query (db_con->cache->db, NULL, "SELECT FileID, FileUri, Action, MimeType, IsDir, IsNew, RefreshEmbedded, RefreshContents, ServiceTypeID FROM FileTemp ORDER BY ID");
 }
 
 

@@ -39,7 +39,7 @@ G_BEGIN_DECLS
 #define TRACKER_IS_XESAM_SESSION_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), TRACKER_TYPE_XESAM_SESSION))
 #define TRACKER_XESAM_SESSION_GET_CLASS(obj) (G_TYPE_INSTANCE_GET_CLASS ((obj), TRACKER_TYPE_XESAM_SESSION, TrackerXesamSessionClass))
 
-#define TRACKER_XESAM_TYPE_STRV_ARRAY (dbus_g_type_get_collection ("GPtrArray", G_TYPE_STRV))
+#define TRACKER_TYPE_XESAM_STRV_ARRAY (dbus_g_type_get_collection ("GPtrArray", G_TYPE_STRV))
 
 typedef struct _TrackerXesamSession TrackerXesamSession;
 typedef struct _TrackerXesamSessionClass TrackerXesamSessionClass;

@@ -44,7 +44,7 @@ tracker_xesam_session_g_value_free (GValue *value)
  *
  * Get the properties of @self. The returned value is a hashtable with key as
  * Xesam session property key strings and value a #GValue being either a string,
- * an integer, a boolean or an array (either TRACKER_XESAM_TYPE_STRV_ARRAY or 
+ * an integer, a boolean or an array (either TRACKER_TYPE_XESAM_STRV_ARRAY or 
  * G_TYPE_STRV).
  *
  * The returned value must be unreferenced using @g_hash_table_unref.
@@ -158,7 +158,7 @@ tracker_xesam_session_init (TrackerXesamSession *self)
 	g_hash_table_insert (priv->props, g_strdup ("vendor.extensions"), value);
 
 	value = g_new0 (GValue, 1);
-	g_value_init(value, TRACKER_XESAM_TYPE_STRV_ARRAY);
+	g_value_init(value, TRACKER_TYPE_XESAM_STRV_ARRAY);
 	g_value_set_boxed(value, ontos);
 	g_hash_table_insert (priv->props, g_strdup ("vendor.ontologies"), value);
 

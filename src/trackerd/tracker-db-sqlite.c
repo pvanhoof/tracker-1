@@ -513,7 +513,7 @@ open_common_db (DBConnection *db_con)
 {
 	gboolean create;
 
-	db_con->db = open_user_db ("common.db", &create);
+	db_con->db = open_user_db (TRACKER_INDEXER_COMMON_DB_FILENAME, &create);
 
 	set_params (db_con, 32, FALSE);
 
@@ -544,10 +544,10 @@ tracker_db_attach_db (DBConnection *db_con, const char *name)
 	gchar *path;
 
 	if (strcmp (name, "common") == 0) {
-		path = g_build_filename (tracker->user_data_dir, "common.db", NULL);
+		path = g_build_filename (tracker->user_data_dir, TRACKER_INDEXER_COMMON_DB_FILENAME, NULL);
 		tracker_db_exec_no_reply (db_con, "ATTACH '%s' as %s", path, name);
 	} else if (strcmp (name, "cache") == 0) {
-		path = g_build_filename (tracker->sys_tmp_root_dir, "cache.db", NULL);
+		path = g_build_filename (tracker->sys_tmp_root_dir, TRACKER_INDEXER_CACHE_DB_FILENAME, NULL);
 		tracker_db_exec_no_reply (db_con, "ATTACH '%s' as %s", path, name);
 	}
 
@@ -722,7 +722,7 @@ tracker_db_connect (void)
 	gboolean create_table = FALSE;
 	char *dbname;
 
-	dbname = g_build_filename (tracker->data_dir, "file-meta.db", NULL);
+	dbname = g_build_filename (tracker->data_dir, TRACKER_INDEXER_FILE_META_DB_FILENAME, NULL);
 
 	if (!g_file_test (dbname, G_FILE_TEST_IS_REGULAR)) {
 		tracker_log ("database file %s is not present - will create", dbname);
@@ -795,7 +795,7 @@ open_file_db (DBConnection *db_con)
 {
 	gboolean create;
 
-	db_con->db = open_db ("file-meta.db", &create);	
+	db_con->db = open_db (TRACKER_INDEXER_FILE_META_DB_FILENAME, &create);	
 
 	set_params (db_con, 512, TRUE);
 }
@@ -818,7 +818,7 @@ open_email_db (DBConnection *db_con)
 {
 	gboolean create;
 
-	db_con->db = open_db ("email-meta.db", &create);	
+	db_con->db = open_db (TRACKER_INDEXER_EMAIL_META_DB_FILENAME, &create);	
 
 	set_params (db_con, 512, TRUE);
 }
@@ -843,7 +843,7 @@ open_file_content_db (DBConnection *db_con)
 {
 	gboolean create;
 
-	db_con->db = open_db ("file-contents.db", &create);	
+	db_con->db = open_db (TRACKER_INDEXER_FILE_CONTENTS_DB_FILENAME, &create);	
 
 	set_params (db_con, 1024, FALSE);
 
@@ -875,7 +875,7 @@ open_email_content_db (DBConnection *db_con)
 {
 	gboolean create;
 
-	db_con->db = open_db ("email-contents.db", &create);	
+	db_con->db = open_db (TRACKER_INDEXER_EMAIL_CONTENTS_DB_FILENAME, &create);	
 
 	set_params (db_con, 512, FALSE);
 
@@ -976,7 +976,7 @@ tracker_db_connect_cache (void)
 		exit (1);
 	}
 
-	dbname = g_build_filename (tracker->sys_tmp_root_dir, "cache.db", NULL);
+	dbname = g_build_filename (tracker->sys_tmp_root_dir, TRACKER_INDEXER_CACHE_DB_FILENAME, NULL);
 
 	if (!tracker_file_is_valid (dbname)) {
 		create_table = TRUE;
@@ -1014,7 +1014,7 @@ tracker_db_connect_emails (void)
 	
 	create_table = FALSE;
 
-	dbname = g_build_filename (tracker->data_dir, "email-meta.db", NULL);
+	dbname = g_build_filename (tracker->data_dir, TRACKER_INDEXER_EMAIL_META_DB_FILENAME, NULL);
 
 
 	if (!g_file_test (dbname, G_FILE_TEST_IS_REGULAR)) {
@@ -1303,7 +1303,9 @@ db_exists (const char *name)
 gboolean
 tracker_db_needs_setup ()
 {
-	return (!db_exists ("file-meta.db") || !db_exists ("file-index.db") || !db_exists ("file-contents.db"));
+	return (!db_exists (TRACKER_INDEXER_FILE_META_DB_FILENAME) || 
+		!db_exists (TRACKER_INDEXER_FILE_INDEX_DB_FILENAME) || 
+		!db_exists (TRACKER_INDEXER_FILE_CONTENTS_DB_FILENAME));
 }
 
 
@@ -1315,7 +1317,7 @@ tracker_db_needs_data ()
 
 	need_setup = FALSE;
 
-	dbname = g_build_filename (tracker->user_data_dir, "common.db", NULL);
+	dbname = g_build_filename (tracker->user_data_dir, TRACKER_INDEXER_COMMON_DB_FILENAME, NULL);
 
 	if (!g_file_test (dbname, G_FILE_TEST_EXISTS)) {
 		need_setup = TRUE;

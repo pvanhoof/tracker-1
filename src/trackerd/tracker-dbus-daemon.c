@@ -457,7 +457,7 @@ tracker_dbus_daemon_set_bool_option (TrackerDBusDaemon  *object,
 				       priv->tracker->first_time_index,
 				       priv->tracker->in_merge,
 				       priv->tracker->pause_manual,
-				       tracker_pause_on_battery (),
+				       tracker_should_pause_on_battery (),
 				       priv->tracker->pause_io,
 				       tracker_config_get_enable_indexing (priv->config));
 	}
@@ -562,7 +562,7 @@ tracker_dbus_daemon_prompt_index_signals (TrackerDBusDaemon  *object,
 			       priv->tracker->first_time_index,
 			       priv->tracker->in_merge,
 			       priv->tracker->pause_manual,
-			       tracker_pause_on_battery (),
+			       tracker_should_pause_on_battery (),
 			       priv->tracker->pause_io,
 			       tracker_config_get_enable_indexing (priv->config));
 

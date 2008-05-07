@@ -1,3 +1,20 @@
+2008-05-07  Martyn Russell  <martyn@imendio.com>
+
+	* configure.ac:
+	* src/trackerd/tracker-cache.c:
+	* src/trackerd/tracker-db-sqlite.c:
+	* src/trackerd/tracker-dbus-daemon.c:
+	* src/trackerd/tracker-email-evolution.c:
+	* src/trackerd/tracker-email-modest.c:
+	* src/trackerd/tracker-indexer.[ch]:
+	* src/trackerd/tracker-process-files.c:
+	* src/trackerd/tracker-utils.[ch]:
+	* src/trackerd/trackerd.c: Removed tracker_is_index_too_big() from
+	tracker-utils.c to tracker-indexer.c and also made all database
+	filenames in the code use a defined filename. The tracker_pause()
+	and tracker_pause_on_battery() now has been renamed to
+	tracker_should_pause...() and cleaned up.
+
 2008-05-06  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/trackerd/tracker-db-sqlite.c

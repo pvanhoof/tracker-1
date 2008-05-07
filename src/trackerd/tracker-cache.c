@@ -328,7 +328,8 @@ tracker_cache_process_events (DBConnection *db_con, gboolean check_flush)
 			sleep = TRUE;
 		}
 
-		if (tracker->index_status > INDEX_APPLICATIONS && tracker_pause ()) {
+		if (tracker->index_status > INDEX_APPLICATIONS && 
+                    tracker_should_pause ()) {
 			if (db_con) {
 				stopped_trans = TRUE;
 			}
@@ -347,11 +348,11 @@ tracker_cache_process_events (DBConnection *db_con, gboolean check_flush)
                                                tracker->first_time_index,
                                                tracker->in_merge,
                                                tracker->pause_manual,
-                                               tracker_pause_on_battery (),
+                                               tracker_should_pause_on_battery (),
                                                tracker->pause_io,
                                                tracker_config_get_enable_indexing (tracker->config));
 			
-			if (tracker_pause ()) {
+			if (tracker_should_pause ()) {
 				g_cond_wait (tracker->files_signal_cond, 
                                              tracker->files_signal_mutex);
 			} else {
@@ -381,7 +382,7 @@ tracker_cache_process_events (DBConnection *db_con, gboolean check_flush)
                                                        tracker->first_time_index,
                                                        tracker->in_merge,
                                                        tracker->pause_manual,
-                                                       tracker_pause_on_battery (),
+                                                       tracker_should_pause_on_battery (),
                                                        tracker->pause_io,
                                                        tracker_config_get_enable_indexing (tracker->config));
 				continue;
@@ -409,7 +410,7 @@ tracker_cache_process_events (DBConnection *db_con, gboolean check_flush)
                                                tracker->first_time_index,
                                                tracker->in_merge,
                                                tracker->pause_manual,
-                                               tracker_pause_on_battery (),
+                                               tracker_should_pause_on_battery (),
                                                tracker->pause_io,
                                                tracker_config_get_enable_indexing (tracker->config));
 		
@@ -432,7 +433,7 @@ tracker_cache_process_events (DBConnection *db_con, gboolean check_flush)
                                                        tracker->first_time_index,
                                                        tracker->in_merge,
                                                        tracker->pause_manual,
-                                                       tracker_pause_on_battery (),
+                                                       tracker_should_pause_on_battery (),
                                                        tracker->pause_io,
                                                        tracker_config_get_enable_indexing (tracker->config));
 			}

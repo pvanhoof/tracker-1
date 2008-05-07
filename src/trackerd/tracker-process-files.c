@@ -782,7 +782,7 @@ process_index_files (Tracker *tracker)
                                tracker->first_time_index,
                                tracker->in_merge,
                                tracker->pause_manual,
-                               tracker_pause_on_battery (),
+                               tracker_should_pause_on_battery (),
                                tracker->pause_io,
                                tracker_config_get_enable_indexing (tracker->config));
 
@@ -1212,7 +1212,7 @@ process_files (Tracker *tracker)
                                        tracker->first_time_index,
                                        tracker->in_merge,
                                        tracker->pause_manual,
-                                       tracker_pause_on_battery (),
+                                       tracker_should_pause_on_battery (),
                                        tracker->pause_io,
                                        tracker_config_get_enable_indexing (tracker->config));
 
@@ -1223,7 +1223,7 @@ process_files (Tracker *tracker)
                                tracker->first_time_index,
                                tracker->in_merge,
                                tracker->pause_manual,
-                               tracker_pause_on_battery (),
+                               tracker_should_pause_on_battery (),
                                tracker->pause_io,
                                tracker_config_get_enable_indexing (tracker->config));
         
@@ -1541,7 +1541,7 @@ tracker_process_files (gpointer data)
                                tracker->first_time_index,
                                tracker->in_merge,
                                tracker->pause_manual,
-                               tracker_pause_on_battery (),
+                               tracker_should_pause_on_battery (),
                                tracker->pause_io,
                                tracker_config_get_enable_indexing (tracker->config));
 
@@ -1583,7 +1583,7 @@ tracker_process_files (gpointer data)
                                                        tracker->first_time_index,
                                                        tracker->in_merge,
                                                        tracker->pause_manual,
-                                                       tracker_pause_on_battery (),
+                                                       tracker_should_pause_on_battery (),
                                                        tracker->pause_io,
                                                        tracker_config_get_enable_indexing (tracker->config));
 			break;	
@@ -1593,7 +1593,7 @@ tracker_process_files (gpointer data)
                                                tracker->first_time_index,
                                                tracker->in_merge,
                                                tracker->pause_manual,
-                                               tracker_pause_on_battery (),
+                                               tracker_should_pause_on_battery (),
                                                tracker->pause_io,
                                                tracker_config_get_enable_indexing (tracker->config));
 
@@ -1679,7 +1679,7 @@ tracker_process_files (gpointer data)
                                                tracker->first_time_index,
                                                tracker->in_merge,
                                                tracker->pause_manual,
-                                               tracker_pause_on_battery (),
+                                               tracker_should_pause_on_battery (),
                                                tracker->pause_io,
                                                tracker_config_get_enable_indexing (tracker->config));
 

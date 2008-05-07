@@ -872,7 +872,9 @@ main (gint argc, gchar *argv[])
 
 /*		turn off corruption check as it can hog cpu for long time 
 
-		if (!tracker_db_integrity_check (db_con) || !tracker_indexer_repair ("file-index.db") || !tracker_indexer_repair ("email-index.db")) {
+		if (!tracker_db_integrity_check (db_con) || 
+		    !tracker_indexer_repair (TRACKER_INDEXER_FILE_INDEX_DB_FILENAME) || 
+		    !tracker_indexer_repair (TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME)) {
 			tracker_error ("db or index corruption detected - prepare for reindex...");
 			tracker_db_close (db_con);	
 
@@ -905,7 +907,7 @@ main (gint argc, gchar *argv[])
 	
 	if (g_file_test (final_index_name, G_FILE_TEST_EXISTS) && !tracker_indexer_has_tmp_merge_files (INDEX_TYPE_FILES)) {
 	
-		char *file_index_name = g_build_filename (tracker->data_dir, "file-index.db", NULL);
+		char *file_index_name = g_build_filename (tracker->data_dir, TRACKER_INDEXER_FILE_INDEX_DB_FILENAME, NULL);
 	
 		tracker_log ("overwriting %s with %s", file_index_name, final_index_name);	
 
@@ -920,7 +922,7 @@ main (gint argc, gchar *argv[])
 	
 	if (g_file_test (final_index_name, G_FILE_TEST_EXISTS) && !tracker_indexer_has_tmp_merge_files (INDEX_TYPE_EMAILS)) {
 	
-		char *file_index_name = g_build_filename (tracker->data_dir, "email-index.db", NULL);
+		char *file_index_name = g_build_filename (tracker->data_dir, TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME, NULL);
 	
 		tracker_log ("overwriting %s with %s", file_index_name, final_index_name);	
 	
@@ -933,13 +935,13 @@ main (gint argc, gchar *argv[])
 	
 	
 
-	Indexer *index = tracker_indexer_open ("file-index.db", TRUE);
+	Indexer *index = tracker_indexer_open (TRACKER_INDEXER_FILE_INDEX_DB_FILENAME, TRUE);
 	tracker->file_index = index;
 
-	index = tracker_indexer_open ("file-update-index.db", FALSE);
+	index = tracker_indexer_open (TRACKER_INDEXER_FILE_UPDATE_INDEX_DB_FILENAME, FALSE);
 	tracker->file_update_index = index;
 
-	index = tracker_indexer_open ("email-index.db", TRUE);
+	index = tracker_indexer_open (TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME, TRUE);
 	tracker->email_index = index;
 
 	db_con->word_index = tracker->file_index;

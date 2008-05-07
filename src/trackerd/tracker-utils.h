@@ -340,10 +340,11 @@ gboolean	tracker_do_cleanup 		(const gchar *sig_msg);
 gboolean        tracker_watch_dir               (const gchar *uri);
 void            tracker_scan_directory          (const gchar *uri);
 
-gboolean	tracker_pause_on_battery 	(void);
 gboolean	tracker_low_diskspace		(void);
-gboolean	tracker_pause			(void);
 gchar*		tracker_unique_key		(void);
+
+gboolean	tracker_should_pause 	        (void);
+gboolean	tracker_should_pause_on_battery (void);
 
 
 #endif

@@ -26,9 +26,10 @@
 #define __USE_ISOC99     1
 
 /* Size of free block pool of inverted index */
-#define INDEXFBP         32     
-#define SCORE_MULTIPLIER 100000
-#define MAX_HIT_BUFFER 480000
+#define INDEXFBP            32     
+#define SCORE_MULTIPLIER    100000
+#define MAX_HIT_BUFFER      480000
+#define MAX_INDEX_FILE_SIZE 2000000000
 
 #define CREATE_INDEX                                                      \
         "CREATE TABLE HitIndex (Word Text not null "                      \
@@ -49,6 +50,7 @@
 
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-file-utils.h>
 
 #include "tracker-query-tree.h"
 #include "tracker-indexer.h"
@@ -456,7 +458,7 @@ tracker_indexer_apply_changes (Indexer *dest, Indexer *src,  gboolean update)
 	tracker_indexer_free (src, TRUE);
 
 	if (update) {
-		tracker->file_update_index = tracker_indexer_open ("file-update-index.db", FALSE);
+		tracker->file_update_index = tracker_indexer_open (TRACKER_INDEXER_FILE_UPDATE_INDEX_DB_FILENAME, FALSE);
 	}
 	
 	tracker->in_merge = FALSE;
@@ -693,7 +695,7 @@ tracker_indexer_merge_indexes (IndexType type)
 			       tracker->first_time_index,
 			       tracker->in_merge,
 			       tracker->pause_manual,
-			       tracker_pause_on_battery (),
+			       tracker_should_pause_on_battery (),
 			       tracker->pause_io,
 			       tracker_config_get_enable_indexing (tracker->config));
 
@@ -732,7 +734,7 @@ tracker_indexer_merge_indexes (IndexType type)
                                                                                tracker->first_time_index,
                                                                                tracker->in_merge,
                                                                                tracker->pause_manual,
-                                                                               tracker_pause_on_battery (),
+                                                                               tracker_should_pause_on_battery (),
                                                                                tracker->pause_io,
                                                                                tracker_config_get_enable_indexing (tracker->config));
 						return;	
@@ -838,12 +840,12 @@ tracker_indexer_merge_indexes (IndexType type)
 		} else {
 			if (type == INDEX_TYPE_FILES) {
 
-				char *fname = get_index_file ("file-index.db");
+				char *fname = get_index_file (TRACKER_INDEXER_FILE_INDEX_DB_FILENAME);
 				move_index (final_index, tracker->file_index, fname);	
 				g_free (fname);
 
 			} else {
-				char *fname = get_index_file ("email-index.db");
+				char *fname = get_index_file (TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME);
 				move_index (final_index, tracker->email_index, fname);
 				g_free (fname);
 			}
@@ -864,7 +866,7 @@ tracker_indexer_merge_indexes (IndexType type)
                                tracker->first_time_index,
                                tracker->in_merge,
                                tracker->pause_manual,
-                               tracker_pause_on_battery (),
+                               tracker_should_pause_on_battery (),
                                tracker->pause_io,
                                tracker_config_get_enable_indexing (tracker->config));
 }
@@ -1379,4 +1381,49 @@ tracker_indexer_get_suggestion (Indexer *indexer, const gchar *term, gint maxdis
 	}
 
         return winner_str;
+}
+
+gboolean
+tracker_indexer_are_databases_too_big (void)
+{
+	gchar    *filename;
+        gboolean  too_big;
+
+	filename = g_build_filename (tracker->data_dir, TRACKER_INDEXER_FILE_INDEX_DB_FILENAME, NULL);
+	too_big = tracker_file_get_size (filename) > MAX_INDEX_FILE_SIZE;
+        g_free (filename);
+        
+        if (too_big) {
+		tracker_error ("File index database is too big, discontinuing indexing");
+		return TRUE;	
+	}
+
+	filename = g_build_filename (tracker->data_dir, TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME, NULL);
+	too_big = tracker_file_get_size (filename) > MAX_INDEX_FILE_SIZE;
+	g_free (filename);
+        
+        if (too_big) {
+		tracker_error ("Email index database is too big, discontinuing indexing");
+		return TRUE;	
+	}
+
+	filename = g_build_filename (tracker->data_dir, TRACKER_INDEXER_FILE_META_DB_FILENAME, NULL);
+	too_big = tracker_file_get_size (filename) > MAX_INDEX_FILE_SIZE;
+        g_free (filename);
+        
+        if (too_big) {
+                tracker_error ("File metadata database is too big, discontinuing indexing");
+		return TRUE;	
+	}
+
+	filename = g_build_filename (tracker->data_dir, TRACKER_INDEXER_EMAIL_META_DB_FILENAME, NULL);
+	too_big = tracker_file_get_size (filename) > MAX_INDEX_FILE_SIZE;
+        g_free (filename);
+        
+        if (too_big) {
+		tracker_error ("Email metadata database is too big, discontinuing indexing");
+		return TRUE;	
+	}
+
+	return FALSE;
 }

@@ -60,7 +60,6 @@
 extern Tracker	*tracker;
 
 #define ZLIBBUFSIZ 8192
-#define MAX_INDEX_FILE_SIZE 2000000000
 
 static int info_allocated = 0;
 static int info_deallocated = 0;
@@ -919,21 +918,6 @@ tracker_add_io_grace (const gchar *uri)
 }
 
 gboolean
-tracker_pause_on_battery (void)
-{
-        if (!tracker->pause_battery) {
-                return FALSE;
-        }
-
-	if (tracker->first_time_index) {
-		return tracker_config_get_disable_indexing_on_battery_init (tracker->config);
-	}
-
-        return tracker_config_get_disable_indexing_on_battery (tracker->config);
-}
-
-
-gboolean
 tracker_low_diskspace (void)
 {
 	struct statvfs st;
@@ -961,58 +945,28 @@ tracker_low_diskspace (void)
 	return FALSE;
 }
 
-
-
 gboolean
-tracker_index_too_big ()
+tracker_should_pause (void)
 {
-
-	
-	char *file_index = g_build_filename (tracker->data_dir, "file-index.db", NULL);
-	if (tracker_file_get_size (file_index) > MAX_INDEX_FILE_SIZE) {
-		tracker_error ("file index is too big - discontinuing index");
-		g_free (file_index);
-		return TRUE;	
-	}
-	g_free (file_index);
-
-
-	char *email_index = g_build_filename (tracker->data_dir, "email-index.db", NULL);
-	if (tracker_file_get_size (email_index) > MAX_INDEX_FILE_SIZE) {
-		tracker_error ("email index is too big - discontinuing index");
-		g_free (email_index);
-		return TRUE;	
-	}
-	g_free (email_index);
-
-
-	char *file_meta = g_build_filename (tracker->data_dir, "file-meta.db", NULL);
-	if (tracker_file_get_size (file_meta) > MAX_INDEX_FILE_SIZE) {
-		tracker_error ("file metadata is too big - discontinuing index");
-		g_free (file_meta);
-		return TRUE;	
-	}
-	g_free (file_meta);
-
-
-	char *email_meta = g_build_filename (tracker->data_dir, "email-meta.db", NULL);
-	if (tracker_file_get_size (email_meta) > MAX_INDEX_FILE_SIZE) {
-		tracker_error ("email metadata is too big - discontinuing index");
-		g_free (email_meta);
-		return TRUE;	
-	}
-	g_free (email_meta);
-
-	return FALSE;
-
+	return  tracker->pause_manual || 
+		tracker_should_pause_on_battery () || 
+		tracker_low_diskspace () || 
+		tracker_indexer_are_databases_too_big ();
 }
 
 gboolean
-tracker_pause (void)
+tracker_should_pause_on_battery (void)
 {
-	return tracker->pause_manual || tracker_pause_on_battery () || tracker_low_diskspace () || tracker_index_too_big ();
-}
+        if (!tracker->pause_battery) {
+                return FALSE;
+        }
 
+	if (tracker->first_time_index) {
+		return tracker_config_get_disable_indexing_on_battery_init (tracker->config);
+	}
+
+        return tracker_config_get_disable_indexing_on_battery (tracker->config);
+}
 
 gchar*
 tracker_unique_key (void)

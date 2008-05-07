@@ -19,8 +19,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_TYPE_UTILS_H__
-#define __TRACKER_TYPE_UTILS_H__
+#ifndef __LIBTRACKER_COMMON_TYPE_UTILS_H__
+#define __LIBTRACKER_COMMON_TYPE_UTILS_H__
 
 gchar *  tracker_date_format                (const gchar  *time_string);
 time_t   tracker_string_to_date             (const gchar  *time_string);
@@ -41,4 +41,4 @@ gchar *  tracker_string_list_to_string      (gchar       **strv,
 					     gint          length,
 					     gchar         sep);
 
-#endif /* __TRACKER_TYPE_UTILS_H__ */
+#endif /* __LIBTRACKER_COMMON_TYPE_UTILS_H__ */

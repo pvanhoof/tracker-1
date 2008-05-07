@@ -19,8 +19,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_FILE_UTILS_H__
-#define __TRACKER_FILE_UTILS_H__
+#ifndef __LIBTRACKER_COMMON_FILE_UTILS_H__
+#define __LIBTRACKER_COMMON_FILE_UTILS_H__
 
 gint     tracker_file_open          (const gchar *uri,
 				     gboolean     readahead);
@@ -38,4 +38,4 @@ gchar *  tracker_file_get_vfs_name  (const gchar *uri);
 
 void     tracker_dir_remove         (const gchar *uri);
 
-#endif /* __TRACKER_FILE_UTILS_H__ */
+#endif /* __LIBTRACKER_COMMON_FILE_UTILS_H__ */

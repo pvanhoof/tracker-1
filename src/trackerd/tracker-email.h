@@ -18,8 +18,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_EMAIL_H__
-#define __TRACKER_EMAIL_H__
+#ifndef __TRACKERD_EMAIL_H__
+#define __TRACKERD_EMAIL_H__
 
 #include "config.h"
 
@@ -27,6 +27,8 @@
 
 #include "tracker-utils.h"
 #include "tracker-db-sqlite.h"
+
+G_BEGIN_DECLS
 
 typedef gboolean      (* TrackerMailInit)          (void);
 typedef void          (* TrackerMailFinalize)      (void);
@@ -43,4 +45,6 @@ gboolean     tracker_email_index_file              (DBConnection      *db_con,
                                                     TrackerDBFileInfo *info);
 const gchar *tracker_email_get_name                (void);
 
-#endif
+G_END_DECLS
+
+#endif /* __TRACKERD_EMAIL_H__ */

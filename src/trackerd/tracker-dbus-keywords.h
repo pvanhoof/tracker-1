@@ -19,8 +19,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_DBUS_KEYWORDS_H__
-#define __TRACKER_DBUS_KEYWORDS_H__
+#ifndef __TRACKERD_DBUS_KEYWORDS_H__
+#define __TRACKERD_DBUS_KEYWORDS_H__
 
 #include <dbus/dbus-glib.h>
 #include <dbus/dbus-glib-bindings.h>
@@ -92,4 +92,4 @@ gboolean tracker_dbus_keywords_search            (TrackerDBusKeywords   *object,
 
 G_END_DECLS
 
-#endif /* __TRACKER_DBUS_KEYWORDS_H__ */
+#endif /* __TRACKERD_DBUS_KEYWORDS_H__ */

@@ -19,10 +19,12 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_STATUS_H__
-#define __TRACKER_STATUS_H__
+#ifndef __TRACKERD_STATUS_H__
+#define __TRACKERD_STATUS_H__
 
 #include <glib-object.h>
+
+G_BEGIN_DECLS
 
 #define TRACKER_TYPE_STATUS (tracker_status_get_type ())
 
@@ -50,4 +52,6 @@ void          tracker_status_set_and_signal (TrackerStatus  new_status,
                                              gboolean       pause_io,
                                              gboolean       enable_indexing);
 
-#endif /* __TRACKER_STATUS_H__ */
+G_END_DECLS
+
+#endif /* __TRACKERD_STATUS_H__ */

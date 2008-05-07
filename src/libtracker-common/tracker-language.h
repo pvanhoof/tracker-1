@@ -19,8 +19,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_LANGUAGE_H__
-#define __TRACKER_LANGUAGE_H__
+#ifndef __LIBTRACKER_COMMON_LANGUAGE_H__
+#define __LIBTRACKER_COMMON_LANGUAGE_H__
 
 #include "tracker-config.h"
 
@@ -39,4 +39,4 @@ gchar *          tracker_language_stem_word        (TrackerLanguage *language,
 
 G_END_DECLS
 
-#endif /* __TRACKER_LANGUAGE_H__ */
+#endif /* __LIBTRACKER_COMMON_LANGUAGE_H__ */

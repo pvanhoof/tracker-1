@@ -19,8 +19,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_DBUS_XESAM_H__
-#define __TRACKER_DBUS_XESAM_H__
+#ifndef __TRACKERD_DBUS_XESAM_H__
+#define __TRACKERD_DBUS_XESAM_H__
 
 #include <dbus/dbus-glib.h>
 #include <dbus/dbus-glib-bindings.h>
@@ -107,4 +107,4 @@ void  tracker_dbus_xesam_set_db_connection  (TrackerDBusXesam *object,
 
 G_END_DECLS
 
-#endif /* __TRACKER_DBUS_XESAM_H__ */
+#endif /* __TRACKERD_DBUS_XESAM_H__ */

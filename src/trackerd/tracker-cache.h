@@ -1,6 +1,6 @@
-/* Tracker
- * routines for cacheing 
- * Copyright (C) 2007, Jamie McCracken 
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/* 
+ * Copyright (C) 2007, Jamie McCracken
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -18,15 +18,23 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef _TRACKER_CACHE_H_
-#define _TRACKER_CACHE_H_
+#ifndef __TRACKERD_CACHE_H__
+#define __TRACKERD_CACHE_H__
 
 #include "tracker-db-sqlite.h"
 #include "tracker-indexer.h"
 
+G_BEGIN_DECLS
 
-void		tracker_cache_add 		(const gchar *word, guint32 service_id, gint service_type, gint score, gboolean is_new);
-void            tracker_cache_flush_all       	();
-gboolean	tracker_cache_process_events	(DBConnection *db_con, gboolean check_flush);
+void     tracker_cache_add            (const gchar  *word,
+				       guint32       service_id,
+				       gint          service_type,
+				       gint          score,
+				       gboolean      is_new);
+void     tracker_cache_flush_all      ();
+gboolean tracker_cache_process_events (DBConnection *db_con,
+				       gboolean      check_flush);
 
-#endif
+G_END_DECLS
+
+#endif /* __TRACKERD_CACHE_H__ */

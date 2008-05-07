@@ -1,5 +1,5 @@
-/* Tracker
- * io priority
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/* 
  * Copyright (C) 2006, Anders Aagaard
  *
  * This library is free software; you can redistribute it and/or
@@ -18,11 +18,15 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef TRACKER_IOPRIO_H
-#define TRACKER_IOPRIO_H
+#ifndef __TRACKERD_IOPRIO_H__
+#define __TRACKERD_IOPRIO_H__
+
+G_BEGIN_DECLS
 
 #ifdef IOPRIO_SUPPORT
-	void ioprio (void);
-#endif
+void ioprio (void);
+#endif /* IOPRIO_SUPPORT */
 
-#endif
+G_END_DECLS
+
+#endif /* __TRACKERD_IOPRIO_H__ */

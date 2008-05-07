@@ -1,4 +1,5 @@
-/* Tracker - indexer and metadata database engine
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/* 
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  *
  * This library is free software; you can redistribute it and/or
@@ -17,21 +18,28 @@
  * Boston, MA  02110-1301, USA.
  */
 
-
-
-#ifndef _TRACKER_METADATA_H_
-#define _TRACKER_METADATA_H_
+#ifndef __TRACKERD_METADATA_H__
+#define __TRACKERD_METADATA_H__
 
 #include <glib.h>
 
 #define THUMB_SMALL "128"
 #define THUMB_LARGE "640"
 
+G_BEGIN_DECLS
 
-void			tracker_metadata_get_embedded 	  	(const char *uri, const char *mime, GHashTable *table);
-char *			tracker_metadata_get_text_file 	  	(const char *uri, const char *mime);
-void			tracker_metadata_parse_text_contents 	(const char *file_as_text, unsigned int ID);
-char *			tracker_metadata_get_thumbnail 	  	(const char *path, const char *mime, const char *size);
-char *			tracker_get_service_type_for_mime 	(const char *mime);
+void  tracker_metadata_get_embedded        (const char   *uri,
+                                            const char   *mime,
+                                            GHashTable   *table);
+char *tracker_metadata_get_text_file       (const char   *uri,
+                                            const char   *mime);
+void  tracker_metadata_parse_text_contents (const char   *file_as_text,
+                                            unsigned int  ID);
+char *tracker_metadata_get_thumbnail       (const char   *path,
+                                            const char   *mime,
+                                            const char   *size);
+char *tracker_get_service_type_for_mime    (const char   *mime);
 
-#endif
+G_END_DECLS
+
+#endif /* __TRACKERD_METADATA_H__*/

@@ -1,5 +1,7 @@
-/* Tracker - indexer and metadata database engine
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/* 
  * Copyright (C) 2008, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2008, Nokia
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -17,8 +19,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_PROCESS_FILES_H__
-#define __TRACKER_PROCESS_FILES_H__
+#ifndef __TRACKERD_PROCESS_FILES_H__
+#define __TRACKERD_PROCESS_FILES_H__
 
 #include <libtracker-common/tracker-config.h>
 
@@ -27,27 +29,30 @@
 #include "tracker-utils.h"
 #include "trackerd.h"
 
-/* Thread entry point */
-gpointer tracker_process_files                        (gpointer        data);
+G_BEGIN_DECLS
 
-gboolean tracker_process_files_should_be_watched      (TrackerConfig  *config,
-                                                       const gchar    *uri);
-gboolean tracker_process_files_should_be_crawled      (Tracker        *tracker,
-                                                       const gchar    *uri);
-gboolean tracker_process_files_should_be_ignored      (const char     *uri);
+/* Thread entry point */
+gpointer tracker_process_files                        (gpointer            data);
+gboolean tracker_process_files_should_be_watched      (TrackerConfig      *config,
+                                                       const gchar        *uri);
+gboolean tracker_process_files_should_be_crawled      (Tracker            *tracker,
+                                                       const gchar        *uri);
+gboolean tracker_process_files_should_be_ignored      (const char         *uri);
 
 /* Black list API */
 GSList  *tracker_process_files_get_temp_black_list    (void);
-void     tracker_process_files_set_temp_black_list    (GSList         *black_list);
-void     tracker_process_files_append_temp_black_list (const gchar    *str);
+void     tracker_process_files_set_temp_black_list    (GSList             *black_list);
+void     tracker_process_files_append_temp_black_list (const gchar        *str);
 
 /* File/Directory API */
-void     tracker_process_files_get_all_dirs           (Tracker        *tracker,
-                                                       const char     *dir,
-                                                       GSList        **files);
-GSList * tracker_process_files_get_files_with_prefix  (Tracker        *tracker,
-                                                       const char     *dir,
-                                                       const char     *prefix);
-gboolean tracker_process_files_is_file_info_valid     (TrackerDBFileInfo       *info);
+void     tracker_process_files_get_all_dirs           (Tracker            *tracker,
+                                                       const char         *dir,
+                                                       GSList            **files);
+GSList * tracker_process_files_get_files_with_prefix  (Tracker            *tracker,
+                                                       const char         *dir,
+                                                       const char         *prefix);
+gboolean tracker_process_files_is_file_info_valid     (TrackerDBFileInfo  *info);
 
-#endif /* __TRACKER_PROCESS_FILES_H__ */
+G_END_DECLS
+
+#endif /* __TRACKERD_PROCESS_FILES_H__ */

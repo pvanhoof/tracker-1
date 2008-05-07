@@ -19,8 +19,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_OS_DEPENDANT_H__
-#define __TRACKER_OS_DEPENDANT_H__
+#ifndef __LIBTRACKER_COMMON_OS_DEPENDANT_H__
+#define __LIBTRACKER_COMMON_OS_DEPENDANT_H__
 
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -33,4 +33,4 @@ gboolean tracker_spawn                    (gchar       **argv,
 void     tracker_child_cb                 (gpointer      user_data);
 gchar *  tracker_create_permission_string (struct stat   finfo);
 
-#endif /* __TRACKER_OS_DEPENDANT_H__ */
+#endif /* __LIBTRACKER_COMMON_OS_DEPENDANT_H__ */

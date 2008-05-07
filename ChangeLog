@@ -1,5 +1,49 @@
 2008-05-07  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-config.h:
+	* src/libtracker-common/tracker-configuration.[ch]:
+	* src/libtracker-common/tracker-file-utils.h:
+	* src/libtracker-common/tracker-language.h:
+	* src/libtracker-common/tracker-log.h:
+	* src/libtracker-common/tracker-os-dependant.h:
+	* src/libtracker-common/tracker-type-utils.h:
+	* src/libtracker-common/tracker-utils.h:
+	* src/libtracker-db/tracker-db-action.h:
+	* src/trackerd/tracker-apps.h:
+	* src/trackerd/tracker-cache.h:
+	* src/trackerd/tracker-db-email.h:
+	* src/trackerd/tracker-db-sqlite.h:
+	* src/trackerd/tracker-db.h:
+	* src/trackerd/tracker-dbus-daemon.h:
+	* src/trackerd/tracker-dbus-files.h:
+	* src/trackerd/tracker-dbus-keywords.h:
+	* src/trackerd/tracker-dbus-metadata.h:
+	* src/trackerd/tracker-dbus-search.h:
+	* src/trackerd/tracker-dbus-xesam.h:
+	* src/trackerd/tracker-dbus.h:
+	* src/trackerd/tracker-email-utils.h:
+	* src/trackerd/tracker-email.h:
+	* src/trackerd/tracker-hal.h:
+	* src/trackerd/tracker-indexer.h:
+	* src/trackerd/tracker-ioprio.h:
+	* src/trackerd/tracker-metadata.h:
+	* src/trackerd/tracker-parser.h:
+	* src/trackerd/tracker-process-files.h:
+	* src/trackerd/tracker-query-tree.h:
+	* src/trackerd/tracker-rdf-query.h:
+	* src/trackerd/tracker-service-manager.h:
+	* src/trackerd/tracker-service.h:
+	* src/trackerd/tracker-status.h:
+	* src/trackerd/tracker-watch.h:
+	* src/trackerd/tracker-xesam-live-search.h:
+	* src/trackerd/tracker-xesam-session.h:
+	* src/trackerd/tracker-xesam.h: Updated the header files to be
+	more consistent and make sure we use the namespace of the binary
+	we are creating to avoid two header files with the same
+	name/definitions causing each other to not be included properly.
+	
+2008-05-07  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-utils.h: Fixed #ifndef issue where
 	this utils file had the same name that the trackerd utils file
 	had.

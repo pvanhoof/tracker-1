@@ -1,4 +1,5 @@
-/* Tracker - indexer and metadata database engine
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/* 
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  *
  * This library is free software; you can redistribute it and/or
@@ -17,22 +18,24 @@
  * Boston, MA  02110-1301, USA.
  */
 
-
-
-#ifndef _TRACKER_WATCH_H_
-#define _TRACKER_WATCH_H_
-
+#ifndef __TRACKERD_WATCH_H__
+#define __TRACKERD_WATCH_H__
 
 #include "tracker-db.h"
 
-gboolean 	tracker_start_watching 		(void);
-void     	tracker_end_watching 		(void);
+G_BEGIN_DECLS
 
-gboolean 	tracker_add_watch_dir 		(const char *dir, DBConnection *db_con);
-void     	tracker_remove_watch_dir 	(const char *dir, gboolean delete_subdirs, DBConnection *db_con);
+gboolean tracker_start_watching       (void);
+void     tracker_end_watching         (void);
+gboolean tracker_add_watch_dir        (const char   *dir,
+                                       DBConnection *db_con);
+void     tracker_remove_watch_dir     (const char   *dir,
+                                       gboolean      delete_subdirs,
+                                       DBConnection *db_con);
+gboolean tracker_is_directory_watched (const char   *dir,
+                                       DBConnection *db_con);
+int      tracker_count_watch_dirs     (void);
 
-gboolean 	tracker_is_directory_watched 	(const char *dir, DBConnection *db_con);
-int		tracker_count_watch_dirs 	(void);
+G_END_DECLS
 
-
-#endif
+#endif /* __TRACKERD_WATCH_H__ */

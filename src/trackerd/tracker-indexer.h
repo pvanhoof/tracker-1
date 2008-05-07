@@ -1,4 +1,5 @@
-/* Tracker - indexer and metadata database engine
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/* 
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  *
  * This library is free software; you can redistribute it and/or
@@ -17,8 +18,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef _TRACKER_INDEXER_H
-#define _TRACKER_INDEXER_H
+#ifndef __TRACKERD_INDEXER_H__
+#define __TRACKERD_INDEXER_H__
 
 #include <stdlib.h>
 
@@ -36,9 +37,15 @@
 #define TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME        "email-index.db"
 #define TRACKER_INDEXER_EMAIL_META_DB_FILENAME         "email-meta.db"
 
-typedef struct {                         /* type of structure for an element of search result */
-	guint32 	id;              /* Service ID number of the document */
-	int 		amalgamated;     /* amalgamation of service_type and score of the word in the document's metadata */
+G_BEGIN_DECLS
+
+typedef struct {                         
+	guint32 	id;              /* Service ID number of the
+                                          * document */
+	int 		amalgamated;     /* amalgamation of
+                                          * service_type and score of
+                                          * the word in the document's
+                                          * metadata */
 } WordDetails;
 
 typedef enum {
@@ -47,7 +54,6 @@ typedef enum {
 	WordExactPhrase
 } WordType;
 
-
 typedef struct {                        
 	gchar	 	*word;    
 	gint		hit_count;
@@ -55,16 +61,13 @@ typedef struct {
 	WordType	word_type;
 } SearchWord;
 
-
 typedef struct Indexer_ Indexer;
 
-typedef enum 
-{
+typedef enum {
 	INDEX_TYPE_FILES,
 	INDEX_TYPE_EMAILS,
 	INDEX_TYPE_FILE_UPDATE
 } IndexType;
-
 
 guint32		tracker_indexer_calc_amalgamated 	(gint service, gint score);
 
@@ -105,4 +108,6 @@ gboolean        tracker_indexer_are_databases_too_big   (void);
 guint8          tracker_word_details_get_service_type   (WordDetails *details);
 gint16          tracker_word_details_get_score          (WordDetails *details);
 
-#endif
+G_END_DECLS
+
+#endif /* __TRACKERD_INDEXER_H__ */

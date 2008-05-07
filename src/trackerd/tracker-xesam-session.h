@@ -19,8 +19,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef _TRACKER_XESAM_SESSION_H_
-#define _TRACKER_XESAM_SESSION_H_
+#ifndef __TRACKERD_XESAM_SESSION_H__
+#define __TRACKERD_XESAM_SESSION_H__
 
 #include <glib.h>
 #include <glib-object.h>
@@ -80,4 +80,4 @@ GHashTable*             tracker_xesam_session_get_props     (TrackerXesamSession
 
 G_END_DECLS
 
-#endif
+#endif /* __TRACKERD_XESAM_SESSION_H__ */

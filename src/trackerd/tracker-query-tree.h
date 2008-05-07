@@ -1,5 +1,6 @@
-/* Tracker - indexer and metadata database engine
- * Copyright (C) 2007 Nokia
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/* 
+ * Copyright (C) 2008, Nokia
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -17,8 +18,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_QUERY_TREE_H__
-#define __TRACKER_QUERY_TREE_H__
+#ifndef __TRACKERD_QUERY_TREE_H__
+#define __TRACKERD_QUERY_TREE_H__
 
 #include <glib.h>
 
@@ -58,33 +59,26 @@ struct TrackerHitCount {
 	guint count;
 };
 
-GType tracker_query_tree_get_type (void);
-
-TrackerQueryTree *     tracker_query_tree_new            (const gchar      *query_str,
-							  Indexer          *indexer,
-							  GArray           *services);
-
-G_CONST_RETURN gchar * tracker_query_tree_get_query      (TrackerQueryTree *tree);
-void                   tracker_query_tree_set_query      (TrackerQueryTree *tree,
-							  const gchar      *query_str);
-
-Indexer *              tracker_query_tree_get_indexer    (TrackerQueryTree *tree);
-void                   tracker_query_tree_set_indexer    (TrackerQueryTree *tree,
-							  Indexer          *indexer);
-
-GArray *               tracker_query_tree_get_services   (TrackerQueryTree *tree);
-void                   tracker_query_tree_set_services   (TrackerQueryTree *tree,
-							  GArray           *services);
-
-GSList *               tracker_query_tree_get_words      (TrackerQueryTree *tree);
-
-GArray *               tracker_query_tree_get_hits       (TrackerQueryTree *tree,
-							  guint             offset,
-							  guint             limit);
-gint                   tracker_query_tree_get_hit_count  (TrackerQueryTree *tree);
-GArray *               tracker_query_tree_get_hit_counts (TrackerQueryTree *tree);
-
+GType                 tracker_query_tree_get_type       (void);
+TrackerQueryTree *    tracker_query_tree_new            (const gchar      *query_str,
+                                                         Indexer          *indexer,
+                                                         GArray           *services);
+G_CONST_RETURN gchar *tracker_query_tree_get_query      (TrackerQueryTree *tree);
+void                  tracker_query_tree_set_query      (TrackerQueryTree *tree,
+                                                         const gchar      *query_str);
+Indexer *             tracker_query_tree_get_indexer    (TrackerQueryTree *tree);
+void                  tracker_query_tree_set_indexer    (TrackerQueryTree *tree,
+                                                         Indexer          *indexer);
+GArray *              tracker_query_tree_get_services   (TrackerQueryTree *tree);
+void                  tracker_query_tree_set_services   (TrackerQueryTree *tree,
+                                                         GArray           *services);
+GSList *              tracker_query_tree_get_words      (TrackerQueryTree *tree);
+GArray *              tracker_query_tree_get_hits       (TrackerQueryTree *tree,
+                                                         guint             offset,
+                                                         guint             limit);
+gint                  tracker_query_tree_get_hit_count  (TrackerQueryTree *tree);
+GArray *              tracker_query_tree_get_hit_counts (TrackerQueryTree *tree);
 
 G_END_DECLS
 
-#endif /* __TRACKER_QUERY_TREE_H__ */
+#endif /* __TRACKERD_QUERY_TREE_H__ */

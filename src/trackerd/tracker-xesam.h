@@ -19,13 +19,15 @@
  * Boston, MA  02110-1301, USA. 
  */  
 
-#ifndef _TRACKER_XESAM_H_
-#define _TRACKER_XESAM_H_
+#ifndef __TRACKERD_XESAM_H__
+#define __TRACKERD_XESAM_H__
 
 #include "tracker-utils.h"
 #include "tracker-dbus.h"
 #include "tracker-xesam-session.h"
 #include "tracker-xesam-live-search.h"
+
+G_BEGIN_DECLS
 
 typedef enum {
 	TRACKER_XESAM_ERROR = 1
@@ -56,4 +58,6 @@ void                    tracker_xesam_wakeup                 (guint32 last_id);
 
 gchar *                 tracker_xesam_generate_unique_key    (void);
 
-#endif
+G_END_DECLS
+
+#endif /* __TRACKERD_XESAM_H__ */

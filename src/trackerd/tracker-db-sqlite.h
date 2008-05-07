@@ -18,8 +18,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_SQLITE_DB_H__
-#define __TRACKER_SQLITE_DB_H__
+#ifndef __TRACKERD_SQLITE_DB_H__
+#define __TRACKERD_SQLITE_DB_H__
 
 #include <glib.h>
 
@@ -29,6 +29,8 @@
 #include "tracker-service-manager.h"
 #include "tracker-indexer.h"
 #include "tracker-utils.h"
+
+G_BEGIN_DECLS
 
 typedef struct DBConnection DBConnection;
 
@@ -365,4 +367,6 @@ TrackerDBResultSet *tracker_db_get_live_search_hit_count       (DBConnection *db
 
 void                tracker_free_metadata_field                (FieldData *field_data);
 
-#endif
+G_END_DECLS
+
+#endif /* __TRACKERD_DB_SQLITE_H__ */

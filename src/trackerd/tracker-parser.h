@@ -1,4 +1,5 @@
-/* Tracker - indexer and metadata database engine
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/* 
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  *
  * This library is free software; you can redistribute it and/or
@@ -17,33 +18,44 @@
  * Boston, MA  02110-1301, USA.
  */
 
-
-
-#ifndef _TRACKER_PARSER_H_
-#define _TRACKER_PARSER_H_
+#ifndef __TRACKERD_PARSER_H__
+#define __TRACKERD_PARSER_H__
 
 #include <glib.h>
 
-
+G_BEGIN_DECLS
 
 /* tracker_parse_text 
  *
- * function to parse supplied text and break into individual words and maintain a count of no of occurances of the word multiplied by a "weight" factor.
+ * function to parse supplied text and break into individual words and
+ * maintain a count of no of occurances of the word multiplied by a
+ * "weight" factor. 
  * 
- * word_table - can be NULL. Contains the accumulated parsed words with weighted word counts for the text (useful for indexing stuff line by line)
- * text - the text to be parsed
- * weight - used to multiply the count of a word's occurance to create a weighted rank score
+ * word_table - can be NULL. Contains the accumulated parsed words
+ * with weighted word counts for the text (useful for indexing stuff
+ * line by line) 
+
+ *   text   - the text to be parsed 
+ *   weight - used to multiply the count of a word's occurance to create
+ *            a weighted rank score 
  * 
  * returns the word_table.
  */
-GHashTable *	tracker_parse_text (GHashTable *word_table, const char *txt, int weight, gboolean filter_words, gboolean delimit_words);
+GHashTable *tracker_parse_text            (GHashTable *word_table,
+                                           const char *txt,
+                                           int         weight,
+                                           gboolean    filter_words,
+                                           gboolean    delimit_words);
+GHashTable *tracker_parse_text_fast       (GHashTable *word_table,
+                                           const char *txt,
+                                           int         weight);
+char *      tracker_parse_text_to_string  (const char *txt,
+                                           gboolean    filter_words,
+                                           gboolean    filter_numbers,
+                                           gboolean    delimit);
+char **     tracker_parse_text_into_array (const char *text);
+void        tracker_word_table_free       (GHashTable *table);
 
-GHashTable *	tracker_parse_text_fast (GHashTable *word_table, const char *txt, int weight);
+G_END_DECLS
 
-char *		tracker_parse_text_to_string (const char *txt, gboolean filter_words, gboolean filter_numbers, gboolean delimit);	
-
-char **		tracker_parse_text_into_array (const char *text);
-
-void		tracker_word_table_free (GHashTable *table);
-
-#endif
+#endif /* __TRACKERD_PARSER_H__ */

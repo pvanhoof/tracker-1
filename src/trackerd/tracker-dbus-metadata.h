@@ -19,8 +19,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_DBUS_METADATA_H__
-#define __TRACKER_DBUS_METADATA_H__
+#ifndef __TRACKERD_DBUS_METADATA_H__
+#define __TRACKERD_DBUS_METADATA_H__
 
 #include <dbus/dbus-glib.h>
 #include <dbus/dbus-glib-bindings.h>
@@ -93,4 +93,6 @@ gboolean tracker_dbus_metadata_get_registered_classes (TrackerDBusMetadata   *ob
 						       GError               **error);
 
 
-#endif
+G_END_DECLS
+
+#endif /* __TRACKERD_DBUS_METADATA_H__ */

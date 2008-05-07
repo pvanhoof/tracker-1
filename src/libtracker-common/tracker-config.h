@@ -20,8 +20,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_CONFIG_H__
-#define __TRACKER_CONFIG_H__
+#ifndef __LIBTRACKER_COMMON_CONFIG_H__
+#define __LIBTRACKER_COMMON_CONFIG_H__
 
 #include <glib-object.h>
 
@@ -152,5 +152,5 @@ void           tracker_config_add_no_watch_directory_roots         (TrackerConfi
 
 G_END_DECLS
 
-#endif /* __TRACKER_CONFIG_H__ */
+#endif /* __LIBTRACKER_COMMON_CONFIG_H__ */
 

@@ -21,8 +21,8 @@
 
 #ifdef HAVE_HAL
 
-#ifndef __TRACKER_HAL_H__
-#define __TRACKER_HAL_H__
+#ifndef __TRACKERD_HAL_H__
+#define __TRACKERD_HAL_H__
 
 #include <glib-object.h>
 
@@ -56,6 +56,6 @@ GSList *    tracker_hal_get_removable_device_roots  (TrackerHal *hal);
 
 G_END_DECLS
 
-#endif /* __TRACKER_HAL_H__ */
+#endif /* __TRACKERD_HAL_H__ */
 
 #endif /* HAVE_HAL */

@@ -19,8 +19,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_SERVICES_H__
-#define __TRACKER_SERVICES_H__
+#ifndef __TRACKERD_SERVICES_H__
+#define __TRACKERD_SERVICES_H__
 
 #include <glib-object.h>
 
@@ -107,5 +107,5 @@ void            tracker_service_set_show_service_directories (TrackerService *se
 
 G_END_DECLS
 
-#endif /* __TRACKER_SERVICE_H__ */
+#endif /* __TRACKERD_SERVICE_H__ */
 

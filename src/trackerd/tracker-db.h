@@ -18,8 +18,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_DB_H__
-#define __TRACKER_DB_H__
+#ifndef __TRACKERD_DB_H__
+#define __TRACKERD_DB_H__
 
 #include "config.h"
 
@@ -29,6 +29,8 @@
 
 #include "tracker-utils.h"
 #include "tracker-db-sqlite.h"
+
+G_BEGIN_DECLS
 
 gboolean           tracker_db_is_file_up_to_date   (DBConnection      *db_con,
                                                     const gchar       *uri,
@@ -86,4 +88,6 @@ void               tracker_db_index_application    (DBConnection      *db_con,
 void               tracker_db_index_webhistory     (DBConnection      *db_con,
                                                     TrackerDBFileInfo *info);
 
-#endif
+G_END_DECLS
+
+#endif /* __TRACKERD_DB_H__ */

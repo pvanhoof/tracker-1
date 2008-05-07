@@ -19,8 +19,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_DBUS_H__
-#define __TRACKER_DBUS_H__
+#ifndef __TRACKERD_DBUS_H__
+#define __TRACKERD_DBUS_H__
 
 #ifndef DBUS_API_SUBJECT_TO_CHANGE
 #define DBUS_API_SUBJECT_TO_CHANGE
@@ -33,6 +33,8 @@
 #include <dbus/dbus-glib.h>
 
 #include <libtracker-db/tracker-db-interface.h>
+
+G_BEGIN_DECLS
 
 #define TRACKER_DBUS_ERROR_DOMAIN "TrackerDBus"
 #define TRACKER_DBUS_ERROR        tracker_dbus_error_quark()
@@ -101,4 +103,6 @@ void             tracker_dbus_request_comment            (gint                 r
 							  const gchar         *format,
 							  ...);
 
-#endif /* __TRACKER_DBUS_H__ */
+G_END_DECLS
+
+#endif /* __TRACKERD_DBUS_H__ */

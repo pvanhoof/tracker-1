@@ -1,4 +1,5 @@
-/* Tracker - indexer and metadata database engine
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/* 
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  *
  * This library is free software; you can redistribute it and/or
@@ -17,16 +18,27 @@
  * Boston, MA  02110-1301, USA.
  */
 
-
-
-#ifndef _TRACKER_RDF_QUERY_H_
-#define _TRACKER_RDF_QUERY_H_
+#ifndef __TRACKERD_RDF_QUERY_H__
+#define __TRACKERD_RDF_QUERY_H__
 
 #include <glib.h>
 
 #include "tracker-db.h"
 
+G_BEGIN_DECLS
 
-char *	tracker_rdf_query_to_sql (DBConnection *db_con, const char *query, const char *service, char **fields, int field_count, const char *search_text, const char *keyword, gboolean sort_by_service, int offset, int limit, GError *error);
+char *tracker_rdf_query_to_sql (DBConnection  *db_con,
+                                const char    *query,
+                                const char    *service,
+                                char         **fields,
+                                int            field_count,
+                                const char    *search_text,
+                                const char    *keyword,
+                                gboolean       sort_by_service,
+                                int            offset,
+                                int            limit,
+                                GError        *error);
 
-#endif
+G_END_DECLS
+
+#endif /* __TRACKERD_RDF_QUERY_H__ */

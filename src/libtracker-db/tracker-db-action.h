@@ -19,10 +19,12 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_DB_ACTION_H__
-#define __TRACKER_DB_ACTION_H__
+#ifndef __TRACKERD_DB_ACTION_H__
+#define __TRACKERD_DB_ACTION_H__
 
 #include <glib-object.h>
+
+G_BEGIN_DECLS
 
 #define TRACKER_TYPE_ACTION (tracker_db_action_get_type ())
 
@@ -55,4 +57,6 @@ typedef enum {
 GType        tracker_db_action_get_type  (void) G_GNUC_CONST;
 const gchar *tracker_db_action_to_string (TrackerDBAction action);
 
-#endif /* __TRACKER_DB_ACTION_H__ */
+G_END_DECLS
+
+#endif /* __TRACKERD_DB_ACTION_H__ */

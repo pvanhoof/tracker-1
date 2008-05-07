@@ -18,18 +18,22 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_APPS_H__
-#define __TRACKER_APPS_H__
+#ifndef __TRACKERD_APPS_H__
+#define __TRACKERD_APPS_H__
 
 #include "config.h"
 
 #include <libtracker-db/tracker-db-file-info.h>
 
 #include "tracker-utils.h"
-
 #include "tracker-db-sqlite.h"
 
-void tracker_applications_add_service_directories 	(void);
-void tracker_db_index_application 			(DBConnection *db_con, TrackerDBFileInfo *info);
+G_BEGIN_DECLS
 
-#endif 
+void tracker_applications_add_service_directories 	(void);
+void tracker_db_index_application 			(DBConnection      *db_con, 
+							 TrackerDBFileInfo *info);
+
+G_END_DECLS
+
+#endif /* __TRACKERD_APPS_H__ */

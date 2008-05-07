@@ -19,8 +19,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_LOG_H__
-#define __TRACKER_LOG_H__
+#ifndef __LIBTRACKER_COMMON_LOG_H__
+#define __LIBTRACKER_COMMON_LOG_H__
 
 #include <glib.h>
 
@@ -41,4 +41,4 @@ void     tracker_error                  (const char    *message,
 
 G_END_DECLS
 
-#endif /* __TRACKER_LOG_H__ */
+#endif /* __LIBTRACKER_COMMON_LOG_H__ */

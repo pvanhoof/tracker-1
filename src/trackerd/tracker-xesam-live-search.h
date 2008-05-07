@@ -18,8 +18,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef _TRACKER_XESAM_LIVE_SEARCH_H_
-#define _TRACKER_XESAM_LIVE_SEARCH_H_
+#ifndef __TRACKERD_XESAM_LIVE_SEARCH_H__
+#define __TRACKERD_XESAM_LIVE_SEARCH_H__
 
 #include <glib.h>
 #include <glib-object.h>
@@ -88,4 +88,4 @@ void         tracker_xesam_live_search_match_with_events  (TrackerXesamLiveSearc
 
 G_END_DECLS
 
-#endif
+#endif /* __TRACKER_XESAM_LIVE_SEARCH_H__ */

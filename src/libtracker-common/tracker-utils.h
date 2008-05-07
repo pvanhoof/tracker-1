@@ -19,12 +19,12 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_UTILS_H__
-#define __TRACKER_UTILS_H__
+#ifndef __LIBTRACKER_UTILS_H__
+#define __LIBTRACKER_UTILS_H__
 
 gboolean tracker_is_empty_string (const char  *str);
 gchar *  tracker_string_replace  (const gchar *haystack,
 				  gchar       *needle,
 				  gchar       *replacement);
 
-#endif /* __TRACKER_UTILS_H__ */
+#endif /* __LIBTRACKER_UTILS_H__ */

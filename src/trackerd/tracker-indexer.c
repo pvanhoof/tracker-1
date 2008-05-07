@@ -29,6 +29,7 @@
 #define INDEXFBP            32     
 #define SCORE_MULTIPLIER    100000
 #define MAX_HIT_BUFFER      480000
+#define MAX_HITS_FOR_WORD   30000
 #define MAX_INDEX_FILE_SIZE 2000000000
 
 #define CREATE_INDEX                                                      \

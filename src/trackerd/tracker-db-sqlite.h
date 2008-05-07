@@ -26,8 +26,9 @@
 #include <libtracker-db/tracker-db-interface.h>
 #include <libtracker-db/tracker-db-file-info.h>
 
-#include "tracker-utils.h"
 #include "tracker-service-manager.h"
+#include "tracker-indexer.h"
+#include "tracker-utils.h"
 
 typedef struct DBConnection DBConnection;
 
@@ -42,6 +43,49 @@ struct DBConnection {
 	DBConnection	*cache;
 	Indexer         *word_index;
 };
+
+typedef enum {
+	DATA_KEYWORD,	
+	DATA_INDEX,
+	DATA_FULLTEXT,
+	DATA_STRING,
+	DATA_INTEGER,
+	DATA_DOUBLE,
+	DATA_DATE,
+	DATA_BLOB,
+	DATA_STRUCT,
+	DATA_LINK
+} DataTypes;
+
+typedef struct {
+	char		*id;
+	DataTypes	type;
+	char 		*field_name;
+	int		weight;
+	guint           embedded : 1;
+	guint           multiple_values : 1;
+	guint           delimited : 1;
+	guint           filtered : 1;
+	guint           store_metadata : 1;
+
+	GSList		*child_ids; /* related child metadata ids */
+
+} FieldDef;
+
+typedef struct {
+	char 		*alias;
+	char 	 	*field_name;
+	char	 	*select_field;
+	char	 	*where_field;
+	char	 	*table_name;
+	char	 	*id_field;
+	DataTypes	data_type;
+	guint           multiple_values : 1;
+	guint           is_select : 1;
+	guint           is_condition : 1;
+	guint           needs_join : 1;
+
+} FieldData;
 
 gboolean            tracker_db_needs_setup                     (void);
 gboolean            tracker_db_needs_data                      (void);
@@ -318,5 +362,7 @@ TrackerDBResultSet *tracker_db_get_live_search_new_ids         (DBConnection *db
                                                                 const gchar *query);
 TrackerDBResultSet *tracker_db_get_live_search_hit_count       (DBConnection *db_con, 
                                                                 const gchar *search_id);
+
+void                tracker_free_metadata_field                (FieldData *field_data);
 
 #endif

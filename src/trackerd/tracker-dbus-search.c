@@ -29,6 +29,7 @@
 
 #include "tracker-dbus.h"
 #include "tracker-dbus-search.h"
+#include "tracker-parser.h"
 #include "tracker-rdf-query.h"
 #include "tracker-query-tree.h"
 #include "tracker-indexer.h"
@@ -212,6 +213,304 @@ dbus_search_sanity_check_max_hits (gint max_hits)
         }
 
         return max_hits;
+}
+
+static const gchar *
+dbus_search_utf8_p_from_offset_skipping_decomp (const gchar *str,
+						gint         offset)
+{
+	const gchar *p, *q;
+	gchar       *casefold, *normal;
+
+	g_return_val_if_fail (str != NULL, NULL);
+
+	p = str;
+
+	while (offset > 0) {
+		q = g_utf8_next_char (p);
+		casefold = g_utf8_casefold (p, q - p);
+		normal = g_utf8_normalize (casefold, -1, G_NORMALIZE_NFC);
+		offset -= g_utf8_strlen (normal, -1);
+		g_free (casefold);
+		g_free (normal);
+		p = q;
+	}
+
+	return p;
+}
+
+static const char *
+dbus_search_utf8_strcasestr_array (const gchar  *haystack, 
+				   gchar       **needles)
+{
+	gsize         needle_len;
+	gsize         haystack_len;
+	const gchar  *ret = NULL;
+	const gchar  *needle;
+	gchar       **array;
+	gchar        *p;
+	gchar        *casefold;
+	gchar        *caseless_haystack;
+	gint          i;
+
+	g_return_val_if_fail (haystack != NULL, NULL);
+
+	casefold = g_utf8_casefold (haystack, -1);
+	caseless_haystack = g_utf8_normalize (casefold, -1, G_NORMALIZE_NFC);
+	g_free (casefold);
+
+	if (!caseless_haystack) {
+		return NULL;
+	}
+
+	haystack_len = g_utf8_strlen (caseless_haystack, -1);
+
+	for (array = needles; *array; array++) {
+		needle = *array;
+		needle_len = g_utf8_strlen (needle, -1);
+
+		if (needle_len == 0) {
+			continue;
+		}
+
+		if (haystack_len < needle_len) {
+			continue;
+		}
+
+		p = (gchar *) caseless_haystack;
+		needle_len = strlen (needle);
+		i = 0;
+
+		while (*p) {
+			if ((strncmp (p, needle, needle_len) == 0)) {
+				ret = dbus_search_utf8_p_from_offset_skipping_decomp (haystack, i);
+				goto done;
+			}
+
+			p = g_utf8_next_char (p);
+			i++;
+		}
+	}
+
+done:
+	g_free (caseless_haystack);
+
+	return ret;
+}
+
+static gint
+dbus_search_get_word_break (const char *a)
+{
+	gchar **words;
+	gint    value;
+
+	words = g_strsplit_set (a, "\t\n\v\f\r !\"#$%&'()*/<=>?[\\]^`{|}~+,.:;@\"[]" , -1);
+
+	if (!words) { 
+		return 0;
+	}
+
+	value = strlen (words[0]);
+	g_strfreev (words);
+
+	return value;
+}
+
+
+static gboolean
+dbus_search_is_word_break (const char a)
+{
+	const gchar *breaks = "\t\n\v\f\r !\"#$%&'()*/<=>?[\\]^`{|}~+,.:;@\"[]";
+	gint         i;
+
+	for (i = 0; breaks[i]; i++) {
+		if (a == breaks[i]) {
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+static char *
+dbus_search_highlight_terms (const gchar  *text, 
+			     gchar       **terms)
+{
+	GStrv         p;
+	GString      *s;
+	const gchar  *str;
+	gchar        *text_copy;
+	gint          term_len;
+
+	if (!text || !terms) {
+		return NULL;
+	}
+
+	text_copy = g_strdup (text);
+
+	for (p = terms; *p; p++) {
+		const gchar  *text_p;
+		gchar       **single_term;
+
+		single_term = g_new (gchar*, 2);
+		single_term[0] = g_strdup (*p);
+		single_term[1] = NULL;
+
+		s = g_string_new ("");
+		text_p = text_copy;
+
+		while ((str = dbus_search_utf8_strcasestr_array (text_p, single_term))) {
+			gchar *pre_snip;
+			gchar *term;
+
+			pre_snip = g_strndup (text_p, (str - text_p));
+			term_len = dbus_search_get_word_break (str);
+			term = g_strndup (str, term_len);
+
+			text_p = str + term_len;
+			g_string_append_printf (s, "%s<b>%s</b>", pre_snip, term);
+
+			g_free (pre_snip);
+			g_free (term);
+		}
+
+		if (text_p) {
+			g_string_append (s, text_p);
+		}
+
+		g_strfreev (single_term);
+		g_free (text_copy);
+
+		text_copy = g_string_free (s, FALSE);
+	}
+
+	return text_copy;
+}
+
+gchar *
+dbus_search_get_snippet (const gchar  *text, 
+			 gchar       **terms, 
+			 gint          length)
+{
+	const gchar *ptr = NULL;
+	const gchar *end_ptr;
+	const gchar *tmp;
+	gint         i;
+	gint         text_len;
+
+	if (!text || !terms) {
+		return NULL;
+	}
+
+	text_len = strlen (text);
+	ptr = dbus_search_utf8_strcasestr_array (text, terms);
+
+	if (ptr) {
+		gchar *snippet;
+		gchar *snippet_escaped;
+		gchar *snippet_highlighted;
+
+		tmp = ptr;
+		i = 0;
+
+		/* Get snippet before  the matching term */
+		while ((ptr = g_utf8_prev_char (ptr)) && ptr >= text && i < length) {
+			if (*ptr == '\n') {
+				break;
+			}
+
+			i++;
+		}
+
+		/* Try to start beginning of snippet on a word break */
+		if (*ptr != '\n' && ptr > text) {
+			i = 0;
+
+			while (!dbus_search_is_word_break (*ptr) && i < (length / 2)) {
+				ptr = g_utf8_next_char (ptr);
+				i++;
+			}
+		}
+
+		ptr = g_utf8_next_char (ptr);
+
+		if (!ptr || ptr < text) {
+			return NULL;
+		}
+
+		end_ptr = tmp;
+		i = 0;
+
+		/* Get snippet after match */
+		while ((end_ptr = g_utf8_next_char (end_ptr)) && 
+		       end_ptr <= text_len + text && 
+		       i < length) {
+			i++;
+
+			if (*end_ptr == '\n') {
+				break;
+			}
+		}
+
+		while (end_ptr > text_len + text) {
+			end_ptr = g_utf8_prev_char (end_ptr);
+		}
+
+		/* Try to end snippet on a word break */
+		if (*end_ptr != '\n' && end_ptr < text_len + text) {
+			i=0;
+			while (!dbus_search_is_word_break (*end_ptr) && i < (length / 2)) {
+				end_ptr = g_utf8_prev_char (end_ptr);
+				i++;
+			}
+		}
+
+		if (!end_ptr || !ptr) {
+			return NULL;
+		}
+
+		snippet = g_strndup (ptr, end_ptr - ptr);
+		i = strlen (snippet);
+		snippet_escaped = g_markup_escape_text (snippet, i);
+		g_free (snippet);
+
+		snippet_highlighted = dbus_search_highlight_terms (snippet_escaped, terms);
+		g_free (snippet_escaped);
+
+		return snippet_highlighted;
+	}
+
+	ptr = text;
+	i = 0;
+
+	while ((ptr = g_utf8_next_char (ptr)) && ptr <= text_len + text && i < length) {
+		i++;
+
+		if (*ptr == '\n') {
+			break;
+		}
+	}
+
+	if (ptr > text_len + text) {
+		ptr = g_utf8_prev_char (ptr);
+	}
+
+	if (ptr) {
+		gchar *snippet;
+		gchar *snippet_escaped;
+		gchar *snippet_highlighted;
+
+		snippet = g_strndup (text, ptr - text);
+		snippet_escaped = g_markup_escape_text (snippet, ptr - text);
+		snippet_highlighted = dbus_search_highlight_terms (snippet_escaped, terms);
+
+		g_free (snippet);
+		g_free (snippet_escaped);
+
+		return snippet_highlighted;
+	} else {
+		return NULL;
+	}
 }
 
 gboolean
@@ -628,7 +927,7 @@ tracker_dbus_search_get_snippet (TrackerDBusSearch  *object,
 		strv = tracker_parse_text_into_array (text);
 
 		if (strv && strv[0]) {
-			snippet = tracker_get_snippet (text, strv, 120);
+			snippet = dbus_search_get_snippet (text, strv, 120);
 		}
 
 		g_strfreev (strv);

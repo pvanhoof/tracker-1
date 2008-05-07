@@ -406,6 +406,60 @@ tracker_db_get_pending_file (DBConnection *db_con, const char *uri)
 }
 
 static void
+notify_meta_data_available (void)
+{
+	if (!tracker->is_running) {
+		return;
+	}
+
+	/* If metadata thread is asleep then we just need to wake it
+	 * up!
+	 */
+	if (g_mutex_trylock (tracker->metadata_signal_mutex)) {
+		g_cond_signal (tracker->metadata_signal_cond);
+		g_mutex_unlock (tracker->metadata_signal_mutex);
+		return;
+	}
+
+	/* If busy - check if async queue has new stuff as we do not
+	 * need to notify then.
+	 */
+	if (g_async_queue_length (tracker->file_metadata_queue) > 1) {
+		return;
+	}
+
+	/* If metadata thread not in check phase then we need do
+	 * nothing
+	 */
+	if (g_mutex_trylock (tracker->metadata_check_mutex)) {
+		g_mutex_unlock (tracker->metadata_check_mutex);
+		return;
+	}
+
+	/* We are in check phase - we need to wait until either
+	 * check_mutex is unlocked or until metadata thread is asleep
+	 * then we awaken it.
+	 */
+	while (TRUE) {
+		if (g_mutex_trylock (tracker->metadata_check_mutex)) {
+			g_mutex_unlock (tracker->metadata_check_mutex);
+			return;
+		}
+
+		if (g_mutex_trylock (tracker->metadata_signal_mutex)) {
+			g_cond_signal (tracker->metadata_signal_cond);
+			g_mutex_unlock (tracker->metadata_signal_mutex);
+			return;
+		}
+
+		g_thread_yield ();
+		g_usleep (10);
+
+		tracker_debug ("In check phase");
+	}
+}
+
+static void
 make_pending_file (DBConnection *db_con, guint32 file_id, const char *uri, const char *moved_to_uri, const char *mime, int counter, TrackerDBAction action, gboolean is_directory, gboolean is_new, int service_type_id)
 {
 	char *str_file_id, *str_action, *str_counter;
@@ -466,7 +520,7 @@ make_pending_file (DBConnection *db_con, guint32 file_id, const char *uri, const
 
 	/* signal respective thread that data is available and awake it if its asleep */
 	if (action == TRACKER_DB_ACTION_EXTRACT_METADATA) {
-		tracker_notify_meta_data_available ();
+		notify_meta_data_available ();
 	} else {
 		tracker_notify_file_data_available ();
 	}
@@ -517,7 +571,7 @@ tracker_db_add_to_extract_queue (DBConnection *db_con, TrackerDBFileInfo *info)
 		tracker_db_insert_pending_file (db_con, info->file_id, info->uri, NULL, info->mime, 0, TRACKER_DB_ACTION_EXTRACT_METADATA, info->is_directory, info->is_new, info->service_type_id);
 	}
 
-	tracker_notify_meta_data_available ();
+	notify_meta_data_available ();
 }
 
 static void

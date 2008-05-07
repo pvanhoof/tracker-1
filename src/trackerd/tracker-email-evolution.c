@@ -46,6 +46,8 @@
 #include "tracker-dbus-daemon.h"
 #include "tracker-watch.h"
 #include "tracker-status.h"
+#include "tracker-utils.h"
+#include "trackerd.h"
 
 #define EVOLUTION_MAIL_DIR_S ".evolution/mail"
 

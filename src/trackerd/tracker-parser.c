@@ -33,6 +33,7 @@
 
 #include "tracker-parser.h"
 #include "tracker-utils.h"
+#include "trackerd.h"
 
 extern Tracker *tracker;
 

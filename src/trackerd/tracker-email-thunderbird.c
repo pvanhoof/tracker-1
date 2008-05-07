@@ -29,6 +29,7 @@
 
 #include "tracker-db-email.h"
 #include "tracker-watch.h"
+#include "trackerd.h"
 
 typedef enum
 {

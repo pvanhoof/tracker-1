@@ -218,8 +218,6 @@ tracker_do_cleanup (const gchar *sig_msg)
 
 	if (sig_msg) {
 		tracker_log ("Received signal '%s' so now shutting down", sig_msg);
-
-		tracker_print_object_allocations ();
 	}
 
 	/* set kill timeout */

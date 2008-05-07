@@ -26,6 +26,7 @@
 
 #include "tracker-email.h"
 #include "tracker-email-utils.h"
+#include "trackerd.h"
 
 extern Tracker *tracker;
 

@@ -28,6 +28,7 @@
 #include <libtracker-common/tracker-type-utils.h>
 
 #include "tracker-db-email.h"
+#include "tracker-parser.h"
 
 #define MAX_ADDRESSES 255
 

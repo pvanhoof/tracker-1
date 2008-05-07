@@ -37,9 +37,9 @@
 #include "tracker-metadata.h"
 #include "tracker-utils.h"
 #include "tracker-service-manager.h"
+#include "trackerd.h"
 
 extern Tracker *tracker;
-
 
 char *
 tracker_metadata_get_text_file (const char *uri, const char *mime)

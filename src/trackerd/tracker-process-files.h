@@ -25,6 +25,7 @@
 #include <libtracker-db/tracker-db-file-info.h>
 
 #include "tracker-utils.h"
+#include "trackerd.h"
 
 /* Thread entry point */
 gpointer tracker_process_files                        (gpointer        data);

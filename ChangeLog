@@ -1,5 +1,33 @@
 2008-05-07  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-utils.h: Fixed #ifndef issue where
+	this utils file had the same name that the trackerd utils file
+	had.
+	
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-db-email.c:
+	* src/trackerd/tracker-db-sqlite.[ch]:
+	* src/trackerd/tracker-db.c:
+	* src/trackerd/tracker-dbus-daemon.h:
+	* src/trackerd/tracker-dbus-search.c:
+	* src/trackerd/tracker-email-evolution.c:
+	* src/trackerd/tracker-email-thunderbird.c:
+	* src/trackerd/tracker-email.c:
+	* src/trackerd/tracker-indexer.c:
+	* src/trackerd/tracker-inotify.c:
+	* src/trackerd/tracker-metadata.c:
+	* src/trackerd/tracker-parser.c:
+	* src/trackerd/tracker-process-files.h:
+	* src/trackerd/tracker-utils.[ch]:
+	* src/trackerd/tracker-xesam.c:
+	* src/trackerd/trackerd.[ch]: Added trackerd.h for all stuff
+	related to the Tracker struct. Kept all other utils based
+	functions in tracker-utils.h. Fixed all the places where this
+	broke things based on everything being included from
+	tracker-utils.h and everwhere including that.
+
+2008-05-07  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-utils.[ch]:
 	* src/trackerd/tracker-xesam-session.c:
 	* src/trackerd/tracker-xesam.[ch]: Moved tracker_unique_key() here

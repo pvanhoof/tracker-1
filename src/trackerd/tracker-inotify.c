@@ -41,6 +41,7 @@
 
 #include "tracker-watch.h"
 #include "tracker-process-files.h"
+#include "tracker-utils.h"
 
 #define INOTIFY_WATCH_LIMIT "/proc/sys/fs/inotify/max_user_watches"
 

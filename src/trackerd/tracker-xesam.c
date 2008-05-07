@@ -25,6 +25,7 @@
 #include <libtracker-common/tracker-config.h>
 
 #include "tracker-xesam.h"
+#include "trackerd.h"
 
 extern Tracker *tracker;
 

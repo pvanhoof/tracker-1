@@ -61,11 +61,13 @@
 #include "tracker-service-manager.h"
 #include "tracker-query-tree.h"
 #include "tracker-xesam.h"
+#include "trackerd.h"
 
-#define MAX_TEXT_BUFFER 65567
+#define MAX_TEXT_BUFFER     65567
 #define MAX_COMPRESS_BUFFER 65565
-#define DEFAULT_PAGE_CACHE 64
-#define MIN_PAGE_CACHE 16
+#define DEFAULT_PAGE_CACHE  64
+#define MIN_PAGE_CACHE      16
+#define ZLIBBUFSIZ          8192
 
 extern Tracker *tracker;
 
@@ -157,6 +159,181 @@ function_regexp (TrackerDBInterface *interface,
 	return result;
 }
 
+static gchar *
+function_compress_string (const gchar *ptr, 
+			  gint         size, 
+			  gint        *compressed_size)
+{
+	z_stream       zs;
+	gchar         *buf, *swap;
+	unsigned char  obuf[ZLIBBUFSIZ];
+	gint           rv, asiz, bsiz, osiz;
+
+	if (size < 0) { 
+		size = strlen (ptr);
+	}
+
+	zs.zalloc = Z_NULL;
+	zs.zfree = Z_NULL;
+	zs.opaque = Z_NULL;
+
+	if (deflateInit2 (&zs, 6, Z_DEFLATED, 15, 6, Z_DEFAULT_STRATEGY) != Z_OK) {
+		return NULL;
+	}
+
+	asiz = size + 16;
+
+	if (asiz < ZLIBBUFSIZ) {
+		asiz = ZLIBBUFSIZ;
+	}
+
+	if (!(buf = malloc (asiz))) {
+		deflateEnd (&zs);
+		return NULL;
+	}
+
+	bsiz = 0;
+	zs.next_in = (unsigned char *)ptr;
+	zs.avail_in = size;
+	zs.next_out = obuf;
+	zs.avail_out = ZLIBBUFSIZ;
+
+	while ((rv = deflate (&zs, Z_FINISH)) == Z_OK) {
+		osiz = ZLIBBUFSIZ - zs.avail_out;
+
+		if (bsiz + osiz > asiz) {
+			asiz = asiz * 2 + osiz;
+
+			if (!(swap = realloc (buf, asiz))) {
+				free (buf);
+				deflateEnd (&zs);
+				return NULL;
+			}
+
+			buf = swap;
+		}
+
+		memcpy (buf + bsiz, obuf, osiz);
+		bsiz += osiz;
+		zs.next_out = obuf;
+		zs.avail_out = ZLIBBUFSIZ;
+	}
+
+	if (rv != Z_STREAM_END) {
+		free (buf);
+		deflateEnd (&zs);
+		return NULL;
+	}
+
+	osiz = ZLIBBUFSIZ - zs.avail_out;
+
+	if (bsiz + osiz + 1 > asiz) {
+		asiz = asiz * 2 + osiz;
+
+		if (!(swap = realloc (buf, asiz))) {
+			free (buf);
+			deflateEnd (&zs);
+			return NULL;
+		}
+
+		buf = swap;
+	}
+
+	memcpy (buf + bsiz, obuf, osiz);
+	bsiz += osiz;
+	buf[bsiz] = '\0';
+
+	*compressed_size = bsiz;
+
+	deflateEnd (&zs);
+
+	return buf;
+}
+
+static gchar *
+function_uncompress_string (const gchar *ptr, 
+			    gint         size, 
+			    gint        *uncompressed_size)
+{
+	z_stream       zs;
+	gchar         *buf, *swap;
+	unsigned char  obuf[ZLIBBUFSIZ];
+	gint           rv, asiz, bsiz, osiz;
+
+	zs.zalloc = Z_NULL;
+	zs.zfree = Z_NULL;
+	zs.opaque = Z_NULL;
+
+	if (inflateInit2 (&zs, 15) != Z_OK) {
+		return NULL;
+	}
+
+	asiz = size * 2 + 16;
+
+	if (asiz < ZLIBBUFSIZ) {
+		asiz = ZLIBBUFSIZ;
+	}
+
+	if (!(buf = malloc (asiz))) {
+		inflateEnd (&zs);
+		return NULL;
+	}
+
+	bsiz = 0;
+	zs.next_in = (unsigned char *)ptr;
+	zs.avail_in = size;
+	zs.next_out = obuf;
+	zs.avail_out = ZLIBBUFSIZ;
+
+	while ((rv = inflate (&zs, Z_NO_FLUSH)) == Z_OK) {
+		osiz = ZLIBBUFSIZ - zs.avail_out;
+
+		if (bsiz + osiz >= asiz) {
+			asiz = asiz * 2 + osiz;
+
+			if (!(swap = realloc (buf, asiz))) {
+				free (buf);
+				inflateEnd (&zs);
+				return NULL;
+			}
+
+			buf = swap;
+		}
+
+		memcpy (buf + bsiz, obuf, osiz);
+		bsiz += osiz;
+		zs.next_out = obuf;
+		zs.avail_out = ZLIBBUFSIZ;
+	}
+
+	if (rv != Z_STREAM_END) {
+		free (buf);
+		inflateEnd (&zs);
+		return NULL;
+	}
+	osiz = ZLIBBUFSIZ - zs.avail_out;
+
+	if (bsiz + osiz >= asiz) {
+		asiz = asiz * 2 + osiz;
+
+		if (!(swap = realloc (buf, asiz))) {
+			free (buf);
+			inflateEnd (&zs);
+			return NULL;
+		}
+
+		buf = swap;
+	}
+
+	memcpy (buf + bsiz, obuf, osiz);
+	bsiz += osiz;
+	buf[bsiz] = '\0';
+	*uncompressed_size = bsiz;
+	inflateEnd (&zs);
+
+	return buf;
+}
+
 /* unzips data */
 static GValue
 function_uncompress (TrackerDBInterface *interface,
@@ -174,7 +351,7 @@ function_uncompress (TrackerDBInterface *interface,
 		return result;
 	}
 
-	output = tracker_uncompress ((const gchar *) array->data, array->len, &len);
+	output = function_uncompress_string ((const gchar *) array->data, array->len, &len);
 
 	if (!output) {
 		g_warning ("Uncompress failed");
@@ -1507,7 +1684,7 @@ save_full_text (DBConnection *blob_db_con, const char *str_file_id, const char *
 	gint bytes_compressed;
 	FieldDef *def;
 
-	compressed = tracker_compress (text, length, &bytes_compressed);
+	compressed = function_compress_string (text, length, &bytes_compressed);
 
 	if (compressed) {
 		tracker_debug ("compressed full text size of %d to %d", length, bytes_compressed);
@@ -5019,6 +5196,49 @@ tracker_db_set_option_int (DBConnection *db_con, const char *option, int value)
 	g_free (str_value);
 }
 
+static gint 
+get_memory_usage (void)
+{
+#if defined(__linux__)
+	gint    fd, length, mem = 0;
+	gchar   buffer[8192];
+	gchar  *stat_file;
+	gchar **terms;
+
+	stat_file = g_strdup_printf ("/proc/%d/stat", tracker->pid);
+	fd = open (stat_file, O_RDONLY); 
+	g_free (stat_file);
+
+	if (fd ==-1) {
+		return 0;
+	}
+	
+	length = read (fd, buffer, 8192);
+	buffer[length] = 0;
+	close (fd);
+
+	terms = g_strsplit (buffer, " ", -1);
+
+	if (terms) {
+		gint i;
+
+		for (i = 0; i < 24; i++) {
+			if (!terms[i]) {
+				break;
+			}		
+
+			if (i==23) {
+				mem = 4 * atoi (terms[23]);
+			}
+		}
+	}
+
+	g_strfreev (terms);
+
+	return mem;	
+#endif
+	return 0;
+}
 
 gboolean
 tracker_db_regulate_transactions (DBConnection *db_con, int interval)
@@ -5030,7 +5250,10 @@ tracker_db_regulate_transactions (DBConnection *db_con, int interval)
 		if (tracker->index_count > 1) {
 			tracker_db_end_index_transaction (db_con);
 			tracker_db_start_index_transaction (db_con);
-			tracker_log ("Current memory usage is %d, word count %d and hits %d", tracker_get_memory_usage (), tracker->word_count, tracker->word_detail_count);
+			tracker_log ("Current memory usage is %d, word count %d and hits %d", 
+				     get_memory_usage (), 
+				     tracker->word_count, 
+				     tracker->word_detail_count);
 		}
 
 		return TRUE;
@@ -5067,3 +5290,35 @@ tracker_db_integrity_check (DBConnection *db_con)
 	return integrity_check;
 }
 
+
+void
+tracker_free_metadata_field (FieldData *field_data)
+{
+	g_return_if_fail (field_data);
+
+	if (field_data->alias) {
+		g_free (field_data->alias);
+	}
+
+	if (field_data->where_field) {
+		g_free (field_data->where_field);
+	}
+
+	if (field_data->field_name) {
+		g_free (field_data->field_name);
+	}
+
+	if (field_data->select_field) {
+		g_free (field_data->select_field);
+	}
+
+	if (field_data->table_name) {
+		g_free (field_data->table_name);
+	}
+
+	if (field_data->id_field) {
+		g_free (field_data->id_field);
+	}
+
+	g_free (field_data);
+}

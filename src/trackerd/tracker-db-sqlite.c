@@ -80,7 +80,6 @@ gboolean use_nfs_safe_locking = FALSE;
 typedef struct {
 	guint32		service_id;
 	int		service_type_id;
-	DBConnection 	*db_con;
 } ServiceTypeInfo;
 
 
@@ -2082,7 +2081,7 @@ tracker_db_get_metadata_delimited (DBConnection *db_con, const char *service, co
 
 
 static void
-update_metadata_index (DBConnection *db_con, const char *id, const char *service, FieldDef *def, const char *old_value, const char *new_value) 
+update_metadata_index (const char *id, const char *service, FieldDef *def, const char *old_value, const char *new_value) 
 {
 	GHashTable *old_table, *new_table;
 	gint        sid;
@@ -2111,7 +2110,7 @@ update_metadata_index (DBConnection *db_con, const char *id, const char *service
 
 	/* we only do differential updates so only changed words scores are updated */
 	sid = tracker_service_manager_get_id_for_service (service);
-	tracker_db_update_differential_index (db_con, old_table, new_table, id, sid);
+	tracker_db_update_differential_index (old_table, new_table, id, sid);
 
 	tracker_word_table_free (old_table);
 	tracker_word_table_free (new_table);
@@ -2737,10 +2736,10 @@ tracker_db_set_metadata (DBConnection *db_con, const char *service, const char *
 	if (update_index) {
 
 		if (str) {
-			update_metadata_index (db_con, id, res_service, def, old_value, str->str);
+			update_metadata_index (id, res_service, def, old_value, str->str);
 			g_string_free (str, TRUE);
 		} else {
-			update_metadata_index (db_con, id, res_service, def, old_value, new_value);	
+			update_metadata_index (id, res_service, def, old_value, new_value);	
 		}
 	}
 
@@ -2905,7 +2904,7 @@ tracker_db_delete_metadata_value (DBConnection *db_con, const char *service, con
 
 	/* update fulltext index differentially with old and new values */
 	if (update_index) {
-		update_metadata_index (db_con, id, service, def, old_value, new_value);
+		update_metadata_index (id, service, def, old_value, new_value);
 	}
 
 	g_free (new_value);
@@ -3001,7 +3000,7 @@ tracker_db_delete_metadata (DBConnection *db_con, const char *service, const cha
 	
 	/* update fulltext index differentially with old values and NULL */
 	if (update_index && old_value) {
-		update_metadata_index (db_con, id, service, def, old_value, " ");
+		update_metadata_index (id, service, def, old_value, " ");
 	}
 
 	
@@ -4366,7 +4365,6 @@ tracker_db_update_indexes_for_new_service (guint32 service_id, int service_type_
 
 		info->service_id = service_id;
 		info->service_type_id = service_type_id;
-		info->db_con = NULL;
 	
 		g_hash_table_foreach (table, append_index_data, info);
 		g_slice_free (ServiceTypeInfo, info);
@@ -4401,7 +4399,7 @@ cmp_data (gpointer key,
 
 
 void
-tracker_db_update_differential_index (DBConnection *db_con, GHashTable *old_table, GHashTable *new_table, const char *id, int service_type_id)
+tracker_db_update_differential_index (GHashTable *old_table, GHashTable *new_table, const char *id, int service_type_id)
 {
 	ServiceTypeInfo *info;
 
@@ -4420,7 +4418,6 @@ tracker_db_update_differential_index (DBConnection *db_con, GHashTable *old_tabl
 
 	info->service_id = strtoul (id, NULL, 10);
 	info->service_type_id = service_type_id;
-	info->db_con = db_con;
 
 	g_hash_table_foreach (new_table, update_index_data, info);
 

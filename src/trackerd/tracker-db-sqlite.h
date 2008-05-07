@@ -129,8 +129,7 @@ gboolean            tracker_db_end_transaction                 (DBConnection   *
 void                tracker_db_update_indexes_for_new_service  (guint32         service_id,
                                                                 gint            service_type_id,
                                                                 GHashTable     *table);
-void                tracker_db_update_differential_index       (DBConnection   *db_con,
-                                                                GHashTable     *old_table,
+void                tracker_db_update_differential_index       (GHashTable     *old_table,
                                                                 GHashTable     *new_table,
                                                                 const gchar    *id,
                                                                 gint            service_type_id);

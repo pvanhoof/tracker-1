@@ -999,7 +999,7 @@ tracker_db_index_service (DBConnection *db_con, TrackerDBFileInfo *info, const c
 	if (info->is_new) {
 		tracker_db_update_indexes_for_new_service (info->file_id, info->service_type_id, index_table);
 	} else {
-		tracker_db_update_differential_index (db_con, old_table, index_table, str_file_id, info->service_type_id);
+		tracker_db_update_differential_index (old_table, index_table, str_file_id, info->service_type_id);
 	}
 
 	tracker_word_table_free (index_table);

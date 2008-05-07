@@ -1,6 +1,12 @@
 2008-05-07  Martyn Russell  <martyn@imendio.com>
 
-	* configure.ac:
+	* src/trackerd/tracker-utils.[ch]:
+	* src/trackerd/tracker-xesam-session.c:
+	* src/trackerd/tracker-xesam.[ch]: Moved tracker_unique_key() here
+	from tracker-utils since it is an xesam thing only at the moment.
+
+2008-05-07  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-cache.c:
 	* src/trackerd/tracker-db-sqlite.c:
 	* src/trackerd/tracker-dbus-daemon.c:

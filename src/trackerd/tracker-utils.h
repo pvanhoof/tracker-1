@@ -341,7 +341,6 @@ gboolean        tracker_watch_dir               (const gchar *uri);
 void            tracker_scan_directory          (const gchar *uri);
 
 gboolean	tracker_low_diskspace		(void);
-gchar*		tracker_unique_key		(void);
 
 gboolean	tracker_should_pause 	        (void);
 gboolean	tracker_should_pause_on_battery (void);

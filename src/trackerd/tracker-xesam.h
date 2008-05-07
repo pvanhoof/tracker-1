@@ -54,4 +54,6 @@ void                    tracker_xesam_close_session          (const gchar       
 void                    tracker_xesam_init                   (void);
 void                    tracker_xesam_wakeup                 (guint32 last_id);
 
+gchar *                 tracker_xesam_generate_unique_key    (void);
+
 #endif

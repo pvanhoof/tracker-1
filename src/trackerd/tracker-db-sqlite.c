@@ -65,9 +65,10 @@
 
 #define MAX_TEXT_BUFFER     65567
 #define MAX_COMPRESS_BUFFER 65565
-#define DEFAULT_PAGE_CACHE  64
-#define MIN_PAGE_CACHE      16
 #define ZLIBBUFSIZ          8192
+
+#define DB_PAGE_SIZE_DEFAULT 4096
+#define DB_PAGE_SIZE_DONT_SET -1
 
 extern Tracker *tracker;
 
@@ -486,7 +487,7 @@ tracker_db_free_field_def (FieldDef *def)
 
 
 gboolean
-tracker_db_initialize (void)
+tracker_db_load_prepared_queries (void)
 {
 	GTimer      *t;
 	GError      *error = NULL;
@@ -583,8 +584,8 @@ tracker_db_finalize (void)
 {
 }
 
-static inline void
-close_db (DBConnection *db_con)
+void
+tracker_db_close (DBConnection *db_con)
 {
 	if (db_con->db) {
 		g_object_unref (db_con->db);
@@ -594,48 +595,14 @@ close_db (DBConnection *db_con)
 	tracker_debug ("Database closed");
 }
 
-
-void
-tracker_db_close (DBConnection *db_con)
-{
-	close_db (db_con);
-}
-
 static TrackerDBInterface *
-open_user_db (const char *name, gboolean *create_table)
+open_db (const char *dir, const char *name, gboolean *create_table)
 {
 	TrackerDBInterface *db;
 	gboolean db_exists;
 	char *dbname;
 
-	dbname = g_build_filename (tracker->user_data_dir, name, NULL);
-	db_exists = g_file_test (dbname, G_FILE_TEST_IS_REGULAR);
-
-	if (!db_exists) {
-		tracker_log ("database file %s is not present - will create", dbname);
-	}
-
-	if (create_table) {
-		*create_table = db_exists;
-	}
-
-	db = tracker_db_interface_sqlite_new (dbname);
-	tracker_db_interface_set_procedure_table (db, prepared_queries);
-	g_free (dbname);
-
-	return db;
-}
-
-
-
-static TrackerDBInterface *
-open_db (const char *name, gboolean *create_table)
-{
-	TrackerDBInterface *db;
-	gboolean db_exists;
-	char *dbname;
-
-	dbname = g_build_filename (tracker->data_dir, name, NULL);
+	dbname = g_build_filename (dir, name, NULL);
 	db_exists = g_file_test (dbname, G_FILE_TEST_IS_REGULAR);
 
 	if (!db_exists) {
@@ -656,11 +623,14 @@ open_db (const char *name, gboolean *create_table)
 
 
 static void
-set_params (DBConnection *db_con, int cache_size, gboolean add_functions)
+set_params (DBConnection *db_con, int cache_size, int page_size, gboolean add_functions)
 {
 	tracker_db_set_default_pragmas (db_con);
 
-	tracker_db_exec_no_reply (db_con, "PRAGMA page_size = %d", 4096);
+	if (page_size != DB_PAGE_SIZE_DONT_SET) {
+		tracker_db_exec_no_reply (db_con, "PRAGMA page_size = %d", page_size);
+	}
+
 
 	if (tracker_config_get_low_memory_mode (tracker->config)) {
 		cache_size /= 2;
@@ -690,9 +660,9 @@ open_common_db (DBConnection *db_con)
 {
 	gboolean create;
 
-	db_con->db = open_user_db (TRACKER_INDEXER_COMMON_DB_FILENAME, &create);
+	db_con->db = open_db (tracker->user_data_dir, TRACKER_INDEXER_COMMON_DB_FILENAME, &create);
 
-	set_params (db_con, 32, FALSE);
+	set_params (db_con, 32, DB_PAGE_SIZE_DEFAULT, FALSE);
 
 }
 
@@ -897,43 +867,15 @@ tracker_db_connect (void)
 {
 	DBConnection *db_con;
 	gboolean create_table = FALSE;
-	char *dbname;
-
-	dbname = g_build_filename (tracker->data_dir, TRACKER_INDEXER_FILE_META_DB_FILENAME, NULL);
-
-	if (!g_file_test (dbname, G_FILE_TEST_IS_REGULAR)) {
-		tracker_log ("database file %s is not present - will create", dbname);
-		create_table = TRUE;
-	}
 
 	db_con = g_new0 (DBConnection, 1);
-	db_con->db = tracker_db_interface_sqlite_new (dbname);
-	tracker_db_interface_set_procedure_table (db_con->db, prepared_queries);
-	g_free (dbname);
+
+	db_con->db = open_db (tracker->data_dir, TRACKER_INDEXER_FILE_META_DB_FILENAME, &create_table);
 
 	db_con->data = db_con;
 
-	tracker_db_set_default_pragmas (db_con);
+	set_params (db_con, 32, DB_PAGE_SIZE_DONT_SET, TRUE);
 	
-	if (!tracker_config_get_low_memory_mode (tracker->config)) {
-		tracker_db_exec_no_reply (db_con, "PRAGMA cache_size = %d", 32);
-	} else {
-		tracker_db_exec_no_reply (db_con, "PRAGMA cache_size = %d", 16);
-	}
-
-	/* create user defined utf-8 collation sequence */
-	if (! tracker_db_interface_sqlite_set_collation_function (TRACKER_DB_INTERFACE_SQLITE (db_con->db),
-								  "UTF8", utf8_collation_func)) {
-		tracker_error ("ERROR: collation sequence failed");
-	}
-
-	/* create user defined functions that can be used in sql */
-	tracker_db_interface_sqlite_create_function (db_con->db, "FormatDate", function_date_to_str, 1);
-	tracker_db_interface_sqlite_create_function (db_con->db, "GetServiceName", function_get_service_name, 1);
-	tracker_db_interface_sqlite_create_function (db_con->db, "GetServiceTypeID", function_get_service_type, 1);
-	tracker_db_interface_sqlite_create_function (db_con->db, "GetMaxServiceTypeID", function_get_max_service_type, 1);
-	tracker_db_interface_sqlite_create_function (db_con->db, "REGEXP", function_regexp, 2);
-
 	if (create_table) {
 		tracker_log ("Creating file database...");
 		load_sql_file (db_con, "sqlite-service.sql");
@@ -972,9 +914,10 @@ open_file_db (DBConnection *db_con)
 {
 	gboolean create;
 
-	db_con->db = open_db (TRACKER_INDEXER_FILE_META_DB_FILENAME, &create);	
+	db_con->db = open_db (tracker->data_dir, 
+			      TRACKER_INDEXER_FILE_META_DB_FILENAME, &create);	
 
-	set_params (db_con, 512, TRUE);
+	set_params (db_con, 512, DB_PAGE_SIZE_DEFAULT, TRUE);
 }
 
 DBConnection *
@@ -995,9 +938,10 @@ open_email_db (DBConnection *db_con)
 {
 	gboolean create;
 
-	db_con->db = open_db (TRACKER_INDEXER_EMAIL_META_DB_FILENAME, &create);	
+	db_con->db = open_db (tracker->data_dir, 
+			      TRACKER_INDEXER_EMAIL_META_DB_FILENAME, &create);	
 
-	set_params (db_con, 512, TRUE);
+	set_params (db_con, 512, DB_PAGE_SIZE_DEFAULT, TRUE);
 }
 
 DBConnection *
@@ -1020,9 +964,11 @@ open_file_content_db (DBConnection *db_con)
 {
 	gboolean create;
 
-	db_con->db = open_db (TRACKER_INDEXER_FILE_CONTENTS_DB_FILENAME, &create);	
+	db_con->db = open_db (tracker->data_dir,
+			      TRACKER_INDEXER_FILE_CONTENTS_DB_FILENAME, 
+			      &create);	
 
-	set_params (db_con, 1024, FALSE);
+	set_params (db_con, 1024, DB_PAGE_SIZE_DEFAULT, FALSE);
 
 	if (create) {
 		tracker_db_exec_no_reply (db_con, "CREATE TABLE ServiceContents (ServiceID Int not null, MetadataID Int not null, Content Text, primary key (ServiceID, MetadataID))");
@@ -1052,9 +998,11 @@ open_email_content_db (DBConnection *db_con)
 {
 	gboolean create;
 
-	db_con->db = open_db (TRACKER_INDEXER_EMAIL_CONTENTS_DB_FILENAME, &create);	
+	db_con->db = open_db (tracker->data_dir, 
+			      TRACKER_INDEXER_EMAIL_CONTENTS_DB_FILENAME,
+			      &create);	
 
-	set_params (db_con, 512, FALSE);
+	set_params (db_con, 512, DB_PAGE_SIZE_DEFAULT, FALSE);
 
 	if (create) {
 		tracker_db_exec_no_reply (db_con, "CREATE TABLE ServiceContents (ServiceID Int not null, MetadataID Int not null, Content Text, primary key (ServiceID, MetadataID))");
@@ -1091,12 +1039,12 @@ tracker_db_refresh_all (DBConnection *db_con)
 	}
 
 	/* close and reopen all databases */	
-	close_db (db_con);	
-	close_db (db_con->blob);
+	tracker_db_close (db_con);	
+	tracker_db_close (db_con->blob);
 
-	close_db (emails->blob);
-	close_db (emails->common);
-	close_db (emails);
+	tracker_db_close (emails->blob);
+	tracker_db_close (emails->common);
+	tracker_db_close (emails);
 
 	open_file_db (db_con);
 	open_file_content_db (db_con->blob);
@@ -1126,9 +1074,9 @@ tracker_db_refresh_email (DBConnection *db_con)
 
 	DBConnection *emails = db_con->emails;
 
-	close_db (emails->blob);
-	close_db (emails->common);
-	close_db (emails);
+	tracker_db_close (emails->blob);
+	tracker_db_close (emails->common);
+	tracker_db_close (emails);
 
 	open_email_content_db (emails->blob);
 	open_common_db (emails->common);
@@ -1143,35 +1091,22 @@ DBConnection *
 tracker_db_connect_cache (void)
 {
 	gboolean     create_table;
-	char	     *dbname;
 	DBConnection *db_con;
 
 	create_table = FALSE;
 
-	if (!tracker || !tracker->sys_tmp_root_dir) {
-		tracker_error ("FATAL ERROR: system TMP dir for cache set to %s", tracker->sys_tmp_root_dir);
-		exit (1);
-	}
-
-	dbname = g_build_filename (tracker->sys_tmp_root_dir, TRACKER_INDEXER_CACHE_DB_FILENAME, NULL);
-
-	if (!tracker_file_is_valid (dbname)) {
-		create_table = TRUE;
-	}
-
 	db_con = g_new0 (DBConnection, 1);
-	db_con->db = tracker_db_interface_sqlite_new (dbname);
-	tracker_db_interface_set_procedure_table (db_con->db, prepared_queries);
-	g_free (dbname);
 
-	tracker_db_set_default_pragmas (db_con);
+	db_con->db = open_db (tracker->sys_tmp_root_dir, 
+			      TRACKER_INDEXER_CACHE_DB_FILENAME,
+			      &create_table);
 
-	if (!tracker_config_get_low_memory_mode (tracker->config)) {
-		tracker_db_exec_no_reply (db_con, "PRAGMA cache_size = %d", 128);
-	} else {
-		tracker_db_exec_no_reply (db_con, "PRAGMA cache_size = %d", 32);
-	}
-
+	/* Original cache_size: 
+	 *   Normal 128     Low memory mode 32
+	 * Using set_params...:
+	 *   Normal 128     Low memory mode 64
+	 */
+	set_params (db_con, 128, DB_PAGE_SIZE_DONT_SET, FALSE);
 
 	if (create_table) {
 		load_sql_file (db_con, "sqlite-cache.sql");
@@ -1186,46 +1121,18 @@ DBConnection *
 tracker_db_connect_emails (void)
 {
 	gboolean     create_table;
-	char	     *dbname;
 	DBConnection *db_con;
 	
 	create_table = FALSE;
 
-	dbname = g_build_filename (tracker->data_dir, TRACKER_INDEXER_EMAIL_META_DB_FILENAME, NULL);
-
-
-	if (!g_file_test (dbname, G_FILE_TEST_IS_REGULAR)) {
-		tracker_log ("database file %s is not present - will create", dbname);
-		create_table = TRUE;
-	} 
-
-
 	db_con = g_new0 (DBConnection, 1);
-	db_con->db = tracker_db_interface_sqlite_new (dbname);
-	tracker_db_interface_set_procedure_table (db_con->db, prepared_queries);
-	g_free (dbname);
 
+	db_con->db = open_db (tracker->data_dir, TRACKER_INDEXER_EMAIL_META_DB_FILENAME, &create_table);
 
 	db_con->emails = db_con;
 
-	tracker_db_exec_no_reply (db_con, "PRAGMA page_size = %d", 4096);
-
-	tracker_db_set_default_pragmas (db_con);
-
-	tracker_db_exec_no_reply (db_con, "PRAGMA cache_size = %d", 8);
-
-	/* create user defined utf-8 collation sequence */
-	if (! tracker_db_interface_sqlite_set_collation_function (TRACKER_DB_INTERFACE_SQLITE (db_con->db),
-								  "UTF8", utf8_collation_func)) {
-		tracker_error ("ERROR: collation sequence failed");
-	}
-
-	/* create user defined functions that can be used in sql */
-	tracker_db_interface_sqlite_create_function (db_con->db, "FormatDate", function_date_to_str, 1);
-	tracker_db_interface_sqlite_create_function (db_con->db, "GetServiceName", function_get_service_name, 1);
-	tracker_db_interface_sqlite_create_function (db_con->db, "GetServiceTypeID", function_get_service_type, 1);
-	tracker_db_interface_sqlite_create_function (db_con->db, "GetMaxServiceTypeID", function_get_max_service_type, 1);
-	tracker_db_interface_sqlite_create_function (db_con->db, "REGEXP", function_regexp, 2);
+	/* Old: always 8    Now: normal 8  low battery 4 */
+	set_params (db_con, 8, DB_PAGE_SIZE_DEFAULT, TRUE);
 
 	if (create_table) {
 		tracker_log ("Creating email database...");
@@ -1422,7 +1329,7 @@ tracker_exec_proc_no_reply (DBConnection *db_con, const char *procedure, ...)
 
 
 void
-tracker_create_db (void)
+tracker_create_common_db (void)
 {
 	DBConnection *db_con;
 
@@ -1461,13 +1368,13 @@ tracker_create_db (void)
 }
 
 static gboolean
-db_exists (const char *name)
+file_exists (const gchar *dir, const char *name)
 {
 	gboolean is_present = FALSE;
 	
-	char *dbname = g_build_filename (tracker->data_dir, name, NULL);
+	char *dbname = g_build_filename (dir, name, NULL);
 
-	if (g_file_test (dbname, G_FILE_TEST_EXISTS)) {
+	if (g_file_test (dbname, G_FILE_TEST_IS_REGULAR)) {
 		is_present = TRUE;
 	}
 
@@ -1480,32 +1387,17 @@ db_exists (const char *name)
 gboolean
 tracker_db_needs_setup ()
 {
-	return (!db_exists (TRACKER_INDEXER_FILE_META_DB_FILENAME) || 
-		!db_exists (TRACKER_INDEXER_FILE_INDEX_DB_FILENAME) || 
-		!db_exists (TRACKER_INDEXER_FILE_CONTENTS_DB_FILENAME));
+	return (!file_exists (tracker->data_dir, TRACKER_INDEXER_FILE_META_DB_FILENAME) 
+		|| !file_exists (tracker->data_dir, TRACKER_INDEXER_FILE_INDEX_DB_FILENAME) 
+		|| !file_exists (tracker->data_dir, TRACKER_INDEXER_FILE_CONTENTS_DB_FILENAME));
 }
 
 
 gboolean 
 tracker_db_needs_data ()
 {
-	gboolean need_setup;
-	char	 *dbname;
-
-	need_setup = FALSE;
-
-	dbname = g_build_filename (tracker->user_data_dir, TRACKER_INDEXER_COMMON_DB_FILENAME, NULL);
-
-	if (!g_file_test (dbname, G_FILE_TEST_EXISTS)) {
-		need_setup = TRUE;
-	}
-
-	g_free (dbname);
-
-	return need_setup;
-
+	return !file_exists (tracker->user_data_dir, TRACKER_INDEXER_COMMON_DB_FILENAME);
 }
-
 
 gint
 tracker_metadata_is_key (const gchar *service, const gchar *meta_name)
@@ -5289,7 +5181,6 @@ tracker_db_integrity_check (DBConnection *db_con)
 
 	return integrity_check;
 }
-
 
 void
 tracker_free_metadata_field (FieldData *field_data)

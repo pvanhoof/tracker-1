@@ -838,7 +838,7 @@ main (gint argc, gchar *argv[])
 	/* Set thread safe DB connection */
 	tracker_db_thread_init ();
 
-        if (!tracker_db_initialize ()) {
+        if (!tracker_db_load_prepared_queries ()) {
 		tracker_error ("Could not initialize database engine!");
 		return EXIT_FAILURE;
         }
@@ -850,7 +850,7 @@ main (gint argc, gchar *argv[])
 	need_data = tracker_db_needs_data ();
 
 	if (need_data) {
-		tracker_create_db ();
+		tracker_create_common_db ();
 	}
 
 	if (!tracker->readonly && need_index) {

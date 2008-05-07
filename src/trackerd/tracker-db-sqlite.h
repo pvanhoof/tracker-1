@@ -91,7 +91,7 @@ typedef struct {
 
 gboolean            tracker_db_needs_setup                     (void);
 gboolean            tracker_db_needs_data                      (void);
-gboolean            tracker_db_initialize                      (void);
+gboolean            tracker_db_load_prepared_queries                      (void);
 void                tracker_db_thread_init                     (void);
 void                tracker_db_thread_end                      (void);
 void                tracker_db_close                           (DBConnection   *db_con);
@@ -118,7 +118,7 @@ gboolean            tracker_exec_proc_no_reply                 (DBConnection   *
 gboolean            tracker_db_exec_no_reply                   (DBConnection   *db_con,
                                                                 const gchar    *query,
                                                                 ...);
-void                tracker_create_db                          (void);
+void                tracker_create_common_db                          (void);
 void                tracker_db_save_file_contents              (DBConnection   *db_con,
                                                                 GHashTable     *index_table,
                                                                 GHashTable     *old_table,

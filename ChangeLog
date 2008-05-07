@@ -1,3 +1,13 @@
+2008-05-07  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/trackerd/tracker-db-sqlite.c
+	* src/trackerd/tracker-db-sqlite.h
+	* src/trackerd/trackerd.c:
+	(tracker_db_initialize -> tracker_db_load_prepared_queries)
+	(tracker_create_db -> tracker_create_common_db)
+	Removed duplicate code. Databases are opened using open_db and
+	set_params.
+
 2008-05-07  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-config.h:

@@ -1198,7 +1198,6 @@ tracker_exec_proc (DBConnection *db_con, const char *procedure, ...)
 gboolean
 tracker_exec_proc_no_reply (DBConnection *db_con, const char *procedure, ...)
 {
-	TrackerDBResultSet *result_set;
 	va_list args;
 
 	va_start (args, procedure);

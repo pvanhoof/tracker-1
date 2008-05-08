@@ -18,14 +18,19 @@
  * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  * Boston, MA  02110-1301, USA.
  */
+
 #ifndef __LIBTRACKER_COMMON_NFS_LOCK_H__
 #define __LIBTRACKER_COMMON_NFS_LOCK_H__
 
 #include <glib.h>
+
+G_BEGIN_DECLS
 
 void     tracker_nfs_lock_init    (const gchar *root_dir);
 gboolean tracker_nfs_lock_obtain  (void);
 void     tracker_nfs_lock_release (void);
 void     tracker_nfs_lock_term    (void);
 
-#endif
+G_END_DECLS 
+
+#endif /* __LIBTRACKER_COMMON_NFS_LOCK_H__ */

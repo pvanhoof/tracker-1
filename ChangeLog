@@ -1,3 +1,14 @@
+2008-05-08  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-nfs-lock.[ch]: Cleaned up code to
+	be consistent.
+	
+	* src/trackerd/tracker-db-sqlite.c: Fixed warning.
+	
+	* src/trackerd/tracker-dbus-search.c: Always call
+	tracker_dbus_query_result_to_ptr_array() since it creates the
+	return value even if the result set is empty.
+
 2008-05-08  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/trackerd/tracker-dbus-search.c: Bugfix when the amount of search

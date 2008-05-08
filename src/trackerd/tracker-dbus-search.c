@@ -662,12 +662,12 @@ tracker_dbus_search_get_hit_count_all (TrackerDBusSearch  *object,
 		g_value_unset (&value);
 	}
 
+	*values = tracker_dbus_query_result_to_ptr_array (result_set);
+
 	if (result_set) {
 		tracker_db_result_set_rewind (result_set);
-		*values = tracker_dbus_query_result_to_ptr_array (result_set);
 		g_object_unref (result_set);
-	} else 
-		*values = g_ptr_array_new ();
+	}
 
         g_array_free (hit_counts, TRUE);
         g_object_unref (tree);

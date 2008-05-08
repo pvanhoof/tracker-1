@@ -1,3 +1,9 @@
+2008-05-08  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/libtracker-db/tracker-db-interface-sqlite.c:
+	Moved all sqlite3 queries to one thread in GThreadPool, prepared the
+	ground for future asynchronous calling back.
+
 2008-05-07  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/trackerd/tracker-db-sqlite.c

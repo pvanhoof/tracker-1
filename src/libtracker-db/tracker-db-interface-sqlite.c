@@ -35,6 +35,8 @@ struct TrackerDBInterfaceSqlitePrivate {
 	GSList *function_data;
 
 	guint in_transaction : 1;
+
+	GThreadPool *pool;
 };
 
 struct SqliteFunctionData {
@@ -42,7 +44,18 @@ struct SqliteFunctionData {
 	TrackerDBFunc func;
 };
 
+typedef struct {
+	sqlite3_stmt *stmt;
+	GError **error;
+	TrackerDBResultSet *retval;
+
+	GCond* condition;
+	gboolean had_callback;
+	GMutex *mutex;
+} TrackerDBQueryTask;
+
 static void tracker_db_interface_sqlite_iface_init (TrackerDBInterfaceIface *iface);
+static void process_query (gpointer data, gpointer user_data);
 
 enum {
 	PROP_0,
@@ -129,6 +142,9 @@ tracker_db_interface_sqlite_finalize (GObject *object)
 
 	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (object);
 
+	/* This waits for all tasks being finished */
+	g_thread_pool_free (priv->pool, TRUE, TRUE);
+
 	g_free (priv->filename);
 
 	g_hash_table_destroy (priv->statements);
@@ -181,6 +197,9 @@ tracker_db_interface_sqlite_init (TrackerDBInterfaceSqlite *db_interface)
 	priv->statements = g_hash_table_new_full (g_str_hash, g_str_equal,
 						  (GDestroyNotify) g_free,
 						  (GDestroyNotify) sqlite3_finalize);
+
+	priv->pool = g_thread_pool_new (process_query, db_interface, 
+					1, TRUE, NULL);
 }
 
 static void
@@ -429,6 +448,54 @@ get_stored_stmt (TrackerDBInterfaceSqlite *db_interface,
 	return stmt;
 }
 
+
+static void 
+process_query (gpointer data, gpointer user_data)
+{
+	TrackerDBQueryTask *task = (TrackerDBQueryTask *) data;
+
+	task->retval = create_result_set_from_stmt (TRACKER_DB_INTERFACE_SQLITE (user_data), 
+		task->stmt, task->error);
+
+	g_mutex_lock (task->mutex);
+	g_cond_broadcast (task->condition);
+	task->had_callback = TRUE;
+	g_mutex_unlock (task->mutex);
+}
+
+static TrackerDBQueryTask*
+create_db_query_task (sqlite3_stmt *stmt, GError **error)
+{
+	TrackerDBQueryTask *task = g_slice_new (TrackerDBQueryTask);
+
+	task->mutex = g_mutex_new ();
+	task->condition = g_cond_new ();
+	task->had_callback = FALSE;
+
+	task->stmt = stmt;
+	task->error = error;
+
+	return task;
+}
+
+static void 
+wait_for_db_query_task (TrackerDBQueryTask *task)
+{
+	g_mutex_lock (task->mutex);
+	if (!task->had_callback)
+		g_cond_wait (task->condition, task->mutex);
+	g_mutex_unlock (task->mutex);
+}
+
+static void
+free_db_query_task (TrackerDBQueryTask *task)
+{
+	g_mutex_free (task->mutex);
+	g_cond_free (task->condition);
+
+	g_slice_free (TrackerDBQueryTask, task);
+}
+
 static TrackerDBResultSet *
 tracker_db_interface_sqlite_execute_procedure (TrackerDBInterface  *db_interface,
 					       GError             **error,
@@ -439,6 +506,8 @@ tracker_db_interface_sqlite_execute_procedure (TrackerDBInterface  *db_interface
 	sqlite3_stmt *stmt;
 	gint stmt_args, n_args;
 	gchar *str;
+	TrackerDBResultSet *retval;
+	TrackerDBQueryTask *task;
 
 	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (db_interface);
 	stmt = get_stored_stmt (TRACKER_DB_INTERFACE_SQLITE (db_interface), procedure_name);
@@ -453,7 +522,13 @@ tracker_db_interface_sqlite_execute_procedure (TrackerDBInterface  *db_interface
 	/* Just panic if the number of arguments don't match */
 	g_assert (n_args != stmt_args);
 
-	return create_result_set_from_stmt (TRACKER_DB_INTERFACE_SQLITE (db_interface), stmt, error);
+	task = create_db_query_task (stmt, error);
+	g_thread_pool_push (priv->pool, task, NULL);
+	wait_for_db_query_task (task);
+	retval = task->retval;
+	free_db_query_task (task);
+
+	return retval;
 }
 
 static TrackerDBResultSet *
@@ -466,6 +541,8 @@ tracker_db_interface_sqlite_execute_procedure_len (TrackerDBInterface  *db_inter
 	sqlite3_stmt *stmt;
 	gint stmt_args, n_args, len;
 	gchar *str;
+	TrackerDBResultSet *retval;
+	TrackerDBQueryTask *task;
 
 	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (db_interface);
 	stmt = get_stored_stmt (TRACKER_DB_INTERFACE_SQLITE (db_interface), procedure_name);
@@ -489,7 +566,13 @@ tracker_db_interface_sqlite_execute_procedure_len (TrackerDBInterface  *db_inter
 	/* Just panic if the number of arguments don't match */
 	g_assert (n_args != stmt_args);
 
-	return create_result_set_from_stmt (TRACKER_DB_INTERFACE_SQLITE (db_interface), stmt, error);
+	task = create_db_query_task (stmt, error);
+	g_thread_pool_push (priv->pool, task, NULL);
+	wait_for_db_query_task (task);
+	retval = task->retval;
+	free_db_query_task (task);
+
+	return retval;
 }
 
 static TrackerDBResultSet *
@@ -498,7 +581,8 @@ tracker_db_interface_sqlite_execute_query (TrackerDBInterface  *db_interface,
 					   const gchar         *query)
 {
 	TrackerDBInterfaceSqlitePrivate *priv;
-	TrackerDBResultSet *result_set;
+	TrackerDBResultSet *retval;
+	TrackerDBQueryTask *task;
 	sqlite3_stmt *stmt;
 
 	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (db_interface);
@@ -513,10 +597,18 @@ tracker_db_interface_sqlite_execute_query (TrackerDBInterface  *db_interface,
 		return NULL;
 	}
 
-	result_set = create_result_set_from_stmt (TRACKER_DB_INTERFACE_SQLITE (db_interface), stmt, error);
+	task = create_db_query_task (stmt, error);
+	g_thread_pool_push (priv->pool, task, NULL);
+	wait_for_db_query_task (task);
+	retval = task->retval;
+	free_db_query_task (task);
+
+	/* This is different? (it's like in the original code before 
+	 * the threadpool) */
 	sqlite3_finalize (stmt);
 
-	return result_set;
+	return retval;
+
 }
 
 static void

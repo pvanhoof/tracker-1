@@ -1189,8 +1189,6 @@ process_files (Tracker *tracker)
 
                 tracker_db_set_option_int (db_con, "InitialIndex", 0);
                 
-                tracker->update_count = 0;
-                
                 tracker_log ("Updating database stats, please wait...");
                 
                 tracker_db_interface_start_transaction (db_con->db);

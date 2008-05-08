@@ -62,6 +62,53 @@
 #include "mingw-compat.h"
 #endif
 
+/*
+ *   The workflow to process files and notified file change events are
+ *   as follows: 
+ *
+ *   1) File scan or file notification change (as reported by
+ *   FAM/iNotify).  
+
+ *   2) File Scheduler (we wait until a file's changes have stabilised
+ *   (NB not neccesary with inotify)) 
+
+ *   3) We process a file's basic metadata (stat) and determine what
+ *   needs doing in a seperate thread. 
+
+ *   4) We extract CPU intensive embedded metadata/text/thumbnail in
+ *   another thread and save changes to the DB 
+ *
+ *
+ *  Three threads are used to fully process a file event. Files or
+ *  events to be processed are placed on asynchronous queues where
+ *  another thread takes over the work. 
+ *
+ *  The main thread is very lightweight and no cpu intensive or heavy
+ *  file I/O (or heavy DB access) is permitted here after
+ *  initialisation of the daemon. This ensures the main thread can
+ *  handle events and DBUS requests in a timely low latency manner. 
+ *
+ *  The File Process thread is for moderate CPU intensive load and I/O
+ *  and involves calls to stat() and simple fast queries on the DB.
+ *  The main thread queues files to be processed by this thread via
+ *  the file_process async queue. As no heavily CPU intensive activity
+ *  occurs here, we can quickly keep the DB representation of the
+ *  watched file system up to date. Once a file has been processed
+ *  here it is then placed on the file metadata queue which is handled
+ *  by the File Metadata thread. 
+ *
+ *  The File Metadata thread is a low priority thread to handle the
+ *  highly CPU intensive parts. During this phase, embedded metadata
+ *  is extracted from files and if a text filter and/or thumbnailer is
+ *  available for the mime type of the file then these will be spawned
+ *  synchronously. Finally all metadata (including file's text
+ *  contents and path to thumbnails) is saved to the DB. 
+ *
+ *  All responses including user initiated requests are queued by the
+ *  main thread onto an asynchronous queue where potentially multiple
+ *  threads are waiting to process them. 
+ */
+
 #define ABOUT								  \
 	"Tracker " VERSION "\n"						  \
 	"Copyright (c) 2005-2008 Jamie McCracken (jamiemcc@gnome.org)\n" 
@@ -73,105 +120,76 @@
         "\n"							          \
 	"  http://www.gnu.org/licenses/gpl.txt\n" 
 
-typedef struct {
-	gchar	*uri;
-	gint	mtime;
-} IndexDir;
+/* Public */
+Tracker	             *tracker;
+DBConnection         *main_thread_db_con;
+DBConnection         *main_thread_cache_con;
 
-Tracker		       *tracker;
-DBConnection	       *main_thread_db_con;
-DBConnection	       *main_thread_cache_con;
+static GMainLoop     *main_loop;
 
+static gchar        **no_watch_dirs;
+static gchar        **watch_dirs;
+static gchar        **crawl_dirs;
+static gchar         *language;
+static gboolean       disable_indexing;
+static gboolean       reindex;
+static gboolean       fatal_errors;
+static gboolean       low_memory;
+static gint           throttle = -1;
+static gint           verbosity;
+static gint           initial_sleep = -1; 
 
-/*
- *   The workflow to process files and notified file change events are as follows:
- *
- *   1) File scan or file notification change (as reported by FAM/iNotify).
- *   2) File Scheduler (we wait until a file's changes have stabilised (NB not neccesary with inotify))
- *   3) We process a file's basic metadata (stat) and determine what needs doing in a seperate thread.
- *   4) We extract CPU intensive embedded metadata/text/thumbnail in another thread and save changes to the DB
- *
- *
- *  Three threads are used to fully process a file event. Files or events to be processed are placed on
- *  asynchronous queues where another thread takes over the work.
- *
- *  The main thread is very lightweight and no cpu intensive or heavy file I/O (or heavy DB access) is permitted
- *  here after initialisation of the daemon. This ensures the main thread can handle events and DBUS
- *  requests in a timely low latency manner.
- *
- *  The File Process thread is for moderate CPU intensive load and I/O and involves calls to stat()
- *  and simple fast queries on the DB. The main thread queues files to be processed by this thread
- *  via the file_process async queue. As no heavily CPU intensive activity occurs here, we can quickly
- *  keep the DB representation of the watched file system up to date. Once a file has been processed
- *  here it is then placed on the file metadata queue which is handled by the File Metadata thread.
- *
- *  The File Metadata thread is a low priority thread to handle the highly CPU intensive parts.
- *  During this phase, embedded metadata is extracted from files and if a text filter and/or
- *  thumbnailer is available for the mime type of the file then these will be spawned synchronously.
- *  Finally all metadata (including file's text contents and path to thumbnails) is saved to the DB.
- *
- *  All responses including user initiated requests are queued by the main thread onto an
- *  asynchronous queue where potentially multiple threads are waiting to process them.
- */
-
-
-static gchar **no_watch_dirs = NULL;
-static gchar **watch_dirs = NULL;
-static gchar **crawl_dirs = NULL;
-static gchar *language = NULL;
-static gboolean disable_indexing = FALSE;
-static gboolean reindex = FALSE;
-static gboolean fatal_errors = FALSE;
-static gboolean low_memory;
-static gint throttle = -1;
-static gint verbosity = 0;
-static gint initial_sleep = -1; /* >= 0 is valid and will be set */
-
-static GOptionEntry entries[] = {
-	{"exclude-dir", 'e', 0, G_OPTION_ARG_STRING_ARRAY, &no_watch_dirs, N_("Directory to exclude from indexing"), N_("/PATH/DIR")},
-	{"include-dir", 'i', 0, G_OPTION_ARG_STRING_ARRAY, &watch_dirs, N_("Directory to include in indexing"), N_("/PATH/DIR")},
-	{"crawl-dir", 'c', 0, G_OPTION_ARG_STRING_ARRAY, &crawl_dirs, N_("Directory to crawl for indexing at start up only"), N_("/PATH/DIR")},
-	{"no-indexing", 'n', 0, G_OPTION_ARG_NONE, &disable_indexing, N_("Disable any indexing or watching taking place"), NULL },
-	{"verbosity", 'v', 0, G_OPTION_ARG_INT, &verbosity, N_("Value that controls the level of logging. Valid values are 0 (displays/logs only errors), 1 (minimal), 2 (detailed), and 3 (debug)"), N_("VALUE") },
-	{"throttle", 't', 0, G_OPTION_ARG_INT, &throttle, N_("Value to use for throttling indexing. Value must be in range 0-99 (default 0) with lower values increasing indexing speed"), N_("VALUE") },
-	{"low-memory", 'm', 0, G_OPTION_ARG_NONE, &low_memory, N_("Minimizes the use of memory but may slow indexing down"), NULL },
-	{"initial-sleep", 's', 0, G_OPTION_ARG_INT, &initial_sleep, N_("Initial sleep time, just before indexing, in seconds"), NULL },
-	{"language", 'l', 0, G_OPTION_ARG_STRING, &language, N_("Language to use for stemmer and stop words list (ISO 639-1 2 characters code)"), N_("LANG")},
-	{"reindex", 'R', 0, G_OPTION_ARG_NONE, &reindex, N_("Force a re-index of all content"), NULL },
-	{"fatal-errors", 'f', 0, G_OPTION_ARG_NONE, &fatal_errors, N_("Make tracker errors fatal"), NULL },
-	{NULL}
+static GOptionEntry   entries[] = {
+	{ "exclude-dir", 'e', 0, 
+	  G_OPTION_ARG_STRING_ARRAY, &no_watch_dirs, 
+	  N_("Directory to exclude from indexing"), 
+	  N_("/PATH/DIR") },
+	{ "include-dir", 'i', 0, 
+	  G_OPTION_ARG_STRING_ARRAY, &watch_dirs, 
+	  N_("Directory to include in indexing"), 
+	  N_("/PATH/DIR") },
+	{ "crawl-dir", 'c', 0, 
+	  G_OPTION_ARG_STRING_ARRAY, &crawl_dirs, 
+	  N_("Directory to crawl for indexing at start up only"), 
+	  N_("/PATH/DIR") },
+	{ "no-indexing", 'n', 0, 
+	  G_OPTION_ARG_NONE, &disable_indexing, 
+	  N_("Disable any indexing or watching taking place"), NULL },
+	{ "verbosity", 'v', 0, 
+	  G_OPTION_ARG_INT, &verbosity, 
+	  N_("Value that controls the level of logging. "
+	     "Valid values are 0 (displays/logs only errors), "
+	     "1 (minimal), 2 (detailed), and 3 (debug)"), 
+	  N_("VALUE") },
+	{ "throttle", 't', 0, 
+	  G_OPTION_ARG_INT, &throttle, 
+	  N_("Value to use for throttling indexing. "
+	     "Value must be in range 0-99 (default 0) "
+	     "with lower values increasing indexing speed"), 
+	  N_("VALUE") },
+	{ "low-memory", 'm', 0, 
+	  G_OPTION_ARG_NONE, &low_memory, 
+	  N_("Minimizes the use of memory but may slow indexing down"), 
+	  NULL },
+	{ "initial-sleep", 's', 0, 
+	  G_OPTION_ARG_INT, &initial_sleep, 
+	  N_("Initial sleep time, just before indexing, in seconds"), 
+	  NULL },
+	{ "language", 'l', 0, 
+	  G_OPTION_ARG_STRING, &language, 
+	  N_("Language to use for stemmer and stop words list "
+	     "(ISO 639-1 2 characters code)"), 
+	  N_("LANG")},
+	{ "reindex", 'R', 0, 
+	  G_OPTION_ARG_NONE, &reindex, 
+	  N_("Force a re-index of all content"), 
+	  NULL },
+	{ "fatal-errors", 'f', 0, 
+	  G_OPTION_ARG_NONE, &fatal_errors, 
+	  N_("Make tracker errors fatal"), 
+	  NULL },
+	{ NULL }
 };
-
-
-static gint
-get_update_count (DBConnection *db_con)
-{
-	TrackerDBResultSet *result_set;
-	gchar *str;
-	gint  count = 0;
-
-	result_set = tracker_exec_proc (db_con, "GetUpdateCount", NULL);
-
-	if (result_set) {
-		tracker_db_result_set_get (result_set, 0, &str, -1);
-
-		if (str) {
-			count = atoi (str);
-                }
-
-		g_free (str);
-		g_object_unref (result_set);
-	}
-
-	return count;
-}
-
-gboolean
-tracker_die (void)
-{
-	tracker_error ("trackerd has failed to exit on time - terminating...");
-	exit (EXIT_FAILURE);
-}
 
 static void
 free_file_change_queue (gpointer data, gpointer user_data)
@@ -181,152 +199,40 @@ free_file_change_queue (gpointer data, gpointer user_data)
 }
 
 static void
-reset_blacklist_file (char *uri)
+reset_blacklist_file (gchar *uri)
 {
+	gchar *dirname;
+	gchar *dirname_parent;
+	gchar *basename;
 
-	char *parent = g_path_get_dirname (uri);
-	if (!parent) return;
-
-	char *parent_name = g_path_get_basename (parent);
-	if (!parent_name) return;
-
-	char *parent_path = g_path_get_dirname (parent);
-	if (!parent_path) return;	
-
-	tracker_log ("resetting black list file %s", uri);
-
-	/* reset mtime on parent folder of all outstanding black list files so they get indexed when next restarted */
-	tracker_exec_proc (main_thread_db_con, "UpdateFileMTime", "0", parent_path, parent_name, NULL);
-
-	g_free (parent);
-	g_free (parent_name);
-	g_free (parent_path);		 
-
-
-}
-
-gboolean
-tracker_do_cleanup (const gchar *sig_msg)
-{
-        GSList *black_list;
-
-	tracker->shutdown = TRUE;
-
-	tracker_status_set (TRACKER_STATUS_SHUTDOWN);
-
-	if (sig_msg) {
-		tracker_log ("Received signal '%s' so now shutting down", sig_msg);
+	dirname = g_path_get_dirname (uri);
+	if (!dirname) { 
+		return;
 	}
 
-	/* set kill timeout */
-	g_timeout_add_full (G_PRIORITY_LOW,
-	     		    20000,
- 	    		    (GSourceFunc) tracker_die,
-	     		    NULL, NULL
-	   		    );
-
-
-	/* stop threads from further processing of events if possible */
-
-	//set_update_count (main_thread_db_con, tracker->update_count);
-
-	/* wait for files thread to sleep */
-	while (!g_mutex_trylock (tracker->files_signal_mutex)) {
-		g_usleep (100);
+	basename = g_path_get_basename (dirname);
+	if (!basename) {
+		return;
 	}
 
-	g_mutex_unlock (tracker->files_signal_mutex);
-
-	while (!g_mutex_trylock (tracker->metadata_signal_mutex)) {
-		g_usleep (100);
+	dirname_parent = g_path_get_dirname (dirname);
+	if (!dirname_parent) {
+		return;	
 	}
 
-	g_mutex_unlock (tracker->metadata_signal_mutex);
+	tracker_log ("Resetting black list file:'%s'", uri);
 
-	tracker_log ("Shutting down threads");
+	/* Reset mtime on parent folder of all outstanding black list
+	 * files so they get indexed when next restarted 
+	 */
+	tracker_exec_proc (main_thread_db_con, 
+			   "UpdateFileMTime", "0", 
+			   dirname_parent, basename, 
+			   NULL);
 
-	/* send signals to each thread to wake them up and then stop them */
-	g_mutex_lock (tracker->metadata_signal_mutex);
-	g_cond_signal (tracker->metadata_signal_cond);
-	g_mutex_unlock (tracker->metadata_signal_mutex);
-
-	g_mutex_unlock (tracker->files_check_mutex);
-
-	g_mutex_lock (tracker->files_signal_mutex);
-	g_cond_signal (tracker->files_signal_cond);
-	g_mutex_unlock (tracker->files_signal_mutex);
-
-	/* wait for threads to exit and unlock check mutexes to prevent any deadlocks*/
-
-	g_mutex_unlock (tracker->metadata_check_mutex);
-
-	g_mutex_unlock (tracker->files_check_mutex);
-
-	tracker_indexer_close (tracker->file_index);
-	tracker_indexer_close (tracker->file_update_index);
-	tracker_indexer_close (tracker->email_index);
-
-	tracker_email_end_email_watching ();
-
-	/* reset integrity status as threads have closed cleanly */
-	tracker_db_set_option_int (main_thread_db_con, "IntegrityCheck", 0);
-
-
-	/* reset black list files */
-        black_list = tracker_process_files_get_temp_black_list ();
-	g_slist_foreach (black_list,
-                         (GFunc) reset_blacklist_file, 
-                         NULL);
-        g_slist_free (black_list);
-
-	tracker_db_close (main_thread_db_con);
-
-	/* This must be called after all other db functions */
-	tracker_db_finalize ();
-
-
-	if (tracker->reindex) {
-		tracker_dir_remove (tracker->data_dir);
-		g_mkdir_with_parents (tracker->data_dir, 00755);
-	}
-
-        if (tracker->hal) {
-                g_object_unref (tracker->hal);
-                tracker->hal = NULL;
-        }
-
-	tracker_debug ("Shutting down main thread");
-
-	tracker_log_term ();
-
-	tracker_nfs_lock_term ();
-
-	/* remove sys tmp directory */
-	if (tracker->sys_tmp_root_dir) {
-		tracker_dir_remove (tracker->sys_tmp_root_dir);
-	}
-
-	/* remove file change queue */
-	if (tracker->file_change_queue) {
-		g_queue_foreach (tracker->file_change_queue,
-				 free_file_change_queue, NULL);
-		g_queue_free (tracker->file_change_queue);
-		tracker->file_change_queue = NULL;
-	}
-
-        if (tracker->language) {
-                tracker_language_free (tracker->language);
-        }
-
-        if (tracker->config) {
-                g_object_unref (tracker->config);
-        }
-
-	g_main_loop_quit (tracker->loop);
-
-	exit (EXIT_SUCCESS);
-
-	return FALSE;
+	g_free (basename);
+	g_free (dirname_parent);
+	g_free (dirname);
 }
 
 static void
@@ -334,87 +240,40 @@ signal_handler (gint signo)
 {
 	static gboolean in_loop = FALSE;
 
-  	/* die if we get re-entrant signals handler calls */
+  	/* Die if we get re-entrant signals handler calls */
 	if (in_loop) {
 		exit (EXIT_FAILURE);
 	}
-
+	
   	switch (signo) {
-
-  		case SIGSEGV:
-
-			/* we are screwed if we get this so exit immediately! */
-			exit (EXIT_FAILURE);
-
-	  	case SIGBUS:
-		case SIGILL:
-  		case SIGFPE:
-  		case SIGPIPE:
-		case SIGABRT:
-		case SIGTERM:
-		case SIGINT:
-
-		  	in_loop = TRUE;
-
-			tracker->is_running = FALSE;
-			tracker_end_watching ();
-
-			g_timeout_add_full (G_PRIORITY_LOW,
-			     		    1,
-		 	    		    (GSourceFunc) tracker_do_cleanup,
-			     		    g_strdup (g_strsignal (signo)), NULL
-			   		    );
-
-
-			default:
-			if (g_strsignal (signo)) {
-	   			tracker_log ("Received signal %s ", g_strsignal (signo));
+	case SIGSEGV:
+		/* We are screwed if we get this so exit immediately! */
+		exit (EXIT_FAILURE);
+		
+	case SIGBUS:
+	case SIGILL:
+	case SIGFPE:
+	case SIGPIPE:
+	case SIGABRT:
+	case SIGTERM:
+	case SIGINT:
+		in_loop = TRUE;
+		
+		tracker->is_running = FALSE;
+		tracker_end_watching ();
+		
+		g_timeout_add_full (G_PRIORITY_LOW, 1,
+				    (GSourceFunc) tracker_shutdown,
+				    g_strdup (g_strsignal (signo)), NULL);
+		
+	default:
+		if (g_strsignal (signo)) {
+			tracker_log ("Received signal:%d->'%s'", 
+				     signo, 
+				     g_strsignal (signo));
 		}
-			break;
+		break;
 	}
-}
-
-static inline void
-queue_dir (const gchar *uri)
-{
-	TrackerDBFileInfo *info = tracker_db_file_info_new (uri, TRACKER_DB_ACTION_DIRECTORY_CHECK, 0, 0);
-	g_async_queue_push (tracker->file_process_queue, info);
-}
-
-
-static void
-set_defaults (void)
-{
-	tracker->grace_period = 0;
-
-	tracker->reindex = FALSE;
-	tracker->in_merge = FALSE;
-
-	tracker->index_status = INDEX_CONFIG;
-
-	tracker->black_list_timer_active = FALSE;	
-
-	tracker->pause_manual = FALSE;
-	tracker->pause_battery = FALSE;
-	tracker->pause_io = FALSE;
-
-	tracker->use_nfs_safe_locking = FALSE;
-
-	tracker->watch_limit = 0;
-	tracker->index_count = 0;
-	tracker->update_count = 0;
-
-	tracker->max_process_queue_size = MAX_PROCESS_QUEUE_SIZE;
-	tracker->max_extract_queue_size = MAX_EXTRACT_QUEUE_SIZE;
-
-	tracker->index_number_min_length = 6;
-
-	tracker->services_dir = g_build_filename (SHAREDIR, "tracker", "services", NULL);
-
-	tracker->folders_count = 0;
-	tracker->folders_processed = 0;
-	tracker->mbox_count = 0;
-	tracker->folders_processed = 0;
 }
 
 static void
@@ -511,54 +370,364 @@ sanity_check_option_values (void)
 static void
 create_index (gboolean need_data)
 {
+	DBConnection *db_con;
+	
 	tracker->first_time_index = TRUE;
 
-	/* create files db and emails db */
-	DBConnection *db_con_tmp = tracker_db_connect ();
+	/* Create files db and emails db */
+	db_con = tracker_db_connect ();
 
-	/* reset stats for embedded services if they are being reindexed */
+	/* Reset stats for embedded services if they are being reindexed */
 	if (!need_data) {
 		tracker_log ("*** DELETING STATS *** ");
-		tracker_db_exec_no_reply (db_con_tmp, "update ServiceTypes set TypeCount = 0 where Embedded = 1");
+		tracker_db_exec_no_reply (db_con, 
+					  "update ServiceTypes set TypeCount = 0 where Embedded = 1");
 	}
 
-	tracker_db_close (db_con_tmp);
-	g_free (db_con_tmp);
+	tracker_db_close (db_con);
+	g_free (db_con);
 
-	/* create databases */
+	/* Create databases */
+	db_con = tracker_db_connect_file_content ();
+	tracker_db_close (db_con);
+	g_free (db_con);
 
-	db_con_tmp = tracker_db_connect_file_content ();
-	tracker_db_close (db_con_tmp);
-	g_free (db_con_tmp);
+	db_con = tracker_db_connect_email_content ();
+	tracker_db_close (db_con);
+	g_free (db_con);
 
-	db_con_tmp = tracker_db_connect_email_content ();
-	tracker_db_close (db_con_tmp);
-	g_free (db_con_tmp);
+	db_con = tracker_db_connect_emails ();
+	tracker_db_close (db_con);
+	g_free (db_con);
 
-	db_con_tmp = tracker_db_connect_emails ();
-	tracker_db_close (db_con_tmp);
-	g_free (db_con_tmp);
+}
 
+static void
+initialise_signal_handler (void)
+{
+#ifndef OS_WIN32
+  	struct sigaction   act;
+	sigset_t 	   empty_mask;
+
+	sigemptyset (&empty_mask);
+	act.sa_handler = signal_handler;
+	act.sa_mask    = empty_mask;
+	act.sa_flags   = 0;
+
+	sigaction (SIGTERM, &act, NULL);
+	sigaction (SIGILL,  &act, NULL);
+	sigaction (SIGBUS,  &act, NULL);
+	sigaction (SIGFPE,  &act, NULL);
+	sigaction (SIGHUP,  &act, NULL);
+	sigaction (SIGSEGV, &act, NULL);
+	sigaction (SIGABRT, &act, NULL);
+	sigaction (SIGUSR1, &act, NULL);
+	sigaction (SIGINT,  &act, NULL);
+#endif
+}
+
+static void
+initialise_directories (void)
+{
+	gchar *str;
+	gchar *filename;
+
+	str = g_strdup_printf ("Tracker-%s.%d", g_get_user_name (), getpid ());
+	tracker->sys_tmp_root_dir = g_build_filename (g_get_tmp_dir (), str, NULL);
+	g_free (str);
+
+	tracker->root_dir = g_build_filename (g_get_user_data_dir (), "tracker", NULL);
+	tracker->data_dir = g_build_filename (g_get_user_cache_dir (), "tracker", NULL);
+	tracker->config_dir = g_strdup (g_get_user_config_dir ());
+	tracker->user_data_dir = g_build_filename (tracker->root_dir, "data", NULL);
+	tracker->xesam_dir = g_build_filename (g_get_home_dir (), ".xesam", NULL);
+
+	/* Remove an existing one */
+	if (g_file_test (tracker->sys_tmp_root_dir, G_FILE_TEST_EXISTS)) {
+		tracker_dir_remove (tracker->sys_tmp_root_dir);
+	}
+
+	/* Remove old tracker dirs */
+        filename = g_build_filename (g_get_home_dir (), ".Tracker", NULL);
+
+	if (g_file_test (filename, G_FILE_TEST_EXISTS)) {
+		tracker_dir_remove (filename);
+	}
+
+	g_free (filename);
+
+        /* Create other directories we need */
+	if (!g_file_test (tracker->user_data_dir, G_FILE_TEST_EXISTS)) {
+		g_mkdir_with_parents (tracker->user_data_dir, 00755);
+	}
+
+	if (!g_file_test (tracker->data_dir, G_FILE_TEST_EXISTS)) {
+		g_mkdir_with_parents (tracker->data_dir, 00755);
+	}
+
+        tracker->email_attachements_dir = g_build_filename (tracker->sys_tmp_root_dir, "Attachments", NULL);
+	g_mkdir_with_parents (tracker->email_attachements_dir, 00700);
+
+	/* Remove existing log files */
+	tracker->log_filename = g_build_filename (tracker->root_dir, "tracker.log", NULL);
+	tracker_file_unlink (tracker->log_filename);
+}
+
+static void
+initialise_threading (void)
+{
+	tracker->files_check_mutex = g_mutex_new ();
+	tracker->files_signal_mutex = g_mutex_new ();
+	tracker->files_signal_cond = g_cond_new ();
+
+	tracker->metadata_check_mutex = g_mutex_new ();
+	tracker->metadata_signal_mutex = g_mutex_new ();
+	tracker->metadata_signal_cond = g_cond_new ();
+}
+
+static void
+initialise_defaults (void)
+{
+	tracker->grace_period = 0;
+
+	tracker->reindex = FALSE;
+	tracker->in_merge = FALSE;
+
+	tracker->index_status = INDEX_CONFIG;
+
+	tracker->black_list_timer_active = FALSE;	
+
+	tracker->pause_manual = FALSE;
+	tracker->pause_battery = FALSE;
+	tracker->pause_io = FALSE;
+
+	tracker->use_nfs_safe_locking = FALSE;
+
+	tracker->watch_limit = 0;
+	tracker->index_count = 0;
+
+	tracker->max_process_queue_size = MAX_PROCESS_QUEUE_SIZE;
+	tracker->max_extract_queue_size = MAX_EXTRACT_QUEUE_SIZE;
+
+	tracker->index_number_min_length = 6;
+
+	tracker->services_dir = g_build_filename (SHAREDIR, "tracker", "services", NULL);
+
+	tracker->folders_count = 0;
+	tracker->folders_processed = 0;
+	tracker->mbox_count = 0;
+	tracker->folders_processed = 0;
+}
+
+static void
+initialise_databases (gboolean need_index)
+{
+	Indexer      *index;
+	DBConnection *db_con;
+	gchar        *final_index_name;
+	gboolean      need_data;
+	
+	/* FIXME: is this actually necessary? */
+	db_con = tracker_db_connect_cache ();
+	tracker_db_close (db_con);
+
+	need_data = tracker_db_needs_data ();
+
+	if (need_data) {
+		tracker_create_common_db ();
+	}
+
+	if (!tracker->readonly && need_index) {
+		create_index (need_data);
+	} else {
+		tracker->first_time_index = FALSE;
+	}
+
+        /* Set up main database connection */
+	db_con = tracker_db_connect ();
+
+	/* Check db integrity if not previously shut down cleanly */
+	if (!tracker->readonly && 
+	    !need_index && 
+	    tracker_db_get_option_int (db_con, "IntegrityCheck") == 1) {
+		tracker_log ("Performing integrity check as the daemon was not shutdown cleanly");
+		/* FIXME: Finish */
+	} 
+
+	if (!tracker->readonly) {
+		tracker_db_set_option_int (db_con, "IntegrityCheck", 1);
+	} 
+
+	if (tracker->first_time_index) {
+		tracker_db_set_option_int (db_con, "InitialIndex", 1);
+	}
+
+	/* Create connections */
+	db_con->cache = tracker_db_connect_cache ();
+	db_con->common = tracker_db_connect_common ();
+
+	main_thread_db_con = db_con;
+	
+	/* Move final file to index file if present and no files left
+	 * to merge.
+	 */
+	final_index_name = g_build_filename (tracker->data_dir, 
+					     "file-index-final", 
+					     NULL);
+	
+	if (g_file_test (final_index_name, G_FILE_TEST_EXISTS) && 
+	    !tracker_indexer_has_tmp_merge_files (INDEX_TYPE_FILES)) {
+		gchar *file_index_name;
+
+		file_index_name = g_build_filename (tracker->data_dir, 
+						    TRACKER_INDEXER_FILE_INDEX_DB_FILENAME, 
+						    NULL);
+	
+		tracker_log ("Overwriting '%s' with '%s'", 
+			     file_index_name, 
+			     final_index_name);	
+		rename (final_index_name, file_index_name);
+		g_free (file_index_name);
+	}
+	
+	g_free (final_index_name);
+	
+	final_index_name = g_build_filename (tracker->data_dir, 
+					     "email-index-final", 
+					     NULL);
+	
+	if (g_file_test (final_index_name, G_FILE_TEST_EXISTS) && 
+	    !tracker_indexer_has_tmp_merge_files (INDEX_TYPE_EMAILS)) {
+		gchar *file_index_name;
+
+		file_index_name = g_build_filename (tracker->data_dir, 
+						    TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME, 
+						    NULL);
+	
+		tracker_log ("Overwriting '%s' with '%s'", 
+			     file_index_name, 
+			     final_index_name);	
+		rename (final_index_name, file_index_name);
+		g_free (file_index_name);
+	}
+	
+	g_free (final_index_name);
+
+	/* Create indexers */
+	index = tracker_indexer_open (TRACKER_INDEXER_FILE_INDEX_DB_FILENAME, TRUE);
+	tracker->file_index = index;
+
+	index = tracker_indexer_open (TRACKER_INDEXER_FILE_UPDATE_INDEX_DB_FILENAME, FALSE);
+	tracker->file_update_index = index;
+
+	index = tracker_indexer_open (TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME, TRUE);
+	tracker->email_index = index;
+
+	db_con->word_index = tracker->file_index;
+
+	tracker_db_get_static_data (db_con);
+
+	tracker->file_metadata_queue = g_async_queue_new ();
+
+	if (!tracker->readonly) {
+		tracker->file_process_queue = g_async_queue_new ();
+	}
+}
+
+static gboolean 
+shutdown_timeout_cb (gpointer user_data)
+{
+	tracker_error ("Could not exit in a timely fashion - terminating...");
+	exit (EXIT_FAILURE);
+
+	return FALSE;
+}
+
+static void
+shutdown_threads (void)
+{
+	tracker_log ("Shutting down threads");
+
+	/* Wait for files thread to sleep */
+	while (!g_mutex_trylock (tracker->files_signal_mutex)) {
+		g_usleep (100);
+	}
+
+	g_mutex_unlock (tracker->files_signal_mutex);
+
+	while (!g_mutex_trylock (tracker->metadata_signal_mutex)) {
+		g_usleep (100);
+	}
+
+	g_mutex_unlock (tracker->metadata_signal_mutex);
+
+	/* Send signals to each thread to wake them up and then stop
+	 * them.
+	 */
+	g_mutex_lock (tracker->metadata_signal_mutex);
+	g_cond_signal (tracker->metadata_signal_cond);
+	g_mutex_unlock (tracker->metadata_signal_mutex);
+
+	g_mutex_unlock (tracker->files_check_mutex);
+
+	g_mutex_lock (tracker->files_signal_mutex);
+	g_cond_signal (tracker->files_signal_cond);
+	g_mutex_unlock (tracker->files_signal_mutex);
+
+	/* Wait for threads to exit and unlock check mutexes to
+	 * prevent any deadlocks 
+	 */
+	g_mutex_unlock (tracker->metadata_check_mutex);
+	g_mutex_unlock (tracker->files_check_mutex);
+}
+
+static void
+shutdown_indexer (void)
+{
+	tracker_indexer_close (tracker->file_index);
+	tracker_indexer_close (tracker->file_update_index);
+	tracker_indexer_close (tracker->email_index);
+
+	tracker_email_end_email_watching ();
+}
+
+static void
+shutdown_databases (void)
+{
+	/* Reset integrity status as threads have closed cleanly */
+	tracker_db_set_option_int (main_thread_db_con, "IntegrityCheck", 0);
+
+	tracker_db_close (main_thread_db_con);
+
+	/* This must be called after all other db functions */
+	tracker_db_finalize ();
+}
+
+static void
+shutdown_directories (void)
+{
+	/* If we are reindexing, just remove the databases */
+	if (tracker->reindex) {
+		tracker_dir_remove (tracker->data_dir);
+		g_mkdir_with_parents (tracker->data_dir, 00755);
+	}
+
+	/* Remove sys tmp directory */
+	if (tracker->sys_tmp_root_dir) {
+		tracker_dir_remove (tracker->sys_tmp_root_dir);
+	}
 }
 
 gint
 main (gint argc, gchar *argv[])
 {
-	gint               lfp;
-#ifndef OS_WIN32
-  	struct sigaction   act;
-	sigset_t 	   empty_mask;
-#endif
-	gchar 		  *lock_file, *str, *lock_str;
-	GOptionContext    *context = NULL;
-	GError            *error = NULL;
-	gchar             *example;
-	gboolean 	   need_index = FALSE;
-        gboolean           need_data;
-	DBConnection      *db_con;
-	gchar             *tmp_dir;
-	gchar             *old_tracker_dir;
-	gchar             *log_filename;
+	GOptionContext *context = NULL;
+	GError         *error = NULL;
+	GSList         *l;
+	gint            lfp;
+	gchar          *lock_file, *str, *lock_str;
+	gchar          *example;
+	gboolean        need_index = FALSE;
 
         g_type_init ();
         
@@ -573,14 +742,17 @@ main (gint argc, gchar *argv[])
         bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
         textdomain (GETTEXT_PACKAGE);
 
-	/* set timezone info */
+	/* Set timezone info */
 	tzset ();
 
-        /* Translators: this messagge will apper immediately after the  */
-        /* usage string - Usage: COMMAND <THIS_MESSAGE>     */
+        /* Translators: this messagge will apper immediately after the
+	 * usage string - Usage: COMMAND <THIS_MESSAGE> 
+	 */
 	context = g_option_context_new (_("- start the tracker daemon"));
-        example = g_strconcat ("-i ", _("DIRECTORY"), " -i ", _("DIRECTORY"),
-			       " -e ", _("DIRECTORY"), " -e ", _("DIRECTORY"),
+        example = g_strconcat ("-i ", _("DIRECTORY"), 
+			       " -i ", _("DIRECTORY"),
+			       " -e ", _("DIRECTORY"), 
+			       " -e ", _("DIRECTORY"),
 			       NULL);
 
 #ifdef HAVE_RECENT_GLIB
@@ -591,7 +763,8 @@ main (gint argc, gchar *argv[])
                                                     "at the same time, join multiple options like:"),
 
                                                   "\n\n\t",
-                                                  example, NULL));
+                                                  example, 
+						  NULL));
 
 #endif /* HAVE_RECENT_GLIB */
 
@@ -601,98 +774,44 @@ main (gint argc, gchar *argv[])
 	g_option_context_free (context);
 	g_free (example);
 
+	if (error) {
+		g_printerr ("Invalid arguments, %s\n", error->message);
+		g_clear_error (&error);
+		return EXIT_FAILURE;
+	}
+
+	/* Print information */
 	g_print ("\n" ABOUT "\n" LICENSE "\n");
 	g_print ("Initialising tracker...\n");
 
-#ifndef OS_WIN32
-	/* trap signals */
-	sigemptyset (&empty_mask);
-	act.sa_handler = signal_handler;
-	act.sa_mask    = empty_mask;
-	act.sa_flags   = 0;
-	sigaction (SIGTERM, &act, NULL);
-	sigaction (SIGILL,  &act, NULL);
-	sigaction (SIGBUS,  &act, NULL);
-	sigaction (SIGFPE,  &act, NULL);
-	sigaction (SIGHUP,  &act, NULL);
-	sigaction (SIGSEGV, &act, NULL);
-	sigaction (SIGABRT, &act, NULL);
-	sigaction (SIGUSR1, &act, NULL);
-	sigaction (SIGINT,  &act, NULL);
-#endif
+	initialise_signal_handler ();
 
 	tracker = g_new0 (Tracker, 1);
 
-	tracker_xesam_init ();
+	tracker->pid = getpid ();
+	tracker->dir_queue = g_async_queue_new ();
 
 	/* Set up directories */
-	tracker->pid = (int) getpid ();
-	tmp_dir = g_strdup_printf ("Tracker-%s.%d", g_get_user_name (), tracker->pid);
-	tracker->sys_tmp_root_dir = g_build_filename (g_get_tmp_dir (), tmp_dir, NULL);
-	g_free (tmp_dir);
+	initialise_directories ();
+	umask (077);
 
-	tracker->root_dir = g_build_filename (g_get_user_data_dir  (), "tracker", NULL);
-	tracker->data_dir = g_build_filename (g_get_user_cache_dir (), "tracker", NULL);
-	tracker->config_dir = g_strdup (g_get_user_config_dir ());
-	tracker->user_data_dir = g_build_filename (tracker->root_dir, "data", NULL);
-	
         /* Set up the config */
         tracker->config = tracker_config_new ();
         tracker->language = tracker_language_new (tracker->config);
 
 	/* Set up the log */
-	log_filename = g_build_filename (tracker->root_dir, "tracker.log", NULL);
-	tracker_file_unlink (log_filename);
-
-	tracker_log_init (log_filename, 
+	tracker_log_init (tracker->log_filename, 
                           tracker_config_get_verbosity (tracker->config), 
                           fatal_errors);
 	tracker_log ("Starting log");
 
+	/* Set up locking */
 	tracker_nfs_lock_init (tracker->root_dir);
+	
+	/* Set up xesam */
+	tracker_xesam_init ();
 
-        /* Set up mutexes and intitial state */
- 	tracker->is_running = FALSE;
-	tracker->shutdown = FALSE;
-
-	tracker->files_check_mutex = g_mutex_new ();
-	tracker->files_signal_mutex = g_mutex_new ();
-	tracker->files_signal_cond = g_cond_new ();
-
-	tracker->metadata_check_mutex = g_mutex_new ();
-	tracker->metadata_signal_mutex = g_mutex_new ();
-	tracker->metadata_signal_cond = g_cond_new ();
-
-	/* Remove an existing one */
-	if (g_file_test (tracker->sys_tmp_root_dir, G_FILE_TEST_EXISTS)) {
-		tracker_dir_remove (tracker->sys_tmp_root_dir);
-	}
-
-	/* Remove old tracker dirs */
-        old_tracker_dir = g_build_filename (g_get_home_dir (), ".Tracker", NULL);
-
-	if (g_file_test (old_tracker_dir ,G_FILE_TEST_EXISTS)) {
-		tracker_dir_remove (old_tracker_dir);
-	}
-
-	g_free (old_tracker_dir);
-
-        /* Create other directories we need */
-	if (!g_file_test (tracker->user_data_dir, G_FILE_TEST_EXISTS)) {
-		g_mkdir_with_parents (tracker->user_data_dir, 00755);
-	}
-
-	if (!g_file_test (tracker->data_dir, G_FILE_TEST_EXISTS)) {
-		g_mkdir_with_parents (tracker->data_dir, 00755);
-	}
-
-        tracker->email_attachements_dir = g_build_filename (tracker->sys_tmp_root_dir, "Attachments", NULL);
-	g_mkdir_with_parents (tracker->email_attachements_dir, 00700);
-	tracker_log ("Made email attachments directory %s\n", tracker->email_attachements_dir);
-
-	tracker->dir_queue = g_async_queue_new ();
-
-	tracker->xesam_dir = g_build_filename (g_get_home_dir (), ".xesam", NULL);
+	initialise_threading ();
 
 	if (reindex || tracker_db_needs_setup ()) {
 		tracker_dir_remove (tracker->data_dir);
@@ -700,37 +819,33 @@ main (gint argc, gchar *argv[])
 		need_index = TRUE;
 	}
 
-	umask (077);
-
 	str = g_strconcat (g_get_user_name (), "_tracker_lock", NULL);
 
-	/* check if setup for NFS usage (and enable atomic NFS safe locking) */
-	//lock_str = tracker_get_config_option ("NFSLocking");
+	/* Check if setup for NFS usage (and enable atomic NFS safe locking) */
 	lock_str = NULL;
 
 	if (lock_str != NULL) {
-
 		tracker->use_nfs_safe_locking = (strcmp (str, "1") == 0);
 
-		/* place lock file in tmp dir to allow multiple sessions on NFS */
+		/* Place lock file in tmp dir to allow multiple
+		 * sessions on NFS.
+		 */
 		lock_file = g_build_filename (tracker->sys_tmp_root_dir, str, NULL);
-
 		g_free (lock_str);
-
 	} else {
-
 		tracker->use_nfs_safe_locking = FALSE;
 
-		/* place lock file in home dir to prevent multiple sessions on NFS (as standard locking might be broken on NFS) */
+		/* Place lock file in home dir to prevent multiple
+		 * sessions on NFS (as standard locking might be
+		 * broken on NFS) 
+		 */
 		lock_file = g_build_filename (tracker->root_dir, str, NULL);
 	}
 
 	g_free (str);
 
-	/* prevent muliple instances  */
-	tracker->readonly = FALSE;
-
-	lfp = g_open (lock_file, O_RDWR|O_CREAT, 0640);
+	/* Prevent muliple instances  */
+	lfp = g_open (lock_file, O_RDWR | O_CREAT, 0640);
 	g_free (lock_file);
 
 	if (lfp < 0) {
@@ -745,25 +860,24 @@ main (gint argc, gchar *argv[])
 
 	/* Set child's niceness to 19 */
         errno = 0;
-        /* nice() uses attribute "warn_unused_result" and so complains if we do not check its
-           returned value. But it seems that since glibc 2.2.4, nice() can return -1 on a
-           successful call so we have to check value of errno too. Stupid... */
+
+        /* nice() uses attribute "warn_unused_result" and so complains
+	 * if we do not check its returned value. But it seems that
+	 * since glibc 2.2.4, nice() can return -1 on a successful
+	 * call so we have to check value of errno too. Stupid... 
+	 */
         if (nice (19) == -1 && errno) {
-                g_printerr ("ERROR: trying to set nice value\n");
+                tracker_log ("Couldn't set nice() value");
         }
 
 #ifdef IOPRIO_SUPPORT
 	ioprio ();
 #endif
 
-	
-	/* deal with config options with defaults, config file and option params */
-	set_defaults ();
-
-	if (error) {
-		g_printerr ("invalid arguments: %s\n", error->message);
-		return 1;
-	}
+	/* Deal with config options with defaults, config file and
+	 * option params.
+	 */
+	initialise_defaults ();
 
 	if (watch_dirs) {
                 tracker_config_add_watch_directory_roots (tracker->config, watch_dirs);
@@ -803,7 +917,7 @@ main (gint argc, gchar *argv[])
 
 	sanity_check_option_values ();
 
-        /* Initialize the service manager */
+        /* Initialise the service manager */
         tracker_service_manager_init ();
 
 	/* Set thread safe DB connection */
@@ -814,118 +928,7 @@ main (gint argc, gchar *argv[])
 		return EXIT_FAILURE;
         }
 
-	/* FIXME: is this actually necessary? */
-	db_con = tracker_db_connect_cache ();
-	tracker_db_close (db_con);
-
-	need_data = tracker_db_needs_data ();
-
-	if (need_data) {
-		tracker_create_common_db ();
-	}
-
-	if (!tracker->readonly && need_index) {
-		create_index (need_data);
-	} else {
-		tracker->first_time_index = FALSE;
-	}
-
-        /* Set up main database connection */
-	db_con = tracker_db_connect ();
-
-	/* check db integrity if not previously shut down cleanly */
-	if (!tracker->readonly && !need_index && tracker_db_get_option_int (db_con, "IntegrityCheck") == 1) {
-
-		tracker_log ("performing integrity check as trackerd was not shutdown cleanly");
-
-
-/*		turn off corruption check as it can hog cpu for long time 
-
-		if (!tracker_db_integrity_check (db_con) || 
-		    !tracker_indexer_repair (TRACKER_INDEXER_FILE_INDEX_DB_FILENAME) || 
-		    !tracker_indexer_repair (TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME)) {
-			tracker_error ("db or index corruption detected - prepare for reindex...");
-			tracker_db_close (db_con);	
-
-			tracker_dir_remove (tracker->data_dir);
-			g_mkdir_with_parents (tracker->data_dir, 00755);
-			create_index (need_data);
-			db_con = tracker_db_connect ();
-			db_con->thread = "main";
-
-		}
-*/
-	} 
-
-	
-	if (!tracker->readonly) {
-		tracker_db_set_option_int (db_con, "IntegrityCheck", 1);
-	} 
-
-	if (tracker->first_time_index) {
-		tracker_db_set_option_int (db_con, "InitialIndex", 1);
-	}
-
-	db_con->cache = tracker_db_connect_cache ();
-	db_con->common = tracker_db_connect_common ();
-
-	main_thread_db_con = db_con;
-	
-	/* move final file to index file if present and no files left to merge */
-	char *final_index_name = g_build_filename (tracker->data_dir, "file-index-final", NULL);
-	
-	if (g_file_test (final_index_name, G_FILE_TEST_EXISTS) && !tracker_indexer_has_tmp_merge_files (INDEX_TYPE_FILES)) {
-	
-		char *file_index_name = g_build_filename (tracker->data_dir, TRACKER_INDEXER_FILE_INDEX_DB_FILENAME, NULL);
-	
-		tracker_log ("overwriting %s with %s", file_index_name, final_index_name);	
-
-		rename (final_index_name, file_index_name);
-		
-		g_free (file_index_name);
-	}
-	
-	g_free (final_index_name);
-	
-	final_index_name = g_build_filename (tracker->data_dir, "email-index-final", NULL);
-	
-	if (g_file_test (final_index_name, G_FILE_TEST_EXISTS) && !tracker_indexer_has_tmp_merge_files (INDEX_TYPE_EMAILS)) {
-	
-		char *file_index_name = g_build_filename (tracker->data_dir, TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME, NULL);
-	
-		tracker_log ("overwriting %s with %s", file_index_name, final_index_name);	
-	
-		rename (final_index_name, file_index_name);
-		
-		g_free (file_index_name);
-	}
-	
-	g_free (final_index_name);
-	
-	
-
-	Indexer *index = tracker_indexer_open (TRACKER_INDEXER_FILE_INDEX_DB_FILENAME, TRUE);
-	tracker->file_index = index;
-
-	index = tracker_indexer_open (TRACKER_INDEXER_FILE_UPDATE_INDEX_DB_FILENAME, FALSE);
-	tracker->file_update_index = index;
-
-	index = tracker_indexer_open (TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME, TRUE);
-	tracker->email_index = index;
-
-	db_con->word_index = tracker->file_index;
-
-	tracker->update_count = get_update_count (main_thread_db_con);
-
-	tracker_db_get_static_data (db_con);
-
-	tracker->file_metadata_queue = g_async_queue_new ();
-
-	if (!tracker->readonly) {
-		tracker->file_process_queue = g_async_queue_new ();
-	}
-
-  	tracker->loop = g_main_loop_new (NULL, FALSE);
+	initialise_databases (need_index);
 
 	tracker_email_init ();
 
@@ -934,9 +937,12 @@ main (gint argc, gchar *argv[])
  	tracker->hal = tracker_hal_new ();       
 #endif
 
-	/* this var is used to tell the threads when to quit */
+	/* Set our status as running, if this is FALSE, threads stop
+	 * doing what they do and shutdown.
+	 */
 	tracker->is_running = TRUE;
 
+	/* Connect to databases */
         tracker->index_db = tracker_db_connect_all ();
 
         /* If we are already running, this should return some
@@ -947,22 +953,76 @@ main (gint argc, gchar *argv[])
         }
 
 	if (!tracker->readonly) {
-		if (!tracker_start_watching ()) {
-			tracker_error ("ERROR: file monitoring failed to start");
-			tracker_do_cleanup ("File watching failure");
-			return EXIT_FAILURE;
+		if (G_UNLIKELY (!tracker_start_watching ())) {
+			tracker->is_running = FALSE;
+			tracker_error ("File monitoring failed to start");
+		} else {
+			g_thread_create_full ((GThreadFunc) tracker_process_files, 
+					      tracker,
+					      (gulong) tracker_config_get_thread_stack_size (tracker->config),
+					      FALSE, 
+					      FALSE, 
+					      G_THREAD_PRIORITY_NORMAL, 
+					      NULL);
 		}
-
-                g_thread_create_full ((GThreadFunc) tracker_process_files, 
-                                      tracker,
-                                      (gulong) tracker_config_get_thread_stack_size (tracker->config),
-                                      FALSE, 
-                                      FALSE, 
-                                      G_THREAD_PRIORITY_NORMAL, 
-                                      NULL);
 	}
 	
-	g_main_loop_run (tracker->loop);
+	if (tracker->is_running) {
+		main_loop = g_main_loop_new (NULL, FALSE);
+		g_main_loop_run (main_loop);
+	}
+
+	/* 
+	 * Shutdown the daemon
+	 */
+	tracker->shutdown = TRUE;
+	tracker_status_set (TRACKER_STATUS_SHUTDOWN);
+
+	/* Reset black list files */
+        l = tracker_process_files_get_temp_black_list ();
+	g_slist_foreach (l, (GFunc) reset_blacklist_file, NULL);
+	g_slist_free (l);
+
+	/* Remove file change queue */
+	if (tracker->file_change_queue) {
+		g_queue_foreach (tracker->file_change_queue,
+				 free_file_change_queue, NULL);
+		g_queue_free (tracker->file_change_queue);
+		tracker->file_change_queue = NULL;
+	}
+
+	/* Set kill timeout */
+	g_timeout_add_full (G_PRIORITY_LOW, 20000, shutdown_timeout_cb, NULL, NULL);
+
+	shutdown_threads ();
+	shutdown_indexer ();
+	shutdown_databases ();
+	shutdown_directories ();
+
+	/* Shutdown major subsystems */
+        if (tracker->hal) {
+                g_object_unref (tracker->hal);
+                tracker->hal = NULL;
+        }
+
+        if (tracker->language) {
+                tracker_language_free (tracker->language);
+        }
+
+        if (tracker->config) {
+                g_object_unref (tracker->config);
+        }
+
+	tracker_nfs_lock_term ();
+	tracker_log_term ();
+
+	/* FIXME: we need to clean up Tracker struct members */
 
 	return EXIT_SUCCESS;
+}
+
+void
+tracker_shutdown (void)
+{
+	g_main_loop_quit (main_loop);
 }

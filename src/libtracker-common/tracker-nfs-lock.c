@@ -79,7 +79,7 @@ tracker_nfs_lock_obtain (void)
 	}
 
         if (!is_initialized()) {
-                tracker_error ("Trying to use NFS Lock. It is NOT initialized\n");
+                tracker_error ("Could not initialise NFS lock");
                 return FALSE;
         }
  
@@ -119,7 +119,7 @@ tracker_nfs_lock_obtain (void)
 	}
 
 error:
-	tracker_error ("ERROR: lock failure");
+	tracker_error ("Could not get NFS lock state");
 	g_free (tmp_file);
 
 	return FALSE;
@@ -135,7 +135,7 @@ tracker_nfs_lock_release (void)
 	}
  
         if (!is_initialized()) {
-                tracker_error ("Trying to use NFS Lock. It is NOT initialized\n");
+                tracker_error ("Could not initialise NFS lock");
                 return;
         }
  
@@ -151,7 +151,7 @@ void
 tracker_nfs_lock_init (const gchar *root_dir)
 {
         if (is_initialized ()) {
-                tracker_error ("Trying to initialize tracker_db_lock for second time");
+		return;
         }
 
         if (lock_file == NULL) {
@@ -162,15 +162,15 @@ tracker_nfs_lock_init (const gchar *root_dir)
                 tmp_filepath = g_build_filename (root_dir, g_get_host_name (), NULL);
         }
 
-        tracker_log ("Initialized NFS lock %s", 
-                     use_nfs_safe_locking ? "" : "(Not in use)");
+        tracker_log ("NFS lock initialised %s", 
+                     use_nfs_safe_locking ? "" : "(safe locking not in use)");
 }
 
 void
 tracker_nfs_lock_term (void)
 {
         if (!is_initialized ()) {
-                tracker_error ("Trying to term tracker_db_lock not initialized");
+		return;
         }
 
         if (lock_file) {
@@ -181,5 +181,5 @@ tracker_nfs_lock_term (void)
                 g_free (tmp_filepath);
         }
 
-        tracker_log ("Tracker db NFS lock finalized");
+        tracker_log ("NFS lock finalised");
 }

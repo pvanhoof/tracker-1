@@ -1,5 +1,19 @@
 2008-05-08  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-nfs-lock.c: Improve logging.
+	
+	* src/trackerd/tracker-dbus-daemon.c: Renamed  _do_cleanup() to
+	_shutdown() and make it ONLY stop the main loop so we clean up
+	every time after the mainloop stops.
+	
+	* src/trackerd/tracker-main.[ch]: Refactored this heavily to make
+	the code start up and shut down flow easier to follow.
+	
+	* src/trackerd/tracker-process-files.c: Removed
+	tracker->update_count since it was redundant.
+
+2008-05-08  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-nfs-lock.[ch]: Cleaned up code to
 	be consistent.
 	

@@ -53,8 +53,6 @@ typedef enum {
 } IndexStatus;
 
 typedef struct {
-	GMainLoop   *loop; 
-
  	gboolean     is_running; 
 	gboolean     readonly;
 
@@ -78,6 +76,8 @@ typedef struct {
         gchar       *email_attachements_dir;
 	gchar       *services_dir;
 	gchar       *xesam_dir;
+
+	gchar       *log_filename;
 
 	/* Performance and memory usage options */
 	gint         max_process_queue_size;
@@ -133,7 +133,6 @@ typedef struct {
 	
 	/* Application run time values */
 	gint         index_count; 
-	gint	     update_count; 
 
 	/* Cache words before saving to word index */
 	GHashTable  *file_word_table;
@@ -159,12 +158,12 @@ typedef struct {
 	GHashTable  *xesam_sessions; 
 } Tracker;
 
+void     tracker_shutdown                   (void);
 GSList * tracker_get_watch_root_dirs        (void);
 gboolean tracker_spawn                      (gchar       **argv,
                                              gint          timeout,
                                              gchar       **tmp_stdout,
                                              gint         *exit_status);
-gboolean tracker_do_cleanup                 (const gchar  *sig_msg);
 gboolean tracker_watch_dir                  (const gchar  *uri);
 void     tracker_scan_directory             (const gchar  *uri);
 

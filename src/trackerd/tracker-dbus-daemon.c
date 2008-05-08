@@ -543,7 +543,7 @@ tracker_dbus_daemon_shutdown (TrackerDBusDaemon  *object,
 
 	priv->tracker->reindex = reindex;
 
-	g_timeout_add (500, (GSourceFunc) tracker_do_cleanup, NULL);
+	g_timeout_add (500, (GSourceFunc) tracker_shutdown, NULL);
 
 	tracker_dbus_request_success (request_id);
 

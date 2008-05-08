@@ -25,6 +25,15 @@
 
 2008-05-08  Philip Van Hoof  <pvanhoof@gnome.org>
 
+	* src/trackerd/tracker-db-sqlite.c:
+	* src/libtracker-db/tracker-db-interface-sqlite.h:
+	* src/libtracker-db/tracker-db-interface-sqlite.c: Corrected the 
+	GThreadQueue to have ALL sqlite_* calls in the same thread. This
+	work needs some refactoring later. Especially the changes in 
+	tracker-db-sqlite.c are not quite the way I eventually want them.
+
+2008-05-08  Philip Van Hoof  <pvanhoof@gnome.org>
+
 	* src/trackerd/tracker-dbus-search.c: Bugfix when the amount of search
 	results was 0
 

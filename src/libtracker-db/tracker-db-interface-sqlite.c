@@ -17,13 +17,32 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#include <sqlite3.h>
 #include "tracker-db-interface-sqlite.h"
 
 #define TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_DB_INTERFACE_SQLITE, TrackerDBInterfaceSqlitePrivate))
 
 typedef struct TrackerDBInterfaceSqlitePrivate TrackerDBInterfaceSqlitePrivate;
 typedef struct SqliteFunctionData SqliteFunctionData;
+
+typedef enum  {
+	QUERY,
+	PROCEDURE,
+	PROCEDURE_LEN
+}TrackerDBQueryType;
+
+typedef struct {
+	GError **error;
+	TrackerDBResultSet *retval;
+	gboolean nowait;
+	va_list args;
+	gchar *query;
+	GObject *iface;
+	TrackerDBQueryType type;
+
+	GCond* condition;
+	gboolean had_callback;
+	GMutex *mutex;
+} TrackerDBQueryTask;
 
 struct TrackerDBInterfaceSqlitePrivate {
 	gchar *filename;
@@ -44,25 +63,15 @@ struct SqliteFunctionData {
 	TrackerDBFunc func;
 };
 
-typedef struct {
-	sqlite3_stmt *stmt;
-	GError **error;
-	TrackerDBResultSet *retval;
-	gboolean nowait;
-
-	GCond* condition;
-	gboolean had_callback;
-	GMutex *mutex;
-} TrackerDBQueryTask;
 
 static void tracker_db_interface_sqlite_iface_init (TrackerDBInterfaceIface *iface);
-static void process_query (gpointer data, gpointer user_data);
 static void free_db_query_task (TrackerDBQueryTask *task);
 
 enum {
 	PROP_0,
 	PROP_FILENAME,
-	PROP_IN_TRANSACTION
+	PROP_IN_TRANSACTION,
+	PROP_POOL
 };
 
 G_DEFINE_TYPE_WITH_CODE (TrackerDBInterfaceSqlite, tracker_db_interface_sqlite, G_TYPE_OBJECT,
@@ -110,6 +119,9 @@ tracker_db_interface_sqlite_set_property (GObject       *object,
 	case PROP_IN_TRANSACTION:
 		priv->in_transaction = g_value_get_boolean (value);
 		break;
+	case PROP_POOL:
+		priv->pool = g_value_get_pointer (value);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 	}
@@ -132,6 +144,9 @@ tracker_db_interface_sqlite_get_property (GObject    *object,
 	case PROP_IN_TRANSACTION:
 		g_value_set_boolean (value, priv->in_transaction);
 		break;
+	case PROP_POOL:
+		g_value_set_pointer (value, priv->pool);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 	}
@@ -143,9 +158,6 @@ tracker_db_interface_sqlite_finalize (GObject *object)
 	TrackerDBInterfaceSqlitePrivate *priv;
 
 	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (object);
-
-	/* This waits for all tasks being finished */
-	g_thread_pool_free (priv->pool, TRUE, TRUE);
 
 	g_free (priv->filename);
 
@@ -182,6 +194,13 @@ tracker_db_interface_sqlite_class_init (TrackerDBInterfaceSqliteClass *class)
 					  PROP_IN_TRANSACTION,
 					  "in-transaction");
 
+	g_object_class_install_property (object_class,
+					 PROP_POOL,
+					 g_param_spec_pointer ("pool",
+							       "DB thread pool",
+							       "Database connection pool",
+							       G_PARAM_WRITABLE|G_PARAM_READABLE));
+
 	g_type_class_add_private (object_class,
 				  sizeof (TrackerDBInterfaceSqlitePrivate));
 }
@@ -193,6 +212,8 @@ tracker_db_interface_sqlite_init (TrackerDBInterfaceSqlite *db_interface)
 
 	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (db_interface);
 
+	priv->pool = NULL;
+
 	priv->procedures = g_hash_table_new_full (g_str_hash, g_str_equal,
 						  (GDestroyNotify) g_free,
 						  (GDestroyNotify) g_free);
@@ -200,8 +221,6 @@ tracker_db_interface_sqlite_init (TrackerDBInterfaceSqlite *db_interface)
 						  (GDestroyNotify) g_free,
 						  (GDestroyNotify) sqlite3_finalize);
 
-	priv->pool = g_thread_pool_new (process_query, db_interface, 
-					1, TRUE, NULL);
 }
 
 static void
@@ -451,38 +470,131 @@ get_stored_stmt (TrackerDBInterfaceSqlite *db_interface,
 }
 
 
-static void 
-process_query (gpointer data, gpointer user_data)
+void 
+tracker_db_interface_sqlite_process_query (gpointer data, gpointer user_data)
 {
+	TrackerDBInterfaceSqlitePrivate *priv;
 	TrackerDBQueryTask *task = (TrackerDBQueryTask *) data;
+	gboolean finalize_stmt = FALSE;
+	sqlite3_stmt *stmt = NULL;
 
-	task->retval = create_result_set_from_stmt (TRACKER_DB_INTERFACE_SQLITE (user_data), 
-		task->stmt, task->error);
+	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (task->iface);
+
+	if (task->type == QUERY) {
+		/* If it's a plain query, no need for argument checking */
+
+		sqlite3_prepare_v2 (priv->db, task->query, -1, &stmt, NULL);
+
+		if (!stmt) {
+			g_set_error (task->error,
+				     TRACKER_DB_INTERFACE_ERROR,
+				     TRACKER_DB_QUERY_ERROR,
+				     sqlite3_errmsg (priv->db));
+
+			goto ending;
+		}
+
+		/* If the stmt was created, we must free it up later, since
+		 * unlike with procedures, we don't cache the stmt */
+
+		finalize_stmt = TRUE;
+
+	} else if (task->type == PROCEDURE_LEN) {
+		/* If it's a procedure called with _len argument passing */
+
+		gint stmt_args, n_args, len;
+		gchar *str;
+
+		stmt = get_stored_stmt (TRACKER_DB_INTERFACE_SQLITE (task->iface), task->query);
+		stmt_args = sqlite3_bind_parameter_count (stmt);
+		n_args = 1;
+
+		while ((str = va_arg (task->args, gchar *)) != NULL) {
+			len = va_arg (task->args, gint);
+
+			if (len == -1) {
+				/* Assume we're dealing with strings */
+				sqlite3_bind_text (stmt, n_args, str, len, SQLITE_STATIC);
+			} else {
+				/* Deal with it as a blob */
+				sqlite3_bind_blob (stmt, n_args, str, len, SQLITE_STATIC);
+			}
+
+			n_args++;
+		}
+
+		/* Just panic if the number of arguments don't match */
+		g_assert (n_args != stmt_args);
+
+	} else {
+		/* If it's a normal procedure with normal argument passing */
+		gchar *str;
+		gint stmt_args, n_args;
+
+		stmt = get_stored_stmt (TRACKER_DB_INTERFACE_SQLITE (task->iface), task->query);
+		stmt_args = sqlite3_bind_parameter_count (stmt);
+		n_args = 1;
+
+		while ((str = va_arg (task->args, gchar *)) != NULL) {
+			sqlite3_bind_text (stmt, n_args, str, -1, SQLITE_STATIC);
+			n_args++;
+		}
+
+		/* Just panic if the number of arguments don't match */
+		g_assert (n_args != stmt_args);
+	}
+
+	/* If any of those three cases, execute the stmt */
+
+	task->retval = create_result_set_from_stmt (
+		TRACKER_DB_INTERFACE_SQLITE (task->iface), 
+		stmt, 
+		task->error);
+
+ending:
 
 	if (!task->nowait) {
+		/* If we are a blocking call, the caller will freeup and 
+		 * might consume the retval */
+
 		g_mutex_lock (task->mutex);
 		g_cond_broadcast (task->condition);
 		task->had_callback = TRUE;
 		g_mutex_unlock (task->mutex);
+
 	} else {
+		/* If not we freeup the retval, of course */
+
 		if (task->retval)
 			g_object_unref (task->retval);
 		free_db_query_task (task);
 	}
+
+	/* In case we were a succeeded query (procedures's stmt are cached) */
+
+	if (finalize_stmt)
+		sqlite3_finalize (stmt);
 }
 
 static TrackerDBQueryTask*
-create_db_query_task (sqlite3_stmt *stmt, GError **error, gboolean nowait)
+create_db_query_task (TrackerDBInterface *iface, const gchar *query, TrackerDBQueryType type, va_list args, GError **error)
 {
 	TrackerDBQueryTask *task = g_slice_new (TrackerDBQueryTask);
 
+	/* GCond infrastructure */
 	task->mutex = g_mutex_new ();
 	task->condition = g_cond_new ();
 	task->had_callback = FALSE;
-	task->nowait = nowait;
 
-	task->stmt = stmt;
+	/* Must set */
 	task->error = error;
+	task->iface = g_object_ref (iface);
+	task->type = type;
+	task->query = g_strdup (query);
+	task->args = args;
+
+	/* Defaults */
+	task->nowait = FALSE;
 
 	return task;
 }
@@ -490,6 +602,8 @@ create_db_query_task (sqlite3_stmt *stmt, GError **error, gboolean nowait)
 static void 
 wait_for_db_query_task (TrackerDBQueryTask *task)
 {
+	/* This simply waits for the GCond to become broadcasted */
+
 	g_mutex_lock (task->mutex);
 	if (!task->had_callback)
 		g_cond_wait (task->condition, task->mutex);
@@ -499,9 +613,12 @@ wait_for_db_query_task (TrackerDBQueryTask *task)
 static void
 free_db_query_task (TrackerDBQueryTask *task)
 {
+	/* Freeing up resources of a db-query-task */
+
+	g_free (task->query);
+	g_object_unref (task->iface);
 	g_mutex_free (task->mutex);
 	g_cond_free (task->condition);
-
 	g_slice_free (TrackerDBQueryTask, task);
 }
 
@@ -512,26 +629,12 @@ tracker_db_interface_sqlite_execute_procedure (TrackerDBInterface  *db_interface
 					       va_list              args)
 {
 	TrackerDBInterfaceSqlitePrivate *priv;
-	sqlite3_stmt *stmt;
-	gint stmt_args, n_args;
-	gchar *str;
 	TrackerDBResultSet *retval;
 	TrackerDBQueryTask *task;
 
 	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (db_interface);
-	stmt = get_stored_stmt (TRACKER_DB_INTERFACE_SQLITE (db_interface), procedure_name);
-	stmt_args = sqlite3_bind_parameter_count (stmt);
-	n_args = 1;
 
-	while ((str = va_arg (args, gchar *)) != NULL) {
-		sqlite3_bind_text (stmt, n_args, str, -1, SQLITE_STATIC);
-		n_args++;
-	}
-
-	/* Just panic if the number of arguments don't match */
-	g_assert (n_args != stmt_args);
-
-	task = create_db_query_task (stmt, error, FALSE);
+	task = create_db_query_task (db_interface, procedure_name, PROCEDURE, args, error);
 	g_thread_pool_push (priv->pool, task, NULL);
 	wait_for_db_query_task (task);
 	retval = task->retval;
@@ -549,25 +652,13 @@ tracker_db_interface_sqlite_execute_procedure_no_reply (TrackerDBInterface  *db_
 							va_list              args)
 {
 	TrackerDBInterfaceSqlitePrivate *priv;
-	sqlite3_stmt *stmt;
-	gint stmt_args, n_args;
-	gchar *str;
 	TrackerDBQueryTask *task;
 
 	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (db_interface);
-	stmt = get_stored_stmt (TRACKER_DB_INTERFACE_SQLITE (db_interface), procedure_name);
-	stmt_args = sqlite3_bind_parameter_count (stmt);
-	n_args = 1;
 
-	while ((str = va_arg (args, gchar *)) != NULL) {
-		sqlite3_bind_text (stmt, n_args, str, -1, SQLITE_STATIC);
-		n_args++;
-	}
+	task = create_db_query_task (db_interface, procedure_name, PROCEDURE, args, error);
+	task->nowait = TRUE;
 
-	/* Just panic if the number of arguments don't match */
-	g_assert (n_args != stmt_args);
-
-	task = create_db_query_task (stmt, error, TRUE);
 	g_thread_pool_push (priv->pool, task, NULL);
 
 	return;
@@ -581,38 +672,18 @@ tracker_db_interface_sqlite_execute_procedure_len (TrackerDBInterface  *db_inter
 						   va_list              args)
 {
 	TrackerDBInterfaceSqlitePrivate *priv;
-	sqlite3_stmt *stmt;
-	gint stmt_args, n_args, len;
-	gchar *str;
 	TrackerDBResultSet *retval;
 	TrackerDBQueryTask *task;
 
 	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (db_interface);
-	stmt = get_stored_stmt (TRACKER_DB_INTERFACE_SQLITE (db_interface), procedure_name);
-	stmt_args = sqlite3_bind_parameter_count (stmt);
-	n_args = 1;
 
-	while ((str = va_arg (args, gchar *)) != NULL) {
-		len = va_arg (args, gint);
+	task = create_db_query_task (db_interface, procedure_name, PROCEDURE_LEN, args, error);
 
-		if (len == -1) {
-			/* Assume we're dealing with strings */
-			sqlite3_bind_text (stmt, n_args, str, len, SQLITE_STATIC);
-		} else {
-			/* Deal with it as a blob */
-			sqlite3_bind_blob (stmt, n_args, str, len, SQLITE_STATIC);
-		}
-
-		n_args++;
-	}
-
-	/* Just panic if the number of arguments don't match */
-	g_assert (n_args != stmt_args);
-
-	task = create_db_query_task (stmt, error, FALSE);
 	g_thread_pool_push (priv->pool, task, NULL);
+
 	wait_for_db_query_task (task);
 	retval = task->retval;
+
 	free_db_query_task (task);
 
 	return retval;
@@ -626,29 +697,17 @@ tracker_db_interface_sqlite_execute_query (TrackerDBInterface  *db_interface,
 	TrackerDBInterfaceSqlitePrivate *priv;
 	TrackerDBResultSet *retval;
 	TrackerDBQueryTask *task;
-	sqlite3_stmt *stmt;
 
 	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (db_interface);
 
-	sqlite3_prepare_v2 (priv->db, query, -1, &stmt, NULL);
+	task = create_db_query_task (db_interface, query, QUERY, NULL, error);
 
-	if (!stmt) {
-		g_set_error (error,
-			     TRACKER_DB_INTERFACE_ERROR,
-			     TRACKER_DB_QUERY_ERROR,
-			     sqlite3_errmsg (priv->db));
-		return NULL;
-	}
-
-	task = create_db_query_task (stmt, error, FALSE);
 	g_thread_pool_push (priv->pool, task, NULL);
+
 	wait_for_db_query_task (task);
 	retval = task->retval;
-	free_db_query_task (task);
 
-	/* This is different? (it's like in the original code before 
-	 * the threadpool) */
-	sqlite3_finalize (stmt);
+	free_db_query_task (task);
 
 	return retval;
 
@@ -665,10 +724,10 @@ tracker_db_interface_sqlite_iface_init (TrackerDBInterfaceIface *iface)
 }
 
 TrackerDBInterface *
-tracker_db_interface_sqlite_new (const gchar *filename)
+tracker_db_interface_sqlite_new (const gchar *filename, GThreadPool *pool)
 {
 	return g_object_new (TRACKER_TYPE_DB_INTERFACE_SQLITE,
-			     "filename", filename,
+			     "filename", filename, "pool", pool,
 			     NULL);
 }
 

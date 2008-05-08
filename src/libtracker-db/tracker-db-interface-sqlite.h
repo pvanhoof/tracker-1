@@ -20,6 +20,8 @@
 #ifndef __TRACKER_DB_INTERFACE_SQLITE_H__
 #define __TRACKER_DB_INTERFACE_SQLITE_H__
 
+#include <sqlite3.h>
+
 #include "tracker-db-interface.h"
 
 G_BEGIN_DECLS
@@ -30,6 +32,7 @@ G_BEGIN_DECLS
 #define TRACKER_IS_DB_INTERFACE_SQLITE(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), TRACKER_TYPE_DB_INTERFACE_SQLITE))
 #define TRACKER_IS_DB_INTERFACE_SQLITE_CLASS(c)  (G_TYPE_CHECK_CLASS_TYPE ((o),    TRACKER_TYPE_DB_INTERFACE_SQLITE))
 #define TRACKER_DB_INTERFACE_SQLITE_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o),  TRACKER_TYPE_DB_INTERFACE_SQLITE, TrackerDBInterfaceSqliteClass))
+
 
 typedef struct TrackerDBInterfaceSqlite TrackerDBInterfaceSqlite;
 typedef struct TrackerDBInterfaceSqliteClass TrackerDBInterfaceSqliteClass;
@@ -52,7 +55,7 @@ struct TrackerDBInterfaceSqliteClass {
 
 GType tracker_db_interface_sqlite_get_type (void);
 
-TrackerDBInterface * tracker_db_interface_sqlite_new (const gchar *filename);
+TrackerDBInterface * tracker_db_interface_sqlite_new (const gchar *filename, GThreadPool *pool);
 
 void                 tracker_db_interface_sqlite_create_function        (TrackerDBInterface       *interface,
 									 const gchar              *name,
@@ -64,6 +67,7 @@ gboolean             tracker_db_interface_sqlite_set_collation_function (Tracker
 
 gint64               tracker_db_interface_sqlite_get_last_insert_id     (TrackerDBInterfaceSqlite *interface);
 
+void                 tracker_db_interface_sqlite_process_query          (gpointer data, gpointer user_data);
 
 G_END_DECLS
 

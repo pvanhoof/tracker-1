@@ -585,12 +585,30 @@ tracker_db_close (DBConnection *db_con)
 	tracker_debug ("Database closed");
 }
 
+
+/* TODO: refactor this to a better location. This is the threadpool shared by
+ * all SQLite connections. I noticed that having a thread per connection is
+ * not sufficient. All statements must happen sequential ... */
+
+static GThreadPool *pool = NULL;
+
+/* TODO: the rafactor to a better location should perform this at-exit. For
+ * example when the desktop-session alarms that the system is shutting down,
+ * and when the trackerd process is exiting.
+ *
+ *	g_thread_pool_free (priv->pool, TRUE, TRUE);
+ **/
+
 static TrackerDBInterface *
 open_db (const char *dir, const char *name, gboolean *create_table)
 {
 	TrackerDBInterface *db;
 	gboolean db_exists;
 	char *dbname;
+
+	if (!pool)
+		pool = g_thread_pool_new (tracker_db_interface_sqlite_process_query, 
+				NULL, 1, TRUE, NULL);
 
 	dbname = g_build_filename (dir, name, NULL);
 	db_exists = g_file_test (dbname, G_FILE_TEST_IS_REGULAR);
@@ -603,7 +621,10 @@ open_db (const char *dir, const char *name, gboolean *create_table)
 		*create_table = db_exists;
 	}
 
-	db = tracker_db_interface_sqlite_new (dbname);
+	/* We pass a GThreadPool here, it should be the same pool for all opened
+	 * SQLite databases */
+
+	db = tracker_db_interface_sqlite_new (dbname, pool);
 	tracker_db_interface_set_procedure_table (db, prepared_queries);
 	g_free (dbname);
 
@@ -857,7 +878,6 @@ tracker_db_connect (void)
 {
 	DBConnection *db_con;
 	gboolean create_table = FALSE;
-
 	db_con = g_new0 (DBConnection, 1);
 
 	db_con->db = open_db (tracker->data_dir, TRACKER_INDEXER_FILE_META_DB_FILENAME, &create_table);

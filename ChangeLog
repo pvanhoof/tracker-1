@@ -1,3 +1,8 @@
+2008-05-08  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-dbus-search.c: Bugfix when the amount of search
+	results was 0
+
 2008-05-08  Ivan Frade  <ivan.frade@nokia.com>
 	
 	* src/libtracker-common/Makefile.am

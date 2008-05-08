@@ -67,3 +67,18 @@ CREATE TABLE  FileWatches
 	primary key (WatchID), 
 	unique (URI)
 );
+
+CREATE TABLE Events
+(
+	ID		Integer primary key not null,
+	ServiceID	Integer not null,
+	BeingHandled	Integer default 0,
+	EventType	Text
+);
+
+CREATE TABLE XesamLiveSearches
+(
+	ID		Integer primary key not null,
+	ServiceID	Integer not null,
+	SearchID	Text
+);

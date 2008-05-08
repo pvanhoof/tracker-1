@@ -3017,7 +3017,7 @@ tracker_db_get_live_search_hit_count (DBConnection *db_con, const gchar *search_
 {
 	TrackerDBResultSet *result;
 	tracker_debug ("GetLiveSearchHitCount");
-	result = tracker_exec_proc (db_con->common, "GetLiveSearchHitCount", search_id, NULL);
+	result = tracker_exec_proc (db_con->cache, "GetLiveSearchHitCount", search_id, NULL);
 	return result;
 }
 
@@ -3033,7 +3033,7 @@ tracker_db_get_live_search_modified_ids (DBConnection *db_con, const gchar *sear
 	/* Uses the Events table */
 	tracker_debug ("GetLiveSearchModifiedIDs");
 
-	result = tracker_exec_proc (db_con->common, "GetLiveSearchModifiedIDs", search_id, NULL);
+	result = tracker_exec_proc (db_con->cache, "GetLiveSearchModifiedIDs", search_id, NULL);
 
 	g_static_rec_mutex_unlock (&events_table_lock);
 
@@ -3085,24 +3085,15 @@ tracker_db_get_events (DBConnection *db_con)
 
 	/* This happens in the GMainLoop */
 	g_static_rec_mutex_lock (&events_table_lock);
-
 	/* Uses the Events table */
+	tracker_debug ("SetEventsBeingHandled");
+	tracker_exec_proc_no_reply (db_con->cache, "SetEventsBeingHandled", NULL);
 	tracker_debug ("GetEvents");
-	result = tracker_exec_proc (db_con->common, "GetEvents", NULL);
+	result = tracker_exec_proc (db_con->cache, "GetEvents", NULL);
 	g_static_rec_mutex_unlock (&events_table_lock);
 	return result;
 }
 
-void 
-tracker_db_set_events_handled (DBConnection *db_con)
-{
-	/* This happens in the GMainLoop */
-	g_static_rec_mutex_lock (&events_table_lock);
-	/* Uses the Events table */
-	tracker_debug ("SetEventsBeingHandled");
-	tracker_exec_proc_no_reply (db_con->common, "SetEventsBeingHandled", NULL);
-	g_static_rec_mutex_unlock (&events_table_lock);
-}
 
 void 
 tracker_db_delete_handled_events (DBConnection *db_con, TrackerDBResultSet *events)
@@ -3115,7 +3106,7 @@ tracker_db_delete_handled_events (DBConnection *db_con, TrackerDBResultSet *even
 	/* Uses the Events table */
 	tracker_debug ("DeleteHandledEvents");
 
-	result_set = tracker_exec_proc (db_con->common, "DeleteHandledEvents", NULL);
+	result_set = tracker_exec_proc (db_con->cache, "DeleteHandledEvents", NULL);
 	if (result_set)
 		g_object_unref (result_set);
 
@@ -3155,7 +3146,7 @@ tracker_db_create_event (DBConnection *db_con, const gchar *service_id_str, cons
 	/* Uses the Events table */
 	tracker_debug ("CreateEvent %s", eid);
 
-	result_set = tracker_exec_proc (db_con->common, "CreateEvent", eid, service_id_str, type, NULL);
+	result_set = tracker_exec_proc (db_con->cache, "CreateEvent", eid, service_id_str, type, NULL);
 	id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (db_con->db));
 	if (result_set)
 		g_object_unref (result_set);

@@ -26,7 +26,7 @@ GetNewID SELECT OptionValue FROM Options WHERE OptionKey = 'Sequence';
 UpdateNewID UPDATE Options set OptionValue = ? WHERE OptionKey = 'Sequence';
 CreateEvent INSERT INTO Events (ID, ServiceID, EventType) VALUES (?,?,?); 
 DeleteHandledEvents DELETE FROM Events WHERE BeingHandled = 1;
-GetEvents SELECT ID, ServiceID, EventType FROM Events WHERE BeingHandled = 0;
+GetEvents SELECT ID, ServiceID, EventType FROM Events WHERE BeingHandled = 1;
 SetEventsBeingHandled UPDATE Events SET BeingHandled = 1;
 
 GetLiveSearchModifiedIDs SELECT E.ServiceID FROM Events as E, LiveSearches as X WHERE E.ServiceID = X.ServiceID AND X.SearchID = ? AND E.EventType IS NOT 'Create';

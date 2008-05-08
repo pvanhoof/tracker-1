@@ -634,7 +634,12 @@ tracker_db_interface_sqlite_execute_procedure (TrackerDBInterface  *db_interface
 
 	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (db_interface);
 
-	task = create_db_query_task (db_interface, procedure_name, PROCEDURE, args, error);
+	task = create_db_query_task (db_interface, 
+				     procedure_name, 
+				     PROCEDURE, 
+				     args, 
+				     error);
+
 	g_thread_pool_push (priv->pool, task, NULL);
 	wait_for_db_query_task (task);
 	retval = task->retval;
@@ -656,7 +661,12 @@ tracker_db_interface_sqlite_execute_procedure_no_reply (TrackerDBInterface  *db_
 
 	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (db_interface);
 
-	task = create_db_query_task (db_interface, procedure_name, PROCEDURE, args, error);
+	task = create_db_query_task (db_interface, 
+				     procedure_name, 
+				     PROCEDURE, 
+				     args, 
+				     error);
+
 	task->nowait = TRUE;
 
 	g_thread_pool_push (priv->pool, task, NULL);
@@ -677,7 +687,11 @@ tracker_db_interface_sqlite_execute_procedure_len (TrackerDBInterface  *db_inter
 
 	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (db_interface);
 
-	task = create_db_query_task (db_interface, procedure_name, PROCEDURE_LEN, args, error);
+	task = create_db_query_task (db_interface, 
+				     procedure_name, 
+				     PROCEDURE_LEN, 
+				     args, 
+				     error);
 
 	g_thread_pool_push (priv->pool, task, NULL);
 
@@ -700,7 +714,11 @@ tracker_db_interface_sqlite_execute_query (TrackerDBInterface  *db_interface,
 
 	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (db_interface);
 
-	task = create_db_query_task (db_interface, query, QUERY, NULL, error);
+	task = create_db_query_task (db_interface, 
+				     query, 
+				     QUERY, 
+				     NULL, 
+				     error);
 
 	g_thread_pool_push (priv->pool, task, NULL);
 

@@ -236,47 +236,6 @@ reset_blacklist_file (gchar *uri)
 }
 
 static void
-signal_handler (gint signo)
-{
-	static gboolean in_loop = FALSE;
-
-  	/* Die if we get re-entrant signals handler calls */
-	if (in_loop) {
-		exit (EXIT_FAILURE);
-	}
-	
-  	switch (signo) {
-	case SIGSEGV:
-		/* We are screwed if we get this so exit immediately! */
-		exit (EXIT_FAILURE);
-		
-	case SIGBUS:
-	case SIGILL:
-	case SIGFPE:
-	case SIGPIPE:
-	case SIGABRT:
-	case SIGTERM:
-	case SIGINT:
-		in_loop = TRUE;
-		
-		tracker->is_running = FALSE;
-		tracker_end_watching ();
-		
-		g_timeout_add_full (G_PRIORITY_LOW, 1,
-				    (GSourceFunc) tracker_shutdown,
-				    g_strdup (g_strsignal (signo)), NULL);
-		
-	default:
-		if (g_strsignal (signo)) {
-			tracker_log ("Received signal:%d->'%s'", 
-				     signo, 
-				     g_strsignal (signo));
-		}
-		break;
-	}
-}
-
-static void
 log_option_list (GSList      *list,
 		 const gchar *str)
 {
@@ -400,6 +359,47 @@ create_index (gboolean need_data)
 	tracker_db_close (db_con);
 	g_free (db_con);
 
+}
+
+static void
+signal_handler (gint signo)
+{
+	static gboolean in_loop = FALSE;
+
+  	/* Die if we get re-entrant signals handler calls */
+	if (in_loop) {
+		exit (EXIT_FAILURE);
+	}
+	
+  	switch (signo) {
+	case SIGSEGV:
+		/* We are screwed if we get this so exit immediately! */
+		exit (EXIT_FAILURE);
+		
+	case SIGBUS:
+	case SIGILL:
+	case SIGFPE:
+	case SIGPIPE:
+	case SIGABRT:
+	case SIGTERM:
+	case SIGINT:
+		in_loop = TRUE;
+		
+		tracker->is_running = FALSE;
+		tracker_end_watching ();
+		
+		g_timeout_add_full (G_PRIORITY_LOW, 1,
+				    (GSourceFunc) tracker_shutdown,
+				    g_strdup (g_strsignal (signo)), NULL);
+		
+	default:
+		if (g_strsignal (signo)) {
+			tracker_log ("Received signal:%d->'%s'", 
+				     signo, 
+				     g_strsignal (signo));
+		}
+		break;
+	}
 }
 
 static void

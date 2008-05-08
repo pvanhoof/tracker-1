@@ -44,6 +44,7 @@
 #include <libtracker-common/tracker-language.h>
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-file-utils.h>
+#include <libtracker-common/tracker-nfs-lock.h>
 
 #include "tracker-dbus.h"
 #include "tracker-email.h"
@@ -297,6 +298,8 @@ tracker_do_cleanup (const gchar *sig_msg)
 	tracker_debug ("Shutting down main thread");
 
 	tracker_log_term ();
+
+	tracker_nfs_lock_term ();
 
 	/* remove sys tmp directory */
 	if (tracker->sys_tmp_root_dir) {
@@ -645,6 +648,8 @@ main (gint argc, gchar *argv[])
                           tracker_config_get_verbosity (tracker->config), 
                           fatal_errors);
 	tracker_log ("Starting log");
+
+	tracker_nfs_lock_init (tracker->root_dir);
 
         /* Set up mutexes and intitial state */
  	tracker->is_running = FALSE;

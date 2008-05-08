@@ -24,16 +24,7 @@
 
 #include "config.h"
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <string.h>
-#include <strings.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
-#include <time.h>
 #include <regex.h>
 #include <zlib.h>
 
@@ -49,6 +40,7 @@
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-utils.h>
+#include <libtracker-common/tracker-nfs-lock.h>
 
 #include <libtracker-db/tracker-db-interface-sqlite.h>
 
@@ -75,8 +67,6 @@ extern Tracker *tracker;
 
 static GHashTable *prepared_queries;
 //static GMutex *sequence_mutex;
-
-gboolean use_nfs_safe_locking = FALSE;
 
 typedef struct {
 	guint32		service_id;
@@ -1150,118 +1140,13 @@ tracker_db_connect_emails (void)
 }
 
 
-/* get no of links to a file - used for safe NFS atomic file locking */
-static int
-get_nlinks (const char *name)
-{
-	struct stat st;
-
-	if (g_stat (name, &st) == 0) {
-		return st.st_nlink;
-	} else {
-		return -1;
-	}
-}
-
-
-static int
-get_mtime (const char *name)
-{
-	struct stat st;
-
-	if (g_stat (name, &st) == 0) {
-		return st.st_mtime;
-	} else {
-		return -1;
-	}
-}
-
-
-/* serialises db access via a lock file for safe use on (lock broken) NFS mounts */
-static gboolean
-lock_db (void)
-{
-	int attempt;
-	char *lock_file, *tmp, *tmp_file;
-
-	if (!use_nfs_safe_locking) {
-		return TRUE;
-	}
-
-	lock_file = g_build_filename (tracker->root_dir, "tracker.lock", NULL);
-	tmp = g_build_filename (tracker->root_dir, g_get_host_name (), NULL);
-	tmp_file = g_strdup_printf ("%s_%d.lock", tmp, (guint32) getpid ());
-	g_free (tmp);
-
-	for (attempt = 0; attempt < 10000; ++attempt) {
-		int fd;
-
-		/* delete existing lock file if older than 5 mins */
-		if (g_file_test (lock_file, G_FILE_TEST_EXISTS) && ( time((time_t *) NULL) - get_mtime (lock_file)) > 300) {
-			g_unlink (lock_file);
-		}
-
-		fd = g_open (lock_file, O_CREAT|O_EXCL, 0644);
-
-		if (fd >= 0) {
-
-			/* create host specific file and link to lock file */
-                        if (link (lock_file, tmp_file) == -1) {
-                                goto error;
-                        }
-
-			/* for atomic NFS-safe locks, stat links = 2 if file locked. If greater than 2 then we have a race condition */
-			if (get_nlinks (lock_file) == 2) {
-				close (fd);
-				g_free (lock_file);
-				g_free (tmp_file);
-
-				return TRUE;
-			} else {
-				close (fd);
-				g_usleep (g_random_int_range (1000, 100000));
-			}
-		}
-	}
-
- error:
-	tracker_error ("ERROR: lock failure");
-	g_free (lock_file);
-	g_free (tmp_file);
-
-	return FALSE;
-}
-
-
-static void
-unlock_db (void)
-{
-	char *lock_file, *tmp, *tmp_file;
-
-	if (!use_nfs_safe_locking) {
-		return;
-	}
-
-	lock_file = g_build_filename (tracker->root_dir, "tracker.lock", NULL);
-	tmp = g_build_filename (tracker->root_dir,  g_get_host_name (), NULL);
-	tmp_file = g_strdup_printf ("%s_%d.lock", tmp, (guint32) getpid ());
-	g_free (tmp);
-
-	unlink (tmp_file);
-	unlink (lock_file);
-
-	g_free (tmp_file);
-	g_free (lock_file);
-}
-
-
 gboolean
 tracker_db_exec_no_reply (DBConnection *db_con, const char *query, ...)
 {
 	TrackerDBResultSet *result_set;
 	va_list args;
 
-	lock_db();
+	tracker_nfs_lock_obtain ();
 
 	va_start (args, query);
 	result_set = tracker_db_interface_execute_vquery (db_con->db, NULL, query, args);
@@ -1274,7 +1159,7 @@ tracker_db_exec_no_reply (DBConnection *db_con, const char *query, ...)
 		g_object_unref (result_set);
 	}
 
-	unlock_db ();
+	tracker_nfs_lock_release ();
 
 	return TRUE;
 }

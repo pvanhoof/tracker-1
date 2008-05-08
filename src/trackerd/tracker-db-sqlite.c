@@ -1316,12 +1316,8 @@ tracker_exec_proc_no_reply (DBConnection *db_con, const char *procedure, ...)
 	va_list args;
 
 	va_start (args, procedure);
-	result_set = tracker_db_interface_execute_vprocedure (db_con->db, NULL, procedure, args);
+	tracker_db_interface_execute_vprocedure_no_reply (db_con->db, NULL, procedure, args);
 	va_end (args);
-
-	if (result_set) {
-		g_object_unref (result_set);
-	}
 
 	return TRUE;
 }

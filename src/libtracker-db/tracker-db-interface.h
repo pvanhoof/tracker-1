@@ -59,6 +59,11 @@ struct TrackerDBInterfaceIface {
 							GError             **error,
 							const gchar         *procedure,
 							va_list              args);
+	void                 (* execute_procedure_no_reply) 
+							(TrackerDBInterface  *interface,
+							GError             **error,
+							const gchar         *procedure,
+							va_list              args);
 	TrackerDBResultSet * (* execute_procedure_len) (TrackerDBInterface  *interface,
 							GError             **error,
 							const gchar         *procedure,
@@ -96,6 +101,11 @@ TrackerDBResultSet *    tracker_db_interface_execute_query       (TrackerDBInter
 void                    tracker_db_interface_set_procedure_table (TrackerDBInterface   *interface,
 								  GHashTable           *procedure_table);
 TrackerDBResultSet *    tracker_db_interface_execute_vprocedure  (TrackerDBInterface   *interface,
+								  GError             **error,
+								  const gchar          *procedure,
+								  va_list               args);
+void                    tracker_db_interface_execute_vprocedure_no_reply
+								  (TrackerDBInterface   *interface,
 								  GError             **error,
 								  const gchar          *procedure,
 								  va_list               args);

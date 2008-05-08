@@ -1,5 +1,12 @@
 2008-05-08  Philip Van Hoof  <pvanhoof@gnome.org>
 	* src/trackerd/tracker-db-sqlite.c:
+	* src/libtracker-db/tracker-db-interface.h:
+	* src/libtracker-db/tracker-db-interface-sqlite.c:
+	* src/libtracker-db/tracker-db-interface.c: Improvement for void returning
+	queries
+
+2008-05-08  Philip Van Hoof  <pvanhoof@gnome.org>
+	* src/trackerd/tracker-db-sqlite.c:
 	* src/trackerd/tracker-db-sqlite.h:
 	* data/sqlite-stored-procs.sql:
 	* data/sqlite-cache.sql:

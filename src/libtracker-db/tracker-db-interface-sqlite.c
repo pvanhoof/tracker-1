@@ -48,6 +48,7 @@ typedef struct {
 	sqlite3_stmt *stmt;
 	GError **error;
 	TrackerDBResultSet *retval;
+	gboolean nowait;
 
 	GCond* condition;
 	gboolean had_callback;
@@ -56,6 +57,7 @@ typedef struct {
 
 static void tracker_db_interface_sqlite_iface_init (TrackerDBInterfaceIface *iface);
 static void process_query (gpointer data, gpointer user_data);
+static void free_db_query_task (TrackerDBQueryTask *task);
 
 enum {
 	PROP_0,
@@ -457,20 +459,27 @@ process_query (gpointer data, gpointer user_data)
 	task->retval = create_result_set_from_stmt (TRACKER_DB_INTERFACE_SQLITE (user_data), 
 		task->stmt, task->error);
 
-	g_mutex_lock (task->mutex);
-	g_cond_broadcast (task->condition);
-	task->had_callback = TRUE;
-	g_mutex_unlock (task->mutex);
+	if (!task->nowait) {
+		g_mutex_lock (task->mutex);
+		g_cond_broadcast (task->condition);
+		task->had_callback = TRUE;
+		g_mutex_unlock (task->mutex);
+	} else {
+		if (task->retval)
+			g_object_unref (task->retval);
+		free_db_query_task (task);
+	}
 }
 
 static TrackerDBQueryTask*
-create_db_query_task (sqlite3_stmt *stmt, GError **error)
+create_db_query_task (sqlite3_stmt *stmt, GError **error, gboolean nowait)
 {
 	TrackerDBQueryTask *task = g_slice_new (TrackerDBQueryTask);
 
 	task->mutex = g_mutex_new ();
 	task->condition = g_cond_new ();
 	task->had_callback = FALSE;
+	task->nowait = nowait;
 
 	task->stmt = stmt;
 	task->error = error;
@@ -522,7 +531,7 @@ tracker_db_interface_sqlite_execute_procedure (TrackerDBInterface  *db_interface
 	/* Just panic if the number of arguments don't match */
 	g_assert (n_args != stmt_args);
 
-	task = create_db_query_task (stmt, error);
+	task = create_db_query_task (stmt, error, FALSE);
 	g_thread_pool_push (priv->pool, task, NULL);
 	wait_for_db_query_task (task);
 	retval = task->retval;
@@ -530,6 +539,40 @@ tracker_db_interface_sqlite_execute_procedure (TrackerDBInterface  *db_interface
 
 	return retval;
 }
+
+
+
+static void
+tracker_db_interface_sqlite_execute_procedure_no_reply (TrackerDBInterface  *db_interface,
+							GError             **error,
+							const gchar         *procedure_name,
+							va_list              args)
+{
+	TrackerDBInterfaceSqlitePrivate *priv;
+	sqlite3_stmt *stmt;
+	gint stmt_args, n_args;
+	gchar *str;
+	TrackerDBQueryTask *task;
+
+	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (db_interface);
+	stmt = get_stored_stmt (TRACKER_DB_INTERFACE_SQLITE (db_interface), procedure_name);
+	stmt_args = sqlite3_bind_parameter_count (stmt);
+	n_args = 1;
+
+	while ((str = va_arg (args, gchar *)) != NULL) {
+		sqlite3_bind_text (stmt, n_args, str, -1, SQLITE_STATIC);
+		n_args++;
+	}
+
+	/* Just panic if the number of arguments don't match */
+	g_assert (n_args != stmt_args);
+
+	task = create_db_query_task (stmt, error, TRUE);
+	g_thread_pool_push (priv->pool, task, NULL);
+
+	return;
+}
+
 
 static TrackerDBResultSet *
 tracker_db_interface_sqlite_execute_procedure_len (TrackerDBInterface  *db_interface,
@@ -566,7 +609,7 @@ tracker_db_interface_sqlite_execute_procedure_len (TrackerDBInterface  *db_inter
 	/* Just panic if the number of arguments don't match */
 	g_assert (n_args != stmt_args);
 
-	task = create_db_query_task (stmt, error);
+	task = create_db_query_task (stmt, error, FALSE);
 	g_thread_pool_push (priv->pool, task, NULL);
 	wait_for_db_query_task (task);
 	retval = task->retval;
@@ -597,7 +640,7 @@ tracker_db_interface_sqlite_execute_query (TrackerDBInterface  *db_interface,
 		return NULL;
 	}
 
-	task = create_db_query_task (stmt, error);
+	task = create_db_query_task (stmt, error, FALSE);
 	g_thread_pool_push (priv->pool, task, NULL);
 	wait_for_db_query_task (task);
 	retval = task->retval;
@@ -616,6 +659,7 @@ tracker_db_interface_sqlite_iface_init (TrackerDBInterfaceIface *iface)
 {
 	iface->set_procedure_table = tracker_db_interface_sqlite_set_procedure_table;
 	iface->execute_procedure = tracker_db_interface_sqlite_execute_procedure;
+	iface->execute_procedure_no_reply = tracker_db_interface_sqlite_execute_procedure_no_reply;
 	iface->execute_procedure_len = tracker_db_interface_sqlite_execute_procedure_len;
 	iface->execute_query = tracker_db_interface_sqlite_execute_query;
 }

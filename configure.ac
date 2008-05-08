@@ -5,7 +5,7 @@
 AC_PREREQ(2.59)
 AC_INIT([tracker],[0.6.6],[tracker-list@gnome.org])
 
-AC_CONFIG_SRCDIR([src/trackerd/trackerd.c])
+AC_CONFIG_SRCDIR([src/trackerd/tracker-main.c])
 AM_INIT_AUTOMAKE([dist-bzip2])
 
 AC_SUBST(PACKAGE_URL, [http://www.tracker-project.org])

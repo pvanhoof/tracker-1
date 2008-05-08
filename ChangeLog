@@ -1,3 +1,18 @@
+2008-05-08  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-db-sqlite.c:
+	* src/trackerd/tracker-dbus-daemon.h:
+	* src/trackerd/tracker-email-evolution.c:
+	* src/trackerd/tracker-email-thunderbird.c:
+	* src/trackerd/tracker-email.c:
+	* src/trackerd/tracker-metadata.c:
+	* src/trackerd/tracker-parser.c:
+	* src/trackerd/tracker-process-files.h:
+	* src/trackerd/tracker-utils.c:
+	* src/trackerd/tracker-xesam.c:
+	* src/trackerd/trackerd.[ch]: Renamed trackerd.[ch] to tracker-main.[ch].
+
 2008-05-08  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/libtracker-db/tracker-db-interface-sqlite.c:

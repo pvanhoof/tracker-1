@@ -84,8 +84,6 @@ trackerd_SOURCES =							\
 	$(unix_sources)							\
 	$(hal_sources)							\
 	$(db_sources)							\
-	trackerd.c							\
-	trackerd.h							\
 	tracker-apps.c							\
 	tracker-apps.h							\
 	tracker-db.c							\
@@ -108,9 +106,11 @@ trackerd_SOURCES =							\
 	tracker-email.h							\
 	tracker-email-utils.c						\
 	tracker-email-utils.h						\
+	tracker-main.c							\
+	tracker-main.h							\
+	tracker-marshal-main.c						\
 	tracker-metadata.c						\
 	tracker-metadata.h						\
-	tracker-marshal-main.c						\
 	tracker-process-files.c						\
 	tracker-process-files.h						\
 	tracker-query-tree.c						\

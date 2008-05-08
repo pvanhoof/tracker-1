@@ -27,7 +27,7 @@
 #include <libtracker-db/tracker-db-file-info.h>
 
 #include "tracker-utils.h"
-#include "trackerd.h"
+#include "tracker-main.h"
 
 G_BEGIN_DECLS
 

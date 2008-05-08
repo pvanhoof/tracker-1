@@ -37,7 +37,7 @@
 #include "tracker-metadata.h"
 #include "tracker-utils.h"
 #include "tracker-service-manager.h"
-#include "trackerd.h"
+#include "tracker-main.h"
 
 extern Tracker *tracker;
 

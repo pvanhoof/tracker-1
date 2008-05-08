@@ -61,7 +61,7 @@
 #include "tracker-service-manager.h"
 #include "tracker-query-tree.h"
 #include "tracker-xesam.h"
-#include "trackerd.h"
+#include "tracker-main.h"
 
 #define MAX_TEXT_BUFFER     65567
 #define MAX_COMPRESS_BUFFER 65565

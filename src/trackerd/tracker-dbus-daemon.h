@@ -29,7 +29,7 @@
 #include <libtracker-common/tracker-config.h>
 
 #include "tracker-db-sqlite.h"
-#include "trackerd.h"
+#include "tracker-main.h"
 
 #define TRACKER_DBUS_DAEMON_SERVICE         "org.freedesktop.Tracker"
 #define TRACKER_DBUS_DAEMON_PATH            "/org/freedesktop/Tracker"

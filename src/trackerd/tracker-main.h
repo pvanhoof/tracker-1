@@ -20,16 +20,8 @@
  * Boston, MA  02110-1301, USA. 
  */  
 
-#ifndef __TRACKERD_H__
-#define __TRACKERD_H__
-
-extern char *type_array[];
-extern char *implemented_services[];
-extern char *file_service_array[] ;
-extern char *serice_index_array[];
-extern char *service_table_names[];
-extern char *service_metadata_table_names[];
-extern char *service_metadata_join_names[];
+#ifndef __TRACKERD_MAIN_H__
+#define __TRACKERD_MAIN_H__
 
 #include "config.h"
 
@@ -42,30 +34,11 @@ extern char *service_metadata_join_names[];
 #include "tracker-parser.h"
 #include "tracker-indexer.h"
 
-/* set merge limit default to 64MB */
-#define MERGE_LIMIT                     671088649
-
-/* max default file pause time in ms  = FILE_PAUSE_PERIOD * FILE_SCHEDULE_PERIOD */
-#define FILE_PAUSE_PERIOD		1
-#define FILE_SCHEDULE_PERIOD		300
-
-#define TRACKER_DB_VERSION_REQUIRED	13
-#define TRACKER_VERSION			VERSION
-#define TRACKER_VERSION_INT		604
-
 /* default performance options */
-#define MAX_INDEX_TEXT_LENGTH		1048576
-#define MAX_PROCESS_QUEUE_SIZE		100
-#define MAX_EXTRACT_QUEUE_SIZE		500
-#define OPTIMIZATION_COUNT		10000
-#define MAX_WORDS_TO_INDEX		10000
+#define MAX_PROCESS_QUEUE_SIZE 100
+#define MAX_EXTRACT_QUEUE_SIZE 500
 
 G_BEGIN_DECLS
-
-typedef struct {                         
-	int	 	id;              /* word ID of the cached word */
-	int 		count;     	 /* cummulative count of the cached word */
-} CacheWord;
 
 typedef enum {
 	INDEX_CONFIG,
@@ -79,176 +52,111 @@ typedef enum {
 	INDEX_FINISHED
 } IndexStatus;
 
-
 typedef struct {
-	char 		*name;
-	char		*type;
-} ServiceInfo;
+	GMainLoop   *loop; 
 
+ 	gboolean     is_running; 
+	gboolean     readonly;
 
-typedef enum {
-	EVENT_NOTHING,
-	EVENT_SHUTDOWN,
-	EVENT_DISABLE,
-	EVENT_PAUSE,
-	EVENT_CACHE_FLUSHED
-} LoopEvent;
+	gint         pid; 
 
+	gpointer     hal;
+	gboolean     reindex;
+        gpointer     config;
+        gpointer     language;
 
-typedef struct {
-	gchar	*uri;
-	time_t	first_change_time;
-	gint    num_of_change;
-} FileChange;
+	/* Config options */
+	guint32      watch_limit; 
+	gpointer     index_db;
 
+	/* Data directories */
+	gchar       *data_dir;
+	gchar       *config_dir;
+	gchar       *root_dir;
+	gchar       *user_data_dir;
+	gchar       *sys_tmp_root_dir;
+        gchar       *email_attachements_dir;
+	gchar       *services_dir;
+	gchar       *xesam_dir;
 
-typedef struct {
+	/* Performance and memory usage options */
+	gint         max_process_queue_size;
+	gint         max_extract_queue_size;
+	gint         memory_limit;
 
-	gboolean	readonly;
+	/* Pause/shutdown */
+	gboolean     shutdown;
+	gboolean     pause_manual;
+	gboolean     pause_battery;
+	gboolean     pause_io;
 
-	int		pid; 
+	/* Indexing options */
+        Indexer     *file_index;
+        Indexer     *file_update_index;
+        Indexer     *email_index;
 
-	gpointer	hal;
+	/* Table of stop words that are to be ignored by the parser */
+	GHashTable  *stop_words;
+	gint         index_number_min_length;
 
-	gboolean	reindex;
-
-        gpointer        config;
-        gpointer        language;
-
-	/* config options */
-	guint32		watch_limit;
-
-	gboolean	fatal_errors;
-
-	gpointer	index_db;
-
-	/* data directories */
-	char 		*data_dir;
-	char		*config_dir;
-	char 		*root_dir;
-	char		*user_data_dir;
-	char		*sys_tmp_root_dir;
-        char            *email_attachements_dir;
-	char 		*services_dir;
-
-	/* performance and memory usage options */
-	int		max_index_text_length; /* max size of file's text contents to index */
-	int		max_process_queue_size;
-	int		max_extract_queue_size;
-	int 		memory_limit;
-	int 		thread_stack_size;
-
-	/* HAL battery */
-	char		*battery_udi;
-
-	/* pause/shutdown vars */
-	gboolean	shutdown;
-	gboolean	pause_manual;
-	gboolean	pause_battery;
-	gboolean	pause_io;
-
-	/* indexing options */
-        Indexer         *file_index;
-        Indexer	        *file_update_index;
-        Indexer   	*email_index;
-
-	guint32		merge_limit; 		/* size of index in MBs when merging is triggered -1 == no merging*/
-	gboolean	active_file_merge;
-	gboolean	active_email_merge;
-
-	GHashTable	*stop_words;	  	/* table of stop words that are to be ignored by the parser */
-
-	gboolean	index_numbers;
-	int		index_number_min_length;
-	gboolean	strip_accents;
-
-	gboolean	first_time_index;
-	gboolean	first_flush;
-	gboolean	do_optimize;
+	gboolean     first_time_index; 
 	
-	time_t		index_time_start;
-	int		folders_count;
-	int		folders_processed;
-	int		mbox_count;
-	int		mbox_processed;
+	time_t       index_time_start; 
+	gint         folders_count;  
+	gint         folders_processed;
+	gint         mbox_count; 
+	gint         mbox_processed;
 
+	IndexStatus  index_status; 
 
-	const char	*current_uri;
-	
-	IndexStatus	index_status;
+	gint	     grace_period; 
+	gboolean     request_waiting;
 
-	int		grace_period;
-	gboolean	request_waiting;
+	/* Lookup tables for service and metadata IDs */
+	GHashTable  *metadata_table; 
 
-	char *		xesam_dir;
+	/* Email config options */
+	gint         email_service_min;
+	gint         email_service_max; 
 
-	/* lookup tables for service and metadata IDs */
-	GHashTable	*metadata_table;
-
-	/* email config options */
-	GSList		*additional_mboxes_to_index;
-
-	int		email_service_min;
-	int		email_service_max;
-
-	/* nfs options */
-	gboolean	use_nfs_safe_locking; /* use safer but much slower external lock file when users home dir is on an nfs systems */
+	/* NFS options */
+	gboolean     use_nfs_safe_locking;
 
 	/* Queue for recorad file changes */
-	GQueue		*file_change_queue;
-	gboolean	black_list_timer_active;
+	GQueue      *file_change_queue; 
+	gboolean     black_list_timer_active;
 	
-	/* progress info for merges */
-	int		merge_count;
-	int		merge_processed;
+	/* Progress info for merges */
+	gboolean     in_merge; 
+	gint         merge_count; 
+	gint         merge_processed;
 	
+	/* Application run time values */
+	gint         index_count; 
+	gint	     update_count; 
 
-	/* application run time values */
-	gboolean	is_indexing;
-	gboolean	in_flush;
-	gboolean	in_merge;
-	int		index_count;
-	int		index_counter;
-	int		update_count;
+	/* Cache words before saving to word index */
+	GHashTable  *file_word_table;
+	GHashTable  *file_update_word_table;
+	GHashTable  *email_word_table;
 
-	/* cache words before saving to word index */
-	GHashTable	*file_word_table;
-	GHashTable	*file_update_word_table;
-	GHashTable	*email_word_table;
+	gint         word_detail_count; 
+	gint         word_count;
+	gint         word_update_count; 
 
-	int		word_detail_limit;
-	int		word_detail_count;
-	int		word_detail_min;
-	int		word_count;
-	int		word_update_count;
-	int		word_count_limit;
-	int		word_count_min;
-	int		flush_count;
+	GAsyncQueue *file_process_queue;
+	GAsyncQueue *file_metadata_queue; 
+	GAsyncQueue *dir_queue;
 
-	int		file_update_count;
-	int		email_update_count;
+	GMutex      *files_check_mutex;
+	GMutex      *files_signal_mutex;
+	GCond       *files_signal_cond;
 
- 	gboolean 	is_running;
-	gboolean	is_dir_scan;
-	GMainLoop 	*loop;
+	GMutex      *metadata_check_mutex;
+	GMutex      *metadata_signal_mutex;
+	GCond       *metadata_signal_cond;
 
-	GMutex 		*log_access_mutex;
-	char	 	*log_file;
-
-	GAsyncQueue 	*file_process_queue;
-	GAsyncQueue 	*file_metadata_queue;
-
-	GAsyncQueue 	*dir_queue;
-
-	GMutex		*files_check_mutex;
-	GMutex		*files_signal_mutex;
-	GCond 		*files_signal_cond;
-
-	GMutex		*metadata_check_mutex;
-	GMutex		*metadata_signal_mutex;
-	GCond 		*metadata_signal_cond;
-
-	GHashTable	*xesam_sessions;
+	GHashTable  *xesam_sessions; 
 } Tracker;
 
 GSList * tracker_get_watch_root_dirs        (void);
@@ -259,8 +167,7 @@ gboolean tracker_spawn                      (gchar       **argv,
 gboolean tracker_do_cleanup                 (const gchar  *sig_msg);
 gboolean tracker_watch_dir                  (const gchar  *uri);
 void     tracker_scan_directory             (const gchar  *uri);
-void     free_file_change                   (FileChange  **user_data);
 
 G_END_DECLS
 
-#endif /* __TRACKERD_H__ */
+#endif /* __TRACKERD_MAIN_H__ */

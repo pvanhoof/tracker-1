@@ -209,7 +209,6 @@ tracker_cache_flush_all ()
 
 	tracker->word_detail_count = 0;
 	tracker->word_count = 0;
-	tracker->flush_count = 0;
 	tracker->word_update_count = 0;
 }
 

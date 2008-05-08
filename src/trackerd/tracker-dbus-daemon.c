@@ -21,6 +21,7 @@
 
 #include <config.h>
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -271,16 +272,24 @@ tracker_dbus_daemon_get_version (TrackerDBusDaemon  *object,
 				 gint               *version,
 				 GError            **error)
 {
-	guint request_id;
+	guint  request_id;
+	gint   major = 0;
+	gint   minor = 0;
+	gint   revision = 0;
+	gchar *str;
 
-	request_id = tracker_dbus_get_next_request_id ();
+ 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_return_val_if_fail (version != NULL, FALSE, error);
 
         tracker_dbus_request_new (request_id,
 				  "DBus request to get daemon version");
 
-	*version = TRACKER_VERSION_INT;
+	
+	sscanf (VERSION, "%d.%d.%d", &major, &minor, &revision);
+	str = g_strdup_printf ("%d%d%d", major, minor, revision);
+	*version = atoi (str);
+	g_free (str);
 
 	tracker_dbus_request_success (request_id);
 

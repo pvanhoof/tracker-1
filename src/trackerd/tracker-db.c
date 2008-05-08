@@ -577,19 +577,19 @@ tracker_db_add_to_extract_queue (DBConnection *db_con, TrackerDBFileInfo *info)
 static void
 refresh_file_change_queue (gpointer data, gpointer user_data)
 {
-	FileChange *change = (FileChange*)data;
-	int *current = (int *)user_data;
+	TrackerDBFileChange *change = (TrackerDBFileChange*) data;
+	gint *current = (gint *)user_data;
 
 	if ((*current - change->first_change_time) > MAX_DURATION) {
 		g_queue_remove_all (tracker->file_change_queue, data);
-		free_file_change (&change);
+		tracker_db_file_change_free (&change);
 	}
 }
 
 static gint
 uri_comp (gconstpointer a, gconstpointer b)
 {
-	FileChange *change = (FileChange *)a;
+	TrackerDBFileChange *change = (TrackerDBFileChange *) a;
 	char *valuea = change->uri;
 	char *valueb = (char *)b;
 
@@ -599,9 +599,9 @@ uri_comp (gconstpointer a, gconstpointer b)
 static gint
 file_change_sort_comp (gconstpointer a, gconstpointer b, gpointer user_data)
 {
-	FileChange *changea, *changeb;
-	changea = (FileChange *)a;
-	changeb = (FileChange *)b;
+	TrackerDBFileChange *changea, *changeb;
+	changea = (TrackerDBFileChange *)a;
+	changeb = (TrackerDBFileChange *)b;
 
 	if ((changea->num_of_change - changeb->num_of_change) == 0) {
 		return changea->first_change_time - changeb->first_change_time;
@@ -611,18 +611,18 @@ file_change_sort_comp (gconstpointer a, gconstpointer b, gpointer user_data)
 }
 
 static void
-print_file_change_queue ()
+print_file_change_queue (void)
 {
-	GList *head, *l;
-	FileChange *change;
-	gint count;
+	GList               *head, *l;
+	TrackerDBFileChange *change;
+	gint                 count;
 
 	head = g_queue_peek_head_link (tracker->file_change_queue);
 
 	tracker_log ("File Change queue is:");
 	count = 1;
 	for (l = g_list_first (head); l != NULL; l = g_list_next (l)) {
-		change = (FileChange*)l->data;
+		change = (TrackerDBFileChange*) l->data;
 		tracker_info ("%d\t%s\t%d\t%d",
 			 count++, change->uri,
 			 change->first_change_time,
@@ -675,9 +675,9 @@ index_black_list ()
 static gboolean
 check_uri_changed_frequently (const char *uri)
 {
-	GList *find;
-	FileChange *change;
-	time_t current;
+	GList               *find;
+	TrackerDBFileChange *change;
+	time_t               current;
 
 	if (!tracker->file_change_queue) {
 		/* init queue */
@@ -694,21 +694,20 @@ check_uri_changed_frequently (const char *uri)
 	if (!find) {
 		/* not found, add to in the queue */
 				
-		change = g_new0 (FileChange, 1);
+		change = g_new0 (TrackerDBFileChange, 1);
 		change->uri = g_strdup (uri);
 		change->first_change_time = current;
 		change->num_of_change = 1;
 		if (g_queue_get_length (tracker->file_change_queue) == STACK_SIZE) {
-			FileChange *tmp = (FileChange*) g_queue_pop_head (
-						tracker->file_change_queue);
-			free_file_change (&tmp);
+			TrackerDBFileChange *tmp = g_queue_pop_head (tracker->file_change_queue);
+			tracker_db_file_change_free (&tmp);
 		}
 		g_queue_insert_sorted (tracker->file_change_queue, change,
 					file_change_sort_comp, NULL);
 		print_file_change_queue ();
 		return FALSE;
 	} else {
-		change = (FileChange *) find->data;
+		change = (TrackerDBFileChange *) find->data;
 		(change->num_of_change)++;
 		g_queue_sort (tracker->file_change_queue,
 			file_change_sort_comp, NULL);
@@ -730,7 +729,7 @@ check_uri_changed_frequently (const char *uri)
 			}
 			
 			g_queue_remove_all (tracker->file_change_queue, change);
-			free_file_change (&change);
+			tracker_db_file_change_free (&change);
 			
 			return TRUE;
 		}
@@ -1308,3 +1307,12 @@ tracker_db_index_webhistory(DBConnection *db_con, TrackerDBFileInfo *info)
 	tracker_db_index_file (db_con, info, NULL, "WebHistory");
 }
 
+void
+tracker_db_file_change_free (TrackerDBFileChange **change)
+{
+	g_return_if_fail (change != NULL);
+
+	g_free ((*change)->uri);
+	(*change)->uri = NULL;
+	*change = NULL;
+}

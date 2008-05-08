@@ -1179,7 +1179,6 @@ process_files (Tracker *tracker)
                 gint time_taken;
 
                 tracker_status_set (TRACKER_STATUS_OPTIMIZING);
-                tracker->do_optimize = FALSE;
                 
                 tracker->first_time_index = FALSE;
 		

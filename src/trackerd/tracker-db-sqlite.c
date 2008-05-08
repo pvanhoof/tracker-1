@@ -63,11 +63,12 @@
 #include "tracker-xesam.h"
 #include "tracker-main.h"
 
-#define MAX_TEXT_BUFFER     65567
-#define MAX_COMPRESS_BUFFER 65565
-#define ZLIBBUFSIZ          8192
+#define MAX_INDEX_TEXT_LENGTH 1048576
+#define MAX_TEXT_BUFFER       65567
+#define MAX_COMPRESS_BUFFER   65565
+#define ZLIBBUFSIZ            8192
 
-#define DB_PAGE_SIZE_DEFAULT 4096
+#define DB_PAGE_SIZE_DEFAULT  4096
 #define DB_PAGE_SIZE_DONT_SET -1
 
 extern Tracker *tracker;
@@ -1720,7 +1721,7 @@ tracker_db_save_file_contents (DBConnection *db_con, GHashTable *index_table, GH
             	strm.next_out = (unsigned char *) out;
 			
 		/* set upper limit on text we read in */
-		if (finished || bytes_read >= tracker->max_index_text_length) {
+		if (finished || bytes_read >= MAX_INDEX_TEXT_LENGTH) {
 			finished = TRUE;
 			flush = Z_FINISH;
 		} else {

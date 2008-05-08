@@ -1,4 +1,16 @@
+2008-05-08  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-cache.c:
+	* src/trackerd/tracker-db-sqlite.c:
+	* src/trackerd/tracker-db.[ch]: 
+	* src/trackerd/tracker-dbus-daemon.c:
+	* src/trackerd/tracker-main.[ch]: 
+	* src/trackerd/tracker-process-files.c: Cleaned up the Tracker
+	structure by removing members which are not used. Also removed the
+	structures in the tracker-main.h file which are not used.
+
 2008-05-08  Philip Van Hoof  <pvanhoof@gnome.org>
+	
 	* src/trackerd/tracker-db-sqlite.c:
 	* src/libtracker-db/tracker-db-interface.h:
 	* src/libtracker-db/tracker-db-interface-sqlite.c:
@@ -6,6 +18,7 @@
 	queries
 
 2008-05-08  Philip Van Hoof  <pvanhoof@gnome.org>
+	
 	* src/trackerd/tracker-db-sqlite.c:
 	* src/trackerd/tracker-db-sqlite.h:
 	* data/sqlite-stored-procs.sql:

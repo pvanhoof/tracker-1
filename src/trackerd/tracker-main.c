@@ -23,8 +23,6 @@
 #define DBUS_API_SUBJECT_TO_CHANGE
 #endif
 
-#define I_AM_MAIN
-
 #include "config.h"
 
 #include <signal.h>
@@ -62,6 +60,17 @@
 #include <pthread.h>
 #include "mingw-compat.h"
 #endif
+
+#define ABOUT								  \
+	"Tracker " VERSION "\n"						  \
+	"Copyright (c) 2005-2008 Jamie McCracken (jamiemcc@gnome.org)\n" 
+
+#define LICENSE								  \
+	"This program is free software and comes without any warranty.\n" \
+	"It is licensed under version 2 or later of the General Public "  \
+	"License which can be viewed at:\n"                               \
+        "\n"							          \
+	"  http://www.gnu.org/licenses/gpl.txt\n" 
 
 typedef struct {
 	gchar	*uri;
@@ -157,29 +166,18 @@ get_update_count (DBConnection *db_con)
 }
 
 gboolean
-tracker_die ()
+tracker_die (void)
 {
 	tracker_error ("trackerd has failed to exit on time - terminating...");
 	exit (EXIT_FAILURE);
 }
 
-
-void
-free_file_change (FileChange **user_data)
-{
-	FileChange *change = *user_data;
-	g_free (change->uri);
-	change->uri = NULL;
-	change = NULL;
-}
-
 static void
 free_file_change_queue (gpointer data, gpointer user_data)
 {
-	FileChange *change = (FileChange *)data;
-	free_file_change (&change);
+	TrackerDBFileChange *change = (TrackerDBFileChange *) data;
+	tracker_db_file_change_free (&change);
 }
-
 
 static void
 reset_blacklist_file (char *uri)
@@ -212,7 +210,6 @@ tracker_do_cleanup (const gchar *sig_msg)
         GSList *black_list;
 
 	tracker->shutdown = TRUE;
-	tracker->in_flush = TRUE;
 
 	tracker_status_set (TRACKER_STATUS_SHUTDOWN);
 
@@ -390,8 +387,6 @@ set_defaults (void)
 	tracker->reindex = FALSE;
 	tracker->in_merge = FALSE;
 
-	tracker->merge_limit = MERGE_LIMIT;
-
 	tracker->index_status = INDEX_CONFIG;
 
 	tracker->black_list_timer_active = FALSE;	
@@ -403,21 +398,13 @@ set_defaults (void)
 	tracker->use_nfs_safe_locking = FALSE;
 
 	tracker->watch_limit = 0;
-	tracker->index_counter = 0;
 	tracker->index_count = 0;
 	tracker->update_count = 0;
 
-	tracker->max_index_text_length = MAX_INDEX_TEXT_LENGTH;
 	tracker->max_process_queue_size = MAX_PROCESS_QUEUE_SIZE;
 	tracker->max_extract_queue_size = MAX_EXTRACT_QUEUE_SIZE;
 
-	tracker->flush_count = 0;
-
-	tracker->index_numbers = FALSE;
 	tracker->index_number_min_length = 6;
-	tracker->strip_accents = TRUE;
-
-	tracker->first_flush = TRUE;
 
 	tracker->services_dir = g_build_filename (SHAREDIR, "tracker", "services", NULL);
 
@@ -498,26 +485,11 @@ sanity_check_option_values (void)
 	
 		tracker->max_process_queue_size = 5000;
 		tracker->max_extract_queue_size = 5000;
-
-		tracker->word_detail_limit = 2000000;
-		tracker->word_detail_min = 0;
-		tracker->word_count_limit = 500000;
-		tracker->word_count_min = 0;
 	} else {
 		tracker->memory_limit = 8192 * 1024;
 
 		tracker->max_process_queue_size = 500;
 		tracker->max_extract_queue_size = 500;
-
-		tracker->word_detail_limit = 50000;
-		tracker->word_detail_min = 20000;
-		tracker->word_count_limit = 5000;
-		tracker->word_count_min = 500;
-	}
-
-        if (tracker->battery_udi) {
-                /* Default is 0 */
-                tracker_config_set_throttle (tracker->config, 5);
 	}
 
 	log_option_list (watch_directory_roots, "Watching directory roots");
@@ -626,9 +598,7 @@ main (gint argc, gchar *argv[])
 	g_option_context_free (context);
 	g_free (example);
 
-	g_print ("\n\nTracker version %s Copyright (c) 2005-2007 by Jamie McCracken (jamiemcc@gnome.org)\n\n", TRACKER_VERSION);
-	g_print ("This program is free software and comes without any warranty.\nIt is licensed under version 2 or later of the General Public License which can be viewed at http://www.gnu.org/licenses/gpl.txt\n\n");
-
+	g_print ("\n" ABOUT "\n" LICENSE "\n");
 	g_print ("Initialising tracker...\n");
 
 #ifndef OS_WIN32
@@ -785,8 +755,6 @@ main (gint argc, gchar *argv[])
 	/* deal with config options with defaults, config file and option params */
 	set_defaults ();
 
-	tracker->battery_udi = NULL;
-
 	if (error) {
 		g_printerr ("invalid arguments: %s\n", error->message);
 		return 1;
@@ -827,8 +795,6 @@ main (gint argc, gchar *argv[])
 	if (initial_sleep >= 0) {
 		tracker_config_set_initial_sleep (tracker->config, initial_sleep);
 	}
-
-	tracker->fatal_errors = fatal_errors;
 
 	sanity_check_option_values ();
 

@@ -354,6 +354,7 @@ gboolean            tracker_db_integrity_check                 (DBConnection   *
 TrackerDBResultSet *tracker_db_get_events                      (DBConnection *db_con);
 void                tracker_db_delete_handled_events           (DBConnection   *db_con, 
                                                                 TrackerDBResultSet *events);
+void                tracker_db_set_events_handled              (DBConnection *db_con);
 TrackerDBResultSet *tracker_db_get_live_search_modified_ids    (DBConnection *db_con, 
                                                                 const gchar *search_id);
 TrackerDBResultSet *tracker_db_get_live_search_new_ids         (DBConnection *db_con, 

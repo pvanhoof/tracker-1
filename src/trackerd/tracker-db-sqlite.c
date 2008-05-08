@@ -3081,7 +3081,7 @@ tracker_db_get_live_search_new_ids (DBConnection *db_con, const gchar *search_id
 TrackerDBResultSet* 
 tracker_db_get_events (DBConnection *db_con)
 {
-	TrackerDBResultSet *result_set, *result;
+	TrackerDBResultSet *result;
 
 	/* This happens in the GMainLoop */
 	g_static_rec_mutex_lock (&events_table_lock);
@@ -3089,13 +3089,19 @@ tracker_db_get_events (DBConnection *db_con)
 	/* Uses the Events table */
 	tracker_debug ("GetEvents");
 	result = tracker_exec_proc (db_con->common, "GetEvents", NULL);
-	tracker_debug ("SetEventsBeingHandled");
-	result_set = tracker_exec_proc (db_con->common, "SetEventsBeingHandled", NULL);
-	if (result_set)
-		g_object_unref (result_set);
 	g_static_rec_mutex_unlock (&events_table_lock);
-
 	return result;
+}
+
+void 
+tracker_db_set_events_handled (DBConnection *db_con)
+{
+	/* This happens in the GMainLoop */
+	g_static_rec_mutex_lock (&events_table_lock);
+	/* Uses the Events table */
+	tracker_debug ("SetEventsBeingHandled");
+	tracker_exec_proc_no_reply (db_con->common, "SetEventsBeingHandled", NULL);
+	g_static_rec_mutex_unlock (&events_table_lock);
 }
 
 void 

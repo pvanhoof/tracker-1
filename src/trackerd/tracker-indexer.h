@@ -27,15 +27,9 @@
 
 #include <libtracker-db/tracker-db-interface.h>
 
-#define TRACKER_INDEXER_COMMON_DB_FILENAME             "common.db"
-#define TRACKER_INDEXER_CACHE_DB_FILENAME              "cache.db"
-#define TRACKER_INDEXER_FILE_UPDATE_INDEX_DB_FILENAME  "file-update-index.db"
-#define TRACKER_INDEXER_FILE_CONTENTS_DB_FILENAME      "file-contents.db"
 #define TRACKER_INDEXER_FILE_INDEX_DB_FILENAME         "file-index.db"
-#define TRACKER_INDEXER_FILE_META_DB_FILENAME          "file-meta.db"
-#define TRACKER_INDEXER_EMAIL_CONTENTS_DB_FILENAME     "email-contents.db"
 #define TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME        "email-index.db"
-#define TRACKER_INDEXER_EMAIL_META_DB_FILENAME         "email-meta.db"
+#define TRACKER_INDEXER_FILE_UPDATE_INDEX_DB_FILENAME  "file-update-index.db"
 
 G_BEGIN_DECLS
 

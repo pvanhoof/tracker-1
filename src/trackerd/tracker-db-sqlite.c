@@ -45,6 +45,7 @@
 #include <libtracker-db/tracker-db-interface-sqlite.h>
 
 #include "tracker-db-sqlite.h"
+#include "tracker-db-manager.h"
 #include "tracker-indexer.h"
 #include "tracker-cache.h"
 #include "tracker-metadata.h"
@@ -59,9 +60,6 @@
 #define MAX_TEXT_BUFFER       65567
 #define MAX_COMPRESS_BUFFER   65565
 #define ZLIBBUFSIZ            8192
-
-#define DB_PAGE_SIZE_DEFAULT  4096
-#define DB_PAGE_SIZE_DONT_SET -1
 
 extern Tracker *tracker;
 
@@ -405,7 +403,7 @@ load_sql_file (DBConnection *db_con, const char *sql_file)
 {
 	char *filename, *query;
 	
-	filename = g_build_filename (SHAREDIR, "tracker", sql_file, NULL);
+	filename = tracker_db_manager_get_sql_file (sql_file);
 
 	if (!g_file_get_contents (filename, &query, NULL, NULL)) {
 		tracker_error ("ERROR: Tracker cannot read required file %s - Please reinstall tracker or check read permissions on the file if it exists", sql_file);
@@ -586,74 +584,19 @@ tracker_db_close (DBConnection *db_con)
 }
 
 
-/* TODO: refactor this to a better location. This is the threadpool shared by
- * all SQLite connections. I noticed that having a thread per connection is
- * not sufficient. All statements must happen sequential ... */
-
-static GThreadPool *pool = NULL;
-
-/* TODO: the rafactor to a better location should perform this at-exit. For
- * example when the desktop-session alarms that the system is shutting down,
- * and when the trackerd process is exiting.
- *
- *	g_thread_pool_free (priv->pool, TRUE, TRUE);
- **/
-
-static TrackerDBInterface *
-open_db (const char *dir, const char *name, gboolean *create_table)
-{
-	TrackerDBInterface *db;
-	gboolean db_exists;
-	char *dbname;
-
-	if (!pool) {
-		pool = g_thread_pool_new (tracker_db_interface_sqlite_process_query, 
-					  NULL, 1, TRUE, NULL);
-	}
-
-	dbname = g_build_filename (dir, name, NULL);
-	db_exists = g_file_test (dbname, G_FILE_TEST_IS_REGULAR);
-
-	if (!db_exists) {
-		tracker_log ("database file %s is not present - will create", dbname);
-	}
-
-	if (create_table) {
-		*create_table = db_exists;
-	}
-
-	/* We pass a GThreadPool here, it should be the same pool for all opened
-	 * SQLite databases */
-
-	db = tracker_db_interface_sqlite_new (dbname, pool);
-	tracker_db_interface_set_procedure_table (db, prepared_queries);
-	g_free (dbname);
-
-	return db;
-
-}
-
 
 static void
-set_default_pragmas (TrackerDBInterface *iface)
+set_params (TrackerDBInterface *iface, int cache_size, int page_size, gboolean add_functions)
 {
 	tracker_db_exec_no_reply (iface, "PRAGMA synchronous = NORMAL;");
 	tracker_db_exec_no_reply (iface, "PRAGMA count_changes = 0;");
 	tracker_db_exec_no_reply (iface, "PRAGMA temp_store = FILE;");
 	tracker_db_exec_no_reply (iface, "PRAGMA encoding = \"UTF-8\"");
 	tracker_db_exec_no_reply (iface, "PRAGMA auto_vacuum = 0;");
-}
 
-
-static void
-set_params (TrackerDBInterface *iface, int cache_size, int page_size, gboolean add_functions)
-{
-	set_default_pragmas (iface);
-
-	if (page_size != DB_PAGE_SIZE_DONT_SET) {
+	if (page_size != TRACKER_DB_PAGE_SIZE_DONT_SET) {
 		tracker_db_exec_no_reply (iface, "PRAGMA page_size = %d", page_size);
 	}
-
 
 	if (tracker_config_get_low_memory_mode (tracker->config)) {
 		cache_size /= 2;
@@ -662,8 +605,9 @@ set_params (TrackerDBInterface *iface, int cache_size, int page_size, gboolean a
 	tracker_db_exec_no_reply (iface, "PRAGMA cache_size = %d", cache_size);
 
 	if (add_functions) {
-		if (! tracker_db_interface_sqlite_set_collation_function (TRACKER_DB_INTERFACE_SQLITE (iface),
-									  "UTF8", utf8_collation_func)) {
+
+		if (!tracker_db_interface_sqlite_set_collation_function (TRACKER_DB_INTERFACE_SQLITE (iface),
+									 "UTF8", utf8_collation_func)) {
 			tracker_error ("ERROR: collation sequence failed");
 		}
 
@@ -677,16 +621,54 @@ set_params (TrackerDBInterface *iface, int cache_size, int page_size, gboolean a
 }
 
 
+/* TODO: refactor this to a better location. This is the threadpool shared by
+ * all SQLite connections. I noticed that having a thread per connection is
+ * not sufficient. All statements must happen sequential ... */
+
+static GThreadPool *pool = NULL;
+
+/* TODO: the rafactor to a better location should perform this at-exit. For
+ * example when the desktop-session alarms that the system is shutting down,
+ * and when the trackerd process is exiting.
+ *
+ *	g_thread_pool_free (priv->pool, TRUE, TRUE);
+ **/
+
+/*
+ * If the file doesnt exist, creates a new file of size 0
+ */
+static TrackerDBInterface *
+open_db_interface (TrackerDatabase database)
+{
+	TrackerDBInterface *iface;
+	const gchar *dbname;
+
+	if (!pool) {
+		pool = g_thread_pool_new (tracker_db_interface_sqlite_process_query, 
+					  NULL, 1, TRUE, NULL);
+	}
+
+	dbname = tracker_db_manager_get_file (database);
+
+	/* We pass a GThreadPool here, it should be the same pool for all opened
+	 * SQLite databases */
+	iface = tracker_db_interface_sqlite_new (dbname, pool);
+	tracker_db_interface_set_procedure_table (iface, prepared_queries);
+
+
+	set_params (iface,
+		    tracker_db_manager_get_cache_size (database),
+		    tracker_db_manager_get_page_size (database),
+		    tracker_db_manager_get_add_functions (database));
+	return iface;
+
+}
+
 
 static void
 open_common_db (DBConnection *db_con)
 {
-	gboolean create;
-
-	db_con->db = open_db (tracker->user_data_dir, TRACKER_INDEXER_COMMON_DB_FILENAME, &create);
-
-	set_params (db_con->db, 32, DB_PAGE_SIZE_DEFAULT, FALSE);
-
+	db_con->db = open_db_interface (TRACKER_DB_COMMON);
 }
 
 
@@ -709,19 +691,17 @@ tracker_db_connect_common (void)
 }
 
 void
-tracker_db_attach_db (DBConnection *db_con, const char *name)
+tracker_db_attach_db (DBConnection *db_con, TrackerDatabase database)
 {
-	gchar *path;
-
-	if (strcmp (name, "common") == 0) {
-		path = g_build_filename (tracker->user_data_dir, TRACKER_INDEXER_COMMON_DB_FILENAME, NULL);
-		tracker_db_exec_no_reply (db_con->db, "ATTACH '%s' as %s", path, name);
-	} else if (strcmp (name, "cache") == 0) {
-		path = g_build_filename (tracker->sys_tmp_root_dir, TRACKER_INDEXER_CACHE_DB_FILENAME, NULL);
-		tracker_db_exec_no_reply (db_con->db, "ATTACH '%s' as %s", path, name);
+	if (database != TRACKER_DB_COMMON && database != TRACKER_DB_CACHE) {
+		tracker_error ("Attaching invalid db");
+		return;
 	}
 
-	g_free (path);
+	tracker_db_exec_no_reply (db_con->db, 
+				  "ATTACH '%s' as %s",
+				  tracker_db_manager_get_file (database),
+				  tracker_db_manager_get_name (database));
 }
 
 static inline void
@@ -874,29 +854,29 @@ tracker_db_connect (void)
 {
 	DBConnection *db_con;
 	gboolean create_table = FALSE;
+
+	create_table = tracker_db_manager_file_exists (TRACKER_DB_FILE_META);
+
 	db_con = g_new0 (DBConnection, 1);
-
-	db_con->db = open_db (tracker->data_dir, TRACKER_INDEXER_FILE_META_DB_FILENAME, &create_table);
-
+	db_con->db = open_db_interface (TRACKER_DB_FILE_META);
 	db_con->data = db_con;
-
-	set_params (db_con->db, 32, DB_PAGE_SIZE_DONT_SET, TRUE);
 	
 	if (create_table) {
-		tracker_log ("Creating file database...");
+		tracker_log ("Creating file database... %s",
+			     tracker_db_manager_get_file (TRACKER_DB_FILE_META));
 		load_sql_file (db_con, "sqlite-service.sql");
 		load_sql_trigger (db_con, "sqlite-service-triggers.sql");
 
 		load_sql_file (db_con, "sqlite-metadata.sql");
 	
-		tracker_db_load_service_file (db_con, "default.metadata", FALSE);
-		tracker_db_load_service_file (db_con, "file.metadata", FALSE);
-		tracker_db_load_service_file (db_con, "audio.metadata", FALSE);
-		tracker_db_load_service_file (db_con, "application.metadata", FALSE);
-		tracker_db_load_service_file (db_con, "document.metadata", FALSE);
-		tracker_db_load_service_file (db_con, "email.metadata", FALSE);
-		tracker_db_load_service_file (db_con, "image.metadata", FALSE);	
-		tracker_db_load_service_file (db_con, "video.metadata", FALSE);	
+		tracker_db_load_service_file (db_con, "default.metadata");
+		tracker_db_load_service_file (db_con, "file.metadata");
+		tracker_db_load_service_file (db_con, "audio.metadata");
+		tracker_db_load_service_file (db_con, "application.metadata");
+		tracker_db_load_service_file (db_con, "document.metadata");
+		tracker_db_load_service_file (db_con, "email.metadata");
+		tracker_db_load_service_file (db_con, "image.metadata");	
+		tracker_db_load_service_file (db_con, "video.metadata");	
 	
 		tracker_db_exec_no_reply (db_con->db, "ANALYZE");
 	}
@@ -906,8 +886,8 @@ tracker_db_connect (void)
 
 	// load_sql_file (db_con, "sqlite-temp-tables.sql");
 
-	tracker_db_attach_db (db_con, "common");
-	tracker_db_attach_db (db_con, "cache");
+	tracker_db_attach_db (db_con, TRACKER_DB_COMMON);
+	tracker_db_attach_db (db_con, TRACKER_DB_CACHE);
 
 	db_con->cache = db_con;
 	db_con->common = db_con;
@@ -918,12 +898,7 @@ tracker_db_connect (void)
 static inline void
 open_file_db (DBConnection *db_con)
 {
-	gboolean create;
-
-	db_con->db = open_db (tracker->data_dir, 
-			      TRACKER_INDEXER_FILE_META_DB_FILENAME, &create);	
-
-	set_params (db_con->db, 512, DB_PAGE_SIZE_DEFAULT, TRUE);
+	db_con->db = open_db_interface (TRACKER_DB_FILE_META);
 }
 
 DBConnection *
@@ -942,12 +917,7 @@ tracker_db_connect_file_meta (void)
 static inline void
 open_email_db (DBConnection *db_con)
 {
-	gboolean create;
-
-	db_con->db = open_db (tracker->data_dir, 
-			      TRACKER_INDEXER_EMAIL_META_DB_FILENAME, &create);	
-
-	set_params (db_con->db, 512, DB_PAGE_SIZE_DEFAULT, TRUE);
+	db_con->db = open_db_interface (TRACKER_DB_EMAIL_META);
 }
 
 DBConnection *
@@ -970,15 +940,14 @@ open_file_content_db (DBConnection *db_con)
 {
 	gboolean create;
 
-	db_con->db = open_db (tracker->data_dir,
-			      TRACKER_INDEXER_FILE_CONTENTS_DB_FILENAME, 
-			      &create);	
+	create = tracker_db_manager_file_exists (TRACKER_DB_FILE_CONTENTS);
 
-	set_params (db_con->db, 1024, DB_PAGE_SIZE_DEFAULT, FALSE);
+	db_con->db = open_db_interface (TRACKER_DB_FILE_CONTENTS);
 
 	if (create) {
 		tracker_db_exec_no_reply (db_con->db, "CREATE TABLE ServiceContents (ServiceID Int not null, MetadataID Int not null, Content Text, primary key (ServiceID, MetadataID))");
-		tracker_log ("creating file content table");
+		tracker_log ("Creating db: %s",
+			     tracker_db_manager_get_file (TRACKER_DB_FILE_CONTENTS));
 	}
 
 	tracker_db_interface_sqlite_create_function (db_con->db, "uncompress", function_uncompress, 1);
@@ -1004,15 +973,14 @@ open_email_content_db (DBConnection *db_con)
 {
 	gboolean create;
 
-	db_con->db = open_db (tracker->data_dir, 
-			      TRACKER_INDEXER_EMAIL_CONTENTS_DB_FILENAME,
-			      &create);	
+	create = tracker_db_manager_file_exists (TRACKER_DB_EMAIL_CONTENTS);
 
-	set_params (db_con->db, 512, DB_PAGE_SIZE_DEFAULT, FALSE);
+	db_con->db = open_db_interface (TRACKER_DB_EMAIL_CONTENTS);
 
 	if (create) {
 		tracker_db_exec_no_reply (db_con->db, "CREATE TABLE ServiceContents (ServiceID Int not null, MetadataID Int not null, Content Text, primary key (ServiceID, MetadataID))");
-		tracker_log ("creating email content table");
+		tracker_log ("Creating db: %s",
+			     tracker_db_manager_get_file (TRACKER_DB_EMAIL_CONTENTS));
 	}
 
 	tracker_db_interface_sqlite_create_function (db_con->db, "uncompress", function_uncompress, 1);
@@ -1099,24 +1067,23 @@ tracker_db_connect_cache (void)
 	gboolean     create_table;
 	DBConnection *db_con;
 
-	create_table = FALSE;
+	create_table = tracker_db_manager_file_exists (TRACKER_DB_CACHE);
 
 	db_con = g_new0 (DBConnection, 1);
 
-	db_con->db = open_db (tracker->sys_tmp_root_dir, 
-			      TRACKER_INDEXER_CACHE_DB_FILENAME,
-			      &create_table);
+	db_con->db = open_db_interface (TRACKER_DB_CACHE);
 
 	/* Original cache_size: 
 	 *   Normal 128     Low memory mode 32
 	 * Using set_params...:
 	 *   Normal 128     Low memory mode 64
 	 */
-	set_params (db_con->db, 128, DB_PAGE_SIZE_DONT_SET, FALSE);
 
 	if (create_table) {
 		load_sql_file (db_con, "sqlite-cache.sql");
 		tracker_db_exec_no_reply (db_con->db, "ANALYZE");
+		tracker_log ("Creating db: %s",
+			     tracker_db_manager_get_file (TRACKER_DB_CACHE));
 	}
 
 	return db_con;
@@ -1129,16 +1096,16 @@ tracker_db_connect_emails (void)
 	gboolean     create_table;
 	DBConnection *db_con;
 	
-	create_table = FALSE;
+	create_table = tracker_db_manager_file_exists (TRACKER_DB_EMAIL_META);
 
 	db_con = g_new0 (DBConnection, 1);
 
-	db_con->db = open_db (tracker->data_dir, TRACKER_INDEXER_EMAIL_META_DB_FILENAME, &create_table);
+	db_con->db = open_db_interface (TRACKER_DB_EMAIL_META);
+	//db_con->db = open_db (tracker->data_dir, TRACKER_INDEXER_EMAIL_META_DB_FILENAME, &create_table);
+	/* Old: always 8    Now: normal 8  low battery 4 */
+//set_params (db_con->db, 8, TRACKER_DB_PAGE_SIZE_DEFAULT, TRUE);
 
 	db_con->emails = db_con;
-
-	/* Old: always 8    Now: normal 8  low battery 4 */
-	set_params (db_con->db, 8, DB_PAGE_SIZE_DEFAULT, TRUE);
 
 	if (create_table) {
 		tracker_log ("Creating email database...");
@@ -1149,8 +1116,8 @@ tracker_db_connect_emails (void)
 		tracker_db_exec_no_reply (db_con->db, "ANALYZE");
 	}
 
-	tracker_db_attach_db (db_con, "common");
-	tracker_db_attach_db (db_con, "cache");
+	tracker_db_attach_db (db_con, TRACKER_DB_COMMON);
+	tracker_db_attach_db (db_con, TRACKER_DB_CACHE);
 
 	return db_con;
 }
@@ -1233,26 +1200,22 @@ tracker_create_common_db (void)
 	load_sql_file (db_con, "sqlite-metadata.sql");
 	load_sql_trigger (db_con, "sqlite-tracker-triggers.sql");
 
-	tracker_db_load_service_file (db_con, "default.metadata", FALSE);
-	tracker_db_load_service_file (db_con, "file.metadata", FALSE);
-	tracker_db_load_service_file (db_con, "audio.metadata", FALSE);
-	tracker_db_load_service_file (db_con, "application.metadata", FALSE);
-	tracker_db_load_service_file (db_con, "document.metadata", FALSE);
-	tracker_db_load_service_file (db_con, "email.metadata", FALSE);
-	tracker_db_load_service_file (db_con, "image.metadata", FALSE);	
-	tracker_db_load_service_file (db_con, "video.metadata", FALSE);	
+	tracker_db_load_service_file (db_con, "default.metadata");
+	tracker_db_load_service_file (db_con, "file.metadata");
+	tracker_db_load_service_file (db_con, "audio.metadata");
+	tracker_db_load_service_file (db_con, "application.metadata");
+	tracker_db_load_service_file (db_con, "document.metadata");
+	tracker_db_load_service_file (db_con, "email.metadata");
+	tracker_db_load_service_file (db_con, "image.metadata");	
+	tracker_db_load_service_file (db_con, "video.metadata");	
 
-	tracker_db_load_service_file (db_con, "default.service", FALSE);
+	tracker_db_load_service_file (db_con, "default.service");
 
 	tracker_db_exec_no_reply (db_con->db, "ANALYZE");
 
 	tracker_db_close (db_con);
 
 	g_free (db_con);
-
-
-
-	
 }
 
 static gboolean
@@ -1275,16 +1238,16 @@ file_exists (const gchar *dir, const char *name)
 gboolean
 tracker_db_needs_setup ()
 {
-	return (!file_exists (tracker->data_dir, TRACKER_INDEXER_FILE_META_DB_FILENAME) 
+	return (!tracker_db_manager_file_exists (TRACKER_DB_FILE_META)
 		|| !file_exists (tracker->data_dir, TRACKER_INDEXER_FILE_INDEX_DB_FILENAME) 
-		|| !file_exists (tracker->data_dir, TRACKER_INDEXER_FILE_CONTENTS_DB_FILENAME));
+		|| !tracker_db_manager_file_exists (TRACKER_DB_FILE_CONTENTS));
 }
 
 
 gboolean 
 tracker_db_needs_data ()
 {
-	return !file_exists (tracker->user_data_dir, TRACKER_INDEXER_COMMON_DB_FILENAME);
+	return !tracker_db_manager_file_exists (TRACKER_DB_COMMON);
 }
 
 gint
@@ -4633,7 +4596,7 @@ tracker_db_metadata_is_child (DBConnection *db_con, const char *child, const cha
 
 
 gboolean
-tracker_db_load_service_file (DBConnection *db_con, const char *filename, gboolean full_path)
+tracker_db_load_service_file (DBConnection *db_con, const char *filename)
 {
 	GKeyFile 		*key_file = NULL;
 	const char * const 	*locale_array;
@@ -4643,12 +4606,7 @@ tracker_db_load_service_file (DBConnection *db_con, const char *filename, gboole
 
 	char *DataTypeArray[11] = {"Keyword", "Indexable", "CLOB", "String", "Integer", "Double", "DateTime", "BLOB", "Struct", "Link", NULL};
 
-	if (!full_path) {
-		service_file = g_build_filename (tracker->services_dir, filename, NULL);
-	} else {
-		service_file = g_strdup (filename);
-	}
-
+	service_file = tracker_db_manager_get_service_file (filename);
 
 	locale_array = g_get_language_names ();
 

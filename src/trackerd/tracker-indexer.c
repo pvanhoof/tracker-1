@@ -63,6 +63,7 @@
 #include "tracker-query-tree.h"
 #include "tracker-service-manager.h"
 #include "tracker-status.h"
+#include "tracker-db-manager.h"
 
 extern Tracker *tracker;
 
@@ -1387,8 +1388,9 @@ tracker_indexer_get_suggestion (Indexer *indexer, const gchar *term, gint maxdis
 gboolean
 tracker_indexer_are_databases_too_big (void)
 {
-	gchar    *filename;
-        gboolean  too_big;
+	gchar       *filename;
+        const gchar *filename_const;
+        gboolean    too_big;
 
 	filename = g_build_filename (tracker->data_dir, TRACKER_INDEXER_FILE_INDEX_DB_FILENAME, NULL);
 	too_big = tracker_file_get_size (filename) > MAX_INDEX_FILE_SIZE;
@@ -1408,18 +1410,16 @@ tracker_indexer_are_databases_too_big (void)
 		return TRUE;	
 	}
 
-	filename = g_build_filename (tracker->data_dir, TRACKER_INDEXER_FILE_META_DB_FILENAME, NULL);
-	too_big = tracker_file_get_size (filename) > MAX_INDEX_FILE_SIZE;
-        g_free (filename);
+        filename_const = tracker_db_manager_get_file (TRACKER_DB_FILE_META);
+	too_big = tracker_file_get_size (filename_const) > MAX_INDEX_FILE_SIZE;
         
         if (too_big) {
                 tracker_error ("File metadata database is too big, discontinuing indexing");
 		return TRUE;	
 	}
 
-	filename = g_build_filename (tracker->data_dir, TRACKER_INDEXER_EMAIL_META_DB_FILENAME, NULL);
-	too_big = tracker_file_get_size (filename) > MAX_INDEX_FILE_SIZE;
-        g_free (filename);
+        filename_const = tracker_db_manager_get_file (TRACKER_DB_EMAIL_META);
+	too_big = tracker_file_get_size (filename_const) > MAX_INDEX_FILE_SIZE;
         
         if (too_big) {
 		tracker_error ("Email metadata database is too big, discontinuing indexing");

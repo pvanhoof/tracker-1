@@ -74,7 +74,6 @@ typedef struct {
 	gchar       *user_data_dir;
 	gchar       *sys_tmp_root_dir;
         gchar       *email_attachements_dir;
-	gchar       *services_dir;
 	gchar       *xesam_dir;
 
 	gchar       *log_filename;

@@ -47,6 +47,8 @@ db_sources =								\
 	tracker-parser.h						\
 	tracker-db-sqlite.c						\
 	tracker-db-sqlite.h						\
+	tracker-db-manager.c						\
+	tracker-db-manager.h						\
 	tracker-db-email.c						\
 	tracker-db-email.h
 

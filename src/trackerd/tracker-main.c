@@ -55,6 +55,7 @@
 #include "tracker-service-manager.h"
 #include "tracker-status.h"
 #include "tracker-xesam.h"
+#include "tracker-db-manager.h"
 
 #ifdef OS_WIN32
 #include <windows.h>
@@ -544,8 +545,6 @@ initialise_defaults (void)
 
 	tracker->index_number_min_length = 6;
 
-	tracker->services_dir = g_build_filename (SHAREDIR, "tracker", "services", NULL);
-
 	tracker->folders_count = 0;
 	tracker->folders_processed = 0;
 	tracker->mbox_count = 0;
@@ -869,6 +868,11 @@ main (gint argc, gchar *argv[])
 	tracker_nfs_lock_init (tracker->root_dir,
 			       tracker_config_get_nfs_locking (tracker->config));
 	
+	/* Prepare db information */
+	tracker_db_manager_init (tracker->data_dir,
+				 tracker->user_data_dir,
+				 tracker->sys_tmp_root_dir);
+	
 	/* Set up xesam */
 	tracker_xesam_init ();
 
@@ -1038,6 +1042,8 @@ main (gint argc, gchar *argv[])
         if (tracker->config) {
                 g_object_unref (tracker->config);
         }
+
+	tracker_db_manager_term ();
 
 	tracker_nfs_lock_term ();
 	tracker_log_term ();

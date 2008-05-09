@@ -318,8 +318,7 @@ GHashTable *        tracker_db_get_indexable_content_words     (DBConnection   *
                                                                 gboolean        embedded_only);
 gboolean            tracker_db_has_display_metadata            (FieldDef       *def);
 gboolean            tracker_db_load_service_file               (DBConnection   *db_con,
-                                                                const gchar    *filename,
-                                                                gboolean        full_path);
+                                                                const gchar    *filename);
 gchar *             tracker_db_get_field_name                  (const gchar    *service,
                                                                 const gchar    *meta_name);
 gint                tracker_metadata_is_key                    (const gchar    *service,

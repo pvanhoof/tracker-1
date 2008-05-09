@@ -1,5 +1,25 @@
 2008-05-09  Ivan Frade  <ivan.frade@nokia.com>
 
+	* src/trackerd/Makefile.am
+	* src/trackerd/tracker-db-manager.c
+	* src/trackerd/tracker-db-manager.h: New module to handle
+	databases locations, names and parameters.
+	
+	* src/trackerd/tracker-db-sqlite.c
+	* src/trackerd/tracker-db-sqlite.h
+	* src/trackerd/tracker-indexer.c: Using new module. 
+	(open_db) is now open_db_interface.
+	
+	* src/trackerd/tracker-indexer.h: DB filenames moved to new
+	module.
+	
+	* src/trackerd/tracker-main.c: Init/term the new module
+	
+	* src/trackerd/tracker-main.h: 
+	(tracker->services_dir): Removed
+
+2008-05-09  Ivan Frade  <ivan.frade@nokia.com>
+
 	* src/trackerd/tracker-db-sqlite.c
 	* src/trackerd/tracker-db-sqlite.h: 
 	(tracker_db_set_default_pragmas): Now static function

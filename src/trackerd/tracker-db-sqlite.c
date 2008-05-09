@@ -635,12 +635,23 @@ open_db (const char *dir, const char *name, gboolean *create_table)
 
 
 static void
-set_params (DBConnection *db_con, int cache_size, int page_size, gboolean add_functions)
+set_default_pragmas (TrackerDBInterface *iface)
 {
-	tracker_db_set_default_pragmas (db_con);
+	tracker_db_exec_no_reply (iface, "PRAGMA synchronous = NORMAL;");
+	tracker_db_exec_no_reply (iface, "PRAGMA count_changes = 0;");
+	tracker_db_exec_no_reply (iface, "PRAGMA temp_store = FILE;");
+	tracker_db_exec_no_reply (iface, "PRAGMA encoding = \"UTF-8\"");
+	tracker_db_exec_no_reply (iface, "PRAGMA auto_vacuum = 0;");
+}
+
+
+static void
+set_params (TrackerDBInterface *iface, int cache_size, int page_size, gboolean add_functions)
+{
+	set_default_pragmas (iface);
 
 	if (page_size != DB_PAGE_SIZE_DONT_SET) {
-		tracker_db_exec_no_reply (db_con->db, "PRAGMA page_size = %d", page_size);
+		tracker_db_exec_no_reply (iface, "PRAGMA page_size = %d", page_size);
 	}
 
 
@@ -648,20 +659,20 @@ set_params (DBConnection *db_con, int cache_size, int page_size, gboolean add_fu
 		cache_size /= 2;
 	}
 
-	tracker_db_exec_no_reply (db_con->db, "PRAGMA cache_size = %d", cache_size);
+	tracker_db_exec_no_reply (iface, "PRAGMA cache_size = %d", cache_size);
 
 	if (add_functions) {
-		if (! tracker_db_interface_sqlite_set_collation_function (TRACKER_DB_INTERFACE_SQLITE (db_con->db),
+		if (! tracker_db_interface_sqlite_set_collation_function (TRACKER_DB_INTERFACE_SQLITE (iface),
 									  "UTF8", utf8_collation_func)) {
 			tracker_error ("ERROR: collation sequence failed");
 		}
 
 		/* create user defined functions that can be used in sql */
-		tracker_db_interface_sqlite_create_function (db_con->db, "FormatDate", function_date_to_str, 1);
-		tracker_db_interface_sqlite_create_function (db_con->db, "GetServiceName", function_get_service_name, 1);
-		tracker_db_interface_sqlite_create_function (db_con->db, "GetServiceTypeID", function_get_service_type, 1);
-		tracker_db_interface_sqlite_create_function (db_con->db, "GetMaxServiceTypeID", function_get_max_service_type, 1);
-		tracker_db_interface_sqlite_create_function (db_con->db, "REGEXP", function_regexp, 2);
+		tracker_db_interface_sqlite_create_function (iface, "FormatDate", function_date_to_str, 1);
+		tracker_db_interface_sqlite_create_function (iface, "GetServiceName", function_get_service_name, 1);
+		tracker_db_interface_sqlite_create_function (iface, "GetServiceTypeID", function_get_service_type, 1);
+		tracker_db_interface_sqlite_create_function (iface, "GetMaxServiceTypeID", function_get_max_service_type, 1);
+		tracker_db_interface_sqlite_create_function (iface, "REGEXP", function_regexp, 2);
 	}
 }
 
@@ -674,7 +685,7 @@ open_common_db (DBConnection *db_con)
 
 	db_con->db = open_db (tracker->user_data_dir, TRACKER_INDEXER_COMMON_DB_FILENAME, &create);
 
-	set_params (db_con, 32, DB_PAGE_SIZE_DEFAULT, FALSE);
+	set_params (db_con->db, 32, DB_PAGE_SIZE_DEFAULT, FALSE);
 
 }
 
@@ -858,22 +869,6 @@ tracker_db_end_index_transaction (DBConnection *db_con)
 }
 
 
-void
-tracker_db_set_default_pragmas (DBConnection *db_con)
-{
-	tracker_db_exec_no_reply (db_con->db, "PRAGMA synchronous = NORMAL;");
-
-	tracker_db_exec_no_reply (db_con->db, "PRAGMA count_changes = 0;");
-
-	tracker_db_exec_no_reply (db_con->db, "PRAGMA temp_store = FILE;");
-
-	tracker_db_exec_no_reply (db_con->db, "PRAGMA encoding = \"UTF-8\"");
-
-	tracker_db_exec_no_reply (db_con->db, "PRAGMA auto_vacuum = 0;");
-
-}
-
-
 DBConnection *
 tracker_db_connect (void)
 {
@@ -885,7 +880,7 @@ tracker_db_connect (void)
 
 	db_con->data = db_con;
 
-	set_params (db_con, 32, DB_PAGE_SIZE_DONT_SET, TRUE);
+	set_params (db_con->db, 32, DB_PAGE_SIZE_DONT_SET, TRUE);
 	
 	if (create_table) {
 		tracker_log ("Creating file database...");
@@ -928,7 +923,7 @@ open_file_db (DBConnection *db_con)
 	db_con->db = open_db (tracker->data_dir, 
 			      TRACKER_INDEXER_FILE_META_DB_FILENAME, &create);	
 
-	set_params (db_con, 512, DB_PAGE_SIZE_DEFAULT, TRUE);
+	set_params (db_con->db, 512, DB_PAGE_SIZE_DEFAULT, TRUE);
 }
 
 DBConnection *
@@ -952,7 +947,7 @@ open_email_db (DBConnection *db_con)
 	db_con->db = open_db (tracker->data_dir, 
 			      TRACKER_INDEXER_EMAIL_META_DB_FILENAME, &create);	
 
-	set_params (db_con, 512, DB_PAGE_SIZE_DEFAULT, TRUE);
+	set_params (db_con->db, 512, DB_PAGE_SIZE_DEFAULT, TRUE);
 }
 
 DBConnection *
@@ -979,7 +974,7 @@ open_file_content_db (DBConnection *db_con)
 			      TRACKER_INDEXER_FILE_CONTENTS_DB_FILENAME, 
 			      &create);	
 
-	set_params (db_con, 1024, DB_PAGE_SIZE_DEFAULT, FALSE);
+	set_params (db_con->db, 1024, DB_PAGE_SIZE_DEFAULT, FALSE);
 
 	if (create) {
 		tracker_db_exec_no_reply (db_con->db, "CREATE TABLE ServiceContents (ServiceID Int not null, MetadataID Int not null, Content Text, primary key (ServiceID, MetadataID))");
@@ -1013,7 +1008,7 @@ open_email_content_db (DBConnection *db_con)
 			      TRACKER_INDEXER_EMAIL_CONTENTS_DB_FILENAME,
 			      &create);	
 
-	set_params (db_con, 512, DB_PAGE_SIZE_DEFAULT, FALSE);
+	set_params (db_con->db, 512, DB_PAGE_SIZE_DEFAULT, FALSE);
 
 	if (create) {
 		tracker_db_exec_no_reply (db_con->db, "CREATE TABLE ServiceContents (ServiceID Int not null, MetadataID Int not null, Content Text, primary key (ServiceID, MetadataID))");
@@ -1117,7 +1112,7 @@ tracker_db_connect_cache (void)
 	 * Using set_params...:
 	 *   Normal 128     Low memory mode 64
 	 */
-	set_params (db_con, 128, DB_PAGE_SIZE_DONT_SET, FALSE);
+	set_params (db_con->db, 128, DB_PAGE_SIZE_DONT_SET, FALSE);
 
 	if (create_table) {
 		load_sql_file (db_con, "sqlite-cache.sql");
@@ -1143,7 +1138,7 @@ tracker_db_connect_emails (void)
 	db_con->emails = db_con;
 
 	/* Old: always 8    Now: normal 8  low battery 4 */
-	set_params (db_con, 8, DB_PAGE_SIZE_DEFAULT, TRUE);
+	set_params (db_con->db, 8, DB_PAGE_SIZE_DEFAULT, TRUE);
 
 	if (create_table) {
 		tracker_log ("Creating email database...");

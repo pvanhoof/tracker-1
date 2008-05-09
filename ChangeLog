@@ -1,5 +1,13 @@
 2008-05-09  Ivan Frade  <ivan.frade@nokia.com>
 
+	* src/trackerd/tracker-db-sqlite.c
+	* src/trackerd/tracker-db-sqlite.h: 
+	(tracker_db_set_default_pragmas): Now static function
+	called set_default_pragmas and using TrackerDBInterface
+	(set_params): Uses TrackerDBInterface instead of DBConnection.
+
+2008-05-09  Ivan Frade  <ivan.frade@nokia.com>
+
 	* src/trackerd/tracker-main.c
 	* src/trackerd/tracker-process-files.c
 	* src/trackerd/tracker-db-sqlite.c

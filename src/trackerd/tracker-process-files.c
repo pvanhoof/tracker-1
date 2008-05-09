@@ -1192,11 +1192,11 @@ process_files (Tracker *tracker)
                 tracker_log ("Updating database stats, please wait...");
                 
                 tracker_db_interface_start_transaction (db_con->db);
-                tracker_db_exec_no_reply (db_con, "ANALYZE");
+                tracker_db_exec_no_reply (db_con->db, "ANALYZE");
                 tracker_db_interface_end_transaction (db_con->db);
                 
                 tracker_db_interface_start_transaction (db_con->emails->db);
-                tracker_db_exec_no_reply (db_con->emails, "ANALYZE");
+                tracker_db_exec_no_reply (db_con->emails->db, "ANALYZE");
                 tracker_db_interface_end_transaction (db_con->emails->db);
                 
                 tracker_log ("Finished optimizing, waiting for new events...");

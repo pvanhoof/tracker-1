@@ -416,7 +416,7 @@ load_sql_file (DBConnection *db_con, const char *sql_file)
 		queries = g_strsplit_set (query, ";", -1);
 
 		for (queries_p = queries; *queries_p; queries_p++) {
-			tracker_db_exec_no_reply (db_con, *queries_p);
+			tracker_db_exec_no_reply (db_con->db, *queries_p);
 		}
 		g_strfreev (queries);
 		g_free (query);
@@ -443,7 +443,7 @@ load_sql_trigger (DBConnection *db_con, const char *sql_file)
 		queries = g_strsplit_set (query, "!", -1);
 
 		for (queries_p = queries; *queries_p; queries_p++) {
-			tracker_db_exec_no_reply (db_con, *queries_p);
+			tracker_db_exec_no_reply (db_con->db, *queries_p);
 		}
 		g_strfreev (queries);
 		g_free (query);
@@ -640,7 +640,7 @@ set_params (DBConnection *db_con, int cache_size, int page_size, gboolean add_fu
 	tracker_db_set_default_pragmas (db_con);
 
 	if (page_size != DB_PAGE_SIZE_DONT_SET) {
-		tracker_db_exec_no_reply (db_con, "PRAGMA page_size = %d", page_size);
+		tracker_db_exec_no_reply (db_con->db, "PRAGMA page_size = %d", page_size);
 	}
 
 
@@ -648,7 +648,7 @@ set_params (DBConnection *db_con, int cache_size, int page_size, gboolean add_fu
 		cache_size /= 2;
 	}
 
-	tracker_db_exec_no_reply (db_con, "PRAGMA cache_size = %d", cache_size);
+	tracker_db_exec_no_reply (db_con->db, "PRAGMA cache_size = %d", cache_size);
 
 	if (add_functions) {
 		if (! tracker_db_interface_sqlite_set_collation_function (TRACKER_DB_INTERFACE_SQLITE (db_con->db),
@@ -704,10 +704,10 @@ tracker_db_attach_db (DBConnection *db_con, const char *name)
 
 	if (strcmp (name, "common") == 0) {
 		path = g_build_filename (tracker->user_data_dir, TRACKER_INDEXER_COMMON_DB_FILENAME, NULL);
-		tracker_db_exec_no_reply (db_con, "ATTACH '%s' as %s", path, name);
+		tracker_db_exec_no_reply (db_con->db, "ATTACH '%s' as %s", path, name);
 	} else if (strcmp (name, "cache") == 0) {
 		path = g_build_filename (tracker->sys_tmp_root_dir, TRACKER_INDEXER_CACHE_DB_FILENAME, NULL);
-		tracker_db_exec_no_reply (db_con, "ATTACH '%s' as %s", path, name);
+		tracker_db_exec_no_reply (db_con->db, "ATTACH '%s' as %s", path, name);
 	}
 
 	g_free (path);
@@ -861,15 +861,15 @@ tracker_db_end_index_transaction (DBConnection *db_con)
 void
 tracker_db_set_default_pragmas (DBConnection *db_con)
 {
-	tracker_db_exec_no_reply (db_con, "PRAGMA synchronous = NORMAL;");
+	tracker_db_exec_no_reply (db_con->db, "PRAGMA synchronous = NORMAL;");
 
-	tracker_db_exec_no_reply (db_con, "PRAGMA count_changes = 0;");
+	tracker_db_exec_no_reply (db_con->db, "PRAGMA count_changes = 0;");
 
-	tracker_db_exec_no_reply (db_con, "PRAGMA temp_store = FILE;");
+	tracker_db_exec_no_reply (db_con->db, "PRAGMA temp_store = FILE;");
 
-	tracker_db_exec_no_reply (db_con, "PRAGMA encoding = \"UTF-8\"");
+	tracker_db_exec_no_reply (db_con->db, "PRAGMA encoding = \"UTF-8\"");
 
-	tracker_db_exec_no_reply (db_con, "PRAGMA auto_vacuum = 0;");
+	tracker_db_exec_no_reply (db_con->db, "PRAGMA auto_vacuum = 0;");
 
 }
 
@@ -903,7 +903,7 @@ tracker_db_connect (void)
 		tracker_db_load_service_file (db_con, "image.metadata", FALSE);	
 		tracker_db_load_service_file (db_con, "video.metadata", FALSE);	
 	
-		tracker_db_exec_no_reply (db_con, "ANALYZE");
+		tracker_db_exec_no_reply (db_con->db, "ANALYZE");
 	}
 
 	// TODO: move tables Events and XesamLiveSearches from sqlite-service.sql
@@ -982,7 +982,7 @@ open_file_content_db (DBConnection *db_con)
 	set_params (db_con, 1024, DB_PAGE_SIZE_DEFAULT, FALSE);
 
 	if (create) {
-		tracker_db_exec_no_reply (db_con, "CREATE TABLE ServiceContents (ServiceID Int not null, MetadataID Int not null, Content Text, primary key (ServiceID, MetadataID))");
+		tracker_db_exec_no_reply (db_con->db, "CREATE TABLE ServiceContents (ServiceID Int not null, MetadataID Int not null, Content Text, primary key (ServiceID, MetadataID))");
 		tracker_log ("creating file content table");
 	}
 
@@ -1016,7 +1016,7 @@ open_email_content_db (DBConnection *db_con)
 	set_params (db_con, 512, DB_PAGE_SIZE_DEFAULT, FALSE);
 
 	if (create) {
-		tracker_db_exec_no_reply (db_con, "CREATE TABLE ServiceContents (ServiceID Int not null, MetadataID Int not null, Content Text, primary key (ServiceID, MetadataID))");
+		tracker_db_exec_no_reply (db_con->db, "CREATE TABLE ServiceContents (ServiceID Int not null, MetadataID Int not null, Content Text, primary key (ServiceID, MetadataID))");
 		tracker_log ("creating email content table");
 	}
 
@@ -1121,7 +1121,7 @@ tracker_db_connect_cache (void)
 
 	if (create_table) {
 		load_sql_file (db_con, "sqlite-cache.sql");
-		tracker_db_exec_no_reply (db_con, "ANALYZE");
+		tracker_db_exec_no_reply (db_con->db, "ANALYZE");
 	}
 
 	return db_con;
@@ -1151,7 +1151,7 @@ tracker_db_connect_emails (void)
 		load_sql_trigger (db_con, "sqlite-service-triggers.sql");
 		load_sql_file (db_con, "sqlite-email.sql");
 
-		tracker_db_exec_no_reply (db_con, "ANALYZE");
+		tracker_db_exec_no_reply (db_con->db, "ANALYZE");
 	}
 
 	tracker_db_attach_db (db_con, "common");
@@ -1162,14 +1162,14 @@ tracker_db_connect_emails (void)
 
 
 gboolean
-tracker_db_exec_no_reply (DBConnection *db_con, const char *query, ...)
+tracker_db_exec_no_reply (TrackerDBInterface *iface, const char *query, ...)
 {
 	va_list args;
 
 	tracker_nfs_lock_obtain ();
 
 	va_start (args, query);
-	tracker_db_interface_execute_vquery_no_reply (db_con->db, NULL, query, args);
+	tracker_db_interface_execute_vquery_no_reply (iface, NULL, query, args);
 	va_end (args);
 
 	tracker_nfs_lock_release ();
@@ -1249,7 +1249,7 @@ tracker_create_common_db (void)
 
 	tracker_db_load_service_file (db_con, "default.service", FALSE);
 
-	tracker_db_exec_no_reply (db_con, "ANALYZE");
+	tracker_db_exec_no_reply (db_con->db, "ANALYZE");
 
 	tracker_db_close (db_con);
 
@@ -2280,7 +2280,7 @@ tracker_db_insert_embedded_metadata (DBConnection *db_con, const gchar *service,
 				g_free (my_val);
 			}
 
-			tracker_db_exec_no_reply (db_con,
+			tracker_db_exec_no_reply (db_con->db,
 						  "update Services set KeyMetadata%d = '%s' where id = %s",
 						  key_field, esc_value, id);
 
@@ -2614,7 +2614,7 @@ tracker_db_set_metadata (DBConnection *db_con, const char *service, const char *
 
 			}
 
-			tracker_db_exec_no_reply (db_con,
+			tracker_db_exec_no_reply (db_con->db,
 						  "update Services set KeyMetadata%d = '%s' where id = %s",
 						  key_field, esc_value, id);
 
@@ -2775,21 +2775,21 @@ tracker_db_delete_metadata_value (DBConnection *db_con, const char *service, con
 			if (value) {
 				char *esc_value = tracker_escape_string (value);
 
-				tracker_db_exec_no_reply (db_con,
+				tracker_db_exec_no_reply (db_con->db,
 							 "update Services set KeyMetadata%d = '%s' where id = %s",
 							  key_field, esc_value, id);
 
 				g_free (esc_value);
 				g_free (value);
 			} else {
-				tracker_db_exec_no_reply (db_con,
+				tracker_db_exec_no_reply (db_con->db,
 							  "update Services set KeyMetadata%d = NULL where id = %s",
 							  key_field, id);
 			}
 
 			g_object_unref (result_set);
 		} else {
-			tracker_db_exec_no_reply (db_con,
+			tracker_db_exec_no_reply (db_con->db,
 						  "update Services set KeyMetadata%d = NULL where id = %s",
 						  key_field, id);
 		}
@@ -2855,7 +2855,7 @@ tracker_db_delete_metadata (DBConnection *db_con, const char *service, const cha
 
 	
 	if (key_field > 0) {
-		tracker_db_exec_no_reply (db_con,
+		tracker_db_exec_no_reply (db_con->db,
 					  "update Services set KeyMetadata%d = NULL where id = %s",
 					  key_field, id);
 	}
@@ -3164,7 +3164,7 @@ tracker_db_create_service (DBConnection *db_con, const char *service, TrackerDBF
 		id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (db_con->db));
 
 		if (info->is_hidden) {
-			tracker_db_exec_no_reply (db_con,
+			tracker_db_exec_no_reply (db_con->db,
 						  "Update services set Enabled = 0 where ID = %d",
 						  (int) id);
 		}
@@ -3518,9 +3518,9 @@ tracker_db_get_pending_files (DBConnection *db_con)
 
 	time (&time_now);
 
-	tracker_db_exec_no_reply (db_con->cache, "DELETE FROM FileTemp");
+	tracker_db_exec_no_reply (db_con->cache->db, "DELETE FROM FileTemp");
 
-	tracker_db_exec_no_reply (db_con->cache,
+	tracker_db_exec_no_reply (db_con->cache->db,
 				  "INSERT INTO FileTemp (ID, FileID, Action, FileUri, MimeType,"
 				  " IsDir, IsNew, RefreshEmbedded, RefreshContents, ServiceTypeID) "
 				  "SELECT ID, FileID, Action, FileUri, MimeType,"
@@ -3528,7 +3528,7 @@ tracker_db_get_pending_files (DBConnection *db_con)
 				  "FROM FilePending WHERE (PendingDate < %d) AND (Action <> 20) LIMIT 250",
 				  (gint) time_now);
 
-	tracker_db_exec_no_reply (db_con->cache, "DELETE FROM FilePending WHERE ID IN (SELECT ID FROM FileTemp)");
+	tracker_db_exec_no_reply (db_con->cache->db, "DELETE FROM FilePending WHERE ID IN (SELECT ID FROM FileTemp)");
 
 	return tracker_db_interface_execute_query (db_con->cache->db, NULL, "SELECT FileID, FileUri, Action, MimeType, IsDir, IsNew, RefreshEmbedded, RefreshContents, ServiceTypeID FROM FileTemp ORDER BY ID");
 }
@@ -3537,7 +3537,7 @@ tracker_db_get_pending_files (DBConnection *db_con)
 void
 tracker_db_remove_pending_files (DBConnection *db_con)
 {
-	tracker_db_exec_no_reply (db_con->cache, "DELETE FROM FileTemp");
+	tracker_db_exec_no_reply (db_con->cache->db, "DELETE FROM FileTemp");
 }
 
 
@@ -4739,7 +4739,7 @@ tracker_db_load_service_file (DBConnection *db_con, const char *filename, gboole
 							int data_id = tracker_string_in_string_list (value, DataTypeArray);
 
 							if (data_id != -1) {
-								tracker_db_exec_no_reply (db_con,
+								tracker_db_exec_no_reply (db_con->db,
 											  "update MetaDataTypes set DataTypeID = %d where ID = %s",
 											  data_id, str_id);
 							}
@@ -4748,7 +4748,7 @@ tracker_db_load_service_file (DBConnection *db_con, const char *filename, gboole
 						} else {
 							char *esc_value = tracker_escape_string (value);
 
-							tracker_db_exec_no_reply (db_con,
+							tracker_db_exec_no_reply (db_con->db,
 										  "update MetaDataTypes set  %s = '%s' where ID = %s",
 										  *array2, esc_value, str_id);
 							g_free (esc_value);
@@ -4791,7 +4791,7 @@ tracker_db_load_service_file (DBConnection *db_con, const char *filename, gboole
 							for (tmp = tab_array; *tmp; tmp++) { 			
 								tracker_exec_proc (db_con, "InsertMimes", *tmp, NULL);
 							
-								tracker_db_exec_no_reply (db_con,
+								tracker_db_exec_no_reply (db_con->db,
 											  "update FileMimes set ServiceTypeID = %s where Mime = '%s'",
 											  str_id, *tmp);
 							}
@@ -4806,7 +4806,7 @@ tracker_db_load_service_file (DBConnection *db_con, const char *filename, gboole
 							for (tmp = tab_array; *tmp; tmp++) { 			
 								tracker_exec_proc (db_con, "InsertMimePrefixes", *tmp, NULL);
 
-								tracker_db_exec_no_reply (db_con,
+								tracker_db_exec_no_reply (db_con->db,
 											  "update FileMimePrefixes set ServiceTypeID = %s where MimePrefix = '%s'",
 											  str_id, *tmp);
 							}
@@ -4817,7 +4817,7 @@ tracker_db_load_service_file (DBConnection *db_con, const char *filename, gboole
 						} else {
 							char *esc_value = tracker_escape_string (value);
 
-							tracker_db_exec_no_reply (db_con,
+							tracker_db_exec_no_reply (db_con->db,
 										  "update ServiceTypes set  %s = '%s' where TypeID = %s",
 										  *array2, esc_value, str_id);
 							g_free (esc_value);

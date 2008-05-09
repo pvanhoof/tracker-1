@@ -374,7 +374,7 @@ create_index (gboolean need_data)
 	/* Reset stats for embedded services if they are being reindexed */
 	if (!need_data) {
 		tracker_log ("*** DELETING STATS *** ");
-		tracker_db_exec_no_reply (db_con, 
+		tracker_db_exec_no_reply (db_con->db, 
 					  "update ServiceTypes set TypeCount = 0 where Embedded = 1");
 	}
 

@@ -115,8 +115,8 @@ TrackerDBResultSet *tracker_exec_proc                          (DBConnection   *
 gboolean            tracker_exec_proc_no_reply                 (DBConnection   *db_con,
                                                                 const gchar    *procedure,
                                                                 ...);
-gboolean            tracker_db_exec_no_reply                   (DBConnection   *db_con,
-                                                                const gchar    *query,
+gboolean            tracker_db_exec_no_reply                   (TrackerDBInterface   *iface,
+                                                                const gchar          *query,
                                                                 ...);
 void                tracker_create_common_db                          (void);
 void                tracker_db_save_file_contents              (DBConnection   *db_con,

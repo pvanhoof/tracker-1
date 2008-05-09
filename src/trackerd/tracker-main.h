@@ -119,9 +119,6 @@ typedef struct {
 	gint         email_service_min;
 	gint         email_service_max; 
 
-	/* NFS options */
-	gboolean     use_nfs_safe_locking;
-
 	/* Queue for recorad file changes */
 	GQueue      *file_change_queue; 
 	gboolean     black_list_timer_active;

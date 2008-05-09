@@ -139,6 +139,34 @@ static gint           throttle = -1;
 static gint           verbosity;
 static gint           initial_sleep = -1; 
 
+static gchar *
+get_lock_file () 
+{
+	gchar *lock_file, *str;
+	
+	str = g_strconcat (g_get_user_name (), "_tracker_lock", NULL);
+
+	/* check if setup for NFS usage (and enable atomic NFS safe locking) */
+	if (tracker_config_get_nfs_locking (tracker->config)) {
+
+		/* place lock file in tmp dir to allow multiple 
+		 * sessions on NFS 
+		 */
+		lock_file = g_build_filename (tracker->sys_tmp_root_dir, str, NULL);
+
+	} else {
+		/* place lock file in home dir to prevent multiple 
+		 * sessions on NFS (as standard locking might be 
+		 * broken on NFS) 
+		 */
+		lock_file = g_build_filename (tracker->root_dir, str, NULL);
+	}
+
+	g_free (str);
+	return lock_file;
+}
+
+
 static GOptionEntry   entries[] = {
 	{ "exclude-dir", 'e', 0, 
 	  G_OPTION_ARG_STRING_ARRAY, &no_watch_dirs, 
@@ -190,6 +218,13 @@ static GOptionEntry   entries[] = {
 	  NULL },
 	{ NULL }
 };
+
+gboolean
+tracker_die (void)
+{
+	tracker_error ("trackerd has failed to exit on time - terminating...");
+	exit (EXIT_FAILURE);
+}
 
 static void
 free_file_change_queue (gpointer data, gpointer user_data)
@@ -501,8 +536,6 @@ initialise_defaults (void)
 	tracker->pause_battery = FALSE;
 	tracker->pause_io = FALSE;
 
-	tracker->use_nfs_safe_locking = FALSE;
-
 	tracker->watch_limit = 0;
 	tracker->index_count = 0;
 
@@ -681,6 +714,35 @@ shutdown_threads (void)
 	g_mutex_unlock (tracker->files_check_mutex);
 }
 
+
+static gboolean
+check_multiple_instances ()
+{
+	gint     lfp;
+	gboolean multiple = FALSE;
+	gchar   *lock_file;
+
+	tracker_log ("Checking instances running");
+
+	lock_file = get_lock_file ();
+
+	lfp = g_open (lock_file, O_RDWR|O_CREAT, 0640);
+
+	if (lfp < 0) {
+		g_free (lock_file);
+                g_error ("Cannot open or create lockfile %s - exiting", lock_file);
+	}
+
+	if (lockf (lfp, F_TLOCK, 0) < 0) {
+		g_warning ("Tracker daemon is already running - attempting to run in readonly mode");
+		multiple = TRUE;
+	}
+	g_free (lock_file);
+
+	return multiple;
+}
+
+
 static void
 shutdown_indexer (void)
 {
@@ -724,8 +786,6 @@ main (gint argc, gchar *argv[])
 	GOptionContext *context = NULL;
 	GError         *error = NULL;
 	GSList         *l;
-	gint            lfp;
-	gchar          *lock_file, *str, *lock_str;
 	gchar          *example;
 	gboolean        need_index = FALSE;
 
@@ -806,7 +866,8 @@ main (gint argc, gchar *argv[])
 	tracker_log ("Starting log");
 
 	/* Set up locking */
-	tracker_nfs_lock_init (tracker->root_dir);
+	tracker_nfs_lock_init (tracker->root_dir,
+			       tracker_config_get_nfs_locking (tracker->config));
 	
 	/* Set up xesam */
 	tracker_xesam_init ();
@@ -819,44 +880,9 @@ main (gint argc, gchar *argv[])
 		need_index = TRUE;
 	}
 
-	str = g_strconcat (g_get_user_name (), "_tracker_lock", NULL);
+	umask (077);
 
-	/* Check if setup for NFS usage (and enable atomic NFS safe locking) */
-	lock_str = NULL;
-
-	if (lock_str != NULL) {
-		tracker->use_nfs_safe_locking = (strcmp (str, "1") == 0);
-
-		/* Place lock file in tmp dir to allow multiple
-		 * sessions on NFS.
-		 */
-		lock_file = g_build_filename (tracker->sys_tmp_root_dir, str, NULL);
-		g_free (lock_str);
-	} else {
-		tracker->use_nfs_safe_locking = FALSE;
-
-		/* Place lock file in home dir to prevent multiple
-		 * sessions on NFS (as standard locking might be
-		 * broken on NFS) 
-		 */
-		lock_file = g_build_filename (tracker->root_dir, str, NULL);
-	}
-
-	g_free (str);
-
-	/* Prevent muliple instances  */
-	lfp = g_open (lock_file, O_RDWR | O_CREAT, 0640);
-	g_free (lock_file);
-
-	if (lfp < 0) {
-                g_warning ("Cannot open or create lockfile - exiting");
-		exit (1);
-	}
-
-	if (lockf (lfp, F_TLOCK, 0) <0) {
-		g_warning ("Tracker daemon is already running - attempting to run in readonly mode");
-		tracker->readonly = TRUE;
-	}
+	tracker->readonly = check_multiple_instances ();
 
 	/* Set child's niceness to 19 */
         errno = 0;

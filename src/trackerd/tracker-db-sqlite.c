@@ -606,9 +606,10 @@ open_db (const char *dir, const char *name, gboolean *create_table)
 	gboolean db_exists;
 	char *dbname;
 
-	if (!pool)
+	if (!pool) {
 		pool = g_thread_pool_new (tracker_db_interface_sqlite_process_query, 
-				NULL, 1, TRUE, NULL);
+					  NULL, 1, TRUE, NULL);
+	}
 
 	dbname = g_build_filename (dir, name, NULL);
 	db_exists = g_file_test (dbname, G_FILE_TEST_IS_REGULAR);

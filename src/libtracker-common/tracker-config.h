@@ -50,10 +50,10 @@ GType          tracker_config_get_type                             (void) G_GNUC
 void           tracker_config_load_file                            (void);
 
 TrackerConfig *tracker_config_new                                  (void);
-
 gint           tracker_config_get_verbosity                        (TrackerConfig *config);
 gint           tracker_config_get_initial_sleep                    (TrackerConfig *config);
 gboolean       tracker_config_get_low_memory_mode                  (TrackerConfig *config);
+gboolean       tracker_config_get_nfs_locking                      (TrackerConfig *config);
 GSList *       tracker_config_get_watch_directory_roots            (TrackerConfig *config);
 GSList *       tracker_config_get_crawl_directory_roots            (TrackerConfig *config);
 GSList *       tracker_config_get_no_watch_directory_roots         (TrackerConfig *config);
@@ -72,7 +72,7 @@ gboolean       tracker_config_get_enable_stemmer                   (TrackerConfi
 gboolean       tracker_config_get_disable_indexing_on_battery      (TrackerConfig *config);
 gboolean       tracker_config_get_disable_indexing_on_battery_init (TrackerConfig *config);
 gint           tracker_config_get_low_disk_space_limit             (TrackerConfig *config);
-gboolean       tracker_config_get_index_removable_devices            (TrackerConfig *config);
+gboolean       tracker_config_get_index_removable_devices          (TrackerConfig *config);
 gboolean       tracker_config_get_index_mounted_directories        (TrackerConfig *config);
 const gchar *  tracker_config_get_email_client                     (TrackerConfig *config);
 gint           tracker_config_get_max_text_to_index                (TrackerConfig *config);
@@ -89,6 +89,8 @@ void           tracker_config_set_verbosity                        (TrackerConfi
 void           tracker_config_set_initial_sleep                    (TrackerConfig *config,
 								    gint           value);
 void           tracker_config_set_low_memory_mode                  (TrackerConfig *config,
+								    gboolean       value);
+void           tracker_config_set_nfs_locking                      (TrackerConfig *config,
 								    gboolean       value);
 void           tracker_config_set_enable_watches                   (TrackerConfig *config,
 								    gboolean       value);
@@ -142,6 +144,7 @@ void           tracker_config_set_padding                          (TrackerConfi
 								    gint           value);
 void           tracker_config_set_thread_stack_size                (TrackerConfig *config,
 								    gint           value);
+
 /* Directory root APIs*/
 void           tracker_config_add_watch_directory_roots            (TrackerConfig *config,
 								    gchar * const *roots);
@@ -149,6 +152,7 @@ void           tracker_config_add_crawl_directory_roots            (TrackerConfi
 								    gchar * const *roots);
 void           tracker_config_add_no_watch_directory_roots         (TrackerConfig *config,
 								    gchar * const *roots);
+
 
 G_END_DECLS
 

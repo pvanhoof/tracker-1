@@ -1,3 +1,15 @@
+2008-05-09  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/libtracker-common/tracker-config.c
+	* src/libtracker-common/tracker-config.h
+	* src/libtracker-common/tracker-nfs-lock.c
+	* src/libtracker-common/tracker-nfs-lock.h
+	* src/trackerd/tracker-main.c
+	* src/trackerd/tracker-main.h: NFS locking activated from config 
+	file.
+
+	* src/trackerd/tracker-db-sqlite.c: Code style
+
 2008-05-08  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-nfs-lock.c: Improve logging.

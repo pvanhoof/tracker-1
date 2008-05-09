@@ -148,11 +148,13 @@ tracker_nfs_lock_release (void)
 }
 
 void 
-tracker_nfs_lock_init (const gchar *root_dir)
+tracker_nfs_lock_init (const gchar *root_dir, gboolean nfs)
 {
         if (is_initialized ()) {
 		return;
         }
+
+	use_nfs_safe_locking = nfs;
 
         if (lock_file == NULL) {
                 lock_file = g_build_filename (root_dir, "tracker.lock", NULL);

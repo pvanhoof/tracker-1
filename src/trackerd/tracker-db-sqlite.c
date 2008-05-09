@@ -1164,21 +1164,13 @@ tracker_db_connect_emails (void)
 gboolean
 tracker_db_exec_no_reply (DBConnection *db_con, const char *query, ...)
 {
-	TrackerDBResultSet *result_set;
 	va_list args;
 
 	tracker_nfs_lock_obtain ();
 
 	va_start (args, query);
-	result_set = tracker_db_interface_execute_vquery (db_con->db, NULL, query, args);
+	tracker_db_interface_execute_vquery_no_reply (db_con->db, NULL, query, args);
 	va_end (args);
-
-	/* This function is meant for queries that don't return any result set,
-	 * if it's passed some query that returns a result set, just discard it.
-	 */
-	if (G_UNLIKELY (result_set)) {
-		g_object_unref (result_set);
-	}
 
 	tracker_nfs_lock_release ();
 

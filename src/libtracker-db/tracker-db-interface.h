@@ -71,6 +71,10 @@ struct TrackerDBInterfaceIface {
 	TrackerDBResultSet * (* execute_query)         (TrackerDBInterface  *interface,
 							GError             **error,
 							const gchar         *query);
+	void                 (* execute_query_no_reply)(TrackerDBInterface  *interface,
+							GError             **error,
+							const gchar         *query);
+
 };
 
 struct TrackerDBResultSet {
@@ -91,6 +95,11 @@ GType tracker_db_blob_get_type (void);
 
 /* Functions to create queries/procedures */
 TrackerDBResultSet *    tracker_db_interface_execute_vquery      (TrackerDBInterface   *interface,
+								  GError             **error,
+								  const gchar          *query,
+								  va_list               args);
+void                    tracker_db_interface_execute_vquery_no_reply
+								  (TrackerDBInterface   *interface,
 								  GError             **error,
 								  const gchar          *query,
 								  va_list               args);

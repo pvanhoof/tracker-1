@@ -732,6 +732,27 @@ tracker_db_interface_sqlite_execute_query (TrackerDBInterface  *db_interface,
 }
 
 static void
+tracker_db_interface_sqlite_execute_query_no_reply (TrackerDBInterface  *db_interface,
+						    GError             **error,
+						    const gchar         *query)
+{
+	TrackerDBInterfaceSqlitePrivate *priv;
+	TrackerDBQueryTask *task;
+
+	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (db_interface);
+
+	task = create_db_query_task (db_interface, 
+				     query, 
+				     QUERY, 
+				     NULL, 
+				     error);
+
+	task->nowait = TRUE;
+
+	g_thread_pool_push (priv->pool, task, NULL);
+}
+
+static void
 tracker_db_interface_sqlite_iface_init (TrackerDBInterfaceIface *iface)
 {
 	iface->set_procedure_table = tracker_db_interface_sqlite_set_procedure_table;
@@ -739,6 +760,7 @@ tracker_db_interface_sqlite_iface_init (TrackerDBInterfaceIface *iface)
 	iface->execute_procedure_no_reply = tracker_db_interface_sqlite_execute_procedure_no_reply;
 	iface->execute_procedure_len = tracker_db_interface_sqlite_execute_procedure_len;
 	iface->execute_query = tracker_db_interface_sqlite_execute_query;
+	iface->execute_query_no_reply = tracker_db_interface_sqlite_execute_query_no_reply;
 }
 
 TrackerDBInterface *

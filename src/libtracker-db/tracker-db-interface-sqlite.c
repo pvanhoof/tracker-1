@@ -480,7 +480,8 @@ tracker_db_interface_sqlite_process_query (gpointer data, gpointer user_data)
 
 	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (task->iface);
 
-	if (task->type == QUERY) {
+	switch (task->type) {
+		case QUERY: {
 		/* If it's a plain query, no need for argument checking */
 
 		sqlite3_prepare_v2 (priv->db, task->query, -1, &stmt, NULL);
@@ -498,8 +499,8 @@ tracker_db_interface_sqlite_process_query (gpointer data, gpointer user_data)
 		 * unlike with procedures, we don't cache the stmt */
 
 		finalize_stmt = TRUE;
-
-	} else if (task->type == PROCEDURE_LEN) {
+		} break;
+		case PROCEDURE_LEN: {
 		/* If it's a procedure called with _len argument passing */
 
 		gint stmt_args, n_args, len;
@@ -525,8 +526,9 @@ tracker_db_interface_sqlite_process_query (gpointer data, gpointer user_data)
 
 		/* Just panic if the number of arguments don't match */
 		g_assert (n_args != stmt_args);
-
-	} else {
+		} break;
+		default:
+		case PROCEDURE: {
 		/* If it's a normal procedure with normal argument passing */
 		gchar *str;
 		gint stmt_args, n_args;
@@ -542,6 +544,7 @@ tracker_db_interface_sqlite_process_query (gpointer data, gpointer user_data)
 
 		/* Just panic if the number of arguments don't match */
 		g_assert (n_args != stmt_args);
+		} break;
 	}
 
 	/* If any of those three cases, execute the stmt */

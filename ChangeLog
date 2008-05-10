@@ -1,3 +1,25 @@
+2008-05-10  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/libtracker-common/tracker-type-utils.c
+	* src/libtracker-common/tracker-type-utils.h:
+	(tracker_boolean_as_text_to_number): New function.
+	
+	* src/libtracker-common/tracker-utils.c
+	* src/libtracker-common/tracker-utils.h
+	(tracker_escape_string): Moved from tracker-db-sqlite to here.
+
+	* src/trackerd/tracker-db-sqlite.c
+	(tracker_db_load_service_file): Splitted in three functions, for
+	.metadata, .services and .extensions files. Renamed to 
+	load_service_configuration_file, and now it is an static function.
+	Removed duplicate code betwwen load_sql_file and load_sql_trigger.
+
+	* src/trackerd/tracker-db-sqlite.h:
+	(tracker_db_load_service_file) removed from the public API.
+	
+	* src/trackerd/tracker-db.c: Commented unused lines.
+
+
 2008-05-09  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/trackerd/Makefile.am

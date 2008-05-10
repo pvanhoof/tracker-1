@@ -399,8 +399,8 @@ function_get_max_service_type (TrackerDBInterface *interface,
 }
 
 static void
-load_sql_file (DBConnection *db_con, const char *sql_file)
-{
+load_generic_sql_file (DBConnection *db_con, const gchar *sql_file, const gchar *delimiter) { 
+
 	char *filename, *query;
 	
 	filename = tracker_db_manager_get_sql_file (sql_file);
@@ -411,7 +411,7 @@ load_sql_file (DBConnection *db_con, const char *sql_file)
 	} else {
 		char **queries, **queries_p ;
 
-		queries = g_strsplit_set (query, ";", -1);
+		queries = g_strsplit_set (query, delimiter, -1);
 
 		for (queries_p = queries; *queries_p; queries_p++) {
 			tracker_db_exec_no_reply (db_con->db, *queries_p);
@@ -424,31 +424,308 @@ load_sql_file (DBConnection *db_con, const char *sql_file)
 	g_free (filename);
 }
 
+static void
+load_sql_file (DBConnection *db_con, const char *sql_file)
+{
+	load_generic_sql_file (db_con, sql_file, ";");
+}
 
 static void
 load_sql_trigger (DBConnection *db_con, const char *sql_file)
 {
-	char *filename, *query;
-	
-	filename = g_build_filename (SHAREDIR, "tracker", sql_file, NULL);
+	load_generic_sql_file (db_con, sql_file, "!");
+}
 
-	if (!g_file_get_contents (filename, &query, NULL, NULL)) {
-		tracker_error ("ERROR: Tracker cannot read required file %s - Please reinstall tracker or check read permissions on the file if it exists", sql_file);
-		g_assert (FALSE);
-	} else {
-		char **queries, **queries_p ;
+static void
+load_service_file (DBConnection *db_con, const gchar *filename) 
+{
+	GKeyFile 		*key_file = NULL;
+	const gchar * const 	*locale_array;
+	gchar 			*service_file, *str_id;
+	gchar                  **groups, **keys;
+	gchar                  **group, **key;
+	TrackerService          *service;
+	gint                     id;
 
-		queries = g_strsplit_set (query, "!", -1);
+	service_file = tracker_db_manager_get_service_file (filename);
 
-		for (queries_p = queries; *queries_p; queries_p++) {
-			tracker_db_exec_no_reply (db_con->db, *queries_p);
-		}
-		g_strfreev (queries);
-		g_free (query);
-		tracker_log ("loaded sql file %s", sql_file);
+	locale_array = g_get_language_names ();
+
+	key_file = g_key_file_new ();
+
+	if (!g_key_file_load_from_file (key_file, service_file, G_KEY_FILE_NONE, NULL)) {
+		g_free (service_file);
+		g_key_file_free (key_file);
+		return;
 	}
+	
+	groups = g_key_file_get_groups (key_file, NULL);
 
-	g_free (filename);
+	for (group = groups; *group; group++) {
+
+				
+		tracker_log ("Trying to obtain service %s in cache", *group);
+		service = tracker_service_manager_get_service (*group);
+
+		if (!service) {
+			tracker_exec_proc (db_con, "InsertServiceType", *group, NULL);
+			id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (db_con->db));
+		} else {
+			id = tracker_service_get_id (service);
+		}
+
+		str_id = tracker_uint_to_string (id);
+
+		keys = g_key_file_get_keys (key_file, *group, NULL, NULL);
+		
+		for (key = keys; *key; key++) {
+
+			gchar *value = g_key_file_get_locale_string (key_file, *group, *key, locale_array[0], NULL);
+
+			if (!value) {
+				continue;
+			}
+			
+			gchar *new_value = tracker_boolean_as_text_to_number (value);
+			g_free (value);
+
+
+			if (strcasecmp (*key, "TabularMetadata") == 0) {
+
+				char **tab_array = g_key_file_get_string_list (key_file, *group, *key, NULL, NULL);
+
+				char **tmp;
+				for (tmp = tab_array; *tmp; tmp++) { 			
+
+					tracker_exec_proc (db_con, "InsertServiceTabularMetadata", str_id, *tmp, NULL);
+								
+				}
+
+				g_strfreev (tab_array);
+
+
+
+			} else if (strcasecmp (*key, "TileMetadata") == 0) {
+
+				char **tab_array = g_key_file_get_string_list (key_file, *group, *key, NULL, NULL);
+
+				char **tmp;
+				for (tmp = tab_array; *tmp; tmp++) { 			
+
+					tracker_exec_proc (db_con, "InsertServiceTileMetadata", str_id, *tmp, NULL);
+				}
+
+				g_strfreev (tab_array);
+
+			} else if (strcasecmp (*key, "Mimes") == 0) {
+
+				char **tab_array = g_key_file_get_string_list (key_file, *group, *key, NULL, NULL);
+
+				char **tmp;
+				for (tmp = tab_array; *tmp; tmp++) { 			
+					tracker_exec_proc (db_con, "InsertMimes", *tmp, NULL);
+							
+					tracker_db_exec_no_reply (db_con->db,
+								  "update FileMimes set ServiceTypeID = %s where Mime = '%s'",
+								  str_id, *tmp);
+				}
+
+				g_strfreev (tab_array);
+
+			} else if (strcasecmp (*key, "MimePrefixes") == 0) {
+
+				char **tab_array = g_key_file_get_string_list (key_file, *group, *key, NULL, NULL);
+
+				char **tmp;
+				for (tmp = tab_array; *tmp; tmp++) { 			
+					tracker_exec_proc (db_con, "InsertMimePrefixes", *tmp, NULL);
+
+					tracker_db_exec_no_reply (db_con->db,
+								  "update FileMimePrefixes set ServiceTypeID = %s where MimePrefix = '%s'",
+								  str_id, *tmp);
+				}
+
+				g_strfreev (tab_array);
+
+
+			} else {
+				char *esc_value = tracker_escape_string (new_value);
+
+				tracker_db_exec_no_reply (db_con->db,
+							  "update ServiceTypes set  %s = '%s' where TypeID = %s",
+							  *key, esc_value, str_id);
+				g_free (esc_value);
+			}
+			g_free (new_value);
+
+
+		}
+		g_free (str_id);
+		g_strfreev (keys);
+	}
+	g_strfreev (groups);
+	g_free (service_file);
+}
+
+static void
+load_metadata_file (DBConnection *db_con, const gchar *filename) 
+{
+	GKeyFile 		*key_file = NULL;
+	const gchar * const 	*locale_array;
+	gchar 			*service_file, *str_id;
+	gchar                  **groups, **keys;
+	gchar                  **group, **key;
+	FieldDef                *def;
+	gint                     id;
+	gchar                    *DataTypeArray[11] = {"Keyword", "Indexable", "CLOB", 
+						      "String", "Integer", "Double", 
+						      "DateTime", "BLOB", "Struct", 
+						      "Link", NULL};
+
+	service_file = tracker_db_manager_get_service_file (filename);
+
+	locale_array = g_get_language_names ();
+
+	key_file = g_key_file_new ();
+
+	if (!g_key_file_load_from_file (key_file, service_file, G_KEY_FILE_NONE, NULL)) {
+		g_free (service_file);
+		g_key_file_free (key_file);
+		return;
+	}
+	
+	groups = g_key_file_get_groups (key_file, NULL);
+
+	for (group = groups; *group; group++) {
+
+		def = tracker_db_get_field_def (*group);
+
+		if (!def) {
+			tracker_exec_proc (db_con, "InsertMetadataType", *group, NULL);
+			id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (db_con->db));
+		} else {
+			id = atoi (def->id);
+		}
+
+		str_id = tracker_uint_to_string (id);
+
+		keys = g_key_file_get_keys (key_file, *group, NULL, NULL);
+		
+		for (key = keys; *key; key++) {
+
+			gchar *value = g_key_file_get_locale_string (key_file, *group, *key, locale_array[0], NULL);
+
+			if (!value) {
+				continue;
+			}
+			
+			gchar *new_value = tracker_boolean_as_text_to_number (value);
+			g_free (value);
+
+
+			if (strcasecmp (*key, "Parent") == 0) {
+
+				tracker_exec_proc (db_con, "InsertMetaDataChildren", str_id, new_value, NULL);
+				
+			} else if (strcasecmp (*key, "DataType") == 0) {
+				
+				int data_id = tracker_string_in_string_list (new_value, DataTypeArray);
+				
+				if (data_id != -1) {
+					tracker_db_exec_no_reply (db_con->db,
+								  "update MetaDataTypes set DataTypeID = %d where ID = %s",
+								  data_id, str_id);
+				}
+				
+				
+			} else {
+				char *esc_value = tracker_escape_string (new_value);
+				
+				tracker_db_exec_no_reply (db_con->db,
+							  "update MetaDataTypes set  %s = '%s' where ID = %s",
+							  *key, esc_value, str_id);
+				g_free (esc_value);
+			}
+			g_free (new_value);
+		}
+		g_free (str_id);
+		g_strfreev (keys);
+	}
+	g_strfreev (groups);
+	g_free (service_file);
+}
+
+static void
+load_extractor_file (DBConnection *db_con, const gchar *filename)
+{
+	GKeyFile 		*key_file = NULL;
+	const gchar * const 	*locale_array;
+	gchar 			*service_file, *str_id;
+	gchar                  **groups, **keys;
+	gchar                  **group, **key;
+	gint                     id;
+
+	service_file = tracker_db_manager_get_service_file (filename);
+
+	locale_array = g_get_language_names ();
+
+	key_file = g_key_file_new ();
+
+	if (!g_key_file_load_from_file (key_file, service_file, G_KEY_FILE_NONE, NULL)) {
+		g_free (service_file);
+		g_key_file_free (key_file);
+		return;
+	}
+	
+	groups = g_key_file_get_groups (key_file, NULL);
+
+	for (group = groups; *group; group++) {
+
+		/* Obtain last id */
+		id = 0;
+		str_id = tracker_uint_to_string (id);
+
+		keys = g_key_file_get_keys (key_file, *group, NULL, NULL);
+		
+		for (key = keys; *key; key++) {
+
+			gchar *value = g_key_file_get_locale_string (key_file, *group, *key, locale_array[0], NULL);
+
+			if (!value) {
+				continue;
+			}
+			
+			gchar *new_value = tracker_boolean_as_text_to_number (value);
+			g_free (value);
+
+			/* to do - support extractors */
+
+			g_free (new_value);
+		}
+		g_free (str_id);
+		g_strfreev (keys);
+	}
+	g_strfreev (groups);
+	g_free (service_file);
+}
+
+static gboolean
+load_service_description_file (DBConnection *db_con, const gchar* filename)
+{
+	if (g_str_has_suffix (filename, ".metadata")) {
+		load_metadata_file (db_con, filename);
+
+	} else if (g_str_has_suffix (filename, ".service")) {
+		load_service_file (db_con, filename);
+
+	} else if (g_str_has_suffix (filename, ".extractor")) {
+		load_extractor_file (db_con, filename);
+
+	} else {
+		return FALSE;
+	} 
+
+	return TRUE;
 }
 
 
@@ -464,7 +741,6 @@ tracker_db_get_field_def (const char *field_name)
 	g_free (name);
 
 	return def;
-
 }
 
 
@@ -491,10 +767,7 @@ tracker_db_load_prepared_queries (void)
 						  g_free, 
 						  g_free);
 
-	sql_filename = g_build_filename (SHAREDIR, 
-					 "tracker", 
-					 "sqlite-stored-procs.sql", 
-					 NULL);
+	sql_filename = tracker_db_manager_get_sql_file ("sqlite-stored-procs.sql");
 
 	t = g_timer_new ();
 
@@ -869,14 +1142,14 @@ tracker_db_connect (void)
 
 		load_sql_file (db_con, "sqlite-metadata.sql");
 	
-		tracker_db_load_service_file (db_con, "default.metadata");
-		tracker_db_load_service_file (db_con, "file.metadata");
-		tracker_db_load_service_file (db_con, "audio.metadata");
-		tracker_db_load_service_file (db_con, "application.metadata");
-		tracker_db_load_service_file (db_con, "document.metadata");
-		tracker_db_load_service_file (db_con, "email.metadata");
-		tracker_db_load_service_file (db_con, "image.metadata");	
-		tracker_db_load_service_file (db_con, "video.metadata");	
+		load_service_description_file (db_con, "default.metadata");
+		load_service_description_file (db_con, "file.metadata");
+		load_service_description_file (db_con, "audio.metadata");
+		load_service_description_file (db_con, "application.metadata");
+		load_service_description_file (db_con, "document.metadata");
+		load_service_description_file (db_con, "email.metadata");
+		load_service_description_file (db_con, "image.metadata");	
+		load_service_description_file (db_con, "video.metadata");	
 	
 		tracker_db_exec_no_reply (db_con->db, "ANALYZE");
 	}
@@ -1139,23 +1412,6 @@ tracker_db_exec_no_reply (TrackerDBInterface *iface, const char *query, ...)
 	return TRUE;
 }
 
-char *
-tracker_escape_string (const char *in)
-{
-	gchar **array, *out;
-
-	if (strchr (in, '\'')) {
-		return g_strdup (in);
-	}
-
-	/* double single quotes */
-	array = g_strsplit (in, "'", -1);
-	out = g_strjoinv ("''", array);
-	g_strfreev (array);
-
-	return out;
-}
-
 TrackerDBResultSet *
 tracker_exec_proc (DBConnection *db_con, const char *procedure, ...)
 {
@@ -1200,16 +1456,16 @@ tracker_create_common_db (void)
 	load_sql_file (db_con, "sqlite-metadata.sql");
 	load_sql_trigger (db_con, "sqlite-tracker-triggers.sql");
 
-	tracker_db_load_service_file (db_con, "default.metadata");
-	tracker_db_load_service_file (db_con, "file.metadata");
-	tracker_db_load_service_file (db_con, "audio.metadata");
-	tracker_db_load_service_file (db_con, "application.metadata");
-	tracker_db_load_service_file (db_con, "document.metadata");
-	tracker_db_load_service_file (db_con, "email.metadata");
-	tracker_db_load_service_file (db_con, "image.metadata");	
-	tracker_db_load_service_file (db_con, "video.metadata");	
+	load_service_description_file (db_con, "default.metadata");
+	load_service_description_file (db_con, "file.metadata");
+	load_service_description_file (db_con, "audio.metadata");
+	load_service_description_file (db_con, "application.metadata");
+	load_service_description_file (db_con, "document.metadata");
+	load_service_description_file (db_con, "email.metadata");
+	load_service_description_file (db_con, "image.metadata");	
+	load_service_description_file (db_con, "video.metadata");	
 
-	tracker_db_load_service_file (db_con, "default.service");
+	load_service_description_file (db_con, "default.service");
 
 	tracker_db_exec_no_reply (db_con->db, "ANALYZE");
 
@@ -4593,227 +4849,6 @@ tracker_db_metadata_is_child (DBConnection *db_con, const char *child, const cha
 	return FALSE;
 
 }
-
-
-gboolean
-tracker_db_load_service_file (DBConnection *db_con, const char *filename)
-{
-	GKeyFile 		*key_file = NULL;
-	const char * const 	*locale_array;
-	char 			*service_file;
-	gboolean		is_metadata = FALSE, is_service = FALSE, is_extractor = FALSE;
-	int			id;
-
-	char *DataTypeArray[11] = {"Keyword", "Indexable", "CLOB", "String", "Integer", "Double", "DateTime", "BLOB", "Struct", "Link", NULL};
-
-	service_file = tracker_db_manager_get_service_file (filename);
-
-	locale_array = g_get_language_names ();
-
-	key_file = g_key_file_new ();
-
-	if (g_key_file_load_from_file (key_file, service_file, G_KEY_FILE_NONE, NULL)) {
-		
-		if (g_str_has_suffix (filename, ".metadata")) {
-			is_metadata = TRUE;
-		} else if (g_str_has_suffix (filename, ".service")) {
-			is_service = TRUE;
-		} else if (g_str_has_suffix (filename, ".extractor")) {
-			is_extractor = TRUE;
-		} else {
-			g_key_file_free (key_file);
-			g_free (service_file);		
-			return FALSE;
-		} 
-
-
-		char **groups = g_key_file_get_groups (key_file, NULL);
-		char **array;
-
-		for (array = groups; *array; array++) {
-
-			if (is_metadata) {
-				FieldDef *def = tracker_db_get_field_def (*array);
-
-				if (!def) {
-					tracker_exec_proc (db_con, "InsertMetadataType", *array, NULL);
-					id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (db_con->db));
-				} else {
-					id = atoi (def->id);
-				}
-			} else if (is_service) {
-				TrackerService *service;
-				
-				tracker_log ("Trying to obtain service %s in cache", *array);
-				service = tracker_service_manager_get_service (*array);
-
-				if (!service) {
-					tracker_exec_proc (db_con, "InsertServiceType", *array, NULL);
-					id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (db_con->db));
-				} else {
-					id = tracker_service_get_id (service);
-				}
-			} else {
-				/* TODO add support for extractors here */;
-			}
-		
-			/* get inserted ID */
-			
-			char *str_id = tracker_uint_to_string (id);
-
-			char **keys = g_key_file_get_keys (key_file, *array, NULL, NULL);
-			char **array2;
-	
-			for (array2 = keys; *array2; array2++) {
-	
-				char *value = g_key_file_get_locale_string (key_file, *array, *array2, locale_array[0], NULL);
-
-				if (value) {
-
-					if (strcasecmp (value, "true") == 0) {
-
-						g_free (value);
-						value = g_strdup ("1");
-
-					} else if  (strcasecmp (value, "false") == 0) {
-
-						g_free (value);
-						value = g_strdup ("0");
-					}
-
-					if (is_metadata) {
-
-						if (strcasecmp (*array2, "Parent") == 0) {
-
-							tracker_exec_proc (db_con, "InsertMetaDataChildren", str_id, value, NULL);
-
-						} else if (strcasecmp (*array2, "DataType") == 0) {
-
-							int data_id = tracker_string_in_string_list (value, DataTypeArray);
-
-							if (data_id != -1) {
-								tracker_db_exec_no_reply (db_con->db,
-											  "update MetaDataTypes set DataTypeID = %d where ID = %s",
-											  data_id, str_id);
-							}
-						
-
-						} else {
-							char *esc_value = tracker_escape_string (value);
-
-							tracker_db_exec_no_reply (db_con->db,
-										  "update MetaDataTypes set  %s = '%s' where ID = %s",
-										  *array2, esc_value, str_id);
-							g_free (esc_value);
-						}
-	
-					} else 	if (is_service) {
-
-						if (strcasecmp (*array2, "TabularMetadata") == 0) {
-
-							char **tab_array = g_key_file_get_string_list (key_file, *array, *array2, NULL, NULL);
-
-							char **tmp;
-							for (tmp = tab_array; *tmp; tmp++) { 			
-
-								tracker_exec_proc (db_con, "InsertServiceTabularMetadata", str_id, *tmp, NULL);
-								
-							}
-
-							g_strfreev (tab_array);
-
-
-
-						} else if (strcasecmp (*array2, "TileMetadata") == 0) {
-
-							char **tab_array = g_key_file_get_string_list (key_file, *array, *array2, NULL, NULL);
-
-							char **tmp;
-							for (tmp = tab_array; *tmp; tmp++) { 			
-
-								tracker_exec_proc (db_con, "InsertServiceTileMetadata", str_id, *tmp, NULL);
-							}
-
-							g_strfreev (tab_array);
-
-						} else if (strcasecmp (*array2, "Mimes") == 0) {
-
-							char **tab_array = g_key_file_get_string_list (key_file, *array, *array2, NULL, NULL);
-
-							char **tmp;
-							for (tmp = tab_array; *tmp; tmp++) { 			
-								tracker_exec_proc (db_con, "InsertMimes", *tmp, NULL);
-							
-								tracker_db_exec_no_reply (db_con->db,
-											  "update FileMimes set ServiceTypeID = %s where Mime = '%s'",
-											  str_id, *tmp);
-							}
-
-							g_strfreev (tab_array);
-
-						} else if (strcasecmp (*array2, "MimePrefixes") == 0) {
-
-							char **tab_array = g_key_file_get_string_list (key_file, *array, *array2, NULL, NULL);
-
-							char **tmp;
-							for (tmp = tab_array; *tmp; tmp++) { 			
-								tracker_exec_proc (db_con, "InsertMimePrefixes", *tmp, NULL);
-
-								tracker_db_exec_no_reply (db_con->db,
-											  "update FileMimePrefixes set ServiceTypeID = %s where MimePrefix = '%s'",
-											  str_id, *tmp);
-							}
-
-							g_strfreev (tab_array);
-
-
-						} else {
-							char *esc_value = tracker_escape_string (value);
-
-							tracker_db_exec_no_reply (db_con->db,
-										  "update ServiceTypes set  %s = '%s' where TypeID = %s",
-										  *array2, esc_value, str_id);
-							g_free (esc_value);
-						}
-	
-					} else {
-						/* to do - support extractors here */ ;
-					}
-
-					g_free (value);
-					
-				}
-			}
-
-			if (keys) {
-				g_strfreev (keys);
-			}
-
-			g_free (str_id);
-
-		}
-
-
-		if (groups) {
-			g_strfreev (groups);
-		}
-			
-
-		g_key_file_free (key_file);
-
-	} else {
-		g_key_file_free (key_file);
-		g_free (service_file);		
-		return FALSE;
-	}
-
-
-		       
-	g_free (service_file);		
-
-	return TRUE;
-}
-
 
 FieldData *
 tracker_db_get_metadata_field (DBConnection *db_con, const char *service, const char *field_name, int field_count, gboolean is_select, gboolean is_condition)

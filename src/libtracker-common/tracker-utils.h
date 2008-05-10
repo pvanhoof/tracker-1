@@ -26,5 +26,7 @@ gboolean tracker_is_empty_string (const char  *str);
 gchar *  tracker_string_replace  (const gchar *haystack,
 				  gchar       *needle,
 				  gchar       *replacement);
+gchar *  tracker_escape_string   (const gchar *in);
+
 
 #endif /* __LIBTRACKER_COMMON_UTILS_H__ */

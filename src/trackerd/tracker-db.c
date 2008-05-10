@@ -287,18 +287,18 @@ tracker_db_save_thumbs (DBConnection *db_con, const char *small_thumb, const cha
 	if (small_thumb) {
 		char *small_thumb_file;
 
-		small_thumb_file = tracker_escape_string (small_thumb);
+		/* small_thumb_file = tracker_escape_string (small_thumb); */
 /* 		tracker_db_set_metadata (db_con, "Files", str_file_id, "File.SmallThumbnailPath", small_thumb_file, TRUE, FALSE, TRUE); */
 /* 		tracker_exec_proc (db_con, "SetMetadata", "Files", str_file_id, "File.SmallThumbnailPath", small_thumb_file, "1", NULL); */
-		g_free (small_thumb_file);
+		/* g_free (small_thumb_file); */
 	}
 
 	if (large_thumb) {
 		char *large_thumb_file;
 
-		large_thumb_file = tracker_escape_string (large_thumb);
+		/* large_thumb_file = tracker_escape_string (large_thumb); */
 /* 		tracker_db_set_metadata (db_con, "Files", str_file_id, "File.LargeThumbnailPath", large_thumb_file, TRUE, FALSE, TRUE); */
-		g_free (large_thumb_file);
+ 		/* g_free (large_thumb_file); */
 	}
 
 	g_free (str_file_id);

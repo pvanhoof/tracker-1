@@ -108,7 +108,6 @@ DBConnection *      tracker_db_connect_all                     (void);
 void                tracker_db_close_all                       (DBConnection   *db_con);
 void                tracker_db_refresh_all                     (DBConnection   *db_con);
 void                tracker_db_refresh_email                   (DBConnection   *db_con);
-gchar *             tracker_escape_string                      (const gchar    *in);
 TrackerDBResultSet *tracker_exec_proc                          (DBConnection   *db_con,
                                                                 const gchar    *procedure,
                                                                 ...);
@@ -317,8 +316,6 @@ GHashTable *        tracker_db_get_indexable_content_words     (DBConnection   *
                                                                 GHashTable     *table,
                                                                 gboolean        embedded_only);
 gboolean            tracker_db_has_display_metadata            (FieldDef       *def);
-gboolean            tracker_db_load_service_file               (DBConnection   *db_con,
-                                                                const gchar    *filename);
 gchar *             tracker_db_get_field_name                  (const gchar    *service,
                                                                 const gchar    *meta_name);
 gint                tracker_metadata_is_key                    (const gchar    *service,

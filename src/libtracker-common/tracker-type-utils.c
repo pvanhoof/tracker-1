@@ -629,3 +629,17 @@ tracker_string_list_to_string (gchar **strv,
 
 	return g_string_free (string, FALSE);
 }
+
+gchar *  
+tracker_boolean_as_text_to_number  (const gchar *value)
+{
+	if (strcasecmp (value, "true") == 0) {
+		return g_strdup ("1");
+
+	} else if  (strcasecmp (value, "false") == 0) {
+		return g_strdup ("0");
+
+	} else {
+		return g_strdup (value);
+	}
+}

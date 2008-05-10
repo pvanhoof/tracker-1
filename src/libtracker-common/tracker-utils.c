@@ -58,3 +58,21 @@ tracker_string_replace (const gchar *haystack,
 
         return g_string_free (str, FALSE);
 }
+
+gchar *
+tracker_escape_string (const gchar *in)
+{
+	gchar **array, *out;
+
+	if (strchr (in, '\'')) {
+		return g_strdup (in);
+	}
+
+	/* double single quotes */
+	array = g_strsplit (in, "'", -1);
+	out = g_strjoinv ("''", array);
+	g_strfreev (array);
+
+	return out;
+}
+

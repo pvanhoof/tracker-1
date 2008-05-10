@@ -41,4 +41,9 @@ gchar *  tracker_string_list_to_string      (gchar       **strv,
 					     gint          length,
 					     gchar         sep);
 
+/* "true" -> "1"; "false" -> "0" */
+gchar *  tracker_boolean_as_text_to_number  (const gchar *value);
+
+
+
 #endif /* __LIBTRACKER_COMMON_TYPE_UTILS_H__ */

@@ -1,3 +1,20 @@
+2008-05-12  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-cache.[ch]: Reworked this module and
+	cleaned up the code a bit.
+	
+	* src/trackerd/tracker-db.c: Fix some build warnings.
+	
+	* src/trackerd/tracker-email-utils.c: Renamed Tracker member.
+
+	* src/trackerd/tracker-main.[ch]: More clean ups, also made the
+	main thread wait for the process-files thread to finish before
+	exiting. For some reason, we can't clean up the mutexes after that
+	though because they are busy? Looks like the threading here needs
+	looking at more thoroughly.
+	
+	* src/trackerd/tracker-process-files.c: Log when the thread exits.
+
 2008-05-12  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/trackerd/tracker-xesam-live-search.c

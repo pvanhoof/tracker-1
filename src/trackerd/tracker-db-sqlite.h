@@ -90,11 +90,11 @@ typedef struct {
 } FieldData;
 
 gboolean            tracker_db_needs_setup                     (void);
-gboolean            tracker_db_needs_data                      (void);
+gboolean            tracker_db_common_need_build               (void);
 gboolean            tracker_db_load_prepared_queries                      (void);
 void                tracker_db_thread_init                     (void);
 void                tracker_db_thread_end                      (void);
-void                tracker_db_close                           (DBConnection   *db_con);
+void                tracker_db_close                           (TrackerDBInterface   *iface);
 void                tracker_db_finalize                        (void);
 DBConnection *      tracker_db_connect                         (void);
 DBConnection *      tracker_db_connect_common                  (void);

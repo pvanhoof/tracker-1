@@ -846,13 +846,11 @@ tracker_db_finalize (void)
 }
 
 void
-tracker_db_close (DBConnection *db_con)
+tracker_db_close (TrackerDBInterface *iface)
 {
-	if (db_con->db) {
-		g_object_unref (db_con->db);
-		db_con->db = NULL;
+	if (iface) {
+		g_object_unref (iface);
 	}
-
 	tracker_debug ("Database closed");
 }
 
@@ -1042,35 +1040,35 @@ tracker_db_close_all (DBConnection *db_con)
 
 	/* close emails */
 	if (email_blob_db_con) {
-		tracker_db_close (email_blob_db_con);
+		tracker_db_close (email_blob_db_con->db);
 		free_db_con (email_blob_db_con);
 	}
 		
 	if (email_db_con) {
-		tracker_db_close (email_db_con);
+		tracker_db_close (email_db_con->db);
 		g_free (email_db_con);
 	}
 
 
 	/* close files */
 	if (file_blob_db_con) {
-		tracker_db_close (file_blob_db_con);
+		tracker_db_close (file_blob_db_con->db);
 		free_db_con (file_blob_db_con);
 	}
 
-	tracker_db_close (db_con);
+	tracker_db_close (db_con->db);
 	g_free (db_con);
 
 
 	/* close others */
 	if (common_db_con) {
-		tracker_db_close (common_db_con);
+		tracker_db_close (common_db_con->db);
 		free_db_con (common_db_con);
 	}
 
 	
 	if (cache_db_con) {
-		tracker_db_close (cache_db_con);
+		tracker_db_close (cache_db_con->db);
 		free_db_con (cache_db_con);
 	}
 
@@ -1286,12 +1284,12 @@ tracker_db_refresh_all (DBConnection *db_con)
 	}
 
 	/* close and reopen all databases */	
-	tracker_db_close (db_con);	
-	tracker_db_close (db_con->blob);
+	tracker_db_close (db_con->db);	
+	tracker_db_close (db_con->blob->db);
 
-	tracker_db_close (emails->blob);
-	tracker_db_close (emails->common);
-	tracker_db_close (emails);
+	tracker_db_close (emails->blob->db);
+	tracker_db_close (emails->common->db);
+	tracker_db_close (emails->db);
 
 	open_file_db (db_con);
 	open_file_content_db (db_con->blob);
@@ -1321,9 +1319,9 @@ tracker_db_refresh_email (DBConnection *db_con)
 
 	DBConnection *emails = db_con->emails;
 
-	tracker_db_close (emails->blob);
-	tracker_db_close (emails->common);
-	tracker_db_close (emails);
+	tracker_db_close (emails->blob->db);
+	tracker_db_close (emails->common->db);
+	tracker_db_close (emails->db);
 
 	open_email_content_db (emails->blob);
 	open_common_db (emails->common);
@@ -1468,8 +1466,8 @@ tracker_create_common_db (void)
 	load_service_description_file (db_con, "default.service");
 
 	tracker_db_exec_no_reply (db_con->db, "ANALYZE");
-
-	tracker_db_close (db_con);
+	
+	tracker_db_close (db_con->db);
 
 	g_free (db_con);
 }
@@ -1501,8 +1499,9 @@ tracker_db_needs_setup ()
 
 
 gboolean 
-tracker_db_needs_data ()
+tracker_db_common_need_build ()
 {
+	/* TODO: Check here also if it is up to date! */
 	return !tracker_db_manager_file_exists (TRACKER_DB_COMMON);
 }
 

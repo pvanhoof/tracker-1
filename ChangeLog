@@ -1,3 +1,13 @@
+2008-05-12  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/trackerd/tracker-db-sqlite.c
+	* src/trackerd/tracker-db-sqlite.h
+	* src/trackerd/tracker-main.c:
+	(tracker_db_close): Now uses TrackerDBInterface instead of
+	DBConnecion.
+	(tracker_db_needs_data): Now called tracker_db_common_need_build
+
+	
 2008-05-10  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/libtracker-common/tracker-type-utils.c

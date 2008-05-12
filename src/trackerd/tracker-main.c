@@ -379,20 +379,20 @@ create_index (gboolean need_data)
 					  "update ServiceTypes set TypeCount = 0 where Embedded = 1");
 	}
 
-	tracker_db_close (db_con);
+	tracker_db_close (db_con->db);
 	g_free (db_con);
 
 	/* Create databases */
 	db_con = tracker_db_connect_file_content ();
-	tracker_db_close (db_con);
+	tracker_db_close (db_con->db);
 	g_free (db_con);
 
 	db_con = tracker_db_connect_email_content ();
-	tracker_db_close (db_con);
+	tracker_db_close (db_con->db);
 	g_free (db_con);
 
 	db_con = tracker_db_connect_emails ();
-	tracker_db_close (db_con);
+	tracker_db_close (db_con->db);
 	g_free (db_con);
 
 }
@@ -561,9 +561,9 @@ initialise_databases (gboolean need_index)
 	
 	/* FIXME: is this actually necessary? */
 	db_con = tracker_db_connect_cache ();
-	tracker_db_close (db_con);
+	tracker_db_close (db_con->db);
 
-	need_data = tracker_db_needs_data ();
+	need_data = tracker_db_common_need_build ();
 
 	if (need_data) {
 		tracker_create_common_db ();
@@ -758,7 +758,7 @@ shutdown_databases (void)
 	/* Reset integrity status as threads have closed cleanly */
 	tracker_db_set_option_int (main_thread_db_con, "IntegrityCheck", 0);
 
-	tracker_db_close (main_thread_db_con);
+	tracker_db_close (main_thread_db_con->db);
 
 	/* This must be called after all other db functions */
 	tracker_db_finalize ();

@@ -26,12 +26,14 @@
 
 G_BEGIN_DECLS
 
+void     tracker_cache_init           (void);
+void     tracker_cache_shutdown       (void);
 void     tracker_cache_add            (const gchar  *word,
 				       guint32       service_id,
 				       gint          service_type,
 				       gint          score,
 				       gboolean      is_new);
-void     tracker_cache_flush_all      ();
+void     tracker_cache_flush_all      (void);
 gboolean tracker_cache_process_events (DBConnection *db_con,
 				       gboolean      check_flush);
 

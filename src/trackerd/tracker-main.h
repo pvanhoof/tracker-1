@@ -73,7 +73,7 @@ typedef struct {
 	gchar       *root_dir;
 	gchar       *user_data_dir;
 	gchar       *sys_tmp_root_dir;
-        gchar       *email_attachements_dir;
+        gchar       *email_attachments_dir;
 	gchar       *xesam_dir;
 
 	gchar       *log_filename;
@@ -129,11 +129,6 @@ typedef struct {
 	
 	/* Application run time values */
 	gint         index_count; 
-
-	/* Cache words before saving to word index */
-	GHashTable  *file_word_table;
-	GHashTable  *file_update_word_table;
-	GHashTable  *email_word_table;
 
 	gint         word_detail_count; 
 	gint         word_count;

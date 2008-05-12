@@ -792,12 +792,12 @@ email_make_tmp_name_for_mail_attachment (const gchar *filename)
         gchar *str_uint, *tmp_filename, *tmp_name;
 
         g_return_val_if_fail (filename, NULL);
-        g_return_val_if_fail (tracker->email_attachements_dir, NULL);
+        g_return_val_if_fail (tracker->email_attachments_dir, NULL);
 
         str_uint = tracker_uint_to_string (g_random_int ());
         tmp_filename = g_strconcat (str_uint, "-", filename, NULL);
         g_free (str_uint);
-        tmp_name = g_build_filename (tracker->email_attachements_dir, tmp_filename, NULL);
+        tmp_name = g_build_filename (tracker->email_attachments_dir, tmp_filename, NULL);
         g_free (tmp_filename);
 
         return tmp_name;

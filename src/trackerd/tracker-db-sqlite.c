@@ -1490,11 +1490,11 @@ file_exists (const gchar *dir, const char *name)
 
 
 gboolean
-tracker_db_needs_setup ()
+tracker_db_needs_setup (void)
 {
-	return (!tracker_db_manager_file_exists (TRACKER_DB_FILE_META)
-		|| !file_exists (tracker->data_dir, TRACKER_INDEXER_FILE_INDEX_DB_FILENAME) 
-		|| !tracker_db_manager_file_exists (TRACKER_DB_FILE_CONTENTS));
+	return (!tracker_db_manager_file_exists (TRACKER_DB_FILE_META) ||
+		!file_exists (tracker->data_dir, TRACKER_INDEXER_FILE_INDEX_DB_FILENAME) ||
+		!tracker_db_manager_file_exists (TRACKER_DB_FILE_CONTENTS));
 }
 
 

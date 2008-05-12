@@ -46,16 +46,17 @@
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-nfs-lock.h>
 
-#include "tracker-dbus.h"
 #include "tracker-email.h"
+#include "tracker-cache.h"
+#include "tracker-dbus.h"
+#include "tracker-db-manager.h"
+#include "tracker-hal.h"
 #include "tracker-indexer.h"
 #include "tracker-process-files.h"
-#include "tracker-watch.h"
-#include "tracker-hal.h"
 #include "tracker-service-manager.h"
 #include "tracker-status.h"
+#include "tracker-watch.h"
 #include "tracker-xesam.h"
-#include "tracker-db-manager.h"
 
 #ifdef OS_WIN32
 #include <windows.h>
@@ -140,34 +141,6 @@ static gint           throttle = -1;
 static gint           verbosity;
 static gint           initial_sleep = -1; 
 
-static gchar *
-get_lock_file () 
-{
-	gchar *lock_file, *str;
-	
-	str = g_strconcat (g_get_user_name (), "_tracker_lock", NULL);
-
-	/* check if setup for NFS usage (and enable atomic NFS safe locking) */
-	if (tracker_config_get_nfs_locking (tracker->config)) {
-
-		/* place lock file in tmp dir to allow multiple 
-		 * sessions on NFS 
-		 */
-		lock_file = g_build_filename (tracker->sys_tmp_root_dir, str, NULL);
-
-	} else {
-		/* place lock file in home dir to prevent multiple 
-		 * sessions on NFS (as standard locking might be 
-		 * broken on NFS) 
-		 */
-		lock_file = g_build_filename (tracker->root_dir, str, NULL);
-	}
-
-	g_free (str);
-	return lock_file;
-}
-
-
 static GOptionEntry   entries[] = {
 	{ "exclude-dir", 'e', 0, 
 	  G_OPTION_ARG_STRING_ARRAY, &no_watch_dirs, 
@@ -220,11 +193,31 @@ static GOptionEntry   entries[] = {
 	{ NULL }
 };
 
-gboolean
-tracker_die (void)
+static gchar *
+get_lock_file (void) 
 {
-	tracker_error ("trackerd has failed to exit on time - terminating...");
-	exit (EXIT_FAILURE);
+	gchar *lock_file, *str;
+	
+	str = g_strconcat (g_get_user_name (), "_tracker_lock", NULL);
+
+	/* check if setup for NFS usage (and enable atomic NFS safe locking) */
+	if (tracker_config_get_nfs_locking (tracker->config)) {
+		/* Place lock file in tmp dir to allow multiple 
+		 * sessions on NFS 
+		 */
+		lock_file = g_build_filename (tracker->sys_tmp_root_dir, str, NULL);
+
+	} else {
+		/* Place lock file in home dir to prevent multiple 
+		 * sessions on NFS (as standard locking might be 
+		 * broken on NFS) 
+		 */
+		lock_file = g_build_filename (tracker->root_dir, str, NULL);
+	}
+
+	g_free (str);
+
+	return lock_file;
 }
 
 static void
@@ -332,10 +325,6 @@ sanity_check_option_values (void)
 	tracker->word_count = 0;
 	tracker->word_detail_count = 0;
 	tracker->word_update_count = 0;
-
-	tracker->file_word_table = g_hash_table_new (g_str_hash, g_str_equal);
-	tracker->file_update_word_table = g_hash_table_new (g_str_hash, g_str_equal);
-	tracker->email_word_table = g_hash_table_new (g_str_hash, g_str_equal);
 
 	if (!tracker_config_get_low_memory_mode (tracker->config)) {
 		tracker->memory_limit = 16000 *1024;
@@ -463,11 +452,10 @@ initialise_signal_handler (void)
 }
 
 static void
-initialise_directories (void)
+initialise_locations (void)
 {
 	gchar *str;
-	gchar *filename;
-
+	
 	str = g_strdup_printf ("Tracker-%s.%d", g_get_user_name (), getpid ());
 	tracker->sys_tmp_root_dir = g_build_filename (g_get_tmp_dir (), str, NULL);
 	g_free (str);
@@ -478,6 +466,17 @@ initialise_directories (void)
 	tracker->user_data_dir = g_build_filename (tracker->root_dir, "data", NULL);
 	tracker->xesam_dir = g_build_filename (g_get_home_dir (), ".xesam", NULL);
 
+        tracker->email_attachments_dir = g_build_filename (tracker->sys_tmp_root_dir, "Attachments", NULL);
+	tracker->log_filename = g_build_filename (tracker->root_dir, "tracker.log", NULL);
+}
+
+static void
+initialise_directories (gboolean *need_index)
+{
+	gchar *filename;
+
+	*need_index = FALSE;
+	
 	/* Remove an existing one */
 	if (g_file_test (tracker->sys_tmp_root_dir, G_FILE_TEST_EXISTS)) {
 		tracker_dir_remove (tracker->sys_tmp_root_dir);
@@ -492,6 +491,12 @@ initialise_directories (void)
 
 	g_free (filename);
 
+	/* Remove database if we are reindexing */
+	if (reindex || tracker_db_needs_setup ()) {
+		tracker_dir_remove (tracker->data_dir);
+		*need_index = TRUE;
+	}
+
         /* Create other directories we need */
 	if (!g_file_test (tracker->user_data_dir, G_FILE_TEST_EXISTS)) {
 		g_mkdir_with_parents (tracker->user_data_dir, 00755);
@@ -501,11 +506,9 @@ initialise_directories (void)
 		g_mkdir_with_parents (tracker->data_dir, 00755);
 	}
 
-        tracker->email_attachements_dir = g_build_filename (tracker->sys_tmp_root_dir, "Attachments", NULL);
-	g_mkdir_with_parents (tracker->email_attachements_dir, 00700);
+	g_mkdir_with_parents (tracker->email_attachments_dir, 00700);
 
 	/* Remove existing log files */
-	tracker->log_filename = g_build_filename (tracker->root_dir, "tracker.log", NULL);
 	tracker_file_unlink (tracker->log_filename);
 }
 
@@ -676,7 +679,7 @@ shutdown_timeout_cb (gpointer user_data)
 }
 
 static void
-shutdown_threads (void)
+shutdown_threads (GThread *thread_to_join)
 {
 	tracker_log ("Shutting down threads");
 
@@ -711,15 +714,33 @@ shutdown_threads (void)
 	 */
 	g_mutex_unlock (tracker->metadata_check_mutex);
 	g_mutex_unlock (tracker->files_check_mutex);
+
+	/* We wait now for the thread to exit and join, then clean up
+	 * the mutexts and conds. 
+	 */
+	tracker_log ("Waiting for thread:%p to finish", thread_to_join);
+	g_thread_join (thread_to_join);
+
+	/* Clean up */
+#if 0
+	tracker_log ("Waiting for file check/signal mutexes to unlock before cleaning up...");
+	g_mutex_free (tracker->files_check_mutex); 
+	g_mutex_free (tracker->files_signal_mutex);
+	g_cond_free (tracker->files_signal_cond);
+
+	tracker_log ("Waiting for metadata check/signal mutexes to unlock before cleaning up...");
+	g_mutex_free (tracker->metadata_check_mutex);
+	g_mutex_free (tracker->metadata_signal_mutex);
+	g_cond_free (tracker->metadata_signal_cond);
+#endif
 }
 
-
 static gboolean
-check_multiple_instances ()
+check_multiple_instances (void)
 {
-	gint     lfp;
-	gboolean multiple = FALSE;
-	gchar   *lock_file;
+	gchar    *lock_file;
+	gint      lfp;
+	gboolean  multiple = FALSE;
 
 	tracker_log ("Checking instances running");
 
@@ -729,13 +750,14 @@ check_multiple_instances ()
 
 	if (lfp < 0) {
 		g_free (lock_file);
-                g_error ("Cannot open or create lockfile %s - exiting", lock_file);
+                g_error ("Cannot open or create lockfile:'%s'", lock_file);
 	}
 
 	if (lockf (lfp, F_TLOCK, 0) < 0) {
 		g_warning ("Tracker daemon is already running - attempting to run in readonly mode");
 		multiple = TRUE;
 	}
+
 	g_free (lock_file);
 
 	return multiple;
@@ -777,6 +799,15 @@ shutdown_directories (void)
 	if (tracker->sys_tmp_root_dir) {
 		tracker_dir_remove (tracker->sys_tmp_root_dir);
 	}
+
+	g_free (tracker->data_dir);
+	g_free (tracker->config_dir);
+	g_free (tracker->root_dir);
+	g_free (tracker->user_data_dir);
+	g_free (tracker->sys_tmp_root_dir);
+	g_free (tracker->email_attachments_dir);
+	g_free (tracker->xesam_dir);
+	g_free (tracker->log_filename);
 }
 
 gint
@@ -784,9 +815,10 @@ main (gint argc, gchar *argv[])
 {
 	GOptionContext *context = NULL;
 	GError         *error = NULL;
+	GThread        *thread; 
 	GSList         *l;
 	gchar          *example;
-	gboolean        need_index = FALSE;
+	gboolean        need_index;
 
         g_type_init ();
         
@@ -850,39 +882,33 @@ main (gint argc, gchar *argv[])
 	tracker->pid = getpid ();
 	tracker->dir_queue = g_async_queue_new ();
 
-	/* Set up directories */
-	initialise_directories ();
-	umask (077);
+	/* This makes sure we have all the locations like the data
+	 * dir, user data dir, etc all configured.
+	 * 
+	 * The initialise_directories() function makes sure everything
+	 * exists physically and/or is reset depending on various
+	 * options (like if we reindex, we remove the data dir).
+	 */
+	initialise_locations ();
 
-        /* Set up the config */
+        /* Initialise major subsystems */
         tracker->config = tracker_config_new ();
         tracker->language = tracker_language_new (tracker->config);
 
-	/* Set up the log */
 	tracker_log_init (tracker->log_filename, 
                           tracker_config_get_verbosity (tracker->config), 
                           fatal_errors);
-	tracker_log ("Starting log");
-
-	/* Set up locking */
 	tracker_nfs_lock_init (tracker->root_dir,
 			       tracker_config_get_nfs_locking (tracker->config));
-	
-	/* Prepare db information */
 	tracker_db_manager_init (tracker->data_dir,
 				 tracker->user_data_dir,
 				 tracker->sys_tmp_root_dir);
-	
-	/* Set up xesam */
 	tracker_xesam_init ();
+	tracker_cache_init ();
+        tracker_service_manager_init ();
 
+	initialise_directories (&need_index);
 	initialise_threading ();
-
-	if (reindex || tracker_db_needs_setup ()) {
-		tracker_dir_remove (tracker->data_dir);
-		g_mkdir_with_parents (tracker->data_dir, 00755);
-		need_index = TRUE;
-	}
 
 	umask (077);
 
@@ -947,9 +973,6 @@ main (gint argc, gchar *argv[])
 
 	sanity_check_option_values ();
 
-        /* Initialise the service manager */
-        tracker_service_manager_init ();
-
 	/* Set thread safe DB connection */
 	tracker_db_thread_init ();
 
@@ -987,13 +1010,13 @@ main (gint argc, gchar *argv[])
 			tracker->is_running = FALSE;
 			tracker_error ("File monitoring failed to start");
 		} else {
-			g_thread_create_full ((GThreadFunc) tracker_process_files, 
-					      tracker,
-					      (gulong) tracker_config_get_thread_stack_size (tracker->config),
-					      FALSE, 
-					      FALSE, 
-					      G_THREAD_PRIORITY_NORMAL, 
-					      NULL);
+			thread = g_thread_create_full ((GThreadFunc) tracker_process_files, 
+						       tracker,
+						       (gulong) tracker_config_get_thread_stack_size (tracker->config),
+						       TRUE, 
+						       FALSE, 
+						       G_THREAD_PRIORITY_NORMAL, 
+						       NULL);
 		}
 	}
 	
@@ -1024,10 +1047,25 @@ main (gint argc, gchar *argv[])
 	/* Set kill timeout */
 	g_timeout_add_full (G_PRIORITY_LOW, 20000, shutdown_timeout_cb, NULL, NULL);
 
-	shutdown_threads ();
+	tracker_cache_shutdown ();
+
+	shutdown_threads (thread);
 	shutdown_indexer ();
 	shutdown_databases ();
 	shutdown_directories ();
+
+	/* Clean up other struct members */
+	if (tracker->file_process_queue) {
+		g_async_queue_unref (tracker->file_process_queue);
+	}
+
+	if (tracker->file_metadata_queue) {
+		g_async_queue_unref (tracker->file_metadata_queue);
+	}
+
+	if (tracker->dir_queue) {
+		g_async_queue_unref (tracker->dir_queue);
+	}
 
 	/* Shutdown major subsystems */
         if (tracker->hal) {
@@ -1035,9 +1073,7 @@ main (gint argc, gchar *argv[])
                 tracker->hal = NULL;
         }
 
-        if (tracker->language) {
-                tracker_language_free (tracker->language);
-        }
+	tracker_language_free (tracker->language);
 
         if (tracker->config) {
                 g_object_unref (tracker->config);
@@ -1047,8 +1083,6 @@ main (gint argc, gchar *argv[])
 
 	tracker_nfs_lock_term ();
 	tracker_log_term ();
-
-	/* FIXME: we need to clean up Tracker struct members */
 
 	return EXIT_SUCCESS;
 }

@@ -276,34 +276,47 @@ tracker_db_save_metadata (DBConnection *db_con, GHashTable *table, GHashTable *i
 
 
 void
-tracker_db_save_thumbs (DBConnection *db_con, const char *small_thumb, const char *large_thumb, guint32 file_id)
+tracker_db_save_thumbs (DBConnection *db_con, 
+			const gchar  *small_thumb, 
+			const gchar  *large_thumb, 
+			guint32       file_id)
 {
-	char *str_file_id;
+#if 0
+	gchar *str_file_id;
 
 	str_file_id = tracker_uint_to_string (file_id);
 
 	g_return_if_fail (str_file_id);
 
 	if (small_thumb) {
-		char *small_thumb_file;
+		gchar *small_thumb_file;
 
-		/* small_thumb_file = tracker_escape_string (small_thumb); */
-/* 		tracker_db_set_metadata (db_con, "Files", str_file_id, "File.SmallThumbnailPath", small_thumb_file, TRUE, FALSE, TRUE); */
-/* 		tracker_exec_proc (db_con, "SetMetadata", "Files", str_file_id, "File.SmallThumbnailPath", small_thumb_file, "1", NULL); */
-		/* g_free (small_thumb_file); */
+		small_thumb_file = tracker_escape_string (small_thumb);
+ 		tracker_db_set_metadata (db_con,
+					 "Files", str_file_id,
+					 "File.SmallThumbnailPath", small_thumb_file,
+					 TRUE, FALSE, TRUE);
+ 		tracker_exec_proc (db_con, "SetMetadata",
+				   "Files", str_file_id,
+				   "File.SmallThumbnailPath", small_thumb_file,
+				   "1", NULL);
+		g_free (small_thumb_file);
 	}
 
 	if (large_thumb) {
-		char *large_thumb_file;
+		gchar *large_thumb_file;
 
-		/* large_thumb_file = tracker_escape_string (large_thumb); */
-/* 		tracker_db_set_metadata (db_con, "Files", str_file_id, "File.LargeThumbnailPath", large_thumb_file, TRUE, FALSE, TRUE); */
- 		/* g_free (large_thumb_file); */
+		large_thumb_file = tracker_escape_string (large_thumb); 
+ 		tracker_db_set_metadata (db_con, 
+					 "Files", str_file_id, 
+					 "File.LargeThumbnailPath", large_thumb_file, 
+					 TRUE, FALSE, TRUE);
+		g_free (large_thumb_file); 
 	}
 
 	g_free (str_file_id);
+#endif
 }
-
 
 char **
 tracker_db_get_files_in_folder (DBConnection *db_con, const char *folder_uri)

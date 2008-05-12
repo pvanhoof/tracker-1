@@ -1723,6 +1723,8 @@ tracker_process_files (gpointer data)
 
         g_mutex_unlock (tracker->files_signal_mutex);
 
+        tracker_log ("Process thread:%p now finishing", g_thread_self ());
+
         return NULL;
 }
 

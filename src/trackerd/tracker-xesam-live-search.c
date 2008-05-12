@@ -26,6 +26,7 @@
 
 
 struct _TrackerXesamLiveSearchPriv {
+	TrackerXesamSession *session;
 	gchar *search_id;
 	gboolean active;
 	gboolean closed;
@@ -46,8 +47,20 @@ tracker_xesam_live_search_finalize (GObject *object)
 {
 	TrackerXesamLiveSearch *self = (TrackerXesamLiveSearch *) object;
 	TrackerXesamLiveSearchPriv *priv = self->priv;
+	if (priv->session)
+		g_object_unref (priv->session);
 	g_free (priv->search_id);
 	g_free (priv->query);
+}
+
+void
+tracker_xesam_live_search_set_session (TrackerXesamLiveSearch *self, 
+				       gpointer session)
+{
+	TrackerXesamLiveSearchPriv *priv = self->priv;
+	if (priv->session)
+		g_object_unref (priv->session);
+	priv->session = g_object_ref (session);
 }
 
 void
@@ -102,6 +115,7 @@ static void
 tracker_xesam_live_search_init (TrackerXesamLiveSearch *self) 
 {
 	TrackerXesamLiveSearchPriv *priv = self->priv;
+	priv->session = NULL;
 	priv->search_id = NULL;
 	priv->active = FALSE;
 	priv->closed = FALSE;

@@ -375,6 +375,7 @@ tracker_xesam_session_create_search (TrackerXesamSession  *self,
 
 	search = tracker_xesam_live_search_new (query_xml);
 	tracker_xesam_live_search_set_id (search, tracker_xesam_generate_unique_key ());
+	tracker_xesam_live_search_set_session (search, self);
 
 	g_hash_table_insert (priv->searches, 
 		g_strdup (tracker_xesam_live_search_get_id (search)),

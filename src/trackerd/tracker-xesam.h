@@ -22,12 +22,15 @@
 #ifndef __TRACKERD_XESAM_H__
 #define __TRACKERD_XESAM_H__
 
+typedef struct _TrackerXesamSession TrackerXesamSession;
+
 #include "tracker-utils.h"
 #include "tracker-dbus.h"
 #include "tracker-xesam-session.h"
 #include "tracker-xesam-live-search.h"
 
 G_BEGIN_DECLS
+
 
 typedef enum {
 	TRACKER_XESAM_ERROR = 1

@@ -377,7 +377,7 @@ tracker_dbus_daemon_get_stats (TrackerDBusDaemon  *object,
         tracker_dbus_request_new (request_id,
 				  "DBus request to get daemon service stats");
 
-	result_set = tracker_exec_proc (db_con, "GetStats", 0);
+	result_set = tracker_exec_proc (db_con->common, "GetStats", 0);
         *values = tracker_dbus_query_result_to_ptr_array (result_set);
 
 	if (result_set) {

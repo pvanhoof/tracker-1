@@ -712,6 +712,7 @@ load_extractor_file (DBConnection *db_con, const gchar *filename)
 static gboolean
 load_service_description_file (DBConnection *db_con, const gchar* filename)
 {
+
 	if (g_str_has_suffix (filename, ".metadata")) {
 		load_metadata_file (db_con, filename);
 
@@ -1126,7 +1127,7 @@ tracker_db_connect (void)
 	DBConnection *db_con;
 	gboolean create_table = FALSE;
 
-	create_table = tracker_db_manager_file_exists (TRACKER_DB_FILE_META);
+	create_table = !tracker_db_manager_file_exists (TRACKER_DB_FILE_META);
 
 	db_con = g_new0 (DBConnection, 1);
 	db_con->db = open_db_interface (TRACKER_DB_FILE_META);
@@ -1211,7 +1212,7 @@ open_file_content_db (DBConnection *db_con)
 {
 	gboolean create;
 
-	create = tracker_db_manager_file_exists (TRACKER_DB_FILE_CONTENTS);
+	create = !tracker_db_manager_file_exists (TRACKER_DB_FILE_CONTENTS);
 
 	db_con->db = open_db_interface (TRACKER_DB_FILE_CONTENTS);
 
@@ -1242,13 +1243,13 @@ tracker_db_connect_file_content (void)
 static inline void
 open_email_content_db (DBConnection *db_con)
 {
-	gboolean create;
+	gboolean create_table;
 
-	create = tracker_db_manager_file_exists (TRACKER_DB_EMAIL_CONTENTS);
+	create_table = !tracker_db_manager_file_exists (TRACKER_DB_EMAIL_CONTENTS);
 
 	db_con->db = open_db_interface (TRACKER_DB_EMAIL_CONTENTS);
 
-	if (create) {
+	if (create_table) {
 		tracker_db_exec_no_reply (db_con->db, "CREATE TABLE ServiceContents (ServiceID Int not null, MetadataID Int not null, Content Text, primary key (ServiceID, MetadataID))");
 		tracker_log ("Creating db: %s",
 			     tracker_db_manager_get_file (TRACKER_DB_EMAIL_CONTENTS));
@@ -1338,7 +1339,7 @@ tracker_db_connect_cache (void)
 	gboolean     create_table;
 	DBConnection *db_con;
 
-	create_table = tracker_db_manager_file_exists (TRACKER_DB_CACHE);
+	create_table = !tracker_db_manager_file_exists (TRACKER_DB_CACHE);
 
 	db_con = g_new0 (DBConnection, 1);
 
@@ -1367,7 +1368,7 @@ tracker_db_connect_emails (void)
 	gboolean     create_table;
 	DBConnection *db_con;
 	
-	create_table = tracker_db_manager_file_exists (TRACKER_DB_EMAIL_META);
+	create_table = !tracker_db_manager_file_exists (TRACKER_DB_EMAIL_META);
 
 	db_con = g_new0 (DBConnection, 1);
 

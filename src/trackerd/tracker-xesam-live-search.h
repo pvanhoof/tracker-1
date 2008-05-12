@@ -68,6 +68,17 @@ void         tracker_xesam_live_search_get_hits           (TrackerXesamLiveSearc
 							   guint                    count,
 							   GPtrArray              **hits,
 							   GError                 **error);
+void         tracker_xesam_live_search_get_range_hit_data (TrackerXesamLiveSearch  *self,
+							   guint                    a,
+							   guint                    b,
+							   GStrv                  fields, 
+							   GPtrArray              **hit_data,
+							   GError                 **error);
+void         tracker_xesam_live_search_get_range_hits     (TrackerXesamLiveSearch  *self,
+							   guint                    a,
+							   guint                    b,
+							   GPtrArray              **hits,
+							   GError                 **error);
 void         tracker_xesam_live_search_get_hit_count      (TrackerXesamLiveSearch  *self,
 							   guint                   *count,
 							   GError                 **error);

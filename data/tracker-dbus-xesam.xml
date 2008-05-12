@@ -101,4 +101,23 @@
     </signal>
 
   </interface>
+  <interface name="org.freedesktop.xesam.PagedSearch">
+      <method name="GetRangeHits">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
+      <arg type="s" name="search" direction="in" />
+      <arg type="u" name="a" direction="in" />
+      <arg type="u" name="b" direction="in" />
+      <arg type="aav" name="hits" direction="out" />
+    </method>
+
+    <method name="GetRangeHitData">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
+      <arg type="s" name="search" direction="in" />
+      <arg type="u" name="a" direction="in" />
+      <arg type="u" name="b" direction="in" />
+      <arg type="as" name="fields" direction="in" />
+      <arg type="aav" name="hit_data" direction="out" />
+    </method>
+  </interface>
+
 </node>

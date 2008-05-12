@@ -58,50 +58,61 @@ GType tracker_dbus_xesam_get_type           (void);
 TrackerDBusXesam *
       tracker_dbus_xesam_new                (DBConnection *db_con); 
 void  tracker_dbus_xesam_new_session        (TrackerDBusXesam    *object,
-					       DBusGMethodInvocation *context);
+					     DBusGMethodInvocation *context);
 void  tracker_dbus_xesam_set_property       (TrackerDBusXesam    *object,
-					       const gchar           *session_id,
-					       const gchar           *prop,
-					       GValue                *val,
-					       DBusGMethodInvocation *context);
+					     const gchar           *session_id,
+					     const gchar           *prop,
+					     GValue                *val,
+					     DBusGMethodInvocation *context);
 void  tracker_dbus_xesam_get_property       (TrackerDBusXesam    *object,
-					       const gchar           *session_id,
-					       const gchar           *prop,
-					       DBusGMethodInvocation *context);
+					     const gchar           *session_id,
+					     const gchar           *prop,
+					     DBusGMethodInvocation *context);
 void  tracker_dbus_xesam_close_session      (TrackerDBusXesam    *object,
-					       const gchar           *session_id,
-					       DBusGMethodInvocation *context);
+					     const gchar           *session_id,
+					     DBusGMethodInvocation *context);
 void  tracker_dbus_xesam_new_search         (TrackerDBusXesam    *object,
-					       const gchar           *session_id,
-					       const gchar           *query_xml,
-					       DBusGMethodInvocation *context);
+					     const gchar           *session_id,
+					     const gchar           *query_xml,
+					     DBusGMethodInvocation *context);
 void  tracker_dbus_xesam_start_search       (TrackerDBusXesam    *object,
-					       const gchar           *search_id,
-					       DBusGMethodInvocation *context);
+					     const gchar           *search_id,
+					     DBusGMethodInvocation *context);
 void  tracker_dbus_xesam_get_hit_count      (TrackerDBusXesam    *object,
-					       const gchar           *search_id,
-					       DBusGMethodInvocation *context);
+					     const gchar           *search_id,
+					     DBusGMethodInvocation *context);
 void  tracker_dbus_xesam_get_hits           (TrackerDBusXesam    *object,
-					       const gchar           *search_id,
-					       guint                  count,
-					       DBusGMethodInvocation *context);
+					     const gchar           *search_id,
+					     guint                  count,
+					     DBusGMethodInvocation *context);
+void tracker_dbus_xesam_get_range_hits	     (TrackerDBusXesam    *object,
+					      const gchar           *search_id,
+					      guint                  a,
+					      guint                  b,
+					      DBusGMethodInvocation *context);
 void  tracker_dbus_xesam_get_hit_data       (TrackerDBusXesam    *object,
-					       const gchar           *search_id,
-					       GArray                *hit_ids,
-					       GStrv                  fields,
-					       DBusGMethodInvocation *context);
+					     const gchar           *search_id,
+					     GArray                *hit_ids,
+					     GStrv                  fields,
+					     DBusGMethodInvocation *context);
+void tracker_dbus_xesam_get_range_hit_data  (TrackerDBusXesam    *object,
+					     const gchar           *search_id,
+					     guint                  a,
+					     guint                  b,
+					     GStrv                  fields, 
+					     DBusGMethodInvocation *context);
 void  tracker_dbus_xesam_close_search       (TrackerDBusXesam    *object,
-					       const gchar           *search_id,
-					       DBusGMethodInvocation *context);
+					     const gchar           *search_id,
+					     DBusGMethodInvocation *context);
 void  tracker_dbus_xesam_get_state          (TrackerDBusXesam    *object,
-					       DBusGMethodInvocation *context);
+					     DBusGMethodInvocation *context);
 void  tracker_dbus_xesam_emit_state_changed (TrackerDBusXesam    *self,
-					       GStrv                  state_info);
+					     GStrv                  state_info);
 void  tracker_dbus_xesam_name_owner_changed (DBusGProxy            *proxy,
-					       const char            *name,
-					       const char            *prev_owner,
-					       const char            *new_owner,
-					       TrackerDBusXesam    *self);
+					     const char            *name,
+					     const char            *prev_owner,
+					     const char            *new_owner,
+					     TrackerDBusXesam    *self);
 void  tracker_dbus_xesam_set_db_connection  (TrackerDBusXesam *object,
 				             DBConnection      *db_con);
 

@@ -474,6 +474,28 @@ tracker_xesam_live_search_get_hits (TrackerXesamLiveSearch  *self,
 	}
 }
 
+void tracker_xesam_live_search_get_range_hits (TrackerXesamLiveSearch  *self,
+					       guint                    a,
+					       guint                    b,
+					       GPtrArray              **hits,
+					       GError                 **error)
+{
+	TrackerXesamLiveSearchPriv *priv = self->priv;
+
+	if (!priv->active)
+		g_set_error (error, TRACKER_XESAM_ERROR, 
+				TRACKER_XESAM_ERROR_SEARCH_NOT_ACTIVE,
+				"Search is not active");
+	else {
+		TrackerDBResultSet *result_set = NULL;
+
+		// For ottela: fetch results for get_hits
+
+		get_hit_data (self, result_set, hits);
+	}
+}
+
+
 /**
  * tracker_xesam_live_search_get_hit_data:
  * @self: a #TrackerXesamLiveSearch
@@ -507,6 +529,30 @@ tracker_xesam_live_search_get_hit_data (TrackerXesamLiveSearch  *self,
 					GStrv                    fields, 
 					GPtrArray              **hit_data, 
 					GError                 **error)
+{
+	TrackerXesamLiveSearchPriv *priv = self->priv;
+
+	if (!priv->active)
+		g_set_error (error, TRACKER_XESAM_ERROR, 
+				TRACKER_XESAM_ERROR_SEARCH_NOT_ACTIVE,
+				"Search is not active yet");
+	else {
+		TrackerDBResultSet *result_set = NULL;
+
+		// For ottela: fetch results for get_hit_data
+
+		get_hit_data (self, result_set, hit_data);
+	}
+}
+
+
+void
+tracker_xesam_live_search_get_range_hit_data (TrackerXesamLiveSearch  *self,
+					      guint                    a,
+					      guint                    b,
+					      GStrv                    fields, 
+					      GPtrArray              **hit_data,
+					      GError                 **error)
 {
 	TrackerXesamLiveSearchPriv *priv = self->priv;
 

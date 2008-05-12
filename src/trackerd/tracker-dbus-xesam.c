@@ -557,6 +557,41 @@ tracker_dbus_xesam_get_hits (TrackerDBusXesam    *object,
 	tracker_dbus_request_success (request_id);
 }
 
+
+
+void
+tracker_dbus_xesam_get_range_hits (TrackerDBusXesam    *object,
+				   const gchar           *search_id,
+				   guint                  a,
+				   guint                  b,
+				   DBusGMethodInvocation *context)
+{
+	guint request_id = tracker_dbus_get_next_request_id ();
+	GError *error = NULL;
+	TrackerXesamLiveSearch *search = tracker_xesam_get_live_search (search_id, &error);
+
+	if (search) {
+		GPtrArray *hits = NULL;
+		tracker_xesam_live_search_get_range_hits (search, a, b, &hits, &error);
+
+		if (error) {
+			dbus_g_method_return_error (context, error);
+			g_error_free (error);
+		} else {
+			dbus_g_method_return (context, hits);
+			freeup_hits_data (hits);
+		}
+
+		g_object_unref (search);
+	} else if (error) {
+		dbus_g_method_return_error (context, error);
+		g_error_free (error);
+	}
+
+	tracker_dbus_request_success (request_id);
+}
+
+
 void 
 tracker_dbus_xesam_get_hit_data (TrackerDBusXesam    *object,
 				   const gchar           *search_id,
@@ -571,6 +606,42 @@ tracker_dbus_xesam_get_hit_data (TrackerDBusXesam    *object,
 	if (search) {
 		GPtrArray *hit_data = NULL;
 		tracker_xesam_live_search_get_hit_data (search, hit_ids, fields, &hit_data, &error);
+
+		if (error) {
+			dbus_g_method_return_error (context, error);
+			g_error_free (error);
+		} else {
+			dbus_g_method_return (context, hit_data);
+			freeup_hits_data (hit_data);
+		}
+
+
+		g_object_unref (search);
+	} else if (error) {
+		dbus_g_method_return_error (context, error);
+		g_error_free (error);
+	}
+
+	tracker_dbus_request_success (request_id);
+}
+
+
+
+void 
+tracker_dbus_xesam_get_range_hit_data (TrackerDBusXesam    *object,
+				       const gchar           *search_id,
+				       guint                  a,
+				       guint                  b,
+				       GStrv                  fields, 
+				       DBusGMethodInvocation *context)
+{
+	guint request_id = tracker_dbus_get_next_request_id ();
+	GError *error = NULL;
+	TrackerXesamLiveSearch *search = tracker_xesam_get_live_search (search_id, &error);
+
+	if (search) {
+		GPtrArray *hit_data = NULL;
+		tracker_xesam_live_search_get_range_hit_data (search, a, b, fields, &hit_data, &error);
 
 		if (error) {
 			dbus_g_method_return_error (context, error);

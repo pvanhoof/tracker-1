@@ -1,3 +1,11 @@
+2008-05-12  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-xesam-live-search.c
+	* src/trackerd/tracker-xesam-live-search.h
+	* src/trackerd/tracker-dbus-xesam.c
+	* src/trackerd/tracker-dbus-xesam.h
+	* data/tracker-dbus-xesam.xml: Support for range queries
+
 2008-05-12  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/trackerd/tracker-db-sqlite.c
@@ -7,7 +15,6 @@
 	DBConnecion.
 	(tracker_db_needs_data): Now called tracker_db_common_need_build
 
-	
 2008-05-10  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/libtracker-common/tracker-type-utils.c
@@ -28,7 +35,6 @@
 	(tracker_db_load_service_file) removed from the public API.
 	
 	* src/trackerd/tracker-db.c: Commented unused lines.
-
 
 2008-05-09  Ivan Frade  <ivan.frade@nokia.com>
 

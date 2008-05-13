@@ -636,7 +636,7 @@ process_check_directory (Tracker     *tracker,
 
         process_queue_files_foreach (uri, tracker);
 
-	if (tracker->index_status != INDEX_EMAILS) {
+	if (tracker_index_stage_get () != TRACKER_INDEX_STAGE_EMAILS) {
                 tracker->folders_processed++;
         }
 }
@@ -1035,7 +1035,7 @@ process_index_emails (Tracker *tracker)
                 return;
         }
 	
-        tracker->index_status = INDEX_EMAILS;
+        tracker_index_stage_set (TRACKER_INDEX_STAGE_EMAILS);
         
         /* Signal progress */
         daemon = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
@@ -1077,8 +1077,9 @@ process_index_emails (Tracker *tracker)
 static gboolean
 process_files (Tracker *tracker)
 {
-        DBConnection *db_con;
-        GObject      *object;
+        DBConnection      *db_con;
+        GObject           *object;
+        TrackerIndexStage  stage;
 
         db_con = tracker->index_db;
         object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
@@ -1098,46 +1099,49 @@ process_files (Tracker *tracker)
                 }
         }
         
-        if (tracker->index_status != INDEX_FINISHED) {
+        stage = tracker_index_stage_get ();
+
+        if (stage != TRACKER_INDEX_STAGE_FINISHED) {
                 g_mutex_unlock (tracker->files_check_mutex);
                 
-                switch (tracker->index_status) {
-                case INDEX_CONFIG:
+                switch (stage) {
+                case TRACKER_INDEX_STAGE_CONFIG:
                         process_index_config (tracker);
                         break;
                         
-                case INDEX_APPLICATIONS: 
+                case TRACKER_INDEX_STAGE_APPLICATIONS: 
                         process_index_applications (tracker);
                         break;
                         
-                case INDEX_FILES: 
+                case TRACKER_INDEX_STAGE_FILES: 
                         process_index_files (tracker);
                         break;
                         
-                case INDEX_CRAWL_FILES:
+                case TRACKER_INDEX_STAGE_CRAWL_FILES:
                         process_index_crawl_files (tracker);
                         break;
                         
-                case INDEX_CONVERSATIONS:
+                case TRACKER_INDEX_STAGE_CONVERSATIONS:
                         process_index_conversations (tracker);
                         break;
                         
-                case INDEX_WEBHISTORY: 
+                case TRACKER_INDEX_STAGE_WEBHISTORY: 
                         process_index_webhistory (tracker);
                         break;
                         
-                case INDEX_EXTERNAL:
+                case TRACKER_INDEX_STAGE_EXTERNAL:
                         break;
                         
-                case INDEX_EMAILS:
+                case TRACKER_INDEX_STAGE_EMAILS:
                         process_index_emails (tracker);
                         break;
 			
-                case INDEX_FINISHED:
+                case TRACKER_INDEX_STAGE_FINISHED:
                         break;
                 }
                 
-                tracker->index_status++;
+                tracker_index_stage_set (++stage);
+
                 return TRUE;
         }
         
@@ -1162,7 +1166,7 @@ process_files (Tracker *tracker)
                 return FALSE;
         }
         
-        tracker->index_status = INDEX_FILES;
+        tracker_index_stage_set (TRACKER_INDEX_STAGE_FILES);
 
         /* Signal progress */
         g_signal_emit_by_name (object,
@@ -1173,7 +1177,7 @@ process_files (Tracker *tracker)
                                tracker->folders_processed,
                                tracker->folders_count);
 
-        tracker->index_status = INDEX_FINISHED;
+        tracker_index_stage_set (TRACKER_INDEX_STAGE_FINISHED);
         
         if (tracker->is_running && tracker->first_time_index) {
                 gint time_taken;
@@ -1271,7 +1275,7 @@ process_action (Tracker           *tracker,
                     tracker_process_files_should_be_watched (tracker->config, info->uri)) {
                         g_async_queue_push (tracker->dir_queue, g_strdup (info->uri));
                         
-                        if (tracker->index_status != INDEX_EMAILS) {
+                        if (tracker_index_stage_get () != TRACKER_INDEX_STAGE_EMAILS) {
                                 tracker->folders_count++;
                         }
                 }
@@ -1557,7 +1561,7 @@ tracker_process_files (gpointer data)
 
         tracker_log ("Proceeding with indexing...");
 
-	tracker->index_status = INDEX_CONFIG;
+	tracker_index_stage_set (TRACKER_INDEX_STAGE_CONFIG);
 
         object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
 

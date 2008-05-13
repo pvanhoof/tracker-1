@@ -33,6 +33,7 @@
 
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-file-utils.h>
+#include <libtracker-common/tracker-os-dependant.h>
 
 #include "tracker-metadata.h"
 #include "tracker-utils.h"

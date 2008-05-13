@@ -379,7 +379,7 @@ tracker_cache_process_events (DBConnection *db_con,
 			sleep = TRUE;
 		}
 
-		if (tracker->index_status > INDEX_APPLICATIONS && 
+		if (tracker_index_stage_get () > TRACKER_INDEX_STAGE_APPLICATIONS && 
                     tracker_should_pause ()) {
 			if (db_con) {
 				stopped_trans = TRUE;

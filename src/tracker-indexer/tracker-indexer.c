@@ -1,4 +1,6 @@
-/* Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/* 
+ * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2008, Nokia
 
  * This library is free software; you can redistribute it and/or
@@ -40,9 +42,12 @@
  */
 
 #include <stdlib.h>
+
 #include <gmodule.h>
+
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-db/tracker-db-interface-sqlite.h>
+
 #include "tracker-indexer.h"
 #include "tracker-indexer-module.h"
 

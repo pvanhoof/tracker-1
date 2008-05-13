@@ -1,3 +1,17 @@
+2008-05-13  Martyn Russell  <martyn@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer-module.[ch]: 
+	* src/tracker-indexer/tracker-indexer.[ch]: Added indentation
+	information to the top of each file.
+	
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-cache.c:
+	* src/trackerd/tracker-index-stage.[ch]:
+	* src/trackerd/tracker-main.[ch]:
+	* src/trackerd/tracker-metadata.c:
+	* src/trackerd/tracker-process-files.c: Added TrackerIndexStage
+	type to hold the current indexer state and type information.
+
 2008-05-13  Carlos Garnacho  <carlos@imendio.com>
 
 	Initial work on the separate indexer executable, implemented as a

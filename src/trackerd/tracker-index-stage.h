@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/*
+/* 
  * Copyright (C) 2008, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2008, Nokia
  *
@@ -19,18 +19,34 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_INDEXER_MODULE_H__
-#define __TRACKER_INDEXER_MODULE_H__
+#ifndef __TRACKERD_INDEX_STAGE_H__
+#define __TRACKERD_INDEX_STAGE_H__
+
+#include <glib-object.h>
 
 G_BEGIN_DECLS
 
-GModule *               tracker_indexer_module_load              (const gchar *module_name);
+#define TRACKER_TYPE_INDEX_STAGE (tracker_index_stage_get_type ())
 
-G_CONST_RETURN gchar *  tracker_indexer_module_get_name          (GModule     *module);
-gchar **                tracker_indexer_module_get_directories   (GModule     *module);
-GHashTable *            tracker_indexer_module_get_file_metadata (GModule     *module,
-								  const gchar *file);
+typedef enum {
+	TRACKER_INDEX_STAGE_CONFIG,
+	TRACKER_INDEX_STAGE_APPLICATIONS,
+	TRACKER_INDEX_STAGE_FILES,
+	TRACKER_INDEX_STAGE_WEBHISTORY,
+	TRACKER_INDEX_STAGE_CRAWL_FILES,
+	TRACKER_INDEX_STAGE_CONVERSATIONS,	
+	TRACKER_INDEX_STAGE_EXTERNAL,	
+	TRACKER_INDEX_STAGE_EMAILS,
+	TRACKER_INDEX_STAGE_FINISHED
+} TrackerIndexStage;
+
+GType         tracker_index_stage_get_type       (void) G_GNUC_CONST;
+
+const gchar * tracker_index_stage_to_string      (TrackerIndexStage  stage);
+TrackerIndexStage tracker_index_stage_get            (void);
+const gchar * tracker_index_stage_get_as_string  (void);
+void          tracker_index_stage_set            (TrackerIndexStage  new_stage);
 
 G_END_DECLS
 
-#endif /* __TRACKER_INDEXER_MODULE_H__ */
+#endif /* __TRACKERD_INDEX_STAGE_H__ */

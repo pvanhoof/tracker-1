@@ -1,4 +1,6 @@
-/* Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
+ * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2008, Nokia
 
  * This library is free software; you can redistribute it and/or
@@ -46,14 +48,11 @@ struct TrackerIndexerClass {
 	void (*finished) (TrackerIndexer *indexer);
 };
 
-GType                 tracker_indexer_get_type       (void) G_GNUC_CONST;
-
-TrackerIndexer *      tracker_indexer_new            (void);
-
-void                  tracker_indexer_set_running    (TrackerIndexer      *indexer,
-						      gboolean             running);
-gboolean              tracker_indexer_get_running    (TrackerIndexer      *indexer);
-
+GType           tracker_indexer_get_type    (void) G_GNUC_CONST;
+TrackerIndexer *tracker_indexer_new         (void);
+void            tracker_indexer_set_running (TrackerIndexer *indexer,
+                                             gboolean        running);
+gboolean        tracker_indexer_get_running (TrackerIndexer *indexer);
 
 G_END_DECLS
 

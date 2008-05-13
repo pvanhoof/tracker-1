@@ -532,8 +532,6 @@ initialise_defaults (void)
 	tracker->reindex = FALSE;
 	tracker->in_merge = FALSE;
 
-	tracker->index_status = INDEX_CONFIG;
-
 	tracker->black_list_timer_active = FALSE;	
 
 	tracker->pause_manual = FALSE;

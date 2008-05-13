@@ -38,20 +38,6 @@ hal_sources = 								\
 	tracker-hal.h
 endif
 
-db_sources =								\
-	tracker-indexer.c						\
-	tracker-indexer.h						\
-	tracker-cache.c							\
-	tracker-cache.h							\
-	tracker-parser.c						\
-	tracker-parser.h						\
-	tracker-db-sqlite.c						\
-	tracker-db-sqlite.h						\
-	tracker-db-manager.c						\
-	tracker-db-manager.h						\
-	tracker-db-email.c						\
-	tracker-db-email.h
-
 mail_modulesdir = $(libdir)/tracker/mail-modules
 mail_modules_LTLIBRARIES = \
 	libemail-evolution.la \
@@ -85,11 +71,18 @@ trackerd_SOURCES =							\
 	$(win_sources)							\
 	$(unix_sources)							\
 	$(hal_sources)							\
-	$(db_sources)							\
 	tracker-apps.c							\
 	tracker-apps.h							\
+	tracker-cache.c							\
+	tracker-cache.h							\
 	tracker-db.c							\
 	tracker-db.h							\
+	tracker-db-email.c						\
+	tracker-db-email.h						\
+	tracker-db-sqlite.c						\
+	tracker-db-sqlite.h						\
+	tracker-db-manager.c						\
+	tracker-db-manager.h						\
 	tracker-dbus.c							\
 	tracker-dbus.h							\
 	tracker-dbus-daemon.c						\
@@ -108,11 +101,17 @@ trackerd_SOURCES =							\
 	tracker-email.h							\
 	tracker-email-utils.c						\
 	tracker-email-utils.h						\
+	tracker-indexer.c						\
+	tracker-indexer.h						\
+	tracker-index-stage.c						\
+	tracker-index-stage.h						\
 	tracker-main.c							\
 	tracker-main.h							\
 	tracker-marshal-main.c						\
 	tracker-metadata.c						\
 	tracker-metadata.h						\
+	tracker-parser.c						\
+	tracker-parser.h						\
 	tracker-process-files.c						\
 	tracker-process-files.h						\
 	tracker-query-tree.c						\

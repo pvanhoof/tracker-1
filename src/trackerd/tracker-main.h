@@ -35,6 +35,7 @@
 
 #include "tracker-parser.h"
 #include "tracker-indexer.h"
+#include "tracker-index-stage.h"
 #include "tracker-hal.h"
 
 /* default performance options */
@@ -42,18 +43,6 @@
 #define MAX_EXTRACT_QUEUE_SIZE 500
 
 G_BEGIN_DECLS
-
-typedef enum {
-	INDEX_CONFIG,
-	INDEX_APPLICATIONS,
-	INDEX_FILES,
-	INDEX_WEBHISTORY,
-	INDEX_CRAWL_FILES,
-	INDEX_CONVERSATIONS,	
-	INDEX_EXTERNAL,	
-	INDEX_EMAILS,
-	INDEX_FINISHED
-} IndexStatus;
 
 typedef struct {
  	gboolean         is_running; 
@@ -109,8 +98,6 @@ typedef struct {
 	gint              folders_processed;
 	gint              mbox_count; 
 	gint              mbox_processed;
-
-	IndexStatus       index_status; 
 
 	gint	          grace_period; 
 	gboolean          request_waiting;

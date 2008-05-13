@@ -1,5 +1,10 @@
 2008-05-13  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-main.h: Removed function definitions which
+	are redundant.
+
+2008-05-13  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-main.h: Use proper pointer types instead
 	of gpointer for TrackerConfig, etc.
 

@@ -153,14 +153,7 @@ typedef struct {
 	GHashTable       *xesam_sessions; 
 } Tracker;
 
-void     tracker_shutdown                   (void);
-GSList * tracker_get_watch_root_dirs        (void);
-gboolean tracker_spawn                      (gchar       **argv,
-                                             gint          timeout,
-                                             gchar       **tmp_stdout,
-                                             gint         *exit_status);
-gboolean tracker_watch_dir                  (const gchar  *uri);
-void     tracker_scan_directory             (const gchar  *uri);
+void tracker_shutdown (void);
 
 G_END_DECLS
 

@@ -1,5 +1,10 @@
 2008-05-13  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-main.h: Use proper pointer types instead
+	of gpointer for TrackerConfig, etc.
+
+2008-05-13  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-convert-file.c: Removed, it is not in use.
 
 2008-05-12  Martyn Russell  <martyn@imendio.com>

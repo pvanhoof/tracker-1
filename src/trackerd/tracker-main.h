@@ -29,10 +29,13 @@
 
 #include <glib.h>
 
+#include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-language.h>
 #include <libtracker-db/tracker-db-action.h>
 
 #include "tracker-parser.h"
 #include "tracker-indexer.h"
+#include "tracker-hal.h"
 
 /* default performance options */
 #define MAX_PROCESS_QUEUE_SIZE 100
@@ -53,100 +56,101 @@ typedef enum {
 } IndexStatus;
 
 typedef struct {
- 	gboolean     is_running; 
-	gboolean     readonly;
+ 	gboolean         is_running; 
+	gboolean         readonly;
 
-	gint         pid; 
+	gint             pid; 
 
-	gpointer     hal;
-	gboolean     reindex;
-        gpointer     config;
-        gpointer     language;
+	gboolean         reindex;
+
+	TrackerHal      *hal;
+        TrackerConfig   *config;
+        TrackerLanguage *language;
 
 	/* Config options */
-	guint32      watch_limit; 
-	gpointer     index_db;
+	guint32          watch_limit; 
+	gpointer         index_db;
 
 	/* Data directories */
-	gchar       *data_dir;
-	gchar       *config_dir;
-	gchar       *root_dir;
-	gchar       *user_data_dir;
-	gchar       *sys_tmp_root_dir;
-        gchar       *email_attachments_dir;
-	gchar       *xesam_dir;
+	gchar            *data_dir;
+	gchar            *config_dir;
+	gchar            *root_dir;
+	gchar            *user_data_dir;
+	gchar            *sys_tmp_root_dir;
+        gchar            *email_attachments_dir;
+	gchar            *xesam_dir;
 
-	gchar       *log_filename;
+	gchar            *log_filename;
 
 	/* Performance and memory usage options */
-	gint         max_process_queue_size;
-	gint         max_extract_queue_size;
-	gint         memory_limit;
-
+	gint              max_process_queue_size;
+	gint              max_extract_queue_size;
+	gint              memory_limit;
+     
 	/* Pause/shutdown */
-	gboolean     shutdown;
-	gboolean     pause_manual;
-	gboolean     pause_battery;
-	gboolean     pause_io;
+	gboolean          shutdown;
+	gboolean          pause_manual;
+	gboolean          pause_battery;
+	gboolean          pause_io;
 
 	/* Indexing options */
-        Indexer     *file_index;
-        Indexer     *file_update_index;
-        Indexer     *email_index;
+        Indexer          *file_index;
+        Indexer          *file_update_index;
+        Indexer          *email_index;
 
 	/* Table of stop words that are to be ignored by the parser */
-	GHashTable  *stop_words;
-	gint         index_number_min_length;
+	GHashTable       *stop_words;
+	gint              index_number_min_length;
 
-	gboolean     first_time_index; 
+	gboolean          first_time_index; 
 	
-	time_t       index_time_start; 
-	gint         folders_count;  
-	gint         folders_processed;
-	gint         mbox_count; 
-	gint         mbox_processed;
+	time_t            index_time_start; 
+	gint              folders_count;  
+	gint              folders_processed;
+	gint              mbox_count; 
+	gint              mbox_processed;
 
-	IndexStatus  index_status; 
+	IndexStatus       index_status; 
 
-	gint	     grace_period; 
-	gboolean     request_waiting;
+	gint	          grace_period; 
+	gboolean          request_waiting;
 
 	/* Lookup tables for service and metadata IDs */
-	GHashTable  *metadata_table; 
+	GHashTable       *metadata_table; 
 
 	/* Email config options */
-	gint         email_service_min;
-	gint         email_service_max; 
+	gint              email_service_min;
+	gint              email_service_max; 
 
 	/* Queue for recorad file changes */
-	GQueue      *file_change_queue; 
-	gboolean     black_list_timer_active;
+	GQueue           *file_change_queue; 
+	gboolean          black_list_timer_active;
 	
 	/* Progress info for merges */
-	gboolean     in_merge; 
-	gint         merge_count; 
-	gint         merge_processed;
+	gboolean          in_merge; 
+	gint              merge_count; 
+	gint              merge_processed;
 	
 	/* Application run time values */
-	gint         index_count; 
+	gint              index_count; 
 
-	gint         word_detail_count; 
-	gint         word_count;
-	gint         word_update_count; 
+	gint              word_detail_count; 
+	gint              word_count;
+	gint              word_update_count; 
 
-	GAsyncQueue *file_process_queue;
-	GAsyncQueue *file_metadata_queue; 
-	GAsyncQueue *dir_queue;
+	GAsyncQueue      *file_process_queue;
+	GAsyncQueue      *file_metadata_queue; 
+	GAsyncQueue      *dir_queue;
 
-	GMutex      *files_check_mutex;
-	GMutex      *files_signal_mutex;
-	GCond       *files_signal_cond;
+	GMutex           *files_check_mutex;
+	GMutex           *files_signal_mutex;
+	GCond            *files_signal_cond;
 
-	GMutex      *metadata_check_mutex;
-	GMutex      *metadata_signal_mutex;
-	GCond       *metadata_signal_cond;
+	GMutex           *metadata_check_mutex;
+	GMutex           *metadata_signal_mutex;
+	GCond            *metadata_signal_cond;
 
-	GHashTable  *xesam_sessions; 
+	GHashTable       *xesam_sessions; 
 } Tracker;
 
 void     tracker_shutdown                   (void);

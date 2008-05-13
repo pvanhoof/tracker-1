@@ -60,6 +60,7 @@
 #define KEY_LOW_DISK_SPACE_LIMIT		 "LowDiskSpaceLimit"
 #define KEY_INDEX_MOUNTED_DIRECTORIES	         "IndexMountedDirectories"
 #define KEY_INDEX_REMOVABLE_DEVICES		 "IndexRemovableMedia"
+#define KEY_INDEX_MODULES                        "IndexModules"
 
 #define GROUP_EMAILS				 "Emails"
 #define KEY_EMAIL_CLIENT                         "IndexEMailClient"
@@ -96,7 +97,8 @@
 #define DEFAULT_DISABLE_INDEXING_ON_BATTERY	 TRUE
 #define DEFAULT_DISABLE_INDEXING_ON_BATTERY_INIT FALSE
 #define DEFAULT_INDEX_MOUNTED_DIRECTORIES  	 TRUE 
-#define DEFAULT_INDEX_REMOVABLE_DEVICES	         TRUE 
+#define DEFAULT_INDEX_REMOVABLE_DEVICES	         TRUE
+#define DEFAULT_INDEX_MODULES                    "applications;files;gaim-conversations;firefox-history"
 #define DEFAULT_INDEX_EMAIL_CLIENT               "evolution"
 #define DEFAULT_LOW_DISK_SPACE_LIMIT		 1	  /* 0->100 / -1 */
 #define DEFAULT_MAX_TEXT_TO_INDEX		 1048576  /* Bytes */
@@ -141,6 +143,7 @@ struct _TrackerConfigPriv {
 	gint	  low_disk_space_limit;
 	gboolean  index_mounted_directories;
 	gboolean  index_removable_devices;
+	GSList   *index_modules;
 
 	/* Emails */
 	gchar    *email_client;
@@ -202,6 +205,7 @@ enum {
 	PROP_LOW_DISK_SPACE_LIMIT,
 	PROP_INDEX_MOUNTED_DIRECTORIES,
 	PROP_INDEX_REMOVABLE_DEVICES,
+	PROP_INDEX_MODULES,
 
 	/* Emails */
 	PROP_EMAIL_CLIENT,
@@ -424,7 +428,12 @@ tracker_config_class_init (TrackerConfigClass *klass)
 							       "which are for removable devices",
 							       DEFAULT_INDEX_REMOVABLE_DEVICES,
 							       G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
-
+	g_object_class_install_property (object_class,
+					 PROP_INDEX_MODULES,
+					 g_param_spec_pointer ("index-modules",
+							       "Used index modules",
+							       "Modules used to index data",
+							       G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
 	/* Emails */
         g_object_class_install_property (object_class,
 					 PROP_EMAIL_CLIENT,
@@ -638,6 +647,9 @@ config_get_property (GObject	*object,
 	case PROP_INDEX_REMOVABLE_DEVICES:
 		g_value_set_boolean (value, priv->index_removable_devices);
 		break;
+	case PROP_INDEX_MODULES:
+		g_value_set_pointer (value, priv->index_modules);
+		break;
 
 		/* Emails */
 	case PROP_EMAIL_CLIENT:
@@ -781,6 +793,9 @@ config_set_property (GObject	  *object,
 	case PROP_INDEX_REMOVABLE_DEVICES:
 		tracker_config_set_index_removable_devices (TRACKER_CONFIG (object),
 								g_value_get_boolean (value));
+		break;
+	case PROP_INDEX_MODULES:
+		/* Not writable */
 		break;
 
 		/* Emails */
@@ -973,21 +988,22 @@ config_dir_check_roots_for_conflicts (TrackerConfig *config)
 }
 
 static gboolean
-config_create_with_defaults (const gchar *filename)
+config_create_with_defaults (const gchar *filename,
+			     GKeyFile    *key_file)
 {
-	GKeyFile     *key_file;
 	GError	     *error = NULL;
 	gchar	     *content = NULL;
 	gchar	     *language;
 	const gchar  *watch_directory_roots[2] = { NULL, NULL };
 	const gchar  *empty_string_list[] = { NULL };
-
-	key_file = g_key_file_new ();
+	gchar       **index_modules;
 
 	/* Get default values */
 	language = tracker_language_get_default_code ();
 
 	watch_directory_roots[0] = g_get_home_dir ();
+
+	index_modules = g_strsplit (DEFAULT_INDEX_MODULES, ";", -1);
 
 	/* General */
 	g_key_file_set_integer (key_file, GROUP_GENERAL, KEY_VERBOSITY, DEFAULT_VERBOSITY);
@@ -1109,6 +1125,11 @@ config_create_with_defaults (const gchar *filename)
 	g_key_file_set_comment (key_file, GROUP_INDEXING, KEY_INDEX_REMOVABLE_DEVICES,
 				" Set to true to enable traversing mounted directories for removable devices",
 				NULL);
+	g_key_file_set_string_list (key_file, GROUP_INDEXING, KEY_INDEX_MODULES,
+				    (const gchar **) index_modules, g_strv_length (index_modules));
+	g_key_file_set_comment (key_file, GROUP_INDEXING, KEY_INDEX_MODULES,
+				" Modules used to extract data, they will be queried in the same order than they're written here",
+				NULL);
 
 	/* Emails */
 	g_key_file_set_string  (key_file, GROUP_EMAILS, KEY_EMAIL_CLIENT, DEFAULT_INDEX_EMAIL_CLIENT);
@@ -1159,7 +1180,6 @@ config_create_with_defaults (const gchar *filename)
 
 	content = g_key_file_to_data (key_file, NULL, &error);
 	g_free (language);
-	g_key_file_free (key_file);
 
 	if (error) {
 		g_warning ("Couldn't produce default configuration, %s", error->message);
@@ -1175,6 +1195,7 @@ config_create_with_defaults (const gchar *filename)
 	}
 
 	g_print ("Writting default configuration to file:'%s'\n", filename);
+	g_strfreev (index_modules);
 	g_free (content);
 
 	return TRUE;
@@ -1315,6 +1336,12 @@ config_load_string_list (TrackerConfig *config,
 				config_string_list_to_gslist ((const gchar **) value, FALSE);
 		}
 	}
+	else if (strcmp (property, "index-modules") == 0) {
+		if (value) {
+			priv->index_modules =
+				config_string_list_to_gslist ((const gchar **) value, FALSE);
+		}
+	}
 	else {
 		g_warning ("Property '%s' not recognized to set string list from key '%s'",
 			   property, key);
@@ -1347,7 +1374,7 @@ config_load (TrackerConfig *config)
 	/* Load options */
 	g_key_file_load_from_file (key_file, filename, G_KEY_FILE_NONE, &error);
 	if (error) {
-		config_create_with_defaults (filename);
+		config_create_with_defaults (filename, key_file);
 		g_clear_error (&error);
 	}
 
@@ -1381,6 +1408,7 @@ config_load (TrackerConfig *config)
 	config_load_int (config, "low-disk-space-limit", key_file, GROUP_INDEXING, KEY_LOW_DISK_SPACE_LIMIT);
 	config_load_boolean (config, "index-mounted-directories", key_file, GROUP_INDEXING, KEY_INDEX_MOUNTED_DIRECTORIES);
 	config_load_boolean (config, "index-removable-devices", key_file, GROUP_INDEXING, KEY_INDEX_REMOVABLE_DEVICES);
+	config_load_string_list (config, "index-modules", key_file, GROUP_INDEXING, KEY_INDEX_MODULES);
 
 	/* Emails */
 	config_load_string (config, "email-client", key_file, GROUP_EMAILS, KEY_EMAIL_CLIENT);
@@ -1724,6 +1752,18 @@ tracker_config_get_index_removable_devices (TrackerConfig *config)
 	priv = GET_PRIV (config);
 
 	return priv->index_removable_devices;
+}
+
+GSList *
+tracker_config_get_index_modules (TrackerConfig *config)
+{
+	TrackerConfigPriv *priv;
+
+	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
+
+	priv = GET_PRIV (config);
+
+	return priv->index_modules;
 }
 
 const gchar *

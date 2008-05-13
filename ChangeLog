@@ -1,3 +1,31 @@
+2008-05-13  Carlos Garnacho  <carlos@imendio.com>
+
+	Initial work on the separate indexer executable, implemented as a
+	modular, single-threaded state machine.
+
+	* src/tracker-indexer/main.c:
+	* src/tracker-indexer/tracker-indexer.[ch]:
+	* src/tracker-indexer/tracker-indexer-module.[ch]: Added, this is the
+	indexer core.
+
+	* src/tracker-indexer/modules/applications.c:
+	* src/tracker-indexer/modules/dummy.c:
+	* src/tracker-indexer/modules/files.c:
+	* src/tracker-indexer/modules/gaim-conversations.c: Added, independent
+	modules, called out by the indexer core.
+
+	* src/libtracker-common/tracker-config.[ch]
+	(tracker_config_class_init) (config_get_property)
+	(config_set_property) (config_load_string_list)
+	(tracker_config_get_index_modules): Added configuration option, plus
+	methods to know which modules to query.
+	(config_create_with_defaults): ensure TrackerConfig contains the
+	default values if the configuration file didn't exist.
+
+	* src/tracker-indexer/modules/Makefile.am:
+	* src/tracker-indexer/Makefile.am:
+	* configure.in: autofoo glue to make this build.
+
 2008-05-13  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-main.h: Removed function definitions which

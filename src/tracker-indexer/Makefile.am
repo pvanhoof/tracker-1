@@ -1,8 +1,10 @@
+SUBDIRS = modules
+
 INCLUDES =								\
 	-DSHAREDIR=\""$(datadir)"\"					\
 	-DLIBDIR=\""$(libdir)"\"					\
 	-DLOCALEDIR=\""$(localedir)"\" 					\
-	-DMAIL_MODULES_DIR=\"$(mail_modulesdir)\"			\
+	-DINDEXER_MODULES_DIR=\""$(libdir)"/tracker/indexer-modules\"	\
 	$(GLIB2_CFLAGS)							\
 	$(GMODULE_CFLAGS)						\
 	$(GMIME_CFLAGS)							\
@@ -43,7 +45,11 @@ INCLUDES =								\
 bin_PROGRAMS = tracker-indexer
 
 tracker_indexer_SOURCES =						\
-	tracker-indexer.c
+	main.c								\
+	tracker-indexer.c						\
+	tracker-indexer.h						\
+	tracker-indexer-module.c					\
+	tracker-indexer-module.h
 
 tracker_indexer_LDADD =							\
 	$(GLIB2_LIBS)							\
@@ -57,6 +63,7 @@ tracker_indexer_LDADD =							\
 	$(GTHREAD_LIBS)							\
 	-lz								\
 	-lm								\
+	$(top_builddir)/src/libtracker-db/libtracker-db.la 		\
 	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
 	$(top_builddir)/src/libstemmer/libstemmer-private.la 		\
 	$(top_builddir)/src/xdgmime/libxdgmime.la 			\

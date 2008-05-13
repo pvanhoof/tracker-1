@@ -1,3 +1,20 @@
+2008-05-14  Ivan Frade  <ivan.frade@nokia.com>
+
+	* data/Makefile.am
+	* data/sqlite-contents.sql: SQL code to create Contents table.
+	
+	* src/trackerd/tracker-db-sqlite.h
+	* src/trackerd/tracker-db-sqlite.c:
+	Using SQL file instead of hardcoded SQL to create ServiceContents
+	table.
+	(open_common_db): Removed. Using directly open_db_interface.
+	(tracker_db_exec_proc): New. tracker_exec_proc but using
+	TrackerDBInterface.
+	(tracker_exec_no_reply) 
+	(tracker_metadata_is_key): Now static functions only in .c
+	(tracker_db_integrity_check): Removed. Unused function.
+	
+	
 2008-05-13  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-main.c: Don't initialise Tracker members

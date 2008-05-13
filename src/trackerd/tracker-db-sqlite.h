@@ -89,13 +89,18 @@ typedef struct {
 
 } FieldData;
 
+/* Module wide ops */
 gboolean            tracker_db_needs_setup                     (void);
 gboolean            tracker_db_common_need_build               (void);
 gboolean            tracker_db_load_prepared_queries                      (void);
 void                tracker_db_thread_init                     (void);
 void                tracker_db_thread_end                      (void);
-void                tracker_db_close                           (TrackerDBInterface   *iface);
 void                tracker_db_finalize                        (void);
+void                tracker_create_common_db                   (void);
+void                tracker_db_get_static_data                 (DBConnection   *db_con);
+
+
+/* Open, create, connect DBs */
 DBConnection *      tracker_db_connect                         (void);
 DBConnection *      tracker_db_connect_common                  (void);
 DBConnection *      tracker_db_connect_file_content            (void);
@@ -108,23 +113,46 @@ DBConnection *      tracker_db_connect_all                     (void);
 void                tracker_db_close_all                       (DBConnection   *db_con);
 void                tracker_db_refresh_all                     (DBConnection   *db_con);
 void                tracker_db_refresh_email                   (DBConnection   *db_con);
+
+/* Operations for TrackerDBInterface */
+void                tracker_db_close                           (TrackerDBInterface   *iface);
+
 TrackerDBResultSet *tracker_exec_proc                          (DBConnection   *db_con,
                                                                 const gchar    *procedure,
                                                                 ...);
-gboolean            tracker_exec_proc_no_reply                 (DBConnection   *db_con,
-                                                                const gchar    *procedure,
-                                                                ...);
+TrackerDBResultSet *tracker_db_exec_proc                       (TrackerDBInterface   *iface,
+								const gchar    *procedure,
+								...);
+
 gboolean            tracker_db_exec_no_reply                   (TrackerDBInterface   *iface,
                                                                 const gchar          *query,
                                                                 ...);
-void                tracker_create_common_db                          (void);
+gboolean            tracker_db_is_in_transaction               (DBConnection   *db_con);
+
+gchar *             tracker_db_get_option_string               (DBConnection   *db_con,
+                                                                const gchar    *option);
+void                tracker_db_set_option_string               (DBConnection   *db_con,
+                                                                const gchar    *option,
+                                                                const gchar    *value);
+gint                tracker_db_get_option_int                  (DBConnection   *db_con,
+                                                                const gchar    *option);
+void                tracker_db_set_option_int                  (DBConnection   *db_con,
+                                                                const gchar    *option,
+                                                                gint            value);
+
+
+/* high level transactions things */
+void                tracker_db_start_index_transaction         (DBConnection   *db_con);
+void                tracker_db_end_index_transaction           (DBConnection   *db_con);
+gboolean            tracker_db_regulate_transactions           (DBConnection   *db_con,
+                                                                gint            interval);
+
+/* High level operations (with application logic and/or using more than one DB */
 void                tracker_db_save_file_contents              (DBConnection   *db_con,
                                                                 GHashTable     *index_table,
                                                                 GHashTable     *old_table,
                                                                 const gchar    *file_name,
                                                                 TrackerDBFileInfo *info);
-gboolean            tracker_db_start_transaction               (DBConnection   *db_con);
-gboolean            tracker_db_end_transaction                 (DBConnection   *db_con);
 void                tracker_db_update_indexes_for_new_service  (guint32         service_id,
                                                                 gint            service_type_id,
                                                                 GHashTable     *table);
@@ -300,7 +328,6 @@ void                tracker_db_update_index_multiple_metadata  (DBConnection   *
                                                                 const gchar    *id,
                                                                 const gchar    *key,
                                                                 gchar         **values);
-void                tracker_db_get_static_data                 (DBConnection   *db_con);
 DBConnection *      tracker_db_get_service_connection          (DBConnection   *db_con,
                                                                 const gchar    *service);
 gchar *             tracker_db_get_service_for_entity          (DBConnection   *db_con,
@@ -315,12 +342,12 @@ GHashTable *        tracker_db_get_indexable_content_words     (DBConnection   *
                                                                 guint32         id,
                                                                 GHashTable     *table,
                                                                 gboolean        embedded_only);
-gboolean            tracker_db_has_display_metadata            (FieldDef       *def);
+
 gchar *             tracker_db_get_field_name                  (const gchar    *service,
                                                                 const gchar    *meta_name);
-gint                tracker_metadata_is_key                    (const gchar    *service,
-                                                                const gchar    *meta_name);
 gchar *             tracker_db_get_display_field               (FieldDef       *def);
+void                tracker_free_metadata_field                (FieldData *field_data);
+
 void                tracker_db_delete_service                  (DBConnection   *db_con,
                                                                 guint32         id,
                                                                 const gchar    *uri);
@@ -330,22 +357,8 @@ FieldData *         tracker_db_get_metadata_field              (DBConnection   *
                                                                 gint            field_count,
                                                                 gboolean        is_select,
                                                                 gboolean        is_condition);
-gboolean            tracker_db_is_in_transaction               (DBConnection   *db_con);
-void                tracker_db_start_index_transaction         (DBConnection   *db_con);
-void                tracker_db_end_index_transaction           (DBConnection   *db_con);
-gboolean            tracker_db_regulate_transactions           (DBConnection   *db_con,
-                                                                gint            interval);
-gchar *             tracker_db_get_option_string               (DBConnection   *db_con,
-                                                                const gchar    *option);
-void                tracker_db_set_option_string               (DBConnection   *db_con,
-                                                                const gchar    *option,
-                                                                const gchar    *value);
-gint                tracker_db_get_option_int                  (DBConnection   *db_con,
-                                                                const gchar    *option);
-void                tracker_db_set_option_int                  (DBConnection   *db_con,
-                                                                const gchar    *option,
-                                                                gint            value);
-gboolean            tracker_db_integrity_check                 (DBConnection   *db_con);
+
+/* XESAM stuff */
 TrackerDBResultSet *tracker_db_get_events                      (DBConnection *db_con);
 void                tracker_db_delete_handled_events           (DBConnection   *db_con, 
                                                                 TrackerDBResultSet *events);
@@ -359,7 +372,6 @@ TrackerDBResultSet *tracker_db_get_live_search_new_ids         (DBConnection *db
 TrackerDBResultSet *tracker_db_get_live_search_hit_count       (DBConnection *db_con, 
                                                                 const gchar *search_id);
 
-void                tracker_free_metadata_field                (FieldData *field_data);
 
 G_END_DECLS
 

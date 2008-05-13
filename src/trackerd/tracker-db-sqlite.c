@@ -937,13 +937,6 @@ open_db_interface (TrackerDatabase database)
 }
 
 
-static void
-open_common_db (DBConnection *db_con)
-{
-	db_con->db = open_db_interface (TRACKER_DB_COMMON);
-}
-
-
 DBConnection *
 tracker_db_connect_common (void)
 {
@@ -952,7 +945,7 @@ tracker_db_connect_common (void)
 
 	db_con = g_new0 (DBConnection, 1);
 
-	open_common_db (db_con);
+	db_con->db = open_db_interface (TRACKER_DB_COMMON);
 
 	db_con->cache = NULL;
 	db_con->emails = NULL;
@@ -1129,8 +1122,8 @@ tracker_db_connect (void)
 
 	create_table = !tracker_db_manager_file_exists (TRACKER_DB_FILE_META);
 
-	db_con = g_new0 (DBConnection, 1);
-	db_con->db = open_db_interface (TRACKER_DB_FILE_META);
+	db_con = tracker_db_connect_file_meta ();
+
 	db_con->data = db_con;
 	
 	if (create_table) {
@@ -1180,7 +1173,7 @@ tracker_db_connect_file_meta (void)
 
 	db_con = g_new0 (DBConnection, 1);
 
-	open_file_db (db_con);
+	db_con->db = open_db_interface (TRACKER_DB_FILE_META);
 
 	return db_con;
 }
@@ -1217,7 +1210,7 @@ open_file_content_db (DBConnection *db_con)
 	db_con->db = open_db_interface (TRACKER_DB_FILE_CONTENTS);
 
 	if (create) {
-		tracker_db_exec_no_reply (db_con->db, "CREATE TABLE ServiceContents (ServiceID Int not null, MetadataID Int not null, Content Text, primary key (ServiceID, MetadataID))");
+		load_sql_file (db_con, "sqlite-contents.sql");
 		tracker_log ("Creating db: %s",
 			     tracker_db_manager_get_file (TRACKER_DB_FILE_CONTENTS));
 	}
@@ -1250,7 +1243,7 @@ open_email_content_db (DBConnection *db_con)
 	db_con->db = open_db_interface (TRACKER_DB_EMAIL_CONTENTS);
 
 	if (create_table) {
-		tracker_db_exec_no_reply (db_con->db, "CREATE TABLE ServiceContents (ServiceID Int not null, MetadataID Int not null, Content Text, primary key (ServiceID, MetadataID))");
+		load_sql_file (db_con, "sqlite-contents.sql");
 		tracker_log ("Creating db: %s",
 			     tracker_db_manager_get_file (TRACKER_DB_EMAIL_CONTENTS));
 	}
@@ -1296,7 +1289,9 @@ tracker_db_refresh_all (DBConnection *db_con)
 	open_file_content_db (db_con->blob);
 
 	open_email_content_db (emails->blob);
-	open_common_db (emails->common);
+
+	emails->common->db = open_db_interface (TRACKER_DB_COMMON);
+
 	open_email_db (emails);
 		
 	if (cache_trans) {
@@ -1325,7 +1320,9 @@ tracker_db_refresh_email (DBConnection *db_con)
 	tracker_db_close (emails->db);
 
 	open_email_content_db (emails->blob);
-	open_common_db (emails->common);
+
+	emails->common->db = open_db_interface (TRACKER_DB_COMMON);
+
 	open_email_db (emails);
 
 	if (cache_trans) {
@@ -1424,14 +1421,27 @@ tracker_exec_proc (DBConnection *db_con, const char *procedure, ...)
 	return result_set;
 }
 
+TrackerDBResultSet *
+tracker_db_exec_proc (TrackerDBInterface *iface, const char *procedure, ...)
+{
+	TrackerDBResultSet *result_set;
+	va_list args;
 
-gboolean
-tracker_exec_proc_no_reply (DBConnection *db_con, const char *procedure, ...)
+	va_start (args, procedure);
+	result_set = tracker_db_interface_execute_vprocedure (iface, NULL, procedure, args);
+	va_end (args);
+
+	return result_set;
+}
+
+
+static gboolean
+tracker_exec_proc_no_reply (TrackerDBInterface *iface, const char *procedure, ...)
 {
 	va_list args;
 
 	va_start (args, procedure);
-	tracker_db_interface_execute_vprocedure_no_reply (db_con->db, NULL, procedure, args);
+	tracker_db_interface_execute_vprocedure_no_reply (iface, NULL, procedure, args);
 	va_end (args);
 
 	return TRUE;
@@ -1506,7 +1516,7 @@ tracker_db_common_need_build ()
 	return !tracker_db_manager_file_exists (TRACKER_DB_COMMON);
 }
 
-gint
+static gint
 tracker_metadata_is_key (const gchar *service, const gchar *meta_name)
 {
 	return tracker_service_manager_metadata_in_service (service, meta_name);
@@ -3195,7 +3205,7 @@ tracker_db_get_events (DBConnection *db_con)
 	g_static_rec_mutex_lock (&events_table_lock);
 	/* Uses the Events table */
 	tracker_debug ("SetEventsBeingHandled");
-	tracker_exec_proc_no_reply (db_con->cache, "SetEventsBeingHandled", NULL);
+	tracker_exec_proc_no_reply (db_con->cache->db, "SetEventsBeingHandled", NULL);
 	tracker_debug ("GetEvents");
 	result = tracker_exec_proc (db_con->cache, "GetEvents", NULL);
 	g_static_rec_mutex_unlock (&events_table_lock);
@@ -5030,32 +5040,6 @@ tracker_db_regulate_transactions (DBConnection *db_con, int interval)
 
 	return FALSE;
 
-}
-
-gboolean
-tracker_db_integrity_check (DBConnection *db_con)
-{
-	TrackerDBResultSet *result_set;
-	gboolean integrity_check = TRUE;
-
-	result_set = tracker_db_interface_execute_query (db_con->db, NULL, "pragma integrity_check;");
-
-	if (!result_set) {
-		integrity_check = FALSE;
-	} else {
-		gchar *check;
-
-		tracker_db_result_set_get (result_set, 0, &check, -1);
-
-		if (check) {
-			integrity_check = (strcasecmp (check, "ok") == 0);
-			g_free (check);
-		}
-
-		g_object_unref (result_set);
-	}
-
-	return integrity_check;
 }
 
 void

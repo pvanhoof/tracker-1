@@ -11,6 +11,7 @@ config_DATA =					\
 	tracker-dbus-xesam.xml			\
 	sqlite-tracker.sql 			\
 	sqlite-cache.sql 			\
+	sqlite-contents.sql			\
 	sqlite-email.sql			\
 	sqlite-service-stored-procs.sql 	\
 	sqlite-service-triggers.sql 		\

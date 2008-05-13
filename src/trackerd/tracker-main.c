@@ -533,29 +533,10 @@ initialise_threading (void)
 static void
 initialise_defaults (void)
 {
-	tracker->grace_period = 0;
-
-	tracker->reindex = FALSE;
-	tracker->in_merge = FALSE;
-
-	tracker->black_list_timer_active = FALSE;	
-
-	tracker->pause_manual = FALSE;
-	tracker->pause_battery = FALSE;
-	tracker->pause_io = FALSE;
-
-	tracker->watch_limit = 0;
-	tracker->index_count = 0;
-
 	tracker->max_process_queue_size = MAX_PROCESS_QUEUE_SIZE;
 	tracker->max_extract_queue_size = MAX_EXTRACT_QUEUE_SIZE;
 
 	tracker->index_number_min_length = 6;
-
-	tracker->folders_count = 0;
-	tracker->folders_processed = 0;
-	tracker->mbox_count = 0;
-	tracker->folders_processed = 0;
 }
 
 static void

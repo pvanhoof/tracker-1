@@ -1,5 +1,10 @@
 2008-05-13  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-main.c: Don't initialise Tracker members
+	unnecessarily.
+
+2008-05-13  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-main.[ch]: Removed the log_filename from
 	the Tracker struct, it didn't need to be there. Also added a
 	function to clean up the directory locations separately to

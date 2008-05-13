@@ -69,8 +69,6 @@ typedef struct {
         gchar            *email_attachments_dir;
 	gchar            *xesam_dir;
 
-	gchar            *log_filename;
-
 	/* Performance and memory usage options */
 	gint              max_process_queue_size;
 	gint              max_extract_queue_size;

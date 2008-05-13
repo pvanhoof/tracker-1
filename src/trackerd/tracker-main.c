@@ -127,8 +127,11 @@ Tracker	             *tracker;
 DBConnection         *main_thread_db_con;
 DBConnection         *main_thread_cache_con;
 
+/* Private */
 static GMainLoop     *main_loop;
+static gchar         *log_filename;
 
+/* Private command line parameters */
 static gchar        **no_watch_dirs;
 static gchar        **watch_dirs;
 static gchar        **crawl_dirs;
@@ -456,6 +459,7 @@ initialise_locations (void)
 {
 	gchar *str;
 	
+	/* Public locations */
 	str = g_strdup_printf ("Tracker-%s.%d", g_get_user_name (), getpid ());
 	tracker->sys_tmp_root_dir = g_build_filename (g_get_tmp_dir (), str, NULL);
 	g_free (str);
@@ -467,7 +471,9 @@ initialise_locations (void)
 	tracker->xesam_dir = g_build_filename (g_get_home_dir (), ".xesam", NULL);
 
         tracker->email_attachments_dir = g_build_filename (tracker->sys_tmp_root_dir, "Attachments", NULL);
-	tracker->log_filename = g_build_filename (tracker->root_dir, "tracker.log", NULL);
+
+	/* Private locations */
+	log_filename = g_build_filename (tracker->root_dir, "tracker.log", NULL);
 }
 
 static void
@@ -509,7 +515,7 @@ initialise_directories (gboolean *need_index)
 	g_mkdir_with_parents (tracker->email_attachments_dir, 00700);
 
 	/* Remove existing log files */
-	tracker_file_unlink (tracker->log_filename);
+	tracker_file_unlink (log_filename);
 }
 
 static void
@@ -785,6 +791,22 @@ shutdown_databases (void)
 }
 
 static void
+shutdown_locations (void)
+{
+	/* Public locations */
+	g_free (tracker->data_dir);
+	g_free (tracker->config_dir);
+	g_free (tracker->root_dir);
+	g_free (tracker->user_data_dir);
+	g_free (tracker->sys_tmp_root_dir);
+	g_free (tracker->email_attachments_dir);
+	g_free (tracker->xesam_dir);
+
+	/* Private locations */
+	g_free (log_filename);
+}
+
+static void
 shutdown_directories (void)
 {
 	/* If we are reindexing, just remove the databases */
@@ -797,15 +819,6 @@ shutdown_directories (void)
 	if (tracker->sys_tmp_root_dir) {
 		tracker_dir_remove (tracker->sys_tmp_root_dir);
 	}
-
-	g_free (tracker->data_dir);
-	g_free (tracker->config_dir);
-	g_free (tracker->root_dir);
-	g_free (tracker->user_data_dir);
-	g_free (tracker->sys_tmp_root_dir);
-	g_free (tracker->email_attachments_dir);
-	g_free (tracker->xesam_dir);
-	g_free (tracker->log_filename);
 }
 
 gint
@@ -893,7 +906,7 @@ main (gint argc, gchar *argv[])
         tracker->config = tracker_config_new ();
         tracker->language = tracker_language_new (tracker->config);
 
-	tracker_log_init (tracker->log_filename, 
+	tracker_log_init (log_filename, 
                           tracker_config_get_verbosity (tracker->config), 
                           fatal_errors);
 	tracker_nfs_lock_init (tracker->root_dir,
@@ -1051,6 +1064,7 @@ main (gint argc, gchar *argv[])
 	shutdown_indexer ();
 	shutdown_databases ();
 	shutdown_directories ();
+	shutdown_locations ();
 
 	/* Clean up other struct members */
 	if (tracker->file_process_queue) {

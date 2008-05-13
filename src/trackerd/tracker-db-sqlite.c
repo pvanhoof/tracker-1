@@ -399,7 +399,7 @@ function_get_max_service_type (TrackerDBInterface *interface,
 }
 
 static void
-load_generic_sql_file (DBConnection *db_con, const gchar *sql_file, const gchar *delimiter) { 
+load_generic_sql_file (TrackerDBInterface *iface, const gchar *sql_file, const gchar *delimiter) { 
 
 	char *filename, *query;
 	
@@ -414,7 +414,7 @@ load_generic_sql_file (DBConnection *db_con, const gchar *sql_file, const gchar 
 		queries = g_strsplit_set (query, delimiter, -1);
 
 		for (queries_p = queries; *queries_p; queries_p++) {
-			tracker_db_exec_no_reply (db_con->db, *queries_p);
+			tracker_db_exec_no_reply (iface, *queries_p);
 		}
 		g_strfreev (queries);
 		g_free (query);
@@ -425,19 +425,19 @@ load_generic_sql_file (DBConnection *db_con, const gchar *sql_file, const gchar 
 }
 
 static void
-load_sql_file (DBConnection *db_con, const char *sql_file)
+load_sql_file (TrackerDBInterface *iface, const char *sql_file)
 {
-	load_generic_sql_file (db_con, sql_file, ";");
+	load_generic_sql_file (iface, sql_file, ";");
 }
 
 static void
-load_sql_trigger (DBConnection *db_con, const char *sql_file)
+load_sql_trigger (TrackerDBInterface *iface, const char *sql_file)
 {
-	load_generic_sql_file (db_con, sql_file, "!");
+	load_generic_sql_file (iface, sql_file, "!");
 }
 
 static void
-load_service_file (DBConnection *db_con, const gchar *filename) 
+load_service_file (TrackerDBInterface *iface, const gchar *filename) 
 {
 	GKeyFile 		*key_file = NULL;
 	const gchar * const 	*locale_array;
@@ -468,8 +468,8 @@ load_service_file (DBConnection *db_con, const gchar *filename)
 		service = tracker_service_manager_get_service (*group);
 
 		if (!service) {
-			tracker_exec_proc (db_con, "InsertServiceType", *group, NULL);
-			id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (db_con->db));
+			tracker_db_exec_proc (iface, "InsertServiceType", *group, NULL);
+			id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (iface));
 		} else {
 			id = tracker_service_get_id (service);
 		}
@@ -497,7 +497,7 @@ load_service_file (DBConnection *db_con, const gchar *filename)
 				char **tmp;
 				for (tmp = tab_array; *tmp; tmp++) { 			
 
-					tracker_exec_proc (db_con, "InsertServiceTabularMetadata", str_id, *tmp, NULL);
+					tracker_db_exec_proc (iface, "InsertServiceTabularMetadata", str_id, *tmp, NULL);
 								
 				}
 
@@ -512,7 +512,7 @@ load_service_file (DBConnection *db_con, const gchar *filename)
 				char **tmp;
 				for (tmp = tab_array; *tmp; tmp++) { 			
 
-					tracker_exec_proc (db_con, "InsertServiceTileMetadata", str_id, *tmp, NULL);
+					tracker_db_exec_proc (iface, "InsertServiceTileMetadata", str_id, *tmp, NULL);
 				}
 
 				g_strfreev (tab_array);
@@ -523,9 +523,9 @@ load_service_file (DBConnection *db_con, const gchar *filename)
 
 				char **tmp;
 				for (tmp = tab_array; *tmp; tmp++) { 			
-					tracker_exec_proc (db_con, "InsertMimes", *tmp, NULL);
+					tracker_db_exec_proc (iface, "InsertMimes", *tmp, NULL);
 							
-					tracker_db_exec_no_reply (db_con->db,
+					tracker_db_exec_no_reply (iface,
 								  "update FileMimes set ServiceTypeID = %s where Mime = '%s'",
 								  str_id, *tmp);
 				}
@@ -538,9 +538,9 @@ load_service_file (DBConnection *db_con, const gchar *filename)
 
 				char **tmp;
 				for (tmp = tab_array; *tmp; tmp++) { 			
-					tracker_exec_proc (db_con, "InsertMimePrefixes", *tmp, NULL);
+					tracker_db_exec_proc (iface, "InsertMimePrefixes", *tmp, NULL);
 
-					tracker_db_exec_no_reply (db_con->db,
+					tracker_db_exec_no_reply (iface,
 								  "update FileMimePrefixes set ServiceTypeID = %s where MimePrefix = '%s'",
 								  str_id, *tmp);
 				}
@@ -551,7 +551,7 @@ load_service_file (DBConnection *db_con, const gchar *filename)
 			} else {
 				char *esc_value = tracker_escape_string (new_value);
 
-				tracker_db_exec_no_reply (db_con->db,
+				tracker_db_exec_no_reply (iface,
 							  "update ServiceTypes set  %s = '%s' where TypeID = %s",
 							  *key, esc_value, str_id);
 				g_free (esc_value);
@@ -568,7 +568,7 @@ load_service_file (DBConnection *db_con, const gchar *filename)
 }
 
 static void
-load_metadata_file (DBConnection *db_con, const gchar *filename) 
+load_metadata_file (TrackerDBInterface *iface, const gchar *filename) 
 {
 	GKeyFile 		*key_file = NULL;
 	const gchar * const 	*locale_array;
@@ -601,8 +601,8 @@ load_metadata_file (DBConnection *db_con, const gchar *filename)
 		def = tracker_db_get_field_def (*group);
 
 		if (!def) {
-			tracker_exec_proc (db_con, "InsertMetadataType", *group, NULL);
-			id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (db_con->db));
+			tracker_db_exec_proc (iface, "InsertMetadataType", *group, NULL);
+			id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (iface));
 		} else {
 			id = atoi (def->id);
 		}
@@ -624,15 +624,15 @@ load_metadata_file (DBConnection *db_con, const gchar *filename)
 
 
 			if (strcasecmp (*key, "Parent") == 0) {
-
-				tracker_exec_proc (db_con, "InsertMetaDataChildren", str_id, new_value, NULL);
+				
+				tracker_db_exec_proc (iface, "InsertMetaDataChildren", str_id, new_value, NULL);
 				
 			} else if (strcasecmp (*key, "DataType") == 0) {
 				
 				int data_id = tracker_string_in_string_list (new_value, DataTypeArray);
 				
 				if (data_id != -1) {
-					tracker_db_exec_no_reply (db_con->db,
+					tracker_db_exec_no_reply (iface,
 								  "update MetaDataTypes set DataTypeID = %d where ID = %s",
 								  data_id, str_id);
 				}
@@ -641,7 +641,7 @@ load_metadata_file (DBConnection *db_con, const gchar *filename)
 			} else {
 				char *esc_value = tracker_escape_string (new_value);
 				
-				tracker_db_exec_no_reply (db_con->db,
+				tracker_db_exec_no_reply (iface,
 							  "update MetaDataTypes set  %s = '%s' where ID = %s",
 							  *key, esc_value, str_id);
 				g_free (esc_value);
@@ -656,7 +656,7 @@ load_metadata_file (DBConnection *db_con, const gchar *filename)
 }
 
 static void
-load_extractor_file (DBConnection *db_con, const gchar *filename)
+load_extractor_file (TrackerDBInterface *iface, const gchar *filename)
 {
 	GKeyFile 		*key_file = NULL;
 	const gchar * const 	*locale_array;
@@ -710,17 +710,17 @@ load_extractor_file (DBConnection *db_con, const gchar *filename)
 }
 
 static gboolean
-load_service_description_file (DBConnection *db_con, const gchar* filename)
+load_service_description_file (TrackerDBInterface *iface, const gchar* filename)
 {
 
 	if (g_str_has_suffix (filename, ".metadata")) {
-		load_metadata_file (db_con, filename);
+		load_metadata_file (iface, filename);
 
 	} else if (g_str_has_suffix (filename, ".service")) {
-		load_service_file (db_con, filename);
+		load_service_file (iface, filename);
 
 	} else if (g_str_has_suffix (filename, ".extractor")) {
-		load_extractor_file (db_con, filename);
+		load_extractor_file (iface, filename);
 
 	} else {
 		return FALSE;
@@ -1129,19 +1129,19 @@ tracker_db_connect (void)
 	if (create_table) {
 		tracker_log ("Creating file database... %s",
 			     tracker_db_manager_get_file (TRACKER_DB_FILE_META));
-		load_sql_file (db_con, "sqlite-service.sql");
-		load_sql_trigger (db_con, "sqlite-service-triggers.sql");
+		load_sql_file (db_con->db, "sqlite-service.sql");
+		load_sql_trigger (db_con->db, "sqlite-service-triggers.sql");
 
-		load_sql_file (db_con, "sqlite-metadata.sql");
+		load_sql_file (db_con->db, "sqlite-metadata.sql");
 	
-		load_service_description_file (db_con, "default.metadata");
-		load_service_description_file (db_con, "file.metadata");
-		load_service_description_file (db_con, "audio.metadata");
-		load_service_description_file (db_con, "application.metadata");
-		load_service_description_file (db_con, "document.metadata");
-		load_service_description_file (db_con, "email.metadata");
-		load_service_description_file (db_con, "image.metadata");	
-		load_service_description_file (db_con, "video.metadata");	
+		load_service_description_file (db_con->db, "default.metadata");
+		load_service_description_file (db_con->db, "file.metadata");
+		load_service_description_file (db_con->db, "audio.metadata");
+		load_service_description_file (db_con->db, "application.metadata");
+		load_service_description_file (db_con->db, "document.metadata");
+		load_service_description_file (db_con->db, "email.metadata");
+		load_service_description_file (db_con->db, "image.metadata");	
+		load_service_description_file (db_con->db, "video.metadata");	
 	
 		tracker_db_exec_no_reply (db_con->db, "ANALYZE");
 	}
@@ -1149,7 +1149,7 @@ tracker_db_connect (void)
 	// TODO: move tables Events and XesamLiveSearches from sqlite-service.sql
 	// to TEMPORARY tables in sqlite-temp-tables.sql:
 
-	// load_sql_file (db_con, "sqlite-temp-tables.sql");
+	// load_sql_file (db_con->db, "sqlite-temp-tables.sql");
 
 	tracker_db_attach_db (db_con, TRACKER_DB_COMMON);
 	tracker_db_attach_db (db_con, TRACKER_DB_CACHE);
@@ -1210,7 +1210,7 @@ open_file_content_db (DBConnection *db_con)
 	db_con->db = open_db_interface (TRACKER_DB_FILE_CONTENTS);
 
 	if (create) {
-		load_sql_file (db_con, "sqlite-contents.sql");
+		load_sql_file (db_con->db, "sqlite-contents.sql");
 		tracker_log ("Creating db: %s",
 			     tracker_db_manager_get_file (TRACKER_DB_FILE_CONTENTS));
 	}
@@ -1243,7 +1243,7 @@ open_email_content_db (DBConnection *db_con)
 	db_con->db = open_db_interface (TRACKER_DB_EMAIL_CONTENTS);
 
 	if (create_table) {
-		load_sql_file (db_con, "sqlite-contents.sql");
+		load_sql_file (db_con->db, "sqlite-contents.sql");
 		tracker_log ("Creating db: %s",
 			     tracker_db_manager_get_file (TRACKER_DB_EMAIL_CONTENTS));
 	}
@@ -1349,7 +1349,7 @@ tracker_db_connect_cache (void)
 	 */
 
 	if (create_table) {
-		load_sql_file (db_con, "sqlite-cache.sql");
+		load_sql_file (db_con->db, "sqlite-cache.sql");
 		tracker_db_exec_no_reply (db_con->db, "ANALYZE");
 		tracker_log ("Creating db: %s",
 			     tracker_db_manager_get_file (TRACKER_DB_CACHE));
@@ -1378,9 +1378,9 @@ tracker_db_connect_emails (void)
 
 	if (create_table) {
 		tracker_log ("Creating email database...");
-		load_sql_file (db_con, "sqlite-service.sql");
-		load_sql_trigger (db_con, "sqlite-service-triggers.sql");
-		load_sql_file (db_con, "sqlite-email.sql");
+		load_sql_file (db_con->db, "sqlite-service.sql");
+		load_sql_trigger (db_con->db, "sqlite-service-triggers.sql");
+		load_sql_file (db_con->db, "sqlite-email.sql");
 
 		tracker_db_exec_no_reply (db_con->db, "ANALYZE");
 	}
@@ -1460,21 +1460,21 @@ tracker_create_common_db (void)
 
 	db_con = tracker_db_connect_common ();
 	
-	load_sql_file (db_con, "sqlite-tracker.sql");
-	load_sql_file (db_con, "sqlite-service-types.sql");
-	load_sql_file (db_con, "sqlite-metadata.sql");
-	load_sql_trigger (db_con, "sqlite-tracker-triggers.sql");
+	load_sql_file (db_con->db, "sqlite-tracker.sql");
+	load_sql_file (db_con->db, "sqlite-service-types.sql");
+	load_sql_file (db_con->db, "sqlite-metadata.sql");
+	load_sql_trigger (db_con->db, "sqlite-tracker-triggers.sql");
 
-	load_service_description_file (db_con, "default.metadata");
-	load_service_description_file (db_con, "file.metadata");
-	load_service_description_file (db_con, "audio.metadata");
-	load_service_description_file (db_con, "application.metadata");
-	load_service_description_file (db_con, "document.metadata");
-	load_service_description_file (db_con, "email.metadata");
-	load_service_description_file (db_con, "image.metadata");	
-	load_service_description_file (db_con, "video.metadata");	
+	load_service_description_file (db_con->db, "default.metadata");
+	load_service_description_file (db_con->db, "file.metadata");
+	load_service_description_file (db_con->db, "audio.metadata");
+	load_service_description_file (db_con->db, "application.metadata");
+	load_service_description_file (db_con->db, "document.metadata");
+	load_service_description_file (db_con->db, "email.metadata");
+	load_service_description_file (db_con->db, "image.metadata");	
+	load_service_description_file (db_con->db, "video.metadata");	
 
-	load_service_description_file (db_con, "default.service");
+	load_service_description_file (db_con->db, "default.service");
 
 	tracker_db_exec_no_reply (db_con->db, "ANALYZE");
 	

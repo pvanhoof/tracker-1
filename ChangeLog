@@ -1,5 +1,10 @@
 2008-05-14  Ivan Frade  <ivan.frade@nokia.com>
 
+	* src/trackerd/tracker-db-sqlite.c:
+	File loaders using TrackerDBInterface instead of DBConnection.
+
+2008-05-14  Ivan Frade  <ivan.frade@nokia.com>
+
 	* data/Makefile.am
 	* data/sqlite-contents.sql: SQL code to create Contents table.
 	

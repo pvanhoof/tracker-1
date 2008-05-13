@@ -49,6 +49,13 @@
 
 2008-05-13  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/libtracker-common/tracker-config.c (config_finalize): Free all
+	allocated data.
+	* src/tracker-indexer/tracker-indexer.c (tracker_indexer_finalize):
+	Instead, do not free unowned memory here.
+
+2008-05-13  Carlos Garnacho  <carlos@imendio.com>
+
 	Initial work on the separate indexer executable, implemented as a
 	modular, single-threaded state machine.
 

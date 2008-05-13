@@ -559,6 +559,24 @@ config_finalize (GObject *object)
 
 	priv = GET_PRIV (object);
 
+	g_slist_foreach (priv->watch_directory_roots, (GFunc) g_free, NULL);
+	g_slist_free (priv->watch_directory_roots);
+
+	g_slist_foreach (priv->crawl_directory_roots, (GFunc) g_free, NULL);
+	g_slist_free (priv->crawl_directory_roots);
+
+	g_slist_foreach (priv->no_watch_directory_roots, (GFunc) g_free, NULL);
+	g_slist_free (priv->no_watch_directory_roots);
+
+	g_slist_foreach (priv->no_index_file_types, (GFunc) g_free, NULL);
+	g_slist_free (priv->no_index_file_types);
+
+	g_slist_foreach (priv->index_modules, (GFunc) g_free, NULL);
+	g_slist_free (priv->index_modules);
+
+	g_free (priv->language);
+	g_free (priv->email_client);
+
 	(G_OBJECT_CLASS (tracker_config_parent_class)->finalize) (object);
 }
 

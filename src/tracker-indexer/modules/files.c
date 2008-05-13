@@ -100,7 +100,6 @@ tracker_module_get_file_metadata (const gchar *file)
 
 	/* FIXME, Missing:
 	 *
-	 * File:NameDelimited
 	 * File:Mime
 	 * File:Size
 	 * File:Modified

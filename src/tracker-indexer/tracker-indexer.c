@@ -123,9 +123,6 @@ tracker_indexer_finalize (GObject *object)
 	g_queue_foreach (priv->file_process_queue, (GFunc) path_info_free, NULL);
 	g_queue_free (priv->file_process_queue);
 
-	g_slist_foreach (priv->module_names, (GFunc) g_free, NULL);
-	g_slist_free (priv->module_names);
-
 	g_hash_table_destroy (priv->indexer_modules);
 
 	g_object_unref (priv->config);

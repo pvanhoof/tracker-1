@@ -99,7 +99,7 @@
 #define DEFAULT_INDEX_MOUNTED_DIRECTORIES  	 TRUE 
 #define DEFAULT_INDEX_REMOVABLE_DEVICES	         TRUE
 #define DEFAULT_INDEX_MODULES                    "applications;files;gaim-conversations;firefox-history"
-#define DEFAULT_INDEX_EMAIL_CLIENT               NULL
+#define DEFAULT_INDEX_EMAIL_CLIENT               "evolution"
 #define DEFAULT_LOW_DISK_SPACE_LIMIT		 1	  /* 0->100 / -1 */
 #define DEFAULT_MAX_TEXT_TO_INDEX		 1048576  /* Bytes */
 #define DEFAULT_MAX_WORDS_TO_INDEX		 10000

@@ -31,11 +31,11 @@
 
 G_BEGIN_DECLS
 
-typedef gboolean      (* TrackerMailInit)          (void);
+typedef gboolean      (* TrackerMailInit)          (TrackerConfig     *config);
 typedef void          (* TrackerMailFinalize)      (void);
-typedef void          (* TrackerMailWatchEmails)   (DBConnection *db_con);
-typedef gboolean      (* TrackerMailIndexFile)     (DBConnection *db_con,
-						    TrackerDBFileInfo     *info);
+typedef void          (* TrackerMailWatchEmails)   (DBConnection      *db_con);
+typedef gboolean      (* TrackerMailIndexFile)     (DBConnection      *db_con,
+						    TrackerDBFileInfo *info);
 typedef const gchar * (* TrackerMailGetName)       (void);
 
 gboolean     tracker_email_init                    (TrackerConfig     *config);

@@ -117,7 +117,7 @@ tracker_email_init (TrackerConfig *config)
 	if (g_module_symbol (module, "tracker_email_init", (gpointer *) &func)) {
 		g_mime_init (0);
 
-		result = (func) ();
+		result = (func) (config);
 	}
 
 	g_free (module_name);

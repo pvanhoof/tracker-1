@@ -1,5 +1,11 @@
 2008-05-14  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-email.[ch]: Fix crash where we wouldn't
+	pass TrackerConfig to the _init() function of email modules and it
+	would return due to TRACKER_IS_CONFIG() failing on a NULL pointer.
+
+2008-05-14  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-main.h:
 	* src/trackerd/tracker-process-files.c: Moved the indexer time
 	taken information from the Tracker struct to the process-files

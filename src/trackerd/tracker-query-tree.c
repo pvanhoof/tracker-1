@@ -284,12 +284,17 @@ tracker_query_tree_new (const gchar     *query_str,
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 	g_return_val_if_fail (language != NULL, NULL);
 
+        /* NOTE: The "query" has to come AFTER the "config" and
+         * "language" properties since setting the query actually
+         * uses the priv->config and priv->language settings.
+         * Changing this order results in warnings.
+         */
 	return g_object_new (TRACKER_TYPE_QUERY_TREE,
-			     "query", query_str,
 			     "indexer", indexer,
                              "config", config,
                              "language", language,
 			     "services", services,
+			     "query", query_str,
 			     NULL);
 }
 

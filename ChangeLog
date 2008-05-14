@@ -1,5 +1,12 @@
 2008-05-14  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-query-tree.c: (tracker_query_tree_new):
+	Make sure we set the "query" after setting the "config" and
+	"language" properties since they are required in the _set_query()
+	function. This fixes several warnings to the console.
+
+2008-05-14  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-email.[ch]: Fix crash where we wouldn't
 	pass TrackerConfig to the _init() function of email modules and it
 	would return due to TRACKER_IS_CONFIG() failing on a NULL pointer.

@@ -30,15 +30,18 @@
 #include "tracker-log.h" 
 #include "tracker-language.h"
 
-typedef struct _Languages Languages;
+#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_LANGUAGE, TrackerLanguagePriv))
 
-struct _TrackerLanguage {
+typedef struct _TrackerLanguagePriv TrackerLanguagePriv;
+typedef struct _Languages           Languages;
+
+struct _TrackerLanguagePriv {
+	TrackerConfig *config;
+
 	GHashTable    *stop_words;
 
 	GMutex        *stemmer_mutex;
 	gpointer       stemmer;
-
-	TrackerConfig *config;
 };
 
 struct _Languages {
@@ -62,6 +65,151 @@ static Languages all_langs[] = {
         { "sv", "swedish" },
         { NULL, NULL },
 };
+
+/* GObject properties */
+enum {
+	PROP_0,
+
+	PROP_CONFIG,
+	PROP_STOP_WORDS
+};
+
+static void         language_finalize          (GObject       *object);
+static void         language_get_property      (GObject       *object,
+						guint          param_id,
+						GValue        *value,
+						GParamSpec    *pspec);
+static void         language_set_property      (GObject       *object,
+						guint          param_id,
+						const GValue  *value,
+						GParamSpec    *pspec);
+static const gchar *language_get_name_for_code (const gchar   *language_code);
+static void         language_notify_cb         (TrackerConfig *config,
+						GParamSpec    *param,
+						gpointer       user_data);
+
+G_DEFINE_TYPE (TrackerLanguage, tracker_language, G_TYPE_OBJECT);
+
+static void
+tracker_language_class_init (TrackerLanguageClass *klass)
+{
+	GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+	object_class->finalize	   = language_finalize;
+	object_class->get_property = language_get_property;
+	object_class->set_property = language_set_property;
+
+	g_object_class_install_property (object_class,
+					 PROP_CONFIG,
+					 g_param_spec_object ("config",
+							      "Config",
+							      "Config",
+							      tracker_config_get_type (),
+							      G_PARAM_READWRITE));
+
+	g_object_class_install_property (object_class,
+					 PROP_STOP_WORDS,
+					 g_param_spec_boxed ("stop-words",
+							     "Stop words",
+							     "Stop words",
+							     g_hash_table_get_type (),
+							     G_PARAM_READABLE));
+
+	g_type_class_add_private (object_class, sizeof (TrackerLanguagePriv));
+}
+
+static void
+tracker_language_init (TrackerLanguage *language)
+{
+	TrackerLanguagePriv *priv;
+	const gchar         *stem_language;
+
+	priv = GET_PRIV (language);
+
+	priv->stop_words = g_hash_table_new_full (g_str_hash,
+						  g_str_equal,
+						  g_free,
+						  NULL);
+
+	priv->stemmer_mutex = g_mutex_new ();
+
+	stem_language = language_get_name_for_code (NULL);
+	priv->stemmer = sb_stemmer_new (stem_language, NULL);
+}
+
+static void
+language_finalize (GObject *object)
+{
+	TrackerLanguagePriv *priv;
+
+	priv = GET_PRIV (object);
+
+	if (priv->config) {
+		g_signal_handlers_disconnect_by_func (priv->config,
+						      language_notify_cb,
+						      TRACKER_LANGUAGE (object));
+		g_object_unref (priv->config);
+	}
+
+	if (priv->stemmer) {
+		g_mutex_lock (priv->stemmer_mutex);
+		sb_stemmer_delete (priv->stemmer);
+		g_mutex_unlock (priv->stemmer_mutex);
+	}
+
+	g_mutex_free (priv->stemmer_mutex);
+
+	if (priv->stop_words) {
+		g_hash_table_unref (priv->stop_words);
+	}
+
+	(G_OBJECT_CLASS (tracker_language_parent_class)->finalize) (object);
+}
+
+static void
+language_get_property (GObject	  *object,
+		       guint	   param_id,
+		       GValue	  *value,
+		       GParamSpec *pspec)
+{
+	TrackerLanguagePriv *priv;
+
+	priv = GET_PRIV (object);
+
+	switch (param_id) {
+	case PROP_CONFIG:
+		g_value_set_object (value, priv->config);
+		break;
+	case PROP_STOP_WORDS:
+		g_value_set_boxed (value, priv->stop_words);
+		break;
+
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
+		break;
+	};
+}
+
+static void
+language_set_property (GObject	    *object,
+		       guint	     param_id,
+		       const GValue *value,
+		       GParamSpec   *pspec)
+{
+	TrackerLanguagePriv *priv;
+
+	priv = GET_PRIV (object);
+
+	switch (param_id) {
+	case PROP_CONFIG:
+		tracker_language_set_config (TRACKER_LANGUAGE (object),
+					     g_value_get_object (value));
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
+		break;
+	};
+}
 
 static gchar *
 language_get_stopword_filename (const gchar *language_code)
@@ -103,10 +251,13 @@ static void
 language_add_stopwords (TrackerLanguage *language,
 			const gchar     *filename)
 {
-	GMappedFile  *mapped_file;
-	GError       *error = NULL;
-	gchar        *content;
-	gchar       **words, **p;
+	TrackerLanguagePriv  *priv;
+	GMappedFile          *mapped_file;
+	GError               *error = NULL;
+	gchar                *content;
+	gchar               **words, **p;
+
+	priv = GET_PRIV (language);
 
 	mapped_file = g_mapped_file_new (filename, FALSE, &error);
 	if (error) {
@@ -123,7 +274,7 @@ language_add_stopwords (TrackerLanguage *language,
 
 	/* FIXME: Shouldn't clear the hash table first? */
 	for (p = words; *p; p++) {
-		g_hash_table_insert (language->stop_words,
+		g_hash_table_insert (priv->stop_words,
 				     g_strdup (g_strstrip (*p)),
 				     GINT_TO_POINTER (1));
 	}
@@ -135,10 +286,13 @@ static void
 language_set_stopword_list (TrackerLanguage *language,
 			    const gchar     *language_code)
 {
-	gchar       *stopword_filename;
-	const gchar *stem_language;
+	TrackerLanguagePriv *priv;
+	gchar               *stopword_filename;
+	const gchar         *stem_language;
 
-	g_return_if_fail (language != NULL);
+	g_return_if_fail (TRACKER_IS_LANGUAGE (language));
+
+	priv = GET_PRIV (language);
 
 	/* Set up stopwords list */
 	tracker_log ("Setting up stopword list for language code:'%s'", language_code);
@@ -157,19 +311,19 @@ language_set_stopword_list (TrackerLanguage *language,
 
 	stem_language = language_get_name_for_code (language_code);
 
-	g_mutex_lock (language->stemmer_mutex);
+	g_mutex_lock (priv->stemmer_mutex);
 
-	if (language->stemmer) {
-		sb_stemmer_delete (language->stemmer);
+	if (priv->stemmer) {
+		sb_stemmer_delete (priv->stemmer);
 	}
 
-	language->stemmer = sb_stemmer_new (stem_language, NULL);
-	if (!language->stemmer) {
+	priv->stemmer = sb_stemmer_new (stem_language, NULL);
+	if (!priv->stemmer) {
 		tracker_log ("No stemmer could be found for language:'%s'",
 			     stem_language);
 	}
 
-	g_mutex_unlock (language->stemmer_mutex);
+	g_mutex_unlock (priv->stemmer_mutex);
 }
 
 static void
@@ -188,55 +342,95 @@ language_notify_cb (TrackerConfig *config,
 TrackerLanguage *
 tracker_language_new (TrackerConfig *config)
 {
-	TrackerLanguage *language;
-	const gchar     *stem_language;
-
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 
-	language = g_new0 (TrackerLanguage, 1);
+	return g_object_new (TRACKER_TYPE_LANGUAGE,
+			     "config", config,
+			     NULL);
+}
 
-	language->stop_words = g_hash_table_new_full (g_str_hash,
-						      g_str_equal,
-						      g_free,
-						      NULL);
+TrackerConfig *
+tracker_language_get_config (TrackerLanguage *language)
+{
+	TrackerLanguagePriv *priv;
 
-	language->stemmer_mutex = g_mutex_new ();
+	g_return_val_if_fail (TRACKER_IS_LANGUAGE (language), NULL);
 
-	stem_language = language_get_name_for_code (NULL);
-	language->stemmer = sb_stemmer_new (stem_language, NULL);
+	priv = GET_PRIV (language);
 
-	language->config = g_object_ref (config);
+	return priv->config;
+}
 
-	g_signal_connect (language->config, "notify::language",
-			  G_CALLBACK (language_notify_cb),
-			  language);
+GHashTable *
+tracker_language_get_stop_words (TrackerLanguage *language)
+{
+	TrackerLanguagePriv *priv;
 
-	return language;
+	g_return_val_if_fail (TRACKER_IS_LANGUAGE (language), NULL);
+
+	priv = GET_PRIV (language);
+
+	return priv->stop_words;
 }
 
 void
-tracker_language_free (TrackerLanguage *language)
+tracker_language_set_config (TrackerLanguage *language,
+			     TrackerConfig   *config)
 {
-	if (!language) {
-		return;
+	TrackerLanguagePriv *priv;
+
+	g_return_if_fail (TRACKER_IS_LANGUAGE (language));
+	g_return_if_fail (TRACKER_IS_CONFIG (config));
+
+	priv = GET_PRIV (language);
+
+	if (config) {
+		g_object_ref (config);
 	}
 
-	g_signal_handlers_disconnect_by_func (language->config,
-					      language_notify_cb,
-					      language);
-	g_object_unref (language->config);
-
-	if (language->stemmer) {
-		g_mutex_lock (language->stemmer_mutex);
-		sb_stemmer_delete (language->stemmer);
-		g_mutex_unlock (language->stemmer_mutex);
+	if (priv->config) {
+		g_signal_handlers_disconnect_by_func (priv->config,
+						      G_CALLBACK (language_notify_cb),
+						      language);
+		g_object_unref (priv->config);
 	}
 
-	g_mutex_free (language->stemmer_mutex);
+	priv->config = config;
 
-	g_hash_table_destroy (language->stop_words);
+	if (priv->config) {
+		g_signal_connect (priv->config, "notify::language",
+				  G_CALLBACK (language_notify_cb),
+				  language);
+	}
 
-	g_free (language);
+	g_object_notify (G_OBJECT (language), "config");
+}
+
+gchar *
+tracker_language_stem_word (TrackerLanguage *language,
+			    const gchar     *word,
+			    gint             word_length)
+{
+	TrackerLanguagePriv *priv;
+	const gchar         *stem_word;
+
+	g_return_val_if_fail (TRACKER_IS_LANGUAGE (language), NULL);
+
+	priv = GET_PRIV (language);
+
+	if (!tracker_config_get_enable_stemmer (priv->config)) {
+		return NULL;
+	}
+
+	g_mutex_lock (priv->stemmer_mutex);
+	
+	stem_word = (const gchar*) sb_stemmer_stem (priv->stemmer,
+						    (guchar*) word,
+						    word_length);
+
+	g_mutex_unlock (priv->stemmer_mutex);
+
+	return g_strdup (stem_word);
 }
 
 gboolean
@@ -286,30 +480,4 @@ tracker_language_get_default_code (void)
 	}
 
 	return g_strdup ("en");
-}
-
-gchar *
-tracker_language_stem_word (TrackerLanguage *language,
-			    const gchar     *word,
-			    gint             word_length)
-{
-	const gchar *stem_word;
-
-	g_return_val_if_fail (language != NULL, NULL);
-
-	if (!tracker_config_get_enable_stemmer (language->config)) {
-		return NULL;
-	}
-
-	g_mutex_lock (language->stemmer_mutex);
-	if (!language->stemmer) {
-
-	}
-
-	stem_word = (const gchar *) sb_stemmer_stem (language->stemmer,
-						     (guchar*) word,
-						     word_length);
-	g_mutex_unlock (language->stemmer_mutex);
-
-	return g_strdup (stem_word);
 }

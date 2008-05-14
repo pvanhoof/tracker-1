@@ -111,7 +111,7 @@
 #define DEFAULT_PADDING				 2	  /* 1->8 */
 #define DEFAULT_THREAD_STACK_SIZE		 0	  /* 0 is the default for the platform */
 
-typedef struct _ConfigLanguages	  ConfigLanguages;
+/*typedef struct _ConfigLanguages	  ConfigLanguages;*/
 typedef struct _TrackerConfigPriv TrackerConfigPriv;
 
 struct _TrackerConfigPriv {

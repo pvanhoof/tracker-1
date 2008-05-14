@@ -92,10 +92,11 @@ tracker_dbus_search_class_init (TrackerDBusSearchClass *klass)
 							      G_PARAM_WRITABLE));
 	g_object_class_install_property (object_class,
 					 PROP_LANGUAGE,
-					 g_param_spec_pointer ("language",
-							       "Language",
-							       "Language",
-							       G_PARAM_WRITABLE));
+					 g_param_spec_object ("language",
+							      "Language",
+							      "Language",
+							      tracker_language_get_type (),
+							      G_PARAM_WRITABLE));
 	g_object_class_install_property (object_class,
 					 PROP_FILE_INDEX,
 					 g_param_spec_pointer ("file-index",
@@ -152,7 +153,7 @@ dbus_search_set_property (GObject      *object,
 		break;
 	case PROP_LANGUAGE:
 		tracker_dbus_search_set_language (TRACKER_DBUS_SEARCH (object),
-						  g_value_get_pointer (value));
+						  g_value_get_object (value));
 		break;
 	case PROP_FILE_INDEX:
 		tracker_dbus_search_set_file_index (TRACKER_DBUS_SEARCH (object),
@@ -230,6 +231,14 @@ tracker_dbus_search_set_language (TrackerDBusSearch *object,
 	g_return_if_fail (language != NULL);
 
 	priv = GET_PRIV (object);
+
+	if (language) {
+		g_object_ref (language);
+	}
+
+	if (priv->language) {
+		g_object_unref (priv->language);
+	}
 
 	priv->language = language;
 	

@@ -1044,7 +1044,9 @@ main (gint argc, gchar *argv[])
 	tracker_nfs_lock_term ();
 	tracker_log_term ();
 
-	tracker_language_free (tracker->language);
+	if (tracker->language) {
+		g_object_unref (tracker->language);
+	}
 
         if (tracker->config) {
                 g_object_unref (tracker->config);

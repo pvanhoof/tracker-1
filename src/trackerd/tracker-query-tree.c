@@ -138,10 +138,11 @@ tracker_query_tree_class_init (TrackerQueryTreeClass *klass)
                                                               G_PARAM_READWRITE));
 	g_object_class_install_property (object_class,
 					 PROP_LANGUAGE,
-					 g_param_spec_pointer ("language",
-							       "Language",
-							       "Language",
-							       G_PARAM_READWRITE));
+					 g_param_spec_object ("language",
+                                                              "Language",
+                                                              "Language",
+                                                              tracker_language_get_type (),
+                                                              G_PARAM_READWRITE));
 	g_object_class_install_property (object_class,
 					 PROP_SERVICES,
 					 g_param_spec_pointer ("services",
@@ -230,7 +231,7 @@ tracker_query_tree_set_property (GObject      *object,
 		break;
 	case PROP_LANGUAGE:
 		tracker_query_tree_set_language (TRACKER_QUERY_TREE (object),
-						 g_value_get_pointer (value));
+						 g_value_get_object (value));
 		break;
 	case PROP_SERVICES:
 		tracker_query_tree_set_services (TRACKER_QUERY_TREE (object),
@@ -262,7 +263,7 @@ tracker_query_tree_get_property (GObject      *object,
 		g_value_set_object (value, priv->config);
 		break;
 	case PROP_LANGUAGE:
-		g_value_set_pointer (value, priv->language);
+		g_value_set_object (value, priv->language);
 		break;
 	case PROP_SERVICES:
 		g_value_set_pointer (value, priv->services);
@@ -550,6 +551,15 @@ tracker_query_tree_set_language (TrackerQueryTree *tree,
 	g_return_if_fail (language != NULL);
 
 	priv = TRACKER_QUERY_TREE_GET_PRIVATE (tree);
+
+	if (language) {
+		g_object_ref (language);
+	}
+
+	if (priv->language) {
+		g_object_unref (priv->language);
+	}
+
 	priv->language = language;
 
 	g_object_notify (G_OBJECT (tree), "language");

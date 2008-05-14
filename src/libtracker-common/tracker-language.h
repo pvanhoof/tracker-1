@@ -22,20 +22,44 @@
 #ifndef __LIBTRACKER_COMMON_LANGUAGE_H__
 #define __LIBTRACKER_COMMON_LANGUAGE_H__
 
+#include <glib-object.h>
+
 #include "tracker-config.h"
 
 G_BEGIN_DECLS
 
-typedef struct _TrackerLanguage TrackerLanguage;
+#define TRACKER_TYPE_LANGUAGE         (tracker_language_get_type ())
+#define TRACKER_LANGUAGE(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_LANGUAGE, TrackerLanguage))
+#define TRACKER_LANGUAGE_CLASS(k)     (G_TYPE_CHECK_CLASS_CAST ((k), TRACKER_TYPE_LANGUAGE, TrackerLanguageClass))
+#define TRACKER_IS_LANGUAGE(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), TRACKER_TYPE_LANGUAGE))
+#define TRACKER_IS_LANGUAGE_CLASS(k)  (G_TYPE_CHECK_CLASS_TYPE ((k), TRACKER_TYPE_LANGUAGE))
+#define TRACKER_LANGUAGE_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o), TRACKER_TYPE_LANGUAGE, TrackerLanguageClass))
 
-TrackerLanguage *tracker_language_new              (TrackerConfig   *config);
-void             tracker_language_free             (TrackerLanguage *language);
+typedef struct _TrackerLanguage      TrackerLanguage;
+typedef struct _TrackerLanguageClass TrackerLanguageClass;
 
-gboolean         tracker_language_check_exists     (const gchar     *language_code);
-gchar *          tracker_language_get_default_code (void);
+struct _TrackerLanguage {
+	GObject      parent;
+};
+
+struct _TrackerLanguageClass {
+	GObjectClass parent_class;
+};
+
+GType            tracker_language_get_type         (void) G_GNUC_CONST;
+
+TrackerLanguage *tracker_language_new              (TrackerConfig   *language);
+TrackerConfig *  tracker_language_get_config       (TrackerLanguage *language);
+GHashTable *     tracker_language_get_stop_words   (TrackerLanguage *language);
+void             tracker_language_set_config       (TrackerLanguage *language,
+						    TrackerConfig   *config);
 gchar *          tracker_language_stem_word        (TrackerLanguage *language,
 						    const gchar     *word,
 						    gint             word_length);
+
+/* Utility functions */
+gboolean         tracker_language_check_exists     (const gchar     *language_code);
+gchar *          tracker_language_get_default_code (void);
 
 G_END_DECLS
 

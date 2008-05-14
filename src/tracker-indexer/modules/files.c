@@ -29,7 +29,7 @@
 #define METADATA_FILE_PATH           "File:Path"
 #define METADATA_FILE_NAME           "File:Name"
 #define METADATA_FILE_LINK           "File:Link"
-#define METADATA_FILE_MIME           "File:Mime"
+#define METADATA_FILE_MIMETYPE       "File:Mime"
 #define METADATA_FILE_SIZE           "File:Size"
 #define METADATA_FILE_MODIFIED       "File:Modified"
 #define METADATA_FILE_ACCESSED       "File:Accessed"
@@ -88,6 +88,8 @@ tracker_module_get_file_metadata (const gchar *file)
 	g_hash_table_insert (metadata, METADATA_FILE_PATH, g_path_get_dirname (file));
 	g_hash_table_insert (metadata, METADATA_FILE_NAME_DELIMITED,
 			     g_filename_to_utf8 (file, -1, NULL, NULL, NULL));
+	g_hash_table_insert (metadata, METADATA_FILE_MIMETYPE,
+			     tracker_file_get_mime_type (file));
 
 	if (S_ISLNK (st.st_mode)) {
 		gchar *link_path;
@@ -100,7 +102,6 @@ tracker_module_get_file_metadata (const gchar *file)
 
 	/* FIXME, Missing:
 	 *
-	 * File:Mime
 	 * File:Size
 	 * File:Modified
 	 * File:Accessed

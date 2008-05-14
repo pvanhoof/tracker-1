@@ -23,7 +23,9 @@ libtracker_indexer_files_la_SOURCES = files.c
 libtracker_indexer_files_la_LDFLAGS = $(module_flags)
 libtracker_indexer_files_la_LIBADD = 					\
 	$(GLIB2_LIBS)							\
-	$(top_builddir)/src/libtracker-db/libtracker-db.la
+	$(top_builddir)/src/libtracker-db/libtracker-db.la		\
+	$(top_builddir)/src/libtracker-common/libtracker-common.la	\
+	$(top_builddir)/src/xdgmime/libxdgmime.la
 
 libtracker_indexer_gaim_conversations_la_SOURCES = gaim-conversations.c
 libtracker_indexer_gaim_conversations_la_LDFLAGS = $(module_flags)

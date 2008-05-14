@@ -76,7 +76,7 @@ CREATE TABLE Events
 	EventType	Text
 );
 
-CREATE TABLE XesamLiveSearches
+CREATE TABLE LiveSearches
 (
 	ID		Integer primary key not null,
 	ServiceID	Integer not null,

@@ -31,6 +31,9 @@ struct _TrackerXesamSessionPriv {
 
 G_DEFINE_TYPE (TrackerXesamSession, tracker_xesam_session, G_TYPE_OBJECT)
 
+#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_XESAM_SESSION, struct _TrackerXesamSessionPriv))
+
+
 static void
 tracker_xesam_session_g_value_free (GValue *value)
 {
@@ -60,7 +63,7 @@ tracker_xesam_session_get_props (TrackerXesamSession *self)
 static void
 tracker_xesam_session_init (TrackerXesamSession *self)
 {
-	TrackerXesamSessionPriv *priv = self->priv;
+	TrackerXesamSessionPriv *priv;
 	GValue *value;
 	const gchar *hit_fields[2] = {"xesam:url", NULL};
 	const gchar *hit_fields_extended[1] = {NULL};
@@ -70,9 +73,13 @@ tracker_xesam_session_init (TrackerXesamSession *self)
 	const gchar *exts[1] = {NULL};
 	const gchar *dummy_onto[4] = {"dummy-onto","0.1","/usr/share/xesam/ontologies/dummy-onto-0.1", NULL};
 	GPtrArray *ontos = g_ptr_array_new ();
-	g_ptr_array_add (ontos, dummy_onto);
+	
+	priv = self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self,TRACKER_TYPE_XESAM_SESSION,struct _TrackerXesamSessionPriv);
 
+	g_ptr_array_add (ontos, dummy_onto);
+	
 	priv->session_id = NULL;
+
 	priv->searches = g_hash_table_new_full (g_str_hash, g_str_equal, 
 				(GDestroyNotify) g_free,
 				(GDestroyNotify) g_object_unref);
@@ -189,6 +196,8 @@ tracker_xesam_session_class_init (TrackerXesamSessionClass *klass)
 	GObjectClass *object_class;
 	object_class = G_OBJECT_CLASS (klass);
 	object_class->finalize = tracker_xesam_session_finalize;
+
+	g_type_class_add_private( klass, sizeof(struct _TrackerXesamSessionPriv) );
 }
 
 /**
@@ -296,7 +305,7 @@ tracker_xesam_session_set_property (TrackerXesamSession  *self,
 		property = g_hash_table_lookup (priv->props, prop);
 
 	if (!property) {
-		g_set_error (error, TRACKER_XESAM_ERROR, 
+		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
 				TRACKER_XESAM_ERROR_PROPERTY_NOT_SUPPORTED,
 				"Property not supported");
 		*new_val = NULL;
@@ -332,7 +341,7 @@ tracker_xesam_session_get_property (TrackerXesamSession  *self,
 	GValue *property = g_hash_table_lookup (priv->props, prop);
 
 	if (!property) {
-		g_set_error (error, TRACKER_XESAM_ERROR, 
+		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
 				TRACKER_XESAM_ERROR_PROPERTY_NOT_SUPPORTED,
 				"Property not supported");
 		*value = NULL;
@@ -368,22 +377,22 @@ tracker_xesam_session_create_search (TrackerXesamSession  *self,
 				     gchar               **search_id, 
 				     GError              **error) 
 {
-	TrackerXesamLiveSearch *search;
+	TrackerXesamLiveSearch  *search;
 	TrackerXesamSessionPriv *priv = self->priv;
 
-	// ottela!
-	// todo: parse the query and pass the parsed query or throw an error
-
 	search = tracker_xesam_live_search_new (query_xml);
+	tracker_xesam_live_search_set_session (search, self);
 	tracker_xesam_live_search_set_id (search, tracker_xesam_generate_unique_key ());
+	if (search_id) 
+		*search_id = g_strdup (tracker_xesam_live_search_get_id (search));
+
 	tracker_xesam_live_search_set_session (search, self);
 
 	g_hash_table_insert (priv->searches, 
 		g_strdup (tracker_xesam_live_search_get_id (search)),
 		g_object_ref (search));
 
-	if (search_id) 
-		*search_id = g_strdup (tracker_xesam_live_search_get_id (search));
+	tracker_xesam_live_search_parse_query (search, error);
 
 	return search;
 }

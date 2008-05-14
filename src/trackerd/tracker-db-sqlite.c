@@ -438,7 +438,7 @@ load_service_file (TrackerDBInterface *iface, const gchar *filename)
 	gchar                  **groups, **keys;
 	gchar                  **group, **key;
 	TrackerService          *service;
-	gint                     id;
+	gint                    id;
 
 	service_file = tracker_db_manager_get_service_file (filename);
 
@@ -1123,7 +1123,19 @@ tracker_db_connect (void)
 		load_service_description_file (db_con->db, "email.metadata");
 		load_service_description_file (db_con->db, "image.metadata");	
 		load_service_description_file (db_con->db, "video.metadata");	
-	
+
+		load_sql_file (db_con->db, "sqlite-xesam.sql");
+
+		tracker_db_load_xesam_service_file (db_con, "xesam.metadata");
+		tracker_db_load_xesam_service_file (db_con, "xesam-convenience.metadata");
+		tracker_db_load_xesam_service_file (db_con, "xesam-virtual.metadata");
+		tracker_db_load_xesam_service_file (db_con, "xesam.service");
+		tracker_db_load_xesam_service_file (db_con, "xesam-convenience.service");
+		tracker_db_load_xesam_service_file (db_con, "xesam-service.smapping");
+		tracker_db_load_xesam_service_file (db_con, "xesam-metadata.mmapping");
+
+		tracker_db_create_xesam_lookup(db_con);
+
 		tracker_db_exec_no_reply (db_con->db, "ANALYZE");
 	}
 
@@ -1134,6 +1146,9 @@ tracker_db_connect (void)
 
 	tracker_db_attach_db (db_con, TRACKER_DB_COMMON);
 	tracker_db_attach_db (db_con, TRACKER_DB_CACHE);
+
+	/* this is not needed, it's the root db
+	tracker_db_attach_db (db_con, TRACKER_DB_FILE_META); */
 
 	db_con->cache = db_con;
 	db_con->common = db_con;
@@ -1389,6 +1404,24 @@ tracker_db_exec_no_reply (TrackerDBInterface *iface, const char *query, ...)
 	return TRUE;
 }
 
+
+TrackerDBResultSet *
+tracker_db_exec (TrackerDBInterface *iface, const char *query, ...)
+{
+	va_list args;
+	TrackerDBResultSet *result_set;
+
+	tracker_nfs_lock_obtain ();
+
+	va_start (args, query);
+	result_set = tracker_db_interface_execute_vquery (iface, NULL, query, args);
+	va_end (args);
+
+	tracker_nfs_lock_release ();
+
+	return result_set;
+}
+
 TrackerDBResultSet *
 tracker_exec_proc (DBConnection *db_con, const char *procedure, ...)
 {
@@ -1456,6 +1489,18 @@ tracker_create_common_db (void)
 	load_service_description_file (db_con->db, "video.metadata");	
 
 	load_service_description_file (db_con->db, "default.service");
+
+	load_sql_file (db_con->db, "sqlite-xesam.sql");
+
+	tracker_db_load_xesam_service_file (db_con, "xesam.metadata");
+	tracker_db_load_xesam_service_file (db_con, "xesam-convenience.metadata");
+	tracker_db_load_xesam_service_file (db_con, "xesam-virtual.metadata");
+	tracker_db_load_xesam_service_file (db_con, "xesam.service");
+	tracker_db_load_xesam_service_file (db_con, "xesam-convenience.service");
+	tracker_db_load_xesam_service_file (db_con, "xesam-service.smapping");
+	tracker_db_load_xesam_service_file (db_con, "xesam-metadata.mmapping");
+
+	tracker_db_create_xesam_lookup(db_con);	
 
 	tracker_db_exec_no_reply (db_con->db, "ANALYZE");
 	
@@ -2288,6 +2333,28 @@ tracker_get_related_metadata_names (DBConnection *db_con, const char *name)
 
 	return NULL;
 }
+
+
+TrackerDBResultSet *
+tracker_get_xesam_metadata_names (DBConnection *db_con, const char *name)
+{
+	TrackerDBResultSet  *result_set;
+
+	result_set = tracker_exec_proc (db_con, "GetXesamMetaDataLookups", name, NULL);
+
+	return result_set;
+}
+
+TrackerDBResultSet *
+tracker_get_xesam_service_names (DBConnection *db_con, const char *name)
+{
+	TrackerDBResultSet  *result_set;
+
+	result_set = tracker_exec_proc (db_con, "GetXesamServiceLookups", name, NULL);
+
+	return result_set;
+}
+
 
 char *
 tracker_get_metadata_table (DataTypes type)
@@ -3197,108 +3264,123 @@ tracker_db_delete_metadata (DBConnection *db_con, const char *service, const cha
 
 }
 
-GStaticRecMutex events_table_lock = G_STATIC_REC_MUTEX_INIT;
-
 TrackerDBResultSet* 
 tracker_db_get_live_search_hit_count (DBConnection *db_con, const gchar *search_id)
 {
-	TrackerDBResultSet *result;
 	tracker_debug ("GetLiveSearchHitCount");
-	result = tracker_exec_proc (db_con->cache, "GetLiveSearchHitCount", search_id, NULL);
-	return result;
+
+	/* SELECT count(*) 
+	 * FROM LiveSearches 
+	 * WHERE SearchID = ? */
+
+	return tracker_exec_proc (db_con->cache, "GetLiveSearchHitCount", search_id, NULL);
 }
 
 
 TrackerDBResultSet* 
-tracker_db_get_live_search_modified_ids (DBConnection *db_con, const gchar *search_id)
+tracker_db_get_live_search_deleted_ids (DBConnection *db_con, const gchar *search_id)
 {
-	TrackerDBResultSet *result;
+	tracker_debug ("GetLiveSearchDeletedIDs");
 
-	/* This happens in the GMainLoop */
-	g_static_rec_mutex_lock (&events_table_lock);
+	/* SELECT E.ServiceID 
+	 * FROM Events as E, LiveSearches as X 
+	 * WHERE E.ServiceID = X.ServiceID 
+	 * AND X.SearchID = ? 
+	 * AND E.EventType IS 'Delete' */
 
-	/* Uses the Events table */
-	tracker_debug ("GetLiveSearchModifiedIDs");
+	return tracker_exec_proc (db_con->cache, "GetLiveSearchDeletedIDs", search_id, NULL);
+}
 
-	result = tracker_exec_proc (db_con->cache, "GetLiveSearchModifiedIDs", search_id, NULL);
+void
+tracker_db_stop_live_search (DBConnection *db_con, const gchar *search_id)
+{
+	tracker_debug ("LiveSearchStopSearch");
 
-	g_static_rec_mutex_unlock (&events_table_lock);
+	/* DELETE 
+	 * FROM LiveSearches as X 
+	 * WHERE E.SearchID = ? */
 
-	return result;
+	tracker_exec_proc_no_reply (db_con->cache->db, "LiveSearchStopSearch", search_id, NULL);
 }
 
 
-TrackerDBResultSet* 
-tracker_db_get_live_search_new_ids (DBConnection *db_con, const gchar *search_id, const gchar *columns, const gchar *tables, const gchar *query)
+void
+tracker_db_start_live_search (DBConnection *db_con, const gchar *from_query, const gchar *where_query, const gchar *search_id)
 {
-	TrackerDBResultSet *result;
+	/* INSERT
+	 * INTO LiveSearches
+	 * SELECT ID, SEARCH_ID FROM_QUERY WHERE_QUERY */
 
-	/* This happens in the GMainLoop */
-	g_static_rec_mutex_lock (&events_table_lock);
+	tracker_db_exec_no_reply (db_con->db,  NULL,
+		"INSERT INTO LiveSearches SELECT ID, '%s' %s %s",
+			search_id, from_query, where_query);
+}
 
+TrackerDBResultSet* 
+tracker_db_get_live_search_new_ids (DBConnection *db_con, const gchar *search_id, const gchar *columns, const gchar *from_query, const gchar *where_query)
+{
 	// todo: this is a query for ottela to review
 
-	// Contract, in @result:
-	// ServiceID is #1
-	// EventType is #2
+	/* Contract, in @result:
+	 * ServiceID is #1
+	 * EventType is #2 */
 
-	/* Uses the Events table */
-	gchar *m_query = g_strdup_printf (
-			"SELECT E.ServiceID, E.EventType%s %s "
-			"FROM XesamLiveSearches as X, Events as E%s %s "
-			"X.ServiceID = E.ServiceID "
-			"AND X.SearchID = ? "
-			"AND X.EventType IS 'Create' OR X.EventType IS 'Update' "
-			"%s%s%s", 
-			columns?",":"", columns, 
-			tables?",":"", tables, 
-			query?"AND (":"", query, query?")":"");
+	/**
+	 * SELECT E.ServiceID, E.EventType, COLUMNS
+	 * FROM_QUERY XesamLiveSearches as X, Events as E
+	 * WHERE_QUERY"
+	 * AND X.ServiceID = E.ServiceID
+	 * AND X.SearchID = SEARCH_ID
+	 * AND (X.EventType IS 'Create' 
+	 *      OR X.EventType IS 'Update')
+	 **/
 
-	tracker_debug ("LiveSearchUpdateQuery: %s", m_query);
+	tracker_debug ("LiveSearchUpdateQuery");
 
-	result = tracker_db_interface_execute_query (db_con->common->db, NULL, m_query);
+	return tracker_db_exec (db_con->db,
+	/* COLUMNS */      "SELECT E.ServiceID, E.EventType%s%s "
+	/* FROM_QUERY */   "%s%s LiveSearches as X, Events as E "
+	/* WHERE_QUERY */  "%s"
+	/* AND or space */ "%sX.ServiceID = E.ServiceID "
+			   "AND X.SearchID = '%s' " /* search_id arg */
+			   "AND (X.EventType IS 'Create' "
+			   "OR X.EventType IS 'Update') ",
 
-	g_static_rec_mutex_unlock (&events_table_lock);
+			   columns?", ":"", 
+			   columns?columns:"", 
+			   from_query?from_query:"FROM",
+			   from_query?",":"",
+			   where_query?where_query:"WHERE",
+			   where_query?"AND":" ", 
+			   search_id);
+}
 
-	g_free (m_query);
+TrackerDBResultSet *
+tracker_db_get_live_search_get_hit_data (DBConnection *db_con, const gchar *search_id)
+{
+	tracker_debug ("tracker_db_get_live_search_get_hit_data");
 
-	return result;
+	return tracker_db_exec (db_con->db, 
+				"SELECT * FROM LiveSearches as X "
+				"WHERE X.SearchID = '%s'", 
+				search_id);
 }
 
 TrackerDBResultSet* 
 tracker_db_get_events (DBConnection *db_con)
 {
-	TrackerDBResultSet *result;
-
-	/* This happens in the GMainLoop */
-	g_static_rec_mutex_lock (&events_table_lock);
-	/* Uses the Events table */
 	tracker_debug ("SetEventsBeingHandled");
 	tracker_exec_proc_no_reply (db_con->cache->db, "SetEventsBeingHandled", NULL);
 	tracker_debug ("GetEvents");
-	result = tracker_exec_proc (db_con->cache, "GetEvents", NULL);
-	g_static_rec_mutex_unlock (&events_table_lock);
-	return result;
+	return tracker_exec_proc (db_con->cache, "GetEvents", NULL);
 }
 
 
 void 
 tracker_db_delete_handled_events (DBConnection *db_con, TrackerDBResultSet *events)
 {
-	TrackerDBResultSet *result_set;
-
-	/* This happens in the GMainLoop */
-	g_static_rec_mutex_lock (&events_table_lock);
-
-	/* Uses the Events table */
 	tracker_debug ("DeleteHandledEvents");
-
-	result_set = tracker_exec_proc (db_con->cache, "DeleteHandledEvents", NULL);
-	if (result_set)
-		g_object_unref (result_set);
-
-	g_static_rec_mutex_unlock (&events_table_lock);
-
+	tracker_exec_proc_no_reply (db_con->cache->db, "DeleteHandledEvents", NULL);
 }
 
 static guint32
@@ -3309,14 +3391,10 @@ tracker_db_create_event (DBConnection *db_con, const gchar *service_id_str, cons
 	int	   i;
 	guint32	   id = 0;
 
-	/* This happens in the indexer's thread */
-	g_static_rec_mutex_lock (&events_table_lock);
-
 	result_set = tracker_exec_proc (db_con->common, "GetNewEventID", NULL);
 
 	if (!result_set) {
 		tracker_error ("ERROR: could not create event - GetNewEventID failed");
-		g_static_rec_mutex_unlock (&events_table_lock);
 		return 0;
 	}
 
@@ -3342,8 +3420,6 @@ tracker_db_create_event (DBConnection *db_con, const gchar *service_id_str, cons
 
 	g_free (eid);
 
-	g_static_rec_mutex_unlock (&events_table_lock);
-
 	return id;
 }
 
@@ -3360,11 +3436,8 @@ tracker_db_create_service (DBConnection *db_con, const char *service, TrackerDBF
 	int	   service_type_id;
 	char	   *str_service_type_id, *path, *name;
 
-	g_static_rec_mutex_lock (&events_table_lock);
-
 	if (!info || !info->uri || !info->uri[0] || !service || !db_con) {
 		tracker_error ("ERROR: cannot create service");
-		g_static_rec_mutex_unlock (&events_table_lock);
 		return 0;
 
 	}
@@ -3384,7 +3457,6 @@ tracker_db_create_service (DBConnection *db_con, const char *service, TrackerDBF
 
 	if (!result_set) {
 		tracker_error ("ERROR: could not create service - GetNewID failed");
-		g_static_rec_mutex_unlock (&events_table_lock);
 		return 0;
 	}
 
@@ -3488,8 +3560,6 @@ tracker_db_create_service (DBConnection *db_con, const char *service, TrackerDBF
 	g_free (str_filesize);
 	g_free (str_mtime);
 	g_free (str_offset);
-
-	g_static_rec_mutex_unlock (&events_table_lock);
 
 	return id;
 }
@@ -4940,6 +5010,362 @@ tracker_db_metadata_is_child (DBConnection *db_con, const char *child, const cha
 	return FALSE;
 
 }
+
+// FIXME Do this in a non-retarded way
+
+gboolean
+get_service_mapping(DBConnection *db_con, const char *type, GList **list)
+{
+	TrackerDBResultSet *result_set;
+	gboolean valid = TRUE;
+
+	result_set = tracker_exec_proc (db_con, "GetXesamServiceMappings", type, NULL);
+
+	if (result_set) {
+		while (valid) {
+			gchar *st;
+			
+			tracker_db_result_set_get (result_set, 0, &st, -1);
+			if (strcmp(st, " ") != 0) {			
+				*list = g_list_append (*list,g_strdup (st));
+			}
+			
+			valid = tracker_db_result_set_iter_next (result_set);
+			g_free (st);
+		}
+		
+		g_object_unref (result_set);
+	}
+
+	result_set = tracker_exec_proc (db_con, "GetXesamServiceChildren", type, NULL);
+	valid = TRUE;
+
+	if (result_set) {
+		while (valid) {
+			gchar *st;
+			
+			tracker_db_result_set_get (result_set, 0, &st, -1);
+			get_service_mapping(db_con, st ,list);
+			
+			valid = tracker_db_result_set_iter_next (result_set);
+			g_free (st);
+		}
+		
+		g_object_unref (result_set);
+	}
+
+	return TRUE;
+}
+
+gboolean
+get_metadata_mapping(DBConnection *db_con, const char *type, GList **list)
+{
+	TrackerDBResultSet *result_set;
+	gboolean valid = TRUE;
+
+	result_set = tracker_exec_proc (db_con, "GetXesamMetaDataMappings", type, NULL);
+
+	if (result_set) {
+		while (valid) {
+			gchar *st;
+			
+			tracker_db_result_set_get (result_set, 0, &st, -1);
+			if (strcmp(st, " ") != 0) {			
+				*list = g_list_append (*list,g_strdup (st));
+			}
+			
+			valid = tracker_db_result_set_iter_next (result_set);
+			g_free (st);
+		}
+
+		g_object_unref (result_set);
+	}
+
+	result_set = tracker_exec_proc (db_con, "GetXesamMetaDataChildren", type, NULL);
+	valid = TRUE;
+
+	if (result_set) {
+		while (valid) {
+			gchar *st;
+			
+			tracker_db_result_set_get (result_set, 0, &st, -1);
+			get_service_mapping(db_con, st ,list);
+			
+			valid = tracker_db_result_set_iter_next (result_set);
+			g_free (st);
+		}
+		
+		g_object_unref (result_set);
+	}
+
+	return TRUE;
+}
+
+
+gboolean
+tracker_db_create_xesam_lookup (DBConnection *db_con)
+{
+	TrackerDBResultSet   *result_set;
+	gboolean              valid = TRUE;
+
+	result_set = tracker_exec_proc (db_con, "GetXesamServiceTypes", NULL);
+	
+	if (result_set) {
+		while (valid) {
+				gchar *st;
+				GList *list = NULL;
+				GList *iter = NULL;
+				
+				tracker_db_result_set_get (result_set, 0, &st, -1);
+				get_service_mapping(db_con, st, &list);
+				
+				iter = g_list_first(list);
+				while (iter) {
+					tracker_exec_proc (db_con, "InsertXesamServiceLookup", st, iter->data, NULL);
+					g_free(iter->data);
+					
+					iter = g_list_next (iter);
+				}			
+				
+				g_list_free (list);
+				
+				valid = tracker_db_result_set_iter_next (result_set);
+				g_free (st);
+		}
+	}
+
+	g_object_unref (result_set);	
+	valid = TRUE;
+
+	result_set = tracker_exec_proc (db_con, "GetXesamMetaDataTypes", NULL);
+
+	if (result_set) {
+		while (valid) {
+				gchar *st;
+				GList *list = NULL;
+				GList *iter = NULL;	
+
+				tracker_db_result_set_get (result_set, 0, &st, -1);
+				get_metadata_mapping(db_con, st, &list);
+				
+				iter = g_list_first(list);
+				while (iter) {
+					tracker_exec_proc (db_con, "InsertXesamMetaDataLookup", st, iter->data, NULL);
+					g_free(iter->data);
+					
+					iter = g_list_next (iter);
+				}			
+				
+				g_list_free (list);
+				
+				valid = tracker_db_result_set_iter_next (result_set);
+				g_free (st);
+		}
+	}
+	
+	g_object_unref (result_set);	
+
+	return TRUE;
+}
+
+gboolean
+tracker_db_load_xesam_service_file (DBConnection *db_con, const char *filename)
+{
+	GKeyFile 		*key_file = NULL;
+	const char * const 	*locale_array;
+	char 			*service_file, *sql;
+	gboolean		is_metadata = FALSE, is_service = FALSE, is_metadata_mapping = FALSE, is_service_mapping = FALSE;
+	int			id;
+
+	char *DataTypeArray[11] = {"string", "float", "integer", "boolean", "dateTime", "List of strings", "List of Uris", "List of Urls", NULL};
+
+	service_file = tracker_db_manager_get_service_file (filename);
+
+	locale_array = g_get_language_names ();
+
+	key_file = g_key_file_new ();
+
+	if (g_key_file_load_from_file (key_file, service_file, G_KEY_FILE_NONE, NULL)) {
+		
+		if (g_str_has_suffix (filename, ".metadata")) {
+			is_metadata = TRUE;
+		} else if (g_str_has_suffix (filename, ".service")) {
+			is_service = TRUE;
+		} else if (g_str_has_suffix (filename, ".mmapping")) {
+			is_metadata_mapping = TRUE;
+		} else if (g_str_has_suffix (filename, ".smapping")) {
+			is_service_mapping = TRUE;
+		} else {
+			g_key_file_free (key_file);
+			g_free (service_file);		
+			return FALSE;
+		} 
+
+
+		char **groups = g_key_file_get_groups (key_file, NULL);
+		char **array;
+
+		for (array = groups; *array; array++) {
+                        if (is_metadata) {
+
+		                tracker_exec_proc (db_con, "InsertXesamMetadataType", *array, NULL);
+				id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (db_con->db));
+
+
+		        } else if (is_service) {
+				
+		                tracker_exec_proc (db_con, "InsertXesamServiceType", *array, NULL);
+				id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (db_con->db));
+
+			} else {
+				/* Nothing required */
+			}
+
+			/* get inserted ID */
+			
+			char *str_id = tracker_uint_to_string (id);
+
+			char **keys = g_key_file_get_keys (key_file, *array, NULL, NULL);
+			char **array2;
+	
+			for (array2 = keys; *array2; array2++) {
+	
+				char *value = g_key_file_get_locale_string (key_file, *array, *array2, locale_array[0], NULL);
+
+				if (value) {
+
+					if (strcasecmp (value, "true") == 0) {
+
+						g_free (value);
+						value = g_strdup ("1");
+
+					} else if  (strcasecmp (value, "false") == 0) {
+
+						g_free (value);
+						value = g_strdup ("0");
+					}
+
+					if (is_metadata) {
+						
+						if (strcasecmp (*array2, "Parents") == 0) {
+							
+							char **parents, **parents_p ;
+
+							parents = g_strsplit_set (value, ";", -1);
+							
+							if (parents) {
+								for (parents_p = parents; *parents_p; parents_p++) {
+									sql = g_strdup_printf ("INSERT INTO XesamMetadataChildren (Parent, Child) VALUES ('%s', '%s')", *parents_p, *array);
+									tracker_db_exec_no_reply (db_con->db, sql);
+									
+									g_free(sql);
+								}
+							}
+
+						} else if (strcasecmp (*array2, "ValueType") == 0) {
+							
+							int data_id =  tracker_string_in_string_list (value, DataTypeArray);
+							
+							if (data_id != -1) {
+								sql = g_strdup_printf ("update XesamMetadataTypes set DataTypeID = %d where ID = %s", data_id, str_id);
+								tracker_db_exec_no_reply (db_con->db, sql);
+								g_free (sql);
+								
+							}
+							
+							
+						} else {
+							char *esc_value = tracker_escape_string (value);
+							
+							sql = g_strdup_printf ("update XesamMetadataTypes set  %s = '%s' where ID = %s", *array2, esc_value, str_id);
+								
+							tracker_db_exec_no_reply (db_con->db, sql);
+							g_free (sql);
+							g_free (esc_value);
+						}
+	
+					} else 	if (is_service) {
+						if (strcasecmp (*array2, "Parents") == 0) {
+							
+							char **parents, **parents_p ;
+
+							parents = g_strsplit_set (value, ";", -1);
+							
+							if (parents) {
+								for (parents_p = parents; *parents_p; parents_p++) {
+									sql = g_strdup_printf ("INSERT INTO XesamServiceChildren (Parent, Child) VALUES ('%s', '%s')", *parents_p, *array);
+									tracker_db_exec_no_reply (db_con->db, sql);
+									
+									g_free(sql);
+								}
+							}
+						} else {
+							char *esc_value = tracker_escape_string (value);
+							sql = g_strdup_printf ("update XesamServiceTypes set  %s = '%s' where typeID = %s", *array2, esc_value, str_id);
+							tracker_db_exec_no_reply (db_con->db, sql);
+							g_free (sql);
+							g_free (esc_value);
+						}
+	
+					} else 	if (is_metadata_mapping) {
+						char **mappings, **mappings_p ;
+						
+						mappings = g_strsplit_set (value, ";", -1);
+						
+						if (mappings) {
+							for (mappings_p = mappings; *mappings_p; mappings_p++) {
+								char *esc_value = tracker_escape_string (*mappings_p);
+								tracker_exec_proc (db_con, "InsertXesamMetaDataMapping", *array, esc_value, NULL);
+								g_free (esc_value);
+							}
+						}
+							
+					} else {
+						char **mappings, **mappings_p ;
+						
+						mappings = g_strsplit_set (value, ";", -1);
+						
+						if (mappings) {
+							for (mappings_p = mappings; *mappings_p; mappings_p++) {
+								char *esc_value = tracker_escape_string (*mappings_p);
+								tracker_exec_proc (db_con, "InsertXesamServiceMapping", *array, esc_value, NULL);
+								g_free (esc_value);
+							}
+						}
+						
+					}
+					
+					g_free (value);
+					
+				}
+			}
+
+			if (keys) {
+				g_strfreev (keys);
+			}
+
+			g_free (str_id);
+
+		}
+
+
+		if (groups) {
+			g_strfreev (groups);
+		}
+			
+
+		g_key_file_free (key_file);
+
+	} else {
+		g_key_file_free (key_file);
+		return FALSE;
+	}
+		       
+	g_free (service_file);		
+
+	return TRUE;
+}
+
 
 FieldData *
 tracker_db_get_metadata_field (DBConnection *db_con, const char *service, const char *field_name, int field_count, gboolean is_select, gboolean is_condition)

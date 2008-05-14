@@ -8,6 +8,13 @@ config_DATA =   application.metadata \
 		file.metadata \
 		image.metadata \
 		video.metadata \
-		default.service
+		default.service \
+		xesam-convenience.metadata \
+		xesam-convenience.service \
+		xesam.metadata \
+		xesam.service \
+		xesam-virtual.metadata \
+		xesam-service.smapping \
+		xesam-metadata.mmapping
 
 EXTRA_DIST = $(config_DATA)

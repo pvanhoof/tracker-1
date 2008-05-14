@@ -29,8 +29,9 @@ DeleteHandledEvents DELETE FROM Events WHERE BeingHandled = 1;
 GetEvents SELECT ID, ServiceID, EventType FROM Events WHERE BeingHandled = 1;
 SetEventsBeingHandled UPDATE Events SET BeingHandled = 1;
 
-GetLiveSearchModifiedIDs SELECT E.ServiceID FROM Events as E, LiveSearches as X WHERE E.ServiceID = X.ServiceID AND X.SearchID = ? AND E.EventType IS NOT 'Create';
+GetLiveSearchDeletedIDs SELECT E.ServiceID FROM Events as E, LiveSearches as X WHERE E.ServiceID = X.ServiceID AND X.SearchID = ? AND E.EventType IS 'Delete';
 GetLiveSearchHitCount SELECT count(*) FROM LiveSearches WHERE SearchID = ?;
+LiveSearchStopSearch DELETE FROM LiveSearches as X WHERE E.SearchID = ?
 
 GetNewEventID SELECT OptionValue FROM Options WHERE OptionKey = 'EventSequence';
 UpdateNewEventID UPDATE Options set OptionValue = ? WHERE OptionKey = 'EventSequence';
@@ -190,3 +191,19 @@ InsertHitDetails Insert into HitIndex (Word, HitCount, HitArraySize, HitArray) V
 UpdateHitDetails Update HitIndex set HitCount = ?, HitArraySize = ? where ROWID = ?;
 ResizeHitDetails Update HitIndex set HitCount = ?, HitArraySize = ?, HitArray = Zeroblob(?) where ROWID = ?;
 
+InsertXesamMetadataType INSERT INTO XesamMetaDataTypes (MetaName) Values (?);
+InsertXesamServiceType INSERT INTO XesamServiceTypes (TypeName) Values (?);
+InsertXesamMetaDataMapping INSERT INTO XesamMetaDataMapping (XesamMetaName, MetaName) Values (?, ?);
+InsertXesamServiceMapping INSERT INTO XesamServiceMapping (XesamTypeName, TypeName) Values (?, ?);
+InsertXesamServiceLookup REPLACE INTO XesamServiceLookup (XesamTypeName, TypeName) Values (?, ?);
+InsertXesamMetaDataLookup REPLACE INTO XesamMetaDataLookup (XesamMetaName, MetaName) Values (?, ?);
+
+GetXesamServiceTypes SELECT TypeName, Parents FROM XesamServiceTypes;
+GetXesamServiceChildren SELECT Child FROM XesamServiceChildren WHERE Parent = ?;
+GetXesamServiceMappings SELECT TypeName FROM XesamServiceMapping WHERE XesamTypeName = ?;
+GetXesamServiceLookups SELECT DISTINCT TypeName FROM XesamServiceLookup WHERE XesamTypeName = ?;
+
+GetXesamMetaDataTypes SELECT MetaName, Parents FROM XesamMetaDataTypes;
+GetXesamMetaDataChildren SELECT Child FROM XesamMetaDataChildren WHERE Parent = ?;
+GetXesamMetaDataMappings SELECT MetaName FROM XesamMetaDataMapping WHERE XesamMetaName = ?;
+GetXesamMetaDataLookups SELECT DISTINCT MetaName FROM XesamMetaDataLookup WHERE XesamMetaName = ?;

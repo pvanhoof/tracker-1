@@ -124,6 +124,9 @@ TrackerDBResultSet *tracker_db_exec_proc                       (TrackerDBInterfa
 gboolean            tracker_db_exec_no_reply                   (TrackerDBInterface   *iface,
                                                                 const gchar          *query,
                                                                 ...);
+TrackerDBResultSet *tracker_db_exec                            (TrackerDBInterface *iface, 
+                                                                const char *query,
+                                                                ...);
 gboolean            tracker_db_is_in_transaction               (DBConnection   *db_con);
 
 gchar *             tracker_db_get_option_string               (DBConnection   *db_con,
@@ -359,7 +362,7 @@ FieldData *         tracker_db_get_metadata_field              (DBConnection   *
 TrackerDBResultSet *tracker_db_get_events                      (DBConnection *db_con);
 void                tracker_db_delete_handled_events           (DBConnection   *db_con, 
                                                                 TrackerDBResultSet *events);
-TrackerDBResultSet *tracker_db_get_live_search_modified_ids    (DBConnection *db_con, 
+TrackerDBResultSet *tracker_db_get_live_search_deleted_ids     (DBConnection *db_con, 
                                                                 const gchar *search_id);
 TrackerDBResultSet *tracker_db_get_live_search_new_ids         (DBConnection *db_con, 
                                                                 const gchar *search_id,
@@ -369,6 +372,23 @@ TrackerDBResultSet *tracker_db_get_live_search_new_ids         (DBConnection *db
 TrackerDBResultSet *tracker_db_get_live_search_hit_count       (DBConnection *db_con, 
                                                                 const gchar *search_id);
 
+
+TrackerDBResultSet *tracker_get_xesam_metadata_names           (DBConnection *db_con, 
+                                                                const char *name);
+TrackerDBResultSet *tracker_get_xesam_service_names           (DBConnection *db_con, 
+                                                               const char *name);
+
+gboolean            tracker_db_load_xesam_service_file 	       (DBConnection *db_con, 
+                                                                const char *filename);
+gboolean            tracker_db_create_xesam_lookup             (DBConnection *db_con);
+void                tracker_db_stop_live_search                (DBConnection *db_con, 
+                                                                const gchar *search_id);
+void                tracker_db_start_live_search               (DBConnection *db_con, 
+                                                                const gchar *from_query, 
+                                                                const gchar *where_query,
+                                                                const gchar *search_id);
+TrackerDBResultSet *tracker_db_get_live_search_get_hit_data    (DBConnection *db_con, 
+                                                                const gchar *search_id);
 
 G_END_DECLS
 

@@ -29,8 +29,7 @@
 
 G_BEGIN_DECLS
 
-#define TRACKER_XESAM_ERROR_DOMAIN "TrackerDBus"
-#define TRACKER_XESAM_ERROR        tracker_dbus_error_quark()
+#define TRACKER_XESAM_ERROR_DOMAIN        tracker_xesam_error_quark()
 
 typedef enum {
 	TRACKER_XESAM_ERROR_SEARCH_ID_NOT_REGISTERED = 1,
@@ -38,6 +37,7 @@ typedef enum {
 	TRACKER_XESAM_ERROR_SEARCH_CLOSED = 3,
 	TRACKER_XESAM_ERROR_SEARCH_NOT_ACTIVE = 4,
 	TRACKER_XESAM_ERROR_PROPERTY_NOT_SUPPORTED = 5,
+	TRACKER_XESAM_ERROR_PARSING_FAILED = 6,
 } TrackerXesamError;
 
 GQuark                  tracker_xesam_error_quark            (void);

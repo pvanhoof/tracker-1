@@ -36,7 +36,10 @@ static gboolean    live_search_handler_running = FALSE;
 GQuark
 tracker_xesam_error_quark (void)
 {
-	return g_quark_from_static_string (TRACKER_XESAM_ERROR_DOMAIN);
+	static GQuark quark = 0;
+	if (quark == 0)
+		quark = g_quark_from_static_string ("TrackerXesam");
+	return quark;
 }
 
 void 
@@ -85,34 +88,25 @@ tracker_xesam_create_session (TrackerDBusXesam  *dbus_proxy,
 void 
 tracker_xesam_close_session (const gchar *session_id, GError **error)
 {
-	gpointer session;
-
-	session = g_hash_table_lookup (xesam_sessions, session_id);
-	if (!session) {
-		g_set_error (error, 
-			     TRACKER_XESAM_ERROR, 
-			     TRACKER_XESAM_ERROR_SESSION_ID_NOT_REGISTERED,
-			     "Session ID is not registered");
-	} else { 
+	gpointer inst = g_hash_table_lookup (xesam_sessions, session_id);
+	if (!inst)
+		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
+				TRACKER_XESAM_ERROR_SESSION_ID_NOT_REGISTERED,
+				"Session ID is not registered");
+	else
 		g_hash_table_remove (xesam_sessions, session_id);
-	}
 }
 
 TrackerXesamSession *
 tracker_xesam_get_session (const gchar *session_id, GError **error)
 {
-	TrackerXesamSession *session;
-
-	session = g_hash_table_lookup (xesam_sessions, session_id);
-	if (session) {
+	TrackerXesamSession *session = g_hash_table_lookup (xesam_sessions, session_id);
+	if (session)
 		g_object_ref (session);
-	} else {
-		g_set_error (error, 
-			     TRACKER_XESAM_ERROR, 
-			     TRACKER_XESAM_ERROR_SESSION_ID_NOT_REGISTERED,
-			     "Session ID is not registered");
-	}
-
+	else
+		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
+				TRACKER_XESAM_ERROR_SESSION_ID_NOT_REGISTERED,
+				"Session ID is not registered");
 	return session;
 }
 
@@ -147,13 +141,10 @@ tracker_xesam_get_session_for_search (const gchar             *search_id,
 
 	g_list_free (sessions);
 
-	if (!session) {
-		g_set_error (error, 
-			     TRACKER_XESAM_ERROR, 
-			     TRACKER_XESAM_ERROR_SEARCH_ID_NOT_REGISTERED,
-			     "Search ID is not registered");
-	}
-
+	if (!session) 
+		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
+				TRACKER_XESAM_ERROR_SEARCH_ID_NOT_REGISTERED,
+				"Search ID is not registered");
 	return session;
 }
 
@@ -180,12 +171,10 @@ tracker_xesam_get_live_search (const gchar *search_id, GError **error)
 
 	g_list_free (sessions);
 
-	if (!search) {
-		g_set_error (error, 
-			     TRACKER_XESAM_ERROR, 
-			     TRACKER_XESAM_ERROR_SEARCH_ID_NOT_REGISTERED,
-			     "Search ID is not registered");
-	}
+	if (!search) 
+		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
+				TRACKER_XESAM_ERROR_SEARCH_ID_NOT_REGISTERED,
+				"Search ID is not registered");
 
 	return search;
 }

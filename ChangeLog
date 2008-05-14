@@ -1,3 +1,8 @@
+2008-05-14  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* Merged xesam-support to indexer-split
+	->  svn merge -r 1398:1423 ../xesam-support
+
 2008-05-14  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-db-sqlite.[ch]: Removed unused functions.
@@ -166,6 +171,174 @@
 
 	* src/trackerd/tracker-convert-file.c: Removed, it is not in use.
 
+2008-05-14  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* Merged with indexer-split (rev 1417)
+	-> svn merge -r 1409:1417 ../indexer-split
+	-> svn merge -r 1417:1422 ../indexer-split
+	* Fixed Xesam error reporting
+	* Fixed a few warnings
+
+2008-05-13  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/*xesam*: Various infrastructure for Xesam added
+	* Merged with indexer-split (Rev 1410)
+	 -> svn merge -r 1398:1410 ../indexer-split/
+
+2008-05-13  Ottela Mikael <mikael.ottela@ixonos.com>
+
+	* Initial patch for Xesam queries
+	* Committed by Philip Van Hoof
+
+2008-05-13  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* First removed xesam-support branch
+	* Branchpoint from indexer-split to xesam-support
+
+2008-05-14  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/libtracker-db/tracker-db-interface-sqlite.c: No reply queries
+	must not immediately return for their arguments might otherwise be
+	freed by the caller context, before the GThreadPool thread reached
+	reading the argument.
+
+2008-05-14  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-db-email.c: 
+	* src/trackerd/tracker-db-sqlite.c:
+	* src/trackerd/tracker-db.c: 
+
+	* src/trackerd/tracker-dbus-daemon.c: Changed the "config"
+	property to be an object spec instead of a pointer spec. Also
+	fixed the way we set the object.
+
+	* src/trackerd/tracker-dbus-search.[ch]: Added "config" and
+	"language" properties to be used with the TrackerQueryTree API.
+
+	* src/trackerd/tracker-dbus-xesam.c: 
+	* src/trackerd/tracker-xesam-live-search.c: 
+	* src/trackerd/tracker-xesam-session.h: Fix includes.
+
+	* src/trackerd/tracker-dbus.[ch]: Use Tracker pointer instead of
+	gpointer for dbus initialisation and set the config/language for
+	TrackerDBusSearch.
+
+	* src/trackerd/tracker-main.[ch]: Removed the "stop_words" member
+	of the Tracker struct, it is not used. Also removed the
+	"index_number_min_length" member and replaced the one time it is
+	used for a #define in tracker-parser.c.
+	
+	* src/trackerd/tracker-parser.[ch]: Refactored this module and
+	made it not depend on TrackerConfig and TrackerLanguage, instead,
+	we parse the values in that we need in the public API. 
+
+	* src/trackerd/tracker-query-tree.[ch]: Add properties for
+	TrackerConfig and TrackerLanguage so we can use them when using
+	the tracker-parser API.
+	
+	* src/trackerd/tracker-xesam.[ch]: Use proper GQuarks for the
+	xesam error system and reordered the functions in the header to be
+	more logical and inline with the .c file.
+
+2008-05-14  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/trackerd/tracker-db-sqlite.c:
+	File loaders using TrackerDBInterface instead of DBConnection.
+
+2008-05-14  Ivan Frade  <ivan.frade@nokia.com>
+
+	* data/Makefile.am
+	* data/sqlite-contents.sql: SQL code to create Contents table.
+	
+	* src/trackerd/tracker-db-sqlite.h
+	* src/trackerd/tracker-db-sqlite.c:
+	Using SQL file instead of hardcoded SQL to create ServiceContents
+	table.
+	(open_common_db): Removed. Using directly open_db_interface.
+	(tracker_db_exec_proc): New. tracker_exec_proc but using
+	TrackerDBInterface.
+	(tracker_exec_no_reply) 
+	(tracker_metadata_is_key): Now static functions only in .c
+	(tracker_db_integrity_check): Removed. Unused function.
+	
+	
+2008-05-13  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-main.c: Don't initialise Tracker members
+	unnecessarily.
+
+2008-05-13  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-main.[ch]: Removed the log_filename from
+	the Tracker struct, it didn't need to be there. Also added a
+	function to clean up the directory locations separately to
+	actually physically removing particular directories when we exit
+	the daemon.
+
+2008-05-13  Martyn Russell  <martyn@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer-module.[ch]: 
+	* src/tracker-indexer/tracker-indexer.[ch]: Added indentation
+	information to the top of each file.
+	
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-cache.c:
+	* src/trackerd/tracker-index-stage.[ch]:
+	* src/trackerd/tracker-main.[ch]:
+	* src/trackerd/tracker-metadata.c:
+	* src/trackerd/tracker-process-files.c: Added TrackerIndexStage
+	type to hold the current indexer state and type information.
+
+2008-05-13  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/libtracker-common/tracker-config.c (config_finalize): Free all
+	allocated data.
+	* src/tracker-indexer/tracker-indexer.c (tracker_indexer_finalize):
+	Instead, do not free unowned memory here.
+
+2008-05-13  Carlos Garnacho  <carlos@imendio.com>
+
+	Initial work on the separate indexer executable, implemented as a
+	modular, single-threaded state machine.
+
+	* src/tracker-indexer/main.c:
+	* src/tracker-indexer/tracker-indexer.[ch]:
+	* src/tracker-indexer/tracker-indexer-module.[ch]: Added, this is the
+	indexer core.
+
+	* src/tracker-indexer/modules/applications.c:
+	* src/tracker-indexer/modules/dummy.c:
+	* src/tracker-indexer/modules/files.c:
+	* src/tracker-indexer/modules/gaim-conversations.c: Added, independent
+	modules, called out by the indexer core.
+
+	* src/libtracker-common/tracker-config.[ch]
+	(tracker_config_class_init) (config_get_property)
+	(config_set_property) (config_load_string_list)
+	(tracker_config_get_index_modules): Added configuration option, plus
+	methods to know which modules to query.
+	(config_create_with_defaults): ensure TrackerConfig contains the
+	default values if the configuration file didn't exist.
+
+	* src/tracker-indexer/modules/Makefile.am:
+	* src/tracker-indexer/Makefile.am:
+	* configure.in: autofoo glue to make this build.
+
+2008-05-13  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-main.h: Removed function definitions which
+	are redundant.
+
+2008-05-13  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-main.h: Use proper pointer types instead
+	of gpointer for TrackerConfig, etc.
+
+2008-05-13  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-convert-file.c: Removed, it is not in use.
+
+>>>>>>> .merge-right.r1423
 2008-05-12  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-cache.[ch]: Reworked this module and

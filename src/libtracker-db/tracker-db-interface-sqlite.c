@@ -670,9 +670,12 @@ tracker_db_interface_sqlite_execute_procedure_no_reply (TrackerDBInterface  *db_
 				     args, 
 				     error);
 
-	task->nowait = TRUE;
-
 	g_thread_pool_push (priv->pool, task, NULL);
+
+	wait_for_db_query_task (task);
+	if (task->retval)
+		g_object_unref (task->retval);
+	free_db_query_task (task);
 
 	return;
 }
@@ -750,9 +753,12 @@ tracker_db_interface_sqlite_execute_query_no_reply (TrackerDBInterface  *db_inte
 				     NULL, 
 				     error);
 
-	task->nowait = TRUE;
-
 	g_thread_pool_push (priv->pool, task, NULL);
+
+	wait_for_db_query_task (task);
+	if (task->retval)
+		g_object_unref (task->retval);
+	free_db_query_task (task);
 }
 
 static void

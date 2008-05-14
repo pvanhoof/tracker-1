@@ -1,3 +1,10 @@
+2008-05-14  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/libtracker-db/tracker-db-interface-sqlite.c: No reply queries
+	must not immediately return for their arguments might otherwise be
+	freed by the caller context, before the GThreadPool thread reached
+	reading the argument.
+
 2008-05-14  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-db-email.c: 

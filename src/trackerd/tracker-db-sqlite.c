@@ -1976,7 +1976,6 @@ tracker_db_search_text (DBConnection *db_con, const char *service, const char *s
 		gint type_id;
 
 		while (valid) {
-			g_print ("aaaandaya %d\n", i);
 			tracker_db_result_set_get (result_set, 0, &type_id, -1);
 			service_array[i] = type_id;
 			i++;

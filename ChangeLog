@@ -1,5 +1,10 @@
 2008-05-14  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-indexer.c (process_module): just print
+	one warning when some module couldn't be loaded.
+
+2008-05-14  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/modules/files.c: get mimetype.
 	* src/tracker-indexer/modules/Makefile.am: make files module link to
 	the necessary libraries.

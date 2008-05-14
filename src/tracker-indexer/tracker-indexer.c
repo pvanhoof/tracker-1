@@ -365,6 +365,9 @@ process_module (TrackerIndexer *indexer,
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 	module = g_hash_table_lookup (priv->indexer_modules, module_name);
+
+	g_return_if_fail (module != NULL);
+
 	dirs = tracker_indexer_module_get_directories (module);
 
 	g_return_if_fail (dirs != NULL);

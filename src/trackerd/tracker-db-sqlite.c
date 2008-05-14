@@ -827,18 +827,6 @@ tracker_db_load_prepared_queries (void)
 	return TRUE;
 }
 
-
-void
-tracker_db_thread_init (void)
-{
-//	sqlite3_enable_shared_cache (1);
-}
-
-void
-tracker_db_finalize (void)
-{
-}
-
 void
 tracker_db_close (TrackerDBInterface *iface)
 {

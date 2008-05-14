@@ -103,8 +103,10 @@ thunderbird_file_is_interesting (TrackerDBFileInfo *info)
 *********************************************************************************************/
 
 gboolean
-tracker_email_init (void)
+tracker_email_init (TrackerConfig *config)
 {
+        g_return_val_if_fail (TRACKER_IS_CONFIG (config), FALSE);
+
 	if (!thunderbird_mail_dir) {
 		thunderbird_mail_dir = g_build_filename (g_get_home_dir (), THUNDERBIRD_MAIL_DIR_S, NULL);
 	}

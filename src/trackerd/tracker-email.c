@@ -28,12 +28,9 @@
 #include "tracker-email-utils.h"
 #include "tracker-main.h"
 
-extern Tracker *tracker;
-
 static GModule *module = NULL;
 
-
-/* must be called before any work on files containing mails */
+/* Must be called before any work on files containing mails */
 void
 tracker_email_add_service_directories (DBConnection *db_con)
 {
@@ -46,7 +43,6 @@ tracker_email_add_service_directories (DBConnection *db_con)
 		(func) (db_con);
         }
 }
-
 
 void
 tracker_email_end_email_watching (void)
@@ -82,17 +78,19 @@ tracker_email_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
 }
 
 gboolean
-tracker_email_init (void)
+tracker_email_init (TrackerConfig *config)
 {
 	TrackerMailInit func;
 	const gchar *email_client;
 	gchar *module_name, *module_path;
 	gboolean result = FALSE;
 
+	g_return_val_if_fail (TRACKER_IS_CONFIG (config), FALSE);
+
 	if (module)
 		return result;
 
-	email_client = tracker_config_get_email_client (tracker->config);
+	email_client = tracker_config_get_email_client (config);
 
 	if (!email_client)
 		return result;
@@ -126,6 +124,14 @@ tracker_email_init (void)
 	g_free (module_path);
 
 	return result;
+}
+
+void
+tracker_email_shutdown (void)
+{
+	/* Nothing to do here it seems, this function is here for
+	 * completeness.
+	 */
 }
 
 const gchar *

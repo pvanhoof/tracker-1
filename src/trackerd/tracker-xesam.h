@@ -42,6 +42,7 @@ typedef enum {
 
 GQuark                  tracker_xesam_error_quark            (void);
 void                    tracker_xesam_init                   (void);
+void                    tracker_xesam_shutdown               (void);
 TrackerXesamSession*    tracker_xesam_create_session         (TrackerDBusXesam        *dbus_proxy,
 							      gchar                  **session_id,
 							      GError                 **error);

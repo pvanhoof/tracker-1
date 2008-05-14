@@ -684,7 +684,7 @@ process_index_get_remote_roots (Tracker  *tracker,
 #ifdef HAVE_HAL        
         l1 = tracker_hal_get_mounted_directory_roots (tracker->hal);
         l2 = tracker_hal_get_removable_device_roots (tracker->hal);
-#endif 
+#endif /* HAVE_HAL */
         
         /* The options to index removable media and the index mounted
          * directories are both mutually exclusive even though
@@ -1523,12 +1523,14 @@ tracker_process_files (gpointer data)
                 }
         }
 
+#ifdef HAVE_HAL
         g_signal_connect (tracker->hal, "mount-point-added", 
                           G_CALLBACK (process_mount_point_added_cb),
                           tracker);
         g_signal_connect (tracker->hal, "mount-point-removed", 
                           G_CALLBACK (process_mount_point_removed_cb),
                           tracker);
+#endif /* HAVE_HAL */
 
         /* Start processing */
 	g_mutex_unlock (tracker->files_signal_mutex);
@@ -1712,12 +1714,14 @@ tracker_process_files (gpointer data)
 		tracker_db_file_info_unref (info);
 	}
 
+#ifdef HAVE_HAL
         g_signal_handlers_disconnect_by_func (tracker->hal, 
                                               process_mount_point_added_cb,
                                               tracker);
         g_signal_handlers_disconnect_by_func (tracker->hal, 
                                               process_mount_point_removed_cb,
                                               tracker);
+#endif /* HAVE_HAL */
 
 	xdg_mime_shutdown ();
 

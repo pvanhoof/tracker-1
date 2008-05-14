@@ -92,10 +92,7 @@ typedef struct {
 /* Module wide ops */
 gboolean            tracker_db_needs_setup                     (void);
 gboolean            tracker_db_common_need_build               (void);
-gboolean            tracker_db_load_prepared_queries                      (void);
-void                tracker_db_thread_init                     (void);
-void                tracker_db_thread_end                      (void);
-void                tracker_db_finalize                        (void);
+gboolean            tracker_db_load_prepared_queries           (void);
 void                tracker_create_common_db                   (void);
 void                tracker_db_get_static_data                 (DBConnection   *db_con);
 

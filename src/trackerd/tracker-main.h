@@ -131,8 +131,6 @@ typedef struct {
 	GMutex           *metadata_check_mutex;
 	GMutex           *metadata_signal_mutex;
 	GCond            *metadata_signal_cond;
-
-	GHashTable       *xesam_sessions; 
 } Tracker;
 
 void tracker_shutdown (void);

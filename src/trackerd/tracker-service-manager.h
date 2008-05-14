@@ -29,7 +29,7 @@
 G_BEGIN_DECLS
 
 void            tracker_service_manager_init                         (void);
-void            tracker_service_manager_term                         (void);
+void            tracker_service_manager_shutdown                     (void);
 void            tracker_service_manager_add_service                  (TrackerService *service,
 								      GSList         *mimes,
 								      GSList         *mime_prefixes);

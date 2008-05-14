@@ -123,7 +123,7 @@ tracker_service_manager_init (void)
 }
 
 void
-tracker_service_manager_term (void)
+tracker_service_manager_shutdown (void)
 {
 	g_hash_table_remove_all (service_directory_table);
 	g_hash_table_remove_all (service_id_table);

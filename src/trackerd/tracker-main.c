@@ -757,9 +757,6 @@ shutdown_databases (void)
 	tracker_db_set_option_int (main_thread_db_con, "IntegrityCheck", 0);
 
 	tracker_db_close (main_thread_db_con->db);
-
-	/* This must be called after all other db functions */
-	tracker_db_finalize ();
 }
 
 static void
@@ -893,6 +890,11 @@ main (gint argc, gchar *argv[])
 	tracker_xesam_init ();
 	tracker_cache_init ();
         tracker_service_manager_init ();
+	tracker_email_init (tracker->config);
+
+#ifdef HAVE_HAL 
+ 	tracker->hal = tracker_hal_new ();       
+#endif /* HAVE_HAL */
 
 	initialise_directories (&need_index);
 	initialise_threading ();
@@ -958,22 +960,12 @@ main (gint argc, gchar *argv[])
 
 	sanity_check_option_values ();
 
-	/* Set thread safe DB connection */
-	tracker_db_thread_init ();
-
         if (!tracker_db_load_prepared_queries ()) {
 		tracker_error ("Could not initialize database engine!");
 		return EXIT_FAILURE;
         }
 
 	initialise_databases (need_index);
-
-	tracker_email_init ();
-
-#ifdef HAVE_HAL 
-        /* Create tracker HAL object */
- 	tracker->hal = tracker_hal_new ();       
-#endif
 
 	/* Set our status as running, if this is FALSE, threads stop
 	 * doing what they do and shutdown.
@@ -1032,12 +1024,32 @@ main (gint argc, gchar *argv[])
 	/* Set kill timeout */
 	g_timeout_add_full (G_PRIORITY_LOW, 20000, shutdown_timeout_cb, NULL, NULL);
 
-	tracker_cache_shutdown ();
-
-	shutdown_threads (thread);
 	shutdown_indexer ();
 	shutdown_databases ();
+	shutdown_threads (thread);
 	shutdown_directories ();
+
+	/* Shutdown major subsystems */
+        if (tracker->hal) {
+                g_object_unref (tracker->hal);
+                tracker->hal = NULL;
+        }
+
+	tracker_email_shutdown ();
+	tracker_dbus_shutdown ();
+	tracker_service_manager_shutdown ();
+	tracker_cache_shutdown ();
+	tracker_xesam_shutdown ();
+	tracker_db_manager_term ();
+	tracker_nfs_lock_term ();
+	tracker_log_term ();
+
+	tracker_language_free (tracker->language);
+
+        if (tracker->config) {
+                g_object_unref (tracker->config);
+        }
+
 	shutdown_locations ();
 
 	/* Clean up other struct members */
@@ -1052,23 +1064,6 @@ main (gint argc, gchar *argv[])
 	if (tracker->dir_queue) {
 		g_async_queue_unref (tracker->dir_queue);
 	}
-
-	/* Shutdown major subsystems */
-        if (tracker->hal) {
-                g_object_unref (tracker->hal);
-                tracker->hal = NULL;
-        }
-
-	tracker_language_free (tracker->language);
-
-        if (tracker->config) {
-                g_object_unref (tracker->config);
-        }
-
-	tracker_db_manager_term ();
-
-	tracker_nfs_lock_term ();
-	tracker_log_term ();
 
 	return EXIT_SUCCESS;
 }

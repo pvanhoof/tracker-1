@@ -237,9 +237,11 @@ evolution_module_is_running (void)
 *********************************************************************************************/
 
 gboolean
-tracker_email_init (void)
+tracker_email_init (TrackerConfig *config)
 {
 	EvolutionConfig *conf;
+
+	g_return_val_if_fail (TRACKER_IS_CONFIG (config), FALSE);
 
 	if (evolution_config) {
 		return TRUE;

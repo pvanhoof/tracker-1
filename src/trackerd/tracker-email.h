@@ -23,6 +23,7 @@
 
 #include "config.h"
 
+#include <libtracker-common/tracker-config.h>
 #include <libtracker-db/tracker-db-file-info.h>
 
 #include "tracker-utils.h"
@@ -37,12 +38,13 @@ typedef gboolean      (* TrackerMailIndexFile)     (DBConnection *db_con,
 						    TrackerDBFileInfo     *info);
 typedef const gchar * (* TrackerMailGetName)       (void);
 
-gboolean     tracker_email_init                    (void);
+gboolean     tracker_email_init                    (TrackerConfig     *config);
+void         tracker_email_shutdown                (void);
 void         tracker_email_add_service_directories (DBConnection      *db_con);
 void         tracker_email_end_email_watching      (void);
 gboolean     tracker_email_file_is_interesting     (TrackerDBFileInfo *info);
 gboolean     tracker_email_index_file              (DBConnection      *db_con,
-                                                    TrackerDBFileInfo *info);
+						    TrackerDBFileInfo *info);
 const gchar *tracker_email_get_name                (void);
 
 G_END_DECLS

@@ -1,3 +1,28 @@
+2008-05-14  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-db-sqlite.[ch]: Removed unused functions.
+
+	* src/trackerd/tracker-email-evolution.c:
+	* src/trackerd/tracker-email-modest.c:
+	* src/trackerd/tracker-email-thunderbird.c:
+	* src/trackerd/tracker-email.[ch]: Pass the TrackerConfig to the
+	init() function to avoid using tracker->config.
+	
+	* src/trackerd/tracker-main.[ch]: Make sure we call all the
+	missing _shutdown() functions for modules, like
+	tracker_service_manager_shutdown(), etc. 
+	
+	* src/trackerd/tracker-process-files.c: Don't try to set up signal
+	handlers for the HAL object if we don't have HAL support compiled
+	in to Tracker.
+	
+	* src/trackerd/tracker-service-manager.[ch]: Renamed
+	tracker_service_manager_term() to _shutdown().
+	
+	* src/trackerd/tracker-xesam.[ch]: Added a _shutdown() function
+	and moved the GHashTable of sessions to this module and out of the
+	Tracker struct.
+
 2008-05-14  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/libtracker-db/tracker-db-interface-sqlite.c: No reply queries

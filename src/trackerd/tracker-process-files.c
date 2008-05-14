@@ -57,6 +57,7 @@ static GSList       *temp_black_list;
 static GSList       *crawl_directories;
         
 static gchar       **ignore_pattern;
+static GTimer       *index_duration;
 
 static const gchar  *ignore_suffix[] = {
         "~", ".o", ".la", ".lo", ".loT", ".in", 
@@ -1186,10 +1187,12 @@ process_files (Tracker *tracker)
                 
                 tracker->first_time_index = FALSE;
 		
-                time_taken = time (NULL) - tracker->index_time_start;
-                g_signal_emit_by_name (object, 
-                                       "index-finished", 
-                                       time_taken);
+                time_taken = (gint) g_timer_elapsed (index_duration, NULL);
+                g_timer_destroy (index_duration);
+                index_duration = NULL;
+
+                tracker_log ("Indexing finished in %d seconds", time_taken);
+                g_signal_emit_by_name (object, "index-finished", time_taken);
 
                 tracker_db_set_option_int (db_con, "InitialIndex", 0);
                 
@@ -1482,14 +1485,14 @@ process_is_in_path (const gchar *uri,
 gpointer
 tracker_process_files (gpointer data)
 {
-	Tracker      *tracker;
+	Tracker  *tracker;
         GObject  *object;
-	GSList	     *moved_from_list; /* List to hold moved_from
-                                        * events whilst waiting for a
-                                        * matching moved_to event.
-                                        */
-	gboolean      pushed_events;
-        gboolean      first_run;
+	GSList	 *moved_from_list; /* List to hold moved_from
+                                    * events whilst waiting for a
+                                    * matching moved_to event.
+                                    */
+	gboolean  pushed_events;
+        gboolean  first_run;
         gint      initial_sleep;
 
         process_block_signals (); 
@@ -1573,7 +1576,11 @@ tracker_process_files (gpointer data)
 
 	tracker_log ("Starting indexing...");
 
-	tracker->index_time_start = time (NULL);
+        if (index_duration) {
+                g_timer_destroy (index_duration);
+        }
+
+        index_duration = g_timer_new ();
 
 	while (TRUE) {
 		TrackerDBFileInfo *info;

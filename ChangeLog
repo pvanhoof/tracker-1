@@ -1,3 +1,10 @@
+2008-05-14  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-main.h:
+	* src/trackerd/tracker-process-files.c: Moved the indexer time
+	taken information from the Tracker struct to the process-files
+	module. This information is not used publically.
+
 2008-05-14  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* Merged xesam-support to indexer-split

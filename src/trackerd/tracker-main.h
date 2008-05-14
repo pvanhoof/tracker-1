@@ -88,7 +88,6 @@ typedef struct {
 	/* Table of stop words that are to be ignored by the parser */
 	gboolean          first_time_index; 
 	
-	time_t            index_time_start; 
 	gint              folders_count;  
 	gint              folders_processed;
 	gint              mbox_count; 

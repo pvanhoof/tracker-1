@@ -1,6 +1,9 @@
 2008-05-14  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/tracker-indexer/modules/Makefile.am: Linker error fix
+	* src/trackerd/tracker-dbus.c: Corrected a GStrv to be NULL terminated
+	* src/trackerd/tracker-db-sqlite.c: Corrected tracker->index_db to be
+	the one which as the ATTACH statements done
 
 2008-05-14  Carlos Garnacho  <carlos@imendio.com>
 

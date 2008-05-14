@@ -345,13 +345,14 @@ tracker_dbus_query_result_to_strv (TrackerDBResultSet *result_set,
 		gint     i = 0;
 
                 rows = tracker_db_result_set_get_n_rows (result_set);
-		strv = g_new (gchar*, rows);
+		strv = g_new (gchar*, rows + 1);
 		
 		while (valid) {
 			tracker_db_result_set_get (result_set, 0, &strv[i], -1);
 			valid = tracker_db_result_set_iter_next (result_set);
 			i++;
 		}
+		strv[i] = NULL;
 	}
 
         if (count) {

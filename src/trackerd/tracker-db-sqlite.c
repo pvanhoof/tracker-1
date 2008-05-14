@@ -972,7 +972,9 @@ tracker_db_connect_all ()
 	DBConnection *emails_db_con= NULL;
 	Indexer *email_word_index_db_con= NULL;
 
-	db_con = tracker_db_connect_file_meta ();
+	db_con = tracker_db_connect ();
+
+	// db_con = tracker_db_connect_file_meta ();
 	emails_db_con = tracker_db_connect_email_meta ();
 
 	blob_db_con = tracker_db_connect_file_content ();

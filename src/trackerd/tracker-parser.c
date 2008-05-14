@@ -27,18 +27,18 @@
 
 #include <pango/pango.h>
 
-#include <libtracker-common/tracker-config.h>
-#include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-language.h>
+#include <libtracker-common/tracker-log.h>
 
 #include "tracker-parser.h"
 #include "tracker-utils.h"
 #include "tracker-main.h"
 
-extern Tracker *tracker;
+#define INDEX_NUMBER_MIN_LENGTH 6
 
-/* need pango for CJK ranges which are : 0x3400 - 0x4DB5, 0x4E00 - 0x9FA5, 0x20000 - <= 0x2A6D6 */
-
+/* Need pango for CJK ranges which are : 0x3400 - 0x4DB5, 0x4E00 -
+ * 0x9FA5, 0x20000 - <= 0x2A6D6
+ */
 #define NEED_PANGO(c) (((c) >= 0x3400 && (c) <= 0x4DB5)  || ((c) >= 0x4E00 && (c) <= 0x9FA5)  ||  ((c) >= 0x20000 && (c) <= 0x2A6D6))
 #define IS_LATIN(c) (((c) <= 0x02AF) || ((c) >= 0x1E00 && (c) <= 0x1EFF))
 #define IS_ASCII(c) ((c) <= 0x007F) 
@@ -50,107 +50,92 @@ extern Tracker *tracker;
 #define IS_UNDERSCORE(c) ((c) == 0x005F)
 
 typedef enum {
-	WORD_ASCII_HIGHER,
-	WORD_ASCII_LOWER,
-	WORD_HYPHEN,
-	WORD_UNDERSCORE,
-	WORD_NUM,
-	WORD_ALPHA_HIGHER,
-	WORD_ALPHA_LOWER,
-	WORD_ALPHA,
-	WORD_ALPHA_NUM,
-	WORD_IGNORE
+	TRACKER_PARSER_WORD_ASCII_HIGHER,
+	TRACKER_PARSER_WORD_ASCII_LOWER,
+	TRACKER_PARSER_WORD_HYPHEN,
+	TRACKER_PARSER_WORD_UNDERSCORE,
+	TRACKER_PARSER_WORD_NUM,
+	TRACKER_PARSER_WORD_ALPHA_HIGHER,
+	TRACKER_PARSER_WORD_ALPHA_LOWER,
+	TRACKER_PARSER_WORD_ALPHA,
+	TRACKER_PARSER_WORD_ALPHA_NUM,
+	TRACKER_PARSER_WORD_IGNORE
 } TrackerParserWordType;
-
-
 
 static inline TrackerParserWordType
 get_word_type (gunichar c)
 {
-	/* fast ascii handling */
+	/* Fast ascii handling */
 	if (IS_ASCII (c)) {
-
-		
 		if (IS_ASCII_ALPHA_LOWER (c)) {
-			return WORD_ASCII_LOWER;
+			return TRACKER_PARSER_WORD_ASCII_LOWER;
 		}
 
 		if (IS_ASCII_ALPHA_HIGHER (c)) {
-			return WORD_ASCII_HIGHER;
+			return TRACKER_PARSER_WORD_ASCII_HIGHER;
 		}
 
 		if (IS_ASCII_IGNORE (c)) {
-			return WORD_IGNORE;	
+			return TRACKER_PARSER_WORD_IGNORE;	
 		}
 
 		if (IS_ASCII_NUMERIC (c)) {
-			return WORD_NUM;
+			return TRACKER_PARSER_WORD_NUM;
 		}
 
 		if (IS_HYPHEN (c)) {
-			return WORD_HYPHEN;
+			return TRACKER_PARSER_WORD_HYPHEN;
 		}
 
 		if (IS_UNDERSCORE (c)) {
-			return WORD_UNDERSCORE;
+			return TRACKER_PARSER_WORD_UNDERSCORE;
 		}
-	
-
 	} else 	{
-
 		if (g_unichar_isalpha (c)) {
-
 			if (!g_unichar_isupper (c)) {
-				return  WORD_ALPHA_LOWER;
+				return  TRACKER_PARSER_WORD_ALPHA_LOWER;
 			} else {
-				return  WORD_ALPHA_HIGHER;
+				return  TRACKER_PARSER_WORD_ALPHA_HIGHER;
 			}
-
 		} else if (g_unichar_isdigit (c)) {
-			return  WORD_NUM;
+			return  TRACKER_PARSER_WORD_NUM;
 		} 
 	}
 
-	return WORD_IGNORE;
-
+	return TRACKER_PARSER_WORD_IGNORE;
 }
 
-
-static inline char *
-strip_word (const char *str, int length, guint32 *len)
+static inline gchar *
+strip_word (const gchar *str, 
+            gint         length, 
+            guint32     *len)
 {
-
 	*len = length;
 
 #ifdef HAVE_UNAC
-
 	if (tracker->strip_accents) {
-
-		char *s = NULL;
+		gchar *s = NULL;
 
 		if (unac_string ("UTF-8", str, length, &s, &*len) != 0) {
-			tracker_log ("WARNING: unac failed to strip accents");
+			tracker_warning ("UNAC failed to strip accents");
 		}
 
 		return s;
-
 	}
-
 #endif	
+
 	return NULL;	
 }
 
-
 static gboolean
-text_needs_pango (const char *text)
+text_needs_pango (const gchar *text)
 {
-	/* grab first 1024 non-whitespace chars and test */
-	const char *p;
-	gunichar   c;
-	int  i = 0;
+	const gchar *p;
+	gunichar     c;
+	gint         i = 0;
 
-	for (p = text; (*p && i < 1024); p = g_utf8_next_char (p)) {
-
+	/* Grab first 1024 non-whitespace chars and test */
+	for (p = text; *p && i < 1024; p = g_utf8_next_char (p)) {
 		c = g_utf8_get_char (p);
 
 		if (!g_unichar_isspace (c)) {
@@ -160,349 +145,352 @@ text_needs_pango (const char *text)
 		if (NEED_PANGO(c)) {
 			return TRUE;
 		}
-
 	}
 
 	return FALSE;
-
 }
 
-
-
-static const char *
-analyze_text (const char *text, char **index_word, gboolean filter_words, gboolean filter_numbers, gboolean delimit_hyphen)
+static const gchar *
+analyze_text (const gchar      *text, 
+              TrackerLanguage  *language,
+              gint              max_word_length,
+              gint              min_word_length,
+              gboolean          filter_words, 
+              gboolean          filter_numbers, 
+              gboolean          delimit_hyphen,
+              gchar           **index_word)
 {
-	const char 	*p;
-	const char 	*start = NULL;
-	
+        TrackerParserWordType word_type;
+        gunichar              word[64];
+        gboolean              do_strip;
+        gboolean              is_valid;
+        gint                  length;
+        glong                 bytes;
+	const char           *p;
+	const char           *start;
+
 	*index_word = NULL;
 
-	if (text) {
-		gunichar	word[64];
-		gboolean 	do_strip = FALSE, is_valid = TRUE;
-		int		length = 0;
-		glong		bytes = 0;
-		TrackerParserWordType	word_type = WORD_IGNORE;
+	if (!text) {
+                return NULL;
+        }
 
-		for (p = text; *p; p = g_utf8_next_char (p)) {
+        word_type = TRACKER_PARSER_WORD_IGNORE;
+        do_strip = FALSE;
+        is_valid = TRUE;
+        length = 0;
+        bytes = 0;
+        start = NULL;
 
-			gunichar c = g_utf8_get_char (p);
-
-			TrackerParserWordType  type = get_word_type (c);
-
-			if (type == WORD_IGNORE || (delimit_hyphen && (type == WORD_HYPHEN || type == WORD_UNDERSCORE))) {
-
-				if (!start) {
-					continue;
-				} else {
-					break;
-				}
-			} 
-
-			if (!is_valid) continue;
-
-			if (!start) {
-				start = p;
-
-				/* valid words must start with an alpha or underscore if we are filtering */
-				if (filter_numbers) {
-
-					if (type == WORD_NUM) {
-						//if (!tracker->index_numbers) {
-							is_valid = FALSE;
-							continue;
-						//}
-
-					} else {
-	
-						if (type == WORD_HYPHEN) {
-							is_valid = FALSE;
-							continue;
-						}
-					}	
-				}				
+        for (p = text; *p; p = g_utf8_next_char (p)) {
+                TrackerParserWordType type;
+                gunichar              c;
+                
+                c = g_utf8_get_char (p);
+                type = get_word_type (c);
+                
+                if (type == TRACKER_PARSER_WORD_IGNORE || 
+                    (delimit_hyphen && 
+                     (type == TRACKER_PARSER_WORD_HYPHEN || 
+                      type == TRACKER_PARSER_WORD_UNDERSCORE))) {
+                        if (!start) {
+                                continue;
+                        } else {
+                                break;
+                        }
+                } 
+                
+                if (!is_valid) {
+                        continue;
+                }
+                
+                if (!start) {
+                        start = p;
+                        
+                        /* Valid words must start with an alpha or
+                         * underscore if we are filtering.
+                         */
+                        if (filter_numbers) {
+                                if (type == TRACKER_PARSER_WORD_NUM) {
+                                        is_valid = FALSE;
+                                        continue;
+                                } else {
+                                        if (type == TRACKER_PARSER_WORD_HYPHEN) {
+                                                is_valid = FALSE;
+                                                continue;
+                                        }
+                                }	
+                        }				
+                }
+                
+                if (length >= max_word_length) {
+                        continue;
+                }
+		
+                length++;
+                
+                switch (type) {
+                case TRACKER_PARSER_WORD_ASCII_HIGHER: 
+                        c += 32;
+                        
+                case TRACKER_PARSER_WORD_ASCII_LOWER: 
+                case TRACKER_PARSER_WORD_HYPHEN:
+                case TRACKER_PARSER_WORD_UNDERSCORE:
+                        if (word_type == TRACKER_PARSER_WORD_NUM || 
+                            word_type == TRACKER_PARSER_WORD_ALPHA_NUM) {
+                                word_type = TRACKER_PARSER_WORD_ALPHA_NUM;
+                        } else {
+                                word_type = TRACKER_PARSER_WORD_ALPHA;
+                        }
+			
+                        break;
+                        
+                case TRACKER_PARSER_WORD_NUM: 
+                        if (word_type == TRACKER_PARSER_WORD_ALPHA || 
+                            word_type == TRACKER_PARSER_WORD_ALPHA_NUM) {
+                                word_type = TRACKER_PARSER_WORD_ALPHA_NUM;
+                        } else {
+                                word_type = TRACKER_PARSER_WORD_NUM;
+                        }
+                        break;
+                        
+                case TRACKER_PARSER_WORD_ALPHA_HIGHER: 
+                        c = g_unichar_tolower (c);
+                        
+                case TRACKER_PARSER_WORD_ALPHA_LOWER: 
+                        if (!do_strip) {
+                                do_strip = TRUE;
+                        }
+                        
+                        if (word_type == TRACKER_PARSER_WORD_NUM || 
+                            word_type == TRACKER_PARSER_WORD_ALPHA_NUM) {
+                                word_type = TRACKER_PARSER_WORD_ALPHA_NUM;
+                        } else {
+                                word_type = TRACKER_PARSER_WORD_ALPHA;
+                        }
+			
+                        break;
+                        
+                default: 
+                        break;
+                }
+                
+                word[length -1] = c;
+        }
+        
+        if (is_valid) {
+                if (word_type == TRACKER_PARSER_WORD_NUM) {
+                        if (!filter_numbers || length >= INDEX_NUMBER_MIN_LENGTH) {
+                                *index_word = g_ucs4_to_utf8 (word, length, NULL, NULL, NULL);
+                        } 
+                } else {
+                        if (length >= min_word_length) {
+                                gchar 	*str = NULL;
+                                gchar   *tmp;
+                                guint32  len;
+                                gchar   *utf8;
+                                
+                                utf8 = g_ucs4_to_utf8 (word, length, NULL, &bytes, NULL);
+                                
+                                if (!utf8) {
+                                        return p;
+                                }
 				
-			}
-
-			if (length >= tracker_config_get_max_word_length (tracker->config)) {
-				continue;
-			}
-
-			
-			length++;
-
-
-			switch (type) {
-
-	  			case WORD_ASCII_HIGHER: 
-					c += 32;
-
-	  			case WORD_ASCII_LOWER: 
-				case WORD_HYPHEN:
-				case WORD_UNDERSCORE:
-
-					if (word_type == WORD_NUM || word_type == WORD_ALPHA_NUM) {
-						word_type = WORD_ALPHA_NUM;
-					} else {
-						word_type = WORD_ALPHA;
-					}
-					
-					break;
-
-				case WORD_NUM: 
-
-					if (word_type == WORD_ALPHA || word_type == WORD_ALPHA_NUM) {
-						word_type = WORD_ALPHA_NUM;
-					} else {
-						word_type = WORD_NUM;
-					}
-					break;
-
-				case WORD_ALPHA_HIGHER: 
-					c = g_unichar_tolower (c);
-
-	  			case WORD_ALPHA_LOWER: 
-
-					if (!do_strip) {
-						do_strip = TRUE;
-					}
-
-					if (word_type == WORD_NUM || word_type == WORD_ALPHA_NUM) {
-						word_type = WORD_ALPHA_NUM;
-					} else {
-						word_type = WORD_ALPHA;
-					}
-					
-					break;
-
-				default: 
-					break;
-
-			}
-
-			word[length -1] = c;
-			
-		}
-
-
-		if (is_valid) {
-
-			if (word_type == WORD_NUM) {
-				if (!filter_numbers || length >= tracker->index_number_min_length) {
-					*index_word = g_ucs4_to_utf8 (word, length, NULL, NULL, NULL);
-				} 
-
-			} else {
-			
-				if (length >= tracker_config_get_min_word_length (tracker->config)) {
-			
-					char 	*str = NULL, *tmp;
-					guint32 len;
-
-					char *utf8 = g_ucs4_to_utf8 (word, length, NULL, &bytes, NULL);
-
-					if (!utf8) {
-						return p;
-					}
-					
-					if (do_strip) {
-						str = strip_word (utf8, bytes, &len);
-					}
-
-					if (!str) {
-						tmp = g_utf8_normalize (utf8, bytes, G_NORMALIZE_NFC);
-					} else {
-						tmp = g_utf8_normalize (str, len, G_NORMALIZE_NFC);
-						g_free (str);
-					}
-
-					g_free (utf8);
-
-					/* ignore all stop words */
-					if (filter_words && tracker->stop_words) {
-						if (g_hash_table_lookup (tracker->stop_words, tmp)) {
-							g_free (tmp);
-							
-							return p;
-						}
-					}
-
-                                        *index_word = tracker_language_stem_word (tracker->language, 
-                                                                                  tmp, 
-                                                                                  strlen (tmp));
-                                        if (*index_word) {
-						g_free (tmp);
-					} else {
-						*index_word = tmp;			
-					}
-
-								
-				}
-			}
-
-		} 
-
-		return p;	
-			
-	} 
-	return NULL;
-
+                                if (do_strip) {
+                                        str = strip_word (utf8, bytes, &len);
+                                }
+                                
+                                if (!str) {
+                                        tmp = g_utf8_normalize (utf8, bytes, G_NORMALIZE_NFC);
+                                } else {
+                                        tmp = g_utf8_normalize (str, len, G_NORMALIZE_NFC);
+                                        g_free (str);
+                                }
+                                
+                                g_free (utf8);
+                                
+                                *index_word = tracker_language_stem_word (language, 
+                                                                          tmp, 
+                                                                          strlen (tmp));
+                                if (*index_word) {
+                                        g_free (tmp);
+                                } else {
+                                        *index_word = tmp;			
+                                }
+                        }
+                }
+        } 
+        
+        return p;	
 }
-
-
-char *
-tracker_parse_text_to_string (const char *txt, gboolean filter_words, gboolean filter_numbers, gboolean delimit)
-{
-	const char *p = txt;	
-
-	char *word = NULL;
-	guint32 i = 0;
-
-	if (txt) {
-
-		if (text_needs_pango (txt)) {
-			/* CJK text does not need stemming or other treatment */
-
-			PangoLogAttr *attrs;
-			guint	     nb_bytes, str_len, word_start;
-			GString	     *strs;
-
-			nb_bytes = strlen (txt);
-                        str_len = g_utf8_strlen (txt, -1);
-
-			strs = g_string_new (" ");
-
-			attrs = g_new0 (PangoLogAttr, str_len + 1);
-
-			pango_get_log_attrs (txt, nb_bytes, 0, pango_language_from_string ("C"), attrs, str_len + 1);
-
-			word_start = 0;
-
-			for (i = 0; i < str_len + 1; i++) {
-
-				if (attrs[i].is_word_end) {
-					char *start_word, *end_word;
-
-					start_word = g_utf8_offset_to_pointer (txt, word_start);
-					end_word = g_utf8_offset_to_pointer (txt, i);
-
-					if (start_word != end_word) {
-						
-						/* normalize word */
-						char *s = g_utf8_casefold (start_word, end_word - start_word);
-					
-						char *index_word = g_utf8_normalize (s, -1, G_NORMALIZE_NFC);
-						g_free (s);
-					
-						strs  = g_string_append (strs, index_word);
-						strs  = g_string_append_c (strs, ' ');
-
-						g_free (index_word);
-					}
-
-					word_start = i;
-				}
-	
-				if (attrs[i].is_word_start) {
-					word_start = i;
-				}
-			}
-
-			g_free (attrs);
-
-			return g_string_free (strs, FALSE);
-
-			
-		} else {
-
-			GString *str = g_string_new (" ");
-
-			while (TRUE) {
-				i++;
-				p = analyze_text (p, &word, filter_words, filter_numbers, delimit);
-
-				if (word) {
-
-					g_string_append (str, word);
-
-					g_string_append_c (str, ' ');
-
-					g_free (word);			
-				}
-
-				if (!p || !*p) {
-					return g_string_free (str, FALSE);
-				}
-			}
-		}
-	}
-
-	return NULL;
-}
-
 
 static void
-delete_words      (gpointer key,
-		   gpointer value,
-		   gpointer user_data)
+delete_words (gpointer key,
+              gpointer value,
+              gpointer user_data)
 {
-	char *word;
-
-	word = (char *) key;
-
-	g_free (word);
-
+	g_free (key);
 }
 
-
-void
-tracker_word_table_free (GHashTable *table)
+gchar *
+tracker_parser_text_to_string (const gchar     *txt, 
+                               TrackerLanguage *language,
+                               gint             max_word_length,
+                               gint             min_word_length,
+                               gboolean         filter_words, 
+                               gboolean         filter_numbers, 
+                               gboolean         delimit)
 {
-	if (table) {
-		g_hash_table_foreach (table, delete_words, NULL);		
-		g_hash_table_destroy (table);
-	}
+	const gchar *p = txt;	
+	gchar       *word = NULL;
+	guint32      i = 0;
+
+        g_return_val_if_fail (language != NULL, NULL);
+
+	if (!txt) {
+                return NULL;
+        }
+
+        if (text_needs_pango (txt)) {
+                /* CJK text does not need stemming or other
+                 * treatment.
+                 */
+                PangoLogAttr *attrs;
+                guint	      nb_bytes, str_len, word_start;
+                GString	     *strs;
+                
+                nb_bytes = strlen (txt);
+                str_len = g_utf8_strlen (txt, -1);
+                
+                strs = g_string_new (" ");
+                
+                attrs = g_new0 (PangoLogAttr, str_len + 1);
+                
+                pango_get_log_attrs (txt, 
+                                     nb_bytes, 
+                                     0, 
+                                     pango_language_from_string ("C"), 
+                                     attrs, 
+                                     str_len + 1);
+                
+                word_start = 0;
+                
+                for (i = 0; i < str_len + 1; i++) {
+                        if (attrs[i].is_word_end) {
+                                gchar *start_word, *end_word;
+                                
+                                start_word = g_utf8_offset_to_pointer (txt, word_start);
+                                end_word = g_utf8_offset_to_pointer (txt, i);
+                                
+                                if (start_word != end_word) {
+                                        /* Normalize word */
+                                        gchar *s;
+                                        gchar *index_word;
+                                        
+                                        s = g_utf8_casefold (start_word, end_word - start_word);
+                                        index_word  = g_utf8_normalize (s, -1, G_NORMALIZE_NFC);
+                                        g_free (s);
+					
+                                        strs = g_string_append (strs, index_word);
+                                        strs = g_string_append_c (strs, ' ');
+                                        g_free (index_word);
+                                }
+                                
+                                word_start = i;
+                        }
+                        
+                        if (attrs[i].is_word_start) {
+                                word_start = i;
+                        }
+                }
+                
+                g_free (attrs);
+                
+                return g_string_free (strs, FALSE);
+        } else {
+                GString *str = g_string_new (" ");
+                
+                while (TRUE) {
+                        i++;
+                        p = analyze_text (p,
+                                          language, 
+                                          max_word_length,
+                                          min_word_length,
+                                          filter_words, 
+                                          filter_numbers, 
+                                          delimit,
+                                          &word);
+                        
+                        if (word) {
+                                g_string_append (str, word);
+                                g_string_append_c (str, ' ');
+                                g_free (word);			
+                        }
+                        
+                        if (!p || !*p) {
+                                return g_string_free (str, FALSE);
+                        }
+                }
+        }
+
+	return NULL;
 }
 
-
-char **
-tracker_parse_text_into_array (const char *text)
+gchar **
+tracker_parser_text_into_array (const gchar     *text,
+                                TrackerLanguage *language,
+                                gint             max_word_length,
+                                gint             min_word_length)
 {
-	char *s = tracker_parse_text_to_string (text, TRUE, FALSE, FALSE);
+	gchar  *s;
+	gchar **strv;
 
-	char **array =  g_strsplit (s, " ", -1);
+        g_return_val_if_fail (language != NULL, NULL);
 
+        s = tracker_parser_text_to_string (text, 
+                                           language, 
+                                           min_word_length,
+                                           max_word_length,
+                                           TRUE, 
+                                           FALSE, 
+                                           FALSE);
+        strv = g_strsplit (s, " ", -1);
 	g_free (s);
 
-	return array;
+	return strv;
 }
 
-
-/* use this for already processed text only */
 GHashTable *
-tracker_parse_text_fast (GHashTable *word_table, const char *txt, int weight)
+tracker_parser_text_fast (GHashTable  *word_table,
+                          const gchar *txt, 
+                          gint         weight)
 {
+	gchar    **tmp;	
+	gchar    **array;
+	gpointer   k = 0;
+        gpointer   v = 0;
+
+        /* Use this for already processed text only */
 	if (!word_table) {
-		word_table = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, NULL);
+		word_table = g_hash_table_new (g_str_hash, g_str_equal);
 	} 
 
 	if (!txt || weight == 0) {
 		return word_table;
 	}
 
-	char **tmp;	
-	char **array;
-	gpointer k=0,v=0;
-
 	array =  g_strsplit (txt, " ", -1);
 
 	for (tmp = array; *tmp; tmp++) {
 		if (**tmp) {
-
 			if (!g_hash_table_lookup_extended (word_table, *tmp, &k, &v)) {
-				g_hash_table_insert (word_table, g_strdup (*tmp), GINT_TO_POINTER (GPOINTER_TO_INT (v) + weight)); 
+				g_hash_table_insert (word_table, 
+                                                     g_strdup (*tmp), 
+                                                     GINT_TO_POINTER (GPOINTER_TO_INT (v) + weight)); 
 			} else {
-				g_hash_table_insert (word_table, *tmp, GINT_TO_POINTER (GPOINTER_TO_INT (v) + weight)); 
+				g_hash_table_insert (word_table, 
+                                                     *tmp, 
+                                                     GINT_TO_POINTER (GPOINTER_TO_INT (v) + weight)); 
 			}
 		}
 	}
@@ -512,12 +500,25 @@ tracker_parse_text_fast (GHashTable *word_table, const char *txt, int weight)
 	return word_table;
 }
 
-
-/* use this for unprocessed raw text */
 GHashTable *
-tracker_parse_text (GHashTable *word_table, const char *txt, int weight, gboolean filter_words, gboolean delimit_words)
+tracker_parser_text (GHashTable      *word_table, 
+                     const gchar     *txt, 
+                     gint             weight, 
+                     TrackerLanguage *language,
+                     gint             max_words_to_index,
+                     gint             max_word_length,
+                     gint             min_word_length,
+                     gboolean         filter_words, 
+                     gboolean         delimit_words)
 {
-	int total_words;
+	const gchar *p;
+	gchar       *word;
+	guint32      i;
+
+        /* Use this for unprocessed raw text */
+	gint         total_words;
+
+        g_return_val_if_fail (language != NULL, NULL);
 
 	if (!word_table) {
 		word_table = g_hash_table_new (g_str_hash, g_str_equal);
@@ -530,16 +531,14 @@ tracker_parse_text (GHashTable *word_table, const char *txt, int weight, gboolea
 		return word_table;
 	}
 
-	const char *p = txt;	
-
-	char *word = NULL;
-	guint32 i = 0;
+	p = txt;	
+	word = NULL;
+	i = 0;
 
 	if (text_needs_pango (txt)) {
 		/* CJK text does not need stemming or other treatment */
-
 		PangoLogAttr *attrs;
-		guint	     nb_bytes, str_len, word_start;
+		guint	      nb_bytes, str_len, word_start;
 
                 nb_bytes = strlen (txt);
 
@@ -547,40 +546,50 @@ tracker_parse_text (GHashTable *word_table, const char *txt, int weight, gboolea
 
 		attrs = g_new0 (PangoLogAttr, str_len + 1);
 
-		pango_get_log_attrs (txt, nb_bytes, 0, pango_language_from_string ("C"), attrs, str_len + 1);
+		pango_get_log_attrs (txt, 
+                                     nb_bytes, 
+                                     0, 
+                                     pango_language_from_string ("C"), 
+                                     attrs, 
+                                     str_len + 1);
 		
 		word_start = 0;
 
 		for (i = 0; i < str_len + 1; i++) {
-
 			if (attrs[i].is_word_end) {
-				char *start_word, *end_word;
+				gchar *start_word, *end_word;
 
 				start_word = g_utf8_offset_to_pointer (txt, word_start);
 				end_word = g_utf8_offset_to_pointer (txt, i);
 
 				if (start_word != end_word) {
-						
-					/* normalize word */
-					char *s = g_utf8_casefold (start_word, end_word - start_word);
-					if (!s) continue;
-					
-					char *index_word = g_utf8_normalize (s, -1, G_NORMALIZE_NFC);
+					/* Normalize word */
+					gchar *s;
+					gchar *index_word;
+
+                                        s = g_utf8_casefold (start_word, end_word - start_word);
+					if (!s) {
+                                                continue;
+                                        }
+
+                                        index_word = g_utf8_normalize (s, -1, G_NORMALIZE_NFC);
 					g_free (s);
 
-					if (!index_word) continue;
+					if (!index_word) {
+                                                continue;
+                                        }
 					
 					total_words++;
 
-					if (total_words < tracker_config_get_max_words_to_index (tracker->config)) { 
+					if (total_words < max_words_to_index) { 
+						gint count;
 
-						int count = GPOINTER_TO_INT (g_hash_table_lookup (word_table, index_word));
+                                                count = GPOINTER_TO_INT (g_hash_table_lookup (word_table, index_word));
 						g_hash_table_insert (word_table, index_word, GINT_TO_POINTER (count + weight));
 						
 						if (count != 0) {
 							g_free (index_word);
 						}
-
 					} else {
 						g_free (index_word);
 						break;
@@ -596,26 +605,30 @@ tracker_parse_text (GHashTable *word_table, const char *txt, int weight, gboolea
 		}
 
 		g_free (attrs);		
-
 	} else {
-
 		while (TRUE) {
 			i++;
-			p = analyze_text (p, &word, filter_words, filter_words, delimit_words);
+			p = analyze_text (p, 
+                                          language,
+                                          max_word_length,
+                                          min_word_length,
+                                          filter_words, 
+                                          filter_words, 
+                                          delimit_words,
+                                          &word);
 
 			if (word) {
-
 				total_words++;
 
-				if (total_words < tracker_config_get_max_words_to_index (tracker->config)) { 
-			
-					int count = GPOINTER_TO_INT (g_hash_table_lookup (word_table, word));
+				if (total_words < max_words_to_index) { 
+                                        gint count;
+
+                                        count = GPOINTER_TO_INT (g_hash_table_lookup (word_table, word));
 					g_hash_table_insert (word_table, word, GINT_TO_POINTER (count + weight));
 						
 					if (count != 0) {
 						g_free (word);
 					}
-
 				} else {
 					g_free (word);
 					break;
@@ -627,7 +640,16 @@ tracker_parse_text (GHashTable *word_table, const char *txt, int weight, gboolea
 				break;
 			}
 		}
-
 	}
+
 	return word_table;
+}
+
+void
+tracker_parser_text_free (GHashTable *table)
+{
+	if (table) {
+		g_hash_table_foreach (table, delete_words, NULL);		
+		g_hash_table_destroy (table);
+	}
 }

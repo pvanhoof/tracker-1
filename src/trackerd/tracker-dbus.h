@@ -34,6 +34,8 @@
 
 #include <libtracker-db/tracker-db-interface.h>
 
+#include "tracker-main.h"
+
 G_BEGIN_DECLS
 
 #define TRACKER_DBUS_ERROR_DOMAIN "TrackerDBus"
@@ -76,7 +78,7 @@ typedef struct {
         gpointer data2;
 } TrackerDBusData;
 
-gboolean         tracker_dbus_init                       (gpointer             tracker);
+gboolean         tracker_dbus_init                       (Tracker *tracker);
 void             tracker_dbus_shutdown                   (void);
 guint            tracker_dbus_get_next_request_id        (void);
 GObject *        tracker_dbus_get_object                 (GType                type);

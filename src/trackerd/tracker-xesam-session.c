@@ -19,8 +19,9 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#include "tracker-xesam.h"
+#include <string.h>
 
+#include "tracker-xesam.h"
 
 struct _TrackerXesamSessionPriv {
 	GHashTable *searches;

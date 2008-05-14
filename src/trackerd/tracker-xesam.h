@@ -22,8 +22,6 @@
 #ifndef __TRACKERD_XESAM_H__
 #define __TRACKERD_XESAM_H__
 
-typedef struct _TrackerXesamSession TrackerXesamSession;
-
 #include "tracker-utils.h"
 #include "tracker-dbus.h"
 #include "tracker-xesam-session.h"
@@ -31,10 +29,8 @@ typedef struct _TrackerXesamSession TrackerXesamSession;
 
 G_BEGIN_DECLS
 
-
-typedef enum {
-	TRACKER_XESAM_ERROR = 1
-} TrackerXesamErrorDomain;
+#define TRACKER_XESAM_ERROR_DOMAIN "TrackerDBus"
+#define TRACKER_XESAM_ERROR        tracker_dbus_error_quark()
 
 typedef enum {
 	TRACKER_XESAM_ERROR_SEARCH_ID_NOT_REGISTERED = 1,
@@ -44,21 +40,21 @@ typedef enum {
 	TRACKER_XESAM_ERROR_PROPERTY_NOT_SUPPORTED = 5,
 } TrackerXesamError;
 
-TrackerXesamSession*    tracker_xesam_get_session            (const gchar             *session_id,
-                                                              GError                 **error);
-TrackerXesamSession*    tracker_xesam_get_session_for_search (const gchar             *search_id,
-                                                              TrackerXesamLiveSearch **search_in,
-                                                              GError                 **error);
-TrackerXesamLiveSearch* tracker_xesam_get_live_search        (const gchar             *search_id,
-                                                              GError                 **error);
-TrackerXesamSession*    tracker_xesam_create_session         (TrackerDBusXesam       *dbus_proxy,
-                                                              gchar                  **session_id,
-                                                              GError                 **error);
-void                    tracker_xesam_close_session          (const gchar             *session_id,
-                                                              GError                 **error);
+GQuark                  tracker_xesam_error_quark            (void);
 void                    tracker_xesam_init                   (void);
-void                    tracker_xesam_wakeup                 (guint32 last_id);
-
+TrackerXesamSession*    tracker_xesam_create_session         (TrackerDBusXesam        *dbus_proxy,
+							      gchar                  **session_id,
+							      GError                 **error);
+void                    tracker_xesam_close_session          (const gchar             *session_id,
+							      GError                 **error);
+TrackerXesamSession*    tracker_xesam_get_session            (const gchar             *session_id,
+							      GError                 **error);
+TrackerXesamSession*    tracker_xesam_get_session_for_search (const gchar             *search_id,
+							      TrackerXesamLiveSearch **search_in,
+							      GError                 **error);
+TrackerXesamLiveSearch* tracker_xesam_get_live_search        (const gchar             *search_id,
+							      GError                 **error);
+void                    tracker_xesam_wakeup                 (guint32                  last_id);
 gchar *                 tracker_xesam_generate_unique_key    (void);
 
 G_END_DECLS

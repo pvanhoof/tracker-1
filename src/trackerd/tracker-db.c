@@ -1014,9 +1014,8 @@ tracker_db_index_service (DBConnection *db_con, TrackerDBFileInfo *info, const c
 		tracker_db_update_differential_index (old_table, index_table, str_file_id, info->service_type_id);
 	}
 
-	tracker_word_table_free (index_table);
-	tracker_word_table_free (old_table);
-
+	tracker_parser_text_free (index_table);
+	tracker_parser_text_free (old_table);
 
 	/* check for backup user defined metadata */
 	if (info->is_new) {

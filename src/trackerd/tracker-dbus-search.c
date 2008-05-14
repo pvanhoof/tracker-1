@@ -23,8 +23,9 @@
 
 #include <libtracker-common/tracker-log.h>
 
-#include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-language.h>
+#include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-utils.h>
 
 #include "tracker-dbus.h"
@@ -41,15 +42,19 @@
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DBUS_SEARCH, TrackerDBusSearchPriv))
 
 typedef struct {
-	DBusGProxy   *fd_proxy;
-	DBConnection *db_con;
-        Indexer      *file_index;
-        Indexer      *email_index;
+	DBusGProxy      *fd_proxy;
+	DBConnection    *db_con;
+	TrackerConfig   *config;
+	TrackerLanguage *language;
+        Indexer         *file_index;
+        Indexer         *email_index;
 } TrackerDBusSearchPriv;
 
 enum {
 	PROP_0,
 	PROP_DB_CONNECTION,
+	PROP_CONFIG,
+	PROP_LANGUAGE,
 	PROP_FILE_INDEX,
 	PROP_EMAIL_INDEX
 };
@@ -77,6 +82,19 @@ tracker_dbus_search_class_init (TrackerDBusSearchClass *klass)
 					 g_param_spec_pointer ("db-connection",
 							       "DB connection",
 							       "Database connection to use in transactions",
+							       G_PARAM_WRITABLE));
+	g_object_class_install_property (object_class,
+					 PROP_CONFIG,
+					 g_param_spec_object ("config",
+							      "Config",
+							      "TrackerConfig object",
+							      tracker_config_get_type (),
+							      G_PARAM_WRITABLE));
+	g_object_class_install_property (object_class,
+					 PROP_LANGUAGE,
+					 g_param_spec_pointer ("language",
+							       "Language",
+							       "Language",
 							       G_PARAM_WRITABLE));
 	g_object_class_install_property (object_class,
 					 PROP_FILE_INDEX,
@@ -128,6 +146,14 @@ dbus_search_set_property (GObject      *object,
 		tracker_dbus_search_set_db_connection (TRACKER_DBUS_SEARCH (object),
                                                        g_value_get_pointer (value));
 		break;
+	case PROP_CONFIG:
+		tracker_dbus_search_set_config (TRACKER_DBUS_SEARCH (object),
+						g_value_get_object (value));
+		break;
+	case PROP_LANGUAGE:
+		tracker_dbus_search_set_language (TRACKER_DBUS_SEARCH (object),
+						  g_value_get_pointer (value));
+		break;
 	case PROP_FILE_INDEX:
 		tracker_dbus_search_set_file_index (TRACKER_DBUS_SEARCH (object),
                                                     g_value_get_pointer (value));
@@ -168,6 +194,46 @@ tracker_dbus_search_set_db_connection (TrackerDBusSearch *object,
 	priv->db_con = db_con;
 	
 	g_object_notify (G_OBJECT (object), "db-connection");
+}
+
+void
+tracker_dbus_search_set_config (TrackerDBusSearch *object,
+				TrackerConfig     *config)
+{
+	TrackerDBusSearchPriv *priv;
+
+	g_return_if_fail (TRACKER_IS_DBUS_SEARCH (object));
+	g_return_if_fail (TRACKER_IS_CONFIG (config));
+
+	priv = GET_PRIV (object);
+
+	if (config) {
+		g_object_ref (config);
+	}
+
+	if (priv->config) {
+		g_object_unref (priv->config);
+	}
+
+	priv->config = config;
+
+	g_object_notify (G_OBJECT (object), "config");
+}
+
+void
+tracker_dbus_search_set_language (TrackerDBusSearch *object,
+				  TrackerLanguage   *language)
+{
+	TrackerDBusSearchPriv *priv;
+
+	g_return_if_fail (TRACKER_IS_DBUS_SEARCH (object));
+	g_return_if_fail (language != NULL);
+
+	priv = GET_PRIV (object);
+
+	priv->language = language;
+	
+	g_object_notify (G_OBJECT (object), "language");
 }
 
 void
@@ -585,7 +651,11 @@ tracker_dbus_search_get_hit_count (TrackerDBusSearch  *object,
 
 	array = g_array_new (TRUE, TRUE, sizeof (gint));
 	g_array_append_vals (array, services, G_N_ELEMENTS (services));
-	tree = tracker_query_tree_new (search_text, db_con->word_index, array);
+	tree = tracker_query_tree_new (search_text, 
+				       db_con->word_index, 
+				       priv->config,
+				       priv->language,
+				       array);
 	*value = tracker_query_tree_get_hit_count (tree);
 	g_object_unref (tree);
         g_array_free (array, TRUE);
@@ -631,7 +701,11 @@ tracker_dbus_search_get_hit_count_all (TrackerDBusSearch  *object,
 		return FALSE;
         }
 
-        tree = tracker_query_tree_new (search_text, db_con->word_index, NULL);
+        tree = tracker_query_tree_new (search_text, 
+				       db_con->word_index, 
+				       priv->config,
+				       priv->language,
+				       NULL);
 
         hit_counts = tracker_query_tree_get_hit_counts (tree);
         tracker_query_tree_set_indexer (tree, priv->email_index);
@@ -925,7 +999,10 @@ tracker_dbus_search_get_snippet (TrackerDBusSearch  *object,
 		gchar  *text;
 
 		tracker_db_result_set_get (result_set, 0, &text, -1);
-		strv = tracker_parse_text_into_array (text);
+		strv = tracker_parser_text_into_array (text, 
+						       priv->language,
+						       tracker_config_get_max_word_length (priv->config),
+						       tracker_config_get_min_word_length (priv->config));
 
 		if (strv && strv[0]) {
 			snippet = dbus_search_get_snippet (text, strv, 120);

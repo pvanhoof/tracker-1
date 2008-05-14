@@ -29,6 +29,14 @@
 
 extern Tracker *tracker;
 
+static gboolean live_search_handler_running = FALSE;
+
+GQuark
+tracker_xesam_error_quark (void)
+{
+	return g_quark_from_static_string (TRACKER_XESAM_ERROR_DOMAIN);
+}
+
 void 
 tracker_xesam_init (void)
 {
@@ -86,7 +94,9 @@ tracker_xesam_get_session (const gchar *session_id, GError **error)
 }
 
 TrackerXesamSession *
-tracker_xesam_get_session_for_search (const gchar *search_id, TrackerXesamLiveSearch **search_in, GError **error)
+tracker_xesam_get_session_for_search (const gchar             *search_id, 
+				      TrackerXesamLiveSearch **search_in, 
+				      GError                 **error)
 {
 	TrackerXesamSession *retval = NULL;
 	GList * sessions = g_hash_table_get_values (tracker->xesam_sessions);
@@ -119,7 +129,7 @@ tracker_xesam_get_session_for_search (const gchar *search_id, TrackerXesamLiveSe
 
 
 TrackerXesamLiveSearch *
-tracker_xesam_get_live_search  (const gchar *search_id, GError **error)
+tracker_xesam_get_live_search (const gchar *search_id, GError **error)
 {
 	TrackerXesamLiveSearch *retval = NULL;
 	GList * sessions = g_hash_table_get_values (tracker->xesam_sessions);
@@ -207,8 +217,6 @@ live_search_handler (gpointer data)
 
 	return reason_to_live;
 }
-
-static gboolean live_search_handler_running = FALSE;
 
 static void 
 live_search_handler_destroy (gpointer data)

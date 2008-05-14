@@ -85,10 +85,11 @@ tracker_dbus_daemon_class_init (TrackerDBusDaemonClass *klass)
 							       G_PARAM_WRITABLE));
 	g_object_class_install_property (object_class,
 					 PROP_CONFIG,
-					 g_param_spec_pointer ("config",
-							       "Config",
-							       "TrackerConfig object",
-							       G_PARAM_WRITABLE));
+					 g_param_spec_object ("config",
+							      "Config",
+							      "TrackerConfig object",
+							      tracker_config_get_type (),
+							      G_PARAM_WRITABLE));
 	g_object_class_install_property (object_class,
 					 PROP_TRACKER,
 					 g_param_spec_pointer ("tracker",
@@ -180,7 +181,7 @@ dbus_daemon_set_property (GObject      *object,
 		break;
 	case PROP_CONFIG:
 		tracker_dbus_daemon_set_config (TRACKER_DBUS_DAEMON (object),
-						g_value_get_pointer (value));
+						g_value_get_object (value));
 		break;
 	case PROP_TRACKER:
 		tracker_dbus_daemon_set_tracker (TRACKER_DBUS_DAEMON (object),
@@ -239,12 +240,21 @@ tracker_dbus_daemon_set_config (TrackerDBusDaemon *object,
 
 	priv = GET_PRIV (object);
 
+	/* Ref now in case it is the same object we are about to
+	 * unref.
+	 */
+	g_object_ref (config);
+
 	if (priv->config) {
 		g_object_unref (priv->config);
 	}
-	
-	priv->config = g_object_ref (config);
-	
+
+	if (config) {
+		priv->config = config;
+	} else {
+		priv->config = NULL;
+	}
+
 	g_object_notify (G_OBJECT (object), "config");
 }
 

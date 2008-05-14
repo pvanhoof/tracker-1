@@ -26,6 +26,8 @@
 #include <dbus/dbus-glib-bindings.h>
 #include <dbus/dbus-glib-lowlevel.h>
 
+#include <libtracker-common/tracker-language.h>
+
 #include "tracker-db-sqlite.h"
 #include "tracker-indexer.h"
 
@@ -56,9 +58,13 @@ struct TrackerDBusSearchClass {
 GType    tracker_dbus_search_get_type          (void);
 
 TrackerDBusSearch *
-         tracker_dbus_search_new               (DBConnection          *db_con);
+         tracker_dbus_search_new               (DBConnection        *db_con);
 void     tracker_dbus_search_set_db_connection (TrackerDBusSearch   *object,
 						DBConnection        *db_con);
+void     tracker_dbus_search_set_config        (TrackerDBusSearch   *object,
+						TrackerConfig       *config);
+void     tracker_dbus_search_set_language      (TrackerDBusSearch   *object,
+						TrackerLanguage     *language);
 void     tracker_dbus_search_set_file_index    (TrackerDBusSearch   *object,
 						Indexer             *file_index);
 void     tracker_dbus_search_set_email_index   (TrackerDBusSearch   *object,

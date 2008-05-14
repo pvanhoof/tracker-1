@@ -125,17 +125,14 @@ name_owner_changed_done (gpointer data, GClosure *closure)
 }
 
 gboolean
-tracker_dbus_init (gpointer tracker_pointer)
+tracker_dbus_init (Tracker *tracker)
 {
-        Tracker         *tracker;
         DBusGConnection *connection;
         DBusGProxy      *proxy;
         GObject         *object;
         GError          *error = NULL;
 
-        g_return_val_if_fail (tracker_pointer != NULL, FALSE);
-
-        tracker = (Tracker*) tracker_pointer;
+        g_return_val_if_fail (tracker != NULL, FALSE);
 
         connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
 
@@ -223,6 +220,8 @@ tracker_dbus_init (gpointer tracker_pointer)
         }
 
         g_object_set (object, "db-connection", tracker->index_db, NULL);
+        g_object_set (object, "config", tracker->config, NULL);
+        g_object_set (object, "language", tracker->language, NULL);
         g_object_set (object, "file-index", tracker->file_index, NULL);
         g_object_set (object, "email-index", tracker->email_index, NULL);
         objects = g_slist_prepend (objects, object);

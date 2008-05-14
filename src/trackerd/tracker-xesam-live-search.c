@@ -19,11 +19,12 @@
  * Boston, MA  02110-1301, USA.
  */
 
+#include <string.h>
+
 #include "tracker-xesam-live-search.h"
 #include "tracker-dbus-xesam.h"
 #include "tracker-dbus.h"
 #include "tracker-xesam.h"
-
 
 struct _TrackerXesamLiveSearchPriv {
 	TrackerXesamSession *session;

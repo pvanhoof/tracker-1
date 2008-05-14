@@ -531,15 +531,6 @@ initialise_threading (void)
 }
 
 static void
-initialise_defaults (void)
-{
-	tracker->max_process_queue_size = MAX_PROCESS_QUEUE_SIZE;
-	tracker->max_extract_queue_size = MAX_EXTRACT_QUEUE_SIZE;
-
-	tracker->index_number_min_length = 6;
-}
-
-static void
 initialise_databases (gboolean need_index)
 {
 	Indexer      *index;
@@ -869,10 +860,14 @@ main (gint argc, gchar *argv[])
 
 	initialise_signal_handler ();
 
+	/* Create struct */
 	tracker = g_new0 (Tracker, 1);
 
 	tracker->pid = getpid ();
 	tracker->dir_queue = g_async_queue_new ();
+
+	tracker->max_process_queue_size = MAX_PROCESS_QUEUE_SIZE;
+	tracker->max_extract_queue_size = MAX_EXTRACT_QUEUE_SIZE;
 
 	/* This makes sure we have all the locations like the data
 	 * dir, user data dir, etc all configured.
@@ -925,8 +920,6 @@ main (gint argc, gchar *argv[])
 	/* Deal with config options with defaults, config file and
 	 * option params.
 	 */
-	initialise_defaults ();
-
 	if (watch_dirs) {
                 tracker_config_add_watch_directory_roots (tracker->config, watch_dirs);
 	}

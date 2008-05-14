@@ -26,6 +26,10 @@
 G_BEGIN_DECLS
 
 #include <glib-object.h>
+
+#include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-language.h>
+
 #include "tracker-indexer.h"
 
 #define TRACKER_TYPE_QUERY_TREE         (tracker_query_tree_get_type())
@@ -62,13 +66,21 @@ struct TrackerHitCount {
 GType                 tracker_query_tree_get_type       (void);
 TrackerQueryTree *    tracker_query_tree_new            (const gchar      *query_str,
                                                          Indexer          *indexer,
+							 TrackerConfig    *config,
+							 TrackerLanguage  *language,
                                                          GArray           *services);
 G_CONST_RETURN gchar *tracker_query_tree_get_query      (TrackerQueryTree *tree);
 void                  tracker_query_tree_set_query      (TrackerQueryTree *tree,
                                                          const gchar      *query_str);
 Indexer *             tracker_query_tree_get_indexer    (TrackerQueryTree *tree);
 void                  tracker_query_tree_set_indexer    (TrackerQueryTree *tree,
-                                                         Indexer          *indexer);
+							 Indexer          *indexer);
+TrackerConfig *       tracker_query_tree_get_config     (TrackerQueryTree *tree);
+void                  tracker_query_tree_set_config     (TrackerQueryTree *tree,
+                                                         TrackerConfig    *config);
+TrackerLanguage *     tracker_query_tree_get_language   (TrackerQueryTree *tree);
+void                  tracker_query_tree_set_language   (TrackerQueryTree *tree,
+                                                         TrackerLanguage  *language);
 GArray *              tracker_query_tree_get_services   (TrackerQueryTree *tree);
 void                  tracker_query_tree_set_services   (TrackerQueryTree *tree,
                                                          GArray           *services);

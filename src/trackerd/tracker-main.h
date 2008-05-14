@@ -86,9 +86,6 @@ typedef struct {
         Indexer          *email_index;
 
 	/* Table of stop words that are to be ignored by the parser */
-	GHashTable       *stop_words;
-	gint              index_number_min_length;
-
 	gboolean          first_time_index; 
 	
 	time_t            index_time_start; 

@@ -17,21 +17,35 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#include <glib-object.h>
+/* These defines are required to allow lrintf() without warnings when
+ * building.
+ */
+#define _ISOC9X_SOURCE  1
+#define _ISOC99_SOURCE  1
+
+#define __USE_ISOC9X    1
+#define __USE_ISOC99    1
+
 #include <string.h>
 #include <math.h>
 #include <depot.h>
+
+#include <glib-object.h>
+
+#include <libtracker-common/tracker-config.h>
+
 #include "tracker-query-tree.h"
 #include "tracker-parser.h"
 #include "tracker-utils.h"
 #include "tracker-service-manager.h"
 
 #define TRACKER_QUERY_TREE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_QUERY_TREE, TrackerQueryTreePrivate))
+
 #define MAX_HIT_BUFFER 480000
 #define SCORE_MULTIPLIER 100000
 
-typedef enum OperationType OperationType;
-typedef enum TreeNodeType TreeNodeType;
+typedef enum   OperationType OperationType;
+typedef enum   TreeNodeType TreeNodeType;
 typedef struct TreeNode TreeNode;
 typedef struct TrackerQueryTreePrivate TrackerQueryTreePrivate;
 typedef struct ComposeHitsData ComposeHitsData;
@@ -44,23 +58,25 @@ enum OperationType {
 };
 
 struct TreeNode {
-	TreeNode *left;
-	TreeNode *right;
-	OperationType op;
-	gchar *term;
+	TreeNode      *left;
+	TreeNode      *right;
+	OperationType  op;
+	gchar         *term;
 };
 
 struct TrackerQueryTreePrivate {
-	gchar *query_str;
-	TreeNode *tree;
-	Indexer *indexer;
-	GArray *services;
+	gchar           *query_str;
+	TreeNode        *tree;
+	Indexer         *indexer;
+        TrackerConfig   *config;
+        TrackerLanguage *language;
+	GArray          *services;
 };
 
 struct ComposeHitsData {
-	OperationType op;
-	GHashTable *other_table;
-	GHashTable *dest_table;
+	OperationType  op;
+	GHashTable    *other_table;
+	GHashTable    *dest_table;
 };
 
 struct SearchHitData {
@@ -72,22 +88,22 @@ enum {
 	PROP_0,
 	PROP_QUERY,
 	PROP_INDEXER,
+        PROP_CONFIG,
+        PROP_LANGUAGE,
 	PROP_SERVICES
 };
 
-static void tracker_query_tree_class_init (TrackerQueryTreeClass *class);
-static void tracker_query_tree_init       (TrackerQueryTree      *tree);
-static void tracker_query_tree_finalize   (GObject               *object);
-
-static void tracker_query_tree_set_property (GObject      *object,
-					     guint         prop_id,
-					     const GValue *value,
-					     GParamSpec   *pspec);
-static void tracker_query_tree_get_property (GObject      *object,
-					     guint         prop_id,
-					     GValue       *value,
-					     GParamSpec   *pspec);
-
+static void tracker_query_tree_class_init   (TrackerQueryTreeClass *class);
+static void tracker_query_tree_init         (TrackerQueryTree      *tree);
+static void tracker_query_tree_finalize     (GObject               *object);
+static void tracker_query_tree_set_property (GObject               *object,
+                                             guint                  prop_id,
+                                             const GValue          *value,
+                                             GParamSpec            *pspec);
+static void tracker_query_tree_get_property (GObject               *object,
+                                             guint                  prop_id,
+                                             GValue                *value,
+                                             GParamSpec            *pspec);
 
 G_DEFINE_TYPE (TrackerQueryTree, tracker_query_tree, G_TYPE_OBJECT)
 
@@ -112,6 +128,19 @@ tracker_query_tree_class_init (TrackerQueryTreeClass *klass)
 					 g_param_spec_pointer ("indexer",
 							       "Indexer",
 							       "Indexer",
+							       G_PARAM_READWRITE));
+	g_object_class_install_property (object_class,
+					 PROP_CONFIG,
+					 g_param_spec_object ("config",
+                                                              "Config",
+                                                              "Config",
+                                                              tracker_config_get_type (),
+                                                              G_PARAM_READWRITE));
+	g_object_class_install_property (object_class,
+					 PROP_LANGUAGE,
+					 g_param_spec_pointer ("language",
+							       "Language",
+							       "Language",
 							       G_PARAM_READWRITE));
 	g_object_class_install_property (object_class,
 					 PROP_SERVICES,
@@ -195,6 +224,14 @@ tracker_query_tree_set_property (GObject      *object,
 		tracker_query_tree_set_indexer (TRACKER_QUERY_TREE (object),
 						g_value_get_pointer (value));
 		break;
+	case PROP_CONFIG:
+		tracker_query_tree_set_config (TRACKER_QUERY_TREE (object),
+                                               g_value_get_object (value));
+		break;
+	case PROP_LANGUAGE:
+		tracker_query_tree_set_language (TRACKER_QUERY_TREE (object),
+						 g_value_get_pointer (value));
+		break;
 	case PROP_SERVICES:
 		tracker_query_tree_set_services (TRACKER_QUERY_TREE (object),
 						 g_value_get_pointer (value));
@@ -221,6 +258,12 @@ tracker_query_tree_get_property (GObject      *object,
 	case PROP_INDEXER:
 		g_value_set_pointer (value, priv->indexer);
 		break;
+	case PROP_CONFIG:
+		g_value_set_object (value, priv->config);
+		break;
+	case PROP_LANGUAGE:
+		g_value_set_pointer (value, priv->language);
+		break;
 	case PROP_SERVICES:
 		g_value_set_pointer (value, priv->services);
 		break;
@@ -230,21 +273,27 @@ tracker_query_tree_get_property (GObject      *object,
 }
 
 TrackerQueryTree *
-tracker_query_tree_new (const gchar *query_str,
-			Indexer     *indexer,
-			GArray      *services)
+tracker_query_tree_new (const gchar     *query_str,
+			Indexer         *indexer,
+                        TrackerConfig   *config,
+                        TrackerLanguage *language,
+			GArray          *services)
 {
 	g_return_val_if_fail (query_str != NULL, NULL);
 	g_return_val_if_fail (indexer != NULL, NULL);
+	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
+	g_return_val_if_fail (language != NULL, NULL);
 
 	return g_object_new (TRACKER_TYPE_QUERY_TREE,
 			     "query", query_str,
 			     "indexer", indexer,
+                             "config", config,
+                             "language", language,
 			     "services", services,
 			     NULL);
 }
 
-# if 0
+#if 0
 static void
 print_tree (TreeNode *node)
 {
@@ -348,7 +397,13 @@ create_query_tree (TrackerQueryTree *tree)
 			break;
 		default:
 			/* search term */
-			parsed_str = tracker_parse_text_to_string (strings[i], TRUE, FALSE, FALSE);
+			parsed_str = tracker_parser_text_to_string (strings[i], 
+                                                                    priv->language,
+                                                                    tracker_config_get_max_word_length (priv->config),
+                                                                    tracker_config_get_min_word_length (priv->config),
+                                                                    TRUE, 
+                                                                    FALSE, 
+                                                                    FALSE);
 			node = tree_node_leaf_new (g_strstrip (parsed_str));
 			g_queue_push_head (queue, node);
 			last_element_is_term = TRUE;
@@ -443,6 +498,67 @@ tracker_query_tree_get_indexer (TrackerQueryTree *tree)
 
 	priv = TRACKER_QUERY_TREE_GET_PRIVATE (tree);
 	return priv->indexer;
+}
+
+void
+tracker_query_tree_set_config (TrackerQueryTree *tree,
+			       TrackerConfig    *config)
+{
+	TrackerQueryTreePrivate *priv;
+
+	g_return_if_fail (TRACKER_IS_QUERY_TREE (tree));
+	g_return_if_fail (TRACKER_IS_CONFIG (config));
+
+	priv = TRACKER_QUERY_TREE_GET_PRIVATE (tree);
+
+	if (config) {
+		g_object_ref (config);
+	}
+
+	if (priv->config) {
+		g_object_unref (priv->config);
+	}
+
+	priv->config = config;
+
+	g_object_notify (G_OBJECT (tree), "config");
+}
+
+TrackerConfig *
+tracker_query_tree_get_config (TrackerQueryTree *tree)
+{
+	TrackerQueryTreePrivate *priv;
+
+	g_return_val_if_fail (TRACKER_IS_QUERY_TREE (tree), NULL);
+
+	priv = TRACKER_QUERY_TREE_GET_PRIVATE (tree);
+	return priv->config;
+}
+
+void
+tracker_query_tree_set_language (TrackerQueryTree *tree,
+                                 TrackerLanguage  *language)
+{
+	TrackerQueryTreePrivate *priv;
+
+	g_return_if_fail (TRACKER_IS_QUERY_TREE (tree));
+	g_return_if_fail (language != NULL);
+
+	priv = TRACKER_QUERY_TREE_GET_PRIVATE (tree);
+	priv->language = language;
+
+	g_object_notify (G_OBJECT (tree), "language");
+}
+
+TrackerLanguage *
+tracker_query_tree_get_language (TrackerQueryTree *tree)
+{
+	TrackerQueryTreePrivate *priv;
+
+	g_return_val_if_fail (TRACKER_IS_QUERY_TREE (tree), NULL);
+
+	priv = TRACKER_QUERY_TREE_GET_PRIVATE (tree);
+	return priv->language;
 }
 
 void

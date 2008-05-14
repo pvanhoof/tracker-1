@@ -23,38 +23,50 @@
 
 #include <glib.h>
 
+#include <libtracker-common/tracker-language.h>
+
 G_BEGIN_DECLS
 
-/* tracker_parse_text 
- *
- * function to parse supplied text and break into individual words and
- * maintain a count of no of occurances of the word multiplied by a
+/* 
+ * Functions to parse supplied text and break into individual words and
+ * maintain a count of no of occurences of the word multiplied by a
  * "weight" factor. 
  * 
- * word_table - can be NULL. Contains the accumulated parsed words
+ * The word_table - can be NULL. It contains the accumulated parsed words
  * with weighted word counts for the text (useful for indexing stuff
  * line by line) 
-
+ *
  *   text   - the text to be parsed 
  *   weight - used to multiply the count of a word's occurance to create
  *            a weighted rank score 
  * 
- * returns the word_table.
+ * Returns the word_table.
  */
-GHashTable *tracker_parse_text            (GHashTable *word_table,
-                                           const char *txt,
-                                           int         weight,
-                                           gboolean    filter_words,
-                                           gboolean    delimit_words);
-GHashTable *tracker_parse_text_fast       (GHashTable *word_table,
-                                           const char *txt,
-                                           int         weight);
-char *      tracker_parse_text_to_string  (const char *txt,
-                                           gboolean    filter_words,
-                                           gboolean    filter_numbers,
-                                           gboolean    delimit);
-char **     tracker_parse_text_into_array (const char *text);
-void        tracker_word_table_free       (GHashTable *table);
+
+GHashTable *tracker_parser_text            (GHashTable      *word_table,
+					    const gchar     *txt,
+					    gint             weight,
+					    TrackerLanguage *language,
+					    gint             max_words_to_index,
+					    gint             max_word_length,
+					    gint             min_word_length,
+					    gboolean         filter_words,
+					    gboolean         delimit_words);
+GHashTable *tracker_parser_text_fast       (GHashTable      *word_table,
+					    const char      *txt,
+					    gint             weight);
+gchar *     tracker_parser_text_to_string  (const gchar     *txt,
+					    TrackerLanguage *language,
+					    gint             max_word_length,
+					    gint             min_word_length,
+					    gboolean         filter_words,
+					    gboolean         filter_numbers,
+					    gboolean         delimit);
+gchar **    tracker_parser_text_into_array (const gchar     *text,
+					    TrackerLanguage *language,
+					    gint             max_word_length,
+					    gint             min_word_length);
+void        tracker_parser_text_free       (GHashTable      *table);
 
 G_END_DECLS
 

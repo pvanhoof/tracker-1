@@ -24,11 +24,8 @@
 
 #include <glib.h>
 #include <glib-object.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include "tracker-xesam.h"
-
 #include "tracker-xesam-live-search.h"
 #include "tracker-dbus-xesam.h"
 
@@ -43,8 +40,9 @@ G_BEGIN_DECLS
 
 #define TRACKER_TYPE_XESAM_STRV_ARRAY (dbus_g_type_get_collection ("GPtrArray", G_TYPE_STRV))
 
+typedef struct _TrackerXesamSession      TrackerXesamSession;
 typedef struct _TrackerXesamSessionClass TrackerXesamSessionClass;
-typedef struct _TrackerXesamSessionPriv TrackerXesamSessionPriv;
+typedef struct _TrackerXesamSessionPriv  TrackerXesamSessionPriv;
 
 struct _TrackerXesamSession {
 	GObject parent_instance;

@@ -1,3 +1,41 @@
+2008-05-14  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-db-email.c: 
+	* src/trackerd/tracker-db-sqlite.c:
+	* src/trackerd/tracker-db.c: 
+
+	* src/trackerd/tracker-dbus-daemon.c: Changed the "config"
+	property to be an object spec instead of a pointer spec. Also
+	fixed the way we set the object.
+
+	* src/trackerd/tracker-dbus-search.[ch]: Added "config" and
+	"language" properties to be used with the TrackerQueryTree API.
+
+	* src/trackerd/tracker-dbus-xesam.c: 
+	* src/trackerd/tracker-xesam-live-search.c: 
+	* src/trackerd/tracker-xesam-session.h: Fix includes.
+
+	* src/trackerd/tracker-dbus.[ch]: Use Tracker pointer instead of
+	gpointer for dbus initialisation and set the config/language for
+	TrackerDBusSearch.
+
+	* src/trackerd/tracker-main.[ch]: Removed the "stop_words" member
+	of the Tracker struct, it is not used. Also removed the
+	"index_number_min_length" member and replaced the one time it is
+	used for a #define in tracker-parser.c.
+	
+	* src/trackerd/tracker-parser.[ch]: Refactored this module and
+	made it not depend on TrackerConfig and TrackerLanguage, instead,
+	we parse the values in that we need in the public API. 
+
+	* src/trackerd/tracker-query-tree.[ch]: Add properties for
+	TrackerConfig and TrackerLanguage so we can use them when using
+	the tracker-parser API.
+	
+	* src/trackerd/tracker-xesam.[ch]: Use proper GQuarks for the
+	xesam error system and reordered the functions in the header to be
+	more logical and inline with the .c file.
+
 2008-05-14  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/trackerd/tracker-db-sqlite.c:

@@ -18,19 +18,12 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
 #include "config.h"
 
 #include <fcntl.h>
 #include <regex.h>
 #include <zlib.h>
-
-#ifdef OS_WIN32
-#include "mingw-compat.h"
-#endif
+#include <string.h>
 
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -1585,7 +1578,12 @@ tracker_db_get_file_contents_words (DBConnection *db_con, guint32 id, GHashTable
 		gchar *st;
 
 		tracker_db_result_set_get (result_set, 0, &st, -1);
-		old_table = tracker_parse_text (old_table, st, 1, TRUE, FALSE);
+		old_table = tracker_parser_text (old_table, st, 1,
+						 tracker->language, 
+ 						 tracker_config_get_max_words_to_index (tracker->config),
+ 						 tracker_config_get_max_word_length (tracker->config),
+ 						 tracker_config_get_min_word_length (tracker->config),
+						 TRUE, FALSE);
 
 		valid = tracker_db_result_set_iter_next (result_set);
 		g_free (st);
@@ -1622,7 +1620,7 @@ tracker_db_get_indexable_content_words (DBConnection *db_con, guint32 id, GHashT
 						   1, &weight,
 						   -1);
 
-			table = tracker_parse_text_fast (table, value, weight);
+			table = tracker_parser_text_fast (table, value, weight);
 
 			g_free (value);
 			valid = tracker_db_result_set_iter_next (result_set);
@@ -1651,7 +1649,12 @@ tracker_db_get_indexable_content_words (DBConnection *db_con, guint32 id, GHashT
 						   3, &delimited
 						   -1);
 
-			table = tracker_parse_text (table, value, weight, filtered, delimited);
+			table = tracker_parser_text (table, value, weight, 
+						     tracker->language, 
+						     tracker_config_get_max_words_to_index (tracker->config),
+						     tracker_config_get_max_word_length (tracker->config),
+						     tracker_config_get_min_word_length (tracker->config),
+						     filtered, delimited);
 			valid = tracker_db_result_set_iter_next (result_set);
 			g_free (value);
 		}
@@ -1825,9 +1828,19 @@ tracker_db_save_file_contents (DBConnection *db_con, GHashTable *index_table, GH
 		} 
 		
 		if (use_buffer) {
-			index_table = tracker_parse_text (index_table, buffer, 1, TRUE, FALSE);
+			index_table = tracker_parser_text (index_table, buffer, 1, 
+							   tracker->language, 
+							   tracker_config_get_max_words_to_index (tracker->config),
+							   tracker_config_get_max_word_length (tracker->config),
+							   tracker_config_get_min_word_length (tracker->config),
+							   TRUE, FALSE);
 		} else {
-			index_table = tracker_parse_text (index_table, value, 1, TRUE, FALSE);
+			index_table = tracker_parser_text (index_table, value, 1,
+							   tracker->language, 
+							   tracker_config_get_max_words_to_index (tracker->config),
+							   tracker_config_get_max_word_length (tracker->config),
+							   tracker_config_get_min_word_length (tracker->config),
+							   TRUE, FALSE);
 		}
 
 		strm.avail_in = buffer_length;
@@ -1918,7 +1931,10 @@ tracker_db_search_text (DBConnection *db_con, const char *service, const char *s
 	GSList          *duds = NULL;
 	guint           i = 0;
 
-	array = tracker_parse_text_into_array (search_string);
+	array = tracker_parser_text_into_array (search_string,
+						tracker->language,
+						tracker_config_get_max_word_length (tracker->config),
+						tracker_config_get_min_word_length (tracker->config));
 
 	result_set = tracker_exec_proc (db_con->common, "GetRelatedServiceIDs", service, service, NULL);
 
@@ -1942,7 +1958,11 @@ tracker_db_search_text (DBConnection *db_con, const char *service, const char *s
 		g_object_unref (result_set);
 	}
 
-	tree = tracker_query_tree_new (search_string, db_con->word_index, services);
+	tree = tracker_query_tree_new (search_string, 
+				       db_con->word_index, 
+				       tracker->config,
+				       tracker->language,
+				       services);
 	hits = tracker_query_tree_get_hits (tree, offset, limit);
 	result = NULL;
 
@@ -2214,24 +2234,36 @@ update_metadata_index (const char *id, const char *service, FieldDef *def, const
 	new_table = NULL;
 
 	if (old_value) {
-		old_table = tracker_parse_text (old_table, 
-                                                old_value, 
-                                                def->weight, 
-                                                def->filtered, 
-                                                def->delimited);
+		old_table = tracker_parser_text (old_table, 
+						 old_value, 
+						 def->weight, 
+						 tracker->language, 
+ 						 tracker_config_get_max_words_to_index (tracker->config),
+ 						 tracker_config_get_max_word_length (tracker->config),
+ 						 tracker_config_get_min_word_length (tracker->config),
+						 def->filtered, 
+						 def->delimited);
 	}
 
 	/* parse new metadata value */
 	if (new_value) {
-		new_table = tracker_parse_text (new_table, new_value, def->weight, def->filtered, def->delimited);
+		new_table = tracker_parser_text (new_table, 
+						 new_value, 
+						 def->weight, 
+						 tracker->language, 
+ 						 tracker_config_get_max_words_to_index (tracker->config),
+ 						 tracker_config_get_max_word_length (tracker->config),
+ 						 tracker_config_get_min_word_length (tracker->config),
+						 def->filtered, 
+						 def->delimited);
 	}
 
 	/* we only do differential updates so only changed words scores are updated */
 	sid = tracker_service_manager_get_id_for_service (service);
 	tracker_db_update_differential_index (old_table, new_table, id, sid);
 
-	tracker_word_table_free (old_table);
-	tracker_word_table_free (new_table);
+	tracker_parser_text_free (old_table);
+	tracker_parser_text_free (new_table);
 }
 
 
@@ -2367,9 +2399,16 @@ tracker_db_insert_embedded_metadata (DBConnection *db_con, const gchar *service,
                                 }
 
 				if (table) {
-					gchar *mvalue = tracker_parse_text_to_string (values[i], FALSE, FALSE, FALSE);
+					gchar *mvalue;
 
-					table = tracker_parse_text_fast (table, mvalue, def->weight);
+					mvalue = tracker_parser_text_to_string (values[i],
+										tracker->language,
+										tracker_config_get_max_word_length (tracker->config),
+										tracker_config_get_min_word_length (tracker->config),
+										FALSE, 
+										FALSE, 
+										FALSE);
+					table = tracker_parser_text_fast (table, mvalue, def->weight);
 
 					g_free (mvalue);
 				}
@@ -2388,10 +2427,16 @@ tracker_db_insert_embedded_metadata (DBConnection *db_con, const gchar *service,
                                         continue;
                                 }
 
-				mvalue = tracker_parse_text_to_string (values[i], def->filtered, def->filtered, def->delimited);
+				mvalue = tracker_parser_text_to_string (values[i], 
+									tracker->language,
+									tracker_config_get_max_word_length (tracker->config),
+									tracker_config_get_min_word_length (tracker->config),
+									def->filtered, 
+									def->filtered, 
+									def->delimited);
 
 				if (table) {
-					table = tracker_parse_text_fast (table, mvalue, def->weight);
+					table = tracker_parser_text_fast (table, mvalue, def->weight);
 				}
 				
 				tracker_exec_proc (db_con, "SetMetadata", id, def->id, mvalue, values[i], NULL);
@@ -2409,7 +2454,15 @@ tracker_db_insert_embedded_metadata (DBConnection *db_con, const gchar *service,
                                 }
 
 				if (table) {
-					table = tracker_parse_text  (table, values[i], def->weight, def->filtered, def->delimited);
+					table = tracker_parser_text (table, 
+								     values[i], 
+								     def->weight, 
+								     tracker->language, 
+								     tracker_config_get_max_words_to_index (tracker->config),
+								     tracker_config_get_max_word_length (tracker->config),
+								     tracker_config_get_min_word_length (tracker->config),
+								     def->filtered, 
+								     def->delimited);
 				}
 	
 				save_full_text (db_con->blob, id, values[i], strlen (values[i]));
@@ -2432,12 +2485,19 @@ tracker_db_insert_embedded_metadata (DBConnection *db_con, const gchar *service,
                 case DATA_STRING: {
                         gint i;
 			for (i = 0; i < length; i++) {
+				gchar *mvalue;
+
                                 if (!values[i]) {
                                         continue;
                                 }
 
-				gchar *mvalue = tracker_parse_text_to_string (values[i], def->filtered,  def->filtered, def->delimited);
-
+				mvalue = tracker_parser_text_to_string (values[i], 
+									tracker->language,
+									tracker_config_get_max_word_length (tracker->config),
+									tracker_config_get_min_word_length (tracker->config),
+									def->filtered,  
+									def->filtered, 
+									def->delimited);
 				tracker_exec_proc (db_con, "SetMetadata", id, def->id, mvalue, values[i], NULL);
 
 				g_free (mvalue);
@@ -2677,9 +2737,12 @@ tracker_db_set_metadata (DBConnection *db_con, const char *service, const char *
 
 		case DATA_INDEX:
 			
-			for (i=0; i<length; i++) {
+			for (i = 0; i < length; i++) {
+				gchar *mvalue;
 
-				if (!values[i] || !values[i][0]) continue;
+				if (!values[i] || !values[i][0]) {
+					continue;
+				}
 
 				if (str) {
 					g_string_append_printf (str, " %s ", values[i]);
@@ -2694,9 +2757,13 @@ tracker_db_set_metadata (DBConnection *db_con, const char *service, const char *
 					backup_non_embedded_metadata (db_con, id, def->id, values[i]);
 				}
 
-
-				char *mvalue = tracker_parse_text_to_string (values[i], def->filtered,  def->filtered, def->delimited);
-
+				mvalue = tracker_parser_text_to_string (values[i], 
+									tracker->language,
+									tracker_config_get_max_word_length (tracker->config),
+									tracker_config_get_min_word_length (tracker->config),
+									def->filtered,  
+									def->filtered, 
+									def->delimited);
 				tracker_exec_proc (db_con, "SetMetadata", id, def->id, mvalue, values[i], NULL);
 
 				g_free (mvalue);
@@ -2719,9 +2786,12 @@ tracker_db_set_metadata (DBConnection *db_con, const char *service, const char *
 
 		case DATA_STRING:
 
-			for (i=0; i<length; i++) {
+			for (i = 0; i < length; i++) {
+				gchar *mvalue;
 
-				if (!values[i] || !values[i][0]) continue;
+				if (!values[i] || !values[i][0]) {
+					continue;
+				}
 
 				/* backup non-embedded data for embedded services */
 				if (do_backup && 
@@ -2730,8 +2800,13 @@ tracker_db_set_metadata (DBConnection *db_con, const char *service, const char *
 					backup_non_embedded_metadata (db_con, id, def->id, values[i]);
 				}
 
-				char *mvalue = tracker_parse_text_to_string (values[i], def->filtered,  def->filtered, def->delimited);
-
+				mvalue = tracker_parser_text_to_string (values[i], 
+									tracker->language,
+									tracker_config_get_max_word_length (tracker->config),
+									tracker_config_get_min_word_length (tracker->config),
+									def->filtered,  
+									def->filtered, 
+									def->delimited);
 				tracker_exec_proc (db_con, "SetMetadata", id, def->id, mvalue, values[i], NULL);
 
 				g_free (mvalue);
@@ -2957,7 +3032,13 @@ tracker_db_delete_metadata_value (DBConnection *db_con, const char *service, con
 
 		case DATA_INDEX:
 		case DATA_STRING:
-			mvalue = tracker_parse_text_to_string (value, def->filtered,  def->filtered, def->delimited);
+			mvalue = tracker_parser_text_to_string (value, 
+								tracker->language,
+								tracker_config_get_max_word_length (tracker->config),
+								tracker_config_get_min_word_length (tracker->config),
+								def->filtered,  
+								def->filtered, 
+								def->delimited);
 			tracker_exec_proc (db_con, "DeleteMetadataValue", id, def->id, mvalue, NULL);
 			g_free (mvalue);
 			break;
@@ -3905,7 +3986,11 @@ tracker_db_search_text_mime (DBConnection *db_con, const char *text, char **mime
 	services = g_array_new (TRUE, TRUE, sizeof (gint));
 	g_array_append_vals (services, service_array, 8);
 
-	tree = tracker_query_tree_new (text, db_con->word_index, services);
+	tree = tracker_query_tree_new (text, 
+				       db_con->word_index, 
+				       tracker->config,
+				       tracker->language,
+				       services);
 	hits = tracker_query_tree_get_hits (tree, 0, 0);
 	count = 0;
 
@@ -3999,7 +4084,11 @@ tracker_db_search_text_location (DBConnection *db_con, const char *text, const c
 	services = g_array_new (TRUE, TRUE, sizeof (gint));
 	g_array_append_vals (services, service_array, 8);
 
-	tree = tracker_query_tree_new (text, db_con->word_index, services);
+	tree = tracker_query_tree_new (text, 
+				       db_con->word_index, 
+				       tracker->config,
+				       tracker->language,
+				       services);
 	hits = tracker_query_tree_get_hits (tree, 0, 0);
 	count = 0;
 
@@ -4094,7 +4183,11 @@ tracker_db_search_text_mime_location (DBConnection *db_con, const char *text, ch
 	services = g_array_new (TRUE, TRUE, sizeof (gint));
 	g_array_append_vals (services, service_array, 8);
 
-	tree = tracker_query_tree_new (text, db_con->word_index, services);
+	tree = tracker_query_tree_new (text, 
+				       db_con->word_index, 
+				       tracker->config,
+				       tracker->language,
+				       services);
 	hits = tracker_query_tree_get_hits (tree, 0, 0);
 	count = 0;
 

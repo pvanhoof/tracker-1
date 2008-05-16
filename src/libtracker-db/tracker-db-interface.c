@@ -255,27 +255,6 @@ tracker_db_interface_execute_vquery (TrackerDBInterface  *interface,
 }
 
 
-void
-tracker_db_interface_execute_vquery_no_reply (TrackerDBInterface  *interface,
-					      GError             **error,
-					      const gchar         *query,
-					      va_list              args)
-{
-	gchar *str;
-
-	g_return_if_fail (TRACKER_IS_DB_INTERFACE (interface));
-	g_return_if_fail (query != NULL);
-
-	if (!TRACKER_DB_INTERFACE_GET_IFACE (interface)->execute_query_no_reply) {
-		g_critical ("Database abstraction %s doesn't implement the method execute_vquery()", G_OBJECT_TYPE_NAME (interface));
-		return;
-	}
-
-	str = g_strdup_vprintf (query, args);
-	TRACKER_DB_INTERFACE_GET_IFACE (interface)->execute_query_no_reply (interface, error, str);
-	g_free (str);
-}
-
 
 TrackerDBResultSet *
 tracker_db_interface_execute_query (TrackerDBInterface  *interface,
@@ -329,23 +308,6 @@ tracker_db_interface_execute_vprocedure (TrackerDBInterface  *interface,
 	return ensure_result_set_state (result_set);
 }
 
-
-void
-tracker_db_interface_execute_vprocedure_no_reply (TrackerDBInterface  *interface,
-						  GError             **error,
-						  const gchar         *procedure,
-						  va_list              args)
-{
-	g_return_if_fail (TRACKER_IS_DB_INTERFACE (interface));
-	g_return_if_fail (procedure != NULL);
-
-	if (!TRACKER_DB_INTERFACE_GET_IFACE (interface)->execute_procedure_no_reply) {
-		g_critical ("Database abstraction %s doesn't implement the method execute_procedure()", G_OBJECT_TYPE_NAME (interface));
-		return;
-	}
-
-	TRACKER_DB_INTERFACE_GET_IFACE (interface)->execute_procedure_no_reply (interface, error, procedure, args);
-}
 
 
 TrackerDBResultSet *

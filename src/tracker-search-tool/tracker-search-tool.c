@@ -123,6 +123,9 @@ static char *search_service_types[] = {
 "Contacts",
 "Emails",
 "EmailAttachments",
+"EvolutionEmails",
+"ModestEmails",
+"ThunderbirdEmails",
 "Appointments",
 "Tasks",
 "Bookmarks",
@@ -131,9 +134,13 @@ static char *search_service_types[] = {
 NULL
 };
 
-static service_info_t services[13] = {
-
+static service_info_t services[16] = {
         { "Emails",        N_("Emails"),       "stock_mail",               NULL, SERVICE_EMAILS,            NULL, FALSE, 0, 0},
+        { "EvolutionEmails",
+	                   N_("Emails"),       "stock_mail",               NULL, SERVICE_EMAILS,            NULL, FALSE, 0, 0},
+        { "ModestEmails",  N_("Emails"),       "stock_mail",               NULL, SERVICE_EMAILS,            NULL, FALSE, 0, 0},
+        { "ThunderbirdEmails",
+                           N_("Emails"),       "stock_mail",               NULL, SERVICE_EMAILS,            NULL, FALSE, 0, 0},
         { "Files",         N_("All Files"),    "system-file-manager",      NULL, SERVICE_FILES,             NULL, FALSE, 0, 0},
         { "Folders",       N_("Folders"),      "folder",                   NULL, SERVICE_FOLDERS,           NULL, FALSE, 0, 0},
         { "Documents",     N_("Documents"),    "x-office-document",        NULL, SERVICE_DOCUMENTS,         NULL, FALSE, 0, 0},

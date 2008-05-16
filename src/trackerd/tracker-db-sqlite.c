@@ -874,19 +874,6 @@ set_params (TrackerDBInterface *iface, int cache_size, int page_size, gboolean a
 }
 
 
-/* TODO: refactor this to a better location. This is the threadpool shared by
- * all SQLite connections. I noticed that having a thread per connection is
- * not sufficient. All statements must happen sequential ... */
-
-static GThreadPool *pool = NULL;
-
-/* TODO: the rafactor to a better location should perform this at-exit. For
- * example when the desktop-session alarms that the system is shutting down,
- * and when the trackerd process is exiting.
- *
- *	g_thread_pool_free (priv->pool, TRUE, TRUE);
- **/
-
 /*
  * If the file doesnt exist, creates a new file of size 0
  */
@@ -896,16 +883,12 @@ open_db_interface (TrackerDatabase database)
 	TrackerDBInterface *iface;
 	const gchar *dbname;
 
-	if (!pool) {
-		pool = g_thread_pool_new (tracker_db_interface_sqlite_process_query, 
-					  NULL, 1, TRUE, NULL);
-	}
 
 	dbname = tracker_db_manager_get_file (database);
 
 	/* We pass a GThreadPool here, it should be the same pool for all opened
 	 * SQLite databases */
-	iface = tracker_db_interface_sqlite_new (dbname, pool);
+	iface = tracker_db_interface_sqlite_new (dbname);
 	tracker_db_interface_set_procedure_table (iface, prepared_queries);
 
 
@@ -972,9 +955,7 @@ tracker_db_connect_all ()
 	DBConnection *emails_db_con= NULL;
 	Indexer *email_word_index_db_con= NULL;
 
-	db_con = tracker_db_connect ();
-
-	// db_con = tracker_db_connect_file_meta ();
+	db_con = tracker_db_connect_file_meta ();
 	emails_db_con = tracker_db_connect_email_meta ();
 
 	blob_db_con = tracker_db_connect_file_content ();
@@ -997,6 +978,57 @@ tracker_db_connect_all ()
 	emails_db_con->data = db_con;
 	emails_db_con->word_index = email_word_index_db_con;
 	emails_db_con->cache = db_con->cache;
+
+	tracker_db_attach_db (db_con, TRACKER_DB_COMMON);
+	tracker_db_attach_db (db_con, TRACKER_DB_CACHE);
+	
+	return db_con;
+
+}
+
+
+
+/* convenience function for process files thread */
+DBConnection *
+tracker_db_connect_xesam ()
+{
+
+	DBConnection *db_con;
+	DBConnection *blob_db_con = NULL;
+	Indexer *word_index_db_con = NULL;
+
+	DBConnection *common_db_con = NULL;
+
+	DBConnection *emails_blob_db_con = NULL;
+	DBConnection *emails_db_con= NULL;
+	Indexer *email_word_index_db_con= NULL;
+
+	db_con = tracker_db_connect_file_meta ();
+	emails_db_con = tracker_db_connect_email_meta ();
+
+	blob_db_con = tracker_db_connect_file_content ();
+	emails_blob_db_con = tracker_db_connect_email_content ();
+	common_db_con  = tracker_db_connect_common ();
+
+	word_index_db_con = tracker->file_index;
+	email_word_index_db_con = tracker->email_index;
+
+	db_con->cache = tracker_db_connect_cache ();
+
+	db_con->blob = blob_db_con;
+	db_con->data = db_con;
+	db_con->emails = emails_db_con;
+	db_con->common = common_db_con;
+	db_con->word_index = word_index_db_con;
+
+	emails_db_con->common = common_db_con;
+	emails_db_con->blob = emails_blob_db_con;
+	emails_db_con->data = db_con;
+	emails_db_con->word_index = email_word_index_db_con;
+	emails_db_con->cache = db_con->cache;
+
+	tracker_db_attach_db (db_con, TRACKER_DB_COMMON);
+	tracker_db_attach_db (db_con, TRACKER_DB_CACHE);
 	
 	return db_con;
 
@@ -1393,13 +1425,16 @@ tracker_db_connect_emails (void)
 gboolean
 tracker_db_exec_no_reply (TrackerDBInterface *iface, const char *query, ...)
 {
+	TrackerDBResultSet *result_set;
 	va_list args;
 
 	tracker_nfs_lock_obtain ();
 
 	va_start (args, query);
-	tracker_db_interface_execute_vquery_no_reply (iface, NULL, query, args);
+	result_set = tracker_db_interface_execute_vquery (iface, NULL, query, args);
 	va_end (args);
+	if (result_set)
+		g_object_unref (result_set);
 
 	tracker_nfs_lock_release ();
 
@@ -1454,11 +1489,14 @@ tracker_db_exec_proc (TrackerDBInterface *iface, const char *procedure, ...)
 static gboolean
 tracker_exec_proc_no_reply (TrackerDBInterface *iface, const char *procedure, ...)
 {
+	TrackerDBResultSet *result_set;
 	va_list args;
 
 	va_start (args, procedure);
-	tracker_db_interface_execute_vprocedure_no_reply (iface, NULL, procedure, args);
+	result_set = tracker_db_interface_execute_vprocedure (iface, NULL, procedure, args);
 	va_end (args);
+	if (result_set)
+		g_object_unref (result_set);
 
 	return TRUE;
 }
@@ -1971,7 +2009,7 @@ tracker_db_search_text (DBConnection *db_con, const char *service, const char *s
 						tracker_config_get_max_word_length (tracker->config),
 						tracker_config_get_min_word_length (tracker->config));
 
-	result_set = tracker_exec_proc (db_con->common, "GetRelatedServiceIDs", service, service, NULL);
+	result_set = tracker_exec_proc (db_con, "GetRelatedServiceIDs", service, service, NULL);
 
 	if (result_set) {
 		gboolean valid = TRUE;

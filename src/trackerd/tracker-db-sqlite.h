@@ -107,6 +107,7 @@ DBConnection *      tracker_db_connect_emails                  (void);
 DBConnection *      tracker_db_connect_email_meta              (void);
 DBConnection *      tracker_db_connect_file_meta               (void);
 DBConnection *      tracker_db_connect_all                     (void);
+DBConnection *      tracker_db_connect_xesam                   (void);
 void                tracker_db_close_all                       (DBConnection   *db_con);
 void                tracker_db_refresh_all                     (DBConnection   *db_con);
 void                tracker_db_refresh_email                   (DBConnection   *db_con);

@@ -141,7 +141,7 @@ static gboolean       reindex;
 static gboolean       fatal_errors;
 static gboolean       low_memory;
 static gint           throttle = -1;
-static gint           verbosity;
+static gint           verbosity = -1;
 static gint           initial_sleep = -1; 
 
 static GOptionEntry   entries[] = {
@@ -299,6 +299,18 @@ sanity_check_option_values (void)
 
         no_index_file_types = tracker_config_get_no_index_file_types (tracker->config);
 
+	if (!tracker_config_get_low_memory_mode (tracker->config)) {
+		tracker->memory_limit = 16000 *1024;
+	
+		tracker->max_process_queue_size = 5000;
+		tracker->max_extract_queue_size = 5000;
+	} else {
+		tracker->memory_limit = 8192 * 1024;
+
+		tracker->max_process_queue_size = 500;
+		tracker->max_extract_queue_size = 500;
+	}
+
 	tracker_log ("Tracker configuration options:");
 	tracker_log ("  Verbosity  ............................  %d", 
                      tracker_config_get_verbosity (tracker->config));
@@ -318,35 +330,48 @@ sanity_check_option_values (void)
 	tracker_log ("Tracker indexer parameters:");
 	tracker_log ("  Indexer language code  ................  %s", 
                      tracker_config_get_language (tracker->config));
-	tracker_log ("  Minimum index word length  ............  %d", 
-                     tracker_config_get_min_word_length (tracker->config));
-	tracker_log ("  Maximum index word length  ............  %d", 
-                     tracker_config_get_max_word_length (tracker->config));
 	tracker_log ("  Stemmer enabled  ......................  %s", 
                      tracker_config_get_enable_stemmer (tracker->config) ? "yes" : "no");
+	tracker_log ("  Fast merges enabled  ..................  %s", 
+                     tracker_config_get_fast_merges (tracker->config) ? "yes" : "no");
+	tracker_log ("  Disable indexing on battery............  %s (initially = %s)", 
+                     tracker_config_get_disable_indexing_on_battery (tracker->config) ? "yes" : "no",
+		     tracker_config_get_disable_indexing_on_battery_init (tracker->config) ? "yes" : "no");
 
-	tracker->word_count = 0;
-	tracker->word_detail_count = 0;
-	tracker->word_update_count = 0;
-
-	if (!tracker_config_get_low_memory_mode (tracker->config)) {
-		tracker->memory_limit = 16000 *1024;
-	
-		tracker->max_process_queue_size = 5000;
-		tracker->max_extract_queue_size = 5000;
+	if (tracker_config_get_low_disk_space_limit (tracker->config) == -1) { 
+		tracker_log ("  Low disk space limit ..................  Disabled");
 	} else {
-		tracker->memory_limit = 8192 * 1024;
-
-		tracker->max_process_queue_size = 500;
-		tracker->max_extract_queue_size = 500;
+		tracker_log ("  Low disk space limit ..................  %d%%",
+			     tracker_config_get_low_disk_space_limit (tracker->config));
 	}
+
+	tracker_log ("  Minimum index word length  ............  %d",
+                     tracker_config_get_min_word_length (tracker->config));
+	tracker_log ("  Maximum index word length  ............  %d",
+                     tracker_config_get_max_word_length (tracker->config));
+	tracker_log ("  Maximum text to index .................  %d",
+                     tracker_config_get_max_text_to_index (tracker->config));
+	tracker_log ("  Maximum words to index ................  %d",
+                     tracker_config_get_max_words_to_index (tracker->config));
+	tracker_log ("  Maximum bucket count ..................  %d",
+                     tracker_config_get_max_bucket_count (tracker->config));
+	tracker_log ("  Minimum bucket count ..................  %d",
+                     tracker_config_get_min_bucket_count (tracker->config));
+	tracker_log ("  Divisions .............................  %d",
+                     tracker_config_get_divisions (tracker->config));
+	tracker_log ("  Padding ...............................  %d",
+                     tracker_config_get_padding (tracker->config));
+	tracker_log ("  Optimization sweep count ..............  %d",
+                     tracker_config_get_optimization_sweep_count (tracker->config));
+	tracker_log ("  Thread stack size .....................  %d",
+                     tracker_config_get_thread_stack_size (tracker->config));
+	tracker_log ("  Throttle level ........................  %d",
+                     tracker_config_get_throttle (tracker->config));
 
 	log_option_list (watch_directory_roots, "Watching directory roots");
 	log_option_list (crawl_directory_roots, "Crawling directory roots");
 	log_option_list (no_watch_directory_roots, "NOT watching directory roots");
 	log_option_list (no_index_file_types, "NOT indexing file types");
-
-        tracker_log ("Throttle level is %d\n", tracker_config_get_throttle (tracker->config));
 
 	tracker->metadata_table = g_hash_table_new_full (g_str_hash,
                                                          g_str_equal, 
@@ -574,8 +599,10 @@ initialise_databases (gboolean need_index)
 	}
 
 	/* Create connections */
-	db_con->cache = tracker_db_connect_cache ();
-	db_con->common = tracker_db_connect_common ();
+	// you shouldn't have to do this at all !
+	// In fact, it's even terribly wrong to do this!
+	//db_con->cache = tracker_db_connect_cache ();
+	//db_con->common = tracker_db_connect_common ();
 
 	main_thread_db_con = db_con;
 	
@@ -879,6 +906,48 @@ main (gint argc, gchar *argv[])
         tracker->config = tracker_config_new ();
         tracker->language = tracker_language_new (tracker->config);
 
+	/* Deal with config options with defaults, config file and
+	 * option params.
+	 */
+	if (watch_dirs) {
+                tracker_config_add_watch_directory_roots (tracker->config, watch_dirs);
+	}
+
+	if (crawl_dirs) {
+                tracker_config_add_crawl_directory_roots (tracker->config, crawl_dirs);
+	}
+
+	if (no_watch_dirs) {
+                tracker_config_add_no_watch_directory_roots (tracker->config, no_watch_dirs);
+	}
+
+	if (language) {
+		tracker_config_set_language (tracker->config, language);
+	}
+
+	if (disable_indexing) {
+		tracker_config_set_enable_indexing (tracker->config, FALSE);
+	}
+
+	if (low_memory) {
+		tracker_config_set_low_memory_mode (tracker->config, TRUE);
+	}
+
+	if (throttle != -1) {
+		tracker_config_set_throttle (tracker->config, throttle);
+	}
+
+	if (verbosity > -1) {
+		tracker_config_set_verbosity (tracker->config, verbosity);
+	}
+
+	if (initial_sleep > -1) {
+		tracker_config_set_initial_sleep (tracker->config, initial_sleep);
+	}
+
+	sanity_check_option_values ();
+
+	/* Initialise other subsystems */
 	tracker_log_init (log_filename, 
                           tracker_config_get_verbosity (tracker->config), 
                           fatal_errors);
@@ -919,47 +988,6 @@ main (gint argc, gchar *argv[])
 	ioprio ();
 #endif
 
-	/* Deal with config options with defaults, config file and
-	 * option params.
-	 */
-	if (watch_dirs) {
-                tracker_config_add_watch_directory_roots (tracker->config, watch_dirs);
-	}
-
-	if (crawl_dirs) {
-                tracker_config_add_crawl_directory_roots (tracker->config, crawl_dirs);
-	}
-
-	if (no_watch_dirs) {
-                tracker_config_add_no_watch_directory_roots (tracker->config, no_watch_dirs);
-	}
-
-	if (disable_indexing) {
-		tracker_config_set_enable_indexing (tracker->config, FALSE);
-	}
-
-	if (language) {
-		tracker_config_set_language (tracker->config, language);
-	}
-
-	if (throttle != -1) {
-		tracker_config_set_throttle (tracker->config, throttle);
-	}
-
-	if (low_memory) {
-		tracker_config_set_low_memory_mode (tracker->config, TRUE);
-	}
-
-	if (verbosity != 0) {
-		tracker_config_set_verbosity (tracker->config, verbosity);
-	}
-
-	if (initial_sleep >= 0) {
-		tracker_config_set_initial_sleep (tracker->config, initial_sleep);
-	}
-
-	sanity_check_option_values ();
-
         if (!tracker_db_load_prepared_queries ()) {
 		tracker_error ("Could not initialize database engine!");
 		return EXIT_FAILURE;
@@ -973,7 +1001,8 @@ main (gint argc, gchar *argv[])
 	tracker->is_running = TRUE;
 
 	/* Connect to databases */
-        tracker->index_db = tracker_db_connect_all ();
+        tracker->mainloop_db = tracker_db_connect_all ();
+	tracker->xesam_db = tracker_db_connect_xesam ();
 
         /* If we are already running, this should return some
          * indication.
@@ -983,10 +1012,11 @@ main (gint argc, gchar *argv[])
         }
 
 	if (!tracker->readonly) {
-		if (G_UNLIKELY (!tracker_start_watching ())) {
+		if (!tracker_start_watching ()) {
 			tracker->is_running = FALSE;
 			tracker_error ("File monitoring failed to start");
-		} else {
+		} 
+		else if (tracker_config_get_enable_indexing (tracker->config)) {
 			thread = g_thread_create_full ((GThreadFunc) tracker_process_files, 
 						       tracker,
 						       (gulong) tracker_config_get_thread_stack_size (tracker->config),
@@ -994,6 +1024,8 @@ main (gint argc, gchar *argv[])
 						       FALSE, 
 						       G_THREAD_PRIORITY_NORMAL, 
 						       NULL);
+		} else {
+			tracker_log ("Indexing disabled, waiting for DBus requests...");
 		}
 	}
 	

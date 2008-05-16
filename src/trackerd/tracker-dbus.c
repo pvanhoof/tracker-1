@@ -169,7 +169,7 @@ tracker_dbus_init (Tracker *tracker)
                 return FALSE;
         }
 
-        g_object_set (object, "db-connection", tracker->index_db, NULL);
+        g_object_set (object, "db-connection", tracker->mainloop_db, NULL);
         g_object_set (object, "config", tracker->config, NULL);
         g_object_set (object, "tracker", tracker, NULL);
         objects = g_slist_prepend (objects, object);
@@ -183,7 +183,7 @@ tracker_dbus_init (Tracker *tracker)
                 return FALSE;
         }
 
-        g_object_set (object, "db-connection", tracker->index_db, NULL);
+        g_object_set (object, "db-connection", tracker->mainloop_db, NULL);
         objects = g_slist_prepend (objects, object);
 
         /* Add org.freedesktop.Tracker.Keywords */
@@ -195,7 +195,7 @@ tracker_dbus_init (Tracker *tracker)
                 return FALSE;
         }
 
-        g_object_set (object, "db-connection", tracker->index_db, NULL);
+        g_object_set (object, "db-connection", tracker->mainloop_db, NULL);
         objects = g_slist_prepend (objects, object);
 
         /* Add org.freedesktop.Tracker.Metadata */
@@ -207,7 +207,7 @@ tracker_dbus_init (Tracker *tracker)
                 return FALSE;
         }
 
-        g_object_set (object, "db-connection", tracker->index_db, NULL);
+        g_object_set (object, "db-connection", tracker->mainloop_db, NULL);
         objects = g_slist_prepend (objects, object);
 
         /* Add org.freedesktop.Tracker.Search */
@@ -219,7 +219,7 @@ tracker_dbus_init (Tracker *tracker)
                 return FALSE;
         }
 
-        g_object_set (object, "db-connection", tracker->index_db, NULL);
+        g_object_set (object, "db-connection", tracker->mainloop_db, NULL);
         g_object_set (object, "config", tracker->config, NULL);
         g_object_set (object, "language", tracker->language, NULL);
         g_object_set (object, "file-index", tracker->file_index, NULL);
@@ -236,7 +236,7 @@ tracker_dbus_init (Tracker *tracker)
                     return FALSE;
             }
 
-            g_object_set (object, "db-connection", tracker->index_db, NULL);
+            g_object_set (object, "db-connection", tracker->xesam_db, NULL);
 
             dbus_g_proxy_add_signal (proxy, "NameOwnerChanged",
 				 G_TYPE_STRING, G_TYPE_STRING,

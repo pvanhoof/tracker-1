@@ -455,7 +455,7 @@ tracker_config_class_init (TrackerConfigClass *klass)
 							   DEFAULT_MAX_TEXT_TO_INDEX,
 							   G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
 	g_object_class_install_property (object_class,
-					 PROP_MAX_TEXT_TO_INDEX,
+					 PROP_MAX_WORDS_TO_INDEX,
 					 g_param_spec_int ("max-words-to-index",
 							   "Maximum words to index",
 							   "Maximum unique words to index "
@@ -2258,7 +2258,7 @@ tracker_config_set_max_text_to_index (TrackerConfig *config,
 	priv = GET_PRIV (config);
 
 	priv->max_text_to_index = value;
-	g_object_notify (G_OBJECT (config), "max_text_to_index");
+	g_object_notify (G_OBJECT (config), "max-text-to-index");
 }
 
 void
@@ -2276,7 +2276,7 @@ tracker_config_set_max_words_to_index (TrackerConfig *config,
 	priv = GET_PRIV (config);
 
 	priv->max_words_to_index = value;
-	g_object_notify (G_OBJECT (config), "max_words_to_index");
+	g_object_notify (G_OBJECT (config), "max-words-to-index");
 }
 
 void
@@ -2401,7 +2401,7 @@ tracker_config_set_thread_stack_size (TrackerConfig *config,
 
 	priv = GET_PRIV (config);
 
-	priv->padding = value;
+	priv->thread_stack_size = value;
 	g_object_notify (G_OBJECT (config), "thread-stack-size");
 }
 

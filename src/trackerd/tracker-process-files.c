@@ -208,7 +208,8 @@ process_get_directories (Tracker     *tracker,
 
 static void
 process_watch_directories (Tracker *tracker,
-                           GSList  *dirs)
+                           GSList  *dirs,
+                           DBConnection *db_con)
 {
         GSList *list;
 
@@ -267,7 +268,7 @@ process_watch_directories (Tracker *tracker,
                         watches = tracker_count_watch_dirs () + g_slist_length (list);
                         
                         if (watches < tracker->watch_limit) {
-                                if (!tracker_add_watch_dir (dir, tracker->index_db)) {
+                                if (!tracker_add_watch_dir (dir, db_con)) {
                                         tracker_debug ("Watch failed for %s", dir);
                                 }
                         }
@@ -287,47 +288,51 @@ process_watch_directories (Tracker *tracker,
 	}
 }
 
+typedef struct {
+	Tracker *tracker;
+	DBConnection *db_con;
+} ForEachDBCon;
+
 static void
 process_schedule_directory_check_foreach (const gchar  *uri, 
-                                          Tracker      *tracker)
+                                          ForEachDBCon *info)
 {
-	if (!tracker->is_running) {
+	if (!info->tracker->is_running) {
 		return;
 	}
 
-	g_return_if_fail (tracker_check_uri (uri));
-	g_return_if_fail (tracker->index_db);
 
-	tracker_db_insert_pending_file (tracker->index_db, 0, uri, NULL, "unknown", 0, 
+	tracker_db_insert_pending_file (info->db_con, 0, uri, NULL, "unknown", 0, 
                                         TRACKER_DB_ACTION_DIRECTORY_REFRESH, TRUE, FALSE, -1);
 }
 
 static void
 process_schedule_file_check_foreach (const gchar  *uri, 
-                                     Tracker      *tracker)
+                                     ForEachDBCon *info)
 {
-	if (!tracker->is_running) {
+	if (!info->tracker->is_running) {
 		return;
 	}
 
 	g_return_if_fail (tracker_check_uri (uri));
-	g_return_if_fail (tracker->index_db);
+	g_return_if_fail (info->db_con);
 
 	/* Keep mainloop responsive */
 	process_my_yield ();
 
 	if (!tracker_file_is_directory (uri)) {
-		tracker_db_insert_pending_file (tracker->index_db, 0, uri, NULL, "unknown", 0, 
+		tracker_db_insert_pending_file (info->db_con, 0, uri, NULL, "unknown", 0, 
                                                 TRACKER_DB_ACTION_CHECK, 0, FALSE, -1);
 	} else {
-		process_schedule_directory_check_foreach (uri, tracker);
+		process_schedule_directory_check_foreach (uri, info);
 	}
 }
 
 static inline void
 process_directory_list (Tracker  *tracker, 
                         GSList   *list, 
-                        gboolean  recurse)
+                        gboolean  recurse,
+                        DBConnection *db_con)
 {
 	crawl_directories = NULL;
 
@@ -335,16 +340,21 @@ process_directory_list (Tracker  *tracker,
 		return;
 	}
 
-        process_watch_directories (tracker, list);
+	ForEachDBCon *info = g_slice_new (ForEachDBCon);
+
+	info->db_con = db_con;
+	info->tracker = tracker;
+
+        process_watch_directories (tracker, list, db_con);
 
 	g_slist_foreach (list, 
                          (GFunc) process_schedule_directory_check_foreach, 
-                         tracker);
+                         info);
 
 	if (recurse && crawl_directories) {
 		g_slist_foreach (crawl_directories, 
                                  (GFunc) process_schedule_directory_check_foreach, 
-                                 tracker);
+                                 info);
 	}
 
 	if (crawl_directories) {
@@ -352,19 +362,22 @@ process_directory_list (Tracker  *tracker,
 		g_slist_free (crawl_directories);
                 crawl_directories = NULL;
 	}
+	g_slice_free (ForEachDBCon, info);
 }
 
 static void
 process_scan_directory (Tracker     *tracker,
-                        const gchar *uri)
+                        const gchar *uri,
+                        DBConnection *db_con)
 {
 	GSList *files;
+	ForEachDBCon *info;
 
 	if (!tracker->is_running) {
 		return;
 	}
 
-	g_return_if_fail (tracker->index_db);
+	g_return_if_fail (db_con);
 	g_return_if_fail (tracker_check_uri (uri));
 	g_return_if_fail (tracker_file_is_directory (uri));
 
@@ -375,9 +388,14 @@ process_scan_directory (Tracker     *tracker,
 
 	tracker_debug ("Scanning %s for %d files", uri, g_slist_length (files));
 
+	info = g_slice_new (ForEachDBCon);
+	info->tracker = tracker;
+	info->db_con = db_con;
+
 	g_slist_foreach (files, 
                          (GFunc) process_schedule_file_check_foreach, 
-                         tracker);
+                         info);
+
 	g_slist_foreach (files, 
                          (GFunc) g_free, 
                          NULL);
@@ -386,7 +404,12 @@ process_scan_directory (Tracker     *tracker,
 	/* Recheck directory to update its mtime if its changed whilst
          * scanning.
          */
-	process_schedule_directory_check_foreach (uri, tracker);
+
+
+	process_schedule_directory_check_foreach (uri, info);
+
+	g_slice_free (ForEachDBCon, info);
+
 	tracker_debug ("Finished scanning");
 }
 
@@ -455,7 +478,8 @@ process_action_verify (TrackerDBFileInfo *info)
 
 static void
 process_index_entity (Tracker           *tracker, 
-                      TrackerDBFileInfo *info)
+                      TrackerDBFileInfo *info,
+                      DBConnection *db_con)
 {
         TrackerService *def;
 	gchar      *service_info;
@@ -493,7 +517,7 @@ process_index_entity (Tracker           *tracker,
 
 	if (info->is_directory) {
 		info->is_hidden = !tracker_service_get_show_service_directories (def);
-		tracker_db_index_file (tracker->index_db, info, NULL, NULL);
+		tracker_db_index_file (db_con, info, NULL, NULL);
 		g_free (service_info);
 		return;
 	} else {
@@ -501,24 +525,20 @@ process_index_entity (Tracker           *tracker,
 	}
 
 	if (g_str_has_suffix (service_info, "Emails")) {
-                DBConnection *db_con;
-
-                db_con = tracker->index_db;
-
 		if (!tracker_email_index_file (db_con->emails, info)) {
 			g_free (service_info);
 			return;
 		}
 	} else if (strcmp (service_info, "Files") == 0) {
-		tracker_db_index_file (tracker->index_db, info, NULL, NULL);
+		tracker_db_index_file (db_con, info, NULL, NULL);
         } else if (strcmp (service_info, "WebHistory") ==0 ) {
-                tracker_db_index_webhistory (tracker->index_db, info);
+                tracker_db_index_webhistory (db_con, info);
 	} else if (g_str_has_suffix (service_info, "Conversations")) {
-		tracker_db_index_conversation (tracker->index_db, info);
+		tracker_db_index_conversation (db_con, info);
 	} else if (strcmp (service_info, "Applications") == 0) {
-		tracker_db_index_application (tracker->index_db, info);
+		tracker_db_index_application (db_con, info);
 	} else {
-		tracker_db_index_service (tracker->index_db, info, NULL, NULL, NULL, FALSE, TRUE, TRUE, TRUE);
+		tracker_db_index_service (db_con, info, NULL, NULL, NULL, FALSE, TRUE, TRUE, TRUE);
 	}
 
 	g_free (service_info);
@@ -526,7 +546,8 @@ process_index_entity (Tracker           *tracker,
 
 static void
 process_index_delete_file (Tracker           *tracker, 
-                           TrackerDBFileInfo *info)
+                           TrackerDBFileInfo *info,
+                           DBConnection      *db_con)
 {
 	/* Info struct may have been deleted in transit here so check
          * if still valid and intact.
@@ -540,14 +561,15 @@ process_index_delete_file (Tracker           *tracker,
 		return;
 	}
 
-	tracker_db_delete_file (tracker->index_db, info->file_id);
+	tracker_db_delete_file (db_con, info->file_id);
 
 	tracker_log ("Deleting file %s", info->uri);
 }
 
 static void
 process_index_delete_directory (Tracker           *tracker, 
-                                TrackerDBFileInfo *info)
+                                TrackerDBFileInfo *info,
+                                DBConnection      *db_con)
 {
 	/* Info struct may have been deleted in transit here so check
          * if still valid and intact.
@@ -561,22 +583,23 @@ process_index_delete_directory (Tracker           *tracker,
 		return;
 	}
 
-	tracker_db_delete_directory (tracker->index_db, info->file_id, info->uri);
+	tracker_db_delete_directory (db_con, info->file_id, info->uri);
 
-	tracker_remove_watch_dir (info->uri, TRUE, tracker->index_db);
+	tracker_remove_watch_dir (info->uri, TRUE, db_con);
 
 	tracker_log ("Deleting dir %s and subdirs", info->uri);
 }
 
 static void
 process_index_delete_directory_check (Tracker     *tracker,
-                                      const gchar *uri)
+                                      const gchar *uri,
+                                      DBConnection *db_con)
 {
 	gchar **files;
         gchar **p;
 
 	/* Check for any deletions*/
-	files = tracker_db_get_files_in_folder (tracker->index_db, uri);
+	files = tracker_db_get_files_in_folder (db_con, uri);
 
         if (!files) {
                 return;
@@ -589,12 +612,12 @@ process_index_delete_directory_check (Tracker     *tracker,
                         TrackerDBFileInfo *info;
 
 			info = tracker_db_file_info_new (str, 1, 0, 0);
-			info = tracker_db_get_file_info (tracker->index_db, info);
+			info = tracker_db_get_file_info (db_con, info);
 
 			if (!info->is_directory) {
-				process_index_delete_file (tracker, info);
+				process_index_delete_file (tracker, info, db_con);
 			} else {
-				process_index_delete_directory (tracker, info);
+				process_index_delete_directory (tracker, info, db_con);
 			}
 			tracker_db_file_info_free (info);
 		}
@@ -646,28 +669,25 @@ process_check_directory (Tracker     *tracker,
  * Actual Indexing functions 
  */
 static void
-process_index_config (Tracker *tracker) 
+process_index_config (Tracker *tracker, DBConnection *db_con) 
 {
         tracker_log ("Starting config indexing");
 }
 
 static void
-process_index_applications (Tracker *tracker) 
+process_index_applications (Tracker *tracker, DBConnection *db_con) 
 {
         GSList       *list;
-        DBConnection *db_con;
 
         tracker_log ("Starting application indexing");
        
-        db_con = tracker->index_db;
-
         tracker_db_start_index_transaction (db_con);
         tracker_db_interface_start_transaction (db_con->cache->db);
         
         tracker_applications_add_service_directories ();
         
         list = tracker_service_directories_get ("Applications");
-        process_directory_list (tracker, list, FALSE);
+        process_directory_list (tracker, list, FALSE, db_con);
 
         tracker_db_interface_end_transaction (db_con->cache->db);
         
@@ -760,16 +780,15 @@ process_index_get_roots (Tracker  *tracker,
 }
 
 static void
-process_index_files (Tracker *tracker)
+process_index_files (Tracker *tracker, DBConnection *db_con)
 {
-        DBConnection *db_con;
         GObject      *object;
         GSList       *index_include;
         GSList       *index_exclude;
+	ForEachDBCon *info;
 
         tracker_log ("Starting file indexing...");
         
-        db_con = tracker->index_db;
         object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
 
         tracker_db_end_index_transaction (db_con);
@@ -822,11 +841,15 @@ process_index_files (Tracker *tracker)
         tracker_db_interface_start_transaction (db_con->cache->db);
         
         /* Index watched dirs first */
-        process_watch_directories (tracker, index_include);
+        process_watch_directories (tracker, index_include, db_con);
        
+        info = g_slice_new (ForEachDBCon);
+        info->tracker = tracker;
+        info->db_con = db_con;
+
         g_slist_foreach (crawl_directories, 
                          (GFunc) process_schedule_directory_check_foreach, 
-                         tracker);
+                         info);
         
         if (crawl_directories) {
                 g_slist_foreach (crawl_directories, 
@@ -838,7 +861,7 @@ process_index_files (Tracker *tracker)
         
         g_slist_foreach (index_include, 
                          (GFunc) process_schedule_directory_check_foreach, 
-                         tracker);
+                         info);
         
         if (crawl_directories) {
                 g_slist_foreach (crawl_directories, 
@@ -847,7 +870,8 @@ process_index_files (Tracker *tracker)
                 g_slist_free (crawl_directories);
                 crawl_directories = NULL;
         }
-        
+        g_slice_free (ForEachDBCon, info);
+
         tracker_db_interface_end_transaction (db_con->cache->db);
 
         /* Signal progress */
@@ -908,12 +932,10 @@ process_index_crawl_add_directories (Tracker *tracker,
 }
 
 static void
-process_index_crawl_files (Tracker *tracker)
+process_index_crawl_files (Tracker *tracker, DBConnection *db_con)
 {
-        DBConnection *db_con;
         GSList       *crawl_directory_roots;
-        
-        db_con = tracker->index_db;
+        ForEachDBCon *info;
 
         tracker_log ("Starting directory crawling...");
 
@@ -928,10 +950,13 @@ process_index_crawl_files (Tracker *tracker)
         tracker_db_interface_start_transaction (db_con->cache->db);
         
         process_index_crawl_add_directories (tracker, crawl_directory_roots);
-        
+        info = g_slice_new (ForEachDBCon);
+        info->tracker = tracker;
+        info->db_con = db_con;
+
         g_slist_foreach (crawl_directories, 
                          (GFunc) process_schedule_directory_check_foreach, 
-                         tracker);
+                         info);
         
         if (crawl_directories) {
                 g_slist_foreach (crawl_directories, (GFunc) g_free, NULL);
@@ -941,8 +966,10 @@ process_index_crawl_files (Tracker *tracker)
         
         g_slist_foreach (crawl_directory_roots, 
                          (GFunc) process_schedule_directory_check_foreach, 
-                         tracker);
-        
+                         info);
+
+        g_slice_free (ForEachDBCon, info);
+
         if (crawl_directories) {
                 g_slist_foreach (crawl_directories, (GFunc) g_free, NULL);
                 g_slist_free (crawl_directories);
@@ -953,7 +980,7 @@ process_index_crawl_files (Tracker *tracker)
 }
 
 static void
-process_index_conversations (Tracker *tracker)
+process_index_conversations (Tracker *tracker, DBConnection *db_con)
 {
         gchar    *gaim, *purple;
         gboolean  has_logs = FALSE;
@@ -975,13 +1002,10 @@ process_index_conversations (Tracker *tracker)
         }
         
         if (has_logs) {
-                DBConnection *db_con;
-                
-                db_con = tracker->index_db;
 
                 tracker_log ("Starting chat log indexing...");
                 tracker_db_interface_start_transaction (db_con->cache->db);
-                process_directory_list (tracker, list, TRUE);
+                process_directory_list (tracker, list, TRUE, db_con);
                 tracker_db_interface_end_transaction (db_con->cache->db);
                 g_slist_free (list);
         }
@@ -991,7 +1015,7 @@ process_index_conversations (Tracker *tracker)
 }
 
 static void
-process_index_webhistory (Tracker *tracker)
+process_index_webhistory (Tracker *tracker, DBConnection *db_con)
 {
         GSList *list = NULL;
         gchar  *firefox_dir;
@@ -999,17 +1023,13 @@ process_index_webhistory (Tracker *tracker)
         firefox_dir = g_build_filename (g_get_home_dir(), ".xesam/Firefox/ToIndex", NULL);
 
         if (tracker_file_is_valid (firefox_dir)) {
-                DBConnection *db_con;
-                
-                db_con = tracker->index_db;
-
                 list = g_slist_prepend( NULL, firefox_dir);
                 
                 tracker_log ("Starting Firefox web history indexing...");
                 tracker_service_directories_add ("WebHistory", firefox_dir);
                 
                 tracker_db_interface_start_transaction (db_con->cache->db);
-                process_directory_list (tracker, list, TRUE);
+                process_directory_list (tracker, list, TRUE, db_con);
                 tracker_db_interface_end_transaction (db_con->cache->db);
                 g_slist_free (list);
         }
@@ -1018,13 +1038,11 @@ process_index_webhistory (Tracker *tracker)
 } 
 
 static void
-process_index_emails (Tracker *tracker)
+process_index_emails (Tracker *tracker, DBConnection *db_con)
 {
-        DBConnection  *db_con;
         TrackerConfig *config;
         GObject       *daemon;
        
-        db_con = tracker->index_db;
         config = tracker->config;
 
         tracker_db_end_index_transaction (db_con);
@@ -1051,7 +1069,7 @@ process_index_emails (Tracker *tracker)
                 tracker_indexer_apply_changes (tracker->file_index, tracker->file_update_index, TRUE);
         }
         
-        tracker_db_start_index_transaction (tracker->index_db);
+        tracker_db_start_index_transaction (db_con);
 
 	if (tracker_config_get_email_client (tracker->config)) {
 		const gchar *name;
@@ -1067,7 +1085,7 @@ process_index_emails (Tracker *tracker)
                         GSList *list;
 
                         list = tracker_service_directories_get (name);
-                        process_directory_list (tracker, list, TRUE);
+                        process_directory_list (tracker, list, TRUE, db_con);
                         g_slist_free (list);
                 }
                 
@@ -1076,13 +1094,11 @@ process_index_emails (Tracker *tracker)
 }
 
 static gboolean
-process_files (Tracker *tracker)
+process_files (Tracker *tracker, DBConnection *db_con)
 {
-        DBConnection      *db_con;
         GObject           *object;
         TrackerIndexStage  stage;
 
-        db_con = tracker->index_db;
         object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
 
         /* Check dir_queue in case there are
@@ -1107,34 +1123,34 @@ process_files (Tracker *tracker)
                 
                 switch (stage) {
                 case TRACKER_INDEX_STAGE_CONFIG:
-                        process_index_config (tracker);
+                        process_index_config (tracker, db_con);
                         break;
                         
                 case TRACKER_INDEX_STAGE_APPLICATIONS: 
-                        process_index_applications (tracker);
+                        process_index_applications (tracker, db_con);
                         break;
                         
                 case TRACKER_INDEX_STAGE_FILES: 
-                        process_index_files (tracker);
+                        process_index_files (tracker, db_con);
                         break;
                         
                 case TRACKER_INDEX_STAGE_CRAWL_FILES:
-                        process_index_crawl_files (tracker);
+                        process_index_crawl_files (tracker, db_con);
                         break;
                         
                 case TRACKER_INDEX_STAGE_CONVERSATIONS:
-                        process_index_conversations (tracker);
+                        process_index_conversations (tracker, db_con);
                         break;
                         
                 case TRACKER_INDEX_STAGE_WEBHISTORY: 
-                        process_index_webhistory (tracker);
+                        process_index_webhistory (tracker, db_con);
                         break;
                         
                 case TRACKER_INDEX_STAGE_EXTERNAL:
                         break;
                         
                 case TRACKER_INDEX_STAGE_EMAILS:
-                        process_index_emails (tracker);
+                        process_index_emails (tracker, db_con);
                         break;
 			
                 case TRACKER_INDEX_STAGE_FINISHED:
@@ -1142,13 +1158,13 @@ process_files (Tracker *tracker)
                 }
                 
                 tracker_index_stage_set (++stage);
-
                 return TRUE;
         }
         
         tracker_db_end_index_transaction (db_con);
         tracker_cache_flush_all ();
-        tracker_db_refresh_all (db_con);
+        /*  I am unsure about this one (Philip Van Hoof)
+	tracker_db_refresh_all (db_con); */
         tracker_indexer_merge_indexes (INDEX_TYPE_FILES);
 	
         if (tracker->shutdown) {
@@ -1249,12 +1265,11 @@ process_files (Tracker *tracker)
 
 static gboolean 
 process_action (Tracker           *tracker,
-                TrackerDBFileInfo *info)
+                TrackerDBFileInfo *info,
+                DBConnection      *db_con)
 {
-        DBConnection *db_con;
         gboolean      need_index;
 
-        db_con = tracker->index_db;
         need_index = info->mtime > info->indextime;
         
         switch (info->action) {
@@ -1292,7 +1307,7 @@ process_action (Tracker           *tracker,
                         g_async_queue_push (tracker->dir_queue, g_strdup (info->uri));
 			
                         if (info->indextime > 0) {
-                                process_index_delete_directory_check (tracker, info->uri);
+                                process_index_delete_directory_check (tracker, info->uri, db_con);
                         }
                 }
                 
@@ -1318,8 +1333,8 @@ process_action (Tracker           *tracker,
                          */
                         list = g_slist_prepend (NULL, info->uri);
 
-                        process_watch_directories (tracker, list);
-                        process_scan_directory (tracker, info->uri);
+                        process_watch_directories (tracker, list, db_con);
+                        process_scan_directory (tracker, info->uri, db_con);
 
                         g_slist_free (list);
                 } else {
@@ -1338,9 +1353,9 @@ process_action (Tracker           *tracker,
 
 static gboolean
 process_action_prechecks (Tracker           *tracker, 
-                          TrackerDBFileInfo *info)
+                          TrackerDBFileInfo *info,
+                          DBConnection *db_con)
 {
-        DBConnection *db_con;
 
         /* Info struct may have been deleted in transit here
          * so check if still valid and intact.
@@ -1349,7 +1364,6 @@ process_action_prechecks (Tracker           *tracker,
                 return TRUE;
         }
 
-        db_con = tracker->index_db;
         
         if (info->file_id == 0 && 
             info->action != TRACKER_DB_ACTION_CREATE &&
@@ -1402,14 +1416,14 @@ process_action_prechecks (Tracker           *tracker,
                  */
         } else {
                 if (info->action == TRACKER_DB_ACTION_FILE_DELETED) {
-                        process_index_delete_file (tracker, info);
+                        process_index_delete_file (tracker, info, db_con);
                         info = tracker_db_file_info_unref (info);
                         return TRUE;
                 } else {
                         if (info->action == TRACKER_DB_ACTION_DIRECTORY_DELETED ||
                             info->action == TRACKER_DB_ACTION_DIRECTORY_UNMOUNTED) {
-                                process_index_delete_file (tracker, info);
-                                process_index_delete_directory (tracker, info);
+                                process_index_delete_file (tracker, info, db_con);
+                                process_index_delete_directory (tracker, info, db_con);
                                 info = tracker_db_file_info_unref (info);
                                 return TRUE;
                         }
@@ -1442,25 +1456,27 @@ process_block_signals (void)
 static void
 process_mount_point_added_cb (TrackerHal  *hal,
                               const gchar *mount_point,
-                              Tracker     *tracker)
+                              Tracker     *tracker,
+                              DBConnection *db_con)
 {
         GSList *list;
         
         tracker_log ("** TRAWLING THROUGH NEW MOUNT POINT '%s'", mount_point);
         
         list = g_slist_prepend (NULL, (gchar*) mount_point);
-        process_directory_list (tracker, list, TRUE);
+        process_directory_list (tracker, list, TRUE, db_con);
         g_slist_free (list);
 }
 
 static void
 process_mount_point_removed_cb (TrackerHal  *hal,
                                 const gchar *mount_point,
-                                Tracker     *tracker)
+                                Tracker     *tracker,
+                                DBConnection *db_con)
 {
         tracker_log ("** CLEANING UP OLD MOUNT POINT '%s'", mount_point);
         
-        process_index_delete_directory_check (tracker, mount_point); 
+        process_index_delete_directory_check (tracker, mount_point, db_con); 
 }
 
 #endif /* HAVE_HAL */
@@ -1485,6 +1501,7 @@ process_is_in_path (const gchar *uri,
 gpointer
 tracker_process_files (gpointer data)
 {
+	DBConnection *db_con = tracker_db_connect_all ();
 	Tracker  *tracker;
         GObject  *object;
 	GSList	 *moved_from_list; /* List to hold moved_from
@@ -1586,7 +1603,7 @@ tracker_process_files (gpointer data)
 		TrackerDBFileInfo *info;
 		gboolean           need_index;
 
-		if (!tracker_cache_process_events (tracker->index_db, TRUE) ) {
+		if (!tracker_cache_process_events (db_con, TRUE) ) {
                         tracker_status_set_and_signal (TRACKER_STATUS_SHUTDOWN,
                                                        tracker->first_time_index,
                                                        tracker->in_merge,
@@ -1612,12 +1629,12 @@ tracker_process_files (gpointer data)
 			TrackerDBResultSet *result_set;
 			gint     k;
 
-			if (!tracker_db_has_pending_files (tracker->index_db)) {
+			if (!tracker_db_has_pending_files (db_con)) {
                                 gboolean should_continue;
 
                                 /* Set mutex to indicate we are in "check" state */
                                 g_mutex_lock (tracker->files_check_mutex);
-                                should_continue = process_files (tracker);
+                                should_continue = process_files (tracker, db_con);
                                 g_mutex_unlock (tracker->files_check_mutex);
                                 
                                 if (should_continue) {
@@ -1629,7 +1646,7 @@ tracker_process_files (gpointer data)
                                 }
                         }
 
-			result_set = tracker_db_get_pending_files (tracker->index_db);
+			result_set = tracker_db_get_pending_files (db_con);
 
 			k = 0;
 			pushed_events = FALSE;
@@ -1669,7 +1686,7 @@ tracker_process_files (gpointer data)
 				continue;
 			}
 
-			tracker_db_remove_pending_files (tracker->index_db);
+			tracker_db_remove_pending_files (db_con);
 
 			/* Pending files are present but not yet ready
                          * as we are waiting til they stabilize so we
@@ -1691,15 +1708,15 @@ tracker_process_files (gpointer data)
                                                tracker->pause_io,
                                                tracker_config_get_enable_indexing (tracker->config));
 
-                if (process_action_prechecks (tracker, info)) {
+                if (process_action_prechecks (tracker, info, db_con)) {
                         continue;
                 }
                 
 		/* Check if file needs indexing */
-                need_index = process_action (tracker, info);
+                need_index = process_action (tracker, info, db_con);
 
 		if (need_index) {
-			if (tracker_db_regulate_transactions (tracker->index_db, 250)) {
+			if (tracker_db_regulate_transactions (db_con, 250)) {
 				if (tracker_config_get_verbosity (tracker->config) == 1) {
 					tracker_log ("indexing #%d - %s", tracker->index_count, info->uri);
 				}
@@ -1715,7 +1732,7 @@ tracker_process_files (gpointer data)
                                                        tracker->folders_count);
 			}
 
-			process_index_entity (tracker, info);
+			process_index_entity (tracker, info, db_con);
 		}
 
 		tracker_db_file_info_unref (info);
@@ -1732,12 +1749,13 @@ tracker_process_files (gpointer data)
 
 	xdg_mime_shutdown ();
 
-	tracker_db_close_all (tracker->index_db);
+	tracker_db_close_all (db_con);
 
         g_mutex_unlock (tracker->files_signal_mutex);
 
         tracker_log ("Process thread:%p now finishing", g_thread_self ());
 
+        g_thread_exit (NULL);
         return NULL;
 }
 

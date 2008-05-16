@@ -1,3 +1,55 @@
+2008-05-16  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* Merge from our own repository back to GNOME's Subversion server. We
+	did this because caused by the SSH exploit, the GNOME Subversion
+	servers were closed for commit access.
+
+2008-05-16  Martyn Russell  <martyn@imendio.com>
+
+	* src/tracker-search-tool/tracker-search-tool.c: Add other email
+	services so they are recognised when requesting hit counts. It
+	used to be just "Emails" as the service type, now we have
+	"ThunderbirdEmails", "EvolutionEmails", etc.
+	
+	* src/trackerd/tracker-main.c: (main): Fix the command line option
+	parsing so we actually set the verbosity and some of the other
+	options. Also, don't start the indexer thread if it is disabled.
+
+2008-05-16  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* data/sqlite-stored-procs.sql: Prepended a query with its db-name
+	* src/trackerd/tracker-main.c:
+	* src/trackerd/tracker-main.h:
+	* src/trackerd/tracker-dbus.c: Renamed index_db to mainloop_db
+	* src/trackerd/tracker-process-files.c: Gave the indexer thread its
+	own DBConnection
+
+2008-05-16  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* Reverted the GThreadPool trick to exclude it from being the possible
+	cause of various problems
+	* Added tracker->xesam_db, it seems that using index_db in a
+	GMainLoop's idle handler ain't working without the GThreadPool trick
+	* Bugfix GetStats is not supposed to use db_con->common (it's attached
+	to db_con already)
+	* Same bugfix for GetRelatedServiceIDs
+
+2008-05-16  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-config.c: Fixed two bugs, one
+	where the padding was being set when setting the thread stack
+	size. The second was that the max text to index was being set when
+	setting the max words to index. This meant 0 words were being
+	indexed. 
+	
+	* src/trackerd/tracker-main.c: Added more configuration to the
+	sanity check list so we can confirm things are starting up
+	correctly. 
+
+2008-05-16  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* Applied a patch that fixes the DBConnection tracker->index_db
+
 2008-05-14  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/tracker-indexer/modules/Makefile.am: Linker error fix

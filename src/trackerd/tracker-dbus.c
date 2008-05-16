@@ -139,7 +139,8 @@ tracker_dbus_preinit (Tracker *tracker, DBusGConnection **connection_out, DBusGP
         if (!connection) {
                 tracker_error ("Could not connect to the DBus session bus, %s",
                                error ? error->message : "no error given.");
-                g_error_free (error);
+                if (error)
+			g_error_free (error);
                 return FALSE;
         }
 

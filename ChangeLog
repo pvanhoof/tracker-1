@@ -7,7 +7,7 @@
 
 2008-05-16  Philip Van Hoof  <pvanhoof@gnome.org>
 
-	* * Fixed a few g_warnings about tracker_log not being initialized yet
+	* Fixed a few g_warnings about tracker_log not being initialized yet
 
 2008-05-16  Philip Van Hoof  <pvanhoof@gnome.org>
 

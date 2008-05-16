@@ -124,28 +124,24 @@ name_owner_changed_done (gpointer data, GClosure *closure)
 	g_object_unref (data);
 }
 
-gboolean
-tracker_dbus_init (Tracker *tracker)
+gboolean 
+tracker_dbus_preinit (Tracker *tracker, DBusGConnection **connection_out, DBusGProxy **proxy_out)
 {
         DBusGConnection *connection;
         DBusGProxy      *proxy;
-        GObject         *object;
         GError          *error = NULL;
 
         g_return_val_if_fail (tracker != NULL, FALSE);
+
 
         connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
 
         if (!connection) {
                 tracker_error ("Could not connect to the DBus session bus, %s",
                                error ? error->message : "no error given.");
+                g_error_free (error);
                 return FALSE;
         }
-
-        /* Don't reinitialize */
-        if (objects) {
-                return TRUE;
-	}
 
         /* The definitions below (DBUS_SERVICE_DBUS, etc) are
          * predefined for us to just use.
@@ -159,6 +155,25 @@ tracker_dbus_init (Tracker *tracker)
         if (!dbus_register_service (proxy, TRACKER_DBUS_DAEMON_SERVICE)) {
                 return FALSE;
         }
+
+        *connection_out = connection;
+        *proxy_out = proxy;
+
+        return TRUE;
+}
+
+gboolean
+tracker_dbus_init (Tracker *tracker, DBusGConnection *connection, DBusGProxy *proxy)
+{
+        GObject         *object;
+ 
+        g_return_val_if_fail (tracker != NULL, FALSE);
+
+        /* Don't reinitialize */
+        if (objects) {
+                return TRUE;
+        }
+
 
         /* Add org.freedesktop.Tracker */
         if (!(object = dbus_register_object (connection, 

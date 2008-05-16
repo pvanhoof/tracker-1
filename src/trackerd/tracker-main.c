@@ -820,6 +820,8 @@ shutdown_directories (void)
 gint
 main (gint argc, gchar *argv[])
 {
+	DBusGConnection *connection = NULL;
+	DBusGProxy     *proxy = NULL;
 	GOptionContext *context = NULL;
 	GError         *error = NULL;
 	GThread        *thread; 
@@ -950,6 +952,9 @@ main (gint argc, gchar *argv[])
                           tracker_config_get_verbosity (tracker->config), 
                           fatal_errors);
 
+	if (!tracker_dbus_preinit (tracker, &connection, &proxy))
+		return EXIT_FAILURE;
+
 	sanity_check_option_values ();
 
 	tracker_nfs_lock_init (tracker->root_dir,
@@ -1008,7 +1013,7 @@ main (gint argc, gchar *argv[])
         /* If we are already running, this should return some
          * indication.
          */
-        if (!tracker_dbus_init (tracker)) {
+        if (!tracker_dbus_init (tracker, connection, proxy)) {
                 return EXIT_FAILURE;
         }
 

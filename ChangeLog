@@ -1,6 +1,13 @@
 2008-05-16  Philip Van Hoof  <pvanhoof@gnome.org>
 
-	* Fixed a few g_warnings about tracker_log not being initialized yet
+	* DBus initialization. We must be more early at detecting whether or
+	not another DBus trackerd service is already running. Else during the
+	creation of the SQLite tables, a client that makes the DBus trackerd
+	service start would cause two trackerd instances to be running.
+
+2008-05-16  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* * Fixed a few g_warnings about tracker_log not being initialized yet
 
 2008-05-16  Philip Van Hoof  <pvanhoof@gnome.org>
 

@@ -945,12 +945,13 @@ main (gint argc, gchar *argv[])
 		tracker_config_set_initial_sleep (tracker->config, initial_sleep);
 	}
 
-	sanity_check_option_values ();
-
 	/* Initialise other subsystems */
 	tracker_log_init (log_filename, 
                           tracker_config_get_verbosity (tracker->config), 
                           fatal_errors);
+
+	sanity_check_option_values ();
+
 	tracker_nfs_lock_init (tracker->root_dir,
 			       tracker_config_get_nfs_locking (tracker->config));
 	tracker_db_manager_init (tracker->data_dir,
@@ -958,7 +959,7 @@ main (gint argc, gchar *argv[])
 				 tracker->sys_tmp_root_dir);
 	tracker_xesam_init ();
 	tracker_cache_init ();
-        tracker_service_manager_init ();
+	tracker_service_manager_init ();
 	tracker_email_init (tracker->config);
 
 #ifdef HAVE_HAL 

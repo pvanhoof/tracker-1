@@ -1,5 +1,9 @@
 2008-05-16  Philip Van Hoof  <pvanhoof@gnome.org>
 
+	* Fixed a few g_warnings about tracker_log not being initialized yet
+
+2008-05-16  Philip Van Hoof  <pvanhoof@gnome.org>
+
 	* Merge from our own repository back to GNOME's Subversion server. We
 	did this because caused by the SSH exploit, the GNOME Subversion
 	servers were closed for commit access.

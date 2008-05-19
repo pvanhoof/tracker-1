@@ -65,6 +65,28 @@ tracker_module_get_directories (void)
 	return (gchar **) g_ptr_array_free (dirs, FALSE);
 }
 
+gchar **
+tracker_module_get_ignore_directories (void)
+{
+	GSList *ignore_roots;
+	GPtrArray *dirs;
+
+	if (!config) {
+		config = tracker_config_new ();
+	}
+
+	ignore_roots = tracker_config_get_no_watch_directory_roots (config);
+	dirs = g_ptr_array_new ();
+
+	for (; ignore_roots; ignore_roots = ignore_roots->next) {
+		g_ptr_array_add (dirs, g_strdup (ignore_roots->data));
+	}
+
+	g_ptr_array_add (dirs, NULL);
+
+	return (gchar **) g_ptr_array_free (dirs, FALSE);
+}
+
 GHashTable *
 tracker_module_get_file_metadata (const gchar *file)
 {

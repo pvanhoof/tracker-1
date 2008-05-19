@@ -23,6 +23,4 @@ libtracker_db_la_LIBADD = 						\
 	$(GLIB2_LIBS)							\
 	$(GMIME_LIBS)							\
 	$(SQLITE3_LIBS)							\
-	$(QDBM_LIBS)							\
-	$(top_builddir)/src/libtracker-common/libtracker-common.la
-
+	$(QDBM_LIBS)

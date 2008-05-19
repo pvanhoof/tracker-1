@@ -23,9 +23,9 @@
 
 #include "tracker-indexer-module.h"
 
-typedef const gchar * (* Foo) (void);
-typedef gchar ** (* Bar) (void);
-typedef GHashTable * (* Baz) (const gchar *path);
+typedef const gchar * (* TrackerIndexerModuleGetName) (void);
+typedef gchar **      (* TrackerIndexerModuleGetDirectories) (void);
+typedef GHashTable *  (* TrackerIndexerModuleGetData) (const gchar *path);
 
 GModule *
 tracker_indexer_module_load (const gchar *module_name)
@@ -55,7 +55,7 @@ tracker_indexer_module_load (const gchar *module_name)
 G_CONST_RETURN gchar *
 tracker_indexer_module_get_name (GModule *module)
 {
-	Foo func;
+	TrackerIndexerModuleGetName func;
 
 	if (g_module_symbol (module, "tracker_module_get_name", (gpointer *) &func)) {
 		return (func) ();
@@ -67,9 +67,21 @@ tracker_indexer_module_get_name (GModule *module)
 gchar **
 tracker_indexer_module_get_directories (GModule *module)
 {
-	Bar func;
+	TrackerIndexerModuleGetDirectories func;
 
 	if (g_module_symbol (module, "tracker_module_get_directories", (gpointer *) &func)) {
+		return (func) ();
+        }
+
+	return NULL;
+}
+
+gchar **
+tracker_indexer_module_get_ignore_directories (GModule *module)
+{
+	TrackerIndexerModuleGetDirectories func;
+
+	if (g_module_symbol (module, "tracker_module_get_ignore_directories", (gpointer *) &func)) {
 		return (func) ();
         }
 
@@ -80,7 +92,7 @@ GHashTable *
 tracker_indexer_module_get_file_metadata (GModule     *module,
 					  const gchar *file)
 {
-	Baz func;
+	TrackerIndexerModuleGetData func;
 
 	if (g_module_symbol (module, "tracker_module_get_file_metadata", (gpointer *) &func)) {
 		return (func) (file);

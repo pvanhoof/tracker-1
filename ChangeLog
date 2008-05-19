@@ -1,3 +1,14 @@
+2008-05-19  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer-module.[ch]: add
+	tracker_indexer_module_get_ignore_directories().
+	* src/tracker-indexer/modules/files.c: implement it to ignore the
+	directories specified in the config file.
+	* src/tracker-indexer/tracker-indexer.c
+	(tracker_indexer_add_directory): Ignore files specified by the module.
+	* src/libtracker-db/Makefile.am: do not link libtracker-db with
+	libtracker-common, it's not necessary.
+
 2008-05-16  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* DBus initialization. We must be more early at detecting whether or

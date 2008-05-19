@@ -488,7 +488,7 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
                 attachment_service = get_attachment_service_name (mail_app);
 	}
 
-	type_id = tracker_service_manager_get_id_for_service (service);
+	type_id = tracker_ontology_get_id_for_service_type (service);
 	if (type_id == -1) {
 		tracker_error ("ERROR: service %s not found", service);
 		g_free (attachment_service);

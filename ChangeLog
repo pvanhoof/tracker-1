@@ -1,3 +1,33 @@
+2008-05-19  Ivan Frade <ivan.frade@nokia.com>
+
+	* src/trackerd/Makefile.am
+	* src/trackerd/tracker-service-manager.[ch] (removed)
+	* src/trackerd/tracker-ontology.[ch] Renamed tracker-service-manager
+	to tracker-ontology. Added logic to handled Fields.
+
+	* src/trackerd/tracker-field.[ch] Old FieldDef struct is now
+	TrackerField GObject
+	
+	* src/trackerd/tracker-apps.c
+	* src/trackerd/tracker-db-email.c
+	* src/trackerd/tracker-db-sqlite.[ch]
+	* src/trackerd/tracker-db.[ch]
+	* src/trackerd/tracker-dbus-files.c
+	* src/trackerd/tracker-dbus-keywords.c
+	* src/trackerd/tracker-dbus-metadata.c
+	* src/trackerd/tracker-dbus-search.c
+	* src/trackerd/tracker-dbus-xesam.c
+	* src/trackerd/tracker-email-utils.c
+	* src/trackerd/tracker-indexer.c
+	* src/trackerd/tracker-metadata.c
+	* src/trackerd/tracker-process-files.c
+	* src/trackerd/tracker-query-tree.c
+	* src/trackerd/tracker-rdf-query.c
+	* src/trackerd/tracker-xesam-query.c
+	* src/trackerd/tracker-main.c: Using new tracker-ontology.
+	
+	* src/trackerd/tracker-main.h: (tracker->metadata_table removed)
+
 2008-05-19  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer-module.[ch]: add

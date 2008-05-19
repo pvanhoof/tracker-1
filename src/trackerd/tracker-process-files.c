@@ -496,14 +496,14 @@ process_index_entity (Tracker           *tracker,
 		tracker_throttle (100);
 	}
 
-	service_info = tracker_service_directories_get_service (info->uri);
+	service_info = tracker_ontology_get_service_type_for_dir (info->uri);
 
 	if (!service_info) {
 		tracker_error ("ERROR: cannot find service for path %s", info->uri);
 		return;
 	}
 
-	def = tracker_service_manager_get_service (service_info);
+	def = tracker_ontology_get_service_type_by_name (service_info);
 
 	if (!def) {
 		if (service_info) {
@@ -686,7 +686,7 @@ process_index_applications (Tracker *tracker, DBConnection *db_con)
         
         tracker_applications_add_service_directories ();
         
-        list = tracker_service_directories_get ("Applications");
+        list = tracker_ontology_get_dirs_for_service_type ("Applications");
         process_directory_list (tracker, list, FALSE, db_con);
 
         tracker_db_interface_end_transaction (db_con->cache->db);
@@ -991,13 +991,13 @@ process_index_conversations (Tracker *tracker, DBConnection *db_con)
         
         if (tracker_file_is_valid (gaim)) {
                 has_logs = TRUE;
-                tracker_service_directories_add ("GaimConversations", gaim);
+                tracker_ontology_add_dir_to_service_type ("GaimConversations", gaim);
                 list = g_slist_prepend (NULL, gaim);
         }
 
         if (tracker_file_is_valid (purple)) {
                 has_logs = TRUE;
-                tracker_service_directories_add ("GaimConversations", purple);
+                tracker_ontology_add_dir_to_service_type ("GaimConversations", purple);
                 list = g_slist_prepend (NULL, purple);
         }
         
@@ -1026,7 +1026,7 @@ process_index_webhistory (Tracker *tracker, DBConnection *db_con)
                 list = g_slist_prepend( NULL, firefox_dir);
                 
                 tracker_log ("Starting Firefox web history indexing...");
-                tracker_service_directories_add ("WebHistory", firefox_dir);
+                tracker_ontology_add_dir_to_service_type ("WebHistory", firefox_dir);
                 
                 tracker_db_interface_start_transaction (db_con->cache->db);
                 process_directory_list (tracker, list, TRUE, db_con);
@@ -1084,7 +1084,7 @@ process_index_emails (Tracker *tracker, DBConnection *db_con)
                 if (name) {
                         GSList *list;
 
-                        list = tracker_service_directories_get (name);
+                        list = tracker_ontology_get_dirs_for_service_type (name);
                         process_directory_list (tracker, list, TRUE, db_con);
                         g_slist_free (list);
                 }

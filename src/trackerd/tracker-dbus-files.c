@@ -33,7 +33,7 @@
 #include "tracker-dbus-files.h"
 #include "tracker-db.h"
 #include "tracker-metadata.h"
-#include "tracker-service-manager.h"
+#include "tracker-ontology.h"
 #include "tracker-marshal.h"
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DBUS_FILES, TrackerDBusFilesPriv))
@@ -184,7 +184,7 @@ tracker_dbus_files_exist (TrackerDBusFiles  *object,
 			service = g_strdup ("Files");
 		} else {
 			info->mime = tracker_file_get_mime_type (uri);
-			service = tracker_service_manager_get_service_type_for_mime (info->mime);
+			service = tracker_ontology_get_service_type_for_mime (info->mime);
 			info = tracker_db_file_info_get (info);
 		}
 		
@@ -256,7 +256,7 @@ tracker_dbus_files_create (TrackerDBusFiles  *object,
 		path = tracker_file_get_vfs_path (info->uri);
 	}
 
-	service = tracker_service_manager_get_service_type_for_mime (mime);
+	service = tracker_ontology_get_service_type_for_mime (mime);
 	file_id = tracker_db_create_service (db_con, service, info);
 	tracker_db_file_info_free (info);
 
@@ -470,7 +470,7 @@ tracker_dbus_files_get_service_type (TrackerDBusFiles  *object,
 				      mime);
 
 	/* Get service from mime */
-	*value = tracker_service_manager_get_service_type_for_mime (mime);
+	*value = tracker_ontology_get_service_type_for_mime (mime);
 
 	tracker_dbus_request_comment (request_id,
 				      "Info for file '%s', "
@@ -673,7 +673,7 @@ tracker_dbus_files_get_by_service_type (TrackerDBusFiles   *object,
                                   offset,
                                   max_hits);
 
-	if (!tracker_service_manager_is_valid_service (service)) {
+	if (!tracker_ontology_is_valid_service_type (service)) {
 		tracker_dbus_request_failed (request_id,
 					     error, 
                                              "Service '%s' is invalid or has not been implemented yet", 
@@ -875,7 +875,7 @@ tracker_dbus_files_get_metadata_for_files_in_folder (TrackerDBusFiles  *object,
 	TrackerDBResultSet   *result_set;
 	guint                 request_id;
 	DBConnection         *db_con;
-	FieldDef             *defs[255];
+	const TrackerField   *defs[255];
 	guint                 i;
 	gchar                *uri_filtered;
 	guint32               file_id;
@@ -903,7 +903,7 @@ tracker_dbus_files_get_metadata_for_files_in_folder (TrackerDBusFiles  *object,
 
 	/* Get fields for metadata list provided */
 	for (i = 0; i < g_strv_length (fields); i++) {
-		defs[i] = tracker_db_get_field_def (fields[i]);
+		defs[i] = tracker_ontology_get_field_def (fields[i]);
 
 		if (!defs[i]) {
 			tracker_dbus_request_failed (request_id,
@@ -951,7 +951,7 @@ tracker_dbus_files_get_metadata_for_files_in_folder (TrackerDBusFiles  *object,
 		} else {
 			gchar *display_field;
 
-			display_field = tracker_db_get_display_field (defs[i]);
+			display_field = tracker_ontology_get_display_field (defs[i]);
 			g_string_append_printf (sql, ", M%d.%s ", i, display_field);
 			g_free (display_field);
 			needs_join[i - 1] = TRUE;
@@ -969,7 +969,7 @@ tracker_dbus_files_get_metadata_for_files_in_folder (TrackerDBusFiles  *object,
 			continue;
 		}
 
-		table = tracker_get_metadata_table (defs[i]->type);
+		table = tracker_get_metadata_table (tracker_field_get_data_type (defs[i]));
 
 		g_string_append_printf (sql, 
 					" LEFT OUTER JOIN %s M%d ON "
@@ -979,7 +979,7 @@ tracker_dbus_files_get_metadata_for_files_in_folder (TrackerDBusFiles  *object,
 					i+1, 
 					i+1, 
 					i+1, 
-					defs[i]->id);
+					tracker_field_get_id (defs[i]));
 
 		g_free (table);
 	}

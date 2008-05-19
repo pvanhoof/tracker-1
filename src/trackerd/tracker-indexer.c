@@ -61,7 +61,7 @@
 #include "tracker-hal.h"
 #include "tracker-process-files.h"
 #include "tracker-query-tree.h"
-#include "tracker-service-manager.h"
+#include "tracker-ontology.h"
 #include "tracker-status.h"
 #include "tracker-db-manager.h"
 

@@ -196,7 +196,7 @@ tracker_dbus_keywords_get_list (TrackerDBusKeywords   *object,
 				  "service:'%s'",
 				  service);
 
-	if (!tracker_service_manager_is_valid_service (service)) {
+	if (!tracker_ontology_is_valid_service_type (service)) {
 		tracker_dbus_request_failed (request_id,
 					     error, 
                                              "Service '%s' is invalid or has not been implemented yet", 
@@ -247,7 +247,7 @@ tracker_dbus_keywords_get (TrackerDBusKeywords   *object,
 				  service, 
 				  uri);
 
-	if (!tracker_service_manager_is_valid_service (service)) {
+	if (!tracker_ontology_is_valid_service_type (service)) {
 		tracker_dbus_request_failed (request_id,
 					     error, 
                                              "Service '%s' is invalid or has not been implemented yet", 
@@ -320,7 +320,7 @@ tracker_dbus_keywords_add (TrackerDBusKeywords  *object,
 				  service, 
 				  uri);
 
-	if (!tracker_service_manager_is_valid_service (service)) {
+	if (!tracker_ontology_is_valid_service_type (service)) {
 		tracker_dbus_request_failed (request_id,
 					     error, 
                                              "Service '%s' is invalid or has not been implemented yet", 
@@ -391,7 +391,7 @@ tracker_dbus_keywords_remove (TrackerDBusKeywords  *object,
 				  service, 
 				  uri);
 
-	if (!tracker_service_manager_is_valid_service (service)) {
+	if (!tracker_ontology_is_valid_service_type (service)) {
 		tracker_dbus_request_failed (request_id,
 					     error, 
                                              "Service '%s' is invalid or has not been implemented yet", 
@@ -463,7 +463,7 @@ tracker_dbus_keywords_remove_all (TrackerDBusKeywords  *object,
 				  service, 
 				  uri);
 
-	if (!tracker_service_manager_is_valid_service (service)) {
+	if (!tracker_ontology_is_valid_service_type (service)) {
 		tracker_dbus_request_failed (request_id,
 					     error, 
                                              "Service '%s' is invalid or has not been implemented yet", 
@@ -540,7 +540,7 @@ tracker_dbus_keywords_search (TrackerDBusKeywords  *object,
 				  offset,
 				  max_hits);
 
-	if (!tracker_service_manager_is_valid_service (service)) {
+	if (!tracker_ontology_is_valid_service_type (service)) {
 		tracker_dbus_request_failed (request_id,
 					     error, 
                                              "Service '%s' is invalid or has not been implemented yet", 

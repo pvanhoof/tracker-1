@@ -690,7 +690,7 @@ build_sql (ParserData *data)
 		return FALSE;
 	}
 
-	if (field_data->data_type ==  DATA_DATE) {
+	if (field_data->data_type ==  TRACKER_FIELD_TYPE_DATE) {
 		char *bvalue;
 		int cvalue;
 
@@ -726,7 +726,9 @@ build_sql (ParserData *data)
 			if (sub) {
 				g_string_append_printf (str, " (%s glob '%s') ", field_data->where_field, data->current_value);
 			} else {
-				if (field_data->data_type == DATA_DATE || field_data->data_type == DATA_INTEGER || field_data->data_type == DATA_DOUBLE) {
+				if (field_data->data_type == TRACKER_FIELD_TYPE_DATE 
+                                    || field_data->data_type == TRACKER_FIELD_TYPE_INTEGER 
+                                    || field_data->data_type == TRACKER_FIELD_TYPE_DOUBLE) {
 					g_string_append_printf (str, " (%s = %s) ", field_data->where_field, value);
 				} else {
 					g_string_append_printf (str, " (%s = '%s') ", field_data->where_field, value);
@@ -1025,7 +1027,7 @@ get_select_header (const char *service)
 	int type;
 		
 	result = g_string_new ("");
-	type = tracker_service_manager_get_id_for_service (service);
+	type = tracker_ontology_get_id_for_service_type (service);
 
 	switch (type) {
 

@@ -97,9 +97,6 @@ typedef struct {
 	gint	          grace_period; 
 	gboolean          request_waiting;
 
-	/* Lookup tables for service and metadata IDs */
-	GHashTable       *metadata_table; 
-
 	/* Email config options */
 	gint              email_service_min;
 	gint              email_service_max; 

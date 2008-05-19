@@ -827,7 +827,7 @@ build_sql (ParserData *data)
 			g_string_append (str, " OR ");	
 		}
 
-		if (((FieldData *)field_data->data)->data_type ==  DATA_DATE) {
+		if (((FieldData *)field_data->data)->data_type ==  TRACKER_FIELD_TYPE_DATE) {
 			char *bvalue;
 			int cvalue;
 			
@@ -837,7 +837,7 @@ build_sql (ParserData *data)
 			tracker_debug ("%d", cvalue);
 			value = tracker_int_to_string (cvalue);
 			g_free (bvalue);
-		} else if (state == STATE_END_BOOLEAN) { /* FIXME We do a state check here, because DATA_BOOLEAN is not in db */
+		} else if (state == STATE_END_BOOLEAN) { /* FIXME We do a state check here, because TRACKER_FIELD_TYPE_BOOLEAN is not in db */
 			if (!strcmp(avalue,"true")) {
 				value = g_strdup("1");
 			} else if(!strcmp(avalue,"false")) {
@@ -869,7 +869,9 @@ build_sql (ParserData *data)
 			if (sub) {
 				g_string_append_printf (str, " (%s glob '%s') ", ((FieldData *)field_data->data)->where_field, data->current_value);
 			} else {
-				if (((FieldData *)field_data->data)->data_type == DATA_DATE || ((FieldData *)field_data->data)->data_type == DATA_INTEGER || ((FieldData *)field_data->data)->data_type == DATA_DOUBLE) {
+				if (((FieldData *)field_data->data)->data_type == TRACKER_FIELD_TYPE_DATE 
+				    || ((FieldData *)field_data->data)->data_type == TRACKER_FIELD_TYPE_INTEGER 
+				    || ((FieldData *)field_data->data)->data_type == TRACKER_FIELD_TYPE_DOUBLE) {
 					g_string_append_printf (str, " (%s = %s) ", ((FieldData *)field_data->data)->where_field, value);
 				} else {
 					g_string_append_printf (str, " (%s = '%s') ", ((FieldData *)field_data->data)->where_field, value);

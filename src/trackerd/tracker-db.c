@@ -35,7 +35,7 @@
 #include "tracker-db.h"
 #include "tracker-email.h"
 #include "tracker-metadata.h"
-#include "tracker-service-manager.h"
+#include "tracker-ontology.h"
 #include "tracker-process-files.h"
 
 extern Tracker *tracker;
@@ -227,7 +227,7 @@ save_meta_table_data (gpointer mtype,
 	db_action = user_data;
 
 	/* auto-tag keyword related metadata */
-	if (tracker_db_metadata_is_child (db_action->db_con, mtype, "DC:Keywords")) {
+	if (tracker_ontology_field_is_child_of (mtype, "DC:Keywords")) {
 
 		GSList *tmp;
 		for (tmp = value; tmp; tmp = tmp->next) {
@@ -360,23 +360,19 @@ tracker_db_get_files_in_folder (DBConnection *db_con, const char *folder_uri)
 gboolean
 tracker_metadata_is_date (DBConnection *db_con, const char *meta)
 {
-	FieldDef *def;
-	gboolean res;
+	const TrackerField *def;
 
-	def = tracker_db_get_field_def (meta);
+	def = tracker_ontology_get_field_def (meta);
 
 	if (!def) {
 		tracker_error ("ERROR: failed to get info for metadata type %s", meta);
 		return FALSE;
 	}
-
+	
+	/* FIXME: It is the same check again! */
 	g_return_val_if_fail (def, FALSE);
 
-	res = (def->type == DATA_DATE);
-
-	tracker_db_free_field_def (def);
-
-	return res;
+	return tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_DATE;
 }
 
 
@@ -875,7 +871,7 @@ tracker_db_index_service (DBConnection *db_con, TrackerDBFileInfo *info, const c
 		uri = attachment_uri;
 	}
 
-	info->service_type_id = tracker_service_manager_get_id_for_service (service);
+	info->service_type_id = tracker_ontology_get_id_for_service_type (service);
 
 	if (info->service_type_id == -1) {
 		tracker_log ("Service %s not supported yet", service);
@@ -977,7 +973,7 @@ tracker_db_index_service (DBConnection *db_con, TrackerDBFileInfo *info, const c
 	}
 
 	if (attachment_service) {
-		info->service_type_id = tracker_service_manager_get_id_for_service (attachment_service);
+		info->service_type_id = tracker_ontology_get_id_for_service_type (attachment_service);
 	}
 
 	/* save stuff to Db */
@@ -1148,7 +1144,7 @@ tracker_db_index_file (DBConnection *db_con, TrackerDBFileInfo *info, const char
 
 		tracker_info ("mime is %s for %s", info->mime, info->uri);
 
-		service_name = tracker_service_manager_get_service_type_for_mime (info->mime);
+		service_name = tracker_ontology_get_service_type_for_mime (info->mime);
 
 	}
 
@@ -1243,17 +1239,17 @@ tracker_db_index_file (DBConnection *db_con, TrackerDBFileInfo *info, const char
 		service_has_metadata = 
                         (is_external_service ||
                          (is_file_indexable && 
-                          tracker_service_manager_has_metadata (service_name))) &&
+                          tracker_ontology_service_type_has_metadata (service_name))) &&
                         !is_sidecar;
 		service_has_fulltext = 
                         (is_external_service ||
                          (is_file_indexable && 
-                          tracker_service_manager_has_text (service_name))) && 
+                          tracker_ontology_service_type_has_text (service_name))) && 
                         !is_sidecar;
 		service_has_thumbs = 
                         (is_external_service ||
                          (is_file_indexable && 
-                          tracker_service_manager_has_thumbnails (service_name)));
+                          tracker_ontology_service_type_has_thumbnails (service_name)));
 
 		#ifdef HAVE_EXEMPI
 		if (!info->is_directory) {

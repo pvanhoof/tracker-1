@@ -37,7 +37,7 @@
 
 #include "tracker-metadata.h"
 #include "tracker-utils.h"
-#include "tracker-service-manager.h"
+#include "tracker-ontology.h"
 #include "tracker-main.h"
 
 extern Tracker *tracker;
@@ -50,7 +50,7 @@ tracker_metadata_get_text_file (const char *uri, const char *mime)
 	text_filter_file = NULL;
 
 	/* no need to filter text based files - index em directly */
-	service_type = tracker_service_manager_get_service_type_for_mime (mime);
+	service_type = tracker_ontology_get_service_type_for_mime (mime);
 	if ( !strcmp ("Text", service_type) || !strcmp ("Development", service_type)) {
 
 		g_free (service_type);
@@ -177,12 +177,12 @@ tracker_metadata_get_embedded (const char *uri, const char *mime, GHashTable *ta
 		return;
 	}
 
-	service_type = tracker_service_manager_get_service_type_for_mime (mime);
+	service_type = tracker_ontology_get_service_type_for_mime (mime);
 	if (!service_type ) {
 		return;
 	}
 
-	if (!tracker_service_manager_has_metadata (service_type)) {
+	if (!tracker_ontology_service_type_has_metadata (service_type)) {
 		g_free (service_type);
 		return;
 	}

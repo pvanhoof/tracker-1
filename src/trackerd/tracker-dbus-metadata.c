@@ -177,7 +177,7 @@ tracker_dbus_metadata_get (TrackerDBusMetadata   *object,
 
 	db_con = priv->db_con;
 
-	if (!tracker_service_manager_is_valid_service (service)) {
+	if (!tracker_ontology_is_valid_service_type (service)) {
 		tracker_dbus_request_failed (request_id,
 					     error, 
                                              "Service '%s' is invalid or has not been implemented yet", 
@@ -322,7 +322,7 @@ tracker_dbus_metadata_set (TrackerDBusMetadata   *object,
 				  "service:'%s'",
 				  service);
 
-	if (!tracker_service_manager_is_valid_service (service)) {
+	if (!tracker_ontology_is_valid_service_type (service)) {
 		tracker_dbus_request_failed (request_id,
 					     error, 
                                              "Service '%s' is invalid or has not been implemented yet", 

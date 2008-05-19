@@ -34,7 +34,7 @@
 #include "tracker-rdf-query.h"
 #include "tracker-query-tree.h"
 #include "tracker-indexer.h"
-#include "tracker-service-manager.h"
+#include "tracker-ontology.h"
 #include "tracker-marshal.h"
 
 enum {

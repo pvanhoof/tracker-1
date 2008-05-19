@@ -44,7 +44,7 @@
 #include "tracker-metadata.h"
 #include "tracker-utils.h"
 #include "tracker-watch.h"
-#include "tracker-service-manager.h"
+#include "tracker-ontology.h"
 #include "tracker-query-tree.h"
 #include "tracker-xesam.h"
 #include "tracker-main.h"
@@ -354,7 +354,7 @@ function_get_service_name (TrackerDBInterface *interface,
 	GValue result = { 0, };
 	gchar *str;
 
-	str = tracker_service_manager_get_service_by_id (g_value_get_int (&values[0]));
+	str = tracker_ontology_get_service_type_by_id (g_value_get_int (&values[0]));
 	g_value_init (&result, G_TYPE_STRING);
 	g_value_take_string (&result, str);
 
@@ -369,7 +369,7 @@ function_get_service_type (TrackerDBInterface *interface,
 	GValue result = { 0, };
 	gint id;
 
-	id = tracker_service_manager_get_id_for_service (g_value_get_string (&values[0]));
+	id = tracker_ontology_get_id_for_service_type (g_value_get_string (&values[0]));
 	g_value_init (&result, G_TYPE_INT);
 	g_value_set_int (&result, id);
 
@@ -384,7 +384,7 @@ function_get_max_service_type (TrackerDBInterface *interface,
 	GValue result = { 0, };
 	gint id;
 
-	id = tracker_service_manager_get_id_for_service (g_value_get_string (&values[0]));
+	id = tracker_ontology_get_id_for_service_type (g_value_get_string (&values[0]));
 	g_value_init (&result, G_TYPE_INT);
 	g_value_set_int (&result, id);
 
@@ -458,7 +458,7 @@ load_service_file (TrackerDBInterface *iface, const gchar *filename)
 
 				
 		tracker_log ("Trying to obtain service %s in cache", *group);
-		service = tracker_service_manager_get_service (*group);
+		service = tracker_ontology_get_service_type_by_name (*group);
 
 		if (!service) {
 			tracker_db_exec_proc (iface, "InsertServiceType", *group, NULL);
@@ -568,7 +568,7 @@ load_metadata_file (TrackerDBInterface *iface, const gchar *filename)
 	gchar 			*service_file, *str_id;
 	gchar                  **groups, **keys;
 	gchar                  **group, **key;
-	FieldDef                *def;
+	const TrackerField      *def;
 	gint                     id;
 	gchar                    *DataTypeArray[11] = {"Keyword", "Indexable", "CLOB", 
 						      "String", "Integer", "Double", 
@@ -591,13 +591,14 @@ load_metadata_file (TrackerDBInterface *iface, const gchar *filename)
 
 	for (group = groups; *group; group++) {
 
-		def = tracker_db_get_field_def (*group);
+		def = tracker_ontology_get_field_def (*group);
 
 		if (!def) {
 			tracker_db_exec_proc (iface, "InsertMetadataType", *group, NULL);
 			id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (iface));
 		} else {
-			id = atoi (def->id);
+			id = atoi (tracker_field_get_id (def));
+			g_error ("Duplicated metadata description %s", *group);
 		}
 
 		str_id = tracker_uint_to_string (id);
@@ -720,27 +721,6 @@ load_service_description_file (TrackerDBInterface *iface, const gchar* filename)
 	} 
 
 	return TRUE;
-}
-
-
-
-FieldDef *
-tracker_db_get_field_def (const char *field_name)
-{
-	FieldDef *def;
-	char *name;
-
-	name = g_utf8_strdown (field_name, -1);
-	def = g_hash_table_lookup (tracker->metadata_table, name);
-	g_free (name);
-
-	return def;
-}
-
-
-void
-tracker_db_free_field_def (FieldDef *def)
-{
 }
 
 
@@ -1585,7 +1565,7 @@ tracker_db_common_need_build ()
 static gint
 tracker_metadata_is_key (const gchar *service, const gchar *meta_name)
 {
-	return tracker_service_manager_metadata_in_service (service, meta_name);
+	return tracker_ontology_metadata_key_in_service (service, meta_name);
 }
 
 
@@ -1595,6 +1575,7 @@ is_equal (const char *s1, const char *s2)
 	return (strcasecmp (s1, s2) == 0);
 }
 
+/* Replace with tracker_ontology_get_field_column_in_services */
 char *
 tracker_db_get_field_name (const char *service, const char *meta_name)
 {
@@ -1615,21 +1596,6 @@ tracker_db_get_field_name (const char *service, const char *meta_name)
 	return NULL;
 
 }
-
-
-char *
-tracker_db_get_display_field (FieldDef *def)
-{
-	if (def->type == DATA_INDEX || def->type == DATA_STRING || def->type == DATA_DOUBLE) {
-		return g_strdup ("MetaDataDisplay");
-	}
-
-	return g_strdup ("MetaDataValue");
-
-}
-
-
-
 
 GHashTable *
 tracker_db_get_file_contents_words (DBConnection *db_con, guint32 id, GHashTable *old_table)
@@ -1743,11 +1709,11 @@ tracker_db_get_indexable_content_words (DBConnection *db_con, guint32 id, GHashT
 static void
 save_full_text_bytes (DBConnection *blob_db_con, const char *str_file_id, GByteArray *byte_array)
 {
-	FieldDef *def;
+	const gchar *id;
 
-	def = tracker_db_get_field_def ("File:Contents");
+	id = tracker_ontology_get_field_id ("File:Contents");
 
-	if (!def) {
+	if (!id) {
 		tracker_error ("WARNING: metadata not found for type %s", "File:Contents");
 		return;
 	}
@@ -1756,7 +1722,7 @@ save_full_text_bytes (DBConnection *blob_db_con, const char *str_file_id, GByteA
 						    NULL,
 						    "SaveServiceContents",
 						    str_file_id, -1,
-						    def->id, -1,
+						    id, -1,
 						    byte_array->data, byte_array->len,
 						    NULL);
 }
@@ -1767,7 +1733,7 @@ save_full_text (DBConnection *blob_db_con, const char *str_file_id, const char *
 {
 	gchar *compressed, *value = NULL;
 	gint bytes_compressed;
-	FieldDef *def;
+	const gchar *field_id;
 
 	compressed = function_compress_string (text, length, &bytes_compressed);
 
@@ -1781,9 +1747,9 @@ save_full_text (DBConnection *blob_db_con, const char *str_file_id, const char *
 	}
 
 
-	def = tracker_db_get_field_def ("File:Contents");
+	field_id = tracker_ontology_get_field_id ("File:Contents");
 
-	if (!def) {
+	if (!field_id) {
 		tracker_error ("WARNING: metadata not found for type %s", "File:Contents");
 		g_free (value);
 		return;
@@ -1793,7 +1759,7 @@ save_full_text (DBConnection *blob_db_con, const char *str_file_id, const char *
 						    NULL,
 						    "SaveServiceContents",
 						    str_file_id, -1,
-						    def->id, -1,
+						    field_id, -1,
 						    value, bytes_compressed,
 						    NULL);
 	g_free (value);
@@ -2175,31 +2141,39 @@ tracker_db_search_files_by_text (DBConnection *db_con, const char *text, int off
 TrackerDBResultSet *
 tracker_db_search_metadata (DBConnection *db_con, const char *service, const char *field, const char *text, int offset, int limit)
 {
-	FieldDef *def;
+	const TrackerField *def;
 	TrackerDBResultSet *result_set;
 
 	g_return_val_if_fail ((service && field && text), NULL);
 
-	def = tracker_db_get_field_def (field);
+	def = tracker_ontology_get_field_def (field);
 
 	if (!def) {
 		tracker_error ("ERROR: metadata not found for type %s", field);
 		return NULL;
 	}
 
-	switch (def->type) {
+	/* FIXME This method was broken: Using wrong tables!?!?!?!?!? */
+	switch (tracker_field_get_data_type (def)) {
 
-		case 0: 
-		case 1: result_set = tracker_exec_proc (db_con, "SearchMetadata", def->id, text, NULL); break;
+		case TRACKER_FIELD_TYPE_KEYWORD: 
+		case TRACKER_FIELD_TYPE_INDEX: 
+			result_set = tracker_exec_proc (db_con, "SearchMetadata", tracker_field_get_id (def), text, NULL); 
+			break;
 
-		case 2:
-		case 3: result_set = tracker_exec_proc (db_con, "SearchMetadataNumeric", def->id, text, NULL); break;
+		case TRACKER_FIELD_TYPE_FULLTEXT:
+		case TRACKER_FIELD_TYPE_STRING: 
+			result_set = tracker_exec_proc (db_con, "SearchMetadataNumeric", tracker_field_get_id (def), text, NULL); 
+			break;
 
-		case 5: result_set = tracker_exec_proc (db_con, "SearchMetadataKeywords", def->id, text, NULL); break;
+		case TRACKER_FIELD_TYPE_INTEGER: 
+			result_set = tracker_exec_proc (db_con, "SearchMetadataKeywords", tracker_field_get_id (def), text, NULL); 
+			break;
 
-		default: tracker_error ("ERROR: metadata could not be retrieved as type %d is not supported", def->type); result_set = NULL;
+		default: 
+			tracker_error ("ERROR: metadata could not be retrieved as type %d is not supported", tracker_field_get_data_type (def)); 
+			result_set = NULL;
 	}
-
 
 	return result_set;
 }
@@ -2217,36 +2191,37 @@ TrackerDBResultSet *
 tracker_db_get_metadata (DBConnection *db_con, const char *service, const char *id, const char *key)
 {
 	TrackerDBResultSet *result_set;
-	FieldDef *def;
+	const TrackerField *def;
 
 	g_return_val_if_fail (id, NULL);
 
-	def = tracker_db_get_field_def (key);
+	def = tracker_ontology_get_field_def (key);
 
 	if (!def) {
 		tracker_error ("ERROR: metadata not found for id %s and type %s", id, key);
 		return NULL;
 	}
 
-	switch (def->type) {
-		case DATA_INDEX:
-		case DATA_STRING:
-		case DATA_DOUBLE:
-			result_set = tracker_exec_proc (db_con, "GetMetadata", id, def->id, NULL);
+	switch (tracker_field_get_data_type (def)) {
+		case TRACKER_FIELD_TYPE_INDEX:
+		case TRACKER_FIELD_TYPE_STRING:
+		case TRACKER_FIELD_TYPE_DOUBLE:
+			result_set = tracker_exec_proc (db_con, "GetMetadata", id, tracker_field_get_id (def), NULL);
 			break;
-		case DATA_INTEGER:
-		case DATA_DATE:
-			result_set = tracker_exec_proc (db_con, "GetMetadataNumeric", id, def->id, NULL);
+		case TRACKER_FIELD_TYPE_INTEGER:
+		case TRACKER_FIELD_TYPE_DATE:
+			result_set = tracker_exec_proc (db_con, "GetMetadataNumeric", id, tracker_field_get_id (def), NULL);
 			break;
-		case DATA_FULLTEXT:
-			result_set = tracker_exec_proc (db_con, "GetContents", id, def->id, NULL);
+		case TRACKER_FIELD_TYPE_FULLTEXT:
+			result_set = tracker_exec_proc (db_con, "GetContents", id, tracker_field_get_id (def), NULL);
 			break;
-		case DATA_KEYWORD:
-			result_set = tracker_exec_proc (db_con, "GetMetadataKeyword", id, def->id, NULL);
+		case TRACKER_FIELD_TYPE_KEYWORD:
+			result_set = tracker_exec_proc (db_con, "GetMetadataKeyword", id, tracker_field_get_id (def), NULL);
 			break;
 
 		default:
-			tracker_error ("ERROR: metadata could not be retrieved as type %d is not supported", def->type); result_set = NULL;
+			tracker_error ("ERROR: metadata could not be retrieved as type %d is not supported", tracker_field_get_data_type (def)); 
+			result_set = NULL;
 	}
 
 	return result_set;
@@ -2291,7 +2266,7 @@ tracker_db_get_metadata_delimited (DBConnection *db_con, const char *service, co
 
 
 static void
-update_metadata_index (const char *id, const char *service, FieldDef *def, const char *old_value, const char *new_value) 
+update_metadata_index (const char *id, const char *service, const TrackerField *def, const char *old_value, const char *new_value) 
 {
 	GHashTable *old_table, *new_table;
 	gint        sid;
@@ -2308,30 +2283,30 @@ update_metadata_index (const char *id, const char *service, FieldDef *def, const
 	if (old_value) {
 		old_table = tracker_parser_text (old_table, 
 						 old_value, 
-						 def->weight, 
+						 tracker_field_get_weight (def), 
 						 tracker->language, 
  						 tracker_config_get_max_words_to_index (tracker->config),
  						 tracker_config_get_max_word_length (tracker->config),
  						 tracker_config_get_min_word_length (tracker->config),
-						 def->filtered, 
-						 def->delimited);
+						 tracker_field_get_filtered (def), 
+						 tracker_field_get_delimited (def));
 	}
 
 	/* parse new metadata value */
 	if (new_value) {
 		new_table = tracker_parser_text (new_table, 
 						 new_value, 
-						 def->weight, 
+						 tracker_field_get_weight (def), 
 						 tracker->language, 
  						 tracker_config_get_max_words_to_index (tracker->config),
  						 tracker_config_get_max_word_length (tracker->config),
  						 tracker_config_get_min_word_length (tracker->config),
-						 def->filtered, 
-						 def->delimited);
+						 tracker_field_get_filtered (def), 
+						 tracker_field_get_delimited (def));
 	}
 
 	/* we only do differential updates so only changed words scores are updated */
-	sid = tracker_service_manager_get_id_for_service (service);
+	sid = tracker_ontology_get_id_for_service_type (service);
 	tracker_db_update_differential_index (old_table, new_table, id, sid);
 
 	tracker_parser_text_free (old_table);
@@ -2396,24 +2371,27 @@ tracker_get_xesam_service_names (DBConnection *db_con, const char *name)
 
 
 char *
-tracker_get_metadata_table (DataTypes type)
+tracker_get_metadata_table (TrackerFieldType type)
 {
 	switch (type) {
 
-		case DATA_INDEX:
-		case DATA_STRING:
-		case DATA_DOUBLE:
+		case TRACKER_FIELD_TYPE_INDEX:
+		case TRACKER_FIELD_TYPE_STRING:
+		case TRACKER_FIELD_TYPE_DOUBLE:
 			return g_strdup ("ServiceMetaData");
 		
-		case DATA_INTEGER:
-		case DATA_DATE:
+		case TRACKER_FIELD_TYPE_INTEGER:
+		case TRACKER_FIELD_TYPE_DATE:
 			return g_strdup ("ServiceNumericMetaData");
 
-		case DATA_BLOB: return g_strdup("ServiceBlobMetaData");
+		case TRACKER_FIELD_TYPE_BLOB: 
+			return g_strdup("ServiceBlobMetaData");
 
-		case DATA_KEYWORD: return g_strdup("ServiceKeywordMetaData");
+		case TRACKER_FIELD_TYPE_KEYWORD: 
+			return g_strdup("ServiceKeywordMetaData");
 
-		default: return NULL;
+		default: 
+			return NULL;
 	}
 
 	return NULL;
@@ -2460,19 +2438,20 @@ void
 tracker_db_insert_embedded_metadata (DBConnection *db_con, const gchar *service, const gchar *id, const gchar *key, gchar **values, gint length, GHashTable *table)
 {
 	gint	key_field = 0;
+	const TrackerField *def;
 
 	if (!service || !id || !key || !values || !values[0]) {
 		return;
 	}
 
-	FieldDef *def = tracker_db_get_field_def (key);
+	def = tracker_ontology_get_field_def (key);
 
 	if (!def) {
 		tracker_error ("ERROR: metadata %s not found", key);
 		return;
 	}
 
-	g_return_if_fail (def->embedded);
+	g_return_if_fail (tracker_field_get_embedded (def));
 
 	if (length == -1) {
 		length = 0;
@@ -2481,11 +2460,11 @@ tracker_db_insert_embedded_metadata (DBConnection *db_con, const gchar *service,
 		}
 	}
 	
-        key_field = tracker_metadata_is_key (service, key);
+        key_field = tracker_ontology_metadata_key_in_service (service, key);
 
-	switch (def->type) {
+	switch (tracker_field_get_data_type (def)) {
 
-                case DATA_KEYWORD: {
+                case TRACKER_FIELD_TYPE_KEYWORD: {
                         gint i;
 			for (i = 0; i < length; i++) {
                                 if (!values[i] || !values[i][0]) {
@@ -2502,17 +2481,17 @@ tracker_db_insert_embedded_metadata (DBConnection *db_con, const gchar *service,
 										FALSE, 
 										FALSE, 
 										FALSE);
-					table = tracker_parser_text_fast (table, mvalue, def->weight);
+					table = tracker_parser_text_fast (table, mvalue, tracker_field_get_weight (def));
 
 					g_free (mvalue);
 				}
 	
-				tracker_exec_proc (db_con, "SetMetadataKeyword", id, def->id, values[i], NULL);
+				tracker_exec_proc (db_con, "SetMetadataKeyword", id, tracker_field_get_id (def), values[i], NULL);
 			}
 
 			break;
                 }
-                case DATA_INDEX: {
+                case TRACKER_FIELD_TYPE_INDEX: {
                         gint i;
 			for (i = 0; i < length; i++) {
                                 gchar *mvalue;
@@ -2525,22 +2504,22 @@ tracker_db_insert_embedded_metadata (DBConnection *db_con, const gchar *service,
 									tracker->language,
 									tracker_config_get_max_word_length (tracker->config),
 									tracker_config_get_min_word_length (tracker->config),
-									def->filtered, 
-									def->filtered, 
-									def->delimited);
+									tracker_field_get_filtered (def), 
+									tracker_field_get_filtered (def), 
+									tracker_field_get_delimited (def));
 
 				if (table) {
-					table = tracker_parser_text_fast (table, mvalue, def->weight);
+					table = tracker_parser_text_fast (table, mvalue, tracker_field_get_weight (def));
 				}
 				
-				tracker_exec_proc (db_con, "SetMetadata", id, def->id, mvalue, values[i], NULL);
+				tracker_exec_proc (db_con, "SetMetadata", id, tracker_field_get_id (def), mvalue, values[i], NULL);
 				
 				g_free (mvalue);
 			}
 
 			break;
                 }
-                case DATA_FULLTEXT: {
+                case TRACKER_FIELD_TYPE_FULLTEXT: {
                         gint i;
 			for (i = 0; i < length; i++) {
                                 if (!values[i] || !values[i][0]) {
@@ -2550,13 +2529,13 @@ tracker_db_insert_embedded_metadata (DBConnection *db_con, const gchar *service,
 				if (table) {
 					table = tracker_parser_text (table, 
 								     values[i], 
-								     def->weight, 
+								     tracker_field_get_weight (def), 
 								     tracker->language, 
 								     tracker_config_get_max_words_to_index (tracker->config),
 								     tracker_config_get_max_word_length (tracker->config),
 								     tracker_config_get_min_word_length (tracker->config),
-								     def->filtered, 
-								     def->delimited);
+								     tracker_field_get_filtered (def), 
+								     tracker_field_get_delimited (def));
 				}
 	
 				save_full_text (db_con->blob, id, values[i], strlen (values[i]));
@@ -2564,19 +2543,19 @@ tracker_db_insert_embedded_metadata (DBConnection *db_con, const gchar *service,
 
 			break;
                 }
-                case DATA_DOUBLE: {
+                case TRACKER_FIELD_TYPE_DOUBLE: {
                         gint i;
 			for (i = 0; i < length; i++) {
                                 if (!values[i]) {
                                         continue;
                                 }
 
-				tracker_exec_proc (db_con, "SetMetadata", id, def->id, " ", values[i], NULL);
+				tracker_exec_proc (db_con, "SetMetadata", id, tracker_field_get_id (def), " ", values[i], NULL);
 			}
 
                         break;
                 }
-                case DATA_STRING: {
+                case TRACKER_FIELD_TYPE_STRING: {
                         gint i;
 			for (i = 0; i < length; i++) {
 				gchar *mvalue;
@@ -2589,29 +2568,29 @@ tracker_db_insert_embedded_metadata (DBConnection *db_con, const gchar *service,
 									tracker->language,
 									tracker_config_get_max_word_length (tracker->config),
 									tracker_config_get_min_word_length (tracker->config),
-									def->filtered,  
-									def->filtered, 
-									def->delimited);
-				tracker_exec_proc (db_con, "SetMetadata", id, def->id, mvalue, values[i], NULL);
+									tracker_field_get_filtered (def),  
+									tracker_field_get_filtered (def), 
+									tracker_field_get_delimited (def));
+				tracker_exec_proc (db_con, "SetMetadata", id, tracker_field_get_id (def), mvalue, values[i], NULL);
 
 				g_free (mvalue);
 			}
 
 			break;
                 }
-                case DATA_INTEGER: {
+                case TRACKER_FIELD_TYPE_INTEGER: {
                         gint i;
 			for (i = 0; i < length; i++) {
                                 if (!values[i]) {
                                         continue;
                                 }
 
-				tracker_exec_proc (db_con, "SetMetadataNumeric", id, def->id, values[i], NULL);
+				tracker_exec_proc (db_con, "SetMetadataNumeric", id, tracker_field_get_id (def), values[i], NULL);
 			}
 
 			break;
                 }
-                case DATA_DATE: {
+                case TRACKER_FIELD_TYPE_DATE: {
                         gint i;
 			for (i = 0; i < length; i++) {
                                 if (!values[i]) {
@@ -2625,7 +2604,7 @@ tracker_db_insert_embedded_metadata (DBConnection *db_con, const gchar *service,
 					continue;
 				}
 
-				tracker_exec_proc (db_con, "SetMetadataNumeric", id, def->id, mvalue, NULL);
+				tracker_exec_proc (db_con, "SetMetadataNumeric", id, tracker_field_get_id (def), mvalue, NULL);
 
 				g_free (mvalue);
 			}
@@ -2634,7 +2613,7 @@ tracker_db_insert_embedded_metadata (DBConnection *db_con, const gchar *service,
                 }
                 default: {
 			tracker_error ("ERROR: metadata could not be set as type %d for metadata %s is not supported",
-                                       def->type, key);
+                                       tracker_field_get_data_type (def), key);
 			break;
                 }
 	}
@@ -2644,7 +2623,7 @@ tracker_db_insert_embedded_metadata (DBConnection *db_con, const gchar *service,
 		if (values[0]) {
 			gchar *esc_value = NULL;
 
-			if (def->type == DATA_DATE) {
+			if (tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_DATE) {
 				esc_value = format_date (values[0]);
 
 				if (!esc_value) {
@@ -2748,16 +2727,16 @@ tracker_db_set_single_metadata (DBConnection *db_con, const char *service, const
 }
 
 
-char *
-tracker_db_set_metadata (DBConnection *db_con, const char *service, const char *id, const char *key, char **values, int length, gboolean do_backup)
+gchar *
+tracker_db_set_metadata (DBConnection *db_con, const char *service, const gchar *id, const gchar *key, gchar **values, gint length, gboolean do_backup)
 {
-	FieldDef   	*def;
-	char 		*old_value = NULL, *new_value = NULL;
-	gboolean 	update_index;
-	int		key_field = 0;
-	int 		i;
-	GString 	*str = NULL;
-	char 		*res_service;
+	const TrackerField *def;
+	gchar 		   *old_value = NULL, *new_value = NULL;
+	gboolean 	    update_index;
+	gint		    key_field = 0;
+	gint 		    i;
+	GString 	   *str = NULL;
+	gchar 		   *res_service;
 	
 
 	g_return_val_if_fail (id && values && key && service, NULL);
@@ -2766,7 +2745,7 @@ tracker_db_set_metadata (DBConnection *db_con, const char *service, const char *
 		return NULL;
 	}
 
-	def = tracker_db_get_field_def (key);
+	def = tracker_ontology_get_field_def (key);
 
 	if (!def) {
 		tracker_error ("metadata type %s not found", key);
@@ -2781,14 +2760,16 @@ tracker_db_set_metadata (DBConnection *db_con, const char *service, const char *
 		return NULL;
 	}
 	
-	if (def->multiple_values && length > 1) {
+	if (tracker_field_get_multiple_values (def) && length > 1) {
 		str = g_string_new ("");
 	}
 
 
 
-	key_field = tracker_metadata_is_key (res_service, key);
-	update_index = (def->type == DATA_INDEX || def->type == DATA_KEYWORD || def->type ==  DATA_FULLTEXT);
+	key_field = tracker_ontology_metadata_key_in_service (res_service, key);
+	update_index = (tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_INDEX 
+			|| tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_KEYWORD 
+			|| tracker_field_get_data_type (def) ==  TRACKER_FIELD_TYPE_FULLTEXT);
 
 	
 	if (update_index) {
@@ -2796,26 +2777,26 @@ tracker_db_set_metadata (DBConnection *db_con, const char *service, const char *
 	}
 
 	/* delete old value if metadata does not support multiple values */
-	if (!def->multiple_values) {
+	if (!tracker_field_get_multiple_values (def)) {
 		tracker_db_delete_metadata (db_con, service, id, key, FALSE);
 	}
 
 
-	switch (def->type) {
+	switch (tracker_field_get_data_type (def)) {
 
-		case DATA_KEYWORD:
+		case TRACKER_FIELD_TYPE_KEYWORD:
 
 			for (i=0; i<length; i++) {
 
 				if (!values[i] || !values[i][0]) continue;
 
-				tracker_exec_proc (db_con, "SetMetadataKeyword", id, def->id, values[i], NULL);
+				tracker_exec_proc (db_con, "SetMetadataKeyword", id, tracker_field_get_id (def), values[i], NULL);
 
 				/* backup non-embedded data for embedded services */
 				if (do_backup && 
-                                    !def->embedded && 
-                                    tracker_service_manager_is_service_embedded (service)) {
-					backup_non_embedded_metadata (db_con, id, def->id, values[i]);
+                                    !tracker_field_get_embedded (def) && 
+                                    tracker_ontology_service_type_has_embedded (service)) {
+					backup_non_embedded_metadata (db_con, id, tracker_field_get_id (def), values[i]);
 				}
 
 				if (str) {
@@ -2829,7 +2810,7 @@ tracker_db_set_metadata (DBConnection *db_con, const char *service, const char *
 
 			break;
 
-		case DATA_INDEX:
+		case TRACKER_FIELD_TYPE_INDEX:
 			
 			for (i = 0; i < length; i++) {
 				gchar *mvalue;
@@ -2846,19 +2827,19 @@ tracker_db_set_metadata (DBConnection *db_con, const char *service, const char *
 
 				/* backup non-embedded data for embedded services */
 				if (do_backup &&
-                                    !def->embedded && 
-                                    tracker_service_manager_is_service_embedded (service)) {
-					backup_non_embedded_metadata (db_con, id, def->id, values[i]);
+                                    !tracker_field_get_embedded (def) && 
+                                    tracker_ontology_service_type_has_embedded (service)) {
+					backup_non_embedded_metadata (db_con, id, tracker_field_get_id (def), values[i]);
 				}
 
 				mvalue = tracker_parser_text_to_string (values[i], 
 									tracker->language,
 									tracker_config_get_max_word_length (tracker->config),
 									tracker_config_get_min_word_length (tracker->config),
-									def->filtered,  
-									def->filtered, 
-									def->delimited);
-				tracker_exec_proc (db_con, "SetMetadata", id, def->id, mvalue, values[i], NULL);
+									tracker_field_get_filtered (def),  
+									tracker_field_get_filtered (def), 
+									tracker_field_get_delimited (def));
+				tracker_exec_proc (db_con, "SetMetadata", id, tracker_field_get_id (def), mvalue, values[i], NULL);
 
 				g_free (mvalue);
 
@@ -2866,7 +2847,7 @@ tracker_db_set_metadata (DBConnection *db_con, const char *service, const char *
 
 			break;
 
-		case DATA_FULLTEXT:
+		case TRACKER_FIELD_TYPE_FULLTEXT:
 	
 			/* we do not support multiple values for fulltext clobs */
 						
@@ -2878,7 +2859,7 @@ tracker_db_set_metadata (DBConnection *db_con, const char *service, const char *
 			break;
 
 
-		case DATA_STRING:
+		case TRACKER_FIELD_TYPE_STRING:
 
 			for (i = 0; i < length; i++) {
 				gchar *mvalue;
@@ -2889,25 +2870,25 @@ tracker_db_set_metadata (DBConnection *db_con, const char *service, const char *
 
 				/* backup non-embedded data for embedded services */
 				if (do_backup && 
-                                    !def->embedded && 
-                                    tracker_service_manager_is_service_embedded (service)) {
-					backup_non_embedded_metadata (db_con, id, def->id, values[i]);
+                                    !tracker_field_get_embedded (def) && 
+                                    tracker_ontology_service_type_has_embedded (service)) {
+					backup_non_embedded_metadata (db_con, id, tracker_field_get_id (def), values[i]);
 				}
 
 				mvalue = tracker_parser_text_to_string (values[i], 
 									tracker->language,
 									tracker_config_get_max_word_length (tracker->config),
 									tracker_config_get_min_word_length (tracker->config),
-									def->filtered,  
-									def->filtered, 
-									def->delimited);
-				tracker_exec_proc (db_con, "SetMetadata", id, def->id, mvalue, values[i], NULL);
+									tracker_field_get_filtered (def),  
+									tracker_field_get_filtered (def), 
+									tracker_field_get_delimited (def));
+				tracker_exec_proc (db_con, "SetMetadata", id, tracker_field_get_id (def), mvalue, values[i], NULL);
 
 				g_free (mvalue);
 			}
 			break;
 
-		case DATA_DOUBLE:
+		case TRACKER_FIELD_TYPE_DOUBLE:
 
 			
 			for (i=0; i<length; i++) {
@@ -2916,38 +2897,38 @@ tracker_db_set_metadata (DBConnection *db_con, const char *service, const char *
 
 				/* backup non-embedded data for embedded services */
 				if (do_backup && 
-                                    !def->embedded && 
-                                    tracker_service_manager_is_service_embedded (service)) {
-					backup_non_embedded_metadata (db_con, id, def->id, values[i]);
+                                    !tracker_field_get_embedded (def) && 
+                                    tracker_ontology_service_type_has_embedded (service)) {
+					backup_non_embedded_metadata (db_con, id, tracker_field_get_id (def), values[i]);
 				}
 
 
-				tracker_exec_proc (db_con, "SetMetadata", id, def->id, " ", values[i], NULL);
+				tracker_exec_proc (db_con, "SetMetadata", id, tracker_field_get_id (def), " ", values[i], NULL);
 
 			}
 			break;
 
 		
 
-		case DATA_INTEGER:
+		case TRACKER_FIELD_TYPE_INTEGER:
 	
 			for (i=0; i<length; i++) {
 				if (!values[i] || !values[i][0]) continue;
 
 				/* backup non-embedded data for embedded services */
 				if (do_backup && 
-                                    !def->embedded && 
-                                    tracker_service_manager_is_service_embedded (service)) {
-					backup_non_embedded_metadata (db_con, id, def->id, values[i]);
+                                    !tracker_field_get_embedded (def) && 
+                                    tracker_ontology_service_type_has_embedded (service)) {
+					backup_non_embedded_metadata (db_con, id, tracker_field_get_id (def), values[i]);
 				}
 
 
-				tracker_exec_proc (db_con, "SetMetadataNumeric", id, def->id, values[i], NULL);
+				tracker_exec_proc (db_con, "SetMetadataNumeric", id, tracker_field_get_id (def), values[i], NULL);
 			}
 
 			break;
 
-		case DATA_DATE:
+		case TRACKER_FIELD_TYPE_DATE:
 
 			for (i=0; i<length; i++) {
 
@@ -2961,13 +2942,13 @@ tracker_db_set_metadata (DBConnection *db_con, const char *service, const char *
 
 				}
 
-				tracker_exec_proc (db_con, "SetMetadataNumeric", id, def->id, mvalue, NULL);
+				tracker_exec_proc (db_con, "SetMetadataNumeric", id, tracker_field_get_id (def), mvalue, NULL);
 
 				/* backup non-embedded data for embedded services */
 				if (do_backup && 
-                                    !def->embedded && 
-                                    tracker_service_manager_is_service_embedded (service)) {
-					backup_non_embedded_metadata (db_con, id, def->id, mvalue);
+                                    !tracker_field_get_embedded (def) && 
+                                    tracker_ontology_service_type_has_embedded (service)) {
+					backup_non_embedded_metadata (db_con, id, tracker_field_get_id (def), mvalue);
 				}
 
 
@@ -2978,7 +2959,7 @@ tracker_db_set_metadata (DBConnection *db_con, const char *service, const char *
 
 		default :
 			
-			tracker_error ("ERROR: metadata could not be set as type %d for metadata %s is not supported", def->type, key);
+			tracker_error ("ERROR: metadata could not be set as type %d for metadata %s is not supported", tracker_field_get_data_type (def), key);
 			break;
 
 		
@@ -2993,7 +2974,7 @@ tracker_db_set_metadata (DBConnection *db_con, const char *service, const char *
 		if (values[0]) {
 			char *esc_value = NULL;
 
-			if (def->type == DATA_DATE) {
+			if (tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_DATE) {
 				esc_value = format_date (values[0]);
 
 				if (!esc_value) return NULL;
@@ -3074,23 +3055,23 @@ void
 tracker_db_delete_metadata_value (DBConnection *db_con, const char *service, const char *id, const char *key, const char *value) 
 {
 
-	char 		*old_value = NULL, *new_value = NULL, *mvalue;
-	FieldDef	*def;
-	gboolean 	update_index;
+	char 		   *old_value = NULL, *new_value = NULL, *mvalue;
+	const TrackerField *def;
+	gboolean 	    update_index;
 
 	g_return_if_fail (id && key && service && db_con);
 
 	/* get type details */
-	def = tracker_db_get_field_def (key);
+	def = tracker_ontology_get_field_def (key);
 
 	if (!def) {
 		return;
 	}
 
 
-	if (!def->embedded && 
-            tracker_service_manager_is_service_embedded (service)) {
-		backup_delete_non_embedded_metadata_value (db_con, id, def->id, value);
+	if (!tracker_field_get_embedded (def) && 
+            tracker_ontology_service_type_has_embedded (service)) {
+		backup_delete_non_embedded_metadata_value (db_con, id, tracker_field_get_id (def), value);
 	}
 
 
@@ -3103,7 +3084,8 @@ tracker_db_delete_metadata_value (DBConnection *db_con, const char *service, con
 
 	int key_field = tracker_metadata_is_key (res_service, key);
 
-	update_index = (def->type == DATA_INDEX || def->type == DATA_KEYWORD);
+	update_index = (tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_INDEX 
+			|| tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_KEYWORD);
 
 	if (update_index) {
 
@@ -3122,41 +3104,41 @@ tracker_db_delete_metadata_value (DBConnection *db_con, const char *service, con
 
 
 	/* perform deletion */
-	switch (def->type) {
+	switch (tracker_field_get_data_type (def)) {
 
-		case DATA_INDEX:
-		case DATA_STRING:
+		case TRACKER_FIELD_TYPE_INDEX:
+		case TRACKER_FIELD_TYPE_STRING:
 			mvalue = tracker_parser_text_to_string (value, 
 								tracker->language,
 								tracker_config_get_max_word_length (tracker->config),
 								tracker_config_get_min_word_length (tracker->config),
-								def->filtered,  
-								def->filtered, 
-								def->delimited);
-			tracker_exec_proc (db_con, "DeleteMetadataValue", id, def->id, mvalue, NULL);
+								tracker_field_get_filtered (def),  
+								tracker_field_get_filtered (def), 
+								tracker_field_get_delimited (def));
+			tracker_exec_proc (db_con, "DeleteMetadataValue", id, tracker_field_get_id (def), mvalue, NULL);
 			g_free (mvalue);
 			break;
 
 
-		case DATA_DOUBLE:
-			tracker_exec_proc (db_con, "DeleteMetadataValue", id, def->id, value, NULL);
+		case TRACKER_FIELD_TYPE_DOUBLE:
+			tracker_exec_proc (db_con, "DeleteMetadataValue", id, tracker_field_get_id (def), value, NULL);
 			break;
 
 		
-		case DATA_INTEGER:
-		case DATA_DATE:
+		case TRACKER_FIELD_TYPE_INTEGER:
+		case TRACKER_FIELD_TYPE_DATE:
 
-			tracker_exec_proc (db_con, "DeleteMetadataNumericValue", id, def->id, value, NULL);
+			tracker_exec_proc (db_con, "DeleteMetadataNumericValue", id, tracker_field_get_id (def), value, NULL);
 			break;
 
 		
-		case DATA_KEYWORD:
+		case TRACKER_FIELD_TYPE_KEYWORD:
 			
-			tracker_exec_proc (db_con, "DeleteMetadataKeywordValue", id, def->id, value, NULL);
+			tracker_exec_proc (db_con, "DeleteMetadataKeywordValue", id, tracker_field_get_id (def), value, NULL);
 			break;
 		
 		default:	
-			tracker_error ("ERROR: metadata could not be deleted as type %d for metadata %s is not supported", def->type, key);
+			tracker_error ("ERROR: metadata could not be deleted as type %d for metadata %s is not supported", tracker_field_get_data_type (def), key);
 			break;
 
 
@@ -3212,22 +3194,22 @@ void
 tracker_db_delete_metadata (DBConnection *db_con, const char *service, const char *id, const char *key, gboolean update_indexes) 
 {
 	char 		*old_value = NULL;
-	FieldDef	*def;
+	const TrackerField	*def;
 	gboolean 	update_index;
 
 	g_return_if_fail (id && key && service && db_con);
 
 
 	/* get type details */
-	def = tracker_db_get_field_def (key);
+	def = tracker_ontology_get_field_def(key);
 
 	if (!def) {
 		return;
 	}
 	
-	if (!def->embedded && 
-            tracker_service_manager_is_service_embedded (service)) {
-		backup_delete_non_embedded_metadata (db_con, id, def->id);
+	if (!tracker_field_get_embedded (def) && 
+            tracker_ontology_service_type_has_embedded (service)) {
+		backup_delete_non_embedded_metadata (db_con, id, tracker_field_get_id (def));
 	}
 
 
@@ -3241,7 +3223,7 @@ tracker_db_delete_metadata (DBConnection *db_con, const char *service, const cha
 
 	int key_field = tracker_metadata_is_key (res_service, key);
 
-	update_index = update_indexes && (def->type == DATA_INDEX || def->type == DATA_KEYWORD);
+	update_index = update_indexes && (tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_INDEX || tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_KEYWORD);
 
 
 	if (update_index) {
@@ -3261,31 +3243,31 @@ tracker_db_delete_metadata (DBConnection *db_con, const char *service, const cha
 	
 	
 	/* perform deletion */
-	switch (def->type) {
+	switch (tracker_field_get_data_type (def)) {
 
-		case DATA_INDEX:
-		case DATA_STRING:
-		case DATA_DOUBLE:
-			tracker_exec_proc (db_con, "DeleteMetadata", id, def->id, NULL);
+		case TRACKER_FIELD_TYPE_INDEX:
+		case TRACKER_FIELD_TYPE_STRING:
+		case TRACKER_FIELD_TYPE_DOUBLE:
+			tracker_exec_proc (db_con, "DeleteMetadata", id, tracker_field_get_id (def), NULL);
 			break;
 
-		case DATA_INTEGER:
-		case DATA_DATE:
-			tracker_exec_proc (db_con, "DeleteMetadataNumeric", id, def->id, NULL);
+		case TRACKER_FIELD_TYPE_INTEGER:
+		case TRACKER_FIELD_TYPE_DATE:
+			tracker_exec_proc (db_con, "DeleteMetadataNumeric", id, tracker_field_get_id (def), NULL);
 			break;
 
 		
-		case DATA_KEYWORD:
-			tracker_exec_proc (db_con, "DeleteMetadataKeyword", id, def->id, NULL);
+		case TRACKER_FIELD_TYPE_KEYWORD:
+			tracker_exec_proc (db_con, "DeleteMetadataKeyword", id, tracker_field_get_id (def), NULL);
 			break;
 
-		case DATA_FULLTEXT:
+		case TRACKER_FIELD_TYPE_FULLTEXT:
 
-			tracker_exec_proc (db_con, "DeleteContent", id, def->id, NULL);
+			tracker_exec_proc (db_con, "DeleteContent", id, tracker_field_get_id (def), NULL);
 			break;
 
 		default:
-			tracker_error ("ERROR: metadata could not be deleted as this operation is not supported by type %d for metadata %s", def->type, key);
+			tracker_error ("ERROR: metadata could not be deleted as this operation is not supported by type %d for metadata %s", tracker_field_get_data_type (def), key);
 			break;
 
 	}
@@ -3529,7 +3511,7 @@ tracker_db_create_service (DBConnection *db_con, const char *service, TrackerDBF
 	str_mtime = tracker_gint32_to_string (info->mtime);
 	str_offset = tracker_gint32_to_string (info->offset);
 
-	service_type_id = tracker_service_manager_get_id_for_service (service);
+	service_type_id = tracker_ontology_get_id_for_service_type (service);
 
 	if (info->mime) {
 		tracker_debug ("service id for %s is %d and sid is %s with mime %s", service, service_type_id, sid, info->mime);
@@ -3578,7 +3560,7 @@ tracker_db_create_service (DBConnection *db_con, const char *service, TrackerDBF
 		if (b)
 			g_object_unref (b);
 
-                parent = tracker_service_manager_get_parent_service (service);
+                parent = tracker_ontology_get_parent_service (service);
 		
 		if (parent) {
 			b = tracker_exec_proc (db_con->common, "IncStat", parent, NULL);
@@ -3703,14 +3685,14 @@ dec_stat (DBConnection *db_con, int id)
 {
 	gchar *service;
         
-        service = tracker_service_manager_get_service_by_id (id);
+        service = tracker_ontology_get_service_type_by_id (id);
 
 	if (service) {
 		gchar *parent;
 
 		tracker_exec_proc (db_con->common, "DecStat", service, NULL);
 
-                parent = tracker_service_manager_get_parent_service (service);
+                parent = tracker_ontology_get_parent_service (service);
 		
 		if (parent) {
 			tracker_exec_proc (db_con->common, "DecStat", parent, NULL);
@@ -3733,7 +3715,7 @@ tracker_db_get_id (DBConnection *db_con, const char *service, const char *uri)
 	gint    service_id;
 	guint32	id;
 
-	service_id = tracker_service_manager_get_id_for_service (service);
+	service_id = tracker_ontology_get_id_for_service_type (service);
 
 	if (service_id == -1) {
 		return NULL;
@@ -4071,14 +4053,14 @@ tracker_db_search_text_mime (DBConnection *db_con, const char *text, char **mime
 	result = NULL;
 	result_list = NULL;
 
-	service_array[0] = tracker_service_manager_get_id_for_service ("Files");
-	service_array[1] = tracker_service_manager_get_id_for_service ("Folders");
-	service_array[2] = tracker_service_manager_get_id_for_service ("Documents");
-	service_array[3] = tracker_service_manager_get_id_for_service ("Images");
-	service_array[4] = tracker_service_manager_get_id_for_service ("Music");
-	service_array[5] = tracker_service_manager_get_id_for_service ("Videos");
-	service_array[6] = tracker_service_manager_get_id_for_service ("Text");
-	service_array[7] = tracker_service_manager_get_id_for_service ("Other");
+	service_array[0] = tracker_ontology_get_id_for_service_type ("Files");
+	service_array[1] = tracker_ontology_get_id_for_service_type ("Folders");
+	service_array[2] = tracker_ontology_get_id_for_service_type ("Documents");
+	service_array[3] = tracker_ontology_get_id_for_service_type ("Images");
+	service_array[4] = tracker_ontology_get_id_for_service_type ("Music");
+	service_array[5] = tracker_ontology_get_id_for_service_type ("Videos");
+	service_array[6] = tracker_ontology_get_id_for_service_type ("Text");
+	service_array[7] = tracker_ontology_get_id_for_service_type ("Other");
 
 	services = g_array_new (TRUE, TRUE, sizeof (gint));
 	g_array_append_vals (services, service_array, 8);
@@ -4169,14 +4151,14 @@ tracker_db_search_text_location (DBConnection *db_con, const char *text, const c
 
 	location_prefix = g_strconcat (location, G_DIR_SEPARATOR_S, NULL);
 
-	service_array[0] = tracker_service_manager_get_id_for_service ("Files");
-	service_array[1] = tracker_service_manager_get_id_for_service ("Folders");
-	service_array[2] = tracker_service_manager_get_id_for_service ("Documents");
-	service_array[3] = tracker_service_manager_get_id_for_service ("Images");
-	service_array[4] = tracker_service_manager_get_id_for_service ("Music");
-	service_array[5] = tracker_service_manager_get_id_for_service ("Videos");
-	service_array[6] = tracker_service_manager_get_id_for_service ("Text");
-	service_array[7] = tracker_service_manager_get_id_for_service ("Other");
+	service_array[0] = tracker_ontology_get_id_for_service_type ("Files");
+	service_array[1] = tracker_ontology_get_id_for_service_type ("Folders");
+	service_array[2] = tracker_ontology_get_id_for_service_type ("Documents");
+	service_array[3] = tracker_ontology_get_id_for_service_type ("Images");
+	service_array[4] = tracker_ontology_get_id_for_service_type ("Music");
+	service_array[5] = tracker_ontology_get_id_for_service_type ("Videos");
+	service_array[6] = tracker_ontology_get_id_for_service_type ("Text");
+	service_array[7] = tracker_ontology_get_id_for_service_type ("Other");
 
 	services = g_array_new (TRUE, TRUE, sizeof (gint));
 	g_array_append_vals (services, service_array, 8);
@@ -4268,14 +4250,14 @@ tracker_db_search_text_mime_location (DBConnection *db_con, const char *text, ch
 
 	location_prefix = g_strconcat (location, G_DIR_SEPARATOR_S, NULL);
 
-	service_array[0] = tracker_service_manager_get_id_for_service ("Files");
-	service_array[1] = tracker_service_manager_get_id_for_service ("Folders");
-	service_array[2] = tracker_service_manager_get_id_for_service ("Documents");
-	service_array[3] = tracker_service_manager_get_id_for_service ("Images");
-	service_array[4] = tracker_service_manager_get_id_for_service ("Music");
-	service_array[5] = tracker_service_manager_get_id_for_service ("Videos");
-	service_array[6] = tracker_service_manager_get_id_for_service ("Text");
-	service_array[7] = tracker_service_manager_get_id_for_service ("Other");
+	service_array[0] = tracker_ontology_get_id_for_service_type ("Files");
+	service_array[1] = tracker_ontology_get_id_for_service_type ("Folders");
+	service_array[2] = tracker_ontology_get_id_for_service_type ("Documents");
+	service_array[3] = tracker_ontology_get_id_for_service_type ("Images");
+	service_array[4] = tracker_ontology_get_id_for_service_type ("Music");
+	service_array[5] = tracker_ontology_get_id_for_service_type ("Videos");
+	service_array[6] = tracker_ontology_get_id_for_service_type ("Text");
+	service_array[7] = tracker_ontology_get_id_for_service_type ("Other");
 
 	services = g_array_new (TRUE, TRUE, sizeof (gint));
 	g_array_append_vals (services, service_array, 8);
@@ -4868,6 +4850,47 @@ db_row_to_service (TrackerDBResultSet *result_set)
         return service;
 } 
 
+static TrackerField *
+db_row_to_field_def (TrackerDBResultSet *result_set) {
+
+	TrackerField *field_def;
+	TrackerFieldType field_type;
+	gchar *field_name, *name;
+	gint weight, id;
+	gboolean embedded, multiple_values, delimited, filtered, store_metadata;
+
+	field_def = tracker_field_new ();
+
+	tracker_db_result_set_get (result_set,
+				   0, &id,
+				   1, &name,
+				   2, &field_type,
+				   3, &field_name,
+				   4, &weight,
+				   5, &embedded,
+				   6, &multiple_values,
+				   7, &delimited,
+				   8, &filtered,
+				   9, &store_metadata,
+				   -1);
+
+	tracker_field_set_id (field_def, tracker_int_to_string (id));
+	tracker_field_set_name (field_def, name);
+	tracker_field_set_field_name (field_def, field_name);
+	tracker_field_set_weight (field_def, weight);
+	tracker_field_set_embedded (field_def, embedded);
+	tracker_field_set_multiple_values (field_def, multiple_values);
+	tracker_field_set_delimited (field_def, delimited);
+	tracker_field_set_filtered (field_def, filtered);
+	tracker_field_set_store_metadata (field_def, store_metadata);
+
+	g_free (field_name);
+	g_free (name);
+
+	return field_def;
+}
+
+
 /* get static data like metadata field definitions and services definitions and load them into hashtables */
 void
 tracker_db_get_static_data (DBConnection *db_con)
@@ -4884,49 +4907,31 @@ tracker_db_get_static_data (DBConnection *db_con)
 
 		while (valid) {
 			TrackerDBResultSet *result_set2;
-			gboolean embedded, multiple_values, delimited, filtered, store_metadata;
-			FieldDef *def;
+			TrackerField *def;
+			GSList *child_ids = NULL;
 
-			def = g_new0 (FieldDef, 1);
+			def = db_row_to_field_def (result_set);
 
-			tracker_db_result_set_get (result_set,
-						   0, &id,
-						   1, &name,
-						   2, &def->type,
-						   3, &def->field_name,
-						   4, &def->weight,
-						   5, &embedded,
-						   6, &multiple_values,
-						   7, &delimited,
-						   8, &filtered,
-						   9, &store_metadata,
-						   -1);
-
-			def->id = tracker_int_to_string (id);
-			def->embedded = embedded;
-			def->multiple_values = multiple_values;
-			def->delimited = delimited;
-			def->filtered = filtered;
-			def->store_metadata = store_metadata;
-
-			result_set2 = tracker_exec_proc (db_con, "GetMetadataAliases", def->id, NULL);
+			result_set2 = tracker_exec_proc (db_con, "GetMetadataAliases", tracker_field_get_id (def), NULL);
 
 			if (result_set2) {
 				valid = TRUE;
 
 				while (valid) {
 					tracker_db_result_set_get (result_set2, 1, &id, -1);
-					def->child_ids = g_slist_prepend (def->child_ids,
-									  tracker_int_to_string (id));
+					child_ids = g_slist_prepend (child_ids,
+								     tracker_int_to_string (id));
 
 					valid = tracker_db_result_set_iter_next (result_set2);
 				}
 
+				tracker_field_set_child_ids (def, child_ids);
 				g_object_unref (result_set2);
 			}
 
-			g_hash_table_insert (tracker->metadata_table, g_utf8_strdown (name, -1), def);
-			tracker_debug ("loading metadata def %s with weight %d", def->field_name, def->weight);
+			tracker_ontology_add_field (def);
+			tracker_debug ("loading metadata def %s with weight %d", 
+				       tracker_field_get_name (def), tracker_field_get_weight (def));
 
 			g_free (name);
 
@@ -4964,9 +4969,9 @@ tracker_db_get_static_data (DBConnection *db_con)
                         mime_prefixes = tracker_db_get_mime_prefixes_for_service_id (db_con, id);
 
                         tracker_debug ("Adding service definition for %s with id %d", name, id);
-                        tracker_service_manager_add_service (service, 
-                                                             mimes, 
-                                                             mime_prefixes);
+                        tracker_ontology_add_service_type (service, 
+							   mimes, 
+							   mime_prefixes);
 
                         g_slist_free (mimes);
                         g_slist_free (mime_prefixes);
@@ -4978,7 +4983,7 @@ tracker_db_get_static_data (DBConnection *db_con)
 		g_object_unref (result_set);
 
 		/* check for web history */
-		if (!tracker_service_manager_get_service ("Webhistory")) {
+		if (!tracker_ontology_get_service_type_by_name ("Webhistory")) {
 			tracker_log ("Adding missing Webhistory service");
 			tracker_exec_proc (db_con, "InsertServiceType", "Webhistory", NULL);
 		}
@@ -4990,7 +4995,7 @@ tracker_db_get_service_connection (DBConnection *db_con, const char *service)
 {
 	TrackerDBType type;
 
-	type = tracker_service_manager_get_db_for_service (service);
+	type = tracker_ontology_get_db_for_service_type (service);
 
 	if (type == TRACKER_DB_TYPE_EMAIL) {
 		return db_con->emails;
@@ -5016,44 +5021,10 @@ tracker_db_get_service_for_entity (DBConnection *db_con, const char *id)
 	return result;
 }
 
-
-gboolean
-tracker_db_metadata_is_child (DBConnection *db_con, const char *child, const char *parent)
-{
-	FieldDef *def_child, *def_parent;
-
-	def_child = tracker_db_get_field_def (child);
-
-	if (!def_child) {
-		return FALSE;
-	}
-
-
-	def_parent = tracker_db_get_field_def (parent);
-
-	if (!def_parent) {
-		return FALSE;
-	}
-
-	GSList *tmp;
-
-	for (tmp = def_parent->child_ids; tmp; tmp = tmp->next) {
-		
-		if (!tmp->data) return FALSE;
-
-		if (strcmp (def_child->id, tmp->data) == 0) {
-			return TRUE;
-		}
-	}
-
-	return FALSE;
-
-}
-
 // FIXME Do this in a non-retarded way
 
 gboolean
-get_service_mapping(DBConnection *db_con, const char *type, GList **list)
+get_service_mapping (DBConnection *db_con, const char *type, GList **list)
 {
 	TrackerDBResultSet *result_set;
 	gboolean valid = TRUE;
@@ -5409,11 +5380,8 @@ tracker_db_load_xesam_service_file (DBConnection *db_con, const char *filename)
 FieldData *
 tracker_db_get_metadata_field (DBConnection *db_con, const char *service, const char *field_name, int field_count, gboolean is_select, gboolean is_condition)
 {
-	FieldData    *field_data;
-
-	field_data = NULL;
-
-	FieldDef *def;
+	FieldData    *field_data = NULL;
+	const TrackerField *def;
 
 	field_data = g_new0 (FieldData, 1);
 
@@ -5421,15 +5389,15 @@ tracker_db_get_metadata_field (DBConnection *db_con, const char *service, const 
 	field_data->is_condition = is_condition;
 	field_data->field_name = g_strdup (field_name);
 
-	def = tracker_db_get_field_def (field_name);
+	def = tracker_ontology_get_field_def (field_name);
 
 	if (def) {
 	
-		field_data->table_name = tracker_get_metadata_table (def->type);
+		field_data->table_name = tracker_get_metadata_table (tracker_field_get_data_type (def));
 		field_data->alias = g_strdup_printf ("M%d", field_count);
-		field_data->data_type = def->type;
-		field_data->id_field = g_strdup (def->id);
-		field_data->multiple_values = def->multiple_values;
+		field_data->data_type = tracker_field_get_data_type (def);
+		field_data->id_field = g_strdup (tracker_field_get_id (def));
+		field_data->multiple_values = tracker_field_get_multiple_values (def);
 			
 		char *my_field = tracker_db_get_field_name (service, field_name);
 
@@ -5438,20 +5406,17 @@ tracker_db_get_metadata_field (DBConnection *db_con, const char *service, const 
 			g_free (my_field);
 			field_data->needs_join = FALSE;	
 		} else {
-			char *disp_field = tracker_db_get_display_field (def);
+			char *disp_field = tracker_ontology_get_display_field (def);
 			field_data->select_field = g_strdup_printf ("M%d.%s", field_count, disp_field);
 			g_free (disp_field);
 			field_data->needs_join = TRUE;
 		}
 			
-		if (def->type == DATA_DOUBLE) {
+		if (tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_DOUBLE) {
 			field_data->where_field = g_strdup_printf ("M%d.MetaDataDisplay", field_count);
 		} else {
 			field_data->where_field = g_strdup_printf ("M%d.MetaDataValue", field_count);
 		}
-
-			
-		tracker_db_free_field_def (def);
 
 	} else {
 		g_free (field_data);

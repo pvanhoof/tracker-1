@@ -101,6 +101,8 @@ trackerd_SOURCES =							\
 	tracker-email.h							\
 	tracker-email-utils.c						\
 	tracker-email-utils.h						\
+	tracker-field.c							\
+	tracker-field.h							\
 	tracker-indexer.c						\
 	tracker-indexer.h						\
 	tracker-index-stage.c						\
@@ -110,6 +112,8 @@ trackerd_SOURCES =							\
 	tracker-marshal-main.c						\
 	tracker-metadata.c						\
 	tracker-metadata.h						\
+	tracker-ontology.c						\
+	tracker-ontology.h						\
 	tracker-parser.c						\
 	tracker-parser.h						\
 	tracker-process-files.c						\
@@ -122,8 +126,6 @@ trackerd_SOURCES =							\
 	tracker-utils.h							\
 	tracker-service.c						\
 	tracker-service.h						\
-	tracker-service-manager.c					\
-	tracker-service-manager.h					\
 	tracker-ioprio.c						\
 	tracker-ioprio.h						\
 	tracker-os-dependant.h						\

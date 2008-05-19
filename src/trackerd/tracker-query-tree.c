@@ -37,7 +37,7 @@
 #include "tracker-query-tree.h"
 #include "tracker-parser.h"
 #include "tracker-utils.h"
-#include "tracker-service-manager.h"
+#include "tracker-ontology.h"
 
 #define TRACKER_QUERY_TREE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_QUERY_TREE, TrackerQueryTreePrivate))
 
@@ -924,7 +924,7 @@ tracker_query_tree_get_hit_counts (TrackerQueryTree *tree)
 		g_hash_table_insert (table, GINT_TO_POINTER (hit.service_type_id), GINT_TO_POINTER (count));
 
 		/* update service's parent count too (if it has a parent) */
-		parent_id = tracker_service_manager_get_parent_id_for_service_id (hit.service_type_id);
+		parent_id = tracker_ontology_get_parent_id_for_service_id (hit.service_type_id);
 
 		if (parent_id != -1) {
 			count = GPOINTER_TO_INT (g_hash_table_lookup (table, GINT_TO_POINTER (parent_id)));

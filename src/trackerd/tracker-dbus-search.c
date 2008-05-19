@@ -34,7 +34,7 @@
 #include "tracker-rdf-query.h"
 #include "tracker-query-tree.h"
 #include "tracker-indexer.h"
-#include "tracker-service-manager.h"
+#include "tracker-ontology.h"
 #include "tracker-marshal.h"
 
 #define DEFAULT_SEARCH_MAX_HITS 1024
@@ -619,7 +619,7 @@ tracker_dbus_search_get_hit_count (TrackerDBusSearch  *object,
                                   service,
                                   search_text);
 
-	if (!tracker_service_manager_is_valid_service (service)) {
+	if (!tracker_ontology_is_valid_service_type (service)) {
 		tracker_dbus_request_failed (request_id,
 					     error, 
                                              "Service '%s' is invalid or has not been implemented yet", 
@@ -637,23 +637,23 @@ tracker_dbus_search_get_hit_count (TrackerDBusSearch  *object,
 	/* Check we have the right database connection */
 	db_con = tracker_db_get_service_connection (db_con, service);
 
-	services[count++] = tracker_service_manager_get_id_for_service (service);
+	services[count++] = tracker_ontology_get_id_for_service_type (service);
 
 	if (strcmp (service, "Files") == 0) {
-		services[count++] = tracker_service_manager_get_id_for_service ("Folders");
-		services[count++] = tracker_service_manager_get_id_for_service ("Documents");
-		services[count++] = tracker_service_manager_get_id_for_service ("Images");
-		services[count++] = tracker_service_manager_get_id_for_service ("Videos");
-		services[count++] = tracker_service_manager_get_id_for_service ("Music");
-		services[count++] = tracker_service_manager_get_id_for_service ("Text");
-		services[count++] = tracker_service_manager_get_id_for_service ("Development");
-		services[count++] = tracker_service_manager_get_id_for_service ("Other");
+		services[count++] = tracker_ontology_get_id_for_service_type ("Folders");
+		services[count++] = tracker_ontology_get_id_for_service_type ("Documents");
+		services[count++] = tracker_ontology_get_id_for_service_type ("Images");
+		services[count++] = tracker_ontology_get_id_for_service_type ("Videos");
+		services[count++] = tracker_ontology_get_id_for_service_type ("Music");
+		services[count++] = tracker_ontology_get_id_for_service_type ("Text");
+		services[count++] = tracker_ontology_get_id_for_service_type ("Development");
+		services[count++] = tracker_ontology_get_id_for_service_type ("Other");
 	} else if (strcmp (service, "Emails") == 0) {
-		services[count++] = tracker_service_manager_get_id_for_service ("EvolutionEmails");
-		services[count++] = tracker_service_manager_get_id_for_service ("KMailEmails");
-		services[count++] = tracker_service_manager_get_id_for_service ("ThunderbirdEmails");
+		services[count++] = tracker_ontology_get_id_for_service_type ("EvolutionEmails");
+		services[count++] = tracker_ontology_get_id_for_service_type ("KMailEmails");
+		services[count++] = tracker_ontology_get_id_for_service_type ("ThunderbirdEmails");
  	} else if (strcmp (service, "Conversations") == 0) {
-		services[count++] = tracker_service_manager_get_id_for_service ("GaimConversations");
+		services[count++] = tracker_ontology_get_id_for_service_type ("GaimConversations");
 	}
 
 	services[count] = 0;
@@ -735,7 +735,7 @@ tracker_dbus_search_get_hit_count_all (TrackerDBusSearch  *object,
 
 		g_value_init (&value, G_TYPE_STRING);
 		g_value_take_string (&value, 
-				     tracker_service_manager_get_service_by_id (count.service_type_id));
+				     tracker_ontology_get_service_type_by_id (count.service_type_id));
 		_tracker_db_result_set_set_value (result_set, 0, &value);
 		g_value_unset (&value);
 
@@ -796,7 +796,7 @@ tracker_dbus_search_text (TrackerDBusSearch   *object,
                                   offset,
                                   max_hits);
 
-	if (!tracker_service_manager_is_valid_service (service)) {
+	if (!tracker_ontology_is_valid_service_type (service)) {
 		tracker_dbus_request_failed (request_id,
 					     error, 
                                              "Service '%s' is invalid or has not been implemented yet", 
@@ -900,7 +900,7 @@ tracker_dbus_search_text_detailed (TrackerDBusSearch  *object,
                                   offset,
                                   max_hits);
 
-	if (!tracker_service_manager_is_valid_service (service)) {
+	if (!tracker_ontology_is_valid_service_type (service)) {
 		tracker_dbus_request_failed (request_id,
 					     error, 
                                              "Service '%s' is invalid or has not been implemented yet", 
@@ -970,7 +970,7 @@ tracker_dbus_search_get_snippet (TrackerDBusSearch  *object,
                                   search_text,
                                   id);
 
-	if (!tracker_service_manager_is_valid_service (service)) {
+	if (!tracker_ontology_is_valid_service_type (service)) {
 		tracker_dbus_request_failed (request_id,
 					     error, 
                                              "Service '%s' is invalid or has not been implemented yet", 
@@ -1123,7 +1123,7 @@ tracker_dbus_search_metadata (TrackerDBusSearch   *object,
                                   offset,
                                   max_hits);
 
-	if (!tracker_service_manager_is_valid_service (service)) {
+	if (!tracker_ontology_is_valid_service_type (service)) {
 		tracker_dbus_request_failed (request_id,
 					     error, 
                                              "Service '%s' is invalid or has not been implemented yet", 
@@ -1182,7 +1182,7 @@ tracker_dbus_search_matching_fields (TrackerDBusSearch   *object,
                                   search_text,
                                   id);
 
-	if (!tracker_service_manager_is_valid_service (service)) {
+	if (!tracker_ontology_is_valid_service_type (service)) {
 		tracker_dbus_request_failed (request_id,
 					     error, 
                                              "Service '%s' is invalid or has not been implemented yet", 
@@ -1261,7 +1261,7 @@ tracker_dbus_search_query (TrackerDBusSearch  *object,
                                   max_hits, 
                                   sort_by_service ? "yes" : "no");
 	
-	if (!tracker_service_manager_is_valid_service (service)) {
+	if (!tracker_ontology_is_valid_service_type (service)) {
 		tracker_dbus_request_failed (request_id,
 					     error, 
                                              "Service '%s' is invalid or has not been implemented yet", 

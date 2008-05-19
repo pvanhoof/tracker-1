@@ -26,7 +26,7 @@
 #include <libtracker-db/tracker-db-interface.h>
 #include <libtracker-db/tracker-db-file-info.h>
 
-#include "tracker-service-manager.h"
+#include "tracker-ontology.h"
 #include "tracker-indexer.h"
 #include "tracker-utils.h"
 
@@ -46,46 +46,18 @@ struct DBConnection {
 	Indexer         *word_index;
 };
 
-typedef enum {
-	DATA_KEYWORD,	
-	DATA_INDEX,
-	DATA_FULLTEXT,
-	DATA_STRING,
-	DATA_INTEGER,
-	DATA_DOUBLE,
-	DATA_DATE,
-	DATA_BLOB,
-	DATA_STRUCT,
-	DATA_LINK
-} DataTypes;
-
 typedef struct {
-	char		*id;
-	DataTypes	type;
-	char 		*field_name;
-	int		weight;
-	guint           embedded : 1;
-	guint           multiple_values : 1;
-	guint           delimited : 1;
-	guint           filtered : 1;
-	guint           store_metadata : 1;
-
-	GSList		*child_ids; /* related child metadata ids */
-
-} FieldDef;
-
-typedef struct {
-	char 		*alias;
-	char 	 	*field_name;
-	char	 	*select_field;
-	char	 	*where_field;
-	char	 	*table_name;
-	char	 	*id_field;
-	DataTypes	data_type;
-	guint           multiple_values : 1;
-	guint           is_select : 1;
-	guint           is_condition : 1;
-	guint           needs_join : 1;
+	char 		 *alias;
+	char 	 	 *field_name;
+	char	 	 *select_field;
+	char	 	 *where_field;
+	char	 	 *table_name;
+	char	 	 *id_field;
+	TrackerFieldType data_type;
+	guint            multiple_values : 1;
+	guint            is_select : 1;
+	guint            is_condition : 1;
+	guint            needs_join : 1;
 
 } FieldData;
 
@@ -167,7 +139,7 @@ gint                tracker_db_flush_words_to_qdbm             (DBConnection   *
                                                                 gint            limit);
 gchar *             tracker_get_related_metadata_names         (DBConnection   *db_con,
                                                                 const gchar    *name);
-gchar *             tracker_get_metadata_table                 (DataTypes       type);
+gchar *             tracker_get_metadata_table                 (TrackerFieldType  type);
 TrackerDBResultSet *tracker_db_search_text                     (DBConnection   *db_con,
                                                                 const gchar    *service,
                                                                 const gchar    *search_string,
@@ -333,9 +305,6 @@ DBConnection *      tracker_db_get_service_connection          (DBConnection   *
                                                                 const gchar    *service);
 gchar *             tracker_db_get_service_for_entity          (DBConnection   *db_con,
                                                                 const gchar    *id);
-gboolean            tracker_db_metadata_is_child               (DBConnection   *db_con,
-                                                                const gchar    *child,
-                                                                const gchar    *parent);
 GHashTable *        tracker_db_get_file_contents_words         (DBConnection   *db_con,
                                                                 guint32         id,
                                                                 GHashTable     *old_table);
@@ -346,7 +315,6 @@ GHashTable *        tracker_db_get_indexable_content_words     (DBConnection   *
 
 gchar *             tracker_db_get_field_name                  (const gchar    *service,
                                                                 const gchar    *meta_name);
-gchar *             tracker_db_get_display_field               (FieldDef       *def);
 void                tracker_free_metadata_field                (FieldData *field_data);
 
 void                tracker_db_delete_service                  (DBConnection   *db_con,

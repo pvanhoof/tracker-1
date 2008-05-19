@@ -53,7 +53,7 @@
 #include "tracker-hal.h"
 #include "tracker-indexer.h"
 #include "tracker-process-files.h"
-#include "tracker-service-manager.h"
+#include "tracker-ontology.h"
 #include "tracker-status.h"
 #include "tracker-watch.h"
 #include "tracker-xesam.h"
@@ -373,10 +373,6 @@ sanity_check_option_values (void)
 	log_option_list (no_watch_directory_roots, "NOT watching directory roots");
 	log_option_list (no_index_file_types, "NOT indexing file types");
 
-	tracker->metadata_table = g_hash_table_new_full (g_str_hash,
-                                                         g_str_equal, 
-                                                         NULL, 
-                                                         NULL);
 }
 
 static void
@@ -964,7 +960,9 @@ main (gint argc, gchar *argv[])
 				 tracker->sys_tmp_root_dir);
 	tracker_xesam_init ();
 	tracker_cache_init ();
-	tracker_service_manager_init ();
+
+	tracker_ontology_init ();
+
 	tracker_email_init (tracker->config);
 
 #ifdef HAVE_HAL 
@@ -1075,7 +1073,7 @@ main (gint argc, gchar *argv[])
 
 	tracker_email_shutdown ();
 	tracker_dbus_shutdown ();
-	tracker_service_manager_shutdown ();
+	tracker_ontology_term ();
 	tracker_cache_shutdown ();
 	tracker_xesam_shutdown ();
 	tracker_db_manager_term ();

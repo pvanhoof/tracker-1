@@ -1000,10 +1000,6 @@ main (gint argc, gchar *argv[])
 	 */
 	tracker->is_running = TRUE;
 
-	/* Connect to databases */
-        tracker->mainloop_db = tracker_db_connect_all ();
-	tracker->xesam_db = tracker_db_connect_xesam ();
-
         /* If we are already running, this should return some
          * indication.
          */

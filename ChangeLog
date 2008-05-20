@@ -1,3 +1,9 @@
+2008-05-20  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-dbus.c: 
+	* src/trackerd/tracker-main.[ch]: Moved the database connections
+	only used in the tracker-dbus module out of the Tracker struct.
+
 2008-05-20  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/trackerd/tracker-db-sqlite.[ch]:

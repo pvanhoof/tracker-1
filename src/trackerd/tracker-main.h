@@ -58,7 +58,6 @@ typedef struct {
 
 	/* Config options */
 	guint32          watch_limit; 
-	gpointer         mainloop_db;
 	gpointer         xesam_db;
 
 	/* Data directories */

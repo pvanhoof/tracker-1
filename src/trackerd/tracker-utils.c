@@ -28,6 +28,7 @@
 
 #include "tracker-utils.h"
 #include "tracker-main.h"
+#include "tracker-process-files.h"
 
 extern Tracker *tracker;
 
@@ -80,7 +81,7 @@ tracker_notify_file_data_available (void)
 	}
 
 	/* If busy - check if async queue has new stuff as we do not need to notify then */
-	if (g_async_queue_length (tracker->file_process_queue) > 1) {
+	if (tracker_process_files_process_queue_length () > 1) {
 		return;
 	}
 

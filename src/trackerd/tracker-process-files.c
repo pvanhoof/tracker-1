@@ -53,6 +53,8 @@
 #include "tracker-process-files.h"
 
 static GAsyncQueue  *dir_queue;
+static GAsyncQueue  *file_metadata_queue;
+static GAsyncQueue  *file_process_queue;
 
 static GSList       *ignore_pattern_list;
 static GSList       *temp_black_list;
@@ -638,7 +640,7 @@ process_queue_files_foreach (const gchar *uri,
         
         tracker = (Tracker*) user_data;
         info = tracker_db_file_info_new (uri, TRACKER_DB_ACTION_CHECK, 0, 0);
-	g_async_queue_push (tracker->file_process_queue, info);
+	g_async_queue_push (file_process_queue, info);
 }
 
 static void
@@ -1527,6 +1529,8 @@ tracker_process_files (gpointer data)
         object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
 
 	dir_queue = g_async_queue_new ();
+	file_metadata_queue = g_async_queue_new ();
+	file_process_queue = g_async_queue_new ();
 
         tracker->pause_io = TRUE;
 
@@ -1630,7 +1634,7 @@ tracker_process_files (gpointer data)
                                                tracker->pause_io,
                                                tracker_config_get_enable_indexing (tracker->config));
 
-		info = g_async_queue_try_pop (tracker->file_process_queue);
+		info = g_async_queue_try_pop (file_process_queue);
 
 		/* Check pending table if we haven't got anything */
 		if (!info) {
@@ -1680,7 +1684,7 @@ tracker_process_files (gpointer data)
 								   -1);
 
 					info_tmp = tracker_db_file_info_new (uri, tmp_action, 0, TRACKER_DB_WATCH_OTHER);
-					g_async_queue_push (tracker->file_process_queue, info_tmp);
+					g_async_queue_push (file_process_queue, info_tmp);
 					pushed_events = TRUE;
 
 					valid = tracker_db_result_set_iter_next (result_set);
@@ -1762,6 +1766,14 @@ tracker_process_files (gpointer data)
 	tracker_db_close_all (db_con);
 
         /* Clean up */
+	if (file_process_queue) {
+		g_async_queue_unref (file_process_queue);
+	}
+
+	if (file_metadata_queue) {
+		g_async_queue_unref (file_metadata_queue);
+	}
+
 	if (dir_queue) {
 		g_async_queue_unref (dir_queue);
 	}
@@ -2037,3 +2049,32 @@ tracker_process_files_is_file_info_valid (TrackerDBFileInfo *info)
                                
         return TRUE;
 }
+
+gint
+tracker_process_files_metadata_queue_length (void)
+{
+        return g_async_queue_length (file_metadata_queue);
+}
+
+void
+tracker_process_files_metadata_queue_push (TrackerDBFileInfo *info)
+{
+        g_return_if_fail (info != NULL);
+
+        g_async_queue_push (file_metadata_queue, info);
+}
+
+gint
+tracker_process_files_process_queue_length (void)
+{
+        return g_async_queue_length (file_process_queue);
+}
+
+void
+tracker_process_files_process_queue_push (TrackerDBFileInfo *info)
+{
+        g_return_if_fail (info != NULL);
+
+        g_async_queue_push (file_process_queue, info);
+}
+

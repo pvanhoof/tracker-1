@@ -115,9 +115,6 @@ typedef struct {
 	gint              word_count;
 	gint              word_update_count; 
 
-	GAsyncQueue      *file_process_queue;
-	GAsyncQueue      *file_metadata_queue; 
-
 	GMutex           *files_check_mutex;
 	GMutex           *files_signal_mutex;
 	GCond            *files_signal_cond;

@@ -70,8 +70,6 @@ void               tracker_db_update_pending_file  (DBConnection         *db_con
 						    const gchar          *uri,
 						    gint                  counter,
 						    TrackerDBAction       action);
-void               tracker_db_add_to_extract_queue (DBConnection         *db_con,
-						    TrackerDBFileInfo    *info);
 gboolean           tracker_db_has_pending_files    (DBConnection         *db_con);
 gboolean           tracker_db_has_pending_metadata (DBConnection         *db_con);
 void               tracker_db_index_service        (DBConnection         *db_con,

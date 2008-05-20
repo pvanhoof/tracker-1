@@ -435,7 +435,7 @@ notify_meta_data_available (void)
 	/* If busy - check if async queue has new stuff as we do not
 	 * need to notify then.
 	 */
-	if (g_async_queue_length (tracker->file_metadata_queue) > 1) {
+	if (tracker_process_files_metadata_queue_length () > 1) {
 		return;
 	}
 
@@ -471,7 +471,16 @@ notify_meta_data_available (void)
 }
 
 static void
-make_pending_file (DBConnection *db_con, guint32 file_id, const char *uri, const char *moved_to_uri, const char *mime, int counter, TrackerDBAction action, gboolean is_directory, gboolean is_new, int service_type_id)
+make_pending_file (DBConnection *db_con, 
+		   guint32 file_id, 
+		   const char *uri, 
+		   const char *moved_to_uri, 
+		   const char *mime, 
+		   int counter, 
+		   TrackerDBAction action, 
+		   gboolean is_directory, 
+		   gboolean is_new, 
+		   int service_type_id)
 {
 	char *str_file_id, *str_action, *str_counter;
 
@@ -485,7 +494,9 @@ make_pending_file (DBConnection *db_con, guint32 file_id, const char *uri, const
 
 		gboolean move_file = (action == TRACKER_DB_ACTION_FILE_MOVED_FROM || action == TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM);
 			
-		if (!move_file && ((counter > 0) || (g_async_queue_length (tracker->file_process_queue) > tracker->max_process_queue_size))) {
+		if (!move_file && 
+		    ((counter > 0) || 
+		     (tracker_process_files_process_queue_length () > tracker->max_process_queue_size))) {
 
 			/* g_message ("************ counter for pending file %s is %d ***********", uri, counter); */
 			if (!mime) {
@@ -509,14 +520,15 @@ make_pending_file (DBConnection *db_con, guint32 file_id, const char *uri, const
 				info->mime = g_strdup (mime);
 			}
 
-			if (action == TRACKER_DB_ACTION_FILE_MOVED_FROM || action == TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM) {
+			if (action == TRACKER_DB_ACTION_FILE_MOVED_FROM || 
+			    action == TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM) {
 				info->moved_to_uri = g_strdup (moved_to_uri);
 			}
 
 			if (action != TRACKER_DB_ACTION_EXTRACT_METADATA) {
-				g_async_queue_push (tracker->file_process_queue, info);
+				tracker_process_files_process_queue_push (info);
 			} else {
-				g_async_queue_push (tracker->file_metadata_queue, info);
+				tracker_process_files_metadata_queue_push (info);
 			}
 		}
 
@@ -558,31 +570,6 @@ tracker_db_update_pending_file (DBConnection *db_con, const char *uri, int count
 
 	g_free (str_counter);
 	g_free (str_action);
-}
-
-
-void
-tracker_db_add_to_extract_queue (DBConnection *db_con, TrackerDBFileInfo *info)
-{
-	int i;
-
-	g_return_if_fail (info);
-	g_return_if_fail (tracker_check_uri (info->uri));
-
-	i = g_async_queue_length (tracker->file_metadata_queue);
-
-	if (i < tracker->max_extract_queue_size) {
-
-		/* inc ref count to prevent it being deleted */
-		info = tracker_db_file_info_ref (info);
-
-		g_async_queue_push (tracker->file_metadata_queue, info);
-
-	} else {
-		tracker_db_insert_pending_file (db_con, info->file_id, info->uri, NULL, info->mime, 0, TRACKER_DB_ACTION_EXTRACT_METADATA, info->is_directory, info->is_new, info->service_type_id);
-	}
-
-	notify_meta_data_available ();
 }
 
 static void
@@ -663,7 +650,7 @@ index_blacklist_file (char *uri)
 
 	info->mime = g_strdup ("unknown");
 
-	g_async_queue_push (tracker->file_process_queue, info);
+	tracker_process_files_process_queue_push (info);
 	
 	tracker_notify_file_data_available ();
 

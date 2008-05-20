@@ -1,3 +1,16 @@
+2008-05-20  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-db.[ch]: 
+	* src/trackerd/tracker-inotify.c:
+	* src/trackerd/tracker-main.c:
+	* src/trackerd/tracker-main.h:
+	* src/trackerd/tracker-process-files.[ch]:
+	* src/trackerd/tracker-utils.c: Moved the
+	tracker->file_process_queue and tracker->file_metadata_queue to
+	tracker-process-files.c and wrapped the GAsyncQueue with an API
+	for external modules to push TrackerDBFileInfo pointers into the
+	queue. 
+
 2008-05-20  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/modules/files.c (tracker_metadata_get_embedded):

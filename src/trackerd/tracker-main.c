@@ -648,12 +648,6 @@ initialise_databases (gboolean need_index)
 	db_con->word_index = tracker->file_index;
 
 	tracker_db_get_static_data (db_con);
-
-	tracker->file_metadata_queue = g_async_queue_new ();
-
-	if (!tracker->readonly) {
-		tracker->file_process_queue = g_async_queue_new ();
-	}
 }
 
 static gboolean 
@@ -1066,15 +1060,6 @@ main (gint argc, gchar *argv[])
         }
 
 	shutdown_locations ();
-
-	/* Clean up other struct members */
-	if (tracker->file_process_queue) {
-		g_async_queue_unref (tracker->file_process_queue);
-	}
-
-	if (tracker->file_metadata_queue) {
-		g_async_queue_unref (tracker->file_metadata_queue);
-	}
 
 	return EXIT_SUCCESS;
 }

@@ -32,26 +32,34 @@
 G_BEGIN_DECLS
 
 /* Thread entry point */
-gpointer tracker_process_files                        (gpointer            data);
-gboolean tracker_process_files_should_be_watched      (TrackerConfig      *config,
-                                                       const gchar        *uri);
-gboolean tracker_process_files_should_be_crawled      (Tracker            *tracker,
-                                                       const gchar        *uri);
-gboolean tracker_process_files_should_be_ignored      (const char         *uri);
+gpointer tracker_process_files                         (gpointer            data);
+gboolean tracker_process_files_should_be_watched       (TrackerConfig      *config,
+							const gchar        *uri);
+gboolean tracker_process_files_should_be_crawled       (Tracker            *tracker,
+							const gchar        *uri);
+gboolean tracker_process_files_should_be_ignored       (const char         *uri);
 
 /* Black list API */
-GSList  *tracker_process_files_get_temp_black_list    (void);
-void     tracker_process_files_set_temp_black_list    (GSList             *black_list);
-void     tracker_process_files_append_temp_black_list (const gchar        *str);
+GSList  *tracker_process_files_get_temp_black_list     (void);
+void     tracker_process_files_set_temp_black_list     (GSList             *black_list);
+void     tracker_process_files_append_temp_black_list  (const gchar        *str);
 
 /* File/Directory API */
-void     tracker_process_files_get_all_dirs           (Tracker            *tracker,
-                                                       const char         *dir,
-                                                       GSList            **files);
-GSList * tracker_process_files_get_files_with_prefix  (Tracker            *tracker,
-                                                       const char         *dir,
-                                                       const char         *prefix);
-gboolean tracker_process_files_is_file_info_valid     (TrackerDBFileInfo  *info);
+void     tracker_process_files_get_all_dirs            (Tracker            *tracker,
+							const char         *dir,
+							GSList            **files);
+GSList * tracker_process_files_get_files_with_prefix   (Tracker            *tracker,
+							const char         *dir,
+							const char         *prefix);
+gboolean tracker_process_files_is_file_info_valid      (TrackerDBFileInfo  *info);
+
+/* Metadata Queue API */
+gint     tracker_process_files_metadata_queue_length   (void);
+void     tracker_process_files_metadata_queue_push     (TrackerDBFileInfo  *info);
+
+/* Files Queue API */
+gint     tracker_process_files_process_queue_length    (void);
+void     tracker_process_files_process_queue_push      (TrackerDBFileInfo *info);
 
 G_END_DECLS
 

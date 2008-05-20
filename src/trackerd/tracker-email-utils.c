@@ -62,14 +62,12 @@ static void	find_attachment			(GMimeObject *obj, gpointer data);
 void 
 email_unwatch_directory (const gchar *dir, const gchar *service)
 {
-	tracker_log ("Registering path %s as belonging to service %s", dir, service);
 	tracker_ontology_remove_dir_to_service_type (service, dir);
 }
 
 void
 email_watch_directory (const gchar *dir, const gchar *service)
 {
-	tracker_log ("Registering path %s as belonging to service %s", dir, service);
 	tracker_ontology_add_dir_to_service_type (service, dir);
 }
 
@@ -188,7 +186,7 @@ email_parse_mail_file_and_save_new_emails (DBConnection *db_con, MailApplication
                         GObject *object;
 
 			if (tracker_config_get_verbosity (tracker->config) == 1) {
-				tracker_log ("indexing #%d - Emails in %s", tracker->index_count, path);
+				g_message ("indexing #%d - Emails in %s", tracker->index_count, path);
 			}
 
 			if (tracker->index_count % 2500 == 0) {
@@ -225,7 +223,7 @@ email_parse_mail_file_and_save_new_emails (DBConnection *db_con, MailApplication
                                tracker->mbox_count);    
 
 	if (indexed > 0) {
-		tracker_info ("Indexed %d emails in email store %s and ignored %d junk and %d deleted emails",
+		g_message ("Indexed %d emails in email store:'%s' and ignored %d junk and %d deleted emails",
                               indexed, path, junk, deleted);
 
 		return TRUE;
@@ -780,7 +778,7 @@ email_add_saved_mail_attachment_to_mail_message (MailMessage *mail_msg, MailAtta
 
 	mail_msg->attachments = g_slist_prepend (mail_msg->attachments, ma);
 
-        tracker_debug ("saved email attachment \"%s\"", ma->tmp_decoded_file);
+        g_debug ("saved email attachment \"%s\"", ma->tmp_decoded_file);
 
 	return TRUE;
 }
@@ -931,7 +929,7 @@ new_gmime_stream_from_file (const gchar *path, gint flags, off_t start, off_t en
 	path_in_locale = g_filename_from_utf8 (path, -1, NULL, NULL, NULL);
 
 	if (!path_in_locale) {
-		tracker_error ("ERROR: src or dst could not be converted to locale format");
+		g_critical ("src or dst could not be converted to locale format");
 		g_free (path_in_locale);
 		return NULL;
 	}
@@ -1059,7 +1057,7 @@ find_attachment (GMimeObject *obj, gpointer data)
 		if (g_str_has_suffix (filename, "signature.asc")) {
 			return;
 		} else {
-			tracker_info ("attached filename is %s", filename);
+			g_message ("Attached filename is:'%s'", filename);
 		}
 
 		attachment_uri = email_make_tmp_name_for_mail_attachment (filename);
@@ -1070,7 +1068,7 @@ find_attachment (GMimeObject *obj, gpointer data)
 		fd = g_open (locale_uri, (O_CREAT | O_TRUNC | O_WRONLY), 0666);
 
 		if (fd == -1) {
-			tracker_error ("ERROR: failed to save attachment %s", locale_uri);
+			g_critical ("failed to save attachment %s", locale_uri);
 			g_free (attachment_uri);
 			g_free (locale_uri);
 			return;

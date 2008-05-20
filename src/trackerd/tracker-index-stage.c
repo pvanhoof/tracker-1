@@ -116,9 +116,9 @@ tracker_index_stage_get_as_string (void)
 void
 tracker_index_stage_set (TrackerIndexStage new_stage)
 {
-	tracker_log ("Index stage changing from '%s' to '%s'",
-		     tracker_index_stage_to_string (index_stage),
-		     tracker_index_stage_to_string (new_stage));
+	g_message ("Index stage changing from '%s' to '%s'",
+		   tracker_index_stage_to_string (index_stage),
+		   tracker_index_stage_to_string (new_stage));
 
         index_stage = new_stage;
 }

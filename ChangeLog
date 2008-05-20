@@ -1,3 +1,50 @@
+2008-05-20  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/Makefile.am:
+	* src/libtracker-common/tracker-file-utils.c: 
+	* src/libtracker-common/tracker-language.c:
+	* src/libtracker-common/tracker-log.c:
+	* src/libtracker-common/tracker-log.h:
+	* src/libtracker-common/tracker-nfs-lock.c:
+	* src/libtracker-common/tracker-os-dependant-unix.c:
+	* src/libtracker-common/tracker-os-dependant-win.c:
+	* src/libtracker-common/tracker-type-utils.c:
+	* src/libtracker-db/Makefile.am:
+	* src/libtracker-db/tracker-db-file-info.c:
+	* src/libtracker-db/tracker-db-interface-sqlite.c:
+	* src/tracker-indexer/modules/files.c:
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-apps.c:
+	* src/trackerd/tracker-cache.c: 
+	* src/trackerd/tracker-db-email.c:
+	* src/trackerd/tracker-db-sqlite.c: 
+	* src/trackerd/tracker-db.c:
+	* src/trackerd/tracker-dbus-daemon.c:
+	* src/trackerd/tracker-dbus-keywords.c:
+	* src/trackerd/tracker-dbus-metadata.c:
+	* src/trackerd/tracker-dbus.c:
+	* src/trackerd/tracker-email-evolution.c:
+	* src/trackerd/tracker-email-kmail.c: 
+	* src/trackerd/tracker-email-modest.c:
+	* src/trackerd/tracker-email-thunderbird.c:
+	* src/trackerd/tracker-email-utils.c:
+	* src/trackerd/tracker-fam.c:
+	* src/trackerd/tracker-hal.c: 
+	* src/trackerd/tracker-index-stage.c:
+	* src/trackerd/tracker-indexer.c: 
+	* src/trackerd/tracker-inotify.c:
+	* src/trackerd/tracker-ioprio.c:
+	* src/trackerd/tracker-main.c: 
+	* src/trackerd/tracker-metadata.c:
+	* src/trackerd/tracker-process-files.c: 
+	* src/trackerd/tracker-rdf-query.c:
+	* src/trackerd/tracker-service-manager.c:
+	* src/trackerd/tracker-utils.c:
+	* src/trackerd/tracker-xesam-query.c: Use the
+	g_{message|debug|warning|critical|error}() functions instead of
+	the tracker_log_() variants instead. Fixes bug #529373 (Carlos
+	Garnacho, Martyn Russell).
+
 2008-05-19  Ivan Frade <ivan.frade@nokia.com>
 
 	* src/trackerd/Makefile.am

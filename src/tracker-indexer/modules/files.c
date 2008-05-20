@@ -17,12 +17,15 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#include <glib.h>
-#include <glib/gstdio.h>
-#include <libtracker-common/tracker-config.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <string.h>
+
+#include <glib.h>
+#include <glib/gstdio.h>
+
+#include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-file-utils.h>
 
 #define METADATA_FILE_NAME_DELIMITED "File:NameDelimited"
 #define METADATA_FILE_EXT            "File:Ext"

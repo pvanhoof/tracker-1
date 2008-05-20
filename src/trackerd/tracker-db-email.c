@@ -66,7 +66,7 @@ tracker_db_email_register_mbox (DBConnection    *db_con,
 
 	tracker_exec_proc (db_con, "InsertMboxDetails", str_mail_app, str_mail_type, filename, path, uri_prefix, NULL);
 
-	tracker_log ("Registered email store %s of type %s", filename, types[mail_type]);
+	g_message ("Registered email store %s of type %s", filename, types[mail_type]);
 
 	g_free (str_mail_app);
 	g_free (str_mail_type);
@@ -267,7 +267,7 @@ tracker_db_email_set_message_counts (DBConnection *db_con,
 		g_free (str_delete_count);
 
 	} else {
-		tracker_error ("ERROR: invalid dir_path \"%s\"", dir_path);
+		g_critical ("invalid dir_path \"%s\"", dir_path);
 	}
 }
 
@@ -284,7 +284,7 @@ tracker_db_email_get_last_mbox_offset (DBConnection *db_con, const gchar *mbox_f
 
 	if (offset == -1) {
 		/* we need to add this mbox */
-		tracker_error ("ERROR: mbox/dir for emails for %s is not registered", mbox_file_path);
+		g_critical ("mbox/dir for emails for %s is not registered", mbox_file_path);
 	}
 
 	return offset;
@@ -298,7 +298,7 @@ tracker_db_email_update_mbox_offset (DBConnection *db_con, MailFile *mf)
 	g_return_if_fail (mf);
 
 	if (!mf->path) {
-		tracker_error ("ERROR: invalid mbox (empty path!)");
+		g_critical ("invalid mbox (empty path!)");
 		return;
 	}
 
@@ -312,7 +312,7 @@ tracker_db_email_update_mbox_offset (DBConnection *db_con, MailFile *mf)
 		g_free (str_offset);
 
 	} else {
-		tracker_error ("ERROR: invalid mbox \"%s\"", mf->path);
+		g_critical ("invalid mbox \"%s\"", mf->path);
 	}
 }
 
@@ -428,24 +428,24 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
 	g_return_val_if_fail (mm, FALSE);
 
 	if (!mm->uri) {
-		tracker_error ("ERROR: email has no uri");
+		g_critical ("email has no uri");
 		return FALSE;
 	}
 
 	if (!mm->subject) {
-		tracker_log ("WARNING: email with uri: %s has no subject",mm->uri);
+		g_message ("WARNING: email with uri: %s has no subject",mm->uri);
 		mm->subject = g_strdup("");
 	}
         
 	if (mm->parent_mail_file && !mm->parent_mail_file->path) {
-		tracker_error ("ERROR: badly formatted email - abandoning index");
+		g_critical ("badly formatted email - abandoning index");
 		return FALSE;
 	}
 
 	if (mm->store) {
 		mm->store->mail_count++;
 	} else {
-		tracker_error ("WARNING: no mail store found for email");
+		g_critical ("no mail store found for email");
 	}
 
 	if (mm->deleted || mm->junk) {
@@ -460,7 +460,7 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
 				mm->store->junk_count++;
 			}
 		} else {
-			tracker_error ("WARNING: no mail store found for email");
+			g_critical ("no mail store found for email");
 		}
 
 		return TRUE;
@@ -472,7 +472,7 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
 		if (mm->is_mbox) {
 			mbox_id = tracker_db_email_get_mbox_id (db_con, mm->parent_mail_file->path);
 			if (mbox_id == -1) {
-				tracker_error ("ERROR: no mbox is registered for email %s", mm->uri);
+				g_critical ("no mbox is registered for email %s", mm->uri);
 				return TRUE;
 			}
 		}
@@ -490,7 +490,7 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
 
 	type_id = tracker_ontology_get_id_for_service_type (service);
 	if (type_id == -1) {
-		tracker_error ("ERROR: service %s not found", service);
+		g_critical ("service %s not found", service);
 		g_free (attachment_service);
 		g_free (service);
 		g_free (mime);
@@ -513,8 +513,8 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
 		gchar	   *str_id, *str_date;
 		GSList     *tmp;
 
-
-		tracker_info ("saving email service %d with uri \"%s\" and subject \"%s\" from \"%s\"", type_id, mm->uri, mm->subject, mm->from);
+		g_message ("Saving email service:%d with uri:'%s' and subject:'%s' from:'%s'",
+                           type_id, mm->uri, mm->subject, mm->from);
 
 		index_table = g_hash_table_new (g_str_hash, g_str_equal);
 		str_id = tracker_int_to_string (id);
@@ -691,7 +691,8 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
                                 attachment_info->mime = g_strdup (ma->mime);
 
                                 uri = g_strconcat (mm->uri, "/", ma->attachment_name, NULL);
-                                tracker_info ("indexing attachment with uri %s and mime %s", uri, attachment_info->mime);
+                                g_message ("Indexing attachment with uri:'%s' and mime:'%s'",
+                                           uri, attachment_info->mime);
                                 tracker_db_index_file (db_con, attachment_info, uri, attachment_service);
                                 g_free (uri);
 
@@ -709,7 +710,7 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
 		}
 
 	} else {
-		tracker_error ("ERROR: failed to save email %s", mm->uri);
+		g_critical ("failed to save email %s", mm->uri);
 	}
 
 	g_free (attachment_service);
@@ -735,7 +736,7 @@ tracker_db_email_update_email (DBConnection *db_con, MailMessage *mm)
 	g_return_if_fail (db_con);
 	g_return_if_fail (mm);
 
-	tracker_log ("update email with uri \"%s\" and subject \"%s\" from \"%s\"", mm->uri, mm->subject, mm->from);
+	g_message ("update email with uri \"%s\" and subject \"%s\" from \"%s\"", mm->uri, mm->subject, mm->from);
 
 	/* FIXME: add code... */
 }
@@ -764,7 +765,7 @@ tracker_db_email_delete_email (DBConnection *db_con, const gchar *uri)
 		return FALSE;
 	}
 
-	tracker_info ("deleting email %s", uri);
+	g_message ("Deleting email:'%s'", uri);
 
 	tracker_db_delete_directory (db_con, atoi (id), uri);
 

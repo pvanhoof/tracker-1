@@ -285,7 +285,8 @@ tracker_db_file_info_get (TrackerDBFileInfo *info)
 		}
 
 	} else {
-		tracker_error ("ERROR: info->uri could not be converted to locale format");
+		g_warning ("URI:'%s' could not be converted to locale format", 
+			   info->uri);
 		return NULL;
 	}
 

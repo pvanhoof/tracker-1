@@ -53,26 +53,26 @@ static dbus_register_service (DBusGProxy  *proxy,
         GError *error = NULL;
         guint   result;
 
-        tracker_log ("Registering DBus service...\n"
-                       "  Name '%s'", 
-                       name);
+        g_message ("Registering DBus service...\n"
+		   "  Name '%s'", 
+		   name);
 
         if (!org_freedesktop_DBus_request_name (proxy,
                                                 name,
                                                 DBUS_NAME_FLAG_DO_NOT_QUEUE,
                                                 &result, &error)) {
-                tracker_error ("Could not aquire name: %s, %s",
-                               name,
-                               error ? error->message : "no error given");
-
+                g_critical ("Could not aquire name: %s, %s",
+			    name,
+			    error ? error->message : "no error given");
                 g_error_free (error);
+
                 return FALSE;
 		}
 
         if (result != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER) {
-                tracker_error ("DBus service name %s is already taken, "
-                               "perhaps the daemon is already running?",
-                               name);
+                g_critical ("DBus service name '%s' is already taken, "
+			    "perhaps the daemon is already running?",
+			    name);
                 return FALSE;
 	}
 
@@ -88,9 +88,9 @@ dbus_register_object (DBusGConnection       *connection,
 {
         GObject *object;
 
-        tracker_log ("Registering DBus object...");
-        tracker_log ("  Path '%s'", path);
-        tracker_log ("  Type '%s'", g_type_name (object_type));
+        g_message ("Registering DBus object...");
+        g_message ("  Path '%s'", path);
+        g_message ("  Type '%s'", g_type_name (object_type));
 
         object = g_object_new (object_type, NULL);
 
@@ -125,7 +125,9 @@ name_owner_changed_done (gpointer data, GClosure *closure)
 }
 
 gboolean 
-tracker_dbus_preinit (Tracker *tracker, DBusGConnection **connection_out, DBusGProxy **proxy_out)
+tracker_dbus_preinit (Tracker          *tracker, 
+		      DBusGConnection **connection_out, 
+		      DBusGProxy      **proxy_out)
 {
         DBusGConnection *connection;
         DBusGProxy      *proxy;
@@ -133,14 +135,13 @@ tracker_dbus_preinit (Tracker *tracker, DBusGConnection **connection_out, DBusGP
 
         g_return_val_if_fail (tracker != NULL, FALSE);
 
-
         connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
 
         if (!connection) {
-                tracker_error ("Could not connect to the DBus session bus, %s",
-                               error ? error->message : "no error given.");
-                if (error)
-			g_error_free (error);
+                g_critical ("Could not connect to the DBus session bus, %s",
+			    error ? error->message : "no error given.");
+		g_clear_error (&error);
+
                 return FALSE;
         }
 
@@ -164,17 +165,20 @@ tracker_dbus_preinit (Tracker *tracker, DBusGConnection **connection_out, DBusGP
 }
 
 gboolean
-tracker_dbus_init (Tracker *tracker, DBusGConnection *connection, DBusGProxy *proxy)
+tracker_dbus_init (Tracker         *tracker, 
+		   DBusGConnection *connection, 
+		   DBusGProxy      *proxy)
 {
-        GObject         *object;
+        GObject *object;
  
         g_return_val_if_fail (tracker != NULL, FALSE);
+        g_return_val_if_fail (connection != NULL, FALSE);
+        g_return_val_if_fail (proxy != NULL, FALSE);
 
         /* Don't reinitialize */
         if (objects) {
                 return TRUE;
         }
-
 
         /* Add org.freedesktop.Tracker */
         if (!(object = dbus_register_object (connection, 
@@ -500,9 +504,9 @@ tracker_dbus_request_new (gint          request_id,
 	str = g_strdup_vprintf (format, args);
 	va_end (args);
 	
-	tracker_log ("<--- [%d] %s",
-		     request_id,
-		     str);
+	g_message ("<--- [%d] %s",
+		   request_id,
+		   str);
 
 	g_free (str);
 }
@@ -510,8 +514,8 @@ tracker_dbus_request_new (gint          request_id,
 void
 tracker_dbus_request_success (gint request_id)
 {
-	tracker_log ("---> [%d] Success, no error given", 
-		     request_id);
+	g_message ("---> [%d] Success, no error given", 
+		   request_id);
 }
 
 void
@@ -529,9 +533,9 @@ tracker_dbus_request_failed (gint          request_id,
 
 	g_set_error (error, TRACKER_DBUS_ERROR, 0, str);
 
-	tracker_log ("---> [%d] Failed, %s",
-		     request_id,
-		     str);
+	g_message ("---> [%d] Failed, %s",
+		   request_id,
+		   str);
 	g_free (str);
 }
 
@@ -547,8 +551,8 @@ tracker_dbus_request_comment (gint         request_id,
 	str = g_strdup_vprintf (format, args);
 	va_end (args);
 
-	tracker_log ("---- [%d] %s", 
-		     request_id, 
-		     str);
+	g_message ("---- [%d] %s", 
+		   request_id, 
+		   str);
 	g_free (str);
 }

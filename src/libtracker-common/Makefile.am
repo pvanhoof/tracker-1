@@ -1,6 +1,7 @@
-INCLUDES =				\
-	$(GLIB2_CFLAGS)			\
-	-DSHAREDIR=\""$(datadir)"\"	\
+INCLUDES =					\
+	$(GLIB2_CFLAGS)				\
+	-DSHAREDIR=\""$(datadir)"\"		\
+	-DG_LOG_DOMAIN=\"Tracker\"		\
 	-I$(top_srcdir)/src
 
 noinst_LTLIBRARIES = libtracker-common.la

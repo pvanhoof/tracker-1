@@ -136,7 +136,7 @@ get_preferred_bucket_count (Indexer *indexer)
 		result *= bucket_ratio;
 	}
 
-	tracker_log ("Preferred bucket count is %d", result);
+	g_message ("Preferred bucket count is %d", result);
 
 	return  result;
 }
@@ -161,7 +161,7 @@ open_index (const gchar *name)
 
 	if (!name) return NULL;
 
-	tracker_log ("Opening index %s", name);
+	g_message ("Opening index %s", name);
 
 	if (strstr (name, "tmp")) {
 		word_index = dpopen (name, DP_OWRITER | DP_OCREAT | DP_ONOLCK, 
@@ -172,7 +172,7 @@ open_index (const gchar *name)
 	}
 
 	if (!word_index) {
-		tracker_error ("%s index was not closed properly and caused error %s- attempting repair", name, dperrmsg (dpecode));
+		g_critical ("%s index was not closed properly and caused error %s- attempting repair", name, dperrmsg (dpecode));
 		if (dprepair (name)) {
 			word_index = dpopen (name, DP_OWRITER | DP_OCREAT | DP_ONOLCK, 
                                              tracker_config_get_min_bucket_count (tracker->config));
@@ -232,7 +232,7 @@ tracker_indexer_open (const gchar *name, gboolean main_index)
 	bucket_count = dpbnum (result->word_index);
 	rec_count = dprnum (result->word_index);
 
-	tracker_log ("Bucket count (max is %d) is %d and Record Count is %d", 
+	g_message ("Bucket count (max is %d) is %d and Record Count is %d", 
                      tracker_config_get_max_bucket_count (tracker->config),
                      bucket_count, rec_count);
 
@@ -248,7 +248,7 @@ tracker_indexer_close (Indexer *indexer)
 	g_mutex_lock (indexer->word_mutex);
 
 	if (!dpclose (indexer->word_index)) {
-		tracker_log ("Index closure has failed due to %s", dperrmsg (dpecode));
+		g_message ("Index closure has failed due to %s", dperrmsg (dpecode));
 	}
 
 	g_mutex_unlock (indexer->word_mutex);
@@ -332,23 +332,29 @@ tracker_indexer_optimize (Indexer *indexer)
                      tracker_config_get_max_bucket_count (tracker->config));
 
 	b_count = num / tracker_config_get_divisions (tracker->config);
-	tracker_log ("No. of buckets per division is %d", b_count);
+	g_message ("No. of buckets per division is %d", b_count);
 
-	tracker_log ("Please wait while optimization of indexes takes place...");
-	tracker_log ("Index has file size %10.0f and bucket count of %d of which %d are used...", tracker_indexer_size (indexer), dpbnum (indexer->word_index), dpbusenum (indexer->word_index));
+	g_message ("Please wait while optimization of indexes takes place...");
+	g_message ("Index has file size %d and bucket count of %d of which %d are used...", 
+                   tracker_indexer_size (indexer), 
+                   dpbnum (indexer->word_index), 
+                   dpbusenum (indexer->word_index));
 	
 	g_mutex_lock (indexer->word_mutex);
 
 	if (!dpoptimize (indexer->word_index, b_count)) {
 
 		g_mutex_unlock (indexer->word_mutex);
-		tracker_log ("Optimization has failed due to %s", dperrmsg (dpecode));
+		g_message ("Optimization has failed due to %s", dperrmsg (dpecode));
 		return FALSE;
 	}
 
 	g_mutex_unlock (indexer->word_mutex);
 
-	tracker_log ("Index has been successfully optimized to file size %10.0f and with bucket count of %d of which %d are used...", tracker_indexer_size (indexer), dpbnum (indexer->word_index), dpbusenum (indexer->word_index));
+	g_message ("Index has been successfully optimized to file size %d and with bucket count of %d of which %d are used...", 
+                   tracker_indexer_size (indexer), 
+                   dpbnum (indexer->word_index), 
+                   dpbusenum (indexer->word_index));
 	
 	
 	return TRUE;
@@ -378,7 +384,7 @@ tracker_indexer_apply_changes (Indexer *dest, Indexer *src,  gboolean update)
 	int 	i = 0, interval;
 	int 	buff_size = MAX_HITS_FOR_WORD * sz;
 
-	tracker_log ("applying incremental changes to indexes");
+	g_message ("applying incremental changes to indexes");
 
 	guint32 size = tracker_indexer_size (dest);
 
@@ -438,7 +444,7 @@ tracker_indexer_apply_changes (Indexer *dest, Indexer *src,  gboolean update)
 		if (bytes < 1) continue;
 
 		if (bytes % sz != 0) {
-			tracker_error ("possible corruption found during application of changes to index with word %s (ignoring update for this word)", str);
+			g_critical ("possible corruption found during application of changes to index with word %s (ignoring update for this word)", str);
 			continue;
 		}
 
@@ -539,7 +545,7 @@ move_index (Indexer *src_index, Indexer *dest_index, const char *fname)
 {
 
 	if (!src_index || !dest_index) {
-		tracker_error ("cannot move indexes");
+		g_critical ("cannot move indexes");
 		return;
 	}
 
@@ -556,14 +562,14 @@ move_index (Indexer *src_index, Indexer *dest_index, const char *fname)
 		
 	/* rename and reopen final index as main index */
 		
-	tracker_log ("renaming %s to %s", final_name, fname);
+	g_message ("renaming %s to %s", final_name, fname);
 	
 	rename (final_name, fname);
 
 	dest_index->word_index = open_index (fname);	
 
 	if (!dest_index->word_index) {
-		tracker_error ("index creation failure for %s from %s", fname, final_name);
+		g_critical ("index creation failure for %s from %s", fname, final_name);
 	}
 
 	g_free (final_name);		
@@ -661,7 +667,7 @@ tracker_indexer_merge_indexes (IndexType type)
 		return;
 	}
 
-	tracker_log ("starting merge of %d indexes", index_count);
+	g_message ("starting merge of %d indexes", index_count);
 	tracker->in_merge = TRUE;
 	tracker->merge_count = index_count;
 	tracker->merge_processed = 0;
@@ -709,7 +715,7 @@ tracker_indexer_merge_indexes (IndexType type)
 
 	if (!final_index) {
 		g_slist_free (index_list);
-		tracker_error ("could not open final index - abandoning index merge");
+		g_critical ("could not open final index - abandoning index merge");
 		goto end_of_merging;
 	}
 
@@ -779,7 +785,7 @@ tracker_indexer_merge_indexes (IndexType type)
                                 }
 
 				if (offset % sz != 0) {
-					tracker_error ("possible corruption found during merge of word %s - purging word from index (it will not be searchable)", str);
+					g_critical ("possible corruption found during merge of word %s - purging word from index (it will not be searchable)", str);
 					continue;
 				}
 
@@ -798,7 +804,7 @@ tracker_indexer_merge_indexes (IndexType type)
 						gint tmp_offset = dpgetwb (tmp_index->word_index, str, -1, 0, (buff_size - offset), tmp_buffer);	
 
 						if (tmp_offset > 0 && (tmp_offset % sz != 0)) {
-							tracker_error ("possible corruption found during merge of word %s - purging word from index", str);
+							g_critical ("possible corruption found during merge of word %s - purging word from index", str);
 							continue;
 						}
 
@@ -1032,7 +1038,7 @@ tracker_indexer_update_word_chunk (Indexer *indexer, const gchar *word, WordDeta
 			/* add hits that could not be updated directly here so they can be appended later */
 			if (!edited) {
 				list = g_slist_prepend (list, &detail_chunk[j]);
-				tracker_debug ("could not update word hit %s - appending", word);
+				g_debug ("could not update word hit %s - appending", word);
 			}
 		}
 	
@@ -1366,7 +1372,7 @@ tracker_indexer_get_suggestion (Indexer *indexer, const gchar *term, gint maxdis
                                 winner_dist = dist;
 
                         } else {
-				tracker_log ("No hits for %s!", str);
+				g_message ("No hits for %s!", str);
 			}
 		}
 
@@ -1375,7 +1381,7 @@ tracker_indexer_get_suggestion (Indexer *indexer, const gchar *term, gint maxdis
 		g_get_current_time (&current);
 
 		if (current.tv_sec - start.tv_sec >= 2) { /* 2 second time out */
-			tracker_log ("Timeout in tracker_dbus_method_search_suggest");
+			g_message ("Timeout in tracker_dbus_method_search_suggest");
                         break;
 		}
 
@@ -1397,7 +1403,7 @@ tracker_indexer_are_databases_too_big (void)
         g_free (filename);
         
         if (too_big) {
-		tracker_error ("File index database is too big, discontinuing indexing");
+		g_critical ("File index database is too big, discontinuing indexing");
 		return TRUE;	
 	}
 
@@ -1406,7 +1412,7 @@ tracker_indexer_are_databases_too_big (void)
 	g_free (filename);
         
         if (too_big) {
-		tracker_error ("Email index database is too big, discontinuing indexing");
+		g_critical ("Email index database is too big, discontinuing indexing");
 		return TRUE;	
 	}
 
@@ -1414,7 +1420,7 @@ tracker_indexer_are_databases_too_big (void)
 	too_big = tracker_file_get_size (filename_const) > MAX_INDEX_FILE_SIZE;
         
         if (too_big) {
-                tracker_error ("File metadata database is too big, discontinuing indexing");
+                g_critical ("File metadata database is too big, discontinuing indexing");
 		return TRUE;	
 	}
 
@@ -1422,7 +1428,7 @@ tracker_indexer_are_databases_too_big (void)
 	too_big = tracker_file_get_size (filename_const) > MAX_INDEX_FILE_SIZE;
         
         if (too_big) {
-		tracker_error ("Email metadata database is too big, discontinuing indexing");
+		g_critical ("Email metadata database is too big, discontinuing indexing");
 		return TRUE;	
 	}
 

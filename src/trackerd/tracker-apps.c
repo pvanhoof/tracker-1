@@ -44,7 +44,6 @@ tracker_applications_add_service_directories (void)
 		
 		/* Add user defined applications path to service directory list */
 		if (dir) {
-			tracker_log ("Registering path %s as belonging to service Applications", dir);
 			tracker_ontology_add_dir_to_service_type ("Applications", dir);
 			g_free (dir);
 		}
@@ -58,15 +57,12 @@ tracker_applications_add_service_directories (void)
 			gint i;
 			for (i = 0; dir_array[i] != NULL; ++i) {
 				dir = g_strdup_printf ("%s/applications", dir_array[i]);
-				tracker_info ("Registering path %s as belonging to service Applications", dir);
 				tracker_ontology_add_dir_to_service_type ("Applications", dir);
 				g_free (dir);	
 			}
 			g_strfreev (dir_array);
 
 		} else {
-			tracker_log ("Registering path %s as belonging to service Applications", "/usr/local/share/applications");
-			tracker_log ("Registering path %s as belonging to service Applications", "/usr/share/applications");
 			tracker_ontology_add_dir_to_service_type ("Applications", "/usr/local/share/applications");
 			tracker_ontology_add_dir_to_service_type ("Applications", "/usr/share/applications");
 		}

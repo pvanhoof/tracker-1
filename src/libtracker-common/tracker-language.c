@@ -261,7 +261,7 @@ language_add_stopwords (TrackerLanguage *language,
 
 	mapped_file = g_mapped_file_new (filename, FALSE, &error);
 	if (error) {
-		tracker_log ("Tracker couldn't read stopword file:'%s', %s",
+		g_message ("Tracker couldn't read stopword file:'%s', %s",
 			     filename, error->message);
 		g_clear_error (&error);
 		return;
@@ -295,7 +295,7 @@ language_set_stopword_list (TrackerLanguage *language,
 	priv = GET_PRIV (language);
 
 	/* Set up stopwords list */
-	tracker_log ("Setting up stopword list for language code:'%s'", language_code);
+	g_message ("Setting up stopword list for language code:'%s'", language_code);
 
 	stopword_filename = language_get_stopword_filename (language_code);
 	language_add_stopwords (language, stopword_filename);
@@ -307,7 +307,7 @@ language_set_stopword_list (TrackerLanguage *language,
 		g_free (stopword_filename);
 	}
 
-	tracker_log ("Setting up stemmer for language code:'%s'", language_code);
+	g_message ("Setting up stemmer for language code:'%s'", language_code);
 
 	stem_language = language_get_name_for_code (language_code);
 
@@ -319,8 +319,8 @@ language_set_stopword_list (TrackerLanguage *language,
 
 	priv->stemmer = sb_stemmer_new (stem_language, NULL);
 	if (!priv->stemmer) {
-		tracker_log ("No stemmer could be found for language:'%s'",
-			     stem_language);
+		g_message ("No stemmer could be found for language:'%s'",
+			   stem_language);
 	}
 
 	g_mutex_unlock (priv->stemmer_mutex);

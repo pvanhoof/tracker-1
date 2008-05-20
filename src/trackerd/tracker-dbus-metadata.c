@@ -268,7 +268,7 @@ tracker_dbus_metadata_get (TrackerDBusMetadata   *object,
 
 	query = g_string_free (sql, FALSE);
 
-	tracker_debug (query);
+	g_debug (query);
 
 	result_set = tracker_db_interface_execute_query (db_con->db, NULL, query);
 	*values = tracker_dbus_query_result_to_strv (result_set, NULL);

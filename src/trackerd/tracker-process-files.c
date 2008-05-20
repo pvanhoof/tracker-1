@@ -112,7 +112,7 @@ process_get_files (Tracker    *tracker,
 	dir_in_locale = g_filename_from_utf8 (dir, -1, NULL, NULL, NULL);
 
 	if (!dir_in_locale) {
-		tracker_error ("ERROR: dir could not be converted to utf8 format");
+		g_warning ("Could not convert directory:'%s' o UTF-8", dir);
 		g_free (dir_in_locale);
 		return NULL;
 	}
@@ -237,7 +237,8 @@ process_watch_directories (Tracker *tracker,
                         if (!g_utf8_validate (l->data, -1, NULL)) {
                                 dir = g_filename_to_utf8 (l->data, -1, NULL,NULL,NULL);
                                 if (!dir) {
-                                        tracker_error ("Directory to watch was not valid UTF-8 and couldn't be converted either");
+                                        g_warning ("Could not convert directory:'%s' to UTF-8", 
+                                                   (gchar*) l->data);
                                         continue;
                                 }
                         } else {
@@ -269,7 +270,7 @@ process_watch_directories (Tracker *tracker,
                         
                         if (watches < tracker->watch_limit) {
                                 if (!tracker_add_watch_dir (dir, db_con)) {
-                                        tracker_debug ("Watch failed for %s", dir);
+                                        g_warning ("Watch failed for:'%s'", dir);
                                 }
                         }
 		}
@@ -386,7 +387,7 @@ process_scan_directory (Tracker     *tracker,
 
         files = process_get_files (tracker, uri, FALSE, TRUE, NULL);
 
-	tracker_debug ("Scanning %s for %d files", uri, g_slist_length (files));
+	g_message ("Scanning:'%s' for %d files", uri, g_slist_length (files));
 
 	info = g_slice_new (ForEachDBCon);
 	info->tracker = tracker;
@@ -410,7 +411,7 @@ process_scan_directory (Tracker     *tracker,
 
 	g_slice_free (ForEachDBCon, info);
 
-	tracker_debug ("Finished scanning");
+	g_message ("Finished scanning");
 }
 
 static void
@@ -499,7 +500,7 @@ process_index_entity (Tracker           *tracker,
 	service_info = tracker_ontology_get_service_type_for_dir (info->uri);
 
 	if (!service_info) {
-		tracker_error ("ERROR: cannot find service for path %s", info->uri);
+		g_warning ("Can not find service for path:'%s'", info->uri);
 		return;
 	}
 
@@ -507,9 +508,9 @@ process_index_entity (Tracker           *tracker,
 
 	if (!def) {
 		if (service_info) {
-			tracker_error ("ERROR: unknown service %s", service_info);
+			g_warning ("Unknown service:'%s'", service_info);
 		} else {
-			tracker_error ("ERROR: unknown service");
+			g_warning ("Unknown service");
 		}
 		g_free (service_info);
 		return;
@@ -563,7 +564,7 @@ process_index_delete_file (Tracker           *tracker,
 
 	tracker_db_delete_file (db_con, info->file_id);
 
-	tracker_log ("Deleting file %s", info->uri);
+	g_message ("Deleting file:'%s'", info->uri);
 }
 
 static void
@@ -587,7 +588,7 @@ process_index_delete_directory (Tracker           *tracker,
 
 	tracker_remove_watch_dir (info->uri, TRUE, db_con);
 
-	tracker_log ("Deleting dir %s and subdirs", info->uri);
+	g_message ("Deleting directory:'%s' and subdirs", info->uri);
 }
 
 static void
@@ -652,7 +653,7 @@ process_check_directory (Tracker     *tracker,
 	g_return_if_fail (tracker_file_is_directory (uri));
 
         files = process_get_files (tracker, uri, FALSE, TRUE, NULL);
-	tracker_debug ("Checking %s for %d files", uri, g_slist_length (files));
+	g_message ("Checking:'%s' for %d files", uri, g_slist_length (files));
 
 	g_slist_foreach (files, (GFunc) process_queue_files_foreach, tracker);
 	g_slist_foreach (files, (GFunc) g_free, NULL);
@@ -671,7 +672,7 @@ process_check_directory (Tracker     *tracker,
 static void
 process_index_config (Tracker *tracker, DBConnection *db_con) 
 {
-        tracker_log ("Starting config indexing");
+        g_message ("Starting config indexing");
 }
 
 static void
@@ -679,7 +680,7 @@ process_index_applications (Tracker *tracker, DBConnection *db_con)
 {
         GSList       *list;
 
-        tracker_log ("Starting application indexing");
+        g_message ("Starting application indexing");
        
         tracker_db_start_index_transaction (db_con);
         tracker_db_interface_start_transaction (db_con->cache->db);
@@ -787,7 +788,7 @@ process_index_files (Tracker *tracker, DBConnection *db_con)
         GSList       *index_exclude;
 	ForEachDBCon *info;
 
-        tracker_log ("Starting file indexing...");
+        g_message ("Starting file indexing...");
         
         object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
 
@@ -816,12 +817,12 @@ process_index_files (Tracker *tracker, DBConnection *db_con)
         if (index_exclude) {
                 GSList *l;
                 
-                tracker_log ("Deleting entities where indexing is disabled or are not watched:");
+                g_message ("Deleting entities where indexing is disabled or are not watched:");
                 
                 for (l = index_exclude; l; l = l->next) {
                         guint32 id;
 
-                        tracker_log ("  %s", l->data);
+                        g_message ("  %s", (gchar*) l->data);
 
                         id = tracker_db_get_file_id (db_con, l->data);
                         
@@ -834,7 +835,7 @@ process_index_files (Tracker *tracker, DBConnection *db_con)
         }
         
         if (!index_include) {
-                tracker_log ("No directory roots to index!");
+                g_message ("No directory roots to index!");
                 return;
         }
         
@@ -937,7 +938,7 @@ process_index_crawl_files (Tracker *tracker, DBConnection *db_con)
         GSList       *crawl_directory_roots;
         ForEachDBCon *info;
 
-        tracker_log ("Starting directory crawling...");
+        g_message ("Starting directory crawling...");
 
         crawl_directories = NULL;
         crawl_directory_roots = 
@@ -1002,8 +1003,7 @@ process_index_conversations (Tracker *tracker, DBConnection *db_con)
         }
         
         if (has_logs) {
-
-                tracker_log ("Starting chat log indexing...");
+                g_message ("Starting chat log indexing...");
                 tracker_db_interface_start_transaction (db_con->cache->db);
                 process_directory_list (tracker, list, TRUE, db_con);
                 tracker_db_interface_end_transaction (db_con->cache->db);
@@ -1025,7 +1025,7 @@ process_index_webhistory (Tracker *tracker, DBConnection *db_con)
         if (tracker_file_is_valid (firefox_dir)) {
                 list = g_slist_prepend( NULL, firefox_dir);
                 
-                tracker_log ("Starting Firefox web history indexing...");
+                g_message ("Starting Firefox web history indexing...");
                 tracker_ontology_add_dir_to_service_type ("WebHistory", firefox_dir);
                 
                 tracker_db_interface_start_transaction (db_con->cache->db);
@@ -1075,7 +1075,7 @@ process_index_emails (Tracker *tracker, DBConnection *db_con)
 		const gchar *name;
 
                 tracker_email_add_service_directories (db_con->emails);
-                tracker_log ("Starting email indexing...");
+                g_message ("Starting email indexing...");
                 
                 tracker_db_interface_start_transaction (db_con->cache->db);
 
@@ -1207,12 +1207,12 @@ process_files (Tracker *tracker, DBConnection *db_con)
                 g_timer_destroy (index_duration);
                 index_duration = NULL;
 
-                tracker_log ("Indexing finished in %d seconds", time_taken);
+                g_message ("Indexing finished in %d seconds", time_taken);
                 g_signal_emit_by_name (object, "index-finished", time_taken);
 
                 tracker_db_set_option_int (db_con, "InitialIndex", 0);
                 
-                tracker_log ("Updating database stats, please wait...");
+                g_message ("Updating database stats, please wait...");
                 
                 tracker_db_interface_start_transaction (db_con->db);
                 tracker_db_exec_no_reply (db_con->db, "ANALYZE");
@@ -1222,7 +1222,7 @@ process_files (Tracker *tracker, DBConnection *db_con)
                 tracker_db_exec_no_reply (db_con->emails->db, "ANALYZE");
                 tracker_db_interface_end_transaction (db_con->emails->db);
                 
-                tracker_log ("Finished optimizing, waiting for new events...");
+                g_message ("Finished optimizing, waiting for new events...");
         }
         
         /* We have no stuff to process so sleep until awoken by a new
@@ -1284,7 +1284,7 @@ process_action (Tracker           *tracker,
                 
         case TRACKER_DB_ACTION_FILE_MOVED_FROM:
                 need_index = FALSE;
-                tracker_log ("Starting moving file %s to %s", info->uri, info->moved_to_uri);
+                g_message ("Starting moving file:'%s' to:'%s'", info->uri, info->moved_to_uri);
                 tracker_db_move_file (db_con, info->uri, info->moved_to_uri);
                 break;
                 
@@ -1320,7 +1320,7 @@ process_action (Tracker           *tracker,
                 
         case TRACKER_DB_ACTION_DIRECTORY_CREATED:
                 need_index = TRUE;
-                tracker_debug ("Processing created directory %s", info->uri);
+                g_message ("Processing created directory %s", info->uri);
                 
                 /* Schedule a rescan for all files in folder
                  * to avoid race conditions.
@@ -1338,8 +1338,8 @@ process_action (Tracker           *tracker,
 
                         g_slist_free (list);
                 } else {
-                        tracker_debug ("Blocked scan of directory %s as its in the no watch list", 
-                                       info->uri);
+                        g_message ("Blocked scan of directory:'%s' as its in the no watch list", 
+                                   info->uri);
                 }
                 
                 break;
@@ -1382,10 +1382,10 @@ process_action_prechecks (Tracker           *tracker,
                 info->is_new = TRUE;
         }
         
-        tracker_debug ("Processing %s with action %s and counter %d ",
-                       info->uri, 
-                       tracker_db_action_to_string (info->action), 
-                       info->counter);
+        g_message ("Processing:'%s' with action:'%s' and counter:%d ",
+                   info->uri, 
+                   tracker_db_action_to_string (info->action), 
+                   info->counter);
         
         /* Preprocess ambiguous actions when we need to work
          * out if its a file or a directory that the action
@@ -1461,7 +1461,7 @@ process_mount_point_added_cb (TrackerHal  *hal,
 {
         GSList *list;
         
-        tracker_log ("** TRAWLING THROUGH NEW MOUNT POINT '%s'", mount_point);
+        g_message ("** TRAWLING THROUGH NEW MOUNT POINT:'%s'", mount_point);
         
         list = g_slist_prepend (NULL, (gchar*) mount_point);
         process_directory_list (tracker, list, TRUE, db_con);
@@ -1474,7 +1474,7 @@ process_mount_point_removed_cb (TrackerHal  *hal,
                                 Tracker     *tracker,
                                 DBConnection *db_con)
 {
-        tracker_log ("** CLEANING UP OLD MOUNT POINT '%s'", mount_point);
+        g_message ("** CLEANING UP OLD MOUNT POINT:'%s'", mount_point);
         
         process_index_delete_directory_check (tracker, mount_point, db_con); 
 }
@@ -1568,7 +1568,7 @@ tracker_process_files (gpointer data)
 
         /* Sleep for N secs before watching/indexing any of the major services */
         initial_sleep = tracker_config_get_initial_sleep (tracker->config);
-        tracker_log ("Sleeping for %d secs before starting...", initial_sleep);
+        g_message ("Sleeping for:%d secs before starting...", initial_sleep);
         
         while (initial_sleep > 0) {
                 g_usleep (G_USEC_PER_SEC);
@@ -1581,7 +1581,7 @@ tracker_process_files (gpointer data)
                 }
         }
 
-        tracker_log ("Proceeding with indexing...");
+        g_message ("Proceeding with indexing...");
 
 	tracker_index_stage_set (TRACKER_INDEX_STAGE_CONFIG);
 
@@ -1591,7 +1591,7 @@ tracker_process_files (gpointer data)
 	first_run = TRUE;
 	moved_from_list = NULL;
 
-	tracker_log ("Starting indexing...");
+	g_message ("Starting indexing...");
 
         if (index_duration) {
                 g_timer_destroy (index_duration);
@@ -1718,7 +1718,9 @@ tracker_process_files (gpointer data)
 		if (need_index) {
 			if (tracker_db_regulate_transactions (db_con, 250)) {
 				if (tracker_config_get_verbosity (tracker->config) == 1) {
-					tracker_log ("indexing #%d - %s", tracker->index_count, info->uri);
+					g_message ("Indexing #%d, '%s'", 
+                                                   tracker->index_count, 
+                                                   info->uri);
 				}
 
                                 /* Signal progress */
@@ -1753,7 +1755,7 @@ tracker_process_files (gpointer data)
 
         g_mutex_unlock (tracker->files_signal_mutex);
 
-        tracker_log ("Process thread:%p now finishing", g_thread_self ());
+        g_message ("Process thread now finishing");
 
         g_thread_exit (NULL);
         return NULL;
@@ -1798,12 +1800,12 @@ tracker_process_files_should_be_watched (TrackerConfig *config,
 
 		/* Check if equal or a prefix with an appended '/' */
 		if (strcmp (uri, l->data) == 0) {
-			tracker_log ("Blocking watch of %s (already being watched)", uri);
+			g_message ("Blocking watch of:'%s' (already being watched)", uri);
 			return FALSE;
 		}
 
 		if (process_is_in_path (uri, l->data)) {
-			tracker_log ("Blocking watch of %s (already a watch in parent path)", uri);
+			g_message ("Blocking watch of:'%s' (already a watch in parent path)", uri);
 			return FALSE;
 		}
 	}
@@ -1863,9 +1865,9 @@ tracker_process_files_should_be_crawled (Tracker     *tracker,
 
         g_slist_free (crawl_directory_roots);
 
-        tracker_log ("Indexer %s %s", 
-                     should_be_crawled ? "crawling" : "blocking",
-                     uri);
+        g_message ("Indexer %s:'%s'", 
+                   should_be_crawled ? "crawling" : "blocking",
+                   uri);
 
 	return should_be_crawled;
 }
@@ -2013,7 +2015,7 @@ tracker_process_files_is_file_info_valid (TrackerDBFileInfo *info)
         g_return_val_if_fail (info->uri != NULL, FALSE);
 
         if (!g_utf8_validate (info->uri, -1, NULL)) {
-                tracker_log ("Expected UTF-8 validation of TrackerDBFileInfo URI");
+                g_warning ("Expected UTF-8 validation of TrackerDBFileInfo URI");
                 return FALSE;
         }
 

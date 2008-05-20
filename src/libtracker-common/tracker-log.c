@@ -29,25 +29,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h> 
-#include <glib/gstdio.h> 
 
-#ifdef OS_WIN32
-#include <conio.h>
-#include "mingw-compat.h"
-#else
-#include <sys/resource.h>
-#endif
+#include <glib/gstdio.h> 
 
 #include "tracker-log.h"
 
 typedef struct {
 	GMutex   *mutex;
+	gchar    *domain;
 	gchar    *filename;
 	gint      verbosity;
 	gboolean  abort_on_error;
 } TrackerLog;
 
 static TrackerLog *log = NULL;
+static guint log_handler_id;
 
 static inline void
 log_output (const char *message)
@@ -63,8 +59,6 @@ log_output (const char *message)
 
 	g_return_if_fail (log != NULL);
 	g_return_if_fail (message != NULL && message[0] != '\0');
-
-	g_print ("%s\n", message);
 
 	/* Ensure file logging is thread safe */
 	g_mutex_lock (log->mutex);
@@ -103,26 +97,45 @@ log_output (const char *message)
 	g_mutex_unlock (log->mutex);
 }
 
-void
-tracker_log_init (const gchar   *filename, 
-		  gint           verbosity,
-                  gboolean       abort_on_error) 
+static void
+tracker_log_handler (const gchar    *domain,
+		     GLogLevelFlags  log_level,
+		     const gchar    *message,
+		     gpointer        user_data)
 {
+	if (((log_level & G_LOG_LEVEL_DEBUG) && log->verbosity < 3) ||
+	    ((log_level & G_LOG_LEVEL_INFO) && log->verbosity < 2) ||
+	    ((log_level & G_LOG_LEVEL_MESSAGE) && log->verbosity < 1)) {
+		return;
+	}
+
+	log_output (message);
+
+	/* now show the message through stdout/stderr as usual */
+	g_log_default_handler (domain, log_level, message, user_data);
+}
+
+void
+tracker_log_init (const gchar *domain,
+		  const gchar *filename,
+		  gint         verbosity)
+{
+	g_return_if_fail (domain != NULL);
 	g_return_if_fail (filename != NULL);
-	
+
 	if (log != NULL) {
-		tracker_error ("Logger already initialized (%s)", log->filename);
+		g_warning ("Logger already initialized (%s)", log->filename);
 		return;
 	}
 
 	log = g_new0 (TrackerLog, 1);
-
+	log->domain = g_strdup (domain);
+	log->filename = g_strdup (filename);
+	log->mutex = g_mutex_new ();
 	log->verbosity = verbosity;
 
-	log->filename = g_strdup (filename);
-
-	log->mutex = g_mutex_new ();
-	log->abort_on_error = abort_on_error;
+	log_handler_id = g_log_set_handler (NULL, G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL,
+					    tracker_log_handler, log);
 }
 
 void
@@ -130,91 +143,14 @@ tracker_log_term (void)
 {
 	g_return_if_fail (log != NULL);
 
-	g_mutex_free (log->mutex);
-	g_free (log->filename);
+	g_log_remove_handler (NULL, log_handler_id);
+	log_handler_id = 0;
 
+	g_mutex_free (log->mutex);
+	g_free (log->domain);
+	g_free (log->filename);
 	g_free (log);
 
 	/* Reset the log pointer so we can re-initialise if we want */
 	log = NULL;
-}
-
-void
-tracker_log (const char *message, ...)
-{
-	va_list  args;
-	gchar	*str;
-
-	g_return_if_fail (log != NULL);
-
-	if (log->verbosity < 1) {
-		return;
-	}
-
-	va_start (args, message);
-	str = g_strdup_vprintf (message, args);
-	va_end (args);
-
-	log_output (str);
-	g_free (str);
-}
-
-void
-tracker_info (const char *message, ...)
-{
-	va_list  args;
-	gchar	*str;
-
-	g_return_if_fail (log != NULL);
-
-	if (log->verbosity < 2) {
-		return;
-	}
-
-	va_start (args, message);
-	str = g_strdup_vprintf (message, args);
-	va_end (args);
-
-	log_output (str);
-	g_free (str);
-}
-
-void
-tracker_debug (const char *message, ...)
-{
-	va_list  args;
-	gchar	*str;
-
-	g_return_if_fail (log != NULL);
-
-	if (log->verbosity < 3) {
-		return;
-	}
-
-	va_start (args, message);
-	str = g_strdup_vprintf (message, args);
-	va_end (args);
-
-	log_output (str);
-	g_free (str);
-}
-
-void
-tracker_error (const char *message, ...)
-{
-	va_list  args;
-	gchar	*str;
-
-	g_return_if_fail (log != NULL);
-
-	va_start (args, message);
-	str = g_strdup_vprintf (message, args);
-	va_end (args);
-
-	log_output (str);
-	g_free (str);
-
-	if (log->abort_on_error) {
-		g_assert (FALSE);
-	}
 }

@@ -393,7 +393,7 @@ tracker_email_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
 	if (g_str_has_prefix (file_name, "outbox")) goto end_index;
 	if (g_str_has_prefix (file_name, "drafts")) goto end_index;
 
-	tracker_debug ("indexing email summary %s", info->uri);
+	g_debug ("indexing email summary %s", info->uri);
 
 	if (is_in_dir_local (info->uri) && g_str_has_suffix (file_name, ".ev-summary")) {
 		/* a MBox file changed */
@@ -402,7 +402,7 @@ tracker_email_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
 
 		mbox_file = tracker_get_radix_by_suffix (info->uri, ".ev-summary");
 
-		tracker_debug ("summary %s is an mbox", info->uri);
+		g_debug ("summary %s is an mbox", info->uri);
 
 		/* check mbox is registered */
 		if (tracker_db_email_get_mbox_id (db_con, mbox_file) == -1) {
@@ -433,16 +433,16 @@ tracker_email_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
 		if (store && open_summary_file (info->uri, &summary)) {
 			SummaryFileHeader *header = NULL;
 
-			tracker_info ("investigating summary file %s", mbox_file);
+			g_message ("Investigating summary file:'%s'", mbox_file);
 
 			if (!load_summary_file_header (summary, &header)) {
-				tracker_error ("ERROR: failed to load summary file %s", info->uri);
+				g_critical ("failed to load summary file %s", info->uri);
 				free_summary_file (summary);
 				goto end_index;
 			}
 
 			if (!load_summary_file_meta_header_for_local (summary, header)) {
-				tracker_error ("ERROR: failed to load summary header file %s", info->uri);
+				g_critical ("failed to load summary header file %s", info->uri);
 				free_summary_file_header (header);
 				free_summary_file (summary);
 				goto end_index;
@@ -453,18 +453,19 @@ tracker_email_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
                                                                         load_uri_and_status_of_mbox_mail_message, NULL,
                                                                         NULL, NULL,
                                                                         store)) {
-				tracker_info ("setting junk status on email file %s", mbox_file);
+				g_message ("Setting junk status on email file:'%s'",
+					   mbox_file);
 				tracker_db_email_flag_mbox_junk (db_con, mbox_file);
 			} else {
 				tracker_db_email_set_message_counts (db_con, mbox_file, store->mail_count, store->junk_count, store->delete_count);
-				tracker_debug ("Number of existing messages in %s are %d, %d junk, %d deleted and header totals are %d, %d, %d", mbox_file,
+				g_debug ("Number of existing messages in %s are %d, %d junk, %d deleted and header totals are %d, %d, %d", mbox_file,
 					store->mail_count, store->junk_count, store->delete_count, header->saved_count, header->junk_count, header->deleted_count);
 			}
 
 			free_summary_file_header (header);
 			free_summary_file (summary);
 		} else {
-			tracker_error ("ERROR: failed to open summary file %s", info->uri);
+			g_critical ("failed to open summary file %s", info->uri);
 		}
 
 		g_free (mbox_file);
@@ -642,11 +643,11 @@ check_summary_file (DBConnection *db_con, const gchar *filename, MailStore *stor
 
 		header = NULL;
 
-		tracker_log ("Scanning summary file %s for junk", filename);
+		g_message ("Scanning summary file %s for junk", filename);
 
 		if (!load_summary_file_header (summary, &header)) {
 			free_summary_file (summary);
-			tracker_error ("ERROR: failed to open summary file %s", filename);
+			g_critical ("failed to open summary file %s", filename);
 			return;
 		}
 
@@ -655,7 +656,7 @@ check_summary_file (DBConnection *db_con, const gchar *filename, MailStore *stor
 			if (!load_summary_file_meta_header_for_local (summary, header)) {
 				free_summary_file_header (header);
 				free_summary_file (summary);
-				tracker_error ("ERROR: failed to open summary header file %s", filename);
+				g_critical ("failed to open summary header file %s", filename);
 				return;
 			}
 		} else if (store->type == MAIL_TYPE_IMAP || store->type == MAIL_TYPE_IMAP4) {
@@ -663,11 +664,11 @@ check_summary_file (DBConnection *db_con, const gchar *filename, MailStore *stor
 			if (!load_summary_file_meta_header_for_imap (summary, header)) {
 				free_summary_file_header (header);
 				free_summary_file (summary);
-				tracker_error ("ERROR: failed to open summary header file %s", filename);
+				g_critical ("failed to open summary header file %s", filename);
 				return;
 			}
 		} else {
-			tracker_error ("ERROR: summary file not supported");
+			g_critical ("summary file not supported");
 			free_summary_file_header (header);
 			free_summary_file (summary);
 			return;
@@ -701,7 +702,7 @@ check_summary_file (DBConnection *db_con, const gchar *filename, MailStore *stor
 						
 					}
 				} else {
-					tracker_error ("ERROR: whilst scanning summary file");
+					g_critical ("whilst scanning summary file");
 					return;
 					break;
 				}
@@ -788,7 +789,7 @@ load_evolution_config (EvolutionConfig **conf)
 
 	accounts = find_accounts_by_gconf (NULL);
 
-	tracker_log ("Checking for Evolution email accounts...");
+	g_message ("Checking for Evolution email accounts...");
 
 	for (account = accounts; account; account = account->next) {
 		EvolutionAccount *evo_acc = account->data;
@@ -810,7 +811,7 @@ load_evolution_config (EvolutionConfig **conf)
 
 						if (account_name) {
 
-							tracker_log ("Found imap account %s", account_name);
+							g_message ("Found imap account %s", account_name);
 
 							m_conf->imap_dirs = g_slist_prepend (m_conf->imap_dirs, g_build_filename (dir_imap, account_name, NULL));
 
@@ -1115,7 +1116,7 @@ account_text_handler (GMarkupParseContext *context,
 
 			source_url = g_strndup (text, text_len);
 
-			tracker_log ("Found email account uri %s", source_url);
+			g_message ("Found email account uri %s", source_url);
 
 			if (strncmp (source_url, "mbox:", 5) == 0 || strncmp (source_url, "pop", 3) == 0) {
 				state->account->protocol = EVOLUTION_MAIL_PROTOCOL_MBOX;
@@ -1356,7 +1357,7 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
 		MailStore *store = tracker_db_email_get_mbox_details (db_con, dir);
 
                 if (!store) {
-			tracker_error ("ERROR: could not retrieve store for file %s", dir);
+			g_critical ("could not retrieve store for file %s", dir);
 			free_summary_file (summary);
 			free_summary_file_header (header);
 
@@ -1364,7 +1365,7 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
 			return;
 		}
 
-		tracker_debug ("Number of existing messages in %s are %d, %d junk, %d deleted and header totals are %d, %d, %d", dir,
+		g_debug ("Number of existing messages in %s are %d, %d junk, %d deleted and header totals are %d, %d, %d", dir,
 				store->mail_count, store->junk_count, store->delete_count, header->saved_count, header->junk_count, header->deleted_count);
 
 		tracker->mbox_count++;
@@ -1386,7 +1387,7 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
 			/* skip already indexed emails */
 			for (i = 0; i < store->mail_count; i++) {
 				if (!(*skip_mail) (summary)) {
-					tracker_error ("ERROR: skipping email no. %d in summary file", i+1);
+					g_critical ("skipping email no. %d in summary file", i+1);
 					tracker_db_email_free_mail_store (store);
 					free_summary_file (summary);
 					free_summary_file_header (header);
@@ -1405,10 +1406,10 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
 				MailMessage *mail_msg = NULL;
 
 				mail_count++;
-				tracker_debug ("processing email no. %d / %" G_GINT32_FORMAT, store->mail_count + 1, header->saved_count);
+				g_debug ("processing email no. %d / %" G_GINT32_FORMAT, store->mail_count + 1, header->saved_count);
 
 				if (!(*load_mail) (summary, &mail_msg)) {
-					tracker_error ("ERROR: loading email no. %d in summary file", mail_count);
+					g_critical ("loading email no. %d in summary file", mail_count);
 					tracker_db_email_free_mail_store (store);
 					free_summary_file (summary);
 					free_summary_file_header (header);
@@ -1428,10 +1429,10 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
 				mail_msg->store = store;
 
 				if (!(*save_ondisk_mail) (db_con, mail_msg)) {
-					tracker_log ("WARNING: Message, or message parts, could not be found locally - if you are using IMAP make sure you have selected the \"copy folder content locally for offline operation\" option in Evolution");
+					g_message ("WARNING: Message, or message parts, could not be found locally - if you are using IMAP make sure you have selected the \"copy folder content locally for offline operation\" option in Evolution");
 					/* we do not have all infos but we still save them */
 					if (!tracker_db_email_save_email (db_con, mail_msg, MAIL_APP_EVOLUTION)) {
-						tracker_log ("Failed to save email");
+						g_message ("Failed to save email");
 					}
 				}
 
@@ -1460,7 +1461,7 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
 
 				if (tracker_db_regulate_transactions (db_con->data, 500)) {
                                         if (tracker_config_get_verbosity (tracker->config) == 1) {
-						tracker_log ("indexing #%d - Emails in %s", tracker->index_count, dir);
+						g_message ("indexing #%d - Emails in %s", tracker->index_count, dir);
 					}
 
 					if (tracker->index_count % 1000 == 0) {
@@ -1482,7 +1483,7 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
 			
 			}
 
-			tracker_log ("No. of new emails indexed in summary file %s is %d, %d junk, %d deleted", dir, mail_count, junk_count, delete_count);
+			g_message ("No. of new emails indexed in summary file %s is %d, %d junk, %d deleted", dir, mail_count, junk_count, delete_count);
 
 			tracker_db_email_set_message_counts (db_con, dir, store->mail_count, store->junk_count, store->delete_count);
 
@@ -1615,7 +1616,7 @@ open_summary_file (const gchar *path, SummaryFile **summary)
 						continue;
 					}
 
-					tracker_debug ("Account name for summary file is %s and path is %s", account_name, (*summary)->path);
+					g_debug ("Account name for summary file is %s and path is %s", account_name, (*summary)->path);
 
 					gchar *source_account_name = get_account_name_from_imap_uri (evo_acc->source_url);
 
@@ -1645,7 +1646,7 @@ open_summary_file (const gchar *path, SummaryFile **summary)
 				}
 
 				default:
-					tracker_error ("ERROR: no matching account found for email");
+					g_critical ("no matching account found for email");
 					continue;
 					break;
 			}
@@ -1704,17 +1705,17 @@ load_summary_file_header (SummaryFile *summary, SummaryFileHeader **header)
 		goto error;
 	}
 
-	tracker_debug ("summary.version = %d", h->version);
+	g_debug ("summary.version = %d", h->version);
 
 	if (h->version > 0xff && (h->version & 0xff) < 12) {
-		tracker_error ("ERROR: summary file header version too low");
+		g_critical ("summary file header version too low");
 		goto error;
 	}
 
 	h->legacy = !(h->version < 0x100 && h->version >= 13);
 
 	if (h->legacy) {
-		tracker_debug ("WARNING: summary file is a legacy version");
+		g_debug ("WARNING: summary file is a legacy version");
 	}
 
 
@@ -1725,10 +1726,10 @@ load_summary_file_header (SummaryFile *summary, SummaryFileHeader **header)
 		goto error;
 	}
 
-	tracker_debug ("summary.flags = %d", h->flags);
-	tracker_debug ("summary.nextuid = %d", h->nextuid);
-	tracker_debug ("summary.time = %d", h->time);
-	tracker_debug ("summary.count = %" G_GINT32_FORMAT, h->saved_count);
+	g_debug ("summary.flags = %d", h->flags);
+	g_debug ("summary.nextuid = %d", h->nextuid);
+	g_debug ("summary.time = %d", (gint) h->time);
+	g_debug ("summary.count = %" G_GINT32_FORMAT, h->saved_count);
 
 	if (!h->legacy) {
 		if (!decode_gint32 (f, &h->unread_count) ||
@@ -1738,9 +1739,9 @@ load_summary_file_header (SummaryFile *summary, SummaryFileHeader **header)
 		}
 	}
 
-	tracker_debug ("summary.Unread = %d", h->unread_count);
-	tracker_debug ("summary.deleted = %d", h->deleted_count);
-	tracker_debug ("summary.junk = %d", h->junk_count);
+	g_debug ("summary.Unread = %d", h->unread_count);
+	g_debug ("summary.deleted = %d", h->deleted_count);
+	g_debug ("summary.junk = %d", h->junk_count);
 
 	return TRUE;
 
@@ -1807,13 +1808,13 @@ load_summary_file_meta_header_for_imap (SummaryFile *summary, SummaryFileHeader 
 		}
 
 		if (version < 0) {
-			tracker_error ("ERROR: summary file version too low");
+			g_critical ("summary file version too low");
 			return FALSE;
 		}
 
 		/* Right now we only support summary versions 1 through 3 */
 		if (version > 3) {
-			tracker_error ("ERROR: reported summary version (%" G_GINT32_FORMAT ") is too new", version);
+			g_critical ("reported summary version (%" G_GINT32_FORMAT ") is too new", version);
 			return FALSE;
 		}
 
@@ -2324,7 +2325,7 @@ do_save_ondisk_email_message_for_imap (DBConnection *db_con, MailMessage *mail_m
 	g_return_val_if_fail (db_con, FALSE);
 	g_return_val_if_fail (mail_msg, FALSE);
 
-	tracker_log ("Trying to index mail \"%s\"", mail_msg->uri);
+	g_message ("Trying to index mail \"%s\"", mail_msg->uri);
 
 	if (!do_save_ondisk_email_message (db_con, mail_msg)) {
 		/* Mail not found... So two cases:
@@ -2344,21 +2345,21 @@ do_save_ondisk_email_message_for_imap (DBConnection *db_con, MailMessage *mail_m
 
 		ret = FALSE;
 
-		tracker_log ("... Trying to index mail parts");
+		g_message ("... Trying to index mail parts");
 
 		header_file = g_strconcat (mail_msg->path, "HEADER", NULL);
 
 		if (tracker_file_is_indexable (header_file)) {
 			/* email is on disk */
-			tracker_log ("... Indexing mail parts of email \"%s\"", mail_msg->uri);
+			g_message ("... Indexing mail parts of email \"%s\"", mail_msg->uri);
 			ret = index_mail_parts (db_con, mail_msg, mail_msg->path);
-			tracker_log ("... Treatment of mail parts of \"%s\" finished", mail_msg->uri);
+			g_message ("... Treatment of mail parts of \"%s\" finished", mail_msg->uri);
 
 			if (ret) {
 				tracker_db_email_save_email (db_con, mail_msg, MAIL_APP_EVOLUTION);
 			}
 		} else {
-                        tracker_log ("...Indexing of mail parts failed");
+                        g_message ("...Indexing of mail parts failed");
                 }
 
 		g_free (header_file);
@@ -2366,7 +2367,7 @@ do_save_ondisk_email_message_for_imap (DBConnection *db_con, MailMessage *mail_m
 		return ret;
 
 	} else {
-		tracker_log ("Simple index of mail \"%s\" finished", mail_msg->uri);
+		g_message ("Simple index of mail \"%s\" finished", mail_msg->uri);
 		return TRUE;
 	}
 }
@@ -2494,11 +2495,11 @@ break_multipart_loop:
 
 		} else{
 			if (tracker_file_is_indexable (m->mail_file)) {
-				tracker_log ("Indexing message part \"%s\"", m->mail_file);
+				g_message ("Indexing message part \"%s\"", m->mail_file);
 
 				if (num_parts == 1 && strcmp (m->mime_infos->type, "text") == 0) {
 					/* it is the first mail part so it is assume to be body mail */
-					tracker_log ("Message part \"%s\" will be indexed as mail body...", m->mail_file);
+					g_message ("Message part \"%s\" will be indexed as mail body...", m->mail_file);
 					g_file_get_contents (m->mail_file, &mail_msg->body, NULL, NULL);
 
 				} else {
@@ -2526,7 +2527,7 @@ break_multipart_loop:
 							email_add_saved_mail_attachment_to_mail_message (mail_msg, ma);
 
 						} else {
-							tracker_error ("ERROR: failed to decode mail part \"%s\"", m->mail_file);
+							g_critical ("failed to decode mail part \"%s\"", m->mail_file);
 							email_free_mail_attachment (ma);
 						}
 					}
@@ -2827,7 +2828,7 @@ skip_string_decoding (FILE *f)
 	}
 
 	if (fseek (f, len - 1, SEEK_CUR) != 0) {
-		tracker_error ("ERROR: seek failed for string with length %d with error code %d", len - 1, errno);
+		g_critical ("seek failed for string with length %d with error code %d", len - 1, errno);
 		return FALSE;
 	}
 

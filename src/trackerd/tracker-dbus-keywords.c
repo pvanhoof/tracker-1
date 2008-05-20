@@ -353,7 +353,7 @@ tracker_dbus_keywords_add (TrackerDBusKeywords  *object,
 	tracker_notify_file_data_available ();
 
 	for (p = values; *p; p++) {
-		tracker_log ("Added keyword %s to %s with ID %s", *p, uri, id);
+		g_message ("Added keyword %s to %s with ID %s", *p, uri, id);
 		g_signal_emit (object, signals[KEYWORD_ADDED], 0, service, uri, *p);
 	}
 
@@ -421,7 +421,7 @@ tracker_dbus_keywords_remove (TrackerDBusKeywords  *object,
 	tracker_notify_file_data_available ();
 
 	for (p = values; *p; p++) {
-		tracker_log ("Removed keyword %s from %s with ID %s", *p, uri, id);
+		g_message ("Removed keyword %s from %s with ID %s", *p, uri, id);
 		tracker_db_delete_metadata_value (db_con, service, id, "User:Keywords", *p);
 
 		/* FIXME: Should we be doing this for EACH keyword? */
@@ -601,7 +601,7 @@ tracker_dbus_keywords_search (TrackerDBusKeywords  *object,
 	g_string_free (select, TRUE);
 	g_string_free (where, TRUE);
 
-	tracker_debug (query);
+	g_debug (query);
 
 	result_set = tracker_db_interface_execute_query (db_con->db, NULL, query);
 	*values = tracker_dbus_query_result_to_strv (result_set, NULL);

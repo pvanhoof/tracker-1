@@ -258,9 +258,9 @@ tracker_cache_flush_all (void)
 		return;
 	}
 
-	tracker_log ("Flushing all words - total hits in cache is %d, total words %d", 
-                     tracker->word_detail_count,
-                     tracker->word_count);
+	g_message ("Flushing all words - total hits in cache is %d, total words %d", 
+		   tracker->word_detail_count,
+		   tracker->word_count);
 
 	/* If word count is small then flush to main index rather than
          * a new temp index.
@@ -274,7 +274,7 @@ tracker_cache_flush_all (void)
                  */
 		if (tracker_indexer_size (tracker->file_index) > 4000000) {
 			index_con.file_index = create_merge_index ("file-index.tmp.");
-			tracker_log ("flushing to %s", tracker_indexer_get_name (index_con.file_index));
+			g_message ("flushing to %s", tracker_indexer_get_name (index_con.file_index));
 			using_file_tmp = TRUE;
 		} else {
 			index_con.file_index = tracker->file_index;
@@ -282,7 +282,7 @@ tracker_cache_flush_all (void)
 		
 		if (tracker_indexer_size (tracker->email_index) > 4000000) {
 			index_con.email_index = create_merge_index ("email-index.tmp.");
-			tracker_log ("flushing to %s", tracker_indexer_get_name (index_con.email_index));
+			g_message ("flushing to %s", tracker_indexer_get_name (index_con.email_index));
 			using_email_tmp = TRUE;
 		} else {
 			index_con.email_index = tracker->email_index;
@@ -448,7 +448,7 @@ tracker_cache_process_events (DBConnection *db_con,
                 }
 		
 		if (tracker->grace_period > 1) {
-			tracker_log ("Pausing indexer while client requests/disk I/O take place");
+			g_message ("Pausing indexer while client requests/disk I/O take place");
 
 			tracker->request_waiting = FALSE;
 

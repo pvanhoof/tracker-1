@@ -431,41 +431,41 @@ tracker_dbus_daemon_set_bool_option (TrackerDBusDaemon  *object,
 		priv->tracker->pause_manual = value;
 	
 		if (value) {
-			tracker_log ("Tracker daemon has been paused by user");
+			g_message ("Tracker daemon has been paused by user");
 		} else {
-			tracker_log ("Tracker daemon has been resumed by user");
+			g_message ("Tracker daemon has been resumed by user");
 		}
 	} else if (strcasecmp (option, "FastMerges") == 0) {
                 tracker_config_set_fast_merges (priv->config, value);
-                tracker_log ("Fast merges set to %d", value);
+                g_message ("Fast merges set to %d", value);
 	} else if (strcasecmp (option, "EnableIndexing") == 0) {
 		signal_state_change = TRUE;
                 tracker_config_set_enable_indexing (priv->config, value);
-		tracker_log ("Enable indexing set to %d", value);
+		g_message ("Enable indexing set to %d", value);
 	} else if (strcasecmp (option, "EnableWatching") == 0) {
                 tracker_config_set_enable_watches (priv->config, value);
-		tracker_log ("Enable Watching set to %d", value);
+		g_message ("Enable Watching set to %d", value);
 	} else if (strcasecmp (option, "LowMemoryMode") == 0) {
                 tracker_config_set_low_memory_mode (priv->config, value);
-		tracker_log ("Extra memory usage set to %d", !value);
+		g_message ("Extra memory usage set to %d", !value);
 	} else if (strcasecmp (option, "IndexFileContents") == 0) {
                 tracker_config_set_enable_content_indexing (priv->config, value);
-		tracker_log ("Index file contents set to %d", value);	
+		g_message ("Index file contents set to %d", value);	
 	} else if (strcasecmp (option, "GenerateThumbs") == 0) {
                 tracker_config_set_enable_thumbnails (priv->config, value);
-		tracker_log ("Generate thumbnails set to %d", value);	
+		g_message ("Generate thumbnails set to %d", value);	
 	} else if (strcasecmp (option, "IndexMountedDirectories") == 0) {
                 tracker_config_set_index_mounted_directories (priv->config, value);
-		tracker_log ("Indexing mounted directories set to %d", value);
+		g_message ("Indexing mounted directories set to %d", value);
 	} else if (strcasecmp (option, "IndexRemovableDevices") == 0) {
                 tracker_config_set_index_removable_devices (priv->config, value);
-		tracker_log ("Indexing removable devices set to %d", value);
+		g_message ("Indexing removable devices set to %d", value);
 	} else if (strcasecmp (option, "BatteryIndex") == 0) {
                 tracker_config_set_disable_indexing_on_battery (priv->config, !value);
-		tracker_log ("Disable index on battery set to %d", !value);
+		g_message ("Disable index on battery set to %d", !value);
 	} else if (strcasecmp (option, "BatteryIndexInitial") == 0) {
                 tracker_config_set_disable_indexing_on_battery_init (priv->config, !value);
-		tracker_log ("Disable initial index sweep on battery set to %d", !value);
+		g_message ("Disable initial index sweep on battery set to %d", !value);
 	}
 
 	if (signal_state_change) {
@@ -516,13 +516,13 @@ tracker_dbus_daemon_set_int_option (TrackerDBusDaemon  *object,
 
 	if (strcasecmp (option, "Throttle") == 0) {
                 tracker_config_set_throttle (priv->config, value);
-		tracker_log ("throttle set to %d", value);
+		g_message ("throttle set to %d", value);
 	} else if (strcasecmp (option, "MaxText") == 0) {
                 tracker_config_set_max_text_to_index (priv->config, value);
-		tracker_log ("Maxinum amount of text set to %d", value);
+		g_message ("Maxinum amount of text set to %d", value);
 	} else if (strcasecmp (option, "MaxWords") == 0) {
                 tracker_config_set_max_words_to_index (priv->config, value);
-		tracker_log ("Maxinum number of unique words set to %d", value);
+		g_message ("Maxinum number of unique words set to %d", value);
 	} 
 
 	tracker_notify_file_data_available ();
@@ -549,7 +549,7 @@ tracker_dbus_daemon_shutdown (TrackerDBusDaemon  *object,
 
 	priv = GET_PRIV (object);
 
-	tracker_log ("Tracker daemon attempting to restart");
+	g_message ("Tracker daemon attempting to restart");
 
 	priv->tracker->reindex = reindex;
 

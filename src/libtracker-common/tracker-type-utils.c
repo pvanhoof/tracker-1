@@ -423,9 +423,9 @@ tracker_string_to_date (const gchar *timestamp)
 	}
 
 	if (*timestamp++ != 'T') {
-		tracker_error ("ERROR: date validation failed for %s st %c", 
-			       timestamp, 
-			       *timestamp);
+		g_critical ("Date validation failed for '%s' st '%c'", 
+			    timestamp, 
+			    *timestamp);
 		return -1;
 	}
 

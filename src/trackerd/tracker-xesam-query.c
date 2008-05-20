@@ -832,9 +832,9 @@ build_sql (ParserData *data)
 			int cvalue;
 			
 			bvalue = tracker_date_format (avalue);
-			tracker_debug (bvalue);
+			g_debug (bvalue);
 			cvalue = tracker_string_to_date (bvalue);
-			tracker_debug ("%d", cvalue);
+			g_debug ("%d", cvalue);
 			value = tracker_int_to_string (cvalue);
 			g_free (bvalue);
 		} else if (state == STATE_END_BOOLEAN) { /* FIXME We do a state check here, because TRACKER_FIELD_TYPE_BOOLEAN is not in db */
@@ -1166,7 +1166,7 @@ error_handler (GMarkupParseContext *context,
 	       GError		   *error,
 	       gpointer		   user_data)
 {
-	tracker_error ("ERROR: in rdf query parse: %s", error->message);
+	g_critical ("Failed to parse RDF query, %s", error->message);
 }
 
 

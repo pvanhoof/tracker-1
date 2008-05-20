@@ -111,15 +111,15 @@
  *  threads are waiting to process them. 
  */
 
-#define ABOUT								  \
-	"Tracker " VERSION "\n"						  \
+#define ABOUT								\
+	"Tracker " VERSION "\n"						\
 	"Copyright (c) 2005-2008 Jamie McCracken (jamiemcc@gnome.org)\n" 
 
-#define LICENSE								  \
+#define LICENSE								\
 	"This program is free software and comes without any warranty.\n" \
-	"It is licensed under version 2 or later of the General Public "  \
-	"License which can be viewed at:\n"                               \
-        "\n"							          \
+	"It is licensed under version 2 or later of the General Public " \
+	"License which can be viewed at:\n"				\
+        "\n"								\
 	"  http://www.gnu.org/licenses/gpl.txt\n" 
 
 /* Public */
@@ -138,7 +138,6 @@ static gchar        **crawl_dirs;
 static gchar         *language;
 static gboolean       disable_indexing;
 static gboolean       reindex;
-static gboolean       fatal_errors;
 static gboolean       low_memory;
 static gint           throttle = -1;
 static gint           verbosity = -1;
@@ -188,10 +187,6 @@ static GOptionEntry   entries[] = {
 	{ "reindex", 'R', 0, 
 	  G_OPTION_ARG_NONE, &reindex, 
 	  N_("Force a re-index of all content"), 
-	  NULL },
-	{ "fatal-errors", 'f', 0, 
-	  G_OPTION_ARG_NONE, &fatal_errors, 
-	  N_("Make tracker errors fatal"), 
 	  NULL },
 	{ NULL }
 };
@@ -252,7 +247,7 @@ reset_blacklist_file (gchar *uri)
 		return;	
 	}
 
-	tracker_log ("Resetting black list file:'%s'", uri);
+	g_message ("Resetting black list file:'%s'", uri);
 
 	/* Reset mtime on parent folder of all outstanding black list
 	 * files so they get indexed when next restarted 
@@ -274,14 +269,14 @@ log_option_list (GSList      *list,
 	GSList *l;
 
 	if (!list) {
-		tracker_log ("%s: NONE!", str);
+		g_message ("%s: NONE!", str);
 		return;
 	}
 
-	tracker_log ("%s:", str);
+	g_message ("%s:", str);
 
 	for (l = list; l; l = l->next) {
-		tracker_log ("  %s", l->data);
+		g_message ("  %s", (gchar*) l->data);
 	}
 }
 
@@ -311,62 +306,62 @@ sanity_check_option_values (void)
 		tracker->max_extract_queue_size = 500;
 	}
 
-	tracker_log ("Tracker configuration options:");
-	tracker_log ("  Verbosity  ............................  %d", 
-                     tracker_config_get_verbosity (tracker->config));
- 	tracker_log ("  Low memory mode  ......................  %s", 
-                     tracker_config_get_low_memory_mode (tracker->config) ? "yes" : "no");
- 	tracker_log ("  Indexing enabled  .....................  %s", 
-                     tracker_config_get_enable_indexing (tracker->config) ? "yes" : "no");
- 	tracker_log ("  Watching enabled  .....................  %s", 
-                     tracker_config_get_enable_watches (tracker->config) ? "yes" : "no");
- 	tracker_log ("  File content indexing enabled  ........  %s", 
-                     tracker_config_get_enable_content_indexing (tracker->config) ? "yes" : "no");
-	tracker_log ("  Thumbnailing enabled  .................  %s", 
-                     tracker_config_get_enable_thumbnails (tracker->config) ? "yes" : "no");
-	tracker_log ("  Email client to index .................  %s",
-		     tracker_config_get_email_client (tracker->config));
+	g_message ("Tracker configuration options:");
+	g_message ("  Verbosity  ............................  %d", 
+		   tracker_config_get_verbosity (tracker->config));
+ 	g_message ("  Low memory mode  ......................  %s", 
+		   tracker_config_get_low_memory_mode (tracker->config) ? "yes" : "no");
+ 	g_message ("  Indexing enabled  .....................  %s", 
+		   tracker_config_get_enable_indexing (tracker->config) ? "yes" : "no");
+ 	g_message ("  Watching enabled  .....................  %s", 
+		   tracker_config_get_enable_watches (tracker->config) ? "yes" : "no");
+ 	g_message ("  File content indexing enabled  ........  %s", 
+		   tracker_config_get_enable_content_indexing (tracker->config) ? "yes" : "no");
+	g_message ("  Thumbnailing enabled  .................  %s", 
+		   tracker_config_get_enable_thumbnails (tracker->config) ? "yes" : "no");
+	g_message ("  Email client to index .................  %s",
+		   tracker_config_get_email_client (tracker->config));
 
-	tracker_log ("Tracker indexer parameters:");
-	tracker_log ("  Indexer language code  ................  %s", 
-                     tracker_config_get_language (tracker->config));
-	tracker_log ("  Stemmer enabled  ......................  %s", 
-                     tracker_config_get_enable_stemmer (tracker->config) ? "yes" : "no");
-	tracker_log ("  Fast merges enabled  ..................  %s", 
-                     tracker_config_get_fast_merges (tracker->config) ? "yes" : "no");
-	tracker_log ("  Disable indexing on battery............  %s (initially = %s)", 
-                     tracker_config_get_disable_indexing_on_battery (tracker->config) ? "yes" : "no",
-		     tracker_config_get_disable_indexing_on_battery_init (tracker->config) ? "yes" : "no");
+	g_message ("Tracker indexer parameters:");
+	g_message ("  Indexer language code  ................  %s", 
+		   tracker_config_get_language (tracker->config));
+	g_message ("  Stemmer enabled  ......................  %s", 
+		   tracker_config_get_enable_stemmer (tracker->config) ? "yes" : "no");
+	g_message ("  Fast merges enabled  ..................  %s", 
+		   tracker_config_get_fast_merges (tracker->config) ? "yes" : "no");
+	g_message ("  Disable indexing on battery............  %s (initially = %s)", 
+		   tracker_config_get_disable_indexing_on_battery (tracker->config) ? "yes" : "no",
+		   tracker_config_get_disable_indexing_on_battery_init (tracker->config) ? "yes" : "no");
 
 	if (tracker_config_get_low_disk_space_limit (tracker->config) == -1) { 
-		tracker_log ("  Low disk space limit ..................  Disabled");
+		g_message ("  Low disk space limit ..................  Disabled");
 	} else {
-		tracker_log ("  Low disk space limit ..................  %d%%",
-			     tracker_config_get_low_disk_space_limit (tracker->config));
+		g_message ("  Low disk space limit ..................  %d%%",
+			   tracker_config_get_low_disk_space_limit (tracker->config));
 	}
 
-	tracker_log ("  Minimum index word length  ............  %d",
-                     tracker_config_get_min_word_length (tracker->config));
-	tracker_log ("  Maximum index word length  ............  %d",
-                     tracker_config_get_max_word_length (tracker->config));
-	tracker_log ("  Maximum text to index .................  %d",
-                     tracker_config_get_max_text_to_index (tracker->config));
-	tracker_log ("  Maximum words to index ................  %d",
-                     tracker_config_get_max_words_to_index (tracker->config));
-	tracker_log ("  Maximum bucket count ..................  %d",
-                     tracker_config_get_max_bucket_count (tracker->config));
-	tracker_log ("  Minimum bucket count ..................  %d",
-                     tracker_config_get_min_bucket_count (tracker->config));
-	tracker_log ("  Divisions .............................  %d",
-                     tracker_config_get_divisions (tracker->config));
-	tracker_log ("  Padding ...............................  %d",
-                     tracker_config_get_padding (tracker->config));
-	tracker_log ("  Optimization sweep count ..............  %d",
-                     tracker_config_get_optimization_sweep_count (tracker->config));
-	tracker_log ("  Thread stack size .....................  %d",
-                     tracker_config_get_thread_stack_size (tracker->config));
-	tracker_log ("  Throttle level ........................  %d",
-                     tracker_config_get_throttle (tracker->config));
+	g_message ("  Minimum index word length  ............  %d",
+		   tracker_config_get_min_word_length (tracker->config));
+	g_message ("  Maximum index word length  ............  %d",
+		   tracker_config_get_max_word_length (tracker->config));
+	g_message ("  Maximum text to index .................  %d",
+		   tracker_config_get_max_text_to_index (tracker->config));
+	g_message ("  Maximum words to index ................  %d",
+		   tracker_config_get_max_words_to_index (tracker->config));
+	g_message ("  Maximum bucket count ..................  %d",
+		   tracker_config_get_max_bucket_count (tracker->config));
+	g_message ("  Minimum bucket count ..................  %d",
+		   tracker_config_get_min_bucket_count (tracker->config));
+	g_message ("  Divisions .............................  %d",
+		   tracker_config_get_divisions (tracker->config));
+	g_message ("  Padding ...............................  %d",
+		   tracker_config_get_padding (tracker->config));
+	g_message ("  Optimization sweep count ..............  %d",
+		   tracker_config_get_optimization_sweep_count (tracker->config));
+	g_message ("  Thread stack size .....................  %d",
+		   tracker_config_get_thread_stack_size (tracker->config));
+	g_message ("  Throttle level ........................  %d",
+		   tracker_config_get_throttle (tracker->config));
 
 	log_option_list (watch_directory_roots, "Watching directory roots");
 	log_option_list (crawl_directory_roots, "Crawling directory roots");
@@ -387,7 +382,7 @@ create_index (gboolean need_data)
 
 	/* Reset stats for embedded services if they are being reindexed */
 	if (!need_data) {
-		tracker_log ("*** DELETING STATS *** ");
+		g_message ("*** DELETING STATS *** ");
 		tracker_db_exec_no_reply (db_con->db, 
 					  "update ServiceTypes set TypeCount = 0 where Embedded = 1");
 	}
@@ -443,9 +438,9 @@ signal_handler (gint signo)
 		
 	default:
 		if (g_strsignal (signo)) {
-			tracker_log ("Received signal:%d->'%s'", 
-				     signo, 
-				     g_strsignal (signo));
+			g_message ("Received signal:%d->'%s'", 
+				   signo, 
+				   g_strsignal (signo));
 		}
 		break;
 	}
@@ -582,7 +577,7 @@ initialise_databases (gboolean need_index)
 	if (!tracker->readonly && 
 	    !need_index && 
 	    tracker_db_get_option_int (db_con, "IntegrityCheck") == 1) {
-		tracker_log ("Performing integrity check as the daemon was not shutdown cleanly");
+		g_message ("Performing integrity check as the daemon was not shutdown cleanly");
 		/* FIXME: Finish */
 	} 
 
@@ -617,9 +612,9 @@ initialise_databases (gboolean need_index)
 						    TRACKER_INDEXER_FILE_INDEX_DB_FILENAME, 
 						    NULL);
 	
-		tracker_log ("Overwriting '%s' with '%s'", 
-			     file_index_name, 
-			     final_index_name);	
+		g_message ("Overwriting '%s' with '%s'", 
+			   file_index_name, 
+			   final_index_name);	
 		rename (final_index_name, file_index_name);
 		g_free (file_index_name);
 	}
@@ -638,9 +633,9 @@ initialise_databases (gboolean need_index)
 						    TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME, 
 						    NULL);
 	
-		tracker_log ("Overwriting '%s' with '%s'", 
-			     file_index_name, 
-			     final_index_name);	
+		g_message ("Overwriting '%s' with '%s'", 
+			   file_index_name, 
+			   final_index_name);	
 		rename (final_index_name, file_index_name);
 		g_free (file_index_name);
 	}
@@ -671,7 +666,7 @@ initialise_databases (gboolean need_index)
 static gboolean 
 shutdown_timeout_cb (gpointer user_data)
 {
-	tracker_error ("Could not exit in a timely fashion - terminating...");
+	g_critical ("Could not exit in a timely fashion - terminating...");
 	exit (EXIT_FAILURE);
 
 	return FALSE;
@@ -680,7 +675,7 @@ shutdown_timeout_cb (gpointer user_data)
 static void
 shutdown_threads (GThread *thread_to_join)
 {
-	tracker_log ("Shutting down threads");
+	g_message ("Shutting down threads");
 
 	/* Wait for files thread to sleep */
 	while (!g_mutex_trylock (tracker->files_signal_mutex)) {
@@ -717,17 +712,17 @@ shutdown_threads (GThread *thread_to_join)
 	/* We wait now for the thread to exit and join, then clean up
 	 * the mutexts and conds. 
 	 */
-	tracker_log ("Waiting for thread:%p to finish", thread_to_join);
+	g_message ("Waiting for thread to finish");
 	g_thread_join (thread_to_join);
 
 	/* Clean up */
 #if 0
-	tracker_log ("Waiting for file check/signal mutexes to unlock before cleaning up...");
+	g_message ("Waiting for file check/signal mutexes to unlock before cleaning up...");
 	g_mutex_free (tracker->files_check_mutex); 
 	g_mutex_free (tracker->files_signal_mutex);
 	g_cond_free (tracker->files_signal_cond);
 
-	tracker_log ("Waiting for metadata check/signal mutexes to unlock before cleaning up...");
+	g_message ("Waiting for metadata check/signal mutexes to unlock before cleaning up...");
 	g_mutex_free (tracker->metadata_check_mutex);
 	g_mutex_free (tracker->metadata_signal_mutex);
 	g_cond_free (tracker->metadata_signal_cond);
@@ -741,7 +736,7 @@ check_multiple_instances (void)
 	gint      lfp;
 	gboolean  multiple = FALSE;
 
-	tracker_log ("Checking instances running");
+	g_message ("Checking instances running");
 
 	lock_file = get_lock_file ();
 
@@ -944,10 +939,11 @@ main (gint argc, gchar *argv[])
 	}
 
 	/* Initialise other subsystems */
-	tracker_log_init (log_filename, 
-                          tracker_config_get_verbosity (tracker->config), 
-                          fatal_errors);
-
+	tracker_log_init (G_LOG_DOMAIN,
+			  log_filename,
+			  tracker_config_get_verbosity (tracker->config));
+	g_message ("Starting log");
+	
 	if (!tracker_dbus_preinit (tracker, &connection, &proxy))
 		return EXIT_FAILURE;
 
@@ -985,7 +981,7 @@ main (gint argc, gchar *argv[])
 	 * call so we have to check value of errno too. Stupid... 
 	 */
         if (nice (19) == -1 && errno) {
-                tracker_log ("Couldn't set nice() value");
+                g_message ("Couldn't set nice() value");
         }
 
 #ifdef IOPRIO_SUPPORT
@@ -993,7 +989,7 @@ main (gint argc, gchar *argv[])
 #endif
 
         if (!tracker_db_load_prepared_queries ()) {
-		tracker_error ("Could not initialize database engine!");
+		g_critical ("Could not initialize database engine!");
 		return EXIT_FAILURE;
         }
 
@@ -1018,7 +1014,7 @@ main (gint argc, gchar *argv[])
 	if (!tracker->readonly) {
 		if (!tracker_start_watching ()) {
 			tracker->is_running = FALSE;
-			tracker_error ("File monitoring failed to start");
+			g_critical ("File monitoring failed to start");
 		} 
 		else if (tracker_config_get_enable_indexing (tracker->config)) {
 			thread = g_thread_create_full ((GThreadFunc) tracker_process_files, 
@@ -1029,7 +1025,7 @@ main (gint argc, gchar *argv[])
 						       G_THREAD_PRIORITY_NORMAL, 
 						       NULL);
 		} else {
-			tracker_log ("Indexing disabled, waiting for DBus requests...");
+			g_message ("Indexing disabled, waiting for DBus requests...");
 		}
 	}
 	

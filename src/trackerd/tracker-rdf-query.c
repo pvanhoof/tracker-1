@@ -695,9 +695,9 @@ build_sql (ParserData *data)
 		int cvalue;
 
 		bvalue = tracker_date_format (avalue);
-		tracker_debug (bvalue);
+		g_debug (bvalue);
 		cvalue = tracker_string_to_date (bvalue);
-		tracker_debug ("%d", cvalue);
+		g_debug ("%d", cvalue);
 		value = tracker_int_to_string (cvalue);
 		g_free (bvalue);
 	} else {
@@ -1016,7 +1016,7 @@ error_handler (GMarkupParseContext *context,
 	       GError		   *error,
 	       gpointer		   user_data)
 {
-	tracker_error ("ERROR: in rdf query parse: %s", error->message);
+	g_critical ("in rdf query parse: %s", error->message);
 }
 
 
@@ -1084,7 +1084,7 @@ tracker_rdf_query_to_sql (DBConnection *db_con, const char *query, const char *s
 			field_data = add_metadata_field (&data, fields[i], TRUE, FALSE);
 
 			if (!field_data) {
-				tracker_error ("ERROR: RDF Query failed: field %s not found", fields[i]);
+				g_critical ("RDF Query failed: field %s not found", fields[i]);
 				g_slist_foreach (data.fields, (GFunc) tracker_free_metadata_field, NULL);
 				g_slist_free (data.fields);
 				g_string_free (data.sql_select, TRUE);
@@ -1100,7 +1100,7 @@ tracker_rdf_query_to_sql (DBConnection *db_con, const char *query, const char *s
 
 	data.sql_from = g_string_new ("");
 
-	tracker_debug ("search term is %s", search_text);
+	g_debug ("search term is %s", search_text);
 
 
 	if (!tracker_is_empty_string (search_text)) {

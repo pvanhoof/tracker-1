@@ -133,8 +133,8 @@ tracker_add_io_grace (const gchar *uri)
 		return;
 	}
 
-	tracker_log ("File changes to:'%s' is causing tracker to pause...", 
-		     uri);
+	g_message ("File changes to:'%s' is causing tracker to pause...", 
+		   uri);
 
 	tracker->grace_period++;
 }
@@ -155,13 +155,13 @@ tracker_is_low_diskspace (void)
 		static gboolean reported = 0;
 		if (! reported) {
 			reported = 1;
-			tracker_error ("Could not statvfs %s", tracker->data_dir);
+			g_critical ("Could not statvfs %s", tracker->data_dir);
 		}
 		return FALSE;
 	}
 
 	if (((long long) st.f_bavail * 100 / st.f_blocks) <= low_disk_space_limit) {
-		tracker_error ("Disk space is low!");
+		g_critical ("Disk space is low!");
 		return TRUE;
 	}
 

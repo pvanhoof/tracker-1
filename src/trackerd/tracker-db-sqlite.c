@@ -399,7 +399,7 @@ load_generic_sql_file (TrackerDBInterface *iface, const gchar *sql_file, const g
 	filename = tracker_db_manager_get_sql_file (sql_file);
 
 	if (!g_file_get_contents (filename, &query, NULL, NULL)) {
-		tracker_error ("ERROR: Tracker cannot read required file %s - Please reinstall tracker or check read permissions on the file if it exists", sql_file);
+		g_critical ("Can not read SQL file:'%s', please reinstall tracker or check read permissions on the file if it exists", sql_file);
 		g_assert (FALSE);
 	} else {
 		char **queries, **queries_p ;
@@ -411,7 +411,7 @@ load_generic_sql_file (TrackerDBInterface *iface, const gchar *sql_file, const g
 		}
 		g_strfreev (queries);
 		g_free (query);
-		tracker_log ("loaded sql file %s", sql_file);
+		g_message ("Loaded SQL file:'%s'", sql_file);
 	}
 
 	g_free (filename);
@@ -455,9 +455,7 @@ load_service_file (TrackerDBInterface *iface, const gchar *filename)
 	groups = g_key_file_get_groups (key_file, NULL);
 
 	for (group = groups; *group; group++) {
-
-				
-		tracker_log ("Trying to obtain service %s in cache", *group);
+		g_message ("Trying to obtain service:'%s' in cache", *group);
 		service = tracker_ontology_get_service_type_by_name (*group);
 
 		if (!service) {
@@ -734,7 +732,7 @@ tracker_db_load_prepared_queries (void)
 	gchar       *sql_filename;
 	gdouble      secs;
 
-	tracker_log ("Loading prepared queries...");
+	g_message ("Loading prepared queries...");
 
 	prepared_queries = g_hash_table_new_full (g_str_hash, 
 						  g_str_equal, 
@@ -748,9 +746,9 @@ tracker_db_load_prepared_queries (void)
 	mapped_file = g_mapped_file_new (sql_filename, FALSE, &error);
 
 	if (error || !mapped_file) {
-		tracker_debug ("Could not get contents of SQL file:'%s', %s",
-			       sql_filename,
-			       error ? error->message : "no error given");
+		g_warning ("Could not get contents of SQL file:'%s', %s",
+			   sql_filename,
+			   error ? error->message : "no error given");
 
 		if (mapped_file) {
 			g_mapped_file_free (mapped_file);
@@ -762,9 +760,9 @@ tracker_db_load_prepared_queries (void)
 		return FALSE;
 	}
 
-	tracker_debug ("Opened prepared queries file:'%s' size:%" G_GSIZE_FORMAT " bytes", 
-		       sql_filename,
-		       g_mapped_file_get_length (mapped_file));
+	g_message ("Loaded prepared queries file:'%s' size:%" G_GSIZE_FORMAT " bytes", 
+		   sql_filename,
+		   g_mapped_file_get_length (mapped_file));
 
 	queries = g_strsplit (g_mapped_file_get_contents (mapped_file), "\n", -1);
 	g_free (sql_filename);
@@ -785,7 +783,7 @@ tracker_db_load_prepared_queries (void)
 				continue;
 			}
 
-			tracker_debug ("  Adding query:'%s'", details[0]);
+			g_message ("  Adding query:'%s'", details[0]);
 
 			g_hash_table_insert (prepared_queries, 
 					     g_strdup (details[0]), 
@@ -800,9 +798,9 @@ tracker_db_load_prepared_queries (void)
 	g_timer_destroy (t);
 	g_mapped_file_free (mapped_file);
 	
-	tracker_log ("Found %d prepared queries in %4.4f seconds", 
-		     g_hash_table_size (prepared_queries), 
-		     secs);
+	g_message ("Found %d prepared queries in %4.4f seconds", 
+		   g_hash_table_size (prepared_queries), 
+		   secs);
 
 	return TRUE;
 }
@@ -813,7 +811,8 @@ tracker_db_close (TrackerDBInterface *iface)
 	if (iface) {
 		g_object_unref (iface);
 	}
-	tracker_debug ("Database closed");
+	
+	g_message ("Closed database");
 }
 
 
@@ -841,7 +840,7 @@ set_params (TrackerDBInterface *iface, int cache_size, int page_size, gboolean a
 
 		if (!tracker_db_interface_sqlite_set_collation_function (TRACKER_DB_INTERFACE_SQLITE (iface),
 									 "UTF8", utf8_collation_func)) {
-			tracker_error ("ERROR: collation sequence failed");
+			g_critical ("Collation sequence failed");
 		}
 
 		/* create user defined functions that can be used in sql */
@@ -903,7 +902,7 @@ void
 tracker_db_attach_db (DBConnection *db_con, TrackerDatabase database)
 {
 	if (database != TRACKER_DB_COMMON && database != TRACKER_DB_CACHE) {
-		tracker_error ("Attaching invalid db");
+		g_critical ("Attaching invalid database, expected common or cache database");
 		return;
 	}
 
@@ -1122,7 +1121,7 @@ tracker_db_connect (void)
 	db_con->data = db_con;
 	
 	if (create_table) {
-		tracker_log ("Creating file database... %s",
+		g_message ("Creating database for file metadata:'%s'",
 			     tracker_db_manager_get_file (TRACKER_DB_FILE_META));
 		load_sql_file (db_con->db, "sqlite-service.sql");
 		load_sql_trigger (db_con->db, "sqlite-service-triggers.sql");
@@ -1221,8 +1220,8 @@ open_file_content_db (DBConnection *db_con)
 
 	if (create) {
 		load_sql_file (db_con->db, "sqlite-contents.sql");
-		tracker_log ("Creating db: %s",
-			     tracker_db_manager_get_file (TRACKER_DB_FILE_CONTENTS));
+		g_message ("Creating database for file content:'%s'",
+			   tracker_db_manager_get_file (TRACKER_DB_FILE_CONTENTS));
 	}
 
 	tracker_db_interface_sqlite_create_function (db_con->db, "uncompress", function_uncompress, 1);
@@ -1254,8 +1253,8 @@ open_email_content_db (DBConnection *db_con)
 
 	if (create_table) {
 		load_sql_file (db_con->db, "sqlite-contents.sql");
-		tracker_log ("Creating db: %s",
-			     tracker_db_manager_get_file (TRACKER_DB_EMAIL_CONTENTS));
+		g_message ("Creating database for email content:'%s'",
+			   tracker_db_manager_get_file (TRACKER_DB_EMAIL_CONTENTS));
 	}
 
 	tracker_db_interface_sqlite_create_function (db_con->db, "uncompress", function_uncompress, 1);
@@ -1361,8 +1360,8 @@ tracker_db_connect_cache (void)
 	if (create_table) {
 		load_sql_file (db_con->db, "sqlite-cache.sql");
 		tracker_db_exec_no_reply (db_con->db, "ANALYZE");
-		tracker_log ("Creating db: %s",
-			     tracker_db_manager_get_file (TRACKER_DB_CACHE));
+		g_message ("Creating database for cache:'%s'",
+			   tracker_db_manager_get_file (TRACKER_DB_CACHE));
 	}
 
 	return db_con;
@@ -1387,9 +1386,11 @@ tracker_db_connect_emails (void)
 	db_con->emails = db_con;
 
 	if (create_table) {
-		tracker_log ("Creating email database...");
+		g_message ("Creating database for services:'sqlite-service.sql'");
 		load_sql_file (db_con->db, "sqlite-service.sql");
 		load_sql_trigger (db_con->db, "sqlite-service-triggers.sql");
+
+		g_message ("Creating database for email:'sqlite-email.sql'");
 		load_sql_file (db_con->db, "sqlite-email.sql");
 
 		tracker_db_exec_no_reply (db_con->db, "ANALYZE");
@@ -1487,8 +1488,7 @@ tracker_create_common_db (void)
 {
 	DBConnection *db_con;
 
-	tracker_log ("Creating tracker database...");
-
+	g_message ("Creating all databases...");
 	
 	/* create common db first */
 
@@ -1714,7 +1714,7 @@ save_full_text_bytes (DBConnection *blob_db_con, const char *str_file_id, GByteA
 	id = tracker_ontology_get_field_id ("File:Contents");
 
 	if (!id) {
-		tracker_error ("WARNING: metadata not found for type %s", "File:Contents");
+		g_warning ("Metadata not found for type:'File:Contents'");
 		return;
 	}
 
@@ -1738,10 +1738,10 @@ save_full_text (DBConnection *blob_db_con, const char *str_file_id, const char *
 	compressed = function_compress_string (text, length, &bytes_compressed);
 
 	if (compressed) {
-		tracker_debug ("compressed full text size of %d to %d", length, bytes_compressed);
+		g_debug ("Compressed full text size of %d to %d", length, bytes_compressed);
 		value = compressed;
 	} else {
-		tracker_error ("WARNING: compression has failed");
+		g_warning ("Could not compress text'%*s...', length:%d", 16, text, length);
 		value = g_strdup (text);
 		bytes_compressed = length;
 	}
@@ -1750,7 +1750,7 @@ save_full_text (DBConnection *blob_db_con, const char *str_file_id, const char *
 	field_id = tracker_ontology_get_field_id ("File:Contents");
 
 	if (!field_id) {
-		tracker_error ("WARNING: metadata not found for type %s", "File:Contents");
+		g_warning ("Metadata not found for type:'File:Contents'");
 		g_free (value);
 		return;
 	}
@@ -1783,7 +1783,7 @@ tracker_db_save_file_contents (DBConnection *db_con, GHashTable *index_table, GH
 	fd = tracker_file_open (file_name, TRUE);
 
 	if (fd ==-1) {
-		tracker_error ("ERROR: could not open file %s", file_name);
+		g_critical ("Could not open file:'%s'", file_name);
 		return;
 	}
 
@@ -1792,7 +1792,7 @@ tracker_db_save_file_contents (DBConnection *db_con, GHashTable *index_table, GH
     	strm.opaque = Z_NULL;
     		
 	if (deflateInit (&strm, Z_DEFAULT_COMPRESSION) != Z_OK) {
-		tracker_error ("ERROR: could not initialise zlib");
+		g_critical ("Could not initialise zlib");
 		close (fd);
 		return;
 	}
@@ -1831,7 +1831,7 @@ tracker_db_save_file_contents (DBConnection *db_con, GHashTable *index_table, GH
 			char *end = strrchr (buffer, '\n');			
 
 			if (!end) {
-				tracker_log ("Could not find line break in text chunk..exiting");
+				g_warning ("Could not find line break in text chunk");
 				break;
 			}
 
@@ -1842,7 +1842,7 @@ tracker_db_save_file_contents (DBConnection *db_con, GHashTable *index_table, GH
 			buffer[buffer_length] = '\0';
 
 			if (lseek (fd, bytes_backtracked, SEEK_CUR) == -1) {
-				tracker_error ("Could not seek to line break in text chunk");
+				g_warning ("Could not seek to line break in text chunk");
 				break;
 			}
 
@@ -1858,7 +1858,7 @@ tracker_db_save_file_contents (DBConnection *db_con, GHashTable *index_table, GH
 
 			if (!value) {
 				finished = FALSE;
-				tracker_info ("could not convert text to valid utf8");
+				g_warning ("Could not convert text to valid UTF-8");
 				break;
 			}
 
@@ -1908,7 +1908,7 @@ tracker_db_save_file_contents (DBConnection *db_con, GHashTable *index_table, GH
  
             		if (ret == Z_STREAM_ERROR) {
 				finished = FALSE;
-				tracker_error ("compression failed");
+				g_critical ("Could not compress text");
 				if (!use_buffer) g_free (value);
 				break;
 			}
@@ -1945,7 +1945,7 @@ tracker_db_save_file_contents (DBConnection *db_con, GHashTable *index_table, GH
 			save_full_text_bytes (blob_db_con, str_file_id, byte_array);
 		}
 	} else {
-		tracker_info ("An error prevented full text extraction");
+		g_warning ("An error prevented full text extraction");
 	}
  
 	g_byte_array_free (byte_array, TRUE);
@@ -2088,7 +2088,7 @@ tracker_db_search_text (DBConnection *db_con, const char *service, const char *s
 			g_free (path);
 			g_object_unref (result_set);
 		} else {
-			tracker_log ("dud hit for search detected");
+			g_warning ("Dud hit for search detected");
 			/* add to dud list */
 			duds = g_slist_prepend (duds, &hit);
 		}
@@ -2149,7 +2149,7 @@ tracker_db_search_metadata (DBConnection *db_con, const char *service, const cha
 	def = tracker_ontology_get_field_def (field);
 
 	if (!def) {
-		tracker_error ("ERROR: metadata not found for type %s", field);
+		g_warning ("Metadata not found for type:'%s'", field);
 		return NULL;
 	}
 
@@ -2170,8 +2170,9 @@ tracker_db_search_metadata (DBConnection *db_con, const char *service, const cha
 			result_set = tracker_exec_proc (db_con, "SearchMetadataKeywords", tracker_field_get_id (def), text, NULL); 
 			break;
 
-		default: 
-			tracker_error ("ERROR: metadata could not be retrieved as type %d is not supported", tracker_field_get_data_type (def)); 
+		default:
+			g_warning ("Metadata could not be retrieved as type:%d is not supported", 
+				    tracker_field_get_data_type (def)); 
 			result_set = NULL;
 	}
 
@@ -2198,7 +2199,7 @@ tracker_db_get_metadata (DBConnection *db_con, const char *service, const char *
 	def = tracker_ontology_get_field_def (key);
 
 	if (!def) {
-		tracker_error ("ERROR: metadata not found for id %s and type %s", id, key);
+		g_warning ("Metadata not found for id:'%s' and type:'%s'", id, key);
 		return NULL;
 	}
 
@@ -2220,7 +2221,8 @@ tracker_db_get_metadata (DBConnection *db_con, const char *service, const char *
 			break;
 
 		default:
-			tracker_error ("ERROR: metadata could not be retrieved as type %d is not supported", tracker_field_get_data_type (def)); 
+			g_warning ("Metadata could not be retrieved as type:%d is not supported", 
+				   tracker_field_get_data_type (def)); 
 			result_set = NULL;
 	}
 
@@ -2272,7 +2274,7 @@ update_metadata_index (const char *id, const char *service, const TrackerField *
 	gint        sid;
 
 	if (!def) {
-		tracker_error ("ERROR: cannot find details for metadata type");
+		g_warning ("Can not find details for metadata type");
 		return;
 	}
 
@@ -2447,7 +2449,7 @@ tracker_db_insert_embedded_metadata (DBConnection *db_con, const gchar *service,
 	def = tracker_ontology_get_field_def (key);
 
 	if (!def) {
-		tracker_error ("ERROR: metadata %s not found", key);
+		g_warning ("Metadata with key:'%s' not found", key);
 		return;
 	}
 
@@ -2600,7 +2602,7 @@ tracker_db_insert_embedded_metadata (DBConnection *db_con, const gchar *service,
 				gchar *mvalue = format_date (values[i]);
 
 				if (!mvalue) {
-					tracker_debug ("Could not format date %s", values[i]);
+					g_warning ("Could not format date:'%s'", values[i]);
 					continue;
 				}
 
@@ -2612,7 +2614,8 @@ tracker_db_insert_embedded_metadata (DBConnection *db_con, const gchar *service,
 			break;
                 }
                 default: {
-			tracker_error ("ERROR: metadata could not be set as type %d for metadata %s is not supported",
+			g_warning ("Metadata could not be set as type:%d for "
+				   "metadata:'%s' is not supported",
                                        tracker_field_get_data_type (def), key);
 			break;
                 }
@@ -2748,7 +2751,7 @@ tracker_db_set_metadata (DBConnection *db_con, const char *service, const gchar 
 	def = tracker_ontology_get_field_def (key);
 
 	if (!def) {
-		tracker_error ("metadata type %s not found", key);
+		g_warning ("Metadata type:'%s' not found", key);
 		return NULL;
 
 	}
@@ -2756,7 +2759,7 @@ tracker_db_set_metadata (DBConnection *db_con, const char *service, const gchar 
 	res_service = tracker_db_get_service_for_entity (db_con, id);
 
 	if (!res_service) {
-		tracker_error ("ERROR: service not found for id %s", id);
+		g_warning ("Service not found for id:'%s'", id);
 		return NULL;
 	}
 	
@@ -2805,7 +2808,7 @@ tracker_db_set_metadata (DBConnection *db_con, const char *service, const gchar 
 					new_value = values[i];					
 				}
 
-				tracker_log ("saving keyword %s", values[i]);
+				g_message ("Saving keyword:'%s'", values[i]);
 			}
 
 			break;
@@ -2937,7 +2940,7 @@ tracker_db_set_metadata (DBConnection *db_con, const char *service, const gchar 
 				char *mvalue = format_date (values[i]);
 
 				if (!mvalue) {
-					tracker_debug ("Could not format date %s", values[i]);
+					g_warning ("Could not format date:'%s'", values[i]);
 					continue;
 
 				}
@@ -2958,8 +2961,10 @@ tracker_db_set_metadata (DBConnection *db_con, const char *service, const gchar 
 			break;
 
 		default :
-			
-			tracker_error ("ERROR: metadata could not be set as type %d for metadata %s is not supported", tracker_field_get_data_type (def), key);
+			g_warning ("Metadata could not be set as type:%d for "
+				   "metadata:'%s' is not supported", 
+				   tracker_field_get_data_type (def), 
+				   key);
 			break;
 
 		
@@ -3078,7 +3083,7 @@ tracker_db_delete_metadata_value (DBConnection *db_con, const char *service, con
 	char *res_service = tracker_db_get_service_for_entity (db_con, id);
 
 	if (!res_service) {
-		tracker_error ("ERROR: entity not found");
+		g_warning ("Entity not found");
 		return;
 	}
 
@@ -3138,7 +3143,10 @@ tracker_db_delete_metadata_value (DBConnection *db_con, const char *service, con
 			break;
 		
 		default:	
-			tracker_error ("ERROR: metadata could not be deleted as type %d for metadata %s is not supported", tracker_field_get_data_type (def), key);
+			g_warning ("Metadata could not be deleted as type:%d for "
+				   "metadata:'%s' is not supported", 
+				   tracker_field_get_data_type (def), 
+				   key);
 			break;
 
 
@@ -3216,7 +3224,7 @@ tracker_db_delete_metadata (DBConnection *db_con, const char *service, const cha
 	char *res_service = tracker_db_get_service_for_entity (db_con, id);
 
 	if (!res_service) {
-		tracker_error ("ERROR: entity not found");
+		g_warning ("Entity not found");
 		return;
 	}
 
@@ -3229,8 +3237,6 @@ tracker_db_delete_metadata (DBConnection *db_con, const char *service, const cha
 	if (update_index) {
 		/* get current value */	
 		old_value = tracker_db_get_metadata_delimited (db_con, service, id, key);
-		tracker_debug ("old value is %s", old_value);
-		
 	}
 
 
@@ -3267,7 +3273,11 @@ tracker_db_delete_metadata (DBConnection *db_con, const char *service, const cha
 			break;
 
 		default:
-			tracker_error ("ERROR: metadata could not be deleted as this operation is not supported by type %d for metadata %s", tracker_field_get_data_type (def), key);
+			g_warning ("Metadata could not be deleted as this "
+				   "operation is not supported by type:%d "
+				   "for metadata:'%s'", 
+				   tracker_field_get_data_type (def),
+				   key);
 			break;
 
 	}
@@ -3288,8 +3298,6 @@ tracker_db_delete_metadata (DBConnection *db_con, const char *service, const cha
 TrackerDBResultSet* 
 tracker_db_get_live_search_hit_count (DBConnection *db_con, const gchar *search_id)
 {
-	tracker_debug ("GetLiveSearchHitCount");
-
 	/* SELECT count(*) 
 	 * FROM LiveSearches 
 	 * WHERE SearchID = ? */
@@ -3301,8 +3309,6 @@ tracker_db_get_live_search_hit_count (DBConnection *db_con, const gchar *search_
 TrackerDBResultSet* 
 tracker_db_get_live_search_deleted_ids (DBConnection *db_con, const gchar *search_id)
 {
-	tracker_debug ("GetLiveSearchDeletedIDs");
-
 	/* SELECT E.ServiceID 
 	 * FROM Events as E, LiveSearches as X 
 	 * WHERE E.ServiceID = X.ServiceID 
@@ -3315,8 +3321,6 @@ tracker_db_get_live_search_deleted_ids (DBConnection *db_con, const gchar *searc
 void
 tracker_db_stop_live_search (DBConnection *db_con, const gchar *search_id)
 {
-	tracker_debug ("LiveSearchStopSearch");
-
 	/* DELETE 
 	 * FROM LiveSearches as X 
 	 * WHERE E.SearchID = ? */
@@ -3356,8 +3360,6 @@ tracker_db_get_live_search_new_ids (DBConnection *db_con, const gchar *search_id
 	 *      OR X.EventType IS 'Update')
 	 **/
 
-	tracker_debug ("LiveSearchUpdateQuery");
-
 	return tracker_db_exec (db_con->db,
 	/* COLUMNS */      "SELECT E.ServiceID, E.EventType%s%s "
 	/* FROM_QUERY */   "%s%s LiveSearches as X, Events as E "
@@ -3379,8 +3381,6 @@ tracker_db_get_live_search_new_ids (DBConnection *db_con, const gchar *search_id
 TrackerDBResultSet *
 tracker_db_get_live_search_get_hit_data (DBConnection *db_con, const gchar *search_id)
 {
-	tracker_debug ("tracker_db_get_live_search_get_hit_data");
-
 	return tracker_db_exec (db_con->db, 
 				"SELECT * FROM LiveSearches as X "
 				"WHERE X.SearchID = '%s'", 
@@ -3390,9 +3390,7 @@ tracker_db_get_live_search_get_hit_data (DBConnection *db_con, const gchar *sear
 TrackerDBResultSet* 
 tracker_db_get_events (DBConnection *db_con)
 {
-	tracker_debug ("SetEventsBeingHandled");
 	tracker_exec_proc_no_reply (db_con->cache->db, "SetEventsBeingHandled", NULL);
-	tracker_debug ("GetEvents");
 	return tracker_exec_proc (db_con->cache, "GetEvents", NULL);
 }
 
@@ -3400,7 +3398,6 @@ tracker_db_get_events (DBConnection *db_con)
 void 
 tracker_db_delete_handled_events (DBConnection *db_con, TrackerDBResultSet *events)
 {
-	tracker_debug ("DeleteHandledEvents");
 	tracker_exec_proc_no_reply (db_con->cache->db, "DeleteHandledEvents", NULL);
 }
 
@@ -3415,7 +3412,7 @@ tracker_db_create_event (DBConnection *db_con, const gchar *service_id_str, cons
 	result_set = tracker_exec_proc (db_con->common, "GetNewEventID", NULL);
 
 	if (!result_set) {
-		tracker_error ("ERROR: could not create event - GetNewEventID failed");
+		g_critical ("Could not create event, GetNewEventID failed");
 		return 0;
 	}
 
@@ -3430,8 +3427,6 @@ tracker_db_create_event (DBConnection *db_con, const gchar *service_id_str, cons
 		g_object_unref (result_set);
 
 	/* Uses the Events table */
-	tracker_debug ("CreateEvent %s", eid);
-
 	result_set = tracker_exec_proc (db_con->cache, "CreateEvent", eid, service_id_str, type, NULL);
 	id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (db_con->db));
 	if (result_set)
@@ -3457,11 +3452,11 @@ tracker_db_create_service (DBConnection *db_con, const char *service, TrackerDBF
 	int	   service_type_id;
 	char	   *str_service_type_id, *path, *name;
 
-	if (!info || !info->uri || !info->uri[0] || !service || !db_con) {
-		tracker_error ("ERROR: cannot create service");
-		return 0;
-
-	}
+	g_return_val_if_fail (info, 0);
+	g_return_val_if_fail (info->uri, 0);
+	g_return_val_if_fail (info->uri[0], 0);
+	g_return_val_if_fail (service, 0);
+	g_return_val_if_fail (db_con, 0);
 
 	if (info->uri[0] == G_DIR_SEPARATOR) {
 		name = g_path_get_basename (info->uri);
@@ -3477,7 +3472,7 @@ tracker_db_create_service (DBConnection *db_con, const char *service, TrackerDBF
 	result_set = tracker_exec_proc (db_con->common, "GetNewID", NULL);
 
 	if (!result_set) {
-		tracker_error ("ERROR: could not create service - GetNewID failed");
+		g_critical ("Could not create service, GetNewID failed");
 		return 0;
 	}
 
@@ -3514,9 +3509,9 @@ tracker_db_create_service (DBConnection *db_con, const char *service, TrackerDBF
 	service_type_id = tracker_ontology_get_id_for_service_type (service);
 
 	if (info->mime) {
-		tracker_debug ("service id for %s is %d and sid is %s with mime %s", service, service_type_id, sid, info->mime);
+		g_debug ("service id for %s is %d and sid is %s with mime %s", service, service_type_id, sid, info->mime);
 	} else {
-		tracker_debug ("service id for %s is %d and sid is %s", service, service_type_id, sid);
+		g_debug ("service id for %s is %d and sid is %s", service, service_type_id, sid);
         }
 
 	str_service_type_id = tracker_int_to_string (service_type_id);
@@ -3703,7 +3698,7 @@ dec_stat (DBConnection *db_con, int id)
 	
 		
 	} else {
-		tracker_debug ("could not dec stat for service ID %d", id);
+		g_debug ("could not dec stat for service ID %d", id);
 	}
 
 }
@@ -4029,7 +4024,7 @@ tracker_db_get_files_by_mime (DBConnection *db_con, char **mimes, int n, int off
 
 	query = g_string_free (str, FALSE);
 
-	tracker_debug ("getting files with mimes using sql %s", query);
+	g_debug ("getting files with mimes using sql %s", query);
 
 	result_set = tracker_db_interface_execute_query (db_con->db, NULL, query);
 
@@ -4396,12 +4391,12 @@ void
 tracker_db_move_file (DBConnection *db_con, const char *moved_from_uri, const char *moved_to_uri)
 {
 
-	tracker_log ("Moving file %s to %s", moved_from_uri, moved_to_uri);
+	g_message ("Moving file:'%s' to:'%s'", moved_from_uri, moved_to_uri);
 
 	/* if orig file not in DB, treat it as a create action */
 	guint32 id = tracker_db_get_file_id (db_con, moved_from_uri);
 	if (id == 0) {
-		tracker_debug ("WARNING: original file %s not found in DB", moved_from_uri);
+		g_warning ("Original file:'%s' not found in database", moved_from_uri);
 		tracker_db_insert_pending_file (db_con, id, moved_to_uri,  NULL, "unknown", 0, TRACKER_DB_ACTION_WRITABLE_FILE_CLOSED, FALSE, TRUE, -1);
 		tracker_db_interface_end_transaction (db_con->db);
 		return;
@@ -4559,7 +4554,7 @@ tracker_db_move_directory (DBConnection *db_con, const char *moved_from_uri, con
 			new_path = g_build_filename (moved_to_uri, sep, NULL);
 			g_free (sep);
 
-			tracker_info ("moving subfolder %s to %s", dir_name, new_path);
+			g_message ("Moving subfolder:'%s' to:'%s'", dir_name, new_path);
 
 			move_directory (db_con, dir_name, new_path);
 
@@ -4634,7 +4629,7 @@ update_index_data (gpointer key,
 
 	if (score == 0) return;
 
-	tracker_debug ("updating index for word %s with score %d", word, score);
+	g_debug ("Updating index for word %s with score %d", word, score);
 	
 	tracker_cache_add (word, info->service_id, info->service_type_id, score, FALSE);
 
@@ -4716,7 +4711,6 @@ TrackerDBResultSet *
 tracker_db_get_keyword_list (DBConnection *db_con, const char *service)
 {
 
-	tracker_debug (service);
 	return tracker_exec_proc (db_con, "GetKeywordList", service, service, NULL);
 }
 
@@ -4929,9 +4923,11 @@ tracker_db_get_static_data (DBConnection *db_con)
 				g_object_unref (result_set2);
 			}
 
+			g_message ("Loading metadata def:'%s' with weight:%d", 
+				   tracker_field_get_name (def), 
+				   tracker_field_get_weight (def));
+				   
 			tracker_ontology_add_field (def);
-			tracker_debug ("loading metadata def %s with weight %d", 
-				       tracker_field_get_name (def), tracker_field_get_weight (def));
 
 			g_free (name);
 
@@ -4968,7 +4964,10 @@ tracker_db_get_static_data (DBConnection *db_con)
                         mimes = tracker_db_get_mimes_for_service_id (db_con, id);
                         mime_prefixes = tracker_db_get_mime_prefixes_for_service_id (db_con, id);
 
-                        tracker_debug ("Adding service definition for %s with id %d", name, id);
+                        g_message ("Adding service:'%s' with id:%d and mimes:%d", 
+				   name, 
+				   id,
+				   g_slist_length (mimes));
                         tracker_ontology_add_service_type (service, 
 							   mimes, 
 							   mime_prefixes);
@@ -4984,7 +4983,7 @@ tracker_db_get_static_data (DBConnection *db_con)
 
 		/* check for web history */
 		if (!tracker_ontology_get_service_type_by_name ("Webhistory")) {
-			tracker_log ("Adding missing Webhistory service");
+			g_message ("Adding missing Webhistory service");
 			tracker_exec_proc (db_con, "InsertServiceType", "Webhistory", NULL);
 		}
 	}
@@ -5539,10 +5538,10 @@ tracker_db_regulate_transactions (DBConnection *db_con, int interval)
 		if (tracker->index_count > 1) {
 			tracker_db_end_index_transaction (db_con);
 			tracker_db_start_index_transaction (db_con);
-			tracker_log ("Current memory usage is %d, word count %d and hits %d", 
-				     get_memory_usage (), 
-				     tracker->word_count, 
-				     tracker->word_detail_count);
+			g_message ("Current memory usage is %d, word count %d and hits %d", 
+				   get_memory_usage (), 
+				   tracker->word_count, 
+				   tracker->word_detail_count);
 		}
 
 		return TRUE;

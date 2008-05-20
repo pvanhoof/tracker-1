@@ -135,7 +135,7 @@ set_memory_rlimits (void)
 #endif
 
 	if (fail) {
-		tracker_error ("Error trying to set memory limit");
+		g_critical ("Error trying to set memory limit");
 	}
 
 	return !fail;
@@ -153,7 +153,7 @@ tracker_child_cb (gpointer user_data)
 	cpu_limit.rlim_max = timeout + 1;
 
 	if (setrlimit (RLIMIT_CPU, &cpu_limit) != 0) {
-		tracker_error ("Failed to set resource limit for CPU");
+		g_critical ("Failed to set resource limit for CPU");
 	}
 
 	set_memory_rlimits ();
@@ -167,7 +167,7 @@ tracker_child_cb (gpointer user_data)
          * so we have to check value of errno too. Stupid... 
          */ 
         if (nice (19) == -1 && errno) {
-                tracker_error ("Failed to set nice value");
+                g_warning ("Failed to set nice value");
         }
 
 	/* Have this as a precaution in cases where cpu limit has not

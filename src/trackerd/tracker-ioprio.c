@@ -132,14 +132,12 @@ int set_io_priority_best_effort (int ioprio_val)
 void
 ioprio (void)
 {
-	
-
-	tracker_log ("Setting ioprio...");
+	g_message ("Setting ioprio...");
 
 	if (set_io_priority_idle () == -1) {
 		g_print ("Could not set idle IO priority...attempting best effort 7 priority\n");
 		if (set_io_priority_best_effort (7) == -1) {
-			tracker_error ("ERROR: ioprio_set failed");
+			g_warning ("Could not set IO priority");
 		}
 	}
 	

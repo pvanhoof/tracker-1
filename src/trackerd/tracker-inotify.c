@@ -168,13 +168,15 @@ process_event (const char *uri, gboolean is_dir, TrackerDBAction action, guint32
 			moved_from_info = (TrackerDBFileInfo *) tmp->data;
 
 			if (!moved_from_info) {
-				tracker_error ("ERROR: bad FileInfo struct found in move list. Skipping...");
+				g_critical ("bad FileInfo struct found in move list. Skipping...");
 				continue;
 			}
 
 			if ((cookie > 0) && (moved_from_info->cookie == cookie)) {
 
-				tracker_info ("found matching inotify pair from %s to %s", moved_from_info->uri, moved_to_info->uri);
+				g_message ("Found matching inotify pair from:'%s' to:'%s'", 
+                                           moved_from_info->uri, 
+                                           moved_to_info->uri);
 
 				tracker->grace_period = 2;
 				tracker->request_waiting = TRUE;
@@ -195,7 +197,8 @@ process_event (const char *uri, gboolean is_dir, TrackerDBAction action, guint32
 		}
 
 		/* matching pair not found so treat as a create action */
-		tracker_debug ("no matching pair found for inotify move event for %s", info->uri);
+		g_debug ("no matching pair found for inotify move event for %s", 
+                         info->uri);
 		if (tracker_file_is_directory (info->uri)) {
 			info->action = TRACKER_DB_ACTION_DIRECTORY_CREATED;
 		} else {
@@ -207,16 +210,16 @@ process_event (const char *uri, gboolean is_dir, TrackerDBAction action, guint32
 
 	} else if (action == TRACKER_DB_ACTION_WRITABLE_FILE_CLOSED) {
 		tracker_add_io_grace (info->uri);
-		tracker_info ("File %s has finished changing", info->uri);
+		g_message ("File:'%s' has finished changing", info->uri);
 		tracker_db_insert_pending_file (main_thread_db_con, info->file_id, info->uri,  NULL, info->mime, 0, info->action, info->is_directory, TRUE, -1);
 		tracker_db_file_info_free (info);
 		return;
 
 	}
 
-	tracker_log ("WARNING: not processing event %s for uri %s", 
-                     tracker_db_action_to_string (info->action), 
-                     info->uri);
+	g_warning ("Not processing event:'%s' for uri:'%s'", 
+                   tracker_db_action_to_string (info->action), 
+                   info->uri);
 	tracker_db_file_info_free (info);
 }
 
@@ -380,7 +383,7 @@ process_inotify_events (void)
 		}
 
 		if (tracker_is_empty_string (filename)) {
-			//tracker_log ("WARNING: inotify event has no filename");
+			//g_message ("WARNING: inotify event has no filename");
 			g_free (event);
 			continue;
 		}
@@ -388,7 +391,7 @@ process_inotify_events (void)
 		file_utf8_uri = g_filename_to_utf8 (filename, -1, NULL, NULL, NULL);
 
 		if (tracker_is_empty_string (file_utf8_uri)) {
-			tracker_error ("ERROR: file uri could not be converted to utf8 format");
+			g_critical ("file uri could not be converted to utf8 format");
 			g_free (event);
 			continue;
 		}
@@ -401,7 +404,7 @@ process_inotify_events (void)
 			dir_utf8_uri = g_filename_to_utf8 (monitor_name, -1, NULL, NULL, NULL);
 
 			if (!dir_utf8_uri) {
-				tracker_error ("Error: file uri could not be converted to utf8 format");
+				g_critical ("file uri could not be converted to utf8 format");
 				g_free (file_utf8_uri);
 				g_free (event);
 				continue;
@@ -417,7 +420,7 @@ process_inotify_events (void)
                     tracker_process_files_should_be_watched (tracker->config, str)) {
 			process_event (str, tracker_file_is_directory (str), action_type, cookie);
 		} else {
-			tracker_debug ("ignoring action %d on file %s", action_type, str);
+			g_debug ("ignoring action %d on file %s", action_type, str);
 		}
 
 		if (monitor_name) {
@@ -455,7 +458,7 @@ inotify_watch_func (GIOChannel *source, GIOCondition condition, gpointer data)
 	r = read (fd, buffer, 16384);
 
 	if (r <= 0) {
-		tracker_error ("ERROR: inotify system failure - unable to watch files");
+		g_critical ("inotify system failure - unable to watch files");
 		return FALSE;
 	}
 
@@ -505,7 +508,7 @@ tracker_start_watching (void)
 				/* leave 500 watches for other users */
 				tracker->watch_limit = atoi (limit) - 500;
 
-				tracker_log ("Setting inotify watch limit to %d.", tracker->watch_limit);
+				g_message ("Setting inotify watch limit to %d.", tracker->watch_limit);
 				g_free (limit);
 			}
 		}
@@ -548,7 +551,7 @@ tracker_add_watch_dir (const char *dir, DBConnection *db_con)
 	if (tracker_count_watch_dirs () >= (int) tracker->watch_limit) {
 
 		if (!limit_exceeded_msg) {
-			tracker_log ("Inotify Watch Limit has been exceeded - for best results you should increase number of inotify watches on your system");
+			g_message ("Inotify Watch Limit has been exceeded - for best results you should increase number of inotify watches on your system");
 			limit_exceeded_msg = TRUE;
 		}
 
@@ -568,7 +571,7 @@ tracker_add_watch_dir (const char *dir, DBConnection *db_con)
 		g_free (dir_in_locale);
 
 		if (wd < 0) {
-			tracker_error ("ERROR: Inotify watch on %s has failed", dir);
+			g_critical ("Inotify watch on %s has failed", dir);
 			return FALSE;
 		}
 
@@ -576,7 +579,7 @@ tracker_add_watch_dir (const char *dir, DBConnection *db_con)
 		tracker_exec_proc (db_con->cache, "InsertWatch", dir, str_wd, NULL);
 		g_free (str_wd);
 		inotify_count++;
-		tracker_log ("Watching directory %s (total watches = %d)", dir, inotify_count);
+		g_message ("Watching directory %s (total watches = %d)", dir, inotify_count);
 		return TRUE;
 	}
 
@@ -599,7 +602,7 @@ delete_watch (const char *dir, DBConnection *db_con)
 	wd = -1;
 
 	if (!result_set) {
-		tracker_log ("WARNING: watch id not found for uri %s", dir);
+		g_message ("WARNING: watch id not found for uri %s", dir);
 		return FALSE;
 	}
 

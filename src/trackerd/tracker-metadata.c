@@ -94,13 +94,14 @@ tracker_metadata_get_text_file (const char *uri, const char *mime)
 		g_free (text_filter_file);
 
 		if (!argv[1]) {
-			tracker_error ("ERROR: uri could not be converted to locale format");
+			g_critical ("uri could not be converted to locale format");
 			g_free (argv[0]);
 			g_free (argv[2]);
 			return NULL;
 		}
 
-		tracker_info ("extracting text for %s using filter %s", argv[1], argv[0]);
+		g_message ("Extracting text for:'%s' using filter:'%s'",
+                           argv[1], argv[0]);
 
 		if (tracker_spawn (argv, 30, NULL, NULL)) {
 
@@ -152,7 +153,7 @@ tracker_metadata_get_thumbnail (const char *path, const char *mime, const char *
 	} else if (exit_status != EXIT_SUCCESS) {
 		thumbnail = NULL;
 	} else {
-		tracker_log ("got thumbnail %s", thumbnail);
+		g_message ("got thumbnail %s", thumbnail);
 	}
 
 	g_free (argv[0]);
@@ -194,7 +195,7 @@ tracker_metadata_get_embedded (const char *uri, const char *mime, GHashTable *ta
 	argv[3] = NULL;
 
 	if (!argv[1] || !argv[2]) {
-		tracker_error ("ERROR: uri or mime could not be converted to locale format");
+		g_critical ("uri or mime could not be converted to locale format");
 
 		g_free (argv[0]);
 		g_free (argv[1]);

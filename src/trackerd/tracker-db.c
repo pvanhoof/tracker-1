@@ -365,7 +365,7 @@ tracker_metadata_is_date (DBConnection *db_con, const char *meta)
 	def = tracker_ontology_get_field_def (meta);
 
 	if (!def) {
-		tracker_error ("ERROR: failed to get info for metadata type %s", meta);
+		g_critical ("failed to get info for metadata type %s", meta);
 		return FALSE;
 	}
 	
@@ -464,7 +464,7 @@ notify_meta_data_available (void)
 		g_thread_yield ();
 		g_usleep (10);
 
-		tracker_debug ("In check phase");
+		g_debug ("In check phase");
 	}
 }
 
@@ -485,7 +485,7 @@ make_pending_file (DBConnection *db_con, guint32 file_id, const char *uri, const
 			
 		if (!move_file && ((counter > 0) || (g_async_queue_length (tracker->file_process_queue) > tracker->max_process_queue_size))) {
 
-			/* tracker_log ("************ counter for pending file %s is %d ***********", uri, counter); */
+			/* g_message ("************ counter for pending file %s is %d ***********", uri, counter); */
 			if (!mime) {
 				tracker_db_insert_pending (db_con, str_file_id, str_action, str_counter, uri, "unknown", is_directory, is_new, service_type_id);
 			} else {
@@ -525,7 +525,7 @@ make_pending_file (DBConnection *db_con, guint32 file_id, const char *uri, const
 		return;
 	}
 
-	/* tracker_log ("inserting pending file for %s with action %s", uri, tracker_actions[action]); */
+	/* g_message ("inserting pending file for %s with action %s", uri, tracker_actions[action]); */
 
 	/* signal respective thread that data is available and awake it if its asleep */
 	if (action == TRACKER_DB_ACTION_EXTRACT_METADATA) {
@@ -628,14 +628,15 @@ print_file_change_queue (void)
 
 	head = g_queue_peek_head_link (tracker->file_change_queue);
 
-	tracker_log ("File Change queue is:");
+	g_message ("File Change queue is:");
 	count = 1;
 	for (l = g_list_first (head); l != NULL; l = g_list_next (l)) {
 		change = (TrackerDBFileChange*) l->data;
-		tracker_info ("%d\t%s\t%d\t%d",
-			 count++, change->uri,
-			 change->first_change_time,
-			 change->num_of_change);
+		g_message ("%d\t%s\t%d\t%d",
+			   count++,
+			   change->uri,
+			   (gint) change->first_change_time,
+			   change->num_of_change);
 	}
 	
 }
@@ -728,7 +729,7 @@ check_uri_changed_frequently (const char *uri)
 			
 			/* add uri to blacklist */
 			
-			tracker_log ("blacklisting %s", change->uri);
+			g_message ("blacklisting %s", change->uri);
 			
                         tracker_process_files_append_temp_black_list (change->uri);
 			
@@ -839,7 +840,7 @@ restore_backup_data (gpointer mtype,
 	db_action = user_data;
 
         string_list = tracker_gslist_to_string_list (value);
-	tracker_log ("restoring keyword list with %d items", g_slist_length (value));
+	g_message ("restoring keyword list with %d items", g_slist_length (value));
 
 	tracker_db_set_metadata (db_action->db_con, db_action->service, db_action->file_id, mtype, string_list, g_slist_length (value), FALSE);
 
@@ -858,9 +859,9 @@ tracker_db_index_service (DBConnection *db_con, TrackerDBFileInfo *info, const c
 	if (!service) {
 		/* its an external service - TODO get external service name */
 		if (service) {
-			tracker_log ("External service %s not supported yet", service);
+			g_message ("External service %s not supported yet", service);
 		} else {
-			tracker_log ("External service not supported yet");
+			g_message ("External service not supported yet");
 		}
 		return;
 	}
@@ -874,7 +875,7 @@ tracker_db_index_service (DBConnection *db_con, TrackerDBFileInfo *info, const c
 	info->service_type_id = tracker_ontology_get_id_for_service_type (service);
 
 	if (info->service_type_id == -1) {
-		tracker_log ("Service %s not supported yet", service);
+		g_message ("Service %s not supported yet", service);
 		return;
 	}
 
@@ -884,14 +885,18 @@ tracker_db_index_service (DBConnection *db_con, TrackerDBFileInfo *info, const c
 
 	if (info->is_new) {
 		if (info->mime)
-			tracker_info ("Indexing %s with service %s and mime %s (new)", uri, service, info->mime);
+			g_message ("Indexing:'%s' with service:'%s' and mime:'%s' (new)", 
+				   uri, service, info->mime);
 		else
-			tracker_info ("Indexing %s with service %s (new)", uri, service);
+			g_message ("Indexing:'%s' with service:'%s' (new)",
+				   uri, service);
 	} else {
 		if (info->mime)
-			tracker_info ("Indexing %s with service %s and mime %s (existing)", uri, service, info->mime);
+			g_message ("Indexing:'%s' with service:'%s' and mime:'%s' (existing)",
+				   uri, service, info->mime);
 		else
-			tracker_info ("Indexing %s with service %s (existing)", uri, service);
+			g_message ("Indexing:'%s' with service:'%s' (existing)", 
+				   uri, service);
 	}
 
 	
@@ -923,12 +928,12 @@ tracker_db_index_service (DBConnection *db_con, TrackerDBFileInfo *info, const c
 		info->uri = old_uri;
 
 		if (info->file_id == 0) {
-			tracker_error ("ERROR: could not get file id for %s - unable to continue indexing this file", uri);
+			g_critical ("Could not get file id for:'%s', unable to continue indexing this file", uri);
 			return;
 		}
 
 		if (info->service_type_id == -1) {
-                        tracker_error ("ERROR: unknown service type for %s with service %s and mime %s", uri, service, info->mime);
+                        g_critical ("Unknown service type for:'%s' with service:'%s' and mime %s", uri, service, info->mime);
 		}
 	}
 
@@ -1037,7 +1042,7 @@ tracker_db_index_service (DBConnection *db_con, TrackerDBFileInfo *info, const c
 							   1, &value,
 							   -1);
 
-				tracker_log ("found backup metadata for %s\%s with key %s and value %s", path, name, key, value);
+				g_message ("found backup metadata for %s\%s with key %s and value %s", path, name, key, value);
 				tracker_add_metadata_to_table (meta_table, key, value);
 
 				valid = tracker_db_result_set_iter_next (result_set);
@@ -1093,7 +1098,7 @@ tracker_db_index_master_files (DBConnection *db_con, const gchar *dirname, const
 					strcmp (curr_ext+1, "xmp") != 0 &&
 					!g_str_has_suffix (curr_ext+1, "~")) {
 
-				tracker_debug ("master file, %s, about to be updated", curr_filename);
+				g_debug ("master file, %s, about to be updated", curr_filename);
 
 				master_uri = g_build_filename (dirname, curr_filename, NULL);
 				master_info = tracker_db_file_info_new (master_uri, TRACKER_DB_ACTION_FILE_CHANGED, 0, 0);
@@ -1142,7 +1147,8 @@ tracker_db_index_file (DBConnection *db_con, TrackerDBFileInfo *info, const char
 			info->mime = g_strdup ("unknown");
 		}
 
-		tracker_info ("mime is %s for %s", info->mime, info->uri);
+		g_message ("Mime is:'%s' for:'%s'", 
+			   info->mime, info->uri);
 
 		service_name = tracker_ontology_get_service_type_for_mime (info->mime);
 
@@ -1165,7 +1171,7 @@ tracker_db_index_file (DBConnection *db_con, TrackerDBFileInfo *info, const char
 		ext = strrchr (filename, '.');
 		if (ext) {
 			ext++;
-			tracker_debug ("file extension is %s", ext);
+			g_debug ("file extension is %s", ext);
 			tracker_add_metadata_to_table  (meta_table, g_strdup ("File:Ext"), g_strdup (ext));
 			is_sidecar = strcmp("xmp",ext) == 0;
 		} else {
@@ -1195,7 +1201,7 @@ tracker_db_index_file (DBConnection *db_con, TrackerDBFileInfo *info, const char
                           	char buf[512];
                           	
                           	fgets(buf,512,fp);  //get the first line, it is URL for this web history object
-                          	tracker_debug("URL for this WebHistory is %s\n",buf);
+                          	g_debug("URL for this WebHistory is %s\n",buf);
                           	tracker_add_metadata_to_table  (meta_table, g_strdup ("Doc:URL"), g_strdup(buf));
                           	
                           	fgets(buf,512,fp);
@@ -1212,7 +1218,7 @@ tracker_db_index_file (DBConnection *db_con, TrackerDBFileInfo *info, const char
 
                                 		char *doc_keyword = g_strdup (keys[1]);
 
-	                        		tracker_debug("found keywords : %s\n",doc_keyword);
+	                        		g_debug("found keywords : %s\n",doc_keyword);
 	                        	
                                   		tracker_add_metadata_to_table  (meta_table, g_strdup ("Doc:Keywords"), doc_keyword);
                                 	}
@@ -1268,7 +1274,7 @@ tracker_db_index_file (DBConnection *db_con, TrackerDBFileInfo *info, const char
 				gchar *sidecar_uri = g_build_filename (dirname, sidecar_filename, NULL);
 	
 				if (g_file_test (sidecar_uri, G_FILE_TEST_EXISTS)) {
-					tracker_debug ("xmp sidecar found for %s", uri);
+					g_debug ("xmp sidecar found for %s", uri);
 					tracker_metadata_get_embedded (sidecar_uri, XMP_MIME_TYPE, meta_table);
 				}
 	
@@ -1279,7 +1285,7 @@ tracker_db_index_file (DBConnection *db_con, TrackerDBFileInfo *info, const char
 		}
 		#endif
 
- 		tracker_debug ("file %s has fulltext %d with service %s", info->uri, service_has_fulltext, service_name); 
+ 		g_debug ("file %s has fulltext %d with service %s", info->uri, service_has_fulltext, service_name); 
 		tracker_db_index_service (db_con, info, service_name, meta_table, uri, attachment_service, service_has_metadata, service_has_fulltext, service_has_thumbs);
 
 		g_hash_table_destroy (meta_table);

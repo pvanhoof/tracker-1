@@ -199,8 +199,8 @@ tracker_file_is_valid (const gchar *uri)
 	str = g_filename_from_utf8 (uri, -1, NULL, NULL, NULL);
 
 	if (!str) {
-		tracker_error ("URI:'%s' could not be converted to locale format",
-			       uri);
+		g_warning ("URI:'%s' could not be converted to locale format",
+			   uri);
 		return FALSE;
 	}
 
@@ -227,8 +227,8 @@ tracker_file_is_directory (const gchar *uri)
 	str = g_filename_from_utf8 (uri, -1, NULL, NULL, NULL);
 
 	if (!str) {
-		tracker_error ("URI:'%s' could not be converted to locale format",
-			       str);
+		g_warning ("URI:'%s' could not be converted to locale format",
+			   str);
 		return FALSE;
 	}
 
@@ -245,11 +245,13 @@ tracker_file_is_indexable (const gchar *uri)
 	struct stat  finfo;
 	gboolean     is_indexable;
 
+	g_return_val_if_fail (uri != NULL, FALSE);
+
 	str = g_filename_from_utf8 (uri, -1, NULL, NULL, NULL);
 
 	if (!str) {
-		tracker_error ("URI:'%s' could not be converted to locale format",
-			       str);
+		g_warning ("URI:'%s' could not be converted to locale format",
+			   str);
 		return FALSE;
 	}
 
@@ -260,9 +262,9 @@ tracker_file_is_indexable (const gchar *uri)
 	is_indexable &= !S_ISDIR (finfo.st_mode);
 	is_indexable &= S_ISREG (finfo.st_mode);
 
-	tracker_debug ("URI:'%s' %s indexable", 
-		       uri,
-		       is_indexable ? "is" : "is not");
+	g_debug ("URI:'%s' %s indexable", 
+		 uri,
+		 is_indexable ? "is" : "is not");
 		 
 	return is_indexable;
 }
@@ -281,8 +283,8 @@ tracker_file_get_mtime (const gchar *uri)
 			return 0;
 		}
 	} else {
-		tracker_error ("URI:'%s' could not be converted to locale format",
-			       uri);
+		g_warning ("URI:'%s' could not be converted to locale format",
+			   uri);
 		return 0;
 	}
 
@@ -300,16 +302,16 @@ tracker_file_get_mime_type (const gchar *uri)
 	gchar       *mime_type;
 
 	if (!tracker_file_is_valid (uri)) {
-		tracker_log ("URI:'%s' is no longer valid", 
-			     uri);
+		g_message ("URI:'%s' is no longer valid", 
+			   uri);
 		return g_strdup ("unknown");
 	}
 
 	str = g_filename_from_utf8 (uri, -1, NULL, NULL, NULL);
 
 	if (!str) {
-		tracker_error ("URI:'%s' could not be converted to locale format",
-			       uri);
+		g_warning ("URI:'%s' could not be converted to locale format",
+			   uri);
 		return g_strdup ("unknown");
 	}
 

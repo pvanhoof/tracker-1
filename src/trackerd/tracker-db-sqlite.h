@@ -275,16 +275,6 @@ TrackerDBResultSet *tracker_db_get_files_by_mime               (DBConnection   *
                                                                 gint            offset,
                                                                 gint            limit,
                                                                 gboolean        vfs);
-TrackerDBResultSet *tracker_db_search_text_mime                (DBConnection   *db_con,
-                                                                const gchar    *text,
-                                                                gchar         **mime_array);
-TrackerDBResultSet *tracker_db_search_text_location            (DBConnection   *db_con,
-                                                                const gchar    *text,
-                                                                const gchar    *location);
-TrackerDBResultSet *tracker_db_search_text_mime_location       (DBConnection   *db_con,
-                                                                const gchar    *text,
-                                                                gchar         **mime_array,
-                                                                const gchar    *location);
 TrackerDBResultSet *tracker_db_get_file_subfolders             (DBConnection   *db_con,
                                                                 const gchar    *uri);
 TrackerDBResultSet *tracker_db_get_metadata_types              (DBConnection   *db_con,

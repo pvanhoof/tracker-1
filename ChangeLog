@@ -1,3 +1,11 @@
+2008-05-20  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/trackerd/tracker-db-sqlite.[ch]:
+	(tracker_db_search_text_mime)
+	(tracker_db_search_text_location)
+	(tracker_db_search_text_mime_location): Not used anywhere in the
+	code. Removed.
+	
 2008-05-20  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-email-kmail.c:

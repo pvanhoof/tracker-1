@@ -26,6 +26,7 @@
 
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-file-utils.h>
+#include <libtracker-common/tracker-os-dependant.h>
 
 #define METADATA_FILE_NAME_DELIMITED "File:NameDelimited"
 #define METADATA_FILE_EXT            "File:Ext"
@@ -90,12 +91,98 @@ tracker_module_get_ignore_directories (void)
 	return (gchar **) g_ptr_array_free (dirs, FALSE);
 }
 
+void
+tracker_metadata_get_embedded (const char *uri,
+			       const char *mimetype,
+			       GHashTable *table)
+{
+	gboolean success;
+	gchar **argv, *output, **values;
+	gint i;
+
+	/* FIXME: lookup the service type to check whether it possibly has metadata */
+#if 0
+	service_type = tracker_ontology_get_service_type_for_mime (mime);
+	if (!service_type ) {
+		return;
+	}
+
+	if (!tracker_ontology_service_type_has_metadata (service_type)) {
+		g_free (service_type);
+		return;
+	}
+#endif
+
+	/* we extract metadata out of process using pipes */
+	argv = g_new0 (gchar *, 4);
+	argv[0] = g_strdup ("tracker-extract");
+	argv[1] = g_filename_from_utf8 (uri, -1, NULL, NULL, NULL);
+	argv[2] = g_strdup (mimetype);
+
+	if (!argv[1] || !argv[2]) {
+		g_critical ("uri or mime could not be converted to locale format");
+		g_strfreev (argv);
+		return;
+	}
+
+	success = tracker_spawn (argv, 10, &output, NULL);
+	g_strfreev (argv);
+
+	if (!success || !output)
+		return;
+
+	/* parse returned stdout and extract keys and associated metadata values */
+
+	values = g_strsplit_set (output, ";", -1);
+
+	for (i = 0; values[i]; i++) {
+		char *meta_data, *sep;
+		const char *name, *value;
+		char *utf_value;
+
+		meta_data = g_strstrip (values[i]);
+		sep = strchr (meta_data, '=');
+
+		if (!sep)
+			continue;
+
+		/* zero out the separator, so we get
+		 * NULL-terminated name and value
+		 */
+		sep[0] = '\0';
+		name = meta_data;
+		value = sep + 1;
+
+		if (!name || !value)
+			continue;
+
+		if (g_hash_table_lookup (table, name))
+			continue;
+
+		if (!g_utf8_validate (value, -1, NULL)) {
+			utf_value = g_locale_to_utf8 (value, -1, NULL, NULL, NULL);
+		} else {
+			utf_value = g_strdup (value);
+		}
+
+		if (!utf_value)
+			continue;
+
+		/* FIXME: name should be const */
+		g_hash_table_insert (table, g_strdup (name), utf_value);
+	}
+
+	g_strfreev (values);
+	g_free (output);
+}
+
 GHashTable *
 tracker_module_get_file_metadata (const gchar *file)
 {
 	GHashTable *metadata;
 	struct stat st;
 	const gchar *ext;
+	gchar *mimetype;
 
 	/* FIXME: check exclude extensions */
 
@@ -109,12 +196,13 @@ tracker_module_get_file_metadata (const gchar *file)
 		g_hash_table_insert (metadata, METADATA_FILE_EXT, g_strdup (ext + 1));
 	}
 
+	mimetype = tracker_file_get_mime_type (file);
+
 	g_hash_table_insert (metadata, METADATA_FILE_NAME, g_filename_display_basename (file));
 	g_hash_table_insert (metadata, METADATA_FILE_PATH, g_path_get_dirname (file));
 	g_hash_table_insert (metadata, METADATA_FILE_NAME_DELIMITED,
 			     g_filename_to_utf8 (file, -1, NULL, NULL, NULL));
-	g_hash_table_insert (metadata, METADATA_FILE_MIMETYPE,
-			     tracker_file_get_mime_type (file));
+	g_hash_table_insert (metadata, METADATA_FILE_MIMETYPE, mimetype);
 
 	if (S_ISLNK (st.st_mode)) {
 		gchar *link_path;
@@ -124,6 +212,8 @@ tracker_module_get_file_metadata (const gchar *file)
 				     g_filename_to_utf8 (link_path, -1, NULL, NULL, NULL));
 		g_free (link_path);
 	}
+
+	tracker_metadata_get_embedded (file, mimetype, metadata);
 
 	/* FIXME, Missing:
 	 *

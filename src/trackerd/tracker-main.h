@@ -117,7 +117,6 @@ typedef struct {
 
 	GAsyncQueue      *file_process_queue;
 	GAsyncQueue      *file_metadata_queue; 
-	GAsyncQueue      *dir_queue;
 
 	GMutex           *files_check_mutex;
 	GMutex           *files_signal_mutex;

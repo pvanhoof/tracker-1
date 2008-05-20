@@ -1,5 +1,12 @@
 2008-05-20  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-main.[ch]:
+	* src/trackerd/tracker-process-files.c: Moved the
+	tracker->dir_queue to tracker-process-files.c since it is only
+	used there.
+
+2008-05-20  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-log.[ch]: Changed
 	tracker_log_term() to tracker_log_shutdown() and removed the
 	domain parameter when initialising because we want to log ALL

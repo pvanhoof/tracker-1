@@ -52,6 +52,8 @@
 #include "tracker-status.h"
 #include "tracker-process-files.h"
 
+static GAsyncQueue  *dir_queue;
+
 static GSList       *ignore_pattern_list;
 static GSList       *temp_black_list;
 static GSList       *crawl_directories;
@@ -1104,10 +1106,10 @@ process_files (Tracker *tracker, DBConnection *db_con)
         /* Check dir_queue in case there are
          * directories waiting to be indexed.
          */
-        if (g_async_queue_length (tracker->dir_queue) > 0) {
+        if (g_async_queue_length (dir_queue) > 0) {
                 gchar *uri;
                 
-                uri = g_async_queue_try_pop (tracker->dir_queue);
+                uri = g_async_queue_try_pop (dir_queue);
                 
                 if (uri) {
                         process_check_directory (tracker, uri);
@@ -1291,7 +1293,7 @@ process_action (Tracker           *tracker,
         case TRACKER_DB_ACTION_DIRECTORY_REFRESH:
                 if (need_index && 
                     tracker_process_files_should_be_watched (tracker->config, info->uri)) {
-                        g_async_queue_push (tracker->dir_queue, g_strdup (info->uri));
+                        g_async_queue_push (dir_queue, g_strdup (info->uri));
                         
                         if (tracker_index_stage_get () != TRACKER_INDEX_STAGE_EMAILS) {
                                 tracker->folders_count++;
@@ -1304,7 +1306,7 @@ process_action (Tracker           *tracker,
         case TRACKER_DB_ACTION_DIRECTORY_CHECK:
                 if (need_index && 
                     tracker_process_files_should_be_watched (tracker->config, info->uri)) {
-                        g_async_queue_push (tracker->dir_queue, g_strdup (info->uri));
+                        g_async_queue_push (dir_queue, g_strdup (info->uri));
 			
                         if (info->indextime > 0) {
                                 process_index_delete_directory_check (tracker, info->uri, db_con);
@@ -1501,24 +1503,30 @@ process_is_in_path (const gchar *uri,
 gpointer
 tracker_process_files (gpointer data)
 {
-	DBConnection *db_con = tracker_db_connect_all ();
-	Tracker  *tracker;
-        GObject  *object;
-	GSList	 *moved_from_list; /* List to hold moved_from
-                                    * events whilst waiting for a
-                                    * matching moved_to event.
-                                    */
-	gboolean  pushed_events;
-        gboolean  first_run;
-        gint      initial_sleep;
+	Tracker      *tracker;
+	DBConnection *db_con; 
+        GObject      *object;
+	GSList	     *moved_from_list; /* List to hold moved_from
+                                        * events whilst waiting for a
+                                        * matching moved_to event.
+                                        */
+	gboolean      pushed_events;
+        gboolean      first_run;
+        gint          initial_sleep;
 
+        /* Set up thread */
         process_block_signals (); 
-
-        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
 
         tracker = (Tracker*) data;
 
+        /* Lock this process */
  	g_mutex_lock (tracker->files_signal_mutex);
+
+        /* Get pointers we need */
+        db_con = tracker_db_connect_all ();
+        object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
+
+	dir_queue = g_async_queue_new ();
 
         tracker->pause_io = TRUE;
 
@@ -1753,11 +1761,15 @@ tracker_process_files (gpointer data)
 
 	tracker_db_close_all (db_con);
 
+        /* Clean up */
+	if (dir_queue) {
+		g_async_queue_unref (dir_queue);
+	}
+
         g_mutex_unlock (tracker->files_signal_mutex);
 
         g_message ("Process thread now finishing");
 
-        g_thread_exit (NULL);
         return NULL;
 }
 

@@ -874,7 +874,6 @@ main (gint argc, gchar *argv[])
 	tracker = g_new0 (Tracker, 1);
 
 	tracker->pid = getpid ();
-	tracker->dir_queue = g_async_queue_new ();
 
 	tracker->max_process_queue_size = MAX_PROCESS_QUEUE_SIZE;
 	tracker->max_extract_queue_size = MAX_EXTRACT_QUEUE_SIZE;
@@ -1075,10 +1074,6 @@ main (gint argc, gchar *argv[])
 
 	if (tracker->file_metadata_queue) {
 		g_async_queue_unref (tracker->file_metadata_queue);
-	}
-
-	if (tracker->dir_queue) {
-		g_async_queue_unref (tracker->dir_queue);
 	}
 
 	return EXIT_SUCCESS;

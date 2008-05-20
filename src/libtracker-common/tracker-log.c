@@ -36,7 +36,6 @@
 
 typedef struct {
 	GMutex   *mutex;
-	gchar    *domain;
 	gchar    *filename;
 	gint      verbosity;
 	gboolean  abort_on_error;
@@ -116,11 +115,9 @@ tracker_log_handler (const gchar    *domain,
 }
 
 void
-tracker_log_init (const gchar *domain,
-		  const gchar *filename,
+tracker_log_init (const gchar *filename,
 		  gint         verbosity)
 {
-	g_return_if_fail (domain != NULL);
 	g_return_if_fail (filename != NULL);
 
 	if (log != NULL) {
@@ -129,7 +126,6 @@ tracker_log_init (const gchar *domain,
 	}
 
 	log = g_new0 (TrackerLog, 1);
-	log->domain = g_strdup (domain);
 	log->filename = g_strdup (filename);
 	log->mutex = g_mutex_new ();
 	log->verbosity = verbosity;
@@ -139,7 +135,7 @@ tracker_log_init (const gchar *domain,
 }
 
 void
-tracker_log_term (void) 
+tracker_log_shutdown (void) 
 {
 	g_return_if_fail (log != NULL);
 
@@ -147,7 +143,6 @@ tracker_log_term (void)
 	log_handler_id = 0;
 
 	g_mutex_free (log->mutex);
-	g_free (log->domain);
 	g_free (log->filename);
 	g_free (log);
 

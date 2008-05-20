@@ -38,6 +38,8 @@ typedef struct {
 	gint    num_of_change;
 } TrackerDBFileChange;
 
+void               tracker_db_init                 (void);
+void               tracker_db_shutdown             (void);
 gboolean           tracker_db_is_file_up_to_date   (DBConnection         *db_con,
 						    const gchar          *uri,
 						    guint32              *id);

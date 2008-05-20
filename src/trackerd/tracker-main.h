@@ -101,7 +101,6 @@ typedef struct {
 	gint              email_service_max; 
 
 	/* Queue for recorad file changes */
-	GQueue           *file_change_queue; 
 	gboolean          black_list_timer_active;
 	
 	/* Progress info for merges */

@@ -184,6 +184,28 @@ tracker_db_manager_init (const gchar *data_dir,
         }
 }
 
+void
+tracker_db_manager_shutdown (void) 
+{
+        gint dbs, i;
+
+        if (!initialized) {
+                return;
+        }
+
+        initialized = FALSE;
+
+        dbs = sizeof (tracker_db_definitions) /sizeof (TrackerDBDefinition);
+
+        for (i = 0; i < dbs; i++) {
+                if (tracker_db_definitions[i].abs_filename) {
+                        g_free (tracker_db_definitions[i].abs_filename);
+                }
+        }
+
+        g_free (services_dir);
+        g_free (sql_dir);
+}
 
 const gchar *
 tracker_db_manager_get_file (TrackerDatabase db) 
@@ -234,25 +256,3 @@ tracker_db_manager_get_name (TrackerDatabase  db)
         return tracker_dbs[db]->name;
 }
 
-void
-tracker_db_manager_term () 
-{
-        gint dbs, i;
-
-        if (!initialized) {
-                return;
-        }
-
-        initialized = FALSE;
-
-        dbs = sizeof (tracker_db_definitions) /sizeof (TrackerDBDefinition);
-
-        for (i = 0; i < dbs; i++) {
-                if (tracker_db_definitions[i].abs_filename) {
-                        g_free (tracker_db_definitions[i].abs_filename);
-                }
-        }
-
-        g_free (services_dir);
-        g_free (sql_dir);
-}

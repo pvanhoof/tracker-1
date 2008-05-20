@@ -40,6 +40,7 @@ typedef enum {
 void         tracker_db_manager_init              (const gchar     *data_dir,
                                                    const gchar     *user_data_dir,
                                                    const gchar     *sys_tmp_root_dir);
+void         tracker_db_manager_shutdown          (void);
 
 const gchar *tracker_db_manager_get_file          (TrackerDatabase  db);
 gboolean     tracker_db_manager_file_exists       (TrackerDatabase  db);
@@ -49,8 +50,6 @@ gint         tracker_db_manager_get_cache_size    (TrackerDatabase  db);
 gint         tracker_db_manager_get_page_size     (TrackerDatabase  db);
 gboolean     tracker_db_manager_get_add_functions (TrackerDatabase  db);
 const gchar *tracker_db_manager_get_name          (TrackerDatabase  db);
-
-void         tracker_db_manager_term              (void);
 
 G_END_DECLS
 

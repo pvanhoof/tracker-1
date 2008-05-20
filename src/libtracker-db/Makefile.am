@@ -4,7 +4,7 @@ INCLUDES =								\
 	$(GMIME_CFLAGS)							\
 	$(SQLITE3_CFLAGS)						\
 	$(QDBM_CFLAGS)							\
-	-DG_LOG_DOMAIN=\"Ttracker\"					\
+	-DG_LOG_DOMAIN=\"Tracker\"					\
 	-I$(top_srcdir)/src
 
 noinst_LTLIBRARIES = libtracker-db.la

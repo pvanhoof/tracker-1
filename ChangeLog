@@ -1,5 +1,28 @@
 2008-05-20  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-log.[ch]: Changed
+	tracker_log_term() to tracker_log_shutdown() and removed the
+	domain parameter when initialising because we want to log ALL
+	domains. 
+	
+	* src/libtracker-common/tracker-nfs-lock.[ch]:
+	* src/trackerd/tracker-db-manager.[ch]:
+	* src/trackerd/tracker-ontology.[ch]: Changed _term() function to
+	_shutdown() to be consistent.
+
+	* src/libtracker-db/Makefile.am:
+	* src/trackerd/Makefile.am: Make sure we define the G_LOG_DOMAIN
+	correctly.
+	
+	* src/trackerd/tracker-db.[ch]: Added an _init() and _shutdown()
+	function to handle the GQueue creation and clean up.
+	
+	* src/trackerd/tracker-main.[ch]: Moved the file_change_queue out
+	of the Tracker struct and into tracker-db.c since that's the only
+	place it is used. 
+
+2008-05-20  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-dbus.c: 
 	* src/trackerd/tracker-main.[ch]: Moved the database connections
 	only used in the tracker-dbus module out of the Tracker struct.

@@ -1,9 +1,10 @@
 INCLUDES =								\
-	-g 		\
+	-g						 		\
 	-DSHAREDIR=\""$(datadir)"\"					\
 	-DLIBDIR=\""$(libdir)"\"					\
 	-DLOCALEDIR=\""$(localedir)"\" 					\
 	-DMAIL_MODULES_DIR=\""$(libdir)"/tracker/mail-modules\"         \
+	-DG_LOG_DOMAIN=\"Tracker\"					\
 	$(GLIB2_CFLAGS)							\
 	$(GMODULE_CFLAGS)						\
 	$(PANGO_CFLAGS)							\

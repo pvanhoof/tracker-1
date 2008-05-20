@@ -219,13 +219,6 @@ get_lock_file (void)
 }
 
 static void
-free_file_change_queue (gpointer data, gpointer user_data)
-{
-	TrackerDBFileChange *change = (TrackerDBFileChange *) data;
-	tracker_db_file_change_free (&change);
-}
-
-static void
 reset_blacklist_file (gchar *uri)
 {
 	gchar *dirname;
@@ -939,8 +932,7 @@ main (gint argc, gchar *argv[])
 	}
 
 	/* Initialise other subsystems */
-	tracker_log_init (G_LOG_DOMAIN,
-			  log_filename,
+	tracker_log_init (log_filename,
 			  tracker_config_get_verbosity (tracker->config));
 	g_message ("Starting log");
 	
@@ -951,6 +943,7 @@ main (gint argc, gchar *argv[])
 
 	tracker_nfs_lock_init (tracker->root_dir,
 			       tracker_config_get_nfs_locking (tracker->config));
+	tracker_db_init ();
 	tracker_db_manager_init (tracker->data_dir,
 				 tracker->user_data_dir,
 				 tracker->sys_tmp_root_dir);
@@ -1041,14 +1034,6 @@ main (gint argc, gchar *argv[])
 	g_slist_foreach (l, (GFunc) reset_blacklist_file, NULL);
 	g_slist_free (l);
 
-	/* Remove file change queue */
-	if (tracker->file_change_queue) {
-		g_queue_foreach (tracker->file_change_queue,
-				 free_file_change_queue, NULL);
-		g_queue_free (tracker->file_change_queue);
-		tracker->file_change_queue = NULL;
-	}
-
 	/* Set kill timeout */
 	g_timeout_add_full (G_PRIORITY_LOW, 20000, shutdown_timeout_cb, NULL, NULL);
 
@@ -1065,12 +1050,13 @@ main (gint argc, gchar *argv[])
 
 	tracker_email_shutdown ();
 	tracker_dbus_shutdown ();
-	tracker_ontology_term ();
+	tracker_ontology_shutdown ();
 	tracker_cache_shutdown ();
 	tracker_xesam_shutdown ();
-	tracker_db_manager_term ();
-	tracker_nfs_lock_term ();
-	tracker_log_term ();
+	tracker_db_shutdown ();
+	tracker_db_manager_shutdown ();
+	tracker_nfs_lock_shutdown ();
+	tracker_log_shutdown ();
 
 	if (tracker->language) {
 		g_object_unref (tracker->language);

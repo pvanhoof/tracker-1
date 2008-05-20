@@ -30,7 +30,7 @@
 G_BEGIN_DECLS
 
 void                tracker_ontology_init                         (void);
-void                tracker_ontology_term                         (void);
+void                tracker_ontology_shutdown                     (void);
 void                tracker_ontology_add_service_type             (TrackerService *service,
 								   GSList         *mimes,
 								   GSList         *mime_prefixes);

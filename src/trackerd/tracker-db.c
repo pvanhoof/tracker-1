@@ -53,6 +53,8 @@ typedef struct {
 	GHashTable	*table;
 } DatabaseAction;
 
+GQueue *file_change_queue;
+
 static void
 free_metadata_list (GSList *list) 
 {
@@ -590,7 +592,7 @@ refresh_file_change_queue (gpointer data, gpointer user_data)
 	gint *current = (gint *)user_data;
 
 	if ((*current - change->first_change_time) > MAX_DURATION) {
-		g_queue_remove_all (tracker->file_change_queue, data);
+		g_queue_remove_all (file_change_queue, data);
 		tracker_db_file_change_free (&change);
 	}
 }
@@ -626,7 +628,7 @@ print_file_change_queue (void)
 	TrackerDBFileChange *change;
 	gint                 count;
 
-	head = g_queue_peek_head_link (tracker->file_change_queue);
+	head = g_queue_peek_head_link (file_change_queue);
 
 	g_message ("File Change queue is:");
 	count = 1;
@@ -639,6 +641,13 @@ print_file_change_queue (void)
 			   change->num_of_change);
 	}
 	
+}
+
+static void
+free_file_change_queue (gpointer data, gpointer user_data)
+{
+	TrackerDBFileChange *change = (TrackerDBFileChange *) data;
+	tracker_db_file_change_free (&change);
 }
 
 static void
@@ -689,18 +698,13 @@ check_uri_changed_frequently (const char *uri)
 	TrackerDBFileChange *change;
 	time_t               current;
 
-	if (!tracker->file_change_queue) {
-		/* init queue */
-		tracker->file_change_queue = g_queue_new ();
-	}
-
 	current = time (NULL);
 
 	/* remove items which are very old */
-	g_queue_foreach (tracker->file_change_queue,
+	g_queue_foreach (file_change_queue,
 			 refresh_file_change_queue, &current);
 
-	find = g_queue_find_custom (tracker->file_change_queue, uri, uri_comp);
+	find = g_queue_find_custom (file_change_queue, uri, uri_comp);
 	if (!find) {
 		/* not found, add to in the queue */
 				
@@ -708,18 +712,18 @@ check_uri_changed_frequently (const char *uri)
 		change->uri = g_strdup (uri);
 		change->first_change_time = current;
 		change->num_of_change = 1;
-		if (g_queue_get_length (tracker->file_change_queue) == STACK_SIZE) {
-			TrackerDBFileChange *tmp = g_queue_pop_head (tracker->file_change_queue);
+		if (g_queue_get_length (file_change_queue) == STACK_SIZE) {
+			TrackerDBFileChange *tmp = g_queue_pop_head (file_change_queue);
 			tracker_db_file_change_free (&tmp);
 		}
-		g_queue_insert_sorted (tracker->file_change_queue, change,
+		g_queue_insert_sorted (file_change_queue, change,
 					file_change_sort_comp, NULL);
 		print_file_change_queue ();
 		return FALSE;
 	} else {
 		change = (TrackerDBFileChange *) find->data;
 		(change->num_of_change)++;
-		g_queue_sort (tracker->file_change_queue,
+		g_queue_sort (file_change_queue,
 			file_change_sort_comp, NULL);
 		if (change->num_of_change < MAX_CHANGE_TIMES) {
 			print_file_change_queue ();
@@ -738,7 +742,7 @@ check_uri_changed_frequently (const char *uri)
 				g_timeout_add_seconds (BLACK_LIST_SECONDS, (GSourceFunc) index_black_list, NULL);
 			}
 			
-			g_queue_remove_all (tracker->file_change_queue, change);
+			g_queue_remove_all (file_change_queue, change);
 			tracker_db_file_change_free (&change);
 			
 			return TRUE;
@@ -1329,4 +1333,27 @@ tracker_db_file_change_free (TrackerDBFileChange **change)
 	g_free ((*change)->uri);
 	(*change)->uri = NULL;
 	*change = NULL;
+}
+
+void
+tracker_db_init (void)
+{
+	if (file_change_queue)  {
+		return;
+	}
+	
+	file_change_queue = g_queue_new ();
+}
+
+void
+tracker_db_shutdown (void)
+{
+	if (!file_change_queue) {
+		return;
+	}
+
+	g_queue_foreach (file_change_queue,
+			 free_file_change_queue, NULL);
+	g_queue_free (file_change_queue);
+	file_change_queue = NULL;
 }

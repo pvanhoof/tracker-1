@@ -169,7 +169,7 @@ tracker_nfs_lock_init (const gchar *root_dir, gboolean nfs)
 }
 
 void
-tracker_nfs_lock_term (void)
+tracker_nfs_lock_shutdown (void)
 {
         if (!is_initialized ()) {
 		return;

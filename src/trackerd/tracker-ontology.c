@@ -132,7 +132,7 @@ tracker_ontology_init (void)
 }
 
 void
-tracker_ontology_term (void)
+tracker_ontology_shutdown (void)
 {
 	g_hash_table_remove_all (service_directory_table);
 	g_hash_table_remove_all (service_id_table);

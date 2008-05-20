@@ -26,10 +26,9 @@
 
 G_BEGIN_DECLS
 
-void     tracker_log_init               (const gchar   *domain,
-					 const char    *filename,
-					 gint           verbosity);
-void     tracker_log_term               (void);
+void     tracker_log_init               (const char *filename,
+					 gint        verbosity);
+void     tracker_log_shutdown           (void);
 
 G_END_DECLS
 

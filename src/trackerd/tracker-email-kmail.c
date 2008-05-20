@@ -233,7 +233,7 @@ tracker_email_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
 
                                 MailStore *store = tracker_db_email_get_mbox_details (db_con, info->uri);
                                 if (!store) {
-                                        tracker_error ("ERROR: could not retrieve store for file %s", info->uri);
+                                        g_critical ("Could not retrieve store for file:'%s'", info->uri);
                                         return FALSE;
                                 }
 
@@ -391,7 +391,7 @@ load_kmail_config (KMailConfig **conf)
         return TRUE;
 
  error:
-        tracker_error ("ERROR: file \"%s\" cannot be loaded", m_conf->kmailrc_path);
+        g_critical ("File:'%s' can not be loaded", m_conf->kmailrc_path);
         free_kmail_config (*conf);
         *conf = NULL;
         return FALSE;
@@ -719,17 +719,17 @@ index_mail_file_in_maildir_dir (DBConnection *db_con, const gchar *dir, TrackerD
 
         store = tracker_db_email_get_mbox_details (db_con, dir);
         if (!store) {
-                tracker_error ("ERROR: could not retrieve store for directory %s", dir);
+                g_warning ("Could not retrieve store for directory:'%s'", dir);
                 return FALSE;
         }
 
-        tracker_log ("Looking for email file \"%s\"", info->uri);
+        g_message ("Looking for email file:'%s'", info->uri);
 
         if (!tracker_db_email_is_saved_email_file (db_con, info->uri)) {
                 MailMessage *mail_msg = email_parse_mail_message_by_path (MAIL_APP_KMAIL, info->uri, NULL, NULL, NULL);
 
                 if (!mail_msg) {
-                        tracker_log ("WARNING: email %s not found", info->uri);
+                        g_warning ("Email:'%s' not found", info->uri);
                         tracker_db_email_free_mail_store (store);
                         return FALSE;
                 }
@@ -752,7 +752,7 @@ index_mail_file_in_maildir_dir (DBConnection *db_con, const gchar *dir, TrackerD
                    suffix ":2,S"... For us it just means that trackerd will see a file being deleted and it
                    will remove it from its database.
                 */
-                tracker_log ("Nothing need to be done, email file \"%s\" is already up to date", info->uri) ;
+                g_message ("Nothing need to be done, email file:'%s' is already up to date", info->uri) ;
         }
 
         tracker_db_email_free_mail_store (store);

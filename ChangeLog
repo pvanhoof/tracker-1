@@ -1,5 +1,15 @@
 2008-05-20  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-email-kmail.c:
+	* src/trackerd/tracker-email-thunderbird.c: Fixed some
+	tracker_log() calls to use g_message() and the same for
+	tracker_error(), etc.
+	
+	* src/trackerd/tracker-ontology.h: Renamed the header #define to
+	ONTOLOGY and lined up functions.
+
+2008-05-20  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/Makefile.am:
 	* src/libtracker-common/tracker-file-utils.c: 
 	* src/libtracker-common/tracker-language.c:

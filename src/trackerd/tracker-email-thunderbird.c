@@ -131,7 +131,7 @@ void
 tracker_email_watch_emails (DBConnection *db_con)
 {
         if( thunderbird_mail_dir != NULL ) {
-            tracker_log("Thunderbird directory lookup: \"%s\"", thunderbird_mail_dir);
+            g_message ("Thunderbird directory lookup: \"%s\"", thunderbird_mail_dir);
             email_watch_directory(thunderbird_mail_dir, "ThunderbirdEmails");
         }
 }
@@ -146,7 +146,7 @@ tracker_email_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
 	if (!thunderbird_file_is_interesting (info))
 		return FALSE;
 
-        tracker_log ("Thunderbird file index: \"%s\"\n",info->uri);
+        g_message ("Thunderbird file being index:'%s'",info->uri);
         if (email_parse_mail_tms_file_and_save_new_emails (db_con, MAIL_APP_THUNDERBIRD, info->uri)) {
                 unlink(info->uri);
         }
@@ -214,7 +214,8 @@ email_parse_mail_tms_file_by_path (MailApplication mail_app, const gchar *path)
         mail_msg->parent_mail_file->path = g_strdup (path);
 
 	if (!g_file_get_contents(path, &contents, &length, &error)) {
-                tracker_log ("Error reading Thunderbird message summary %s\n", error->message);
+                g_warning ("Could not read Thunderbird message summary, %s", 
+                           error->message);
 		g_error_free (error);
 		return mail_msg;
 	}
@@ -223,12 +224,12 @@ email_parse_mail_tms_file_by_path (MailApplication mail_app, const gchar *path)
                                               parser_data, free_parser_data);
 
         if (!g_markup_parse_context_parse(context, contents, length, NULL)) {
-		tracker_log ("Error parsing context with length \n");
+		g_warning ("Could not parse markup context with length:%d", length);
                 goto end;
 	}
 
 	if (!g_markup_parse_context_end_parse(context, NULL)) {
-                tracker_log ("Error parsing context \n");
+                g_warning ("Could not parse markup context");
                 goto end;
 	}
 

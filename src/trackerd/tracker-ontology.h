@@ -19,8 +19,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKERD_SERVICE_MANAGER_H__
-#define __TRACKERD_SERVICE_MANAGER_H__
+#ifndef __TRACKERD_ONTOLOGY_H__
+#define __TRACKERD_ONTOLOGY_H__
 
 #include <glib-object.h>
 
@@ -76,9 +76,7 @@ const TrackerField *tracker_ontology_get_field_def                (const gchar  
 const gchar *       tracker_ontology_get_field_id                 (const gchar    *name);
 
 
-
-
 G_END_DECLS
 
-#endif /* __TRACKERD_SERVICE_MANAGER_H__ */
+#endif /* __TRACKERD_ONTOLOGY_H__ */
 

@@ -43,8 +43,6 @@ typedef enum {
 
 GType tracker_field_type_get_type (void) G_GNUC_CONST;
 
-
-
 #define TRACKER_TYPE_FIELD         (tracker_field_get_type ())
 #define TRACKER_FIELD(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_FIELD, TrackerField))
 #define TRACKER_FIELD_CLASS(k)     (G_TYPE_CHECK_CLASS_CAST ((k), TRACKER_TYPE_FIELD, TrackerFieldClass))
@@ -63,47 +61,46 @@ struct _TrackerFieldClass {
 	GObjectClass parent_class;
 };
 
-GType           tracker_field_get_type                     (void) G_GNUC_CONST;
+GType            tracker_field_get_type            (void) G_GNUC_CONST;
 
 TrackerField *   tracker_field_new                 (void);
 
-const gchar *    tracker_field_get_id              (const TrackerField     *field);
-const gchar *    tracker_field_get_name            (const TrackerField     *field);
-TrackerFieldType tracker_field_get_data_type       (const TrackerField     *field);
-const gchar *    tracker_field_get_field_name      (const TrackerField     *field);
-gint             tracker_field_get_weight          (const TrackerField     *service);
-gboolean         tracker_field_get_embedded        (const TrackerField     *field);
-gboolean         tracker_field_get_multiple_values (const TrackerField     *field);
-gboolean         tracker_field_get_delimited       (const TrackerField     *field);
-gboolean         tracker_field_get_filtered        (const TrackerField     *field);
-gboolean         tracker_field_get_store_metadata  (const TrackerField     *field);
-const GSList *   tracker_field_get_child_ids       (const TrackerField     *field);
+const gchar *    tracker_field_get_id              (const TrackerField *field);
+const gchar *    tracker_field_get_name            (const TrackerField *field);
+TrackerFieldType tracker_field_get_data_type       (const TrackerField *field);
+const gchar *    tracker_field_get_field_name      (const TrackerField *field);
+gint             tracker_field_get_weight          (const TrackerField *service);
+gboolean         tracker_field_get_embedded        (const TrackerField *field);
+gboolean         tracker_field_get_multiple_values (const TrackerField *field);
+gboolean         tracker_field_get_delimited       (const TrackerField *field);
+gboolean         tracker_field_get_filtered        (const TrackerField *field);
+gboolean         tracker_field_get_store_metadata  (const TrackerField *field);
+const GSList *   tracker_field_get_child_ids       (const TrackerField *field);
+void             tracker_field_set_id              (TrackerField       *field,
+						    const gchar        *value);
 
-void             tracker_field_set_id              (TrackerField     *field,
-						    const gchar      *value);
-void             tracker_field_set_name            (TrackerField     *field,
-						    const gchar      *value);
-void             tracker_field_set_data_type       (TrackerField     *field,
-						    TrackerFieldType  value);
-void             tracker_field_set_field_name      (TrackerField     *field,
-						    const gchar      *value);
-void             tracker_field_set_weight          (TrackerField *field,
-						    gint value);
-void             tracker_field_set_embedded        (TrackerField     *field,
-						    gboolean          value);
-void             tracker_field_set_multiple_values (TrackerField     *field,
-						    gboolean          value);
-void             tracker_field_set_delimited       (TrackerField     *field,
-						    gboolean          value);
-void             tracker_field_set_filtered        (TrackerField     *field,
-						    gboolean          value);
-void             tracker_field_set_store_metadata  (TrackerField     *field,
-						    gboolean          value);
-
-void            tracker_field_set_child_ids        (TrackerField *field,
-						    const GSList   *value);
-void            tracker_field_append_child_id      (TrackerField *field,
-						    const gchar *id);
+void             tracker_field_set_name            (TrackerField       *field,
+						    const gchar        *value);
+void             tracker_field_set_data_type       (TrackerField       *field,
+						    TrackerFieldType    value);
+void             tracker_field_set_field_name      (TrackerField       *field,
+						    const gchar        *value);
+void             tracker_field_set_weight          (TrackerField       *field,
+						    gint                value);
+void             tracker_field_set_embedded        (TrackerField       *field,
+						    gboolean            value);
+void             tracker_field_set_multiple_values (TrackerField       *field,
+						    gboolean            value);
+void             tracker_field_set_delimited       (TrackerField       *field,
+						    gboolean            value);
+void             tracker_field_set_filtered        (TrackerField       *field,
+						    gboolean            value);
+void             tracker_field_set_store_metadata  (TrackerField       *field,
+						    gboolean            value);
+void             tracker_field_set_child_ids       (TrackerField       *field,
+						    const GSList       *value);
+void             tracker_field_append_child_id     (TrackerField       *field,
+						    const gchar        *id);
 
 G_END_DECLS
 

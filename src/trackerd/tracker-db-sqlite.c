@@ -4593,7 +4593,6 @@ tracker_db_get_static_data (DBConnection *db_con)
 
 	if (result_set) {
 		gboolean valid = TRUE;
-		gchar *name;
 		gint id;
 
 		while (valid) {
@@ -4625,8 +4624,6 @@ tracker_db_get_static_data (DBConnection *db_con)
 				   tracker_field_get_weight (def));
 				   
 			tracker_ontology_add_field (def);
-
-			g_free (name);
 
 			valid = tracker_db_result_set_iter_next (result_set);
 		}

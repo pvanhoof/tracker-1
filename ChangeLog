@@ -1,5 +1,11 @@
 2008-05-21  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/trackerd/tracker-parser.c (strip_word): Also, don't check for
+	tracker->strip_accents, it doesn't exist anymore, and was always set
+	to TRUE.
+
+2008-05-21  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/trackerd/tracker-parser.c (strip_word): use GLib API to issue
 	a warning.
 

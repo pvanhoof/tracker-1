@@ -110,21 +110,18 @@ strip_word (const gchar *str,
             gint         length, 
             guint32     *len)
 {
-	*len = length;
-
 #ifdef HAVE_UNAC
-	if (tracker->strip_accents) {
-		gchar *s = NULL;
+	gchar *s = NULL;
 
-		if (unac_string ("UTF-8", str, length, &s, &*len) != 0) {
-			g_warning ("UNAC failed to strip accents");
-		}
-
-		return s;
+	if (unac_string ("UTF-8", str, length, &s, &*len) != 0) {
+		g_warning ("UNAC failed to strip accents");
 	}
-#endif	
 
+	return s;
+#else
+	*len = length;
 	return NULL;	
+#endif
 }
 
 static gboolean

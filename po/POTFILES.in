@@ -11,10 +11,11 @@ src/libtracker/tracker-search.c
 src/libtracker/tracker-stats.c
 src/libtracker/tracker-status.c
 src/libtracker/tracker-tag.c
-src/trackerd/trackerd.c
-src/tracker-applet/tracker-applet.desktop.in.in
 src/tracker-applet/tracker-applet.c
+src/tracker-applet/tracker-applet.desktop.in.in
 src/tracker-applet/tracker-applet-prefs.glade
+src/trackerd/tracker-main.c
+src/tracker-indexer/main.c
 src/tracker-indexer/tracker-indexer.c
 src/tracker-preferences/tracker-preferences.c
 src/tracker-preferences/tracker-preferences.desktop.in.in

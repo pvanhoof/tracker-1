@@ -169,14 +169,10 @@ trackerd_LDADD =							\
 	$(trackerd_win_libs)
 
 tracker-marshal.h: tracker-marshal.list
-	($(GLIB_GENMARSHAL) --prefix=tracker_marshal tracker-marshal.list --header) > xgen-gmh \
-	&& (cmp -s xgen-gmh tracker-marshal.h || cp xgen-gmh tracker-marshal.h) \
-	&& rm -f xgen-gmh xgen-gmh~
+	$(GLIB_GENMARSHAL) $< --prefix=tracker_marshal --header > $@
 
 tracker-marshal.c: tracker-marshal.list
-	($(GLIB_GENMARSHAL) --prefix=tracker_marshal tracker-marshal.list --body) > xgen-gmc \
-	&& cp xgen-gmc tracker-marshal.c \
-	&& rm -f xgen-gmc xgen-gmc~
+	$(GLIB_GENMARSHAL) $< --prefix=tracker_marshal --body > $@
 
 tracker-marshal-main.c: tracker-marshal.c tracker-marshal.h
 

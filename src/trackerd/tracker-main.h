@@ -84,15 +84,11 @@ typedef struct {
 	gint              mbox_processed;
 
 	gint	          grace_period; 
-	gboolean          request_waiting;
 
 	/* Email config options */
 	gint              email_service_min;
 	gint              email_service_max; 
 
-	/* Queue for recorad file changes */
-	gboolean          black_list_timer_active;
-	
 	/* Progress info for merges */
 	gboolean          in_merge; 
 	gint              merge_count; 

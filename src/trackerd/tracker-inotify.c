@@ -179,7 +179,6 @@ process_event (const char *uri, gboolean is_dir, TrackerDBAction action, guint32
                                            moved_to_info->uri);
 
 				tracker->grace_period = 2;
-				tracker->request_waiting = TRUE;
 
 				if (!tracker_file_is_directory (moved_to_info->uri)) {
 					tracker_db_insert_pending_file (main_thread_db_con, moved_from_info->file_id, moved_from_info->uri, moved_to_info->uri, moved_from_info->mime, 0, TRACKER_DB_ACTION_FILE_MOVED_FROM, FALSE, TRUE, -1);

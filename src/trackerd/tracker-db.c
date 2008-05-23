@@ -53,7 +53,8 @@ typedef struct {
 	GHashTable	*table;
 } DatabaseAction;
 
-GQueue *file_change_queue;
+static GQueue   *file_change_queue;
+static gboolean  black_list_timer_active;
 
 static void
 free_metadata_list (GSList *list) 
@@ -670,7 +671,7 @@ index_black_list ()
 
         tracker_process_files_set_temp_black_list (NULL);
 	
-	tracker->black_list_timer_active = FALSE;
+	black_list_timer_active = FALSE;
 	
 	return FALSE;
 
@@ -724,9 +725,11 @@ check_uri_changed_frequently (const char *uri)
 			
                         tracker_process_files_append_temp_black_list (change->uri);
 			
-			if (!tracker->black_list_timer_active) {
-				tracker->black_list_timer_active = TRUE;
-				g_timeout_add_seconds (BLACK_LIST_SECONDS, (GSourceFunc) index_black_list, NULL);
+			if (!black_list_timer_active) {
+				black_list_timer_active = TRUE;
+				g_timeout_add_seconds (BLACK_LIST_SECONDS, 
+						       (GSourceFunc) index_black_list, 
+						       NULL);
 			}
 			
 			g_queue_remove_all (file_change_queue, change);

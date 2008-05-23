@@ -1,5 +1,15 @@
 2008-05-23  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-cache.c: 
+	* src/trackerd/tracker-db.c: 
+	* src/trackerd/tracker-inotify.c:
+	* src/trackerd/tracker-main.h: Removed tracker->request_waiting,
+	it was only ever set, not used. Moved
+	tracker->black_list_timer_active, it is only used in the
+	tracker-db module. 
+
+2008-05-23  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-nfs-lock.[ch]: 
 	* src/libtracker-db/Makefile.am:
 	* src/trackerd/tracker-cache.c:

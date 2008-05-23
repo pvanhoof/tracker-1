@@ -454,8 +454,6 @@ tracker_cache_process_events (DBConnection *db_con,
 		if (tracker->grace_period > 1) {
 			g_message ("Pausing indexer while client requests/disk I/O take place");
 
-			tracker->request_waiting = FALSE;
-
 			if (db_con) {
 				tracker_db_end_index_transaction (db_con);
 				stopped_trans = TRUE;

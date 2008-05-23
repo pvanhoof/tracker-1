@@ -31,7 +31,6 @@
 typedef struct _TrackerFieldPriv TrackerFieldPriv;
 
 struct _TrackerFieldPriv {
-
 	gchar         *id;
 	gchar	      *name;
 
@@ -49,13 +48,13 @@ struct _TrackerFieldPriv {
 
 static void field_finalize     (GObject      *object);
 static void field_get_property (GObject      *object,
-				  guint         param_id,
-				  GValue       *value,
-				  GParamSpec   *pspec);
+				guint         param_id,
+				GValue       *value,
+				GParamSpec   *pspec);
 static void field_set_property (GObject      *object,
-				  guint         param_id,
-				  const GValue *value,
-				  GParamSpec   *pspec);
+				guint         param_id,
+				const GValue *value,
+				GParamSpec   *pspec);
 
 enum {
 	PROP_0,
@@ -79,8 +78,6 @@ tracker_field_type_get_type (void)
 
 	if (etype == 0) {
 		static const GEnumValue values[] = {
-
-
 			{ TRACKER_FIELD_TYPE_KEYWORD,
 			  "TRACKER_FIELD_TYPE_KEYWORD",
 			  "keyword" },
@@ -230,7 +227,7 @@ field_finalize (GObject *object)
 	g_free (priv->id);
 	g_free (priv->name);
 
-	if ( priv->field_name) {
+	if (priv->field_name) {
 		g_free (priv->field_name);
 	}
 
@@ -292,9 +289,9 @@ field_get_property (GObject    *object,
 
 static void
 field_set_property (GObject      *object,
-		      guint         param_id,
-		      const GValue *value,
-		      GParamSpec   *pspec)
+		    guint         param_id,
+		    const GValue *value,
+		    GParamSpec   *pspec)
 {
 	TrackerFieldPriv *priv;
 
@@ -323,27 +320,27 @@ field_set_property (GObject      *object,
 		break;
 	case PROP_EMBEDDED:
 		tracker_field_set_embedded (TRACKER_FIELD (object),
-					     g_value_get_boolean (value));
+					    g_value_get_boolean (value));
 		break;
 	case PROP_MULTIPLE_VALUES:
 		tracker_field_set_multiple_values (TRACKER_FIELD (object),
-					      g_value_get_boolean (value));
+						   g_value_get_boolean (value));
 		break;
 	case PROP_DELIMITED:
 		tracker_field_set_delimited (TRACKER_FIELD (object),
-						  g_value_get_boolean (value));
+					     g_value_get_boolean (value));
 		break;
 	case PROP_FILTERED:
 		tracker_field_set_filtered (TRACKER_FIELD (object),
-						   g_value_get_boolean (value));
+					    g_value_get_boolean (value));
 		break;
 	case PROP_STORE_METADATA:
 		tracker_field_set_store_metadata (TRACKER_FIELD (object),
-						g_value_get_boolean (value));
+						  g_value_get_boolean (value));
 		break;
 	case PROP_CHILD_IDS:
 		tracker_field_set_child_ids (TRACKER_FIELD (object),
-						  g_value_get_pointer (value));
+					     g_value_get_pointer (value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
@@ -353,8 +350,8 @@ field_set_property (GObject      *object,
 
 static gboolean
 field_int_validate (TrackerField *field,
-		      const gchar   *property,
-		      gint	    value)
+		    const gchar   *property,
+		    gint	    value)
 {
 #ifdef G_DISABLE_CHECKS
 	GParamSpec *spec;
@@ -386,7 +383,7 @@ tracker_field_new (void)
 }
 
 const gchar *
-tracker_field_get_id (const TrackerField *field)
+tracker_field_get_id (TrackerField *field)
 {
 	TrackerFieldPriv *priv;
 	
@@ -398,7 +395,7 @@ tracker_field_get_id (const TrackerField *field)
 }
 
 const gchar *
-tracker_field_get_name (const TrackerField *field)
+tracker_field_get_name (TrackerField *field)
 {
 	TrackerFieldPriv *priv;
 	
@@ -410,7 +407,7 @@ tracker_field_get_name (const TrackerField *field)
 }
 
 TrackerFieldType
-tracker_field_get_data_type (const TrackerField *field)
+tracker_field_get_data_type (TrackerField *field)
 {
 	TrackerFieldPriv *priv;
 	
@@ -422,7 +419,7 @@ tracker_field_get_data_type (const TrackerField *field)
 }
 
 const gchar *
-tracker_field_get_field_name (const TrackerField *field)
+tracker_field_get_field_name (TrackerField *field)
 {
 	TrackerFieldPriv *priv;
 	
@@ -434,7 +431,7 @@ tracker_field_get_field_name (const TrackerField *field)
 }
 
 gint
-tracker_field_get_weight (const TrackerField *field)
+tracker_field_get_weight (TrackerField *field)
 {
 	TrackerFieldPriv *priv;
 	
@@ -447,7 +444,7 @@ tracker_field_get_weight (const TrackerField *field)
 
 
 gboolean
-tracker_field_get_embedded (const TrackerField *field)
+tracker_field_get_embedded (TrackerField *field)
 {
 	TrackerFieldPriv *priv;
 	
@@ -460,7 +457,7 @@ tracker_field_get_embedded (const TrackerField *field)
 
 
 gboolean
-tracker_field_get_multiple_values (const TrackerField *field)
+tracker_field_get_multiple_values (TrackerField *field)
 {
 	TrackerFieldPriv *priv;
 	
@@ -472,7 +469,7 @@ tracker_field_get_multiple_values (const TrackerField *field)
 }
 
 gboolean
-tracker_field_get_delimited (const TrackerField *field)
+tracker_field_get_delimited (TrackerField *field)
 {
 	TrackerFieldPriv *priv;
 	
@@ -484,7 +481,7 @@ tracker_field_get_delimited (const TrackerField *field)
 }
 
 gboolean
-tracker_field_get_filtered (const TrackerField *field)
+tracker_field_get_filtered (TrackerField *field)
 {
 	TrackerFieldPriv *priv;
 	
@@ -496,7 +493,7 @@ tracker_field_get_filtered (const TrackerField *field)
 }
 
 gboolean
-tracker_field_get_store_metadata (const TrackerField *field)
+tracker_field_get_store_metadata (TrackerField *field)
 {
 	TrackerFieldPriv *priv;
 	
@@ -509,7 +506,7 @@ tracker_field_get_store_metadata (const TrackerField *field)
 
 
 const GSList *
-tracker_field_get_child_ids (const TrackerField *field)
+tracker_field_get_child_ids (TrackerField *field)
 {
 	TrackerFieldPriv *priv;
 	
@@ -523,7 +520,7 @@ tracker_field_get_child_ids (const TrackerField *field)
 
 void
 tracker_field_set_id (TrackerField *field,
-		      const gchar *value)
+		      const gchar  *value)
 {
 	TrackerFieldPriv *priv;
 
@@ -544,7 +541,7 @@ tracker_field_set_id (TrackerField *field,
 
 void
 tracker_field_set_name (TrackerField *field,
-			  const gchar    *value)
+			const gchar  *value)
 {
 	TrackerFieldPriv *priv;
 
@@ -564,8 +561,8 @@ tracker_field_set_name (TrackerField *field,
 }
 
 void
-tracker_field_set_data_type (TrackerField *field,
-			     TrackerFieldType   value)
+tracker_field_set_data_type (TrackerField     *field,
+			     TrackerFieldType  value)
 {
 	TrackerFieldPriv *priv;
 
@@ -600,7 +597,7 @@ tracker_field_set_field_name (TrackerField *field,
 
 void
 tracker_field_set_weight (TrackerField *field,
-			  gint        value)
+			  gint          value)
 {
 	TrackerFieldPriv *priv;
 	g_return_if_fail (TRACKER_IS_FIELD (field));
@@ -618,7 +615,7 @@ tracker_field_set_weight (TrackerField *field,
 
 void
 tracker_field_set_embedded (TrackerField *field,
-			    gboolean        value)
+			    gboolean      value)
 {
 	TrackerFieldPriv *priv;
 
@@ -633,7 +630,7 @@ tracker_field_set_embedded (TrackerField *field,
 
 void
 tracker_field_set_multiple_values (TrackerField *field,
-			      gboolean        value)
+				   gboolean      value)
 {
 	TrackerFieldPriv *priv;
 
@@ -647,7 +644,7 @@ tracker_field_set_multiple_values (TrackerField *field,
 
 void
 tracker_field_set_delimited (TrackerField *field,
-			     gboolean        value)
+			     gboolean      value)
 {
 	TrackerFieldPriv *priv;
 
@@ -661,7 +658,7 @@ tracker_field_set_delimited (TrackerField *field,
 
 void
 tracker_field_set_filtered (TrackerField *field,
-				   gboolean        value)
+			    gboolean      value)
 {
 	TrackerFieldPriv *priv;
 
@@ -675,7 +672,7 @@ tracker_field_set_filtered (TrackerField *field,
 
 void
 tracker_field_set_store_metadata (TrackerField *field,
-				gboolean        value)
+				  gboolean      value)
 {
 	TrackerFieldPriv *priv;
 
@@ -689,7 +686,7 @@ tracker_field_set_store_metadata (TrackerField *field,
 
 void
 tracker_field_set_child_ids (TrackerField *field,
-			     const GSList   *value)
+			     const GSList *value)
 {
 	TrackerFieldPriv *priv;
 
@@ -721,7 +718,7 @@ tracker_field_set_child_ids (TrackerField *field,
 
 void
 tracker_field_append_child_id (TrackerField *field,
-			       const gchar *value) 
+			       const gchar  *value) 
 {
 	TrackerFieldPriv *priv;
 

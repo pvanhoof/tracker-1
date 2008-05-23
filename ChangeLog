@@ -1,5 +1,16 @@
 2008-05-23  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-db-sqlite.c:
+	* src/trackerd/tracker-db.c:
+	* src/trackerd/tracker-dbus-files.c:
+	* src/trackerd/tracker-field.[ch]:
+	* src/trackerd/tracker-ontology.[ch]: Don't use "const" for
+	TrackerField, it is unnecessary. When cleaning up the
+	TrackerFieldData, there is no need to check the pointer value
+	before calling g_free() either, since g_free() does this for us. 
+
+2008-05-23  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-cache.c: 
 	* src/trackerd/tracker-db.c: 
 	* src/trackerd/tracker-inotify.c:

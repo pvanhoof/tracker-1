@@ -571,8 +571,8 @@ is_equal (const char *s1, const char *s2)
 }
 
 gchar *
-tracker_ontology_get_field_column_in_services (const TrackerField *field, 
-					       const gchar *service_type)
+tracker_ontology_get_field_column_in_services (TrackerField *field, 
+					       const gchar  *service_type)
 {
 	const gchar *field_name;
 	const gchar *meta_name = tracker_field_get_name (field);
@@ -606,7 +606,7 @@ tracker_ontology_get_field_column_in_services (const TrackerField *field,
 }
 
 gchar *
-tracker_ontology_get_display_field (const TrackerField *field)
+tracker_ontology_get_display_field (TrackerField *field)
 {
 	TrackerFieldType type;
 
@@ -624,7 +624,7 @@ tracker_ontology_get_display_field (const TrackerField *field)
 gboolean
 tracker_ontology_field_is_child_of (const gchar *child, const gchar *parent) {
 
-	const TrackerField *def_child, *def_parent;
+	TrackerField *def_child, *def_parent;
 
 	def_child = tracker_ontology_get_field_def (child);
 
@@ -655,7 +655,7 @@ tracker_ontology_field_is_child_of (const gchar *child, const gchar *parent) {
 }
 
 
-const TrackerField *
+TrackerField *
 tracker_ontology_get_field_def (const gchar *name) 
 {
 	return ontology_hash_lookup_by_str (metadata_table, name);
@@ -664,7 +664,7 @@ tracker_ontology_get_field_def (const gchar *name)
 const gchar *
 tracker_ontology_get_field_id (const gchar *name)
 {
-	const TrackerField *field;
+	TrackerField *field;
 
 	field = tracker_ontology_get_field_def (name);
 

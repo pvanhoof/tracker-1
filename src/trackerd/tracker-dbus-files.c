@@ -875,7 +875,7 @@ tracker_dbus_files_get_metadata_for_files_in_folder (TrackerDBusFiles  *object,
 	TrackerDBResultSet   *result_set;
 	guint                 request_id;
 	DBConnection         *db_con;
-	const TrackerField   *defs[255];
+	TrackerField         *defs[255];
 	guint                 i;
 	gchar                *uri_filtered;
 	guint32               file_id;

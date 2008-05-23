@@ -567,7 +567,7 @@ load_metadata_file (TrackerDBInterface *iface, const gchar *filename)
 	gchar 			*service_file, *str_id;
 	gchar                  **groups, **keys;
 	gchar                  **group, **key;
-	const TrackerField      *def;
+	TrackerField            *def;
 	gint                     id;
 	gchar                    *DataTypeArray[11] = {"Keyword", "Indexable", "CLOB", 
 						      "String", "Integer", "Double", 
@@ -589,7 +589,6 @@ load_metadata_file (TrackerDBInterface *iface, const gchar *filename)
 	groups = g_key_file_get_groups (key_file, NULL);
 
 	for (group = groups; *group; group++) {
-
 		def = tracker_ontology_get_field_def (*group);
 
 		if (!def) {
@@ -2142,7 +2141,7 @@ tracker_db_search_files_by_text (DBConnection *db_con, const char *text, int off
 TrackerDBResultSet *
 tracker_db_search_metadata (DBConnection *db_con, const char *service, const char *field, const char *text, int offset, int limit)
 {
-	const TrackerField *def;
+	TrackerField       *def;
 	TrackerDBResultSet *result_set;
 
 	g_return_val_if_fail ((service && field && text), NULL);
@@ -2193,7 +2192,7 @@ TrackerDBResultSet *
 tracker_db_get_metadata (DBConnection *db_con, const char *service, const char *id, const char *key)
 {
 	TrackerDBResultSet *result_set;
-	const TrackerField *def;
+	TrackerField       *def;
 
 	g_return_val_if_fail (id, NULL);
 
@@ -2269,7 +2268,11 @@ tracker_db_get_metadata_delimited (DBConnection *db_con, const char *service, co
 
 
 static void
-update_metadata_index (const char *id, const char *service, const TrackerField *def, const char *old_value, const char *new_value) 
+update_metadata_index (const char   *id, 
+		       const char   *service, 
+		       TrackerField *def, 
+		       const char   *old_value, 
+		       const char   *new_value) 
 {
 	GHashTable *old_table, *new_table;
 	gint        sid;
@@ -2438,10 +2441,16 @@ tracker_db_insert_single_embedded_metadata (DBConnection *db_con, const char *se
 }
 
 void
-tracker_db_insert_embedded_metadata (DBConnection *db_con, const gchar *service, const gchar *id, const gchar *key, gchar **values, gint length, GHashTable *table)
+tracker_db_insert_embedded_metadata (DBConnection  *db_con, 
+				     const gchar   *service, 
+				     const gchar   *id, 
+				     const gchar   *key, 
+				     gchar        **values, 
+				     gint           length, 
+				     GHashTable    *table)
 {
-	gint	key_field = 0;
-	const TrackerField *def;
+	TrackerField *def;
+	gint          key_field = 0;
 
 	if (!service || !id || !key || !values || !values[0]) {
 		return;
@@ -2734,13 +2743,13 @@ tracker_db_set_single_metadata (DBConnection *db_con, const char *service, const
 gchar *
 tracker_db_set_metadata (DBConnection *db_con, const char *service, const gchar *id, const gchar *key, gchar **values, gint length, gboolean do_backup)
 {
-	const TrackerField *def;
-	gchar 		   *old_value = NULL, *new_value = NULL;
-	gboolean 	    update_index;
-	gint		    key_field = 0;
-	gint 		    i;
-	GString 	   *str = NULL;
-	gchar 		   *res_service;
+	TrackerField *def;
+	gchar 	     *old_value = NULL, *new_value = NULL;
+	gboolean      update_index;
+	gint	      key_field = 0;
+	gint          i;
+	GString      *str = NULL;
+	gchar        *res_service;
 	
 
 	g_return_val_if_fail (id && values && key && service, NULL);
@@ -3061,9 +3070,9 @@ void
 tracker_db_delete_metadata_value (DBConnection *db_con, const char *service, const char *id, const char *key, const char *value) 
 {
 
-	char 		   *old_value = NULL, *new_value = NULL, *mvalue;
-	const TrackerField *def;
-	gboolean 	    update_index;
+	char 	     *old_value = NULL, *new_value = NULL, *mvalue;
+	TrackerField *def;
+	gboolean      update_index;
 
 	g_return_if_fail (id && key && service && db_con);
 
@@ -3203,8 +3212,8 @@ void
 tracker_db_delete_metadata (DBConnection *db_con, const char *service, const char *id, const char *key, gboolean update_indexes) 
 {
 	char 		*old_value = NULL;
-	const TrackerField	*def;
-	gboolean 	update_index;
+	TrackerField	*def;
+	gboolean 	 update_index;
 
 	g_return_if_fail (id && key && service && db_con);
 
@@ -5075,7 +5084,7 @@ FieldData *
 tracker_db_get_metadata_field (DBConnection *db_con, const char *service, const char *field_name, int field_count, gboolean is_select, gboolean is_condition)
 {
 	FieldData    *field_data = NULL;
-	const TrackerField *def;
+	TrackerField *def;
 
 	field_data = g_new0 (FieldData, 1);
 
@@ -5252,29 +5261,12 @@ tracker_free_metadata_field (FieldData *field_data)
 {
 	g_return_if_fail (field_data);
 
-	if (field_data->alias) {
-		g_free (field_data->alias);
-	}
-
-	if (field_data->where_field) {
-		g_free (field_data->where_field);
-	}
-
-	if (field_data->field_name) {
-		g_free (field_data->field_name);
-	}
-
-	if (field_data->select_field) {
-		g_free (field_data->select_field);
-	}
-
-	if (field_data->table_name) {
-		g_free (field_data->table_name);
-	}
-
-	if (field_data->id_field) {
-		g_free (field_data->id_field);
-	}
+	g_free (field_data->alias);
+	g_free (field_data->where_field);
+	g_free (field_data->field_name);
+	g_free (field_data->select_field);
+	g_free (field_data->table_name);
+	g_free (field_data->id_field);
 
 	g_free (field_data);
 }

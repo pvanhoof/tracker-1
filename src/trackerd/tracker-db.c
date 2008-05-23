@@ -363,7 +363,7 @@ tracker_db_get_files_in_folder (DBConnection *db_con, const char *folder_uri)
 gboolean
 tracker_metadata_is_date (DBConnection *db_con, const char *meta)
 {
-	const TrackerField *def;
+	TrackerField *def;
 
 	def = tracker_ontology_get_field_def (meta);
 

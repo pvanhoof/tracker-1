@@ -787,16 +787,21 @@ email_add_saved_mail_attachment_to_mail_message (MailMessage *mail_msg, MailAtta
 gchar *
 email_make_tmp_name_for_mail_attachment (const gchar *filename)
 {
+        gchar *email_attachments_dir;
         gchar *str_uint, *tmp_filename, *tmp_name;
 
         g_return_val_if_fail (filename, NULL);
-        g_return_val_if_fail (tracker->email_attachments_dir, NULL);
+
+        email_attachments_dir = g_build_filename (tracker_get_sys_tmp_dir (), 
+                                                  "Attachments", 
+                                                  NULL);
 
         str_uint = tracker_uint_to_string (g_random_int ());
         tmp_filename = g_strconcat (str_uint, "-", filename, NULL);
         g_free (str_uint);
-        tmp_name = g_build_filename (tracker->email_attachments_dir, tmp_filename, NULL);
+        tmp_name = g_build_filename (email_attachments_dir, tmp_filename, NULL);
         g_free (tmp_filename);
+        g_free (email_attachments_dir);
 
         return tmp_name;
 }
@@ -1074,7 +1079,7 @@ find_attachment (GMimeObject *obj, gpointer data)
 			return;
 
 		} else {
-                        /* Decodes email attachment and stores it in tracker->email_attachements_dir
+                        /* Decodes email attachment and stores it in email_attachments_dir
                            to index it latter.
                         */
 

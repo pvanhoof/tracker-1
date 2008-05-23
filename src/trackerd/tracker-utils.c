@@ -29,6 +29,7 @@
 #include "tracker-utils.h"
 #include "tracker-main.h"
 #include "tracker-process-files.h"
+#include "tracker-xesam.h"
 
 extern Tracker *tracker;
 
@@ -130,7 +131,7 @@ tracker_add_metadata_to_table (GHashTable  *meta_table,
 void
 tracker_add_io_grace (const gchar *uri)
 {
-	if (g_str_has_prefix (uri, tracker->xesam_dir)) {
+	if (tracker_xesam_is_uri_in_xesam_dir (uri)) {
 		return;
 	}
 
@@ -143,8 +144,9 @@ tracker_add_io_grace (const gchar *uri)
 gboolean
 tracker_is_low_diskspace (void)
 {
-	struct statvfs st;
-        gint           low_disk_space_limit;
+	struct statvfs  st;
+	const gchar    *data_dir;
+        gint            low_disk_space_limit;
 
         low_disk_space_limit = tracker_config_get_low_disk_space_limit (tracker->config);
 
@@ -152,12 +154,16 @@ tracker_is_low_diskspace (void)
 		return FALSE;
 	}
 
-	if (statvfs (tracker->data_dir, &st) == -1) {
+	data_dir = tracker_get_data_dir ();
+
+	if (statvfs (data_dir, &st) == -1) {
 		static gboolean reported = 0;
-		if (! reported) {
+
+		if (!reported) {
 			reported = 1;
-			g_critical ("Could not statvfs %s", tracker->data_dir);
+			g_critical ("Could not statvfs %s", data_dir);
 		}
+
 		return FALSE;
 	}
 

@@ -26,7 +26,7 @@
 
 G_BEGIN_DECLS
 
-void     tracker_nfs_lock_init     (const gchar *root_dir, gboolean nfs);
+void     tracker_nfs_lock_init     (gboolean nfs);
 void     tracker_nfs_lock_shutdown (void);
 gboolean tracker_nfs_lock_obtain   (void);
 void     tracker_nfs_lock_release  (void);

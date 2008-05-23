@@ -32,6 +32,7 @@
 #include "tracker-dbus.h"
 #include "tracker-dbus-daemon.h"
 #include "tracker-cache.h"
+#include "tracker-main.h"
 #include "tracker-status.h"
 
 #define USE_SLICE
@@ -58,23 +59,26 @@ create_merge_index (const gchar *name)
 	gint     i;
 
 	for (i = 1; i < 1000; i++) {
+		gchar    *filename;
+		gboolean  exists;
+
 		temp_file_name = g_strdup_printf ("%s%d", name, i);
+		filename = g_build_filename (tracker_get_data_dir (), 
+					     temp_file_name, 
+					     NULL);	
+		
+		exists = g_file_test (filename, G_FILE_TEST_EXISTS);
+		g_free (filename);
 
-		char *tmp = g_build_filename (tracker->data_dir, temp_file_name, NULL);	
-
-		if (g_file_test (tmp , G_FILE_TEST_EXISTS)) {
+		if (exists) {
 			g_free (temp_file_name);
-			g_free (tmp);
 			continue;
 		}
-
-		g_free (tmp);
 
 		break;
 	}
 
 	indexer = tracker_indexer_open (temp_file_name, FALSE);
-
 	g_free (temp_file_name);
 
 	return indexer;

@@ -27,18 +27,19 @@
 #include "tracker-xesam.h"
 #include "tracker-main.h"
 
-extern Tracker *tracker;
-
-
 static GHashTable *xesam_sessions; 
+static gchar      *xesam_dir;
 static gboolean    live_search_handler_running = FALSE;
 
 GQuark
 tracker_xesam_error_quark (void)
 {
 	static GQuark quark = 0;
-	if (quark == 0)
+
+	if (quark == 0) {
 		quark = g_quark_from_static_string ("TrackerXesam");
+	}
+
 	return quark;
 }
 
@@ -53,6 +54,8 @@ tracker_xesam_init (void)
 						g_str_equal, 
 						(GDestroyNotify) g_free, 
 						(GDestroyNotify) g_object_unref);
+	
+	xesam_dir = g_build_filename (g_get_home_dir (), ".xesam", NULL);
 }
 
 void
@@ -62,7 +65,11 @@ tracker_xesam_shutdown (void)
 		return;
 	}
 
+	g_free (xesam_dir);
+	xesam_dir = NULL;
+
 	g_hash_table_unref (xesam_sessions);
+	xesam_sessions = NULL;
 }
 
 TrackerXesamSession *
@@ -361,4 +368,10 @@ tracker_xesam_generate_unique_key (void)
 	return key;
 }
 
+gboolean
+tracker_xesam_is_uri_in_xesam_dir (const gchar *uri) 
+{
+	g_return_val_if_fail (uri != NULL, FALSE);
 
+	return g_str_has_prefix (uri, xesam_dir);
+}

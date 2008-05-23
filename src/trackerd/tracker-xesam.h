@@ -57,6 +57,7 @@ TrackerXesamLiveSearch* tracker_xesam_get_live_search        (const gchar       
 							      GError                 **error);
 void                    tracker_xesam_wakeup                 (guint32                  last_id);
 gchar *                 tracker_xesam_generate_unique_key    (void);
+gboolean                tracker_xesam_is_uri_in_xesam_dir    (const gchar             *uri);
 
 G_END_DECLS
 

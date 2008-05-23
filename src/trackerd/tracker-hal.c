@@ -231,14 +231,24 @@ tracker_hal_finalize (GObject *object)
 
 	priv = GET_PRIV (object);
 
-        g_hash_table_destroy (priv->removable_devices);
-        g_hash_table_destroy (priv->mounted_devices);
-        g_hash_table_destroy (priv->all_devices);
+	if (priv->removable_devices) {
+		g_hash_table_unref (priv->removable_devices);
+	}
+
+	if (priv->mounted_devices) {
+		g_hash_table_unref (priv->mounted_devices);
+	}
+
+	if (priv->all_devices) {
+		g_hash_table_unref (priv->all_devices);
+	}
 
         g_free (priv->battery_udi);
 
-        libhal_ctx_set_user_data (priv->context, NULL);
-        libhal_ctx_free (priv->context);
+	if (priv->context) {
+		libhal_ctx_set_user_data (priv->context, NULL);
+		libhal_ctx_free (priv->context);
+	}
 
 	(G_OBJECT_CLASS (tracker_hal_parent_class)->finalize) (object);
 }

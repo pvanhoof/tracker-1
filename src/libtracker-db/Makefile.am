@@ -1,9 +1,6 @@
 INCLUDES =								\
 	-g						 		\
 	$(GLIB2_CFLAGS)							\
-	$(GMIME_CFLAGS)							\
-	$(SQLITE3_CFLAGS)						\
-	$(QDBM_CFLAGS)							\
 	-DG_LOG_DOMAIN=\"Tracker\"					\
 	-I$(top_srcdir)/src
 

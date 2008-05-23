@@ -131,6 +131,10 @@ DBConnection         *main_thread_cache_con;
 static GMainLoop     *main_loop;
 static gchar         *log_filename;
 
+static gchar         *data_dir;
+static gchar         *user_data_dir;
+static gchar         *sys_tmp_dir;
+
 /* Private command line parameters */
 static gchar        **no_watch_dirs;
 static gchar        **watch_dirs;
@@ -194,28 +198,33 @@ static GOptionEntry   entries[] = {
 static gchar *
 get_lock_file (void) 
 {
-	gchar *lock_file, *str;
+	gchar *lock_filename;
+	gchar *filename;
 	
-	str = g_strconcat (g_get_user_name (), "_tracker_lock", NULL);
+	filename = g_strconcat (g_get_user_name (), "_tracker_lock", NULL);
 
 	/* check if setup for NFS usage (and enable atomic NFS safe locking) */
 	if (tracker_config_get_nfs_locking (tracker->config)) {
 		/* Place lock file in tmp dir to allow multiple 
 		 * sessions on NFS 
 		 */
-		lock_file = g_build_filename (tracker->sys_tmp_root_dir, str, NULL);
-
+		lock_filename = g_build_filename (sys_tmp_dir, 
+						  filename, 
+						  NULL);
 	} else {
 		/* Place lock file in home dir to prevent multiple 
 		 * sessions on NFS (as standard locking might be 
 		 * broken on NFS) 
 		 */
-		lock_file = g_build_filename (tracker->root_dir, str, NULL);
+		lock_filename = g_build_filename (g_get_user_data_dir (), 
+						  "tracker", 
+						  filename, 
+						  NULL);
 	}
 
-	g_free (str);
+	g_free (filename);
 
-	return lock_file;
+	return lock_filename;
 }
 
 static void
@@ -466,23 +475,27 @@ initialise_signal_handler (void)
 static void
 initialise_locations (void)
 {
-	gchar *str;
+	gchar *filename;
 	
 	/* Public locations */
-	str = g_strdup_printf ("Tracker-%s.%d", g_get_user_name (), getpid ());
-	tracker->sys_tmp_root_dir = g_build_filename (g_get_tmp_dir (), str, NULL);
-	g_free (str);
+	user_data_dir = g_build_filename (g_get_user_data_dir (), 
+                                          "tracker", 
+                                          "data", 
+                                          NULL);
 
-	tracker->root_dir = g_build_filename (g_get_user_data_dir (), "tracker", NULL);
-	tracker->data_dir = g_build_filename (g_get_user_cache_dir (), "tracker", NULL);
-	tracker->config_dir = g_strdup (g_get_user_config_dir ());
-	tracker->user_data_dir = g_build_filename (tracker->root_dir, "data", NULL);
-	tracker->xesam_dir = g_build_filename (g_get_home_dir (), ".xesam", NULL);
+	data_dir = g_build_filename (g_get_user_cache_dir (), 
+				     "tracker", 
+				     NULL);
 
-        tracker->email_attachments_dir = g_build_filename (tracker->sys_tmp_root_dir, "Attachments", NULL);
+	filename = g_strdup_printf ("Tracker-%s.%d", g_get_user_name (), getpid ());
+	sys_tmp_dir = g_build_filename (g_get_tmp_dir (), filename, NULL);
+	g_free (filename);
 
 	/* Private locations */
-	log_filename = g_build_filename (tracker->root_dir, "tracker.log", NULL);
+	log_filename = g_build_filename (g_get_user_data_dir (), 
+					 "tracker", 
+					 "tracker.log", 
+					 NULL);
 }
 
 static void
@@ -493,8 +506,8 @@ initialise_directories (gboolean *need_index)
 	*need_index = FALSE;
 	
 	/* Remove an existing one */
-	if (g_file_test (tracker->sys_tmp_root_dir, G_FILE_TEST_EXISTS)) {
-		tracker_dir_remove (tracker->sys_tmp_root_dir);
+	if (g_file_test (sys_tmp_dir, G_FILE_TEST_EXISTS)) {
+		tracker_dir_remove (sys_tmp_dir);
 	}
 
 	/* Remove old tracker dirs */
@@ -508,20 +521,22 @@ initialise_directories (gboolean *need_index)
 
 	/* Remove database if we are reindexing */
 	if (reindex || tracker_db_needs_setup ()) {
-		tracker_dir_remove (tracker->data_dir);
+		tracker_dir_remove (data_dir);
 		*need_index = TRUE;
 	}
 
         /* Create other directories we need */
-	if (!g_file_test (tracker->user_data_dir, G_FILE_TEST_EXISTS)) {
-		g_mkdir_with_parents (tracker->user_data_dir, 00755);
+	if (!g_file_test (user_data_dir, G_FILE_TEST_EXISTS)) {
+		g_mkdir_with_parents (user_data_dir, 00755);
 	}
 
-	if (!g_file_test (tracker->data_dir, G_FILE_TEST_EXISTS)) {
-		g_mkdir_with_parents (tracker->data_dir, 00755);
+	if (!g_file_test (data_dir, G_FILE_TEST_EXISTS)) {
+		g_mkdir_with_parents (data_dir, 00755);
 	}
 
-	g_mkdir_with_parents (tracker->email_attachments_dir, 00700);
+        filename = g_build_filename (sys_tmp_dir, "Attachments", NULL);
+	g_mkdir_with_parents (filename, 00700);
+	g_free (filename);
 
 	/* Remove existing log files */
 	tracker_file_unlink (log_filename);
@@ -593,15 +608,13 @@ initialise_databases (gboolean need_index)
 	/* Move final file to index file if present and no files left
 	 * to merge.
 	 */
-	final_index_name = g_build_filename (tracker->data_dir, 
-					     "file-index-final", 
-					     NULL);
+	final_index_name = g_build_filename (data_dir, "file-index-final", NULL);
 	
 	if (g_file_test (final_index_name, G_FILE_TEST_EXISTS) && 
 	    !tracker_indexer_has_tmp_merge_files (INDEX_TYPE_FILES)) {
 		gchar *file_index_name;
 
-		file_index_name = g_build_filename (tracker->data_dir, 
+		file_index_name = g_build_filename (data_dir, 
 						    TRACKER_INDEXER_FILE_INDEX_DB_FILENAME, 
 						    NULL);
 	
@@ -614,7 +627,7 @@ initialise_databases (gboolean need_index)
 	
 	g_free (final_index_name);
 	
-	final_index_name = g_build_filename (tracker->data_dir, 
+	final_index_name = g_build_filename (data_dir, 
 					     "email-index-final", 
 					     NULL);
 	
@@ -622,7 +635,7 @@ initialise_databases (gboolean need_index)
 	    !tracker_indexer_has_tmp_merge_files (INDEX_TYPE_EMAILS)) {
 		gchar *file_index_name;
 
-		file_index_name = g_build_filename (tracker->data_dir, 
+		file_index_name = g_build_filename (data_dir, 
 						    TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME, 
 						    NULL);
 	
@@ -768,13 +781,9 @@ static void
 shutdown_locations (void)
 {
 	/* Public locations */
-	g_free (tracker->data_dir);
-	g_free (tracker->config_dir);
-	g_free (tracker->root_dir);
-	g_free (tracker->user_data_dir);
-	g_free (tracker->sys_tmp_root_dir);
-	g_free (tracker->email_attachments_dir);
-	g_free (tracker->xesam_dir);
+	g_free (data_dir);
+	g_free (user_data_dir);
+	g_free (sys_tmp_dir);
 
 	/* Private locations */
 	g_free (log_filename);
@@ -785,13 +794,13 @@ shutdown_directories (void)
 {
 	/* If we are reindexing, just remove the databases */
 	if (tracker->reindex) {
-		tracker_dir_remove (tracker->data_dir);
-		g_mkdir_with_parents (tracker->data_dir, 00755);
+		tracker_dir_remove (data_dir);
+		g_mkdir_with_parents (data_dir, 00755);
 	}
 
 	/* Remove sys tmp directory */
-	if (tracker->sys_tmp_root_dir) {
-		tracker_dir_remove (tracker->sys_tmp_root_dir);
+	if (sys_tmp_dir) {
+		tracker_dir_remove (sys_tmp_dir);
 	}
 }
 
@@ -934,17 +943,12 @@ main (gint argc, gchar *argv[])
 
 	sanity_check_option_values ();
 
-	tracker_nfs_lock_init (tracker->root_dir,
-			       tracker_config_get_nfs_locking (tracker->config));
+	tracker_nfs_lock_init (tracker_config_get_nfs_locking (tracker->config));
 	tracker_db_init ();
-	tracker_db_manager_init (tracker->data_dir,
-				 tracker->user_data_dir,
-				 tracker->sys_tmp_root_dir);
+	tracker_db_manager_init (data_dir, user_data_dir, sys_tmp_dir);
 	tracker_xesam_init ();
 	tracker_cache_init ();
-
 	tracker_ontology_init ();
-
 	tracker_email_init (tracker->config);
 
 #ifdef HAVE_HAL 
@@ -1036,11 +1040,6 @@ main (gint argc, gchar *argv[])
 	shutdown_directories ();
 
 	/* Shutdown major subsystems */
-        if (tracker->hal) {
-                g_object_unref (tracker->hal);
-                tracker->hal = NULL;
-        }
-
 	tracker_email_shutdown ();
 	tracker_dbus_shutdown ();
 	tracker_ontology_shutdown ();
@@ -1050,6 +1049,10 @@ main (gint argc, gchar *argv[])
 	tracker_db_manager_shutdown ();
 	tracker_nfs_lock_shutdown ();
 	tracker_log_shutdown ();
+
+        if (tracker->hal) {
+                g_object_unref (tracker->hal);
+        }
 
 	if (tracker->language) {
 		g_object_unref (tracker->language);
@@ -1068,4 +1071,16 @@ void
 tracker_shutdown (void)
 {
 	g_main_loop_quit (main_loop);
+}
+
+const gchar *
+tracker_get_data_dir (void)
+{
+	return data_dir;
+}
+
+const gchar *
+tracker_get_sys_tmp_dir (void)
+{
+	return sys_tmp_dir;
 }

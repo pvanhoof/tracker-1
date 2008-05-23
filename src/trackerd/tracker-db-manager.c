@@ -173,13 +173,17 @@ configure_database_description (const gchar *data_dir,
 void
 tracker_db_manager_init (const gchar *data_dir, 
                          const gchar *user_data_dir,
-                         const gchar *sys_tmp_root_dir) 
+                         const gchar *sys_tmp_dir) 
 {
+        g_return_if_fail (data_dir != NULL);
+        g_return_if_fail (user_data_dir != NULL);
+        g_return_if_fail (sys_tmp_dir != NULL);
+
         if (!initialized) {
                 configure_directories ();
                 configure_database_description (data_dir, 
                                                 user_data_dir, 
-                                                sys_tmp_root_dir);
+                                                sys_tmp_dir);
                 initialized = TRUE;
         }
 }

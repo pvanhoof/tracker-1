@@ -1,3 +1,24 @@
+2008-05-23  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-nfs-lock.[ch]: 
+	* src/libtracker-db/Makefile.am:
+	* src/trackerd/tracker-cache.c:
+	* src/trackerd/tracker-db-manager.c:
+	* src/trackerd/tracker-db-sqlite.c: 
+	* src/trackerd/tracker-db.c:
+	* src/trackerd/tracker-email-utils.c:
+	* src/trackerd/tracker-hal.c:
+	* src/trackerd/tracker-indexer.c:
+	* src/trackerd/tracker-main.[ch]:
+	* src/trackerd/tracker-metadata.c:
+	* src/trackerd/tracker-utils.c:
+	* src/trackerd/tracker-xesam.[ch]: Added 2 API calls,
+	tracker_get_sys_tmp_dir() and tracker_get_data_dir() for other
+	modules to request when they need it. Other directory information
+	is calculated when and where it is needed. All directory
+	information in the tracker struct has been removed now in favour
+	of this.
+
 2008-05-21  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/trackerd/tracker-parser.c (strip_word): Also, don't check for

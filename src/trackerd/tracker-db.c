@@ -956,7 +956,7 @@ tracker_db_index_service (DBConnection *db_con, TrackerDBFileInfo *info, const c
 			tracker_db_save_file_contents (db_con, index_table, old_table, file_as_text, info);
 					
 			/* clear up if text contents are in a temp file */
-			if (g_str_has_prefix (file_as_text, tracker->sys_tmp_root_dir)) {
+			if (g_str_has_prefix (file_as_text, tracker_get_sys_tmp_dir ())) {
 				g_unlink (file_as_text);
 			}
 

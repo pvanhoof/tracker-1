@@ -61,6 +61,7 @@
 #include "tracker-hal.h"
 #include "tracker-process-files.h"
 #include "tracker-query-tree.h"
+#include "tracker-main.h"
 #include "tracker-ontology.h"
 #include "tracker-status.h"
 #include "tracker-db-manager.h"
@@ -144,10 +145,13 @@ get_preferred_bucket_count (Indexer *indexer)
 gboolean
 tracker_indexer_repair (const char *name)
 {
-	gboolean result = TRUE;
-	char *index_name = g_build_filename (tracker->data_dir, name, NULL);
+	gchar    *index_name;
+	gboolean  result = TRUE;
 
-	result =  dprepair (index_name);
+        index_name = g_build_filename (tracker_get_data_dir (), 
+                                       name, 
+                                       NULL);
+	result = dprepair (index_name);
 	g_free (index_name);
 
 	return result;
@@ -189,11 +193,7 @@ open_index (const gchar *name)
 static inline char *
 get_index_file (const char *name)
 {
-	char *word_dir;
-
-	word_dir = g_build_filename (tracker->data_dir, name, NULL);
-
-	return word_dir;
+	return g_build_filename (tracker_get_data_dir (), name, NULL);
 }
 
 Indexer *
@@ -264,8 +264,11 @@ tracker_indexer_free (Indexer *indexer, gboolean remove_file)
 	
 
 	if (remove_file) {
+                gchar *dbname;
 
-		char *dbname = g_build_filename (tracker->data_dir, indexer->name, NULL);
+                dbname = g_build_filename (tracker_get_data_dir (), 
+                                           indexer->name, 
+                                           NULL);
 
 		g_return_if_fail (indexer);
 
@@ -492,9 +495,13 @@ tracker_indexer_has_tmp_merge_files (IndexType type)
 
 
 	if (type == INDEX_TYPE_FILES) {
-		files =  tracker_process_files_get_files_with_prefix (tracker, tracker->data_dir, "file-index.tmp.");
+		files =  tracker_process_files_get_files_with_prefix (tracker, 
+                                                                      tracker_get_data_dir (),
+                                                                      "file-index.tmp.");
 	} else {
-		files =  tracker_process_files_get_files_with_prefix (tracker, tracker->data_dir, "email-index.tmp.");
+		files =  tracker_process_files_get_files_with_prefix (tracker, 
+                                                                      tracker_get_data_dir (), 
+                                                                      "email-index.tmp.");
 	}
 
 	result = (files != NULL);
@@ -513,19 +520,26 @@ tracker_indexer_has_tmp_merge_files (IndexType type)
 gboolean
 tracker_indexer_has_merge_files (IndexType type)
 {
-	GSList *files = NULL;
-	gboolean result = FALSE;
-	char *final;
+	GSList      *files = NULL;
+	gboolean     result = FALSE;
+	gchar       *final;
+        const gchar *data_dir;
+
+        data_dir = tracker_get_data_dir ();
 
 	if (type == INDEX_TYPE_FILES) {
-		files =  tracker_process_files_get_files_with_prefix (tracker, tracker->data_dir, "file-index.tmp.");
-		final = g_build_filename(tracker->data_dir, "file-index-final", NULL);
+		files =  tracker_process_files_get_files_with_prefix (tracker, 
+                                                                      data_dir, 
+                                                                      "file-index.tmp.");
+		final = g_build_filename (data_dir, "file-index-final", NULL);
 	} else {
-		files =  tracker_process_files_get_files_with_prefix (tracker, tracker->data_dir, "email-index.tmp.");
-		final = g_build_filename (tracker->data_dir, "email-index-final", NULL);
+		files =  tracker_process_files_get_files_with_prefix (tracker, 
+                                                                      data_dir,
+                                                                      "email-index.tmp.");
+		final = g_build_filename (data_dir, "email-index-final", NULL);
 	}
 
-	result = (files != NULL);
+	result = files != NULL;
 
 	if (!result) {
 		result = g_file_test (final, G_FILE_TEST_EXISTS);
@@ -582,68 +596,59 @@ move_index (Indexer *src_index, Indexer *dest_index, const char *fname)
 void
 tracker_indexer_merge_indexes (IndexType type)
 {
-        GObject    *object;
-	GSList     *lst;
-	Indexer    *final_index;
-	GSList     *file_list = NULL, *index_list = NULL;
-	const char *prefix;
-	gint       i = 0, index_count, interval = 5000;
-	gboolean   final_exists;
+        GObject     *object;
+	GSList      *lst;
+	Indexer     *final_index;
+	GSList      *file_list = NULL, *index_list = NULL;
+	const gchar *prefix;
+        const gchar *data_dir;
+	gint         i = 0, index_count, interval = 5000;
+	gboolean     final_exists;
+        gchar       *tmp;
 
 	if (tracker->shutdown) {
                 return;
         }
 
+        data_dir = tracker_get_data_dir ();
         object = tracker_dbus_get_object (TRACKER_TYPE_DBUS_DAEMON);
 
 	if (type == INDEX_TYPE_FILES) {
-
 		g_return_if_fail (tracker->file_index);
 		
 		prefix = "file-index.tmp.";
-
 		index_list = g_slist_prepend (index_list, tracker->file_index);
 
-		char *tmp = g_build_filename (tracker->data_dir, "file-index-final", NULL);
-
+		tmp = g_build_filename (data_dir, "file-index-final", NULL);
 		final_exists = g_file_test (tmp, G_FILE_TEST_EXISTS);
-
 		g_free (tmp);
-
 	} else {
-		prefix = "email-index.tmp.";
-
 		g_return_if_fail (tracker->email_index);
-		
+
+		prefix = "email-index.tmp.";
 		index_list = g_slist_prepend (index_list, tracker->email_index);
 
-		char *tmp = g_build_filename (tracker->data_dir, "email-index-final", NULL);
-
+		tmp = g_build_filename (data_dir, "email-index-final", NULL);
 		final_exists = g_file_test (tmp, G_FILE_TEST_EXISTS);
-
 		g_free (tmp);
 	}
 	
-	file_list = tracker_process_files_get_files_with_prefix (tracker, tracker->data_dir, prefix);
+	file_list = tracker_process_files_get_files_with_prefix (tracker, data_dir, prefix);
 
 	if (!file_list || !file_list->data) {
-		
 		g_slist_free (index_list);
-
 		return;
-
 	} else {
                 GSList *file;
 
 		for (file = file_list; file; file = file->next) {
-
 			if (file->data) {
-				char *name = g_path_get_basename (file->data);
+				gchar *name = g_path_get_basename (file->data);
+
 				if (name) {
-
 					if (g_file_test (file->data, G_FILE_TEST_EXISTS)) {
-
                                                 Indexer *tmp_index = tracker_indexer_open (name, FALSE);
+
 						if (tmp_index) {
 							index_list = g_slist_prepend (index_list, tmp_index);
 						}
@@ -661,9 +666,7 @@ tracker_indexer_merge_indexes (IndexType type)
  	index_count = g_slist_length (index_list);
 
 	if (index_count < 2) {
-
 		g_slist_free (index_list);
-
 		return;
 	}
 
@@ -682,16 +685,12 @@ tracker_indexer_merge_indexes (IndexType type)
                                tracker->merge_count);
 
 	if (index_count == 2 && !final_exists) {
-
                 Indexer *index1 = index_list->data ;
                 Indexer *index2 = index_list->next->data ;
 
 		if (tracker_indexer_size (index1) * 3 < tracker_indexer_size (index2)) {
-
 			tracker_indexer_apply_changes (index2, index1, FALSE);
-
 			g_slist_free (index_list);
-
 			goto end_of_merging;
 		}
 	}
@@ -726,7 +725,6 @@ tracker_indexer_merge_indexes (IndexType type)
 		dpiterinit (index->word_index);
 
 		while ((str = dpiternext (index->word_index, NULL))) {
-
 			gchar buffer[MAX_HIT_BUFFER];
 			gint offset;
 			gint sz = sizeof (WordDetails);
@@ -1396,9 +1394,12 @@ tracker_indexer_are_databases_too_big (void)
 {
 	gchar       *filename;
         const gchar *filename_const;
-        gboolean    too_big;
+        const gchar *data_dir;
+        gboolean     too_big;
 
-	filename = g_build_filename (tracker->data_dir, TRACKER_INDEXER_FILE_INDEX_DB_FILENAME, NULL);
+        data_dir = tracker_get_data_dir ();
+
+	filename = g_build_filename (data_dir, TRACKER_INDEXER_FILE_INDEX_DB_FILENAME, NULL);
 	too_big = tracker_file_get_size (filename) > MAX_INDEX_FILE_SIZE;
         g_free (filename);
         
@@ -1407,7 +1408,7 @@ tracker_indexer_are_databases_too_big (void)
 		return TRUE;	
 	}
 
-	filename = g_build_filename (tracker->data_dir, TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME, NULL);
+	filename = g_build_filename (data_dir, TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME, NULL);
 	too_big = tracker_file_get_size (filename) > MAX_INDEX_FILE_SIZE;
 	g_free (filename);
         

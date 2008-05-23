@@ -75,7 +75,9 @@ tracker_metadata_get_text_file (const char *uri, const char *mime)
 		char *temp_file_name;
 		int  fd;
 
-		temp_file_name = g_build_filename (tracker->sys_tmp_root_dir, "tmp_text_file_XXXXXX", NULL);
+		temp_file_name = g_build_filename (tracker_get_sys_tmp_dir (),
+                                                   "tmp_text_file_XXXXXX",
+                                                   NULL);
 
 		fd = g_mkstemp (temp_file_name);
 

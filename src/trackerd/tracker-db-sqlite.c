@@ -42,6 +42,7 @@
 #include "tracker-indexer.h"
 #include "tracker-cache.h"
 #include "tracker-metadata.h"
+#include "tracker-main.h"
 #include "tracker-utils.h"
 #include "tracker-watch.h"
 #include "tracker-ontology.h"
@@ -1550,7 +1551,7 @@ gboolean
 tracker_db_needs_setup (void)
 {
 	return (!tracker_db_manager_file_exists (TRACKER_DB_FILE_META) ||
-		!file_exists (tracker->data_dir, TRACKER_INDEXER_FILE_INDEX_DB_FILENAME) ||
+		!file_exists (tracker_get_data_dir (), TRACKER_INDEXER_FILE_INDEX_DB_FILENAME) ||
 		!tracker_db_manager_file_exists (TRACKER_DB_FILE_CONTENTS));
 }
 

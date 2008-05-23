@@ -58,16 +58,6 @@ typedef struct {
 
 	/* Config options */
 	guint32          watch_limit; 
-	gpointer         xesam_db;
-
-	/* Data directories */
-	gchar            *data_dir;
-	gchar            *config_dir;
-	gchar            *root_dir;
-	gchar            *user_data_dir;
-	gchar            *sys_tmp_root_dir;
-        gchar            *email_attachments_dir;
-	gchar            *xesam_dir;
 
 	/* Performance and memory usage options */
 	gint              max_process_queue_size;
@@ -124,7 +114,10 @@ typedef struct {
 	GCond            *metadata_signal_cond;
 } Tracker;
 
-void tracker_shutdown (void);
+void         tracker_shutdown        (void);
+
+const gchar *tracker_get_data_dir    (void);
+const gchar *tracker_get_sys_tmp_dir (void);
 
 G_END_DECLS
 

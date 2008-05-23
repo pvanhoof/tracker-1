@@ -131,7 +131,6 @@ trackerd_SOURCES =							\
 	tracker-service.h						\
 	tracker-ioprio.c						\
 	tracker-ioprio.h						\
-	tracker-os-dependant.h						\
 	tracker-watch.h							\
 	tracker-status.c						\
 	tracker-status.h						\

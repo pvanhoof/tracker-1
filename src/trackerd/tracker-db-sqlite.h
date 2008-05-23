@@ -26,6 +26,7 @@
 #include <libtracker-db/tracker-db-interface.h>
 #include <libtracker-db/tracker-db-file-info.h>
 
+#include "tracker-field-data.h"
 #include "tracker-ontology.h"
 #include "tracker-indexer.h"
 #include "tracker-utils.h"
@@ -310,7 +311,7 @@ void                tracker_free_metadata_field                (FieldData *field
 void                tracker_db_delete_service                  (DBConnection   *db_con,
                                                                 guint32         id,
                                                                 const gchar    *uri);
-FieldData *         tracker_db_get_metadata_field              (DBConnection   *db_con,
+TrackerFieldData *  tracker_db_get_metadata_field              (DBConnection   *db_con,
                                                                 const gchar    *service,
                                                                 const gchar    *field_name,
                                                                 gint            field_count,

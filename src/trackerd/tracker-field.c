@@ -293,10 +293,6 @@ field_set_property (GObject      *object,
 		    const GValue *value,
 		    GParamSpec   *pspec)
 {
-	TrackerFieldPriv *priv;
-
-	priv = GET_PRIV (object);
-
 	switch (param_id) {
 	case PROP_ID:
 		tracker_field_set_id (TRACKER_FIELD (object),
@@ -610,7 +606,6 @@ tracker_field_set_weight (TrackerField *field,
 
 	priv->weight = value;
 	g_object_notify (G_OBJECT (field), "weight");
-
 }
 
 void
@@ -626,7 +621,6 @@ tracker_field_set_embedded (TrackerField *field,
 	priv->embedded = value;
 	g_object_notify (G_OBJECT (field), "embedded");
 }
-
 
 void
 tracker_field_set_multiple_values (TrackerField *field,

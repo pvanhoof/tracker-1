@@ -5079,53 +5079,71 @@ tracker_db_load_xesam_service_file (DBConnection *db_con, const char *filename)
 	return TRUE;
 }
 
-
-FieldData *
-tracker_db_get_metadata_field (DBConnection *db_con, const char *service, const char *field_name, int field_count, gboolean is_select, gboolean is_condition)
+TrackerFieldData *
+tracker_db_get_metadata_field (DBConnection *db_con,
+			       const gchar  *service, 
+			       const gchar  *field_name, 
+			       gint          field_count, 
+			       gboolean      is_select, 
+			       gboolean      is_condition)
 {
-	FieldData    *field_data = NULL;
-	TrackerField *def;
-
-	field_data = g_new0 (FieldData, 1);
-
-	field_data->is_select = is_select;
-	field_data->is_condition = is_condition;
-	field_data->field_name = g_strdup (field_name);
+	TrackerFieldData *field_data = NULL;
+	TrackerField     *def;
 
 	def = tracker_ontology_get_field_def (field_name);
 
 	if (def) {
-	
-		field_data->table_name = tracker_get_metadata_table (tracker_field_get_data_type (def));
-		field_data->alias = g_strdup_printf ("M%d", field_count);
-		field_data->data_type = tracker_field_get_data_type (def);
-		field_data->id_field = g_strdup (tracker_field_get_id (def));
-		field_data->multiple_values = tracker_field_get_multiple_values (def);
-			
-		char *my_field = tracker_db_get_field_name (service, field_name);
+		gchar *alias;
+		gchar *table_name;
+		gchar *this_field_name;
+		gchar *where_field;
 
-		if (my_field) {
-			field_data->select_field = g_strdup_printf (" S.%s ", my_field);
-			g_free (my_field);
-			field_data->needs_join = FALSE;	
+		field_data = g_object_new (TRACKER_TYPE_FIELD_DATA, 
+					   "is-select", is_select,
+					   "is-condition", is_condition,
+					   "field-name", field_name,
+					   NULL);
+
+		alias = g_strdup_printf ("M%d", field_count);
+		table_name = tracker_get_metadata_table (tracker_field_get_data_type (def));
+
+		tracker_field_data_set_alias (field_data, alias);
+		tracker_field_data_set_table_name (field_data, table_name);
+		tracker_field_data_set_id_field (field_data, tracker_field_get_id (def));
+		tracker_field_data_set_data_type (field_data, tracker_field_get_data_type (def));
+		tracker_field_data_set_multiple_values (field_data, tracker_field_get_multiple_values (def));
+			
+		this_field_name = tracker_db_get_field_name (service, field_name);
+
+		if (this_field_name) {
+			gchar *str;
+
+			str = g_strdup_printf (" S.%s ", this_field_name);
+			tracker_field_data_set_select_field (field_data, str);
+			tracker_field_data_set_needs_join (field_data, FALSE);
+			g_free (str);
+			g_free (this_field_name);
 		} else {
-			char *disp_field = tracker_ontology_get_display_field (def);
-			field_data->select_field = g_strdup_printf ("M%d.%s", field_count, disp_field);
-			g_free (disp_field);
-			field_data->needs_join = TRUE;
+			gchar *str;
+			gchar *display_field;
+
+			display_field = tracker_ontology_get_display_field (def);
+			str = g_strdup_printf ("M%d.%s", field_count, display_field);
+			tracker_field_data_set_select_field (field_data, str);
+			tracker_field_data_set_needs_join (field_data, TRUE);
+			g_free (str);
+			g_free (display_field);
 		}
 			
 		if (tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_DOUBLE) {
-			field_data->where_field = g_strdup_printf ("M%d.MetaDataDisplay", field_count);
+			where_field = g_strdup_printf ("M%d.MetaDataDisplay", field_count);
 		} else {
-			field_data->where_field = g_strdup_printf ("M%d.MetaDataValue", field_count);
+			where_field = g_strdup_printf ("M%d.MetaDataValue", field_count);
 		}
 
-	} else {
-		g_free (field_data);
-		return NULL;
+		tracker_field_data_set_where_field (field_data, where_field);
+		g_free (where_field);
 	}
-
 
 	return field_data;
 }
@@ -5254,19 +5272,4 @@ tracker_db_regulate_transactions (DBConnection *db_con, int interval)
 
 	return FALSE;
 
-}
-
-void
-tracker_free_metadata_field (FieldData *field_data)
-{
-	g_return_if_fail (field_data);
-
-	g_free (field_data->alias);
-	g_free (field_data->where_field);
-	g_free (field_data->field_name);
-	g_free (field_data->select_field);
-	g_free (field_data->table_name);
-	g_free (field_data->id_field);
-
-	g_free (field_data);
 }

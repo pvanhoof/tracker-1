@@ -104,6 +104,8 @@ trackerd_SOURCES =							\
 	tracker-email-utils.h						\
 	tracker-field.c							\
 	tracker-field.h							\
+	tracker-field-data.c						\
+	tracker-field-data.h						\
 	tracker-indexer.c						\
 	tracker-indexer.h						\
 	tracker-index-stage.c						\

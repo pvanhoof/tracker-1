@@ -336,60 +336,63 @@ pop_stack_until (ParserData *data, ParseState state)
 
 
 
-static FieldData *
-add_metadata_field (ParserData *data, const char *field_name, gboolean is_select, gboolean is_condition)
+static TrackerFieldData *
+add_metadata_field (ParserData  *data, 
+                    const gchar *field_name, 
+                    gboolean     is_select, 
+                    gboolean     is_condition)
 {
-	gboolean     field_exists;
-	FieldData    *field_data;
-	const GSList *tmp;
+	TrackerFieldData *field_data;
+	gboolean          field_exists;
+	GSList           *l;
 
 	field_exists = FALSE;
 	field_data = NULL;
 
-	// check if field is already in list
-	for (tmp = data->fields; tmp; tmp = tmp->next) {
-		FieldData *tmp_field;
+	/* Check if field is already in list */
+	for (l = data->fields; l; l = l->next) {
+                const gchar *this_field_name;
 
-		tmp_field = tmp->data;
+                this_field_name = tracker_field_data_get_field_name (l->data);
+                if (!this_field_name) {
+                        continue;
+                }
 
-		if (tmp_field && tmp_field->field_name) {
-			if (strcasecmp (tmp_field->field_name, field_name) == 0) {
+                if (strcasecmp (this_field_name, field_name) == 0) {
+                        field_data = l->data;
+                        field_exists = TRUE;
 
-				field_data = tmp_field;
-		
-				field_exists = TRUE;
-	
-				if (is_condition) {
-					field_data->is_condition = TRUE;
-				} 
+                        if (is_condition) {
+                                tracker_field_data_set_is_condition (field_data, TRUE);
+                        }
 
-				if (is_select) {
-					if (!field_data->is_select) {
-				
-						field_data->is_select = TRUE;
-						g_string_append_printf (data->sql_select, ", %s", field_data->select_field);
-					}
-					
-				}
+                        if (is_select) {
+                                if (!tracker_field_data_get_is_select (field_data)) {
+                                        tracker_field_data_set_is_select (field_data, TRUE);
+                                        g_string_append_printf (data->sql_select, ", %s", 
+                                                                tracker_field_data_get_select_field (field_data));
+                                }
+                        }
 
-				break;
-				
-			}
+                        break;
 		}
 	}
-
 	
 
 	if (!field_exists) {
-
-		field_data = tracker_db_get_metadata_field (data->db_con, data->service, field_name, g_slist_length (data->fields), is_select, is_condition);
+		field_data = tracker_db_get_metadata_field (data->db_con, 
+                                                            data->service, 
+                                                            field_name, 
+                                                            g_slist_length (data->fields), 
+                                                            is_select, 
+                                                            is_condition);
 		if (field_data) {
 			data->fields = g_slist_prepend (data->fields, field_data);
 			if (is_select) {
-				g_string_append_printf (data->sql_select, ", %s", field_data->select_field);
+				g_string_append_printf (data->sql_select, ", %s", 
+                                                        tracker_field_data_get_select_field (field_data));
 			}
-
-		} 
+                } 
 	} 
 	
 	return field_data;
@@ -666,12 +669,17 @@ get_value (const char *value, gboolean quote)
 static gboolean
 build_sql (ParserData *data)
 {
-	ParseState state;
-	char 	   *avalue, *value, *sub;
-	FieldData  *field_data;
-	GString    *str;
+	TrackerFieldData  *field_data;
+	ParseState         state;
+	gchar             *avalue, *value, *sub;
+        const gchar       *where_field;
+	GString           *str;
+	gchar            **s;
 
-	g_return_val_if_fail (data->current_field && data->current_operator != OP_NONE && data->current_value, FALSE);
+	g_return_val_if_fail (data->current_field && 
+                              data->current_operator != OP_NONE && 
+                              data->current_value, 
+                              FALSE);
 
 	str = g_string_new ("");
 
@@ -679,7 +687,9 @@ build_sql (ParserData *data)
 
 	state = peek_state (data);
 
-	avalue = get_value (data->current_value, (state != STATE_END_DATE && state != STATE_END_INTEGER && state != STATE_END_FLOAT));
+	avalue = get_value (data->current_value, (state != STATE_END_DATE && 
+                                                  state != STATE_END_INTEGER && 
+                                                  state != STATE_END_FLOAT));
 
 	field_data = add_metadata_field (data, data->current_field, FALSE, TRUE);
 
@@ -690,9 +700,9 @@ build_sql (ParserData *data)
 		return FALSE;
 	}
 
-	if (field_data->data_type ==  TRACKER_FIELD_TYPE_DATE) {
-		char *bvalue;
-		int cvalue;
+	if (tracker_field_data_get_data_type (field_data) == TRACKER_FIELD_TYPE_DATE) {
+		gchar *bvalue;
+		gint   cvalue;
 
 		bvalue = tracker_date_format (avalue);
 		g_debug (bvalue);
@@ -716,102 +726,112 @@ build_sql (ParserData *data)
 		}
 	}
 
-	char **s;
+        where_field = tracker_field_data_get_where_field (field_data);
 
 	switch (data->current_operator) {
+        case OP_EQUALS:
+                sub = strchr (data->current_value, '*');
+                if (sub) {
+                        g_string_append_printf (str, " (%s glob '%s') ", 
+                                                where_field, 
+                                                data->current_value);
+                } else {
+                        TrackerFieldType data_type;
 
-		case OP_EQUALS:
+                        data_type = tracker_field_data_get_data_type (field_data);
 
-			sub = strchr (data->current_value, '*');
-			if (sub) {
-				g_string_append_printf (str, " (%s glob '%s') ", field_data->where_field, data->current_value);
-			} else {
-				if (field_data->data_type == TRACKER_FIELD_TYPE_DATE 
-                                    || field_data->data_type == TRACKER_FIELD_TYPE_INTEGER 
-                                    || field_data->data_type == TRACKER_FIELD_TYPE_DOUBLE) {
-					g_string_append_printf (str, " (%s = %s) ", field_data->where_field, value);
-				} else {
-					g_string_append_printf (str, " (%s = '%s') ", field_data->where_field, value);
-				}
-			}
+                        if (data_type == TRACKER_FIELD_TYPE_DATE ||
+                            data_type == TRACKER_FIELD_TYPE_INTEGER ||
+                            data_type == TRACKER_FIELD_TYPE_DOUBLE) {
+                                g_string_append_printf (str, " (%s = %s) ", 
+                                                        where_field, 
+                                                        value);
+                        } else {
+                                g_string_append_printf (str, " (%s = '%s') ", 
+                                                        where_field, 
+                                                        value);
+                        }
+                }
+                break;
+                
+        case OP_GREATER:
+                g_string_append_printf (str, " (%s > %s) ", 
+                                        where_field, 
+                                        value);
+                break;
 
-			break;
+        case OP_GREATER_EQUAL:
+                g_string_append_printf (str, " (%s >= %s) ", 
+                                        where_field, 
+                                        value);
+                break;
 
-		case OP_GREATER:
+        case OP_LESS:
+                g_string_append_printf (str, " (%s < %s) ", 
+                                        where_field, 
+                                        value);
+                break;
 
-			g_string_append_printf (str, " (%s > %s) ", field_data->where_field, value);
+        case OP_LESS_EQUAL:
+                g_string_append_printf (str, " (%s <= %s) ", 
+                                        where_field, 
+                                        value);
+                break;
 
-			break;
+        case OP_CONTAINS:
+                sub = strchr (data->current_value, '*');
+                
+                if (sub) {
+                        g_string_append_printf (str, " (%s like '%%%s%%') ", 
+                                                where_field, 
+                                                data->current_value);
+                } else {
+                        g_string_append_printf (str, " (%s like '%%%s%%') ", 
+                                                where_field,
+                                                data->current_value);
+                }
+                break;
+                
+        case OP_STARTS:
+                sub = strchr (data->current_value, '*');
+                
+                if (sub) {
+                        g_string_append_printf (str, " (%s like '%s') ", 
+                                                where_field, 
+                                                data->current_value);
+                } else {
+                        g_string_append_printf (str, " (%s like '%s%%') ", 
+                                                where_field, 
+                                                data->current_value);
+                }
+                break;
+                
+        case OP_REGEX:
+                g_string_append_printf (str, " (%s REGEXP '%s') ", 
+                                        where_field, 
+                                        data->current_value);
+                break;
 
-		case OP_GREATER_EQUAL:
+        case OP_SET:
+                s = g_strsplit (data->current_value, ",", 0);
+		
+                if (s && s[0]) {
+                        gchar **p;
 
-			g_string_append_printf (str, " (%s >= %s) ", field_data->where_field, value);
+                        g_string_append_printf (str, " (%s in ('%s'", 
+                                                where_field, 
+                                                s[0]);
+                        
+                        for (p = s + 1; *p; p++) {
+                                g_string_append_printf (str, ",'%s'", *p); 					
+                        }
 
-			break;
-
-		case OP_LESS:
-
-			g_string_append_printf (str, " (%s < %s) ", field_data->where_field, value);
-
-			break;
-
-		case OP_LESS_EQUAL:
-
-			g_string_append_printf (str, " (%s <= %s) ", field_data->where_field, value);
-
-			break;
-
-		case OP_CONTAINS:
-
-			sub = strchr (data->current_value, '*');
-
-			if (sub) {
-				g_string_append_printf (str, " (%s like '%s%s%s') ", field_data->where_field, "%", data->current_value, "%");
-			} else {
-				g_string_append_printf (str, " (%s like '%s%s%s') ", field_data->where_field, "%", data->current_value, "%");
-			}
-
-			break;
-
-		case OP_STARTS:
-			
-			sub = strchr (data->current_value, '*');
-
-			if (sub) {
-				g_string_append_printf (str, " (%s like '%s') ", field_data->where_field, data->current_value);
-			} else {
-				g_string_append_printf (str, " (%s like '%s%s') ", field_data->where_field, data->current_value, "%");
-			}
-			
-			break;
-
-		case OP_REGEX:
-
-			g_string_append_printf (str, " (%s REGEXP '%s') ", field_data->where_field, data->current_value);
-
-			break;
-
-		case OP_SET:
-
-			s = g_strsplit (data->current_value, ",", 0);
-			
-			if (s && s[0]) {
-
-				g_string_append_printf (str, " (%s in ('%s'", field_data->where_field, s[0]);
-
-				char **p;
-				for (p = s+1; *p; p++) {
-					g_string_append_printf (str, ",'%s'", *p); 					
-				}
-				g_string_append_printf (str, ") ) " ); 					
-					
-			}
-
-			break;
-
-		default:
-
-			break;
+                        g_string_append_printf (str, ") ) " ); 					
+                }
+                break;
+                
+        default:
+                break;
 	}
 
 	data->sql_where = g_string_append (data->sql_where, str->str);
@@ -828,7 +848,6 @@ build_sql (ParserData *data)
 
 	return TRUE;
 }
-
 
 static void
 end_element_handler (GMarkupParseContext *context,
@@ -1079,13 +1098,13 @@ tracker_rdf_query_to_sql (DBConnection *db_con, const char *query, const char *s
 		int i;
 
 		for (i = 0; i < field_count; i++) {
-			FieldData *field_data;
+			TrackerFieldData *field_data;
 
 			field_data = add_metadata_field (&data, fields[i], TRUE, FALSE);
 
 			if (!field_data) {
 				g_critical ("RDF Query failed: field %s not found", fields[i]);
-				g_slist_foreach (data.fields, (GFunc) tracker_free_metadata_field, NULL);
+				g_slist_foreach (data.fields, (GFunc) g_object_unref, NULL);
 				g_slist_free (data.fields);
 				g_string_free (data.sql_select, TRUE);
 				return NULL;
@@ -1195,7 +1214,7 @@ tracker_rdf_query_to_sql (DBConnection *db_con, const char *query, const char *s
 		g_string_free (data.sql_order, TRUE);
 	}
 
-	g_slist_foreach (data.fields, (GFunc) tracker_free_metadata_field, NULL);
+	g_slist_foreach (data.fields, (GFunc) g_object_unref, NULL);
 	g_slist_free (data.fields);
 
 	g_slist_free (data.stack);

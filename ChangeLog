@@ -1,5 +1,20 @@
 2008-05-23  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-db-sqlite.c:
+	* src/trackerd/tracker-db-sqlite.h:
+	* src/trackerd/tracker-dbus-metadata.c:
+	* src/trackerd/tracker-field-data.[ch]:
+	* src/trackerd/tracker-field.c:
+	* src/trackerd/tracker-rdf-query.c:
+	* src/trackerd/tracker-xesam-query.c: Added the
+	tracker-field-data.[ch] to handle all FieldData code that used to
+	exist. Also fixed up some errors in the tracker-xesam-query.c
+	module where is_end_operator() and is_operator() were not proper
+	logic statements.
+
+2008-05-23  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-db-sqlite.c:
 	* src/trackerd/tracker-db.c:
 	* src/trackerd/tracker-dbus-files.c:

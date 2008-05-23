@@ -30,6 +30,7 @@
 #include "tracker-dbus.h"
 #include "tracker-dbus-metadata.h"
 #include "tracker-db.h"
+#include "tracker-field-data.h"
 #include "tracker-marshal.h"
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DBUS_METADATA, TrackerDBusMetadataPriv))
@@ -217,16 +218,16 @@ tracker_dbus_metadata_get (TrackerDBusMetadata   *object,
 	sql_join = g_string_new (" FROM Services S ");
 
 	for (i = 0; i < g_strv_length (keys); i++) {
-		FieldData *field;
+		TrackerFieldData *field_data;
 
-		field = tracker_db_get_metadata_field (db_con, 
-						       service_result, 
-						       keys[i], 
-						       i, 
-						       TRUE, 
-						       FALSE);
-
-		if (!field) {
+		field_data = tracker_db_get_metadata_field (db_con, 
+							    service_result, 
+							    keys[i], 
+							    i, 
+							    TRUE, 
+							    FALSE);
+ 
+		if (!field_data) {
 			g_string_free (sql_join, TRUE);
 			g_string_free (sql, TRUE);
 			g_free (service_result);
@@ -240,22 +241,24 @@ tracker_dbus_metadata_get (TrackerDBusMetadata   *object,
 		}
 
 		if (i == 0) {
-			g_string_append_printf (sql, " %s", field->select_field);
+			g_string_append_printf (sql, " %s", 
+						tracker_field_data_get_select_field (field_data));
 		} else {
-			g_string_append_printf (sql, ", %s", field->select_field);
+			g_string_append_printf (sql, ", %s", 
+						tracker_field_data_get_select_field (field_data));
 		}
 
-		if (field->needs_join) {
+		if (tracker_field_data_get_needs_join (field_data)) {
 			g_string_append_printf (sql_join, 
 						"\n LEFT OUTER JOIN %s %s ON (S.ID = %s.ServiceID and %s.MetaDataID = %s) ", 
-						field->table_name, 
-						field->alias, 
-						field->alias, 
-						field->alias, 
-						field->id_field);
+						tracker_field_data_get_table_name (field_data),
+						tracker_field_data_get_alias (field_data),
+						tracker_field_data_get_alias (field_data),
+						tracker_field_data_get_alias (field_data),
+						tracker_field_data_get_id_field (field_data));
 		}
 
-		tracker_free_metadata_field (field);
+		g_object_unref (field_data);
 	}
 
 	g_string_append (sql, sql_join->str);

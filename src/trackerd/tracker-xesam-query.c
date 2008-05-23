@@ -26,6 +26,7 @@
 #include <libtracker-common/tracker-utils.h>
 
 #include "tracker-xesam-query.h"
+#include "tracker-field-data.h"
 
 
 /* XESAM Query Condition
@@ -188,34 +189,49 @@ static void error_handler (GMarkupParseContext *context,
 static gboolean
 is_operator (ParseState state)
 {
-	return state == STATE_EQUALS || state == STATE_GREATER_THAN || state == STATE_LESS_THAN ||
-			state == STATE_CONTAINS || state == STATE_IN_SET || STATE_LESS_OR_EQUAL ||
-			STATE_GREATER_OR_EQUAL || state == STATE_STARTS_WITH || state == STATE_REGEX;
+	return 
+		state == STATE_EQUALS || 
+		state == STATE_GREATER_THAN || 
+		state == STATE_LESS_THAN ||
+		state == STATE_CONTAINS || 
+		state == STATE_IN_SET || 
+		state == STATE_LESS_OR_EQUAL ||
+		state == STATE_GREATER_OR_EQUAL || 
+		state == STATE_STARTS_WITH || 
+		state == STATE_REGEX;
 
 }
-
 
 static gboolean
 is_end_operator (ParseState state)
 {
-	return state == STATE_END_EQUALS || state == STATE_END_GREATER_THAN || state == STATE_END_LESS_THAN ||
-		        state == STATE_END_CONTAINS || state == STATE_END_IN_SET || STATE_END_LESS_OR_EQUAL ||
-			STATE_END_GREATER_OR_EQUAL || state == STATE_END_STARTS_WITH || state == STATE_END_REGEX;
-
+	return 
+		state == STATE_END_EQUALS || 
+		state == STATE_END_GREATER_THAN || 
+		state == STATE_END_LESS_THAN ||
+		state == STATE_END_CONTAINS || 
+		state == STATE_END_IN_SET || 
+		state == STATE_END_LESS_OR_EQUAL ||
+		state == STATE_END_GREATER_OR_EQUAL || 
+		state == STATE_END_STARTS_WITH || 
+		state == STATE_END_REGEX;
 }
-
 
 static gboolean
 is_logic (ParseState state)
 {
-	return state == STATE_AND || state == STATE_OR;
+	return 
+		state == STATE_AND || 
+		state == STATE_OR;
 }
 
 
 static gboolean
 is_end_logic (ParseState state)
 {
-	return state == STATE_END_AND || state == STATE_END_OR;
+	return 
+		state == STATE_END_AND || 
+		state == STATE_END_OR;
 }
 
 
@@ -338,19 +354,24 @@ pop_stack_until (ParserData *data, ParseState state)
 
 
 static GList *
-add_metadata_field (ParserData *data, const char *xesam_name, gboolean is_select, gboolean is_condition)
+add_metadata_field (ParserData *data, 
+		    const char *xesam_name, 
+		    gboolean    is_select, 
+		    gboolean    is_condition)
 {
-	gboolean           field_exists;
-	FieldData          *field_data;
-	const GSList       *tmp;
-	GList              *reply=NULL;
 	TrackerDBResultSet *result_set;
-	gboolean valid = TRUE;
+	TrackerFieldData   *field_data;
+	gboolean            field_exists;
+	const GSList       *l;
+	GList              *reply;
+	gboolean            valid;
 
+	reply = NULL;
 	field_exists = FALSE;
 	field_data = NULL;
+	valid = TRUE;
 
-	// Do the xesam mapping
+	/* Do the xesam mapping */
 	
 	result_set = tracker_get_xesam_metadata_names (data->db_con, xesam_name);
 	if (!result_set) {
@@ -362,54 +383,41 @@ add_metadata_field (ParserData *data, const char *xesam_name, gboolean is_select
 		
 		tracker_db_result_set_get (result_set, 0, &field_name, -1);
 
-		// check if field is already in list
-		for (tmp = data->fields; tmp; tmp = tmp->next) {
-			FieldData *tmp_field;
+		/* Check if field is already in list */
+		for (l = data->fields; l; l = l->next) {
+			const gchar *this_field_name;
 			
-			tmp_field = tmp->data;
+			this_field_name = tracker_field_data_get_field_name (l->data);
 			
-			if (tmp_field && tmp_field->field_name) {
-				if (strcasecmp (tmp_field->field_name, field_name) == 0) {
-					
-					field_data = tmp_field;
-					
-					field_exists = TRUE;
-					
-					if (is_condition) {
-						field_data->is_condition = TRUE;
-					} 
-					
-					if (is_select) {
-						if (!field_data->is_select) {
-							
-							field_data->is_select = TRUE;
-							//g_string_append_printf (data->sql_select, ", %s", field_data->select_field);
-						}
-						
-					}
-					
-					break;
-					
-				}
+			if (!this_field_name) {
+				continue;
 			}
+				
+			if (strcasecmp (this_field_name, field_name) != 0) {
+				continue;
+			}
+
+			field_exists = TRUE;
+			
+			tracker_field_data_set_is_condition (l->data, is_condition);
+			tracker_field_data_set_is_select (l->data, is_select);
+			
+			break;
 		}
 		
-		
-		
 		if (!field_exists) {
-			
-			field_data = tracker_db_get_metadata_field (data->db_con, data->service, field_name, g_slist_length (data->fields), is_select, is_condition);
+			field_data = tracker_db_get_metadata_field (data->db_con, 
+								    data->service, 
+								    field_name, 
+								    g_slist_length (data->fields), 
+								    is_select, 
+								    is_condition);
 			if (field_data) {
 				data->fields = g_slist_prepend (data->fields, field_data);
-				if (is_select) {
-					//					g_string_append_printf (data->sql_select, ", %s", field_data->select_field);
-				}
-				
 			} 
 		} 
 		
-		reply = g_list_append(reply, field_data);
-
+		reply = g_list_append (reply, field_data);
 		valid = tracker_db_result_set_iter_next (result_set);
 		g_free (field_name);
 	}
@@ -419,11 +427,11 @@ add_metadata_field (ParserData *data, const char *xesam_name, gboolean is_select
 
 
 static void
-start_element_handler (GMarkupParseContext *context,
-		       const gchar	   *element_name,
+start_element_handler (GMarkupParseContext  *context,
+		       const gchar	    *element_name,
 		       const gchar	   **attribute_names,
 		       const gchar	   **attribute_values,
-		       gpointer		   user_data,
+		       gpointer		     user_data,
 		       GError		   **error)
 {
 	ParserData *data;
@@ -791,20 +799,27 @@ get_value (const char *value, gboolean quote)
 static gboolean
 build_sql (ParserData *data)
 {
-	ParseState state;
-	char 	   *avalue, *value, *sub;
+	ParseState  state;
+	gchar 	   *avalue, *value, *sub;
 	GList      *field_data = NULL;
 	GList      *field_data_list = NULL;
 	GString    *str;
-	int        i=0;
+	gint        i = 0;
 
-	g_return_val_if_fail (data->current_field && data->current_operator != OP_NONE && data->current_value, FALSE);
+	g_return_val_if_fail (data->current_field && 
+			      data->current_operator != OP_NONE && 
+			      data->current_value, 
+			      FALSE);
 
 	data->statement_count++;
 
 	state = peek_state (data);
 
-	avalue = get_value (data->current_value, (state != STATE_END_DATE && state != STATE_END_INTEGER && state != STATE_END_FLOAT && state != STATE_END_BOOLEAN));
+	avalue = get_value (data->current_value, 
+			    (state != STATE_END_DATE && 
+			     state != STATE_END_INTEGER && 
+			     state != STATE_END_FLOAT && 
+			     state != STATE_END_BOOLEAN));
 
 	field_data_list = add_metadata_field (data, data->current_field, FALSE, TRUE);
 
@@ -820,16 +835,19 @@ build_sql (ParserData *data)
 	field_data = g_list_first (field_data_list);
 
 	while (field_data) {
+		const gchar  *where_field;
+		gchar       **s;
+
 		i++;
 		str = g_string_new ("");
 	
 		if (i>1) {
 			g_string_append (str, " OR ");	
 		}
-
-		if (((FieldData *)field_data->data)->data_type ==  TRACKER_FIELD_TYPE_DATE) {
-			char *bvalue;
-			int cvalue;
+		
+		if (tracker_field_data_get_data_type (field_data->data) == TRACKER_FIELD_TYPE_DATE) {
+			gchar *bvalue;
+			gint   cvalue;
 			
 			bvalue = tracker_date_format (avalue);
 			g_debug (bvalue);
@@ -837,13 +855,17 @@ build_sql (ParserData *data)
 			g_debug ("%d", cvalue);
 			value = tracker_int_to_string (cvalue);
 			g_free (bvalue);
-		} else if (state == STATE_END_BOOLEAN) { /* FIXME We do a state check here, because TRACKER_FIELD_TYPE_BOOLEAN is not in db */
+		} else if (state == STATE_END_BOOLEAN) { 
+			/* FIXME We do a state check here, because
+			 * TRACKER_FIELD_TYPE_BOOLEAN is not in db.
+			 */
 			if (!strcmp(avalue,"true")) {
 				value = g_strdup("1");
 			} else if(!strcmp(avalue,"false")) {
 				value = g_strdup("0");
 			} else {
-				return FALSE; /* TODO Add error message */
+				/* TODO Add error message */
+				return FALSE; 
 			}				         
 		} else {
 			value = g_strdup (avalue);
@@ -859,114 +881,124 @@ build_sql (ParserData *data)
 			}
 		}
 
-		char **s;
+		where_field = tracker_field_data_get_where_field (field_data->data);
 		
 		switch (data->current_operator) {
-			
-		case OP_EQUALS:
-			
+		case OP_EQUALS: 
 			sub = strchr (data->current_value, '*');
+				
 			if (sub) {
-				g_string_append_printf (str, " (%s glob '%s') ", ((FieldData *)field_data->data)->where_field, data->current_value);
+				g_string_append_printf (str, " (%s glob '%s') ", 
+							where_field, 
+							data->current_value);
 			} else {
-				if (((FieldData *)field_data->data)->data_type == TRACKER_FIELD_TYPE_DATE 
-				    || ((FieldData *)field_data->data)->data_type == TRACKER_FIELD_TYPE_INTEGER 
-				    || ((FieldData *)field_data->data)->data_type == TRACKER_FIELD_TYPE_DOUBLE) {
-					g_string_append_printf (str, " (%s = %s) ", ((FieldData *)field_data->data)->where_field, value);
+				TrackerFieldType data_type;
+				
+				data_type = tracker_field_data_get_data_type (field_data->data);
+				
+				if (data_type == TRACKER_FIELD_TYPE_DATE ||
+				    data_type == TRACKER_FIELD_TYPE_INTEGER ||
+				    data_type == TRACKER_FIELD_TYPE_DOUBLE) {
+					g_string_append_printf (str, " (%s = %s) ", 
+								where_field, 
+								value);
 				} else {
-					g_string_append_printf (str, " (%s = '%s') ", ((FieldData *)field_data->data)->where_field, value);
+					g_string_append_printf (str, " (%s = '%s') ", 
+								where_field, 
+								value);
 				}
 			}
-			
 			break;
 			
 		case OP_GREATER:
-			
-			g_string_append_printf (str, " (%s > %s) ", ((FieldData *)field_data->data)->where_field, value);
-
+			g_string_append_printf (str, " (%s > %s) ", 
+						where_field,
+						value);
 			break;
 
 		case OP_GREATER_EQUAL:
-
-			g_string_append_printf (str, " (%s >= %s) ", ((FieldData *)field_data->data)->where_field, value);
-
+			g_string_append_printf (str, " (%s >= %s) ", 
+						where_field,
+						value);
 			break;
 
 		case OP_LESS:
-
-			g_string_append_printf (str, " (%s < %s) ", ((FieldData *)field_data->data)->where_field, value);
-
+			g_string_append_printf (str, " (%s < %s) ", 
+						where_field,
+						value);
 			break;
 
 		case OP_LESS_EQUAL:
-
-			g_string_append_printf (str, " (%s <= %s) ", ((FieldData *)field_data->data)->where_field, value);
-
+			g_string_append_printf (str, " (%s <= %s) ", 
+						where_field,
+						value);
 			break;
 
 		case OP_CONTAINS:
-
 			sub = strchr (data->current_value, '*');
 
 			if (sub) {
-				g_string_append_printf (str, " (%s like '%s%s%s') ", ((FieldData *)field_data->data)->where_field, "%", data->current_value, "%");
+				g_string_append_printf (str, " (%s like '%%%s%%') ", 
+							where_field, 
+							data->current_value);
 			} else {
-				g_string_append_printf (str, " (%s like '%s%s%s') ", ((FieldData *)field_data->data)->where_field, "%", data->current_value, "%");
+				g_string_append_printf (str, " (%s like '%%%s%%') ", 
+							where_field,
+							data->current_value);
 			}
-
 			break;
 
 		case OP_STARTS:
-			
 			sub = strchr (data->current_value, '*');
 
 			if (sub) {
-				g_string_append_printf (str, " (%s like '%s') ", ((FieldData *)field_data->data)->where_field, data->current_value);
+				g_string_append_printf (str, " (%s like '%s') ", 
+							where_field, 
+							data->current_value);
 			} else {
-				g_string_append_printf (str, " (%s like '%s%s') ", ((FieldData *)field_data->data)->where_field, data->current_value, "%");
+				g_string_append_printf (str, " (%s like '%s%%') ", 
+							where_field,
+							data->current_value);
 			}
 			
 			break;
 
 		case OP_REGEX:
-
-			g_string_append_printf (str, " (%s REGEXP '%s') ", ((FieldData *)field_data->data)->where_field, data->current_value);
-
+			g_string_append_printf (str, " (%s REGEXP '%s') ", 
+						where_field,
+						data->current_value);
 			break;
 
 		case OP_SET:
-
 			s = g_strsplit (data->current_value, ",", 0);
 			
 			if (s && s[0]) {
+				gchar **p;
 
-				g_string_append_printf (str, " (%s in ('%s'", ((FieldData *)field_data->data)->where_field, s[0]);
+				g_string_append_printf (str, " (%s in ('%s'", 
+							where_field, 
+							s[0]);
 
-				char **p;
-				for (p = s+1; *p; p++) {
-					g_string_append_printf (str, ",'%s'", *p); 					
+				for (p = s + 1; *p; p++) {
+					g_string_append_printf (str, ",'%s'", *p);
 				}
-				g_string_append_printf (str, ") ) " ); 					
-					
-			}
 
+				g_string_append_printf (str, ") ) " ); 					
+			}
 			break;
 
 		default:
-			
 			break;
 		}
 		
 		data->sql_where = g_string_append (data->sql_where, str->str);
 		g_string_free (str, TRUE);
 		field_data = g_list_next (field_data);
-
 	}
 
 	data->sql_where = g_string_append (data->sql_where, " ) ");
 
 	g_free (avalue);
-
 	g_free (data->current_field);
 	data->current_field = NULL;
 
@@ -1222,19 +1254,31 @@ tracker_xesam_query_to_sql (DBConnection *db_con, const char *query, gchar **fro
 		*where = NULL;
 
 	} else {
-		const GSList *tmp;
-		FieldData    *tmp_field;
+		GSList *l;
 
-		for (tmp = data.fields; tmp; tmp = tmp->next) {
-			tmp_field = tmp->data;
-
-			if (!tmp_field->is_condition) {
-				if (tmp_field->needs_join) {
-					g_string_append_printf (data.sql_from, "\n LEFT OUTER JOIN %s %s ON (S.ID = %s.ServiceID and %s.MetaDataID = %s) ", tmp_field->table_name, tmp_field->alias, tmp_field->alias, tmp_field->alias, tmp_field->id_field);
+		for (l = data.fields; l; l = l->next) {
+			if (!tracker_field_data_get_is_condition (l->data)) {
+				if (tracker_field_data_get_needs_join (l->data)) {
+					g_string_append_printf (data.sql_from, 
+								"\n LEFT OUTER JOIN %s %s ON (S.ID = %s.ServiceID and %s.MetaDataID = %s) ", 
+								tracker_field_data_get_table_name (l->data),
+								tracker_field_data_get_alias (l->data),
+								tracker_field_data_get_alias (l->data),
+								tracker_field_data_get_alias (l->data),
+								tracker_field_data_get_id_field (l->data));
 				}
 			} else {
-				char *related_metadata = tracker_get_related_metadata_names (db_con, tmp_field->field_name);
-				g_string_append_printf (data.sql_from, "\n INNER JOIN %s %s ON (S.ID = %s.ServiceID and %s.MetaDataID in (%s)) ", tmp_field->table_name, tmp_field->alias, tmp_field->alias, tmp_field->alias, related_metadata);
+				gchar *related_metadata;
+
+				related_metadata = tracker_get_related_metadata_names (db_con, 
+										       tracker_field_data_get_field_name (l->data));
+				g_string_append_printf (data.sql_from, 
+							"\n INNER JOIN %s %s ON (S.ID = %s.ServiceID and %s.MetaDataID in (%s)) ",
+							tracker_field_data_get_table_name (l->data),
+							tracker_field_data_get_alias (l->data),
+							tracker_field_data_get_alias (l->data),
+							tracker_field_data_get_alias (l->data),
+							related_metadata);
 				g_free (related_metadata);
 			}
 		}
@@ -1246,7 +1290,7 @@ tracker_xesam_query_to_sql (DBConnection *db_con, const char *query, gchar **fro
 		g_string_free (data.sql_where, TRUE);
 	}
 
-	g_slist_foreach (data.fields, (GFunc) tracker_free_metadata_field, NULL);
+	g_slist_foreach (data.fields, (GFunc) g_object_unref, NULL);
 	g_slist_free (data.fields);
 
 	g_slist_free (data.stack);

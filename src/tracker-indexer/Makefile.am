@@ -46,10 +46,16 @@ bin_PROGRAMS = tracker-indexer
 
 tracker_indexer_SOURCES =						\
 	main.c								\
+	tracker-field.c							\
+	tracker-field.h							\
 	tracker-indexer.c						\
 	tracker-indexer.h						\
 	tracker-indexer-module.c					\
-	tracker-indexer-module.h
+	tracker-indexer-module.h					\
+	tracker-ontology.c						\
+	tracker-ontology.h						\
+	tracker-service.c						\
+	tracker-service.h
 
 tracker_indexer_LDADD =							\
 	$(GLIB2_LIBS)							\

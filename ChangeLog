@@ -1,5 +1,12 @@
 2008-05-26  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-ontology.[ch]:
+	* src/tracker-indexer/tracker-service.[ch]:
+	* src/tracker-indexer/tracker-field.[ch]: Copied here meanwhile we
+	decide where should they go.
+
+2008-05-26  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-indexer.[ch]: Add "reindex" property, to
 	begin indexing from scratch at startup.
 	* src/tracker-indexer/main.c: connect reindex to command line option.

@@ -15,7 +15,8 @@
  *
  * You should have received a copy of the GNU General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, * Boston, MA  02110-1301, USA.
+ * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, 
+ * Boston, MA  02110-1301, USA.
  */
 
 #include <string.h>
@@ -49,15 +50,15 @@ tracker_xesam_live_search_finalize (GObject *object)
 {
 	TrackerXesamLiveSearch *self = (TrackerXesamLiveSearch *) object;
 	TrackerXesamLiveSearchPriv *priv = self->priv;
-	if (priv->session)
-		g_object_unref (priv->session);
-	g_free (priv->search_id);
-	g_free (priv->query);
-	g_free (priv->from_sql);
-	g_free (priv->where_sql);
 
 	if (priv->session)
 		g_object_unref (priv->session);
+
+	g_free (priv->search_id);
+	g_free (priv->query);
+
+	g_free (priv->from_sql);
+	g_free (priv->where_sql);
 }
 
 void
@@ -65,8 +66,10 @@ tracker_xesam_live_search_set_session (TrackerXesamLiveSearch *self,
 				       gpointer session)
 {
 	TrackerXesamLiveSearchPriv *priv = self->priv;
+
 	if (priv->session)
 		g_object_unref (priv->session);
+
 	priv->session = g_object_ref (session);
 }
 
@@ -214,7 +217,6 @@ tracker_xesam_live_search_emit_done (TrackerXesamLiveSearch *self)
 /**
  * tracker_xesam_live_search_match_with_events:
  * @self: A #TrackerXesamLiveSearch
- * @result_set: a #TrackerDBResultSet with all items in Events
  * @added: (caller-owns) (out): added items
  * @removed: (caller-owns) (out): removed items
  * @modified: (caller-owns) (out): modified items
@@ -222,7 +224,7 @@ tracker_xesam_live_search_emit_done (TrackerXesamLiveSearch *self)
  * Find all items that match with the current events for @self.
  **/
 void
-tracker_xesam_live_search_match_with_events (TrackerXesamLiveSearch *self, TrackerDBResultSet *events, GArray **added, GArray **removed, GArray **modified)
+tracker_xesam_live_search_match_with_events (TrackerXesamLiveSearch *self, GArray **added, GArray **removed, GArray **modified)
 {
 	TrackerDBusXesam *proxy = TRACKER_DBUS_XESAM (tracker_dbus_get_object (TRACKER_TYPE_DBUS_XESAM));
 	DBConnection *db_con = NULL;
@@ -723,13 +725,16 @@ tracker_xesam_live_search_get_id (TrackerXesamLiveSearch *self)
 	return (const gchar*) priv->search_id;
 }
 
+
 /**
  * tracker_xesam_live_search_parse_query:
  * @self: a #TrackerXesamLiveSearch
  *
  * Parses the current xml query and sets the sql
+ *
+ * Return value: whether parsing succeeded, if not @error will also be set
  **/
-void
+gboolean
 tracker_xesam_live_search_parse_query (TrackerXesamLiveSearch  *self,
 				       GError                 **error)
 {
@@ -737,11 +742,12 @@ tracker_xesam_live_search_parse_query (TrackerXesamLiveSearch  *self,
 	TrackerDBusXesam           *proxy = TRACKER_DBUS_XESAM (tracker_dbus_get_object (TRACKER_TYPE_DBUS_XESAM));
 	DBConnection               *db_con = NULL;
 	GError                     *parse_error = NULL;
+	gchar                      *orig_from, *orig_where;
 
 	g_object_get (proxy, "db-connection", &db_con, NULL);
 
-	g_free (priv->from_sql);
-	g_free (priv->where_sql);
+	orig_from = priv->from_sql;
+	orig_where = priv->where_sql;
 
 	priv->from_sql = NULL;
 	priv->where_sql = NULL;
@@ -752,16 +758,27 @@ tracker_xesam_live_search_parse_query (TrackerXesamLiveSearch  *self,
 				    &parse_error);
 
 	if (parse_error) {
-			gchar *str = g_strdup_printf ("Parse error: %s", 
-				parse_error->message);
-			g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
-				     TRACKER_XESAM_ERROR_PARSING_FAILED,
-				     str);
-			g_free (str);
-			g_error_free (parse_error);
+		gchar *str = g_strdup_printf ("Parse error: %s", 
+			parse_error->message);
+		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
+			     TRACKER_XESAM_ERROR_PARSING_FAILED,
+			     str);
+		g_free (str);
+		g_error_free (parse_error);
+
+		g_free (priv->from_sql);
+		g_free (priv->where_sql);
+
+		priv->from_sql = orig_from;
+		priv->where_sql = orig_where;
+
+		return FALSE;
+	} else {
+		g_free (orig_from);
+		g_free (orig_where);
 	}
 
-	return;
+	return TRUE;
 }
 
 /**

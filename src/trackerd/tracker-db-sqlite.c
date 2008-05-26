@@ -3406,7 +3406,7 @@ tracker_db_get_events (DBConnection *db_con)
 
 
 void 
-tracker_db_delete_handled_events (DBConnection *db_con, TrackerDBResultSet *events)
+tracker_db_delete_handled_events (DBConnection *db_con)
 {
 	tracker_exec_proc_no_reply (db_con->cache->db, "DeleteHandledEvents", NULL);
 }

@@ -2,6 +2,7 @@
 
 	* src/trackerd/tracker-main.c/h: Fixed the build 
 	for --disable-hal
+	* svn merge -r 1423:1480 ../xesam-support
 
 2008-05-23  Martyn Russell  <martyn@imendio.com>
 

@@ -241,11 +241,11 @@ my_sessions_cleanup (GList *data)
 }
 
 void 
-tracker_dbus_xesam_name_owner_changed (DBusGProxy        *proxy,
+tracker_dbus_xesam_name_owner_changed (DBusGProxy          *proxy,
 					 const char        *name,
 					 const char        *prev_owner,
 					 const char        *new_owner,
-					 TrackerDBusXesam *self)
+					 TrackerDBusXesam  *self)
 {
 	if (sessions) {
 		GList *my_sessions = g_hash_table_lookup (sessions, prev_owner);
@@ -304,10 +304,11 @@ tracker_dbus_xesam_new_session (TrackerDBusXesam    *object,
 					my_sessions);
 
 		dbus_g_method_return (context, session_id);
-		g_free (session_id);
 	}
 
+	g_free (session_id);
 	g_free (key);
+
 	tracker_dbus_request_success (request_id);
 }
 
@@ -364,21 +365,29 @@ tracker_dbus_xesam_set_property (TrackerDBusXesam    *object,
 
 	if (session) {
 		GValue *new_val = NULL;
+
+		if (error)
+			g_error_free (error);
+		error = NULL;
+
 		tracker_xesam_session_set_property (session, prop, val, &new_val, &error);
 
 		if (error) {
 			dbus_g_method_return_error (context, error);
 			g_error_free (error);
-		} else if (new_val) {
+		} else if (new_val)
 			dbus_g_method_return (context, new_val);
-			g_value_unset (new_val);
-		}
 
-		g_object_unref (session);
+		if (new_val)
+			g_value_unset (new_val);
+
 	} else if (error) {
 		dbus_g_method_return_error (context, error);
 		g_error_free (error);
 	}
+
+	if (session)
+		g_object_unref (session);
 
 	tracker_dbus_request_success (request_id);
 }
@@ -395,22 +404,31 @@ tracker_dbus_xesam_get_property (TrackerDBusXesam    *object,
 
 	if (session) {
 		GValue *value = NULL;
+
+		if (error)
+			g_error_free (error);
+		error = NULL;
+
 		tracker_xesam_session_get_property (session, prop, &value, &error);
 
 		if (error) {
 			dbus_g_method_return_error (context, error);
 			g_error_free (error);
-		} else {
+		} else
 			dbus_g_method_return (context, value);
+
+		if (value) {
 			g_value_unset (value);
 			g_free (value);
 		}
 
-		g_object_unref (session);
 	} else if (error) {
 		dbus_g_method_return_error (context, error);
 		g_error_free (error);
 	}
+
+	if (session)
+		g_object_unref (session);
 
 	tracker_dbus_request_success (request_id);
 
@@ -431,24 +449,31 @@ tracker_dbus_xesam_new_search (TrackerDBusXesam    *object,
 	if (session) {
 		TrackerXesamLiveSearch *search;
 		gchar *search_id = NULL;
-		search = tracker_xesam_session_create_search (session, query_xml, &search_id, &error);
 
-		if (search)
-			g_object_unref (search);
+		if (error)
+			g_error_free (error);
+		error = NULL;
+
+		search = tracker_xesam_session_create_search (session, query_xml, &search_id, &error);
 
 		if (error) {
 			dbus_g_method_return_error (context, error);
 			g_error_free (error);
-		} else {
+		} else 
 			dbus_g_method_return (context, search_id);
-			g_free (search_id);
-		}
 
-		g_object_unref (session);
+		if (search)
+			g_object_unref (search);
+
+		g_free (search_id);
+
 	} else if (error) {
 		dbus_g_method_return_error (context, error);
 		g_error_free (error);
 	}
+
+	if (session)
+		g_object_unref (session);
 
 	tracker_dbus_request_success (request_id);
 }
@@ -463,6 +488,11 @@ tracker_dbus_xesam_start_search (TrackerDBusXesam    *object,
 	TrackerXesamLiveSearch *search = tracker_xesam_get_live_search (search_id, &error);
 
 	if (search) {
+
+		if (error)
+			g_error_free (error);
+		error = NULL;
+
 		tracker_xesam_live_search_activate (search, &error);
 
 		if (error) {
@@ -471,11 +501,13 @@ tracker_dbus_xesam_start_search (TrackerDBusXesam    *object,
 		} else
 			dbus_g_method_return (context);
 
-		g_object_unref (search);
 	} else if (error) {
 		dbus_g_method_return_error (context, error);
 		g_error_free (error);
 	}
+
+	if (search)
+		g_object_unref (search);
 
 	tracker_dbus_request_success (request_id);
 }
@@ -491,6 +523,11 @@ tracker_dbus_xesam_get_hit_count (TrackerDBusXesam  *object,
 
 	if (search) {
 		guint count = -1;
+
+		if (error)
+			g_error_free (error);
+		error = NULL;
+
 		tracker_xesam_live_search_get_hit_count (search, &count, &error);
 
 		if (error) {
@@ -499,12 +536,13 @@ tracker_dbus_xesam_get_hit_count (TrackerDBusXesam  *object,
 		} else
 			dbus_g_method_return (context, count);
 
-		g_object_unref (search);
-
 	} else if (error) {
 		dbus_g_method_return_error (context, error);
 		g_error_free (error);
 	}
+
+	if (search)
+		g_object_unref (search);
 
 	tracker_dbus_request_success (request_id);
 }
@@ -542,21 +580,29 @@ tracker_dbus_xesam_get_hits (TrackerDBusXesam    *object,
 
 	if (search) {
 		GPtrArray *hits = NULL;
+
+		if (error)
+			g_error_free (error);
+		error = NULL;
+
 		tracker_xesam_live_search_get_hits (search, count, &hits, &error);
 
 		if (error) {
 			dbus_g_method_return_error (context, error);
 			g_error_free (error);
-		} else {
+		} else
 			dbus_g_method_return (context, hits);
-			freeup_hits_data (hits);
-		}
 
-		g_object_unref (search);
+		if (hits)
+			freeup_hits_data (hits);
+
 	} else if (error) {
 		dbus_g_method_return_error (context, error);
 		g_error_free (error);
 	}
+
+	if (search)
+		g_object_unref (search);
 
 	tracker_dbus_request_success (request_id);
 }
@@ -576,21 +622,29 @@ tracker_dbus_xesam_get_range_hits (TrackerDBusXesam    *object,
 
 	if (search) {
 		GPtrArray *hits = NULL;
+
+		if (error)
+			g_error_free (error);
+		error = NULL;
+
 		tracker_xesam_live_search_get_range_hits (search, a, b, &hits, &error);
 
 		if (error) {
 			dbus_g_method_return_error (context, error);
 			g_error_free (error);
-		} else {
+		} else 
 			dbus_g_method_return (context, hits);
-			freeup_hits_data (hits);
-		}
 
-		g_object_unref (search);
+		if (hits)
+			freeup_hits_data (hits);
+
 	} else if (error) {
 		dbus_g_method_return_error (context, error);
 		g_error_free (error);
 	}
+
+	if (search)
+		g_object_unref (search);
 
 	tracker_dbus_request_success (request_id);
 }
@@ -609,22 +663,29 @@ tracker_dbus_xesam_get_hit_data (TrackerDBusXesam    *object,
 
 	if (search) {
 		GPtrArray *hit_data = NULL;
+
+		if (error)
+			g_error_free (error);
+		error = NULL;
+
 		tracker_xesam_live_search_get_hit_data (search, hit_ids, fields, &hit_data, &error);
 
 		if (error) {
 			dbus_g_method_return_error (context, error);
 			g_error_free (error);
-		} else {
+		} else 
 			dbus_g_method_return (context, hit_data);
+
+		if (hit_data)
 			freeup_hits_data (hit_data);
-		}
 
-
-		g_object_unref (search);
 	} else if (error) {
 		dbus_g_method_return_error (context, error);
 		g_error_free (error);
 	}
+
+	if (search)
+		g_object_unref (search);
 
 	tracker_dbus_request_success (request_id);
 }
@@ -645,22 +706,29 @@ tracker_dbus_xesam_get_range_hit_data (TrackerDBusXesam    *object,
 
 	if (search) {
 		GPtrArray *hit_data = NULL;
+
+		if (error)
+			g_error_free (error);
+		error = NULL;
+
 		tracker_xesam_live_search_get_range_hit_data (search, a, b, fields, &hit_data, &error);
 
 		if (error) {
 			dbus_g_method_return_error (context, error);
 			g_error_free (error);
-		} else {
+		} else
 			dbus_g_method_return (context, hit_data);
+
+		if (hit_data)
 			freeup_hits_data (hit_data);
-		}
 
-
-		g_object_unref (search);
 	} else if (error) {
 		dbus_g_method_return_error (context, error);
 		g_error_free (error);
 	}
+
+	if (search)
+		g_object_unref (search);
 
 	tracker_dbus_request_success (request_id);
 }
@@ -675,6 +743,11 @@ tracker_dbus_xesam_close_search (TrackerDBusXesam    *object,
 	TrackerXesamLiveSearch *search = tracker_xesam_get_live_search (search_id, &error);
 
 	if (search) {
+
+		if (error)
+			g_error_free (error);
+		error = NULL;
+
 		tracker_xesam_live_search_close (search, &error);
 
 		if (error) {
@@ -683,11 +756,13 @@ tracker_dbus_xesam_close_search (TrackerDBusXesam    *object,
 		} else
 			dbus_g_method_return (context);
 
-		g_object_unref (search);
 	} else if (error) {
 		dbus_g_method_return_error (context, error);
 		g_error_free (error);
 	}
+
+	if (search)
+		g_object_unref (search);
 
 	tracker_dbus_request_success (request_id);
 }

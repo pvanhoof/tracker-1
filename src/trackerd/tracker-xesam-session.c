@@ -73,12 +73,13 @@ tracker_xesam_session_init (TrackerXesamSession *self)
 	const gchar *exts[1] = {NULL};
 	const gchar *dummy_onto[4] = {"dummy-onto","0.1","/usr/share/xesam/ontologies/dummy-onto-0.1", NULL};
 	GPtrArray *ontos = g_ptr_array_new ();
-	
+
 	priv = self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self,TRACKER_TYPE_XESAM_SESSION,struct _TrackerXesamSessionPriv);
 
 	g_ptr_array_add (ontos, dummy_onto);
 	
 	priv->session_id = NULL;
+
 
 	priv->searches = g_hash_table_new_full (g_str_hash, g_str_equal, 
 				(GDestroyNotify) g_free,
@@ -369,7 +370,7 @@ tracker_xesam_session_get_property (TrackerXesamSession  *self,
  * Signals will not be emitted before a call to @tracker_xesam_live_search_activate
  * has been made. 
  *
- * @returns: (caller-owns): a new non-activated #TrackerXesamLiveSearch
+ * @returns: (null-ok) (caller-owns): a new non-activated #TrackerXesamLiveSearch
  **/
 TrackerXesamLiveSearch* 
 tracker_xesam_session_create_search (TrackerXesamSession  *self, 
@@ -381,18 +382,23 @@ tracker_xesam_session_create_search (TrackerXesamSession  *self,
 	TrackerXesamSessionPriv *priv = self->priv;
 
 	search = tracker_xesam_live_search_new (query_xml);
+
 	tracker_xesam_live_search_set_session (search, self);
 	tracker_xesam_live_search_set_id (search, tracker_xesam_generate_unique_key ());
-	if (search_id) 
-		*search_id = g_strdup (tracker_xesam_live_search_get_id (search));
 
-	tracker_xesam_live_search_set_session (search, self);
+	if (tracker_xesam_live_search_parse_query (search, error)) {
 
-	g_hash_table_insert (priv->searches, 
-		g_strdup (tracker_xesam_live_search_get_id (search)),
-		g_object_ref (search));
+		g_hash_table_insert (priv->searches, 
+			g_strdup (tracker_xesam_live_search_get_id (search)),
+			g_object_ref (search));
 
-	tracker_xesam_live_search_parse_query (search, error);
+		if (search_id) 
+			*search_id = g_strdup (tracker_xesam_live_search_get_id (search));
+
+	} else {
+		g_object_unref (search);
+		search = NULL;
+	}
 
 	return search;
 }
@@ -417,6 +423,11 @@ tracker_xesam_session_get_search (TrackerXesamSession  *self,
 
 	if (search)
 		g_object_ref (search);
+	else {
+		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
+				TRACKER_XESAM_ERROR_SEARCH_ID_NOT_REGISTERED,
+				"SearchID not registered");
+	}
 
 	return search;
 }

@@ -52,7 +52,11 @@ typedef struct {
 
 	gboolean         reindex;
 
+
+#ifdef HAVE_HAL
 	TrackerHal      *hal;
+#endif
+
         TrackerConfig   *config;
         TrackerLanguage *language;
 

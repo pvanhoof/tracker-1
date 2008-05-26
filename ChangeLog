@@ -1,3 +1,8 @@
+2008-05-26  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-main.c/h: Fixed the build 
+	for --disable-hal
+
 2008-05-23  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/Makefile.am:

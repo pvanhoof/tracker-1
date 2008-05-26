@@ -1050,9 +1050,11 @@ main (gint argc, gchar *argv[])
 	tracker_nfs_lock_shutdown ();
 	tracker_log_shutdown ();
 
+#ifdef HAVE_HAL
         if (tracker->hal) {
                 g_object_unref (tracker->hal);
         }
+#endif
 
 	if (tracker->language) {
 		g_object_unref (tracker->language);

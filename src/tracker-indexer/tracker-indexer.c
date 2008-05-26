@@ -44,9 +44,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <gmodule.h>
+#include <glib/gstdio.h>
 
 #include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-db/tracker-db-interface-sqlite.h>
+#include <qdbm/depot.h>
 
 #include "tracker-indexer.h"
 #include "tracker-indexer-module.h"
@@ -64,11 +67,17 @@ struct TrackerIndexerPrivate {
 	GSList *current_module;
 	GHashTable *indexer_modules;
 
-	TrackerDBInterface *index;
+	gchar *db_dir;
+
+	DEPOT *index;
+	TrackerDBInterface *metadata;
+	TrackerDBInterface *contents;
 
 	TrackerConfig *config;
 
 	guint idle_id;
+
+	guint reindex : 1;
 };
 
 struct PathInfo {
@@ -78,7 +87,8 @@ struct PathInfo {
 
 enum {
 	PROP_0,
-	PROP_RUNNING
+	PROP_RUNNING,
+	PROP_REINDEX
 };
 
 enum {
@@ -117,6 +127,8 @@ tracker_indexer_finalize (GObject *object)
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (object);
 
+	g_free (priv->db_dir);
+
 	g_queue_foreach (priv->dir_queue, (GFunc) path_info_free, NULL);
 	g_queue_free (priv->dir_queue);
 
@@ -145,6 +157,9 @@ tracker_indexer_set_property (GObject      *object,
 	switch (prop_id) {
 	case PROP_RUNNING:
 		tracker_indexer_set_running (indexer, g_value_get_boolean (value));
+		break;
+	case PROP_REINDEX:
+		priv->reindex = g_value_get_boolean (value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -194,6 +209,13 @@ tracker_indexer_class_init (TrackerIndexerClass *class)
 							       "Whether the indexer is running",
 							       TRUE,
 							       G_PARAM_READWRITE));
+	g_object_class_install_property (object_class,
+					 PROP_REINDEX,
+					 g_param_spec_boolean ("reindex",
+							       "Reindex",
+							       "Whether to reindex contents",
+							       FALSE,
+							       G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
 	g_type_class_add_private (object_class,
 				  sizeof (TrackerIndexerPrivate));
@@ -202,6 +224,14 @@ tracker_indexer_class_init (TrackerIndexerClass *class)
 static gboolean
 init_indexer (TrackerIndexer *indexer)
 {
+	TrackerIndexerPrivate *priv;
+
+	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
+
+	if (priv->reindex) {
+		tracker_dir_remove (priv->db_dir);
+	}
+
 	tracker_indexer_set_running (indexer, TRUE);
 	return FALSE;
 }
@@ -238,6 +268,9 @@ tracker_indexer_init (TrackerIndexer *indexer)
 	priv->dir_queue = g_queue_new ();
 	priv->file_process_queue = g_queue_new ();
 	priv->config = tracker_config_new ();
+
+	priv->db_dir = g_build_filename (g_get_user_cache_dir (),
+					 "tracker", NULL);
 
 	priv->index = create_db_interface ("file-meta.db");
 
@@ -442,9 +475,11 @@ indexing_func (gpointer data)
 }
 
 TrackerIndexer *
-tracker_indexer_new (void)
+tracker_indexer_new (gboolean reindex)
 {
-	return g_object_new (TRACKER_TYPE_INDEXER, NULL);
+	return g_object_new (TRACKER_TYPE_INDEXER,
+			     "reindex", reindex,
+			     NULL);
 }
 
 void
@@ -481,5 +516,5 @@ tracker_indexer_get_running (TrackerIndexer *indexer)
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
-	return (priv->idle_id == 0);
+	return (priv->idle_id != 0);
 }

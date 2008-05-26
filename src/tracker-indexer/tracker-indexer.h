@@ -49,7 +49,7 @@ struct TrackerIndexerClass {
 };
 
 GType           tracker_indexer_get_type    (void) G_GNUC_CONST;
-TrackerIndexer *tracker_indexer_new         (void);
+TrackerIndexer *tracker_indexer_new         (gboolean        reindex);
 void            tracker_indexer_set_running (TrackerIndexer *indexer,
                                              gboolean        running);
 gboolean        tracker_indexer_get_running (TrackerIndexer *indexer);

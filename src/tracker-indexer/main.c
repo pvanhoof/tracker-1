@@ -235,7 +235,7 @@ main (gint argc, gchar *argv[])
 
 	g_print ("Initializing...\n");
 
-	indexer = tracker_indexer_new ();
+	indexer = tracker_indexer_new (reindex);
 	main_loop = g_main_loop_new (NULL, FALSE);
 
 	g_signal_connect (indexer, "finished",

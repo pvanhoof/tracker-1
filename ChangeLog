@@ -1,3 +1,9 @@
+2008-05-26  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer.[ch]: Add "reindex" property, to
+	begin indexing from scratch at startup.
+	* src/tracker-indexer/main.c: connect reindex to command line option.
+
 2008-05-26  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/trackerd/tracker-main.c/h: Fixed the build 

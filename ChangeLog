@@ -13,6 +13,11 @@
 
 2008-05-26  Philip Van Hoof  <pvanhoof@gnome.org>
 
+	* src/trackerd/tracker-dbus-search.c: Bugfix in
+	dbus_search_highlight_terms
+
+2008-05-26  Philip Van Hoof  <pvanhoof@gnome.org>
+
 	* src/trackerd/tracker-main.c/h: Fixed the build 
 	for --disable-hal
 	* svn merge -r 1423:1480 ../xesam-support

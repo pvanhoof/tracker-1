@@ -454,10 +454,10 @@ dbus_search_highlight_terms (const gchar  *text,
 		}
 
 		g_strfreev (single_term);
-		g_free (text_copy);
-
-		text_copy = g_string_free (s, FALSE);
 	}
+
+	g_free (text_copy);
+	text_copy = g_string_free (s, FALSE);
 
 	return text_copy;
 }

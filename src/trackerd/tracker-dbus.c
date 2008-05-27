@@ -131,7 +131,7 @@ tracker_dbus_preinit (Tracker          *tracker,
 		      DBusGProxy      **xesam_out)
 {
         DBusGConnection *connection;
-        DBusGProxy      *proxy, *xesam;
+        DBusGProxy      *proxy, *xesam = NULL;
         GError          *error = NULL;
 
         g_return_val_if_fail (tracker != NULL, FALSE);
@@ -159,17 +159,19 @@ tracker_dbus_preinit (Tracker          *tracker,
                 return FALSE;
         }
 
-        /* The definitions below (DBUS_SERVICE_DBUS, etc) are
-         * predefined for us to just use.
-         */
-        xesam = dbus_g_proxy_new_for_name (connection,
+        if (tracker_config_get_enable_xesam (tracker->config)) {
+             /* The definitions below (DBUS_SERVICE_DBUS, etc) are
+             * predefined for us to just use.
+             */
+            xesam = dbus_g_proxy_new_for_name (connection,
                                            DBUS_SERVICE_DBUS,
                                            DBUS_PATH_DBUS,
                                            DBUS_INTERFACE_DBUS);
 
-        /* Set up the main tracker service */
-        if (!dbus_register_service (xesam, TRACKER_DBUS_XESAM_SERVICE)) {
-                return FALSE;
+            /* Set up the main tracker service */
+            if (!dbus_register_service (xesam, TRACKER_DBUS_XESAM_SERVICE)) {
+                    return FALSE;
+            }
         }
 
         *connection_out = connection;
@@ -265,7 +267,7 @@ tracker_dbus_init (Tracker         *tracker,
         g_object_set (object, "email-index", tracker->email_index, NULL);
         objects = g_slist_prepend (objects, object);
 
-        if (tracker_config_get_enable_xesam (tracker->config)) {
+        if (xesam) {
 		/* Add org.freedesktop.xesam.Search */
 		if (!(object = dbus_register_object (connection, 
 						     xesam,

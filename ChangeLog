@@ -1,7 +1,7 @@
-2008-05-27777777  Philip Van Hoof  <pvanhoof@gnome.org>
+2008-05-27  Philip Van Hoof  <pvanhoof@gnome.org>
 
         * Merged with indexer-split with xesam-support
-	 svn merge -r 1487:1491 ../indexer-split
+	 svn merge -r 1481:1491 ../indexer-split
 
 2008-05-26  Carlos Garnacho  <carlos@imendio.com>
 

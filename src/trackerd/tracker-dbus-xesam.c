@@ -304,6 +304,8 @@ tracker_dbus_xesam_new_session (TrackerDBusXesam    *object,
 					my_sessions);
 
 		dbus_g_method_return (context, session_id);
+
+		g_message ("Created new xesam session: %s", session_id);
 	}
 
 	g_free (session_id);
@@ -464,6 +466,8 @@ tracker_dbus_xesam_new_search (TrackerDBusXesam    *object,
 
 		if (search)
 			g_object_unref (search);
+
+		g_debug("Created new xesam search: %s  for session: %s", search_id, session_id);
 
 		g_free (search_id);
 

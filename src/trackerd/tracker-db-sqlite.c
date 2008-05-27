@@ -49,6 +49,7 @@
 #include "tracker-query-tree.h"
 #include "tracker-xesam.h"
 #include "tracker-main.h"
+#include "tracker-xesam-ontology.h"
 
 #define MAX_INDEX_TEXT_LENGTH 1048576
 #define MAX_TEXT_BUFFER       65567
@@ -971,46 +972,62 @@ tracker_db_connect_all ()
 DBConnection *
 tracker_db_connect_xesam ()
 {
-
 	DBConnection *db_con;
-	DBConnection *blob_db_con = NULL;
-	Indexer *word_index_db_con = NULL;
+	TrackerDBInterface *iface;
+	gboolean create_table = FALSE;
 
-	DBConnection *common_db_con = NULL;
+	create_table = !tracker_db_manager_file_exists (TRACKER_DB_XESAM);
 
-	DBConnection *emails_blob_db_con = NULL;
-	DBConnection *emails_db_con= NULL;
-	Indexer *email_word_index_db_con= NULL;
+	iface = open_db_interface (TRACKER_DB_XESAM);
 
-	db_con = tracker_db_connect_file_meta ();
-	emails_db_con = tracker_db_connect_email_meta ();
+	if (create_table) {
+		g_message ("Creating xesam database... %s",
+			     tracker_db_manager_get_file (TRACKER_DB_XESAM));
 
-	blob_db_con = tracker_db_connect_file_content ();
-	emails_blob_db_con = tracker_db_connect_email_content ();
-	common_db_con  = tracker_db_connect_common ();
 
-	word_index_db_con = tracker->file_index;
-	email_word_index_db_con = tracker->email_index;
+		load_sql_file (iface, "sqlite-xesam.sql");
+		
+		tracker_db_load_xesam_service_file (iface, "xesam.metadata");
+		tracker_db_load_xesam_service_file (iface, "xesam-convenience.metadata");
+		tracker_db_load_xesam_service_file (iface, "xesam-virtual.metadata");
+		tracker_db_load_xesam_service_file (iface, "xesam.service");
+		tracker_db_load_xesam_service_file (iface, "xesam-convenience.service");
+		tracker_db_load_xesam_service_file (iface, "xesam-service.smapping");
+		tracker_db_load_xesam_service_file (iface, "xesam-metadata.mmapping");
+		
+		tracker_db_create_xesam_lookup(iface);
+	}
 
-	db_con->cache = tracker_db_connect_cache ();
+	tracker_db_exec_no_reply (iface, 
+				  "ATTACH '%s' as %s",
+				  tracker_db_manager_get_file (TRACKER_DB_FILE_META),
+				  tracker_db_manager_get_name (TRACKER_DB_FILE_META));
 
-	db_con->blob = blob_db_con;
-	db_con->data = db_con;
-	db_con->emails = emails_db_con;
-	db_con->common = common_db_con;
-	db_con->word_index = word_index_db_con;
+	tracker_db_exec_no_reply (iface, 
+				  "ATTACH '%s' as %s",
+				  tracker_db_manager_get_file (TRACKER_DB_EMAIL_META),
+				  tracker_db_manager_get_name (TRACKER_DB_EMAIL_META));
 
-	emails_db_con->common = common_db_con;
-	emails_db_con->blob = emails_blob_db_con;
-	emails_db_con->data = db_con;
-	emails_db_con->word_index = email_word_index_db_con;
-	emails_db_con->cache = db_con->cache;
+	tracker_db_exec_no_reply (iface, 
+				  "ATTACH '%s' as %s",
+				  tracker_db_manager_get_file (TRACKER_DB_COMMON),
+				  tracker_db_manager_get_name (TRACKER_DB_COMMON));
 
-	tracker_db_attach_db (db_con, TRACKER_DB_COMMON);
-	tracker_db_attach_db (db_con, TRACKER_DB_CACHE);
-	
+	tracker_db_exec_no_reply (iface, 
+				  "ATTACH '%s' as %s",
+				  tracker_db_manager_get_file (TRACKER_DB_CACHE),
+				  tracker_db_manager_get_name (TRACKER_DB_CACHE));
+
+	// Create the static data (hashtables etc)
+
+
+
+	// FIXME This function should eventually return DB interface, not connection.
+
+	db_con = g_new0 (DBConnection, 1);
+	db_con->db = iface;
+
 	return db_con;
-
 }
 
 void
@@ -1136,18 +1153,6 @@ tracker_db_connect (void)
 		load_service_description_file (db_con->db, "email.metadata");
 		load_service_description_file (db_con->db, "image.metadata");	
 		load_service_description_file (db_con->db, "video.metadata");	
-
-		load_sql_file (db_con->db, "sqlite-xesam.sql");
-
-		tracker_db_load_xesam_service_file (db_con, "xesam.metadata");
-		tracker_db_load_xesam_service_file (db_con, "xesam-convenience.metadata");
-		tracker_db_load_xesam_service_file (db_con, "xesam-virtual.metadata");
-		tracker_db_load_xesam_service_file (db_con, "xesam.service");
-		tracker_db_load_xesam_service_file (db_con, "xesam-convenience.service");
-		tracker_db_load_xesam_service_file (db_con, "xesam-service.smapping");
-		tracker_db_load_xesam_service_file (db_con, "xesam-metadata.mmapping");
-
-		tracker_db_create_xesam_lookup(db_con);
 
 		tracker_db_exec_no_reply (db_con->db, "ANALYZE");
 	}
@@ -1509,18 +1514,6 @@ tracker_create_common_db (void)
 	load_service_description_file (db_con->db, "video.metadata");	
 
 	load_service_description_file (db_con->db, "default.service");
-
-	load_sql_file (db_con->db, "sqlite-xesam.sql");
-
-	tracker_db_load_xesam_service_file (db_con, "xesam.metadata");
-	tracker_db_load_xesam_service_file (db_con, "xesam-convenience.metadata");
-	tracker_db_load_xesam_service_file (db_con, "xesam-virtual.metadata");
-	tracker_db_load_xesam_service_file (db_con, "xesam.service");
-	tracker_db_load_xesam_service_file (db_con, "xesam-convenience.service");
-	tracker_db_load_xesam_service_file (db_con, "xesam-service.smapping");
-	tracker_db_load_xesam_service_file (db_con, "xesam-metadata.mmapping");
-
-	tracker_db_create_xesam_lookup(db_con);	
 
 	tracker_db_exec_no_reply (db_con->db, "ANALYZE");
 	
@@ -3312,7 +3305,7 @@ tracker_db_get_live_search_hit_count (DBConnection *db_con, const gchar *search_
 	 * FROM LiveSearches 
 	 * WHERE SearchID = ? */
 
-	return tracker_exec_proc (db_con->cache, "GetLiveSearchHitCount", search_id, NULL);
+	return tracker_db_exec_proc (db_con->db, "GetLiveSearchHitCount", search_id, NULL);
 }
 
 
@@ -3325,7 +3318,7 @@ tracker_db_get_live_search_deleted_ids (DBConnection *db_con, const gchar *searc
 	 * AND X.SearchID = ? 
 	 * AND E.EventType IS 'Delete' */
 
-	return tracker_exec_proc (db_con->cache, "GetLiveSearchDeletedIDs", search_id, NULL);
+	return tracker_db_exec_proc (db_con->db, "GetLiveSearchDeletedIDs", search_id, NULL);
 }
 
 void
@@ -3335,7 +3328,7 @@ tracker_db_stop_live_search (DBConnection *db_con, const gchar *search_id)
 	 * FROM LiveSearches as X 
 	 * WHERE E.SearchID = ? */
 
-	tracker_exec_proc_no_reply (db_con->cache->db, "LiveSearchStopSearch", search_id, NULL);
+	tracker_exec_proc_no_reply (db_con->db, "LiveSearchStopSearch", search_id, NULL);
 }
 
 
@@ -3346,9 +3339,13 @@ tracker_db_start_live_search (DBConnection *db_con, const gchar *from_query, con
 	 * INTO LiveSearches
 	 * SELECT ID, SEARCH_ID FROM_QUERY WHERE_QUERY */
 
-	tracker_db_exec_no_reply (db_con->db,  NULL,
-		"INSERT INTO LiveSearches SELECT ID, '%s' %s %s",
+	g_debug ("INSERT INTO LiveSearches SELECT S.ID, '%s' %s %s",
 			search_id, from_query, where_query);
+
+	tracker_db_exec_no_reply (db_con->db,
+		"INSERT INTO LiveSearches SELECT S.ID, '%s' %s %s",
+			search_id, from_query, where_query);
+
 }
 
 TrackerDBResultSet* 
@@ -3369,6 +3366,8 @@ tracker_db_get_live_search_new_ids (DBConnection *db_con, const gchar *search_id
 	 * AND (X.EventType IS 'Create' 
 	 *      OR X.EventType IS 'Update')
 	 **/
+
+	g_debug("tracker_db_get_live_search_new_ids");
 
 	return tracker_db_exec (db_con->db,
 	/* COLUMNS */      "SELECT E.ServiceID, E.EventType%s%s "
@@ -3400,15 +3399,15 @@ tracker_db_get_live_search_get_hit_data (DBConnection *db_con, const gchar *sear
 TrackerDBResultSet* 
 tracker_db_get_events (DBConnection *db_con)
 {
-	tracker_exec_proc_no_reply (db_con->cache->db, "SetEventsBeingHandled", NULL);
-	return tracker_exec_proc (db_con->cache, "GetEvents", NULL);
+	tracker_exec_proc_no_reply (db_con->db, "SetEventsBeingHandled", NULL);
+	return tracker_db_exec_proc (db_con->db, "GetEvents", NULL);
 }
 
 
 void 
 tracker_db_delete_handled_events (DBConnection *db_con)
 {
-	tracker_exec_proc_no_reply (db_con->cache->db, "DeleteHandledEvents", NULL);
+	tracker_exec_proc_no_reply (db_con->db, "DeleteHandledEvents", NULL);
 }
 
 static guint32
@@ -3419,7 +3418,9 @@ tracker_db_create_event (DBConnection *db_con, const gchar *service_id_str, cons
 	int	   i;
 	guint32	   id = 0;
 
-	result_set = tracker_exec_proc (db_con->common, "GetNewEventID", NULL);
+	// FIXME We now assume we get the standard db_con, not xesam one.
+
+	result_set = tracker_db_exec_proc (db_con->common->db, "GetNewEventID", NULL);
 
 	if (!result_set) {
 		g_critical ("Could not create event, GetNewEventID failed");
@@ -3432,13 +3433,13 @@ tracker_db_create_event (DBConnection *db_con, const gchar *service_id_str, cons
 	i++;
 	eid = tracker_int_to_string (i);
 
-	result_set = tracker_exec_proc (db_con->common, "UpdateNewEventID", eid, NULL);
+	result_set = tracker_db_exec_proc (db_con->common->db, "UpdateNewEventID", eid, NULL);
 	if (result_set)
 		g_object_unref (result_set);
 
 	/* Uses the Events table */
-	result_set = tracker_exec_proc (db_con->cache, "CreateEvent", eid, service_id_str, type, NULL);
-	id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (db_con->db));
+	result_set = tracker_db_exec_proc (db_con->common->db, "CreateEvent", eid, service_id_str, type, NULL);
+	id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (db_con->common->db));
 	if (result_set)
 		g_object_unref (result_set);
 
@@ -4577,6 +4578,7 @@ db_row_to_field_def (TrackerDBResultSet *result_set) {
 
 	tracker_field_set_id (field_def, tracker_int_to_string (id));
 	tracker_field_set_name (field_def, name);
+	tracker_field_set_data_type (field_def, field_type);
 	tracker_field_set_field_name (field_def, field_name);
 	tracker_field_set_weight (field_def, weight);
 	tracker_field_set_embedded (field_def, embedded);
@@ -4727,12 +4729,12 @@ tracker_db_get_service_for_entity (DBConnection *db_con, const char *id)
 // FIXME Do this in a non-retarded way
 
 gboolean
-get_service_mapping (DBConnection *db_con, const char *type, GList **list)
+get_service_mapping(TrackerDBInterface *iface, const char *type, GList **list)
 {
 	TrackerDBResultSet *result_set;
 	gboolean valid = TRUE;
 
-	result_set = tracker_exec_proc (db_con, "GetXesamServiceMappings", type, NULL);
+	result_set = tracker_db_exec_proc (iface, "GetXesamServiceMappings", type, NULL);
 
 	if (result_set) {
 		while (valid) {
@@ -4750,7 +4752,7 @@ get_service_mapping (DBConnection *db_con, const char *type, GList **list)
 		g_object_unref (result_set);
 	}
 
-	result_set = tracker_exec_proc (db_con, "GetXesamServiceChildren", type, NULL);
+	result_set = tracker_db_exec_proc (iface, "GetXesamServiceChildren", type, NULL);
 	valid = TRUE;
 
 	if (result_set) {
@@ -4758,7 +4760,7 @@ get_service_mapping (DBConnection *db_con, const char *type, GList **list)
 			gchar *st;
 			
 			tracker_db_result_set_get (result_set, 0, &st, -1);
-			get_service_mapping(db_con, st ,list);
+			get_service_mapping(iface, st ,list);
 			
 			valid = tracker_db_result_set_iter_next (result_set);
 			g_free (st);
@@ -4771,12 +4773,12 @@ get_service_mapping (DBConnection *db_con, const char *type, GList **list)
 }
 
 gboolean
-get_metadata_mapping(DBConnection *db_con, const char *type, GList **list)
+get_metadata_mapping(TrackerDBInterface *iface, const char *type, GList **list)
 {
 	TrackerDBResultSet *result_set;
 	gboolean valid = TRUE;
 
-	result_set = tracker_exec_proc (db_con, "GetXesamMetaDataMappings", type, NULL);
+	result_set = tracker_db_exec_proc (iface, "GetXesamMetaDataMappings", type, NULL);
 
 	if (result_set) {
 		while (valid) {
@@ -4794,7 +4796,7 @@ get_metadata_mapping(DBConnection *db_con, const char *type, GList **list)
 		g_object_unref (result_set);
 	}
 
-	result_set = tracker_exec_proc (db_con, "GetXesamMetaDataChildren", type, NULL);
+	result_set = tracker_db_exec_proc (iface, "GetXesamMetaDataChildren", type, NULL);
 	valid = TRUE;
 
 	if (result_set) {
@@ -4802,7 +4804,7 @@ get_metadata_mapping(DBConnection *db_con, const char *type, GList **list)
 			gchar *st;
 			
 			tracker_db_result_set_get (result_set, 0, &st, -1);
-			get_service_mapping(db_con, st ,list);
+			get_service_mapping(iface, st ,list);
 			
 			valid = tracker_db_result_set_iter_next (result_set);
 			g_free (st);
@@ -4816,12 +4818,12 @@ get_metadata_mapping(DBConnection *db_con, const char *type, GList **list)
 
 
 gboolean
-tracker_db_create_xesam_lookup (DBConnection *db_con)
+tracker_db_create_xesam_lookup (TrackerDBInterface *iface)
 {
 	TrackerDBResultSet   *result_set;
 	gboolean              valid = TRUE;
 
-	result_set = tracker_exec_proc (db_con, "GetXesamServiceTypes", NULL);
+	result_set = tracker_db_exec_proc (iface, "GetXesamServiceTypes", NULL);
 	
 	if (result_set) {
 		while (valid) {
@@ -4830,11 +4832,11 @@ tracker_db_create_xesam_lookup (DBConnection *db_con)
 				GList *iter = NULL;
 				
 				tracker_db_result_set_get (result_set, 0, &st, -1);
-				get_service_mapping(db_con, st, &list);
-				
+				get_service_mapping(iface, st, &list);
+
 				iter = g_list_first(list);
 				while (iter) {
-					tracker_exec_proc (db_con, "InsertXesamServiceLookup", st, iter->data, NULL);
+					tracker_db_exec_proc (iface, "InsertXesamServiceLookup", st, iter->data, NULL);
 					g_free(iter->data);
 					
 					iter = g_list_next (iter);
@@ -4850,7 +4852,7 @@ tracker_db_create_xesam_lookup (DBConnection *db_con)
 	g_object_unref (result_set);	
 	valid = TRUE;
 
-	result_set = tracker_exec_proc (db_con, "GetXesamMetaDataTypes", NULL);
+	result_set = tracker_db_exec_proc (iface, "GetXesamMetaDataTypes", NULL);
 
 	if (result_set) {
 		while (valid) {
@@ -4859,11 +4861,11 @@ tracker_db_create_xesam_lookup (DBConnection *db_con)
 				GList *iter = NULL;	
 
 				tracker_db_result_set_get (result_set, 0, &st, -1);
-				get_metadata_mapping(db_con, st, &list);
-				
+				get_metadata_mapping(iface, st, &list);
+
 				iter = g_list_first(list);
 				while (iter) {
-					tracker_exec_proc (db_con, "InsertXesamMetaDataLookup", st, iter->data, NULL);
+					tracker_db_exec_proc (iface, "InsertXesamMetaDataLookup", st, iter->data, NULL);
 					g_free(iter->data);
 					
 					iter = g_list_next (iter);
@@ -4882,7 +4884,7 @@ tracker_db_create_xesam_lookup (DBConnection *db_con)
 }
 
 gboolean
-tracker_db_load_xesam_service_file (DBConnection *db_con, const char *filename)
+tracker_db_load_xesam_service_file (TrackerDBInterface *iface, const char *filename)
 {
 	GKeyFile 		*key_file = NULL;
 	const char * const 	*locale_array;
@@ -4921,14 +4923,14 @@ tracker_db_load_xesam_service_file (DBConnection *db_con, const char *filename)
 		for (array = groups; *array; array++) {
                         if (is_metadata) {
 
-		                tracker_exec_proc (db_con, "InsertXesamMetadataType", *array, NULL);
-				id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (db_con->db));
+		                tracker_db_exec_proc (iface, "InsertXesamMetadataType", *array, NULL);
+				id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (iface));
 
 
 		        } else if (is_service) {
 				
-		                tracker_exec_proc (db_con, "InsertXesamServiceType", *array, NULL);
-				id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (db_con->db));
+		                tracker_db_exec_proc (iface, "InsertXesamServiceType", *array, NULL);
+				id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (iface));
 
 			} else {
 				/* Nothing required */
@@ -4969,7 +4971,7 @@ tracker_db_load_xesam_service_file (DBConnection *db_con, const char *filename)
 							if (parents) {
 								for (parents_p = parents; *parents_p; parents_p++) {
 									sql = g_strdup_printf ("INSERT INTO XesamMetadataChildren (Parent, Child) VALUES ('%s', '%s')", *parents_p, *array);
-									tracker_db_exec_no_reply (db_con->db, sql);
+									tracker_db_exec_no_reply (iface, sql);
 									
 									g_free(sql);
 								}
@@ -4981,7 +4983,7 @@ tracker_db_load_xesam_service_file (DBConnection *db_con, const char *filename)
 							
 							if (data_id != -1) {
 								sql = g_strdup_printf ("update XesamMetadataTypes set DataTypeID = %d where ID = %s", data_id, str_id);
-								tracker_db_exec_no_reply (db_con->db, sql);
+								tracker_db_exec_no_reply (iface, sql);
 								g_free (sql);
 								
 							}
@@ -4992,7 +4994,7 @@ tracker_db_load_xesam_service_file (DBConnection *db_con, const char *filename)
 							
 							sql = g_strdup_printf ("update XesamMetadataTypes set  %s = '%s' where ID = %s", *array2, esc_value, str_id);
 								
-							tracker_db_exec_no_reply (db_con->db, sql);
+							tracker_db_exec_no_reply (iface, sql);
 							g_free (sql);
 							g_free (esc_value);
 						}
@@ -5007,7 +5009,7 @@ tracker_db_load_xesam_service_file (DBConnection *db_con, const char *filename)
 							if (parents) {
 								for (parents_p = parents; *parents_p; parents_p++) {
 									sql = g_strdup_printf ("INSERT INTO XesamServiceChildren (Parent, Child) VALUES ('%s', '%s')", *parents_p, *array);
-									tracker_db_exec_no_reply (db_con->db, sql);
+									tracker_db_exec_no_reply (iface, sql);
 									
 									g_free(sql);
 								}
@@ -5015,7 +5017,7 @@ tracker_db_load_xesam_service_file (DBConnection *db_con, const char *filename)
 						} else {
 							char *esc_value = tracker_escape_string (value);
 							sql = g_strdup_printf ("update XesamServiceTypes set  %s = '%s' where typeID = %s", *array2, esc_value, str_id);
-							tracker_db_exec_no_reply (db_con->db, sql);
+							tracker_db_exec_no_reply (iface, sql);
 							g_free (sql);
 							g_free (esc_value);
 						}
@@ -5028,7 +5030,7 @@ tracker_db_load_xesam_service_file (DBConnection *db_con, const char *filename)
 						if (mappings) {
 							for (mappings_p = mappings; *mappings_p; mappings_p++) {
 								char *esc_value = tracker_escape_string (*mappings_p);
-								tracker_exec_proc (db_con, "InsertXesamMetaDataMapping", *array, esc_value, NULL);
+								tracker_db_exec_proc (iface, "InsertXesamMetaDataMapping", *array, esc_value, NULL);
 								g_free (esc_value);
 							}
 						}
@@ -5041,7 +5043,7 @@ tracker_db_load_xesam_service_file (DBConnection *db_con, const char *filename)
 						if (mappings) {
 							for (mappings_p = mappings; *mappings_p; mappings_p++) {
 								char *esc_value = tracker_escape_string (*mappings_p);
-								tracker_exec_proc (db_con, "InsertXesamServiceMapping", *array, esc_value, NULL);
+								tracker_db_exec_proc (iface, "InsertXesamServiceMapping", *array, esc_value, NULL);
 								g_free (esc_value);
 							}
 						}
@@ -5106,6 +5108,8 @@ tracker_db_get_metadata_field (DBConnection *db_con,
 
 		alias = g_strdup_printf ("M%d", field_count);
 		table_name = tracker_get_metadata_table (tracker_field_get_data_type (def));
+
+		g_debug("Field_name: %s :table_name is: %s for data_type: %i", field_name, table_name, tracker_field_get_data_type(def));
 
 		tracker_field_data_set_alias (field_data, alias);
 		tracker_field_data_set_table_name (field_data, table_name);

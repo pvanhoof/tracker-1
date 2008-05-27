@@ -210,6 +210,9 @@ live_search_handler (gpointer data)
 
 	while (sessions) {
 		GList *searches;
+
+		g_debug ("Session being handled, ID :%s", tracker_xesam_session_get_id (sessions->data));
+
 		searches = tracker_xesam_session_get_searches (sessions->data);
 
 		while (searches) {
@@ -217,6 +220,9 @@ live_search_handler (gpointer data)
 			GArray                 *added = NULL;
 			GArray                 *removed = NULL;
 			GArray                 *modified = NULL;
+
+			g_debug ("Search being handled, ID :%s", tracker_xesam_live_search_get_id (searches->data));
+
 			search = searches->data;
 			tracker_xesam_live_search_match_with_events (search, 
 								     &added, 
@@ -283,6 +289,7 @@ tracker_xesam_wakeup (guint32 last_id)
 	 * In case of a thread we could use usleep() and stop the thread if
 	 * we didn't get a wakeup-call nor we had items to process this loop
 	 */
+
 
 	if (!live_search_handler_running) {
 		live_search_handler_running = TRUE;

@@ -381,6 +381,8 @@ tracker_xesam_session_create_search (TrackerXesamSession  *self,
 	TrackerXesamLiveSearch  *search;
 	TrackerXesamSessionPriv *priv = self->priv;
 
+	g_debug ("Creating search for xesam session: \n %s", query_xml);
+
 	search = tracker_xesam_live_search_new (query_xml);
 
 	tracker_xesam_live_search_set_session (search, self);
@@ -388,6 +390,7 @@ tracker_xesam_session_create_search (TrackerXesamSession  *self,
 
 	if (tracker_xesam_live_search_parse_query (search, error)) {
 
+		g_debug ("Xesam live search added");
 		g_hash_table_insert (priv->searches, 
 			g_strdup (tracker_xesam_live_search_get_id (search)),
 			g_object_ref (search));
@@ -396,6 +399,7 @@ tracker_xesam_session_create_search (TrackerXesamSession  *self,
 			*search_id = g_strdup (tracker_xesam_live_search_get_id (search));
 
 	} else {
+		g_message ("Xesam search parse failed");
 		g_object_unref (search);
 		search = NULL;
 	}

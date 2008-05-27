@@ -78,7 +78,8 @@ CREATE TABLE Events
 
 CREATE TABLE LiveSearches
 (
-	ID		Integer primary key not null,
 	ServiceID	Integer not null,
-	SearchID	Text
+	SearchID	Text,
+
+	Unique (ServiceID, SearchID)
 );

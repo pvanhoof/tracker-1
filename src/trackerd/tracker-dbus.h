@@ -80,10 +80,12 @@ typedef struct {
 
 gboolean         tracker_dbus_preinit                    (Tracker *tracker, 
 							  DBusGConnection **connection_out, 
-							  DBusGProxy **proxy_out);
+							  DBusGProxy **proxy_out,
+							  DBusGProxy **xesam_out);
 gboolean         tracker_dbus_init                       (Tracker *tracker,
 							  DBusGConnection *connection, 
-							  DBusGProxy *proxy);
+							  DBusGProxy *proxy,
+							  DBusGProxy *xesam);
 void             tracker_dbus_shutdown                   (void);
 guint            tracker_dbus_get_next_request_id        (void);
 GObject *        tracker_dbus_get_object                 (GType                type);

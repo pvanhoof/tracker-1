@@ -24,6 +24,8 @@
 #define TRACKER_DB_MANAGER_FILE_META_FILENAME          "file-meta.db"
 #define TRACKER_DB_MANAGER_EMAIL_CONTENTS_FILENAME     "email-contents.db"
 #define TRACKER_DB_MANAGER_EMAIL_META_FILENAME         "email-meta.db"
+#define TRACKER_DB_MANAGER_XESAM_FILENAME              "xesam.db"
+
 
 #define TRACKER_DB_MANAGER_COMMON_NAME             "common"
 #define TRACKER_DB_MANAGER_CACHE_NAME              "cache"
@@ -31,6 +33,7 @@
 #define TRACKER_DB_MANAGER_FILE_META_NAME          NULL
 #define TRACKER_DB_MANAGER_EMAIL_CONTENTS_NAME     NULL
 #define TRACKER_DB_MANAGER_EMAIL_META_NAME         NULL
+#define TRACKER_DB_MANAGER_XESAM_NAME              NULL
 
 
 static gboolean initialized = FALSE;
@@ -108,6 +111,15 @@ TrackerDBDefinition tracker_db_definitions [] = {
          512,
          TRACKER_DB_PAGE_SIZE_DEFAULT,
          FALSE},
+
+        {TRACKER_DB_XESAM,
+         TRACKER_DB_MANAGER_XESAM_FILENAME,
+         TRACKER_DB_LOC_DATA_DIR,
+         NULL,
+         NULL,
+         512,
+         TRACKER_DB_PAGE_SIZE_DEFAULT,
+         TRUE},
 };
 
 TrackerDBDefinition *tracker_dbs [TRACKER_DB_END];

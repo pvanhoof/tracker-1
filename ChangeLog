@@ -1,3 +1,8 @@
+2008-05-27777777  Philip Van Hoof  <pvanhoof@gnome.org>
+
+        * Merged with indexer-split with xesam-support
+	 svn merge -r 1487:1491 ../indexer-split
+
 2008-05-26  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-ontology.[ch]:
@@ -10,6 +15,60 @@
 	* src/tracker-indexer/tracker-indexer.[ch]: Add "reindex" property, to
 	begin indexing from scratch at startup.
 	* src/tracker-indexer/main.c: connect reindex to command line option.
+
+2008-05-27  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* Fixed the Xesam DBus namespaces for Xesam r0.95
+
+2008-05-27  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* Fixes some bugs with xesam search structures and 
+	field definitions
+	* Patch by Ottela Mikael <mikael.ottela@ixonos.com>
+
+2008-05-26  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-dbus-search.c: Bugfix in
+	dbus_search_highlight_terms
+        * Merged xesam-support with indexer-split
+	 svn merge -r 1481:1487 ../indexer-split
+
+2008-05-26  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/tracker-ontology.[ch]:
+	* src/tracker-indexer/tracker-service.[ch]:
+	* src/tracker-indexer/tracker-field.[ch]: Copied here meanwhile we
+	decide where should they go.
+
+2008-05-26  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer.[ch]: Add "reindex" property, to
+	begin indexing from scratch at startup.
+	* src/tracker-indexer/main.c: connect reindex to command line option.
+
+2008-05-26  Ottela Mikael <mikael.ottela@ixonos.com>
+
+	* src/trackerd/tracker-xesam-live-search.c
+	* src/trackerd/tracker-xesam-ontology.c
+	* src/trackerd/tracker-xesam-ontology.h
+	* src/trackerd/tracker-xesam-session.c
+	* src/trackerd/tracker-dbus-xesam.c
+	* src/trackerd/tracker-xesam.c
+	* src/trackerd/tracker-db-sqlite.c
+	* src/trackerd/tracker-db-sqlite.h
+	* src/trackerd/tracker-db-manager.c
+	* src/trackerd/Makefile.am
+	* src/trackerd/tracker-db-manager.h
+	* data/services/xesam-metadata.mmapping:
+
+	Various improvements to the database handling
+	Added Xesam ontology mapping helper functions
+
+2008-05-26  Philip Van Hoof  <pvanhoof@gnome.org>
+
+        * Merged xesam-support with indexer-split
+	 svn merge -r 1475:1479 ../indexer-split
+	 svn merge -r 1479:1481 ../indexer-split
 
 2008-05-26  Philip Van Hoof  <pvanhoof@gnome.org>
 
@@ -701,7 +760,6 @@
 
 	* src/trackerd/tracker-convert-file.c: Removed, it is not in use.
 
->>>>>>> .merge-right.r1423
 2008-05-12  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-cache.[ch]: Reworked this module and

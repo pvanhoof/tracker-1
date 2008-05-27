@@ -136,6 +136,8 @@ trackerd_SOURCES =							\
 	tracker-status.h						\
 	tracker-xesam.h							\
 	tracker-xesam.c							\
+	tracker-xesam-ontology.c					\
+	tracker-xesam-ontology.h					\
 	tracker-xesam-query.c						\
 	tracker-xesam-query.h						\
 	tracker-xesam-session.c						\

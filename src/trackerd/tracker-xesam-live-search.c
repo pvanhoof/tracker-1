@@ -489,6 +489,8 @@ tracker_xesam_live_search_get_hits (TrackerXesamLiveSearch  *self,
 
 		g_object_get (proxy, "db-connection", &db_con, NULL);
 
+		g_debug ("live_search_get_hits");
+
 		// For ottela: fetch results for get_hits
 
 		result_set = tracker_db_get_live_search_get_hit_data (db_con,
@@ -665,10 +667,13 @@ tracker_xesam_live_search_activate (TrackerXesamLiveSearch  *self,
 		TrackerDBusXesam *proxy = TRACKER_DBUS_XESAM (tracker_dbus_get_object (TRACKER_TYPE_DBUS_XESAM));
 
 		g_object_get (proxy, "db-connection", &db_con, NULL);
+
+		g_debug ("The from query for activate: %s",tracker_xesam_live_search_get_from_query (self)); 
+
 		tracker_db_start_live_search (db_con, 
-			tracker_xesam_live_search_get_id (self),
 			tracker_xesam_live_search_get_from_query (self),
-			tracker_xesam_live_search_get_where_query (self));
+			tracker_xesam_live_search_get_where_query (self),
+			tracker_xesam_live_search_get_id (self));
 	}
 
 	priv->active = TRUE;
@@ -777,6 +782,8 @@ tracker_xesam_live_search_parse_query (TrackerXesamLiveSearch  *self,
 		g_free (orig_from);
 		g_free (orig_where);
 	}
+
+	g_message ("Parsed to '%s' and '%s'", priv->from_sql, priv->where_sql);
 
 	return TRUE;
 }

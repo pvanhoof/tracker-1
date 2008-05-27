@@ -127,10 +127,11 @@ name_owner_changed_done (gpointer data, GClosure *closure)
 gboolean 
 tracker_dbus_preinit (Tracker          *tracker, 
 		      DBusGConnection **connection_out, 
-		      DBusGProxy      **proxy_out)
+		      DBusGProxy      **proxy_out,
+		      DBusGProxy      **xesam_out)
 {
         DBusGConnection *connection;
-        DBusGProxy      *proxy;
+        DBusGProxy      *proxy, *xesam;
         GError          *error = NULL;
 
         g_return_val_if_fail (tracker != NULL, FALSE);
@@ -158,8 +159,22 @@ tracker_dbus_preinit (Tracker          *tracker,
                 return FALSE;
         }
 
+        /* The definitions below (DBUS_SERVICE_DBUS, etc) are
+         * predefined for us to just use.
+         */
+        xesam = dbus_g_proxy_new_for_name (connection,
+                                           DBUS_SERVICE_DBUS,
+                                           DBUS_PATH_DBUS,
+                                           DBUS_INTERFACE_DBUS);
+
+        /* Set up the main tracker service */
+        if (!dbus_register_service (xesam, TRACKER_DBUS_XESAM_SERVICE)) {
+                return FALSE;
+        }
+
         *connection_out = connection;
         *proxy_out = proxy;
+        *xesam_out = xesam;
 
         return TRUE;
 }
@@ -167,7 +182,8 @@ tracker_dbus_preinit (Tracker          *tracker,
 gboolean
 tracker_dbus_init (Tracker         *tracker, 
 		   DBusGConnection *connection, 
-		   DBusGProxy      *proxy)
+		   DBusGProxy      *proxy,
+		   DBusGProxy      *xesam)
 {
         GObject      *object;
 	DBConnection *db_connection;
@@ -252,7 +268,7 @@ tracker_dbus_init (Tracker         *tracker,
         if (tracker_config_get_enable_xesam (tracker->config)) {
 		/* Add org.freedesktop.xesam.Search */
 		if (!(object = dbus_register_object (connection, 
-						     proxy,
+						     xesam,
 						     TRACKER_TYPE_DBUS_XESAM,
 						     &dbus_glib_tracker_dbus_xesam_object_info,
 						     TRACKER_DBUS_XESAM_PATH))) {

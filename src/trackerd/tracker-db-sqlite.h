@@ -337,9 +337,9 @@ TrackerDBResultSet *tracker_get_xesam_metadata_names           (DBConnection *db
 TrackerDBResultSet *tracker_get_xesam_service_names           (DBConnection *db_con, 
                                                                const char *name);
 
-gboolean            tracker_db_load_xesam_service_file 	       (DBConnection *db_con, 
+gboolean            tracker_db_load_xesam_service_file 	       (TrackerDBInterface *iface, 
                                                                 const char *filename);
-gboolean            tracker_db_create_xesam_lookup             (DBConnection *db_con);
+gboolean            tracker_db_create_xesam_lookup             (TrackerDBInterface *iface);
 void                tracker_db_stop_live_search                (DBConnection *db_con, 
                                                                 const gchar *search_id);
 void                tracker_db_start_live_search               (DBConnection *db_con, 

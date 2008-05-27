@@ -33,6 +33,7 @@ typedef enum {
         TRACKER_DB_FILE_CONTENTS,
         TRACKER_DB_EMAIL_META,
         TRACKER_DB_EMAIL_CONTENTS,
+	TRACKER_DB_XESAM,
         TRACKER_DB_END
 } TrackerDatabase;
 

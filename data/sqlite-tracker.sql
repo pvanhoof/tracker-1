@@ -21,9 +21,10 @@ CREATE TABLE Events
 /* This should become a TEMPORARY table */
 CREATE TABLE LiveSearches
 (
-	ID		Integer primary key not null,
 	ServiceID	Integer not null,
-	SearchID	Text
+	SearchID	Text,
+
+	Unique (ServiceID, SearchID)
 );
 
 /* store volume and HAL info here for files */

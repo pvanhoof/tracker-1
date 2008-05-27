@@ -29,8 +29,8 @@
 #include "tracker-db-sqlite.h"
 #include "tracker-indexer.h"
 
-#define TRACKER_DBUS_XESAM_SERVICE           "org.freedesktop.xesam"
-#define TRACKER_DBUS_XESAM_PATH              "/org/freedesktop/xesam/Search"
+#define TRACKER_DBUS_XESAM_SERVICE           "org.freedesktop.xesam.searcher"
+#define TRACKER_DBUS_XESAM_PATH              "/org/freedesktop/xesam/searcher/main"
 #define TRACKER_DBUS_XESAM_INTERFACE         "org.freedesktop.xesam.Search"
 
 G_BEGIN_DECLS

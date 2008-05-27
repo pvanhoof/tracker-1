@@ -1,6 +1,18 @@
 2008-05-27  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/Makefile.am:
+	* src/libtracker-db/Makefile.am:
+	* src/libtracker-db/tracker-db-interface.[ch]:
+	* src/libtracker-db/tracker-db-manager.[ch]:
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-db-sqlite.c:
+	* src/trackerd/tracker-indexer.c:
+	* src/trackerd/tracker-main.c: Moved the tracker-db-manager.[ch]
+	over to libtracker-db and improved some parts of it.
+
+2008-05-27  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/Makefile.am:
 	* src/libtracker-common/tracker-hal.[ch]:
 	* src/libtracker-common/tracker-ontology.[ch]:
 	* src/libtracker-common/tracker-parser.[ch]:

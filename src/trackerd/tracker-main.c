@@ -48,10 +48,11 @@
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-nfs-lock.h>
 
+#include <libtracker-db/tracker-db-manager.h>
+
 #include "tracker-email.h"
 #include "tracker-cache.h"
 #include "tracker-dbus.h"
-#include "tracker-db-manager.h"
 #include "tracker-indexer.h"
 #include "tracker-process-files.h"
 #include "tracker-status.h"

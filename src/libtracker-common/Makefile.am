@@ -1,10 +1,10 @@
 INCLUDES =					\
-	$(GLIB2_CFLAGS)				\
-	$(PANGO_CFLAGS)				\
-	$(HAL_CFLAGS)				\
 	-DSHAREDIR=\""$(datadir)"\"		\
 	-DG_LOG_DOMAIN=\"Tracker\"		\
-	-I$(top_srcdir)/src
+	-I$(top_srcdir)/src			\
+	$(GLIB2_CFLAGS)				\
+	$(PANGO_CFLAGS)				\
+	$(HAL_CFLAGS)
 
 noinst_LTLIBRARIES = libtracker-common.la
 

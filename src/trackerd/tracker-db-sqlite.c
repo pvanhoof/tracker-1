@@ -37,9 +37,9 @@
 #include <libtracker-common/tracker-nfs-lock.h>
 
 #include <libtracker-db/tracker-db-interface-sqlite.h>
+#include <libtracker-db/tracker-db-manager.h>
 
 #include "tracker-db-sqlite.h"
-#include "tracker-db-manager.h"
 #include "tracker-indexer.h"
 #include "tracker-cache.h"
 #include "tracker-metadata.h"
@@ -395,7 +395,7 @@ function_get_max_service_type (TrackerDBInterface *interface,
 static void
 load_generic_sql_file (TrackerDBInterface *iface, const gchar *sql_file, const gchar *delimiter) { 
 
-	char *filename, *query;
+	gchar *filename, *query;
 	
 	filename = tracker_db_manager_get_sql_file (sql_file);
 
@@ -857,13 +857,13 @@ set_params (TrackerDBInterface *iface, int cache_size, int page_size, gboolean a
  * If the file doesnt exist, creates a new file of size 0
  */
 static TrackerDBInterface *
-open_db_interface (TrackerDatabase database)
+open_db_interface (TrackerDB db)
 {
 	TrackerDBInterface *iface;
-	const gchar *dbname;
+	const gchar        *dbname;
 
 
-	dbname = tracker_db_manager_get_file (database);
+	dbname = tracker_db_manager_get_file (db);
 
 	/* We pass a GThreadPool here, it should be the same pool for all opened
 	 * SQLite databases */
@@ -872,13 +872,12 @@ open_db_interface (TrackerDatabase database)
 
 
 	set_params (iface,
-		    tracker_db_manager_get_cache_size (database),
-		    tracker_db_manager_get_page_size (database),
-		    tracker_db_manager_get_add_functions (database));
+		    tracker_db_manager_get_cache_size (db),
+		    tracker_db_manager_get_page_size (db),
+		    tracker_db_manager_get_add_functions (db));
+
 	return iface;
-
 }
-
 
 DBConnection *
 tracker_db_connect_common (void)
@@ -899,17 +898,19 @@ tracker_db_connect_common (void)
 }
 
 void
-tracker_db_attach_db (DBConnection *db_con, TrackerDatabase database)
+tracker_db_attach_db (DBConnection *db_con, 
+		      TrackerDB     db)
 {
-	if (database != TRACKER_DB_COMMON && database != TRACKER_DB_CACHE) {
+	if (db != TRACKER_DB_COMMON && 
+	    db != TRACKER_DB_CACHE) {
 		g_critical ("Attaching invalid database, expected common or cache database");
 		return;
 	}
 
 	tracker_db_exec_no_reply (db_con->db, 
 				  "ATTACH '%s' as %s",
-				  tracker_db_manager_get_file (database),
-				  tracker_db_manager_get_name (database));
+				  tracker_db_manager_get_file (db),
+				  tracker_db_manager_get_name (db));
 }
 
 static inline void
@@ -962,9 +963,7 @@ tracker_db_connect_all ()
 	tracker_db_attach_db (db_con, TRACKER_DB_CACHE);
 	
 	return db_con;
-
 }
-
 
 
 /* convenience function for process files thread */

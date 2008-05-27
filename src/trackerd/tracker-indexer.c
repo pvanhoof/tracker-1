@@ -17,7 +17,6 @@
  * Boston, MA  02110-1301, USA.
  */
 
-
 /* Needed before including math.h for lrintf() */
 #define _ISOC9X_SOURCE   1
 #define _ISOC99_SOURCE   1
@@ -55,6 +54,8 @@
 #include <libtracker-common/tracker-hal.h>
 #include <libtracker-common/tracker-ontology.h>
 
+#include <libtracker-db/tracker-db-manager.h>
+
 #include "tracker-query-tree.h"
 #include "tracker-indexer.h"
 #include "tracker-cache.h"
@@ -64,7 +65,6 @@
 #include "tracker-query-tree.h"
 #include "tracker-main.h"
 #include "tracker-status.h"
-#include "tracker-db-manager.h"
 
 extern Tracker *tracker;
 

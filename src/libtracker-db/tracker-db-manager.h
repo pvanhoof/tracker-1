@@ -1,4 +1,5 @@
-/* Tracker - indexer and metadata database engine
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
  * Copyright (C) 2008, Nokia (urho.konttori@nokia.com)
  *
  * This library is free software; you can redistribute it and/or
@@ -16,15 +17,18 @@
  * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  * Boston, MA  02110-1301, USA.
  */
+
 #ifndef __TRACKER_DB_MANAGER_H__
 #define __TRACKER_DB_MANAGER_H__
 
-#include <glib.h>
+#include <glib-object.h>
 
 #define TRACKER_DB_PAGE_SIZE_DEFAULT  4096
 #define TRACKER_DB_PAGE_SIZE_DONT_SET -1
 
 G_BEGIN_DECLS
+
+#define TRACKER_TYPE_DB (tracker_db_get_type ())
 
 typedef enum {
         TRACKER_DB_COMMON,
@@ -34,23 +38,23 @@ typedef enum {
         TRACKER_DB_EMAIL_META,
         TRACKER_DB_EMAIL_CONTENTS,
 	TRACKER_DB_XESAM,
-        TRACKER_DB_END
-} TrackerDatabase;
+} TrackerDB;
 
+GType        tracker_db_get_type                  (void) G_GNUC_CONST;
 
-void         tracker_db_manager_init              (const gchar     *data_dir,
-                                                   const gchar     *user_data_dir,
-                                                   const gchar     *sys_tmp_root_dir);
+void         tracker_db_manager_init              (const gchar *data_dir,
+                                                   const gchar *user_data_dir,
+                                                   const gchar *sys_tmp_root_dir);
 void         tracker_db_manager_shutdown          (void);
 
-const gchar *tracker_db_manager_get_file          (TrackerDatabase  db);
-gboolean     tracker_db_manager_file_exists       (TrackerDatabase  db);
-gchar *      tracker_db_manager_get_service_file  (const gchar     *service_file);
-gchar *      tracker_db_manager_get_sql_file      (const gchar     *sql_file);
-gint         tracker_db_manager_get_cache_size    (TrackerDatabase  db);
-gint         tracker_db_manager_get_page_size     (TrackerDatabase  db);
-gboolean     tracker_db_manager_get_add_functions (TrackerDatabase  db);
-const gchar *tracker_db_manager_get_name          (TrackerDatabase  db);
+const gchar *tracker_db_manager_get_file          (TrackerDB    db);
+gboolean     tracker_db_manager_file_exists       (TrackerDB    db);
+gchar *      tracker_db_manager_get_service_file  (const gchar *service_file);
+gchar *      tracker_db_manager_get_sql_file      (const gchar *sql_file);
+gint         tracker_db_manager_get_cache_size    (TrackerDB    db);
+gint         tracker_db_manager_get_page_size     (TrackerDB    db);
+gboolean     tracker_db_manager_get_add_functions (TrackerDB    db);
+const gchar *tracker_db_manager_get_name          (TrackerDB    db);
 
 G_END_DECLS
 

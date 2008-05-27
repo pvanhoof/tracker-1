@@ -41,7 +41,6 @@ typedef enum {
 GType tracker_db_type_get_type (void) G_GNUC_CONST;
 
 
-
 #define TRACKER_TYPE_SERVICE         (tracker_service_get_type ())
 #define TRACKER_SERVICE(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_SERVICE, TrackerService))
 #define TRACKER_SERVICE_CLASS(k)     (G_TYPE_CHECK_CLASS_CAST ((k), TRACKER_TYPE_SERVICE, TrackerServiceClass))

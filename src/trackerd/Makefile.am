@@ -5,6 +5,7 @@ INCLUDES =								\
 	-DLOCALEDIR=\""$(localedir)"\" 					\
 	-DMAIL_MODULES_DIR=\""$(libdir)"/tracker/mail-modules\"         \
 	-DG_LOG_DOMAIN=\"Tracker\"					\
+	-I$(top_srcdir)/src						\
 	$(GLIB2_CFLAGS)							\
 	$(GMODULE_CFLAGS)						\
 	$(PANGO_CFLAGS)							\
@@ -13,8 +14,7 @@ INCLUDES =								\
 	$(DBUS_CFLAGS)							\
 	$(SQLITE3_CFLAGS)						\
 	$(QDBM_CFLAGS)							\
-	$(UNAC_CFLAGS)							\
-	-I$(top_srcdir)/src
+	$(UNAC_CFLAGS)
 
 if HAVE_INOTIFY
 watch_sources =								\
@@ -74,8 +74,6 @@ trackerd_SOURCES =							\
 	tracker-db-email.h						\
 	tracker-db-sqlite.c						\
 	tracker-db-sqlite.h						\
-	tracker-db-manager.c						\
-	tracker-db-manager.h						\
 	tracker-dbus.c							\
 	tracker-dbus.h							\
 	tracker-dbus-daemon.c						\

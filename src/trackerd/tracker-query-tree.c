@@ -33,11 +33,11 @@
 #include <glib-object.h>
 
 #include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-parser.h>
+#include <libtracker-common/tracker-ontology.h>
 
 #include "tracker-query-tree.h"
-#include "tracker-parser.h"
 #include "tracker-utils.h"
-#include "tracker-ontology.h"
 
 #define TRACKER_QUERY_TREE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_QUERY_TREE, TrackerQueryTreePrivate))
 

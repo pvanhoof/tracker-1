@@ -24,7 +24,7 @@
 
 #include <glib.h>
 
-//#include <libtracker-common/tracker-file-utils.h>
+#include <libtracker-common/tracker-field.h>
 
 #include "tracker-xesam-ontology.h"
 
@@ -55,11 +55,9 @@ static GSList	  *service_directory_list;
 /* Field descriptions */
 static GHashTable *metadata_table;
 
-
-
 static void
 xesam_ontology_mime_prefix_foreach (gpointer data, 
-				     gpointer user_data) 
+				    gpointer user_data) 
 {
 	ServiceMimePrefixes *mime_prefix;
 
@@ -71,7 +69,7 @@ xesam_ontology_mime_prefix_foreach (gpointer data,
 
 gpointer
 xesam_ontology_hash_lookup_by_str (GHashTable  *hash_table, 
-				    const gchar *str)
+				   const gchar *str)
 {
 	gpointer *data;
 	gchar    *str_lower;
@@ -84,8 +82,8 @@ xesam_ontology_hash_lookup_by_str (GHashTable  *hash_table,
 }
 
 gpointer
-xesam_ontology_hash_lookup_by_id (GHashTable  *hash_table, 
-				   gint         id)
+xesam_ontology_hash_lookup_by_id (GHashTable *hash_table, 
+				  gint        id)
 {
 	gpointer *data;
 	gchar    *str;
@@ -100,10 +98,13 @@ xesam_ontology_hash_lookup_by_id (GHashTable  *hash_table,
 void
 tracker_xesam_ontology_init (void)
 {
-
-	g_return_if_fail (service_id_table == NULL 
-			  && service_table == NULL
-			  && mime_service == NULL);
+	if (service_id_table ||
+	    service_table ||
+	    mime_service ||
+	    service_directory_table ||
+	    metadata_table) {
+		return;
+	}
 
 	service_id_table = g_hash_table_new_full (g_str_hash, 
 						  g_str_equal, 
@@ -127,7 +128,7 @@ tracker_xesam_ontology_init (void)
 
 	metadata_table = g_hash_table_new_full (g_str_hash,
 						g_str_equal,
-						NULL, //Pointer to the object name
+						NULL,
 						g_object_unref);
 }
 
@@ -150,8 +151,8 @@ tracker_xesam_ontology_shutdown (void)
 
 void 
 tracker_xesam_ontology_add_service_type (TrackerService *service,
-				   GSList         *mimes,
-				   GSList         *mime_prefixes)
+					 GSList         *mimes,
+					 GSList         *mime_prefixes)
 {
 
 	GSList              *mime, *prefix;
@@ -300,26 +301,6 @@ tracker_xesam_ontology_get_parent_id_for_service_id (gint id)
 
 	return tracker_service_get_id (service);
 }
-/*
-gint
-tracker_xesam_ontology_get_id_of_parent_type (const gchar *service_str)
-{
-	TrackerService *service;
-	const gchar    *parent = NULL;
-
-	service = xesam_ontology_hash_lookup_by_str (service_table, service_str);
-
-	if (service) {
-		parent = tracker_service_get_parent (service);
-	}
-
-	if (!parent) {
-		return -1;
-	}
-
-	return tracker_xesam_ontology_get_id_for_service_type (parent);
-}
-*/
 
 TrackerDBType
 tracker_xesam_ontology_get_db_for_service_type (const gchar *service_str)
@@ -374,37 +355,9 @@ tracker_xesam_ontology_service_type_has_metadata (const gchar *service_str)
 	return tracker_service_get_has_metadata (service);
 }
 
-/* gboolean */
-/* tracker_xesam_ontology_service_type_has_thumbnails (const gchar *service_str) */
-/* { */
-/* 	TrackerService *service; */
-
-/* 	service = xesam_ontology_hash_lookup_by_str (service_table, service_str); */
-
-/* 	if (!service) { */
-/* 		return FALSE; */
-/* 	} */
-
-/* 	return tracker_service_get_has_thumbs (service); */
-/* } */
-
-/* gboolean  */
-/* tracker_xesam_ontology_service_type_has_text (const char *service_str)  */
-/* { */
-/* 	TrackerService *service; */
-
-/* 	service = xesam_ontology_hash_lookup_by_str (service_table, service_str); */
-
-/* 	if (!service) { */
-/* 		return FALSE; */
-/* 	} */
-
-/* 	return tracker_service_get_has_full_text (service); */
-/* } */
-
 gint
 tracker_xesam_ontology_metadata_key_in_service (const gchar *service_str, 
-				      const gchar *meta_name)
+						const gchar *meta_name)
 {
 	TrackerService *service;
 	gint            i;
@@ -485,17 +438,11 @@ tracker_xesam_ontology_get_dirs_for_service_type (const gchar *service)
 
 void
 tracker_xesam_ontology_add_dir_to_service_type (const gchar *service,  
-				 const gchar *path)
+						const gchar *path)
 {
 	g_return_if_fail (service != NULL);
 	g_return_if_fail (path != NULL);
 	
-	/*
-	if (!tracker_file_is_valid (path)) {
-		g_debug ("Path:'%s' not valid, not adding it for service:'%s'", path, service);
-		return;
-	}
-	*/
 	g_debug ("Adding path:'%s' for service:'%s'", path, service);
 
 	service_directory_list = g_slist_prepend (service_directory_list, 
@@ -508,7 +455,7 @@ tracker_xesam_ontology_add_dir_to_service_type (const gchar *service,
 
 void
 tracker_xesam_ontology_remove_dir_to_service_type (const gchar *service,  
-				    const gchar *path)
+						   const gchar *path)
 {
 	GSList *found;
 
@@ -556,7 +503,8 @@ tracker_xesam_ontology_get_service_type_for_dir (const gchar *path)
 void
 tracker_xesam_ontology_add_field (TrackerField *field)
 {
-	g_return_if_fail (field != NULL && tracker_field_get_name (field) != NULL);
+	g_return_if_fail (TRACKER_IS_FIELD (field));
+	g_return_if_fail (tracker_field_get_name (field) != NULL);
 	
 	g_hash_table_insert (metadata_table, 
 			     g_utf8_strdown (tracker_field_get_name (field), -1),
@@ -564,21 +512,17 @@ tracker_xesam_ontology_add_field (TrackerField *field)
 
 }
 
-static inline gboolean
-is_equal (const char *s1, const char *s2)
-{
-	return (strcasecmp (s1, s2) == 0);
-}
-
 gchar *
-tracker_xesam_ontology_get_field_column_in_services (const TrackerField *field, 
-					       const gchar *service_type)
+tracker_xesam_ontology_get_field_column_in_services (TrackerField *field, 
+						     const gchar  *service_type)
 {
 	const gchar *field_name;
-	const gchar *meta_name = tracker_field_get_name (field);
+	const gchar *meta_name;
+	gint         key_field;
 
-	int key_field = tracker_xesam_ontology_metadata_key_in_service (service_type, 
-								  meta_name);
+	meta_name = tracker_field_get_name (field);
+	key_field = tracker_xesam_ontology_metadata_key_in_service (service_type, 
+								    meta_name);
 
 	if (key_field > 0) {
 		return g_strdup_printf ("KeyMetadata%d", key_field);
@@ -592,29 +536,18 @@ tracker_xesam_ontology_get_field_column_in_services (const TrackerField *field,
 	} else {
 		return NULL;
 	}
-/*
-  
-	if (is_equal (meta_name, "File:Path")) return g_strdup ("Path");
-	if (is_equal (meta_name, "File:Name")) return g_strdup ("Name");
-	if (is_equal (meta_name, "File:Mime")) return g_strdup ("Mime");
-	if (is_equal (meta_name, "File:Size")) return g_strdup ("Size");
-	if (is_equal (meta_name, "File:Rank")) return g_strdup ("Rank");
-	if (is_equal (meta_name, "File:Modified")) return g_strdup ("IndexTime");
-
-	return NULL;
-*/
 }
 
 gchar *
-tracker_xesam_ontology_get_display_field (const TrackerField *field)
+tracker_xesam_ontology_get_display_field (TrackerField *field)
 {
 	TrackerFieldType type;
 
 	type = tracker_field_get_data_type (field);
 
-	if (type == TRACKER_FIELD_TYPE_INDEX 
-	    || type == TRACKER_FIELD_TYPE_STRING 
-	    || type == TRACKER_FIELD_TYPE_DOUBLE) {
+	if (type == TRACKER_FIELD_TYPE_INDEX ||
+	    type == TRACKER_FIELD_TYPE_STRING || 
+	    type == TRACKER_FIELD_TYPE_DOUBLE) {
 		return g_strdup ("MetaDataDisplay");
 	}
 
@@ -622,9 +555,12 @@ tracker_xesam_ontology_get_display_field (const TrackerField *field)
 }
 
 gboolean
-tracker_xesam_ontology_field_is_child_of (const gchar *child, const gchar *parent) {
-
-	const TrackerField *def_child, *def_parent;
+tracker_xesam_ontology_field_is_child_of (const gchar *child, 
+					  const gchar *parent) 
+{
+	TrackerField *def_child;
+	TrackerField *def_parent;
+	const GSList *tmp;
 
 	def_child = tracker_xesam_ontology_get_field_def (child);
 
@@ -632,14 +568,11 @@ tracker_xesam_ontology_field_is_child_of (const gchar *child, const gchar *paren
 		return FALSE;
 	}
 
-
 	def_parent = tracker_xesam_ontology_get_field_def (parent);
 
 	if (!def_parent) {
 		return FALSE;
 	}
-
-	const GSList *tmp;
 
 	for (tmp = tracker_field_get_child_ids (def_parent); tmp; tmp = tmp->next) {
 		
@@ -651,11 +584,9 @@ tracker_xesam_ontology_field_is_child_of (const gchar *child, const gchar *paren
 	}
 
 	return FALSE;
-
 }
 
-
-const TrackerField *
+TrackerField *
 tracker_xesam_ontology_get_field_def (const gchar *name) 
 {
 	return xesam_ontology_hash_lookup_by_str (metadata_table, name);
@@ -664,7 +595,7 @@ tracker_xesam_ontology_get_field_def (const gchar *name)
 const gchar *
 tracker_xesam_ontology_get_field_id (const gchar *name)
 {
-	const TrackerField *field;
+	TrackerField *field;
 
 	field = tracker_xesam_ontology_get_field_def (name);
 

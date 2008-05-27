@@ -33,14 +33,12 @@
 
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-file-utils.h>
+#include <libtracker-common/tracker-ontology.h>
 #include <libtracker-common/tracker-os-dependant.h>
 
 #include "tracker-metadata.h"
 #include "tracker-utils.h"
-#include "tracker-ontology.h"
 #include "tracker-main.h"
-
-extern Tracker *tracker;
 
 char *
 tracker_metadata_get_text_file (const char *uri, const char *mime)

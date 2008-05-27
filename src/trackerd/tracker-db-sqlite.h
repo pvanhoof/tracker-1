@@ -23,11 +23,13 @@
 
 #include <glib.h>
 
+#include <libtracker-common/tracker-field.h>
+#include <libtracker-common/tracker-field-data.h>
+#include <libtracker-common/tracker-ontology.h>
+
 #include <libtracker-db/tracker-db-interface.h>
 #include <libtracker-db/tracker-db-file-info.h>
 
-#include "tracker-field-data.h"
-#include "tracker-ontology.h"
 #include "tracker-indexer.h"
 #include "tracker-utils.h"
 

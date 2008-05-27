@@ -27,13 +27,13 @@
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-utils.h>
 #include <libtracker-common/tracker-file-utils.h>
+#include <libtracker-common/tracker-ontology.h>
 #include <libtracker-common/tracker-type-utils.h>
 
 #include "tracker-dbus.h"
 #include "tracker-dbus-files.h"
 #include "tracker-db.h"
 #include "tracker-metadata.h"
-#include "tracker-ontology.h"
 #include "tracker-marshal.h"
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DBUS_FILES, TrackerDBusFilesPriv))

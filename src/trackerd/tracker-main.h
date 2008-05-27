@@ -31,12 +31,13 @@
 
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-language.h>
+#include <libtracker-common/tracker-parser.h>
+#include <libtracker-common/tracker-hal.h>
+
 #include <libtracker-db/tracker-db-action.h>
 
-#include "tracker-parser.h"
 #include "tracker-indexer.h"
 #include "tracker-index-stage.h"
-#include "tracker-hal.h"
 
 /* default performance options */
 #define MAX_PROCESS_QUEUE_SIZE 100

@@ -52,17 +52,17 @@
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-file-utils.h>
+#include <libtracker-common/tracker-hal.h>
+#include <libtracker-common/tracker-ontology.h>
 
 #include "tracker-query-tree.h"
 #include "tracker-indexer.h"
 #include "tracker-cache.h"
 #include "tracker-dbus.h"
 #include "tracker-dbus-daemon.h"
-#include "tracker-hal.h"
 #include "tracker-process-files.h"
 #include "tracker-query-tree.h"
 #include "tracker-main.h"
-#include "tracker-ontology.h"
 #include "tracker-status.h"
 #include "tracker-db-manager.h"
 

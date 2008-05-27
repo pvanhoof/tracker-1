@@ -25,12 +25,12 @@
 #include <string.h>
 
 #include <libtracker-common/tracker-log.h>
+#include <libtracker-common/tracker-field-data.h>
 #include <libtracker-common/tracker-utils.h>
 
 #include "tracker-dbus.h"
 #include "tracker-dbus-metadata.h"
 #include "tracker-db.h"
-#include "tracker-field-data.h"
 #include "tracker-marshal.h"
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DBUS_METADATA, TrackerDBusMetadataPriv))

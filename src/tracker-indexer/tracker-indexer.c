@@ -49,6 +49,7 @@
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-db/tracker-db-interface-sqlite.h>
+
 #include <qdbm/depot.h>
 
 #include "tracker-indexer.h"

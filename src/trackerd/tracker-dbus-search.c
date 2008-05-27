@@ -26,15 +26,15 @@
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-language.h>
 #include <libtracker-common/tracker-log.h>
+#include <libtracker-common/tracker-ontology.h>
+#include <libtracker-common/tracker-parser.h>
 #include <libtracker-common/tracker-utils.h>
 
 #include "tracker-dbus.h"
 #include "tracker-dbus-search.h"
-#include "tracker-parser.h"
 #include "tracker-rdf-query.h"
 #include "tracker-query-tree.h"
 #include "tracker-indexer.h"
-#include "tracker-ontology.h"
 #include "tracker-marshal.h"
 
 #define DEFAULT_SEARCH_MAX_HITS 1024

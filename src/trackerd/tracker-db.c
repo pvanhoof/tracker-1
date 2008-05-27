@@ -30,12 +30,12 @@
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-type-utils.h>
+#include <libtracker-common/tracker-ontology.h>
 #include <libtracker-common/tracker-os-dependant.h>
 
 #include "tracker-db.h"
 #include "tracker-email.h"
 #include "tracker-metadata.h"
-#include "tracker-ontology.h"
 #include "tracker-process-files.h"
 
 extern Tracker *tracker;

@@ -9,7 +9,6 @@ INCLUDES =								\
 	$(GMODULE_CFLAGS)						\
 	$(PANGO_CFLAGS)							\
 	$(GMIME_CFLAGS)							\
-	$(HAL_CFLAGS)							\
 	$(FAM_CFLAGS)							\
 	$(DBUS_CFLAGS)							\
 	$(SQLITE3_CFLAGS)						\
@@ -31,12 +30,6 @@ else
 watch_sources = tracker-poll.c
 endif
 endif
-endif
-
-if HAVE_HAL
-hal_sources = 								\
-	tracker-hal.c             					\
-	tracker-hal.h
 endif
 
 mail_modulesdir = $(libdir)/tracker/mail-modules
@@ -71,7 +64,6 @@ trackerd_SOURCES =							\
 	$(watch_sources)						\
 	$(win_sources)							\
 	$(unix_sources)							\
-	$(hal_sources)							\
 	tracker-apps.c							\
 	tracker-apps.h							\
 	tracker-cache.c							\
@@ -102,10 +94,6 @@ trackerd_SOURCES =							\
 	tracker-email.h							\
 	tracker-email-utils.c						\
 	tracker-email-utils.h						\
-	tracker-field.c							\
-	tracker-field.h							\
-	tracker-field-data.c						\
-	tracker-field-data.h						\
 	tracker-indexer.c						\
 	tracker-indexer.h						\
 	tracker-index-stage.c						\
@@ -115,10 +103,6 @@ trackerd_SOURCES =							\
 	tracker-marshal-main.c						\
 	tracker-metadata.c						\
 	tracker-metadata.h						\
-	tracker-ontology.c						\
-	tracker-ontology.h						\
-	tracker-parser.c						\
-	tracker-parser.h						\
 	tracker-process-files.c						\
 	tracker-process-files.h						\
 	tracker-query-tree.c						\
@@ -127,8 +111,6 @@ trackerd_SOURCES =							\
 	tracker-rdf-query.h						\
 	tracker-utils.c							\
 	tracker-utils.h							\
-	tracker-service.c						\
-	tracker-service.h						\
 	tracker-ioprio.c						\
 	tracker-ioprio.h						\
 	tracker-watch.h							\
@@ -156,7 +138,6 @@ trackerd_LDADD =							\
 	$(DBUS_LIBS)							\
 	$(PANGO_LIBS)							\
 	$(GMIME_LIBS)							\
-	$(HAL_LIBS)							\
 	$(SQLITE3_LIBS)							\
 	$(QDBM_LIBS)							\
 	$(UNAC_LIBS)							\

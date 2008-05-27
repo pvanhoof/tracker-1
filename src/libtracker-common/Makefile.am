@@ -1,5 +1,7 @@
 INCLUDES =					\
 	$(GLIB2_CFLAGS)				\
+	$(PANGO_CFLAGS)				\
+	$(HAL_CFLAGS)				\
 	-DSHAREDIR=\""$(datadir)"\"		\
 	-DG_LOG_DOMAIN=\"Tracker\"		\
 	-I$(top_srcdir)/src
@@ -12,26 +14,48 @@ else
 os_sources = tracker-os-dependant-unix.c
 endif
 
-libtracker_common_la_SOURCES = 		\
-	$(os_sources)			\
-	tracker-configuration.c 	\
-	tracker-configuration.h 	\
-	tracker-config.c 		\
-	tracker-config.h		\
-	tracker-file-utils.c		\
-	tracker-file-utils.h		\
-	tracker-language.c		\
-	tracker-language.h		\
-	tracker-log.c	 		\
-	tracker-log.h			\
-	tracker-nfs-lock.c		\
-	tracker-nfs-lock.h		\
-	tracker-os-dependant.h		\
-	tracker-type-utils.c		\
-	tracker-type-utils.h		\
-	tracker-utils.c			\
+if HAVE_HAL
+hal_sources = 					\
+	tracker-hal.c        			\
+	tracker-hal.h
+endif
+
+libtracker_common_la_SOURCES = 			\
+	$(os_sources)				\
+	$(hal_sources)				\
+	tracker-configuration.c 		\
+	tracker-configuration.h 		\
+	tracker-config.c 			\
+	tracker-config.h			\
+	tracker-field.c				\
+	tracker-field.h				\
+	tracker-field-data.c			\
+	tracker-field-data.h			\
+	tracker-file-utils.c			\
+	tracker-file-utils.h			\
+	tracker-hal.c				\
+	tracker-hal.h				\
+	tracker-language.c			\
+	tracker-language.h			\
+	tracker-log.c	 			\
+	tracker-log.h				\
+	tracker-nfs-lock.c			\
+	tracker-nfs-lock.h			\
+	tracker-ontology.c			\
+	tracker-ontology.h			\
+	tracker-os-dependant.h			\
+	tracker-parser.c			\
+	tracker-parser.h			\
+	tracker-service.c			\
+	tracker-service.h			\
+	tracker-type-utils.c			\
+	tracker-type-utils.h			\
+	tracker-utils.c				\
 	tracker-utils.h
 
 libtracker_common_la_LDFLAGS = -version-info 0:0:0
-libtracker_common_la_LIBADD = $(GLIB2_LIBS)
+libtracker_common_la_LIBADD = 			\
+	$(GLIB2_LIBS)				\
+	$(PANGO_LIBS)				\
+	$(HAL_LIBS)
 

@@ -23,7 +23,7 @@
 
 #include <glib.h>
 
-#include <libtracker-common/tracker-language.h>
+#include "tracker-language.h"
 
 G_BEGIN_DECLS
 

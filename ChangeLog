@@ -1,3 +1,32 @@
+2008-05-27  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/Makefile.am:
+	* src/libtracker-common/tracker-hal.[ch]:
+	* src/libtracker-common/tracker-ontology.[ch]:
+	* src/libtracker-common/tracker-parser.[ch]:
+	* src/libtracker-common/tracker-service.[ch]:
+	* src/libtracker-common/tracker-field.[ch]:
+	* src/libtracker-common/tracker-field-data.[ch]:
+	* src/tracker-indexer/Makefile.am:
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-db-email.c:
+	* src/trackerd/tracker-db-sqlite.[ch]:
+	* src/trackerd/tracker-db.c:
+	* src/trackerd/tracker-dbus-files.c:
+	* src/trackerd/tracker-dbus-metadata.c:
+	* src/trackerd/tracker-dbus-search.c:
+	* src/trackerd/tracker-dbus-xesam.c:
+	* src/trackerd/tracker-indexer.c:
+	* src/trackerd/tracker-main.[ch]:
+	* src/trackerd/tracker-metadata.c:
+	* src/trackerd/tracker-process-files.c:
+	* src/trackerd/tracker-query-tree.c:
+	* src/trackerd/tracker-xesam-ontology.[ch]:
+	* src/trackerd/tracker-xesam-query.c: Moved tracker-hal,
+	tracker-ontology, tracker-service, tracker-parser, tracker-field
+	and tracker-field-data modules to libtracker-common because they
+	are shared by the indexer and the daemon.
+
 2008-05-27  Philip Van Hoof  <pvanhoof@gnome.org>
 
         * Merged indexer-split with xesam-support

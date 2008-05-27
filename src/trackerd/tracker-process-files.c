@@ -32,8 +32,10 @@
 
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-log.h>
-#include <libtracker-common/tracker-os-dependant.h>
 #include <libtracker-common/tracker-file-utils.h>
+#include <libtracker-common/tracker-hal.h>
+#include <libtracker-common/tracker-os-dependant.h>
+#include <libtracker-common/tracker-service.h>
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-utils.h>
 
@@ -45,10 +47,8 @@
 #include "tracker-dbus-daemon.h"
 #include "tracker-cache.h"
 #include "tracker-email.h"
-#include "tracker-hal.h"
 #include "tracker-indexer.h"
 #include "tracker-watch.h"
-#include "tracker-service.h"
 #include "tracker-status.h"
 #include "tracker-process-files.h"
 

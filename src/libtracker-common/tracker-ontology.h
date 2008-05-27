@@ -24,8 +24,8 @@
 
 #include <glib-object.h>
 
-#include "tracker-service.h"
 #include "tracker-field.h"
+#include "tracker-service.h"
 
 G_BEGIN_DECLS
 

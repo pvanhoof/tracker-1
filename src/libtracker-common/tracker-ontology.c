@@ -24,8 +24,6 @@
 
 #include <glib.h>
 
-//#include <libtracker-common/tracker-file-utils.h>
-
 #include "tracker-ontology.h"
 
 typedef struct {
@@ -59,7 +57,7 @@ static GHashTable *metadata_table;
 
 static void
 ontology_mime_prefix_foreach (gpointer data, 
-				     gpointer user_data) 
+			      gpointer user_data) 
 {
 	ServiceMimePrefixes *mime_prefix;
 
@@ -71,7 +69,7 @@ ontology_mime_prefix_foreach (gpointer data,
 
 gpointer
 ontology_hash_lookup_by_str (GHashTable  *hash_table, 
-				    const gchar *str)
+			     const gchar *str)
 {
 	gpointer *data;
 	gchar    *str_lower;
@@ -85,7 +83,7 @@ ontology_hash_lookup_by_str (GHashTable  *hash_table,
 
 gpointer
 ontology_hash_lookup_by_id (GHashTable  *hash_table, 
-				   gint         id)
+			    gint         id)
 {
 	gpointer *data;
 	gchar    *str;
@@ -300,26 +298,6 @@ tracker_ontology_get_parent_id_for_service_id (gint id)
 
 	return tracker_service_get_id (service);
 }
-/*
-gint
-tracker_ontology_get_id_of_parent_type (const gchar *service_str)
-{
-	TrackerService *service;
-	const gchar    *parent = NULL;
-
-	service = ontology_hash_lookup_by_str (service_table, service_str);
-
-	if (service) {
-		parent = tracker_service_get_parent (service);
-	}
-
-	if (!parent) {
-		return -1;
-	}
-
-	return tracker_ontology_get_id_for_service_type (parent);
-}
-*/
 
 TrackerDBType
 tracker_ontology_get_db_for_service_type (const gchar *service_str)
@@ -404,7 +382,7 @@ tracker_ontology_service_type_has_text (const char *service_str)
 
 gint
 tracker_ontology_metadata_key_in_service (const gchar *service_str, 
-				      const gchar *meta_name)
+					  const gchar *meta_name)
 {
 	TrackerService *service;
 	gint            i;
@@ -485,17 +463,11 @@ tracker_ontology_get_dirs_for_service_type (const gchar *service)
 
 void
 tracker_ontology_add_dir_to_service_type (const gchar *service,  
-				 const gchar *path)
+					  const gchar *path)
 {
 	g_return_if_fail (service != NULL);
 	g_return_if_fail (path != NULL);
 	
-	/*
-	if (!tracker_file_is_valid (path)) {
-		g_debug ("Path:'%s' not valid, not adding it for service:'%s'", path, service);
-		return;
-	}
-	*/
 	g_debug ("Adding path:'%s' for service:'%s'", path, service);
 
 	service_directory_list = g_slist_prepend (service_directory_list, 
@@ -508,7 +480,7 @@ tracker_ontology_add_dir_to_service_type (const gchar *service,
 
 void
 tracker_ontology_remove_dir_to_service_type (const gchar *service,  
-				    const gchar *path)
+					     const gchar *path)
 {
 	GSList *found;
 
@@ -556,18 +528,12 @@ tracker_ontology_get_service_type_for_dir (const gchar *path)
 void
 tracker_ontology_add_field (TrackerField *field)
 {
-	g_return_if_fail (field != NULL && tracker_field_get_name (field) != NULL);
+	g_return_if_fail (TRACKER_IS_FIELD (field));
+	g_return_if_fail (tracker_field_get_name (field) != NULL);
 	
 	g_hash_table_insert (metadata_table, 
 			     g_utf8_strdown (tracker_field_get_name (field), -1),
 			     field);
-
-}
-
-static inline gboolean
-is_equal (const char *s1, const char *s2)
-{
-	return (strcasecmp (s1, s2) == 0);
 }
 
 gchar *
@@ -575,10 +541,12 @@ tracker_ontology_get_field_column_in_services (TrackerField *field,
 					       const gchar  *service_type)
 {
 	const gchar *field_name;
-	const gchar *meta_name = tracker_field_get_name (field);
+	const gchar *meta_name;
+	gint         key_field;
 
-	int key_field = tracker_ontology_metadata_key_in_service (service_type, 
-								  meta_name);
+	meta_name = tracker_field_get_name (field);
+	key_field = tracker_ontology_metadata_key_in_service (service_type, 
+							      meta_name);
 
 	if (key_field > 0) {
 		return g_strdup_printf ("KeyMetadata%d", key_field);
@@ -592,17 +560,6 @@ tracker_ontology_get_field_column_in_services (TrackerField *field,
 	} else {
 		return NULL;
 	}
-/*
-  
-	if (is_equal (meta_name, "File:Path")) return g_strdup ("Path");
-	if (is_equal (meta_name, "File:Name")) return g_strdup ("Name");
-	if (is_equal (meta_name, "File:Mime")) return g_strdup ("Mime");
-	if (is_equal (meta_name, "File:Size")) return g_strdup ("Size");
-	if (is_equal (meta_name, "File:Rank")) return g_strdup ("Rank");
-	if (is_equal (meta_name, "File:Modified")) return g_strdup ("IndexTime");
-
-	return NULL;
-*/
 }
 
 gchar *
@@ -612,9 +569,9 @@ tracker_ontology_get_display_field (TrackerField *field)
 
 	type = tracker_field_get_data_type (field);
 
-	if (type == TRACKER_FIELD_TYPE_INDEX 
-	    || type == TRACKER_FIELD_TYPE_STRING 
-	    || type == TRACKER_FIELD_TYPE_DOUBLE) {
+	if (type == TRACKER_FIELD_TYPE_INDEX ||
+	    type == TRACKER_FIELD_TYPE_STRING || 
+	    type == TRACKER_FIELD_TYPE_DOUBLE) {
 		return g_strdup ("MetaDataDisplay");
 	}
 
@@ -622,9 +579,11 @@ tracker_ontology_get_display_field (TrackerField *field)
 }
 
 gboolean
-tracker_ontology_field_is_child_of (const gchar *child, const gchar *parent) {
-
-	TrackerField *def_child, *def_parent;
+tracker_ontology_field_is_child_of (const gchar *child, const gchar *parent) 
+{
+	TrackerField *def_child;
+	TrackerField *def_parent;
+	const GSList *tmp;
 
 	def_child = tracker_ontology_get_field_def (child);
 
@@ -632,14 +591,11 @@ tracker_ontology_field_is_child_of (const gchar *child, const gchar *parent) {
 		return FALSE;
 	}
 
-
 	def_parent = tracker_ontology_get_field_def (parent);
 
 	if (!def_parent) {
 		return FALSE;
 	}
-
-	const GSList *tmp;
 
 	for (tmp = tracker_field_get_child_ids (def_parent); tmp; tmp = tmp->next) {
 		
@@ -651,9 +607,7 @@ tracker_ontology_field_is_child_of (const gchar *child, const gchar *parent) {
 	}
 
 	return FALSE;
-
 }
-
 
 TrackerField *
 tracker_ontology_get_field_def (const gchar *name) 

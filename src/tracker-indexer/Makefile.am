@@ -7,65 +7,20 @@ INCLUDES =								\
 	-DINDEXER_MODULES_DIR=\""$(libdir)"/tracker/indexer-modules\"	\
 	$(GLIB2_CFLAGS)							\
 	$(GMODULE_CFLAGS)						\
-	$(GMIME_CFLAGS)							\
-	$(HAL_CFLAGS)							\
-	$(SQLITE3_CFLAGS)						\
-	$(QDBM_CFLAGS)							\
-	$(UNAC_CFLAGS)							\
 	-I$(top_srcdir)/src
-
-# if HAVE_INOTIFY
-# watch_sources =								\
-# 	linux-inotify-syscalls.h					\
-# 	tracker-inotify.c
-# else
-# if HAVE_FAM
-# watch_sources = tracker-fam.c
-# else
-# if OS_WIN32
-# watch_sources = tracker-win-fs-changes.c
-# else
-# watch_sources = tracker-poll.c
-# endif
-# endif
-# endif
-
-# if OS_WIN32
-# win_sources = tracker-os-dependant-win.c
-# else
-# unix_sources = tracker-os-dependant-unix.c
-# endif
-
-# if HAVE_HAL
-# hal_sources = 								\
-# 	tracker-hal.c             					\
-# 	tracker-hal.h
-# endif
 
 bin_PROGRAMS = tracker-indexer
 
 tracker_indexer_SOURCES =						\
 	main.c								\
-	tracker-field.c							\
-	tracker-field.h							\
 	tracker-indexer.c						\
 	tracker-indexer.h						\
 	tracker-indexer-module.c					\
-	tracker-indexer-module.h					\
-	tracker-ontology.c						\
-	tracker-ontology.h						\
-	tracker-service.c						\
-	tracker-service.h
+	tracker-indexer-module.h
 
 tracker_indexer_LDADD =							\
 	$(GLIB2_LIBS)							\
 	$(GMODULE_LIBS)							\
-	$(FAM_LIBS)							\
-	$(GMIME_LIBS)							\
-	$(HAL_LIBS)							\
-	$(SQLITE3_LIBS)							\
-	$(QDBM_LIBS)							\
-	$(UNAC_LIBS)							\
 	$(GTHREAD_LIBS)							\
 	-lz								\
 	-lm								\

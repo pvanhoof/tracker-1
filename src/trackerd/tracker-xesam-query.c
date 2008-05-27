@@ -22,12 +22,11 @@
 #include <string.h>
 
 #include <libtracker-common/tracker-log.h>
+#include <libtracker-common/tracker-field-data.h>
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-utils.h>
 
 #include "tracker-xesam-query.h"
-#include "tracker-field-data.h"
-
 
 /* XESAM Query Condition
 <query>
@@ -43,7 +42,6 @@
 	</and>
 </Condition>
 */
-
 
 /* main elements */
 #define ELEMENT_XESAM_QUERY 	        "query"

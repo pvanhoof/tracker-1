@@ -30,9 +30,7 @@
 
 #include <dbus/dbus-glib-lowlevel.h>
 
-#include <libtracker-common/tracker-log.h>
-
-#include "tracker-db.h"
+#include "tracker-log.h"
 #include "tracker-hal.h"
 #include "tracker-utils.h"
 
@@ -756,12 +754,14 @@ hal_device_property_modified_cb (LibHalContext *context,
                 }
                 
                 g_message ("HAL reports system is now powered by %s",
-                             priv->battery_in_use ? "battery" : "AC adapter");
+			   priv->battery_in_use ? "battery" : "AC adapter");
 
+#if 0
                 /* If we have come off battery power wakeup index thread */
                 if (current_state && !priv->battery_in_use) {
                         tracker_notify_file_data_available ();
                 }
+#endif
         } else {
                 gboolean is_mounted;
                

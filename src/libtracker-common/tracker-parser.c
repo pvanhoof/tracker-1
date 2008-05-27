@@ -27,12 +27,9 @@
 
 #include <pango/pango.h>
 
-#include <libtracker-common/tracker-language.h>
-#include <libtracker-common/tracker-log.h>
-
 #include "tracker-parser.h"
+#include "tracker-log.h"
 #include "tracker-utils.h"
-#include "tracker-main.h"
 
 #define INDEX_NUMBER_MIN_LENGTH 6
 

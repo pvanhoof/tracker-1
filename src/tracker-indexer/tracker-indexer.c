@@ -337,7 +337,7 @@ tracker_indexer_add_directory (TrackerIndexer *indexer,
 	if (!ignore) {
 		g_queue_push_tail (priv->dir_queue, info);
 	} else {
-		g_message ("Ignoring directory: %s\n", info->path);
+		g_message ("Ignoring directory:'%s'", info->path);
 		path_info_free (info);
 	}
 
@@ -350,7 +350,7 @@ process_file (TrackerIndexer *indexer,
 {
 	GHashTable *metadata;
 
-	g_message ("Processing file: %s\n", info->path);
+	g_message ("Processing file:'%s'", info->path);
 
 	metadata = tracker_indexer_module_get_file_metadata (info->module, info->path);
 
@@ -361,9 +361,9 @@ process_file (TrackerIndexer *indexer,
 		keys = g_hash_table_get_keys (metadata);
 
 		for (k = keys; k; k = k->next) {
-			g_print (" %s = %s\n",
-				 (gchar *) k->data,
-				 (gchar *) g_hash_table_lookup (metadata, k->data));
+			g_message ("  %s = %s",
+				   (gchar*) k->data,
+				   (gchar*) g_hash_table_lookup (metadata, k->data));
 		}
 
 		g_hash_table_destroy (metadata);
@@ -379,7 +379,7 @@ process_directory (TrackerIndexer *indexer,
 	const gchar *name;
 	GDir *dir;
 
-	g_message ("Processing directory: %s\n", info->path);
+	g_message ("Processing directory:'%s'", info->path);
 
 	dir = g_dir_open (info->path, 0, NULL);
 
@@ -416,7 +416,7 @@ process_module (TrackerIndexer *indexer,
 	gchar **dirs;
 	gint i;
 
-	g_message ("Starting module: %s\n", module_name);
+	g_message ("Starting module:'%s'", module_name);
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 	module = g_hash_table_lookup (priv->indexer_modules, module_name);
@@ -448,15 +448,15 @@ indexing_func (gpointer data)
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
 	if ((path = g_queue_pop_head (priv->file_process_queue)) != NULL) {
-		/* process file */
+		/* Process file */
 		process_file (indexer, path);
 		path_info_free (path);
 	} else if ((path = g_queue_pop_head (priv->dir_queue)) != NULL) {
-		/* process directory contents */
+		/* Process directory contents */
 		process_directory (indexer, path, TRUE);
 		path_info_free (path);
 	} else {
-		/* dirs/files queues are empty, process the next module */
+		/* Dirs/files queues are empty, process the next module */
 		if (!priv->current_module) {
 			priv->current_module = priv->module_names;
 		} else {
@@ -464,7 +464,7 @@ indexing_func (gpointer data)
 		}
 
 		if (!priv->current_module) {
-			/* no more modules to query, we're done */
+			/* No more modules to query, we're done */
 			g_signal_emit (indexer, signals[FINISHED], 0);
 			return FALSE;
 		}

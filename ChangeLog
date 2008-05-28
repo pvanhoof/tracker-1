@@ -1,5 +1,28 @@
 2008-05-28  Martyn Russell  <martyn@imendio.com>
 
+	* configure.ac: Changed the IOPRIO_SUPPORT to HAVE_IOPRIO since
+	thats more consistent with naming conventions. 
+	
+	* src/tracker-indexer/Makefile.am:
+	* src/tracker-indexer/tracker-indexer.c:
+	* src/tracker-indexer/tracker-ioprio.[ch]:
+	* src/trackerd/Makefile.am: Moved the tracker-ioprio.[ch] to the
+	indexer directory, they are only needed there. Also, moved the
+	nice() function call to the indexer, the daemon doesn't need jthat
+	either.  
+
+	* src/tracker-indexer/main.c: Removed all command line options
+	except verbosity and reindex, these will not be needed except for
+	debugging generally. Also use the same jargon about copyright, etc
+	when starting up as the daemon. Added log support, we write to the
+	same place as the daemon does, except it is called
+	tracker-indexer.log. 
+
+	* src/trackerd/tracker-main.c: Changed the log to trackerd.log
+	from tracker.log.
+
+2008-05-28  Martyn Russell  <martyn@imendio.com>
+
 	* data/Makefile.am:
 	* data/sqlite-service-stored-procs.sql: Removed this, it is no
 	longer used.

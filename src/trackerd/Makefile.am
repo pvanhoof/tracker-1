@@ -109,8 +109,6 @@ trackerd_SOURCES =							\
 	tracker-rdf-query.h						\
 	tracker-utils.c							\
 	tracker-utils.h							\
-	tracker-ioprio.c						\
-	tracker-ioprio.h						\
 	tracker-watch.h							\
 	tracker-status.c						\
 	tracker-status.h						\

@@ -23,85 +23,46 @@
 #include <stdlib.h>
 #include <locale.h>
 #include <signal.h>
+#include <errno.h>
+#include <unistd.h>
 
 #include <glib/gi18n.h>
 #include <glib-object.h>
 
+#include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-log.h>
+
 #include "tracker-indexer.h"
 
-#define COPYRIGHT							  \
-	"Tracker version " PACKAGE_VERSION "\n"				  \
-	"Copyright (c) 2005-2008 by Jamie McCracken (jamiemcc@gnome.org)"
+#ifdef HAVE_IOPRIO
+#include "tracker-ioprio.h"
+#endif
 
-#define WARRANTY \
+#define ABOUT								\
+	"Tracker " VERSION "\n"						\
+	"Copyright (c) 2005-2008 Jamie McCracken (jamiemcc@gnome.org)\n" 
+
+#define LICENSE								\
 	"This program is free software and comes without any warranty.\n" \
-	"It is licensed under version 2 or later of the General Public\n" \
-	"License which can be viewed at:\n"				  \
-	"\n"								  \
-	"\thttp://www.gnu.org/licenses/gpl.txt"
+	"It is licensed under version 2 or later of the General Public " \
+	"License which can be viewed at:\n"				\
+        "\n"								\
+	"  http://www.gnu.org/licenses/gpl.txt\n" 
 
 static GMainLoop  *main_loop;
 
-static gchar	 **no_watch_dirs;
-static gchar	 **watch_dirs;
-static gchar	 **crawl_dirs;
-static gchar	  *language;
-static gboolean	   disable_indexing;
 static gboolean	   reindex;
-static gboolean	   fatal_errors;
-static gboolean	   low_memory;
-static gint	   throttle = -1;
-static gint	   verbosity;
-static gint	   initial_sleep = -1;
+static gint	   verbosity = -1;
 
 static GOptionEntry entries[] = {
-	{ "exclude-dir", 'e', 0, G_OPTION_ARG_STRING_ARRAY, &no_watch_dirs, 
-	  N_("Directory to exclude from indexing"), 
-	  N_("/PATH/DIR")
-	},
-	{ "include-dir", 'i', 0, G_OPTION_ARG_STRING_ARRAY, &watch_dirs, 
-	  N_("Directory to include in indexing"), 
-	  N_("/PATH/DIR")
-	},
-	{ "crawl-dir", 'c', 0, G_OPTION_ARG_STRING_ARRAY, &crawl_dirs, 
-	  N_("Directory to crawl for indexing at start up only"), 
-	  N_("/PATH/DIR")
-	},
-	{ "no-indexing", 'n', 0, G_OPTION_ARG_NONE, &disable_indexing, 
-	  N_("Disable any indexing or watching taking place"),
+	{ "reindex", 'R', 0, G_OPTION_ARG_NONE, &reindex, 
+	  N_("Force a re-index of all content"), 
 	  NULL 
 	},
 	{ "verbosity", 'v', 0, G_OPTION_ARG_INT, &verbosity, 
 	  N_("Value that controls the level of logging. Valid values "
 	     "are 0=errors, 1=minimal, 2=detailed, 3=debug"), 
 	  N_("VALUE")
-	},
-	{ "throttle", 't', 0, G_OPTION_ARG_INT, &throttle, 
-	  N_("Value to use for throttling indexing. Value must be in "
-	     "range 0-99 (default=0) with lower values increasing "
-	     "indexing speed"), 
-	  N_("VALUE") 
-	},
-	{ "low-memory", 'm', 0, G_OPTION_ARG_NONE, &low_memory, 
-	  N_("Minimizes the use of memory but may slow indexing down"), 
-	  NULL 
-	},
-	{ "initial-sleep", 's', 0, G_OPTION_ARG_INT, &initial_sleep, 
-	  N_("Initial sleep time, just before indexing, in seconds"), 
-	  NULL
-	},
-	{ "language", 'l', 0, G_OPTION_ARG_STRING, &language, 
-	  N_("Language to use for stemmer and stop words list "
-	     "(ISO 639-1 2 characters code)"), 
-	  N_("LANG")
-	},
-	{ "reindex", 'R', 0, G_OPTION_ARG_NONE, &reindex, 
-	  N_("Force a re-index of all content"), 
-	  NULL 
-	},
-	{ "fatal-errors", 'f', 0, G_OPTION_ARG_NONE, &fatal_errors, 
-	  N_("Make tracker errors fatal"), 
-	  NULL 
 	},
 	{ NULL }
 };
@@ -148,6 +109,30 @@ signal_handler (gint signo)
 }
 
 static void
+initialise_signal_handler (void)
+{
+#ifndef OS_WIN32
+  	struct sigaction   act;
+	sigset_t 	   empty_mask;
+
+	sigemptyset (&empty_mask);
+	act.sa_handler = signal_handler;
+	act.sa_mask    = empty_mask;
+	act.sa_flags   = 0;
+
+	sigaction (SIGTERM, &act, NULL);
+	sigaction (SIGILL,  &act, NULL);
+	sigaction (SIGBUS,  &act, NULL);
+	sigaction (SIGFPE,  &act, NULL);
+	sigaction (SIGHUP,  &act, NULL);
+	sigaction (SIGSEGV, &act, NULL);
+	sigaction (SIGABRT, &act, NULL);
+	sigaction (SIGUSR1, &act, NULL);
+	sigaction (SIGINT,  &act, NULL);
+#endif
+}
+
+static void
 indexer_finished_cb (TrackerIndexer *indexer,
 		     gpointer	     user_data)
 {
@@ -158,14 +143,12 @@ gint
 main (gint argc, gchar *argv[])
 {
 	TrackerIndexer *indexer;
+        TrackerConfig  *config;
 	GOptionContext *context;
 	GError	       *error = NULL;
 	gchar	       *summary = NULL;
 	gchar	       *example;
-#ifndef OS_WIN32
-	struct sigaction   act;
-	sigset_t	   empty_mask;
-#endif
+        gchar          *log_filename;
 
 	g_type_init ();
 	
@@ -210,31 +193,49 @@ main (gint argc, gchar *argv[])
 	g_free (summary);
 	g_free (example);
 
-	g_print ("\n"
-		 COPYRIGHT "\n"
-		 "\n"
-		 WARRANTY "\n"
-		 "\n");
+	g_print ("\n" ABOUT "\n" LICENSE "\n");
+	g_print ("Initializing tracker-indexer...\n");
 
-#ifndef OS_WIN32
-	/* trap signals */
-	sigemptyset (&empty_mask);
-	act.sa_handler = signal_handler;
-	act.sa_mask    = empty_mask;
-	act.sa_flags   = 0;
-	sigaction (SIGTERM, &act, NULL);
-	sigaction (SIGILL,  &act, NULL);
-	sigaction (SIGBUS,  &act, NULL);
-	sigaction (SIGFPE,  &act, NULL);
-	sigaction (SIGHUP,  &act, NULL);
-	sigaction (SIGSEGV, &act, NULL);
-	sigaction (SIGABRT, &act, NULL);
-	sigaction (SIGUSR1, &act, NULL);
-	sigaction (SIGINT,  &act, NULL);
+	initialise_signal_handler ();
+
+        /* Initialise logging */
+        config = tracker_config_new ();
+
+	if (verbosity > -1) {
+		tracker_config_set_verbosity (config, verbosity);
+	}
+
+	log_filename = g_build_filename (g_get_user_data_dir (), 
+					 "tracker", 
+					 "tracker-indexer.log", 
+					 NULL);
+
+        tracker_log_init (log_filename, tracker_config_get_verbosity (config));
+	g_message ("Starting log");
+        g_free (log_filename);
+
+#ifdef HAVE_IOPRIO
+	/* Set IO priority */
+	tracker_ioprio_init ();
 #endif
 
-	g_print ("Initializing...\n");
+	/* Set child's niceness to 19 */
+        errno = 0;
 
+        /* nice() uses attribute "warn_unused_result" and so complains
+	 * if we do not check its returned value. But it seems that
+	 * since glibc 2.2.4, nice() can return -1 on a successful
+	 * call so we have to check value of errno too. Stupid... 
+	 */
+        if (nice (19) == -1 && errno) {
+                const gchar *str;
+
+                str = g_strerror (errno);
+                g_message ("Couldn't set nice value to 19, %s", 
+                           str ? str : "no error given");
+        }
+
+        /* Create the indexer and run the main loop */
 	indexer = tracker_indexer_new (reindex);
 	main_loop = g_main_loop_new (NULL, FALSE);
 
@@ -243,9 +244,10 @@ main (gint argc, gchar *argv[])
 
 	g_main_loop_run (main_loop);
 
-	g_object_unref (indexer);
+	g_message ("Shutting down...\n");
 
-	g_print ("Shutting down...\n");
+	g_object_unref (indexer);
+	g_object_unref (config);
 
 	return EXIT_SUCCESS;
 }

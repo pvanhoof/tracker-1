@@ -5,6 +5,7 @@ INCLUDES =								\
 	-DLIBDIR=\""$(libdir)"\"					\
 	-DLOCALEDIR=\""$(localedir)"\" 					\
 	-DINDEXER_MODULES_DIR=\""$(libdir)"/tracker/indexer-modules\"	\
+	-DG_LOG_DOMAIN=\"Tracker-Indexer\"				\
 	$(GLIB2_CFLAGS)							\
 	$(GMODULE_CFLAGS)						\
 	-I$(top_srcdir)/src
@@ -13,6 +14,8 @@ bin_PROGRAMS = tracker-indexer
 
 tracker_indexer_SOURCES =						\
 	main.c								\
+	tracker-ioprio.c						\
+	tracker-ioprio.h						\
 	tracker-indexer.c						\
 	tracker-indexer.h						\
 	tracker-indexer-module.c					\

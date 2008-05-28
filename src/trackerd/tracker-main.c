@@ -26,19 +26,14 @@
 #include "config.h"
 
 #include <signal.h>
-#include <errno.h>
 #include <locale.h>
 #include <string.h>
-#include <unistd.h>
+#include <unistd.h> 
 #include <fcntl.h>
 
 #include <glib/gstdio.h>
 #include <glib/gi18n.h>
 #include <glib/gpattern.h>
-
-#ifdef IOPRIO_SUPPORT
-#include "tracker-ioprio.h"
-#endif
 
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-language.h>
@@ -495,7 +490,7 @@ initialise_locations (void)
 	/* Private locations */
 	log_filename = g_build_filename (g_get_user_data_dir (), 
 					 "tracker", 
-					 "tracker.log", 
+					 "trackerd.log", 
 					 NULL);
 }
 
@@ -871,7 +866,7 @@ main (gint argc, gchar *argv[])
 
 	/* Print information */
 	g_print ("\n" ABOUT "\n" LICENSE "\n");
-	g_print ("Initialising tracker...\n");
+	g_print ("Initializing trackerd...\n");
 
 	initialise_signal_handler ();
 
@@ -936,8 +931,7 @@ main (gint argc, gchar *argv[])
 	}
 
 	/* Initialise other subsystems */
-	tracker_log_init (log_filename,
-			  tracker_config_get_verbosity (tracker->config));
+	tracker_log_init (log_filename, tracker_config_get_verbosity (tracker->config));
 	g_message ("Starting log");
 	
 	if (!tracker_dbus_preinit (tracker, &connection, &proxy, &xesam))
@@ -963,22 +957,6 @@ main (gint argc, gchar *argv[])
 	umask (077);
 
 	tracker->readonly = check_multiple_instances ();
-
-	/* Set child's niceness to 19 */
-        errno = 0;
-
-        /* nice() uses attribute "warn_unused_result" and so complains
-	 * if we do not check its returned value. But it seems that
-	 * since glibc 2.2.4, nice() can return -1 on a successful
-	 * call so we have to check value of errno too. Stupid... 
-	 */
-        if (nice (19) == -1 && errno) {
-                g_message ("Couldn't set nice() value");
-        }
-
-#ifdef IOPRIO_SUPPORT
-	ioprio ();
-#endif
 
         if (!tracker_db_load_prepared_queries ()) {
 		g_critical ("Could not initialize database engine!");
@@ -1021,6 +999,8 @@ main (gint argc, gchar *argv[])
 		main_loop = g_main_loop_new (NULL, FALSE);
 		g_main_loop_run (main_loop);
 	}
+
+	g_message ("Shutting down...\n");
 
 	/* 
 	 * Shutdown the daemon

@@ -18,15 +18,17 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKERD_IOPRIO_H__
-#define __TRACKERD_IOPRIO_H__
+#ifndef __TRACKER_IOPRIO_H__
+#define __TRACKER_IOPRIO_H__
 
 G_BEGIN_DECLS
 
-#ifdef IOPRIO_SUPPORT
-void ioprio (void);
-#endif /* IOPRIO_SUPPORT */
+#ifdef HAVE_IOPRIO
+
+void tracker_ioprio_init (void);
+
+#endif /* HAVE_IOPRIO */
 
 G_END_DECLS
 
-#endif /* __TRACKERD_IOPRIO_H__ */
+#endif /* __TRACKER_IOPRIO_H__ */

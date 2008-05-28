@@ -756,7 +756,7 @@ test "$have_libgsf" = "yes" && AC_DEFINE(HAVE_LIBGSF, [], [Define if we have lib
 ####################################################################
 
 AC_MSG_CHECKING([[checking ioprio support]])
-ioprio_support=no
+have_ioprio=no
 AC_RUN_IFELSE([ AC_LANG_PROGRAM([[
 #include <stdlib.h>
 #include <errno.h> 
@@ -769,8 +769,8 @@ inline int ioprio_get (int which, int who)
    ]], [[
 exit(ioprio_get(1,0));
    ]]) ], 
-   [ AC_DEFINE(IOPRIO_SUPPORT,[],[Define ioprio support]) ioprio_support=yes ])
-AC_MSG_RESULT([$ioprio_support])
+   [ AC_DEFINE(HAVE_IOPRIO,[],[Define ioprio support]) have_ioprio=yes ])
+AC_MSG_RESULT([$have_ioprio])
 
 #####################################################
 
@@ -855,7 +855,7 @@ Tracker-$VERSION:
 	build with debug symbols:		$enable_debug_code
 	file monitor backend to be used:	$primary_backend
 	inotify header location:		$inotify_header
-	ioprio support:				$ioprio_support
+	ioprio support:				$have_ioprio
 	Win32:					$native_win32
 	HAL support:                    	$have_hal
 	unac accent stripper support:		$enable_unac

@@ -1,10 +1,10 @@
-/* Tracker - indexer and metadata database engine
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
+ * Copyright (C) 2005, Novell, Inc.
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2006, Anders Aagaard
  *
- * Based mostly on code by 
- * Robert Love	<rml@novell.com>
- *
- * Copyright (C) 2005 Novell, Inc.
+ * Based mostly on code by Robert Love <rml@novell.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -27,21 +27,21 @@
  
 #include "config.h"
 
-#ifdef IOPRIO_SUPPORT
+#ifdef HAVE_IOPRIO
 
 #include <stdio.h>
 #include <errno.h>
+
 #ifdef HAVE_LINUX_UNISTD_H
 #include <linux/unistd.h>
 #endif
+
 #include <sys/syscall.h>
 #include <unistd.h>
 
 #include <glib/gstdio.h>
 
 #include <libtracker-common/tracker-log.h>
-
-#include <tracker-utils.h>
 
 #include "tracker-ioprio.h"
 
@@ -90,16 +90,13 @@ enum {
 	IOPRIO_CLASS_IDLE,
 };
 
-
 enum {
 	IOPRIO_WHO_PROCESS = 1,
 	IOPRIO_WHO_PGRP,
 	IOPRIO_WHO_USER,
 };
 
-
-#define IOPRIO_CLASS_SHIFT  13
-
+#define IOPRIO_CLASS_SHIFT 13
 
 static inline int
 ioprio_set (int which, int who, int ioprio_val)
@@ -107,8 +104,8 @@ ioprio_set (int which, int who, int ioprio_val)
 	return syscall (__NR_ioprio_set, which, who, ioprio_val);
 }
 
-
-int set_io_priority_idle (void)
+static int 
+set_io_priority_idle (void)
 {
         int ioprio, ioclass;
 
@@ -118,7 +115,8 @@ int set_io_priority_idle (void)
         return ioprio_set (IOPRIO_WHO_PROCESS, 0, ioprio | ioclass);
 }
 
-int set_io_priority_best_effort (int ioprio_val)
+static int 
+set_io_priority_best_effort (int ioprio_val)
 {
         int ioclass;
 
@@ -127,20 +125,18 @@ int set_io_priority_best_effort (int ioprio_val)
         return ioprio_set (IOPRIO_WHO_PROCESS, 0, ioprio_val | ioclass);
 }
 
-
-
 void
-ioprio (void)
+tracker_ioprio_init (void)
 {
-	g_message ("Setting ioprio...");
+	g_message ("Setting IO priority...");
 
 	if (set_io_priority_idle () == -1) {
-		g_print ("Could not set idle IO priority...attempting best effort 7 priority\n");
+		g_message ("Could not set idle IO priority, attempting best effort of 7");
+
 		if (set_io_priority_best_effort (7) == -1) {
-			g_warning ("Could not set IO priority");
+			g_message ("Could not set best effort IO priority either, giving up");
 		}
 	}
-	
 }
 
-#endif
+#endif /* HAVE_IOPRIO */

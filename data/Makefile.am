@@ -13,7 +13,6 @@ config_DATA =					\
 	sqlite-cache.sql 			\
 	sqlite-contents.sql			\
 	sqlite-email.sql			\
-	sqlite-service-stored-procs.sql 	\
 	sqlite-service-triggers.sql 		\
 	sqlite-tracker-triggers.sql 		\
 	sqlite-user-data.sql 			\

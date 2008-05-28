@@ -1,3 +1,9 @@
+2008-05-28  Martyn Russell  <martyn@imendio.com>
+
+	* data/Makefile.am:
+	* data/sqlite-service-stored-procs.sql: Removed this, it is no
+	longer used.
+
 2008-05-27  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/Makefile.am:

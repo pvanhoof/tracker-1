@@ -64,8 +64,6 @@ trackerd_SOURCES =							\
 	$(watch_sources)						\
 	$(win_sources)							\
 	$(unix_sources)							\
-	tracker-apps.c							\
-	tracker-apps.h							\
 	tracker-cache.c							\
 	tracker-cache.h							\
 	tracker-db.c							\

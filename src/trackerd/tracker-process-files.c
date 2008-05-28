@@ -41,7 +41,6 @@
 
 #include "../xdgmime/xdgmime.h"
 
-#include "tracker-apps.h"
 #include "tracker-db.h"
 #include "tracker-dbus.h"
 #include "tracker-dbus-daemon.h"
@@ -541,7 +540,16 @@ process_index_entity (Tracker           *tracker,
 	} else if (g_str_has_suffix (service_info, "Conversations")) {
 		tracker_db_index_conversation (db_con, info);
 	} else if (strcmp (service_info, "Applications") == 0) {
+#if 0
+                /* FIXME-indexer-split: This has been commented out as a
+                 * result of moving the tracker-apps.[ch] code to the indexer
+                 * directory. This code will be removed when this function is
+                 * updated to work correctly in the indexer application.
+                 *
+                 * -Martyn
+                 */ 
 		tracker_db_index_application (db_con, info);
+#endif
 	} else {
 		tracker_db_index_service (db_con, info, NULL, NULL, NULL, FALSE, TRUE, TRUE, TRUE);
 	}
@@ -688,8 +696,17 @@ process_index_applications (Tracker *tracker, DBConnection *db_con)
        
         tracker_db_start_index_transaction (db_con);
         tracker_db_interface_start_transaction (db_con->cache->db);
-        
+
+#if 0        
+        /* FIXME-indexer-split: This has been commented out as a
+         * result of moving the tracker-apps.[ch] code to the indexer
+         * directory. This code will be removed when this function is
+         * updated to work correctly in the indexer application.
+         *
+         * -Martyn
+         */ 
         tracker_applications_add_service_directories ();
+#endif
         
         list = tracker_ontology_get_dirs_for_service_type ("Applications");
         process_directory_list (tracker, list, FALSE, db_con);

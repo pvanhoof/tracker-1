@@ -85,8 +85,6 @@ void               tracker_db_index_file           (DBConnection         *db_con
 						    const gchar          *attachment_service);
 void               tracker_db_index_conversation   (DBConnection         *db_con,
 						    TrackerDBFileInfo    *info);
-void               tracker_db_index_application    (DBConnection         *db_con,
-						    TrackerDBFileInfo    *info);
 void               tracker_db_index_webhistory     (DBConnection         *db_con,
 						    TrackerDBFileInfo    *info);
 void               tracker_db_file_change_free     (TrackerDBFileChange **change);

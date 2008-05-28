@@ -1,5 +1,18 @@
 2008-05-28  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-apps.c:
+	* src/trackerd/tracker-apps.h:
+	* src/trackerd/tracker-db.h:
+	* src/trackerd/tracker-process-files.c: Removed the
+	src/trackerd/tracker-apps.[ch] files because there is a module to
+	do that now in the src/tracker-indexer code. The process-files
+	module now won't try to index applications, but the process-files
+	module is obsolete now anyway. All commented out code is
+	marked with the comment FIXME-indexer-split.
+
+2008-05-28  Martyn Russell  <martyn@imendio.com>
+
 	* src/tracker-indexer/Makefile.am:
 	* src/tracker-indexer/main.c: Renamed to tracker-main.c
 

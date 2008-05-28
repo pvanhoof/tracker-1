@@ -1,6 +1,11 @@
 2008-05-28  Martyn Russell  <martyn@imendio.com>
 
 	* src/tracker-indexer/Makefile.am:
+	* src/tracker-indexer/main.c: Renamed to tracker-main.c
+
+2008-05-28  Martyn Russell  <martyn@imendio.com>
+
+	* src/tracker-indexer/Makefile.am:
 	* src/tracker-indexer/tracker-metadata.[ch]:
 	* src/trackerd/Makefile.am:
 	* src/trackerd/tracker-db-sqlite.c:

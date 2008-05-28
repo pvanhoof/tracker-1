@@ -13,13 +13,13 @@ INCLUDES =								\
 bin_PROGRAMS = tracker-indexer
 
 tracker_indexer_SOURCES =						\
-	main.c								\
 	tracker-ioprio.c						\
 	tracker-ioprio.h						\
 	tracker-indexer.c						\
 	tracker-indexer.h						\
 	tracker-indexer-module.c					\
 	tracker-indexer-module.h					\
+	tracker-main.c							\
 	tracker-metadata.c						\
 	tracker-metadata.h
 

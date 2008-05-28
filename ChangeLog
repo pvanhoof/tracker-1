@@ -2,6 +2,13 @@
 
 	* data/Makefile.am:
 	* data/tracker-indexer.service.in:
+	* data/trackerd.service.in: Renamed these files to the name they
+	will use on the session bus (i.e. org.freedesktop.Tracker...).
+
+2008-05-28  Martyn Russell  <martyn@imendio.com>
+
+	* data/Makefile.am:
+	* data/tracker-indexer.service.in:
 	* data/tracker.service.in: Added a service for the indexer to
 	start when we try to communicate with it. This is an initial step,
 	there launching the binary will not associate itself with the DBus

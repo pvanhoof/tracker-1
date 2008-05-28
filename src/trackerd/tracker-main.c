@@ -803,9 +803,6 @@ shutdown_directories (void)
 gint
 main (gint argc, gchar *argv[])
 {
-	DBusGConnection *connection = NULL;
-	DBusGProxy     *proxy = NULL;
-	DBusGProxy     *xesam = NULL;
 	GOptionContext *context = NULL;
 	GError         *error = NULL;
 	GThread        *thread; 
@@ -934,8 +931,9 @@ main (gint argc, gchar *argv[])
 	tracker_log_init (log_filename, tracker_config_get_verbosity (tracker->config));
 	g_message ("Starting log");
 	
-	if (!tracker_dbus_preinit (tracker, &connection, &proxy, &xesam))
+	if (!tracker_dbus_init (tracker->config)) {
 		return EXIT_FAILURE;
+	}
 
 	sanity_check_option_values ();
 
@@ -970,12 +968,10 @@ main (gint argc, gchar *argv[])
 	 */
 	tracker->is_running = TRUE;
 
-        /* If we are already running, this should return some
-         * indication.
-         */
-        if (!tracker_dbus_init (tracker, connection, proxy, xesam)) {
-                return EXIT_FAILURE;
-        }
+	/* Make Tracker available for introspection */
+	if (!tracker_dbus_register_objects (tracker)) {
+		return EXIT_FAILURE;
+	}
 
 	if (!tracker->readonly) {
 		if (!tracker_start_watching ()) {

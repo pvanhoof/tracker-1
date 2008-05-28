@@ -32,6 +32,7 @@
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-log.h>
 
+#include "tracker-dbus.h"
 #include "tracker-indexer.h"
 
 #ifdef HAVE_IOPRIO
@@ -233,6 +234,13 @@ main (gint argc, gchar *argv[])
                 str = g_strerror (errno);
                 g_message ("Couldn't set nice value to 19, %s", 
                            str ? str : "no error given");
+        }
+
+        /* Make sure we initialize DBus, this shows we are started
+         * successfully when called upon from the daemon.
+         */
+        if (!tracker_dbus_init ()) {
+                return EXIT_FAILURE;
         }
 
         /* Create the indexer and run the main loop */

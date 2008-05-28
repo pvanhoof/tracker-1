@@ -2,9 +2,10 @@ INCLUDES =					\
 	-DSHAREDIR=\""$(datadir)"\"		\
 	-DG_LOG_DOMAIN=\"Tracker\"		\
 	-I$(top_srcdir)/src			\
-	$(GLIB2_CFLAGS)				\
+	$(HAL_CFLAGS)				\
+	$(DBUS_CFLAGS)				\
 	$(PANGO_CFLAGS)				\
-	$(HAL_CFLAGS)
+	$(GLIB2_CFLAGS)
 
 noinst_LTLIBRARIES = libtracker-common.la
 
@@ -27,6 +28,8 @@ libtracker_common_la_SOURCES = 			\
 	tracker-configuration.h 		\
 	tracker-config.c 			\
 	tracker-config.h			\
+	tracker-dbus.c	 			\
+	tracker-dbus.h				\
 	tracker-field.c				\
 	tracker-field.h				\
 	tracker-field-data.c			\
@@ -55,7 +58,8 @@ libtracker_common_la_SOURCES = 			\
 
 libtracker_common_la_LDFLAGS = -version-info 0:0:0
 libtracker_common_la_LIBADD = 			\
-	$(GLIB2_LIBS)				\
+	$(HAL_LIBS)				\
+	$(DBUS_LIBS)				\
 	$(PANGO_LIBS)				\
-	$(HAL_LIBS)
+	$(GLIB2_LIBS)
 

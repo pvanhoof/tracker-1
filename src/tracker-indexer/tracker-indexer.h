@@ -22,7 +22,9 @@
 #ifndef __TRACKER_INDEXER_H__
 #define __TRACKER_INDEXER_H__
 
-#include <glib.h>
+#define TRACKER_INDEXER_SERVICE      "org.freedesktop.TrackerIndexer"
+#define TRACKER_INDEXER_PATH         "/org/freedesktop/TrackerIndexer"
+#define TRACKER_INDEXER_INTERFACE    "org.freedesktop.TrackerIndexer"
 
 G_BEGIN_DECLS
 

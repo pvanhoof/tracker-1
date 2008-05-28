@@ -22,25 +22,9 @@
 #include <dbus/dbus-glib-bindings.h>
 
 #include <libtracker-common/tracker-log.h>
-#include <libtracker-common/tracker-config.h>
-#include <libtracker-common/tracker-utils.h>
 
-#include "tracker-db-sqlite.h"
 #include "tracker-dbus.h"
-#include "tracker-dbus-daemon.h"
-#include "tracker-dbus-daemon-glue.h"
-#include "tracker-dbus-files.h"
-#include "tracker-dbus-files-glue.h"
-#include "tracker-dbus-keywords.h"
-#include "tracker-dbus-keywords-glue.h"
-#include "tracker-dbus-metadata.h"
-#include "tracker-dbus-metadata-glue.h"
-#include "tracker-dbus-search.h"
-#include "tracker-dbus-search-glue.h"
-#include "tracker-dbus-xesam.h"
-#include "tracker-dbus-xesam-glue.h"
-#include "tracker-utils.h"
-#include "tracker-watch.h"
+#include "tracker-indexer.h"
 
 static DBusGConnection *connection;
 static DBusGProxy      *proxy;
@@ -79,6 +63,7 @@ dbus_register_service (DBusGProxy  *proxy,
         return TRUE;
 }
 
+#if 0
 static gpointer
 dbus_register_object (DBusGConnection       *connection,
                       DBusGProxy            *proxy,
@@ -100,15 +85,10 @@ dbus_register_object (DBusGConnection       *connection,
         return object;
 }
 
-static void 
-dbus_name_owner_changed (gpointer  data, 
-			 GClosure *closure)
-{
-	g_object_unref (data);
-}
+#endif
 
 static gboolean 
-dbus_register_names (TrackerConfig *config)
+dbus_register_names (void)
 {
         GError *error = NULL;
 
@@ -140,32 +120,23 @@ dbus_register_names (TrackerConfig *config)
                                            DBUS_INTERFACE_DBUS);
 
         /* Register the service name for org.freedesktop.Tracker */
-        if (!dbus_register_service (proxy, TRACKER_DBUS_DAEMON_SERVICE)) {
+        if (!dbus_register_service (proxy, TRACKER_INDEXER_SERVICE)) {
                 return FALSE;
-        }
-
-	/* Register the service name for org.freedesktop.xesam if XESAM is enabled */
-        if (tracker_config_get_enable_xesam (config)) {
-		if (!dbus_register_service (proxy, TRACKER_DBUS_XESAM_SERVICE)) {
-			return FALSE;
-		}
         }
 
         return TRUE;
 }
 
 gboolean
-tracker_dbus_init (TrackerConfig *config)
+tracker_dbus_init (void)
 {
-        g_return_val_if_fail (TRACKER_IS_CONFIG (config), FALSE);
-
         /* Don't reinitialize */
         if (objects) {
                 return TRUE;
         }
 
 	/* Register names and get proxy/connection details */
-	if (!dbus_register_names (config)) {
+	if (!dbus_register_names ()) {
 		return FALSE;
 	}
 
@@ -190,19 +161,19 @@ tracker_dbus_shutdown (void)
 }
 
 gboolean
-tracker_dbus_register_objects (Tracker *tracker)
+tracker_dbus_register_objects (void)
 {
-        GObject      *object;
-	DBConnection *db_connection;
-
-	g_return_val_if_fail (tracker != NULL, FALSE);
+        GObject *object;
 
 	if (!connection || !proxy) {
 		g_critical ("DBus support must be initialized before registering objects!");
 		return FALSE;
 	}
 
-        /* Add org.freedesktop.Tracker */
+	object = NULL;
+
+#if 0
+        /* Add org.freedesktop.Tracker.Indexer */
         if (!(object = dbus_register_object (connection, 
                                              proxy,
                                              TRACKER_TYPE_DBUS_DAEMON,
@@ -211,92 +182,10 @@ tracker_dbus_register_objects (Tracker *tracker)
                 return FALSE;
         }
 
-        db_connection = tracker_db_connect_all ();
-
-        g_object_set (object, "db-connection", db_connection, NULL);
-        g_object_set (object, "config", tracker->config, NULL);
-        g_object_set (object, "tracker", tracker, NULL);
         objects = g_slist_prepend (objects, object);
+#endif
 
-        /* Add org.freedesktop.Tracker.Files */
-        if (!(object = dbus_register_object (connection, 
-                                             proxy,
-                                             TRACKER_TYPE_DBUS_FILES,
-                                             &dbus_glib_tracker_dbus_files_object_info,
-                                             TRACKER_DBUS_FILES_PATH))) {
-                return FALSE;
-        }
-
-        g_object_set (object, "db-connection", db_connection, NULL);
-        objects = g_slist_prepend (objects, object);
-
-        /* Add org.freedesktop.Tracker.Keywords */
-        if (!(object = dbus_register_object (connection, 
-                                             proxy,
-                                             TRACKER_TYPE_DBUS_KEYWORDS,
-                                             &dbus_glib_tracker_dbus_keywords_object_info,
-                                             TRACKER_DBUS_KEYWORDS_PATH))) {
-                return FALSE;
-        }
-
-        g_object_set (object, "db-connection", db_connection, NULL);
-        objects = g_slist_prepend (objects, object);
-
-        /* Add org.freedesktop.Tracker.Metadata */
-        if (!(object = dbus_register_object (connection, 
-                                             proxy,
-                                             TRACKER_TYPE_DBUS_METADATA,
-                                             &dbus_glib_tracker_dbus_metadata_object_info,
-                                             TRACKER_DBUS_METADATA_PATH))) {
-                return FALSE;
-        }
-
-        g_object_set (object, "db-connection", db_connection, NULL);
-        objects = g_slist_prepend (objects, object);
-
-        /* Add org.freedesktop.Tracker.Search */
-        if (!(object = dbus_register_object (connection, 
-                                             proxy,
-                                             TRACKER_TYPE_DBUS_SEARCH,
-                                             &dbus_glib_tracker_dbus_search_object_info,
-                                             TRACKER_DBUS_SEARCH_PATH))) {
-                return FALSE;
-        }
-
-	g_object_set (object, "db-connection", db_connection, NULL);
-	g_object_set (object, "config", tracker->config, NULL);
-	g_object_set (object, "language", tracker->language, NULL);
-	g_object_set (object, "file-index", tracker->file_index, NULL);
-	g_object_set (object, "email-index", tracker->email_index, NULL);
-	objects = g_slist_prepend (objects, object);
-
-	/* Register the XESAM object if enabled */
-        if (tracker_config_get_enable_xesam (tracker->config)) {
-		/* Add org.freedesktop.xesam.Search */
-		if (!(object = dbus_register_object (connection, 
-						     proxy,
-						     TRACKER_TYPE_DBUS_XESAM,
-						     &dbus_glib_tracker_dbus_xesam_object_info,
-						     TRACKER_DBUS_XESAM_PATH))) {
-			return FALSE;
-		}
-		
-		db_connection = tracker_db_connect_xesam ();
-		g_object_set (object, "db-connection", db_connection, NULL);
-		
-		dbus_g_proxy_add_signal (proxy, "NameOwnerChanged",
-					 G_TYPE_STRING, G_TYPE_STRING,
-					 G_TYPE_STRING, G_TYPE_INVALID);
-		
-		dbus_g_proxy_connect_signal (proxy, "NameOwnerChanged", 
-					     G_CALLBACK (tracker_dbus_xesam_name_owner_changed), 
-					     g_object_ref (object),
-					     dbus_name_owner_changed);
-		
-		objects = g_slist_prepend (objects, object);
-        }
-	
-        /* Reverse list since we added objects at the top each time */
+         /* Reverse list since we added objects at the top each time */
         objects = g_slist_reverse (objects);
   
         return TRUE;

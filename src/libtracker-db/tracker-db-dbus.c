@@ -1,0 +1,164 @@
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
+ * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2008, Nokia
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public
+ * License along with this library; if not, write to the
+ * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ * Boston, MA  02110-1301, USA.
+ */
+
+#include <libtracker-common/tracker-dbus.h>
+
+#include "tracker-db-dbus.h"
+
+gchar **
+tracker_dbus_query_result_to_strv (TrackerDBResultSet *result_set, 
+                                   gint               *count)
+{
+	gchar **strv = NULL;
+        gint    rows = 0;
+
+	if (result_set) {
+		gboolean valid = TRUE;
+		gint     i = 0;
+
+                rows = tracker_db_result_set_get_n_rows (result_set);
+		strv = g_new (gchar*, rows + 1);
+		
+		while (valid) {
+			tracker_db_result_set_get (result_set, 0, &strv[i], -1);
+			valid = tracker_db_result_set_iter_next (result_set);
+			i++;
+		}
+		strv[i] = NULL;
+	}
+
+        if (count) {
+                *count = rows;
+        }
+
+	return strv;
+}
+
+GHashTable *
+tracker_dbus_query_result_to_hash_table (TrackerDBResultSet *result_set)
+{
+        GHashTable *hash_table;
+	gint        field_count;
+	gboolean    valid = FALSE;
+
+	hash_table = g_hash_table_new_full (g_str_hash,
+                                            g_str_equal,
+                                            (GDestroyNotify) g_free,
+                                            (GDestroyNotify) tracker_dbus_g_value_slice_free);       
+
+	if (result_set) {
+		valid = TRUE;
+		field_count = tracker_db_result_set_get_n_columns (result_set);
+        }
+
+	while (valid) {
+		GValue   transform;
+		GValue  *values;
+                gchar  **p;
+                gint     field_count;
+                gint     i = 0;
+		gchar   *key;
+		GSList  *list = NULL;
+
+		g_value_init (&transform, G_TYPE_STRING);
+
+		tracker_db_result_set_get (result_set, 0, &key, -1);
+		values = tracker_dbus_g_value_slice_new (G_TYPE_STRV);
+
+                for (i = 1; i < field_count; i++) {
+			GValue       value;
+			const gchar *str;
+
+			_tracker_db_result_set_get_value (result_set, i, &value);
+
+			if (g_value_transform (&value, &transform)) {
+				str = g_value_dup_string (&transform);
+			} else {
+				str = g_strdup ("");
+			}
+
+			list = g_slist_prepend (list, (gchar*) str);
+		}
+
+		list = g_slist_reverse (list);
+		p = tracker_dbus_slist_to_strv (list);
+		g_slist_free (list);
+		g_value_take_boxed (values, p);
+		g_hash_table_insert (hash_table, key, values);
+
+		valid = tracker_db_result_set_iter_next (result_set);
+        }
+
+        return hash_table;
+}
+
+GPtrArray *
+tracker_dbus_query_result_to_ptr_array (TrackerDBResultSet *result_set)
+{
+        GPtrArray *ptr_array;
+	gboolean   valid = FALSE;
+	gint       columns;
+        gint       i;
+
+	ptr_array = g_ptr_array_new ();
+
+	if (result_set) {
+		valid = TRUE;
+		columns = tracker_db_result_set_get_n_columns (result_set);
+	}
+
+	while (valid) {
+		GSList  *list = NULL;
+		GValue   transform = { 0, };
+		gchar  **p;
+
+		g_value_init (&transform, G_TYPE_STRING);
+
+		/* Append fields to the array */
+		for (i = 0; i < columns; i++) {
+			GValue       value = { 0, };
+			const gchar *str;
+
+			_tracker_db_result_set_get_value (result_set, i, &value);
+			
+			if (g_value_transform (&value, &transform)) {
+				str = g_value_dup_string (&transform);
+			} else {
+				str = g_strdup ("");
+			}
+
+			list = g_slist_prepend (list, (gchar*) str);
+
+			g_value_unset (&value);
+			g_value_reset (&transform);
+		}
+		
+		list = g_slist_reverse (list);
+		p = tracker_dbus_slist_to_strv (list);
+		g_slist_free (list);
+		g_ptr_array_add (ptr_array, p);
+
+		valid = tracker_db_result_set_iter_next (result_set);
+	}
+
+        return ptr_array;
+}
+

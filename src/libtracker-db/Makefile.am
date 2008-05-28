@@ -3,15 +3,18 @@ INCLUDES =								\
 	-DSHAREDIR=\""$(datadir)"\"					\
 	-DG_LOG_DOMAIN=\"Tracker\"					\
 	-I$(top_srcdir)/src						\
-	$(GLIB2_CFLAGS)							\
 	$(SQLITE3_CFLAGS)						\
-	$(QDBM_CFLAGS)
+	$(QDBM_CFLAGS)							\
+	$(DBUS_CFLAGS)							\
+	$(GLIB2_CFLAGS)
 
 noinst_LTLIBRARIES = libtracker-db.la
 
 libtracker_db_la_SOURCES = 						\
 	tracker-db-action.c						\
 	tracker-db-action.h						\
+	tracker-db-dbus.c						\
+	tracker-db-dbus.h						\
 	tracker-db-file-info.c						\
 	tracker-db-file-info.h						\
 	tracker-db-interface.c						\
@@ -23,6 +26,7 @@ libtracker_db_la_SOURCES = 						\
 
 libtracker_db_la_LDFLAGS = -version-info 0:0:0
 libtracker_db_la_LIBADD = 						\
-	$(GLIB2_LIBS)							\
 	$(SQLITE3_LIBS)							\
-	$(QDBM_LIBS)
+	$(QDBM_LIBS)							\
+	$(DBUS_LIBS)							\
+	$(GLIB2_LIBS)

@@ -21,6 +21,8 @@
 
 #include <string.h>
 
+#include <dbus/dbus-glib-bindings.h>
+
 #include "tracker-xesam-live-search.h"
 #include "tracker-dbus-xesam.h"
 #include "tracker-dbus.h"

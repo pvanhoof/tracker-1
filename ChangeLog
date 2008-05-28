@@ -1,5 +1,39 @@
 2008-05-28  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/Makefile.am:
+	* src/libtracker-common/tracker-dbus.c: Added this for the most
+	common DBus functionality, such as creating requests and logging
+	request comments, etc.
+	
+	* src/libtracker-db/Makefile.am:
+	* src/libtracker-db/tracker-db-dbus.c: Added for converting
+	TrackerDBResultSet information into Glib types to be transported
+	over DBus.
+
+	* src/tracker-indexer/Makefile.am:
+	* src/tracker-indexer/tracker-dbus.c:
+	* src/tracker-indexer/tracker-indexer.h:
+	* src/tracker-indexer/tracker-main.c: Added initial DBus support
+	to register the tracker-indexer name on startup to start receiving
+	requests from the daemon.
+	
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-dbus-daemon.[ch]:
+	* src/trackerd/tracker-dbus-files.[ch]:
+	* src/trackerd/tracker-dbus-keywords.[ch]:
+	* src/trackerd/tracker-dbus-metadata.[ch]:
+	* src/trackerd/tracker-dbus-search.[ch]:
+	* src/trackerd/tracker-dbus-xesam.[ch]:
+	* src/trackerd/tracker-dbus.[ch]:
+	* src/trackerd/tracker-main.c:
+	* src/trackerd/tracker-xesam-live-search.c: Cleaned up the
+	includes which were overly bloated. Also improved the tracker-dbus
+	API so it is obvious we initialise it first (for registering the
+	name) and we register objects later. Before with init() and
+	preinit() it wasn't clear why we needed that.
+
+2008-05-28  Martyn Russell  <martyn@imendio.com>
+
 	* data/Makefile.am:
 	* data/tracker-indexer.service.in:
 	* data/trackerd.service.in: Renamed these files to the name they

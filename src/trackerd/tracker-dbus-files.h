@@ -22,9 +22,7 @@
 #ifndef __TRACKERD_DBUS_FILES_H__
 #define __TRACKERD_DBUS_FILES_H__
 
-#include <dbus/dbus-glib.h>
-#include <dbus/dbus-glib-bindings.h>
-#include <dbus/dbus-glib-lowlevel.h>
+#include <glib-object.h>
 
 #include "tracker-db-sqlite.h"
 

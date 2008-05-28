@@ -6,15 +6,16 @@ INCLUDES =								\
 	-DMAIL_MODULES_DIR=\""$(libdir)"/tracker/mail-modules\"         \
 	-DG_LOG_DOMAIN=\"Tracker\"					\
 	-I$(top_srcdir)/src						\
-	$(GLIB2_CFLAGS)							\
-	$(GMODULE_CFLAGS)						\
-	$(PANGO_CFLAGS)							\
 	$(GMIME_CFLAGS)							\
 	$(FAM_CFLAGS)							\
-	$(DBUS_CFLAGS)							\
 	$(SQLITE3_CFLAGS)						\
 	$(QDBM_CFLAGS)							\
-	$(UNAC_CFLAGS)
+	$(UNAC_CFLAGS)							\
+	$(DBUS_CFLAGS)							\
+	$(PANGO_CFLAGS)							\
+	$(GMODULE_CFLAGS)						\
+	$(GTHREAD_CFLAGS)						\
+	$(GLIB2_CFLAGS)
 
 if HAVE_INOTIFY
 watch_sources =								\
@@ -124,23 +125,23 @@ trackerd_win_libs = -lws2_32 -lkernel32
 endif
 
 trackerd_LDADD =							\
-	$(GLIB2_LIBS)							\
-	$(GMODULE_LIBS)							\
-	$(FAM_LIBS)							\
-	$(DBUS_LIBS)							\
-	$(PANGO_LIBS)							\
-	$(GMIME_LIBS)							\
-	$(SQLITE3_LIBS)							\
-	$(QDBM_LIBS)							\
-	$(UNAC_LIBS)							\
-	$(GTHREAD_LIBS)							\
-	-lz								\
-	-lm								\
 	$(top_builddir)/src/libtracker-db/libtracker-db.la 		\
 	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
 	$(top_builddir)/src/libstemmer/libstemmer-private.la 		\
 	$(top_builddir)/src/xdgmime/libxdgmime.la 			\
-	$(trackerd_win_libs)
+	$(GMIME_LIBS)							\
+	$(FAM_LIBS)							\
+	$(SQLITE3_LIBS)							\
+	$(QDBM_LIBS)							\
+	$(UNAC_LIBS)							\
+	$(DBUS_LIBS)							\
+	$(PANGO_LIBS)							\
+	$(GMODULE_LIBS)							\
+	$(GTHREAD_LIBS)							\
+	$(GLIB2_LIBS)							\
+	$(trackerd_win_libs)						\
+	-lz								\
+	-lm
 
 tracker-marshal.h: tracker-marshal.list
 	$(GLIB_GENMARSHAL) $< --prefix=tracker_marshal --header > $@

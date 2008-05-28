@@ -18,8 +18,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKERD_METADATA_H__
-#define __TRACKERD_METADATA_H__
+#ifndef __TRACKER_METADATA_H__
+#define __TRACKER_METADATA_H__
 
 #include <glib.h>
 
@@ -28,18 +28,15 @@
 
 G_BEGIN_DECLS
 
-void  tracker_metadata_get_embedded        (const char   *uri,
-                                            const char   *mime,
-                                            GHashTable   *table);
-char *tracker_metadata_get_text_file       (const char   *uri,
-                                            const char   *mime);
-void  tracker_metadata_parse_text_contents (const char   *file_as_text,
-                                            unsigned int  ID);
-char *tracker_metadata_get_thumbnail       (const char   *path,
-                                            const char   *mime,
-                                            const char   *size);
-char *tracker_get_service_type_for_mime    (const char   *mime);
+gchar *tracker_metadata_get_text_file       (const gchar   *uri,
+					     const gchar   *mime);
+gchar *tracker_metadata_get_thumbnail       (const gchar   *path,
+					     const gchar   *mime,
+					     const gchar   *size);
+void   tracker_metadata_get_embedded        (const gchar   *uri,
+					     const gchar   *mime,
+					     GHashTable    *table);
 
 G_END_DECLS
 
-#endif /* __TRACKERD_METADATA_H__*/
+#endif /* __TRACKER_METADATA_H__*/

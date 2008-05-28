@@ -42,7 +42,6 @@
 #include "tracker-db-sqlite.h"
 #include "tracker-indexer.h"
 #include "tracker-cache.h"
-#include "tracker-metadata.h"
 #include "tracker-main.h"
 #include "tracker-utils.h"
 #include "tracker-watch.h"
@@ -1553,13 +1552,6 @@ tracker_db_common_need_build ()
 	return !tracker_db_manager_file_exists (TRACKER_DB_COMMON);
 }
 
-static gint
-tracker_metadata_is_key (const gchar *service, const gchar *meta_name)
-{
-	return tracker_ontology_metadata_key_in_service (service, meta_name);
-}
-
-
 static inline gboolean
 is_equal (const char *s1, const char *s2)
 {
@@ -1567,10 +1559,13 @@ is_equal (const char *s1, const char *s2)
 }
 
 /* Replace with tracker_ontology_get_field_column_in_services */
-char *
-tracker_db_get_field_name (const char *service, const char *meta_name)
+gchar *
+tracker_db_get_field_name (const gchar *service, 
+			   const gchar *meta_name)
 {
-	int key_field = tracker_metadata_is_key (service, meta_name);
+	gint key_field;
+
+	key_field = tracker_ontology_metadata_key_in_service (service, meta_name);
 
 	if (key_field > 0) {
 		return g_strdup_printf ("KeyMetadata%d", key_field);
@@ -3058,12 +3053,20 @@ remove_value (const char *str, const char *del_str)
 }
 
 void 
-tracker_db_delete_metadata_value (DBConnection *db_con, const char *service, const char *id, const char *key, const char *value) 
+tracker_db_delete_metadata_value (DBConnection *db_con, 
+				  const gchar  *service, 
+				  const gchar  *id, 
+				  const gchar  *key, 
+				  const gchar  *value) 
 {
 
-	char 	     *old_value = NULL, *new_value = NULL, *mvalue;
 	TrackerField *def;
+	gchar        *old_value = NULL;
+	gchar        *new_value = NULL;
+	gchar        *mvalue;
+	gchar        *res_service;
 	gboolean      update_index;
+	gint          key_field;
 
 	g_return_if_fail (id && key && service && db_con);
 
@@ -3074,29 +3077,26 @@ tracker_db_delete_metadata_value (DBConnection *db_con, const char *service, con
 		return;
 	}
 
-
 	if (!tracker_field_get_embedded (def) && 
             tracker_ontology_service_type_has_embedded (service)) {
 		backup_delete_non_embedded_metadata_value (db_con, id, tracker_field_get_id (def), value);
 	}
 
-
-	char *res_service = tracker_db_get_service_for_entity (db_con, id);
+	res_service = tracker_db_get_service_for_entity (db_con, id);
 
 	if (!res_service) {
 		g_warning ("Entity not found");
 		return;
 	}
 
-	int key_field = tracker_metadata_is_key (res_service, key);
+	key_field = tracker_ontology_metadata_key_in_service (res_service, key);
 
-	update_index = (tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_INDEX 
-			|| tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_KEYWORD);
-
+	update_index = 
+		tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_INDEX ||
+		tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_KEYWORD;
+	
 	if (update_index) {
-
-		/* get current value and claculate the new value */	
-
+		/* Get current value and claculate the new value */	
 		old_value = tracker_db_get_metadata_delimited (db_con, service, id, key);
 	
 		if (old_value) {
@@ -3105,11 +3105,9 @@ tracker_db_delete_metadata_value (DBConnection *db_con, const char *service, con
 			g_free (res_service);
 			return;
 		}
-
 	}
 
-
-	/* perform deletion */
+	/* Perform deletion */
 	switch (tracker_field_get_data_type (def)) {
 
 		case TRACKER_FIELD_TYPE_INDEX:
@@ -3133,13 +3131,11 @@ tracker_db_delete_metadata_value (DBConnection *db_con, const char *service, con
 		
 		case TRACKER_FIELD_TYPE_INTEGER:
 		case TRACKER_FIELD_TYPE_DATE:
-
 			tracker_exec_proc (db_con, "DeleteMetadataNumericValue", id, tracker_field_get_id (def), value, NULL);
 			break;
 
 		
 		case TRACKER_FIELD_TYPE_KEYWORD:
-			
 			tracker_exec_proc (db_con, "DeleteMetadataKeywordValue", id, tracker_field_get_id (def), value, NULL);
 			break;
 		
@@ -3149,13 +3145,11 @@ tracker_db_delete_metadata_value (DBConnection *db_con, const char *service, con
 				   tracker_field_get_data_type (def), 
 				   key);
 			break;
-
-
 	}
 
 	if (key_field > 0) {
 		TrackerDBResultSet *result_set;
-		gchar *value;
+		gchar              *value;
 
 		result_set = tracker_db_get_metadata (db_con, service, id, key);
 
@@ -3163,7 +3157,9 @@ tracker_db_delete_metadata_value (DBConnection *db_con, const char *service, con
 			tracker_db_result_set_get (result_set, 0, &value, -1);
 
 			if (value) {
-				char *esc_value = tracker_escape_string (value);
+				gchar *esc_value;
+
+				esc_value = tracker_escape_string (value);
 
 				tracker_db_exec_no_reply (db_con->db,
 							 "update Services set KeyMetadata%d = '%s' where id = %s",
@@ -3185,8 +3181,7 @@ tracker_db_delete_metadata_value (DBConnection *db_con, const char *service, con
 		}
 	}
 
-
-	/* update fulltext index differentially with old and new values */
+	/* Update fulltext index differentially with old and new values */
 	if (update_index) {
 		update_metadata_index (id, service, def, old_value, new_value);
 	}
@@ -3195,21 +3190,24 @@ tracker_db_delete_metadata_value (DBConnection *db_con, const char *service, con
 	g_free (old_value);
 
 	g_free (res_service);
-	
 }
 
-
 void 
-tracker_db_delete_metadata (DBConnection *db_con, const char *service, const char *id, const char *key, gboolean update_indexes) 
+tracker_db_delete_metadata (DBConnection *db_con,
+			    const gchar  *service, 
+			    const gchar  *id, 
+			    const gchar  *key, 
+			    gboolean      update_indexes) 
 {
-	char 		*old_value = NULL;
-	TrackerField	*def;
-	gboolean 	 update_index;
+	TrackerField *def;
+	gchar        *old_value = NULL;
+	gchar        *res_service;
+	gboolean      update_index;
+	gint          key_field;
 
 	g_return_if_fail (id && key && service && db_con);
 
-
-	/* get type details */
+	/* Get type details */
 	def = tracker_ontology_get_field_def(key);
 
 	if (!def) {
@@ -3221,66 +3219,59 @@ tracker_db_delete_metadata (DBConnection *db_con, const char *service, const cha
 		backup_delete_non_embedded_metadata (db_con, id, tracker_field_get_id (def));
 	}
 
-
-	char *res_service = tracker_db_get_service_for_entity (db_con, id);
+	res_service = tracker_db_get_service_for_entity (db_con, id);
 
 	if (!res_service) {
 		g_warning ("Entity not found");
 		return;
 	}
 
+	key_field = tracker_ontology_metadata_key_in_service (res_service, key);
 
-	int key_field = tracker_metadata_is_key (res_service, key);
-
-	update_index = update_indexes && (tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_INDEX || tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_KEYWORD);
-
+	update_index = 
+		update_indexes && 
+		(tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_INDEX || 
+		 tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_KEYWORD);
 
 	if (update_index) {
 		/* get current value */	
 		old_value = tracker_db_get_metadata_delimited (db_con, service, id, key);
 	}
 
-
-	
 	if (key_field > 0) {
 		tracker_db_exec_no_reply (db_con->db,
 					  "update Services set KeyMetadata%d = NULL where id = %s",
 					  key_field, id);
 	}
-	
-	
-	/* perform deletion */
-	switch (tracker_field_get_data_type (def)) {
-
-		case TRACKER_FIELD_TYPE_INDEX:
-		case TRACKER_FIELD_TYPE_STRING:
-		case TRACKER_FIELD_TYPE_DOUBLE:
-			tracker_exec_proc (db_con, "DeleteMetadata", id, tracker_field_get_id (def), NULL);
-			break;
-
-		case TRACKER_FIELD_TYPE_INTEGER:
-		case TRACKER_FIELD_TYPE_DATE:
-			tracker_exec_proc (db_con, "DeleteMetadataNumeric", id, tracker_field_get_id (def), NULL);
-			break;
-
 		
-		case TRACKER_FIELD_TYPE_KEYWORD:
-			tracker_exec_proc (db_con, "DeleteMetadataKeyword", id, tracker_field_get_id (def), NULL);
-			break;
-
-		case TRACKER_FIELD_TYPE_FULLTEXT:
-
-			tracker_exec_proc (db_con, "DeleteContent", id, tracker_field_get_id (def), NULL);
-			break;
-
-		default:
-			g_warning ("Metadata could not be deleted as this "
-				   "operation is not supported by type:%d "
-				   "for metadata:'%s'", 
-				   tracker_field_get_data_type (def),
-				   key);
-			break;
-
+	/* Perform deletion */
+	switch (tracker_field_get_data_type (def)) {
+	case TRACKER_FIELD_TYPE_INDEX:
+	case TRACKER_FIELD_TYPE_STRING:
+	case TRACKER_FIELD_TYPE_DOUBLE:
+		tracker_exec_proc (db_con, "DeleteMetadata", id, tracker_field_get_id (def), NULL);
+		break;
+		
+	case TRACKER_FIELD_TYPE_INTEGER:
+	case TRACKER_FIELD_TYPE_DATE:
+		tracker_exec_proc (db_con, "DeleteMetadataNumeric", id, tracker_field_get_id (def), NULL);
+		break;
+		
+	case TRACKER_FIELD_TYPE_KEYWORD:
+		tracker_exec_proc (db_con, "DeleteMetadataKeyword", id, tracker_field_get_id (def), NULL);
+		break;
+		
+	case TRACKER_FIELD_TYPE_FULLTEXT:
+		tracker_exec_proc (db_con, "DeleteContent", id, tracker_field_get_id (def), NULL);
+		break;
+		
+	default:
+		g_warning ("Metadata could not be deleted as this "
+			   "operation is not supported by type:%d "
+			   "for metadata:'%s'", 
+			   tracker_field_get_data_type (def),
+			   key);
+		break;
 	}
 
 	
@@ -3288,12 +3279,9 @@ tracker_db_delete_metadata (DBConnection *db_con, const char *service, const cha
 	if (update_index && old_value) {
 		update_metadata_index (id, service, def, old_value, " ");
 	}
-
 	
 	g_free (old_value);
 	g_free (res_service);
-
-
 }
 
 TrackerDBResultSet* 

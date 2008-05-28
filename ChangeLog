@@ -1,5 +1,19 @@
 2008-05-28  Martyn Russell  <martyn@imendio.com>
 
+	* src/tracker-indexer/Makefile.am:
+	* src/tracker-indexer/tracker-metadata.[ch]:
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-db-sqlite.c:
+	* src/trackerd/tracker-db.h:
+	* src/trackerd/tracker-dbus-files.c: Moved the
+	tracker-metadata.[ch] to the tracker-indexer directory, this also
+	is a transitional state for some of this code. Some of the code
+	from tracker-db.c has been commented out with #if 0 since it is
+	being moved to the indexer at some point. All of this code is
+	marked with the comment FIXME-indexer-split.
+
+2008-05-28  Martyn Russell  <martyn@imendio.com>
+
 	* configure.ac: Changed the IOPRIO_SUPPORT to HAVE_IOPRIO since
 	thats more consistent with naming conventions. 
 	

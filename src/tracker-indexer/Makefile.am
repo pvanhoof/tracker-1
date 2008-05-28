@@ -19,7 +19,9 @@ tracker_indexer_SOURCES =						\
 	tracker-indexer.c						\
 	tracker-indexer.h						\
 	tracker-indexer-module.c					\
-	tracker-indexer-module.h
+	tracker-indexer-module.h					\
+	tracker-metadata.c						\
+	tracker-metadata.h
 
 tracker_indexer_LDADD =							\
 	$(GLIB2_LIBS)							\

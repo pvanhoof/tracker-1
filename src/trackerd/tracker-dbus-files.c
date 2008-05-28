@@ -33,7 +33,6 @@
 #include "tracker-dbus.h"
 #include "tracker-dbus-files.h"
 #include "tracker-db.h"
-#include "tracker-metadata.h"
 #include "tracker-marshal.h"
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DBUS_FILES, TrackerDBusFilesPriv))

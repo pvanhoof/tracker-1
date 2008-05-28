@@ -35,7 +35,6 @@
 
 #include "tracker-db.h"
 #include "tracker-email.h"
-#include "tracker-metadata.h"
 #include "tracker-process-files.h"
 
 extern Tracker *tracker;
@@ -358,26 +357,6 @@ tracker_db_get_files_in_folder (DBConnection *db_con, const char *folder_uri)
 
 	return (gchar **) g_ptr_array_free (array, FALSE);
 }
-
-
-gboolean
-tracker_metadata_is_date (DBConnection *db_con, const char *meta)
-{
-	TrackerField *def;
-
-	def = tracker_ontology_get_field_def (meta);
-
-	if (!def) {
-		g_critical ("failed to get info for metadata type %s", meta);
-		return FALSE;
-	}
-	
-	/* FIXME: It is the same check again! */
-	g_return_val_if_fail (def, FALSE);
-
-	return tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_DATE;
-}
-
 
 TrackerDBFileInfo *
 tracker_db_get_pending_file (DBConnection *db_con, const char *uri)
@@ -844,14 +823,22 @@ restore_backup_data (gpointer mtype,
 
 
 void
-tracker_db_index_service (DBConnection *db_con, TrackerDBFileInfo *info, const char *service, GHashTable *meta_table, const char *attachment_uri, const char *attachment_service,  gboolean get_embedded, gboolean get_full_text, gboolean get_thumbs)
+tracker_db_index_service (DBConnection      *db_con, 
+			  TrackerDBFileInfo *info, 
+			  const gchar       *service, 
+			  GHashTable        *meta_table,
+			  const gchar       *attachment_uri, 
+			  const gchar       *attachment_service,  
+			  gboolean           get_embedded, 
+			  gboolean           get_full_text, 
+			  gboolean           get_thumbs)
 {
-	char		*str_file_id;
-	const char	*uri;
-	GHashTable	*index_table, *old_table;
+	gchar	    *str_file_id;
+	const gchar *uri;
+	GHashTable  *index_table, *old_table;
 
 	if (!service) {
-		/* its an external service - TODO get external service name */
+		/* It's an external service - TODO get external service name */
 		if (service) {
 			g_message ("External service %s not supported yet", service);
 		} else {
@@ -893,8 +880,6 @@ tracker_db_index_service (DBConnection *db_con, TrackerDBFileInfo *info, const c
 				   uri, service);
 	}
 
-	
-
 	if (!info->is_new) {
 		old_table = g_hash_table_new (g_str_hash, g_str_equal);
 	} else {
@@ -903,15 +888,26 @@ tracker_db_index_service (DBConnection *db_con, TrackerDBFileInfo *info, const c
 
 	index_table = g_hash_table_new (g_str_hash, g_str_equal);
 
+#if 0
+	/* FIXME-indexer-split: This has been commented out as a
+	 * result of moving tracker-metadata.[ch] to the indexer
+	 * directory. This code will be removed when this function is
+	 * updated to work correctly in the indexer application.
+	 *
+	 * -Martyn
+	 */ 
+
 	/* get embedded metadata filter */
 	if (get_embedded && meta_table) {
 		tracker_metadata_get_embedded (info->uri, info->mime, meta_table);
 	}
+#endif
 
 	if (info->is_new) {
+		gchar *old_uri;
 
-		char *old_uri = info->uri;
-		info->uri = (char *) uri;
+		old_uri = info->uri;
+		info->uri = (gchar *) uri;
 
 		if (attachment_service) {
 			info->file_id = tracker_db_create_service (db_con, attachment_service, info);
@@ -934,12 +930,19 @@ tracker_db_index_service (DBConnection *db_con, TrackerDBFileInfo *info, const c
 	str_file_id = tracker_uint_to_string (info->file_id);
 
 	if (get_thumbs && tracker_config_get_enable_thumbnails (tracker->config)) {
-		char *small_thumb_file = NULL;
+#if 0
+		gchar *small_thumb_file = NULL;
 
+		/* FIXME-indexer-split: This has been commented out as a
+		 * result of moving tracker-metadata.[ch] to the indexer
+		 * directory. This code will be removed when this function is
+		 * updated to work correctly in the indexer application.
+		 *
+		 * -Martyn
+		 */ 
 		small_thumb_file = tracker_metadata_get_thumbnail (info->uri, info->mime, "normal");
-
 		g_free (small_thumb_file);
-
+#endif
 	}
 
 
@@ -950,13 +953,25 @@ tracker_db_index_service (DBConnection *db_con, TrackerDBFileInfo *info, const c
 
 
 	if (get_full_text && tracker_config_get_enable_content_indexing (tracker->config)) {
-		char *file_as_text;
+		gchar *file_as_text = NULL;
+#if 0		
 
+		/* FIXME-indexer-split: This has been commented out as a
+		 * result of moving tracker-metadata.[ch] to the indexer
+		 * directory. This code will be removed when this function is
+		 * updated to work correctly in the indexer application.
+		 *
+		 * -Martyn
+		 */ 
 		file_as_text = tracker_metadata_get_text_file (info->uri, info->mime);
+#endif
 
 		if (file_as_text) {
-			
-			tracker_db_save_file_contents (db_con, index_table, old_table, file_as_text, info);
+			tracker_db_save_file_contents (db_con, 
+						       index_table, 
+						       old_table, 
+						       file_as_text, 
+						       info);
 					
 			/* clear up if text contents are in a temp file */
 			if (g_str_has_prefix (file_as_text, tracker_get_sys_tmp_dir ())) {
@@ -964,45 +979,34 @@ tracker_db_index_service (DBConnection *db_con, TrackerDBFileInfo *info, const c
 			}
 
 			g_free (file_as_text);
-
 		} else {
 			get_full_text = FALSE;
 		}
-
 	}
 
 	if (attachment_service) {
 		info->service_type_id = tracker_ontology_get_id_for_service_type (attachment_service);
 	}
 
-	/* save stuff to Db */
-	
-
-	
+	/* Save stuff to Db */
 	if (!info->is_new) {
-	
-		/* update existing file entry */
+		/* Update existing file entry */
 		tracker_db_update_file (db_con, info);
 
-		/* get original embedded metadata for the differential indexer */
+		/* Get original embedded metadata for the differential indexer */
 		old_table = tracker_db_get_indexable_content_words (db_con, info->file_id, old_table, TRUE);
 
-		/* delete any exisitng embedded metadata */
+		/* Delete any exisitng embedded metadata */
 		tracker_exec_proc (db_con, "DeleteEmbeddedServiceMetadata1", str_file_id, NULL);
 		tracker_exec_proc (db_con, "DeleteEmbeddedServiceMetadata2", str_file_id, NULL);
 		tracker_exec_proc (db_con, "DeleteEmbeddedServiceMetadata3", str_file_id, NULL);
-
 	}
 
 	if (meta_table && (g_hash_table_size (meta_table) > 0)) {
 		tracker_db_save_metadata (db_con, meta_table, index_table, service, info->file_id, info->is_new);
 	}
 
-	
-
-
-
-	/* update full text indexes */
+	/* Update full text indexes */
 	if (info->is_new) {
 		tracker_db_update_indexes_for_new_service (info->file_id, info->service_type_id, index_table);
 	} else {
@@ -1012,19 +1016,19 @@ tracker_db_index_service (DBConnection *db_con, TrackerDBFileInfo *info, const c
 	tracker_parser_text_free (index_table);
 	tracker_parser_text_free (old_table);
 
-	/* check for backup user defined metadata */
+	/* Check for backup user defined metadata */
 	if (info->is_new) {
 		TrackerDBResultSet *result_set;
-		char *name = tracker_file_get_vfs_name (info->uri);
-		char *path = tracker_file_get_vfs_path (info->uri);
+		gchar              *name = tracker_file_get_vfs_name (info->uri);
+		gchar              *path = tracker_file_get_vfs_path (info->uri);
 
 		result_set = tracker_exec_proc (db_con->common, "GetBackupMetadata", path, name, NULL);
 
 		if (result_set) {
-			gboolean valid = TRUE;
-			GHashTable *meta_table;
-			DatabaseAction db_action;
-			gchar *key, *value;
+			gboolean        valid = TRUE;
+			GHashTable     *meta_table;
+			DatabaseAction  db_action;
+			gchar          *key, *value;
 
 			meta_table = g_hash_table_new_full (g_str_hash, g_str_equal,
 							    (GDestroyNotify) g_free,
@@ -1061,7 +1065,6 @@ tracker_db_index_service (DBConnection *db_con, TrackerDBFileInfo *info, const c
 		g_free (name);
 		g_free (path);
 	}
-
 
 	g_free (str_file_id);
 }
@@ -1109,16 +1112,23 @@ tracker_db_index_master_files (DBConnection *db_con, const gchar *dirname, const
 
 
 void
-tracker_db_index_file (DBConnection *db_con, TrackerDBFileInfo *info, const char *attachment_uri, const char *attachment_service)
+tracker_db_index_file (DBConnection      *db_con,
+		       TrackerDBFileInfo *info, 
+		       const gchar       *attachment_uri, 
+		       const gchar       *attachment_service)
 {
 
-	GHashTable	*meta_table;
-	const char	*ext;
-	char		*filename, *dirname;
-	char		*str_link_uri, *service_name;
-	gboolean	is_file_indexable, service_has_metadata, is_external_service, service_has_fulltext, service_has_thumbs, is_sidecar;
-
-	const char *uri;
+	GHashTable  *meta_table;
+	const gchar *ext;
+	const gchar *uri;
+	gchar       *filename, *dirname;
+	gchar       *str_link_uri, *service_name;
+	gboolean     is_file_indexable;
+	gboolean     is_external_service;
+	gboolean     is_sidecar;
+	gboolean     service_has_metadata;
+	gboolean     service_has_fulltext;
+	gboolean     service_has_thumbs;
 
 	if (!attachment_uri) {
 		uri = info->uri;
@@ -1145,91 +1155,124 @@ tracker_db_index_file (DBConnection *db_con, TrackerDBFileInfo *info, const char
 			   info->mime, info->uri);
 
 		service_name = tracker_ontology_get_service_type_for_mime (info->mime);
-
 	}
 
 	if (info->is_link) {
-		str_link_uri = g_build_filename (info->link_path, info->link_name, NULL);
+		str_link_uri = g_build_filename (info->link_path, 
+						 info->link_name, 
+						 NULL);
 	} else {
 		str_link_uri = NULL;
 	}
 
 	if (!info->is_hidden) {
+		meta_table = g_hash_table_new_full (g_str_hash, 
+						    g_str_equal, 
+						    g_free, 
+						    (GDestroyNotify) free_metadata_list);
 
-		meta_table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, (GDestroyNotify) free_metadata_list);
-
-		tracker_add_metadata_to_table  (meta_table, g_strdup ("File:NameDelimited"), g_strdup (uri));
+		tracker_add_metadata_to_table (meta_table, 
+					       g_strdup ("File:NameDelimited"), 
+					       g_strdup (uri));
 
 		dirname = g_path_get_dirname (uri);
 		filename = g_path_get_basename (uri);
 		ext = strrchr (filename, '.');
+
 		if (ext) {
 			ext++;
 			g_debug ("file extension is %s", ext);
-			tracker_add_metadata_to_table  (meta_table, g_strdup ("File:Ext"), g_strdup (ext));
+			tracker_add_metadata_to_table  (meta_table, 
+							g_strdup ("File:Ext"), 
+							g_strdup (ext));
 			is_sidecar = strcmp("xmp",ext) == 0;
 		} else {
 			is_sidecar = FALSE;
 		}
 
-		tracker_add_metadata_to_table  (meta_table, g_strdup ("File:Path"), g_strdup (dirname));
-		tracker_add_metadata_to_table  (meta_table, g_strdup ("File:Name"), g_strdup (filename));
+		tracker_add_metadata_to_table  (meta_table, 
+						g_strdup ("File:Path"), 
+						g_strdup (dirname));
+		tracker_add_metadata_to_table  (meta_table, 
+						g_strdup ("File:Name"), 
+						g_strdup (filename));
 
 		if (str_link_uri) {
 			tracker_add_metadata_to_table  (meta_table, g_strdup ("File:Link"), str_link_uri);
 		} 
 
-		tracker_add_metadata_to_table  (meta_table, g_strdup ("File:Mime"), g_strdup (info->mime));
-		tracker_add_metadata_to_table  (meta_table, g_strdup ("File:Size"), tracker_uint_to_string (info->file_size));
-		tracker_add_metadata_to_table  (meta_table, g_strdup ("File:Modified"), tracker_date_to_string (info->mtime));
-		tracker_add_metadata_to_table  (meta_table, g_strdup ("File:Accessed"), tracker_date_to_string (info->atime));
+		tracker_add_metadata_to_table  (meta_table, 
+						g_strdup ("File:Mime"), 
+						g_strdup (info->mime));
+		tracker_add_metadata_to_table  (meta_table, 
+						g_strdup ("File:Size"), 
+						tracker_uint_to_string (info->file_size));
+		tracker_add_metadata_to_table  (meta_table, 
+						g_strdup ("File:Modified"), 
+						tracker_date_to_string (info->mtime));
+		tracker_add_metadata_to_table  (meta_table, 
+						g_strdup ("File:Accessed"), 
+						tracker_date_to_string (info->atime));
 
                 /* need to add special data for web history */
-                if (attachment_service != NULL && strcmp(attachment_service,"WebHistory") == 0)  {
-                	
-                	gchar* meta_file = g_strconcat(dirname,"/.",filename,NULL);
-                     
-                     	FILE* fp = g_fopen(meta_file, "r");
+                if (attachment_service != NULL && 
+		    strcmp(attachment_service,"WebHistory") == 0)  {
+                	gchar *meta_file;
+                     	FILE  *fp;
+
+			meta_file = g_strconcat(dirname,"/.",filename,NULL);
+			fp = g_fopen(meta_file, "r");
                      
                      	if (fp != NULL) {
-                          	char buf[512];
+                          	gchar buf[512];
                           	
-                          	fgets(buf,512,fp);  //get the first line, it is URL for this web history object
+                          	fgets (buf,512,fp);  /* Get the first
+						      * line, it is
+						      * URL for this
+						      * web history
+						      * object
+						      */
+
                           	g_debug("URL for this WebHistory is %s\n",buf);
                           	tracker_add_metadata_to_table  (meta_table, g_strdup ("Doc:URL"), g_strdup(buf));
                           	
-                          	fgets(buf,512,fp);
-                          	fgets(buf,512,fp);
-                          	fgets(buf,512,fp);
-                          	fgets(buf,512,fp);  // get the keywords for this file
+                          	fgets (buf,512,fp);
+                          	fgets (buf,512,fp);
+                          	fgets (buf,512,fp);
+                          	fgets (buf,512,fp);  /* Get the
+						      * keywords for
+						      * this file 
+						      */
                           	
                           	if (buf != NULL) {
-                              		
-                              		/* format like t:dc:keyword=xxx */
-                              		gchar** keys = g_strsplit (buf,"=",0);
+                              		gchar **keys;
+
+                              		/* Format like t:dc:keyword=xxx */
+					keys = g_strsplit (buf, "=", 0);
                               
-                              		if (keys != NULL && strcmp(keys[0],"t:dc:keyword") == 0 && keys[1]) {
+                              		if (keys != NULL && 
+					    strcmp (keys[0], "t:dc:keyword") == 0 && 
+					    keys[1]) {
+                                		gchar *doc_keyword;
 
-                                		char *doc_keyword = g_strdup (keys[1]);
-
+						doc_keyword = g_strdup (keys[1]);
 	                        		g_debug("found keywords : %s\n",doc_keyword);
-	                        	
-                                  		tracker_add_metadata_to_table  (meta_table, g_strdup ("Doc:Keywords"), doc_keyword);
+                                  		tracker_add_metadata_to_table (meta_table, 
+									       g_strdup ("Doc:Keywords"), 
+									       doc_keyword);
                                 	}
-                                
-                                
-                                	if (keys) g_strfreev(keys);
-                                
-                        	      	
+                                                                
+                                	if (keys) {
+						g_strfreev(keys);
+					}
                       		}
 
                         	fclose (fp);
                		}
+
                      	g_free (meta_file);
                 }
                                 
-
-
 		is_external_service = g_str_has_prefix (info->mime, "service/");
 		is_file_indexable = (!info->is_directory && 
                                      (strcmp (info->mime, "unknown") != 0) && 
@@ -1250,13 +1293,13 @@ tracker_db_index_file (DBConnection *db_con, TrackerDBFileInfo *info, const char
                         (is_external_service ||
                          (is_file_indexable && 
                           tracker_ontology_service_type_has_thumbnails (service_name)));
-
-		#ifdef HAVE_EXEMPI
+		
+#ifdef HAVE_EXEMPI
 		if (!info->is_directory) {
 			gchar *basename;
 
 			if (ext) {
-				basename = g_strndup (filename, (ext - filename -1));
+				basename = g_strndup (filename, (ext - filename - 1));
 			} else {
 				basename = g_strdup (filename);
 			}
@@ -1264,42 +1307,70 @@ tracker_db_index_file (DBConnection *db_con, TrackerDBFileInfo *info, const char
 			if (is_sidecar) {
 				tracker_db_index_master_files (db_con, dirname, basename, filename);
 			} else {
-				gchar *sidecar_filename = g_strconcat (basename, ".xmp", NULL);
-				gchar *sidecar_uri = g_build_filename (dirname, sidecar_filename, NULL);
+				gchar *sidecar_filename;
+				gchar *sidecar_uri;
 	
+				sidecar_filename = g_strconcat (basename, ".xmp", NULL);
+				sidecar_uri = g_build_filename (dirname, sidecar_filename, NULL);
+
+#if 0
 				if (g_file_test (sidecar_uri, G_FILE_TEST_EXISTS)) {
 					g_debug ("xmp sidecar found for %s", uri);
+
+					/* FIXME-indexer-split: This has been commented out as a
+					 * result of moving tracker-metadata.[ch] to the indexer
+					 * directory. This code will be removed when this function is
+					 * updated to work correctly in the indexer application.
+					 *
+					 * -Martyn
+					 */ 
 					tracker_metadata_get_embedded (sidecar_uri, XMP_MIME_TYPE, meta_table);
 				}
+#endif 
 	
 				g_free (sidecar_filename);
 				g_free (sidecar_uri);
 			}
 			g_free (basename);
 		}
-		#endif
+#endif /* HAVE_EXEMPI */
 
- 		g_debug ("file %s has fulltext %d with service %s", info->uri, service_has_fulltext, service_name); 
-		tracker_db_index_service (db_con, info, service_name, meta_table, uri, attachment_service, service_has_metadata, service_has_fulltext, service_has_thumbs);
+ 		g_debug ("file %s has fulltext %d with service %s",
+			 info->uri, service_has_fulltext, service_name); 
+		tracker_db_index_service (db_con, 
+					  info, 
+					  service_name, 
+					  meta_table, 
+					  uri, 
+					  attachment_service, 
+					  service_has_metadata, 
+					  service_has_fulltext, 
+					  service_has_thumbs);
 
 		g_hash_table_destroy (meta_table);
 
 		g_free (filename);
 		g_free (dirname);
 	} else {
-		tracker_db_index_service (db_con, info, service_name, NULL, uri, NULL, FALSE, FALSE, FALSE);
-
+		tracker_db_index_service (db_con,
+					  info, 
+					  service_name, 
+					  NULL, 
+					  uri, 
+					  NULL, 
+					  FALSE, 
+					  FALSE, 
+					  FALSE);
 	}
 
 	g_free (service_name);
 
-	if (attachment_uri ) {
+	if (attachment_uri) {
 		tracker_file_unlink (info->uri);
 	}
 
 	tracker_db_file_info_unref (info);
 }
-
 
 void
 tracker_db_index_conversation (DBConnection *db_con, TrackerDBFileInfo *info)

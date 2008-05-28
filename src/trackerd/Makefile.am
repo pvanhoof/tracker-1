@@ -99,8 +99,6 @@ trackerd_SOURCES =							\
 	tracker-main.c							\
 	tracker-main.h							\
 	tracker-marshal-main.c						\
-	tracker-metadata.c						\
-	tracker-metadata.h						\
 	tracker-process-files.c						\
 	tracker-process-files.h						\
 	tracker-query-tree.c						\

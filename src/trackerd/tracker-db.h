@@ -62,8 +62,6 @@ void               tracker_db_save_thumbs          (DBConnection         *db_con
 						    guint32               file_id);
 gchar **           tracker_db_get_files_in_folder  (DBConnection         *db_con,
 						    const gchar          *folder_uri);
-gboolean           tracker_metadata_is_date        (DBConnection         *db_con,
-						    const gchar          *meta);
 TrackerDBFileInfo *tracker_db_get_pending_file     (DBConnection         *db_con,
 						    const gchar          *uri);
 void               tracker_db_update_pending_file  (DBConnection         *db_con,

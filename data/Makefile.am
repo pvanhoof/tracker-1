@@ -22,12 +22,21 @@ config_DATA =					\
 	sqlite-metadata.sql 			\
 	sqlite-xesam.sql
 
-servicedir       = $(DBUS_SERVICES_DIR)
-service_in_files = tracker.service.in
-service_DATA     = tracker.service
+# Services
+trackerd_servicedir = $(DBUS_SERVICES_DIR)
+trackerd_service_DATA = trackerd.service
 
-CLEANFILES = $(service_DATA)
-EXTRA_DIST = $(config_DATA) $(service_in_files)
+tracker_indexer_servicedir = $(DBUS_SERVICES_DIR) 
+tracker_indexer_service_DATA = tracker-indexer.service
 
 %.service: %.service.in
 	@sed -e "s|\@bindir\@|$(bindir)|" $< > $@
+
+EXTRA_DIST = 					\
+	$(trackerd_service_DATA)		\
+	$(tracker_indexer_service_DATA)		\
+	$(config_DATA)
+
+CLEANFILES = 					\
+	$(trackerd_service_DATA)		\
+	$(tracker_indexer_service_DATA)

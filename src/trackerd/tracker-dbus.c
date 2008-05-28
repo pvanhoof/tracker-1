@@ -67,7 +67,7 @@ dbus_register_service (DBusGProxy  *proxy,
                 g_error_free (error);
 
                 return FALSE;
-		}
+	}
 
         if (result != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER) {
                 g_critical ("DBus service name '%s' is already taken, "

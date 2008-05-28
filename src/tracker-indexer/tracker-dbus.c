@@ -25,6 +25,7 @@
 
 #include "tracker-dbus.h"
 #include "tracker-indexer.h"
+#include "tracker-indexer-glue.h"
 
 static DBusGConnection *connection;
 static DBusGProxy      *proxy;
@@ -55,7 +56,7 @@ dbus_register_service (DBusGProxy  *proxy,
 
         if (result != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER) {
                 g_critical ("DBus service name '%s' is already taken, "
-			    "perhaps the daemon is already running?",
+			    "perhaps the application is already running?",
 			    name);
                 return FALSE;
 	}
@@ -63,7 +64,6 @@ dbus_register_service (DBusGProxy  *proxy,
         return TRUE;
 }
 
-#if 0
 static gpointer
 dbus_register_object (DBusGConnection       *connection,
                       DBusGProxy            *proxy,
@@ -84,8 +84,6 @@ dbus_register_object (DBusGConnection       *connection,
 
         return object;
 }
-
-#endif
 
 static gboolean 
 dbus_register_names (void)
@@ -170,20 +168,16 @@ tracker_dbus_register_objects (void)
 		return FALSE;
 	}
 
-	object = NULL;
-
-#if 0
         /* Add org.freedesktop.Tracker.Indexer */
         if (!(object = dbus_register_object (connection, 
                                              proxy,
-                                             TRACKER_TYPE_DBUS_DAEMON,
-                                             &dbus_glib_tracker_dbus_daemon_object_info,
-                                             TRACKER_DBUS_DAEMON_PATH))) {
+                                             TRACKER_TYPE_INDEXER,
+                                             &dbus_glib_tracker_indexer_object_info,
+                                             TRACKER_INDEXER_PATH))) {
                 return FALSE;
         }
 
         objects = g_slist_prepend (objects, object);
-#endif
 
          /* Reverse list since we added objects at the top each time */
         objects = g_slist_reverse (objects);

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+<busconfig>
+    <policy context="default">
+      <deny send_interface="org.freedesktop.Tracker.Indexer"/>
+      <allow send_destination="org.freedesktop.Tracker"/>
+    </policy>
+</busconfig>
+-->
+
+<node name="/">
+  <interface name="org.freedesktop.Tracker.Indexer">  
+    <method name="GetRunning"/>
+    <method name="SetRunning">
+      <arg type="b" name="running" direction="in" />
+    </method>
+    
+    <!-- The old signal in the daemon used to send the time taken, we
+	 can add this later
+      -->
+    <signal name="Finished"/>
+  </interface>
+</node>

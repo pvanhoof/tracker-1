@@ -39,3 +39,14 @@ tracker_indexer_LDADD =							\
 	-lz								\
 	-lm
 
+dbus_sources = 								\
+	tracker-indexer-glue.h
+
+%-glue.h: $(top_builddir)/data/%.xml
+	$(DBUSBINDINGTOOL) --mode=glib-server --output=$@ --prefix=$(subst -,_,$*) $^
+
+BUILT_SOURCES = $(dbus_sources)
+
+CLEANFILES = $(BUILT_SOURCES)
+
+EXTRA_DIST = $(BUILT_SOURCES)

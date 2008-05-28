@@ -1,5 +1,21 @@
 2008-05-28  Martyn Russell  <martyn@imendio.com>
 
+	* data/Makefile.am:
+	* data/org.freedesktop.Tracker.Indexer.service.in:
+	* data/org.freedesktop.TrackerIndexer.service.in:
+	* src/tracker-indexer/tracker-indexer.h: Changed name
+	TrackerIndexer to Tracker.Indexer.
+
+	* src/tracker-indexer/Makefile.am:
+	* data/tracker-indexer.xml: Add introspection support for the
+	indexer. 
+	
+	* src/tracker-indexer/tracker-dbus.c: 
+	* src/tracker-indexer/tracker-main.c: Make sure we register the
+	DBus objects properly on startup.
+
+2008-05-28  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/Makefile.am:
 	* src/libtracker-common/tracker-dbus.c: Added this for the most
 	common DBus functionality, such as creating requests and logging

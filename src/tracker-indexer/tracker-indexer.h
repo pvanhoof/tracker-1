@@ -22,9 +22,9 @@
 #ifndef __TRACKER_INDEXER_H__
 #define __TRACKER_INDEXER_H__
 
-#define TRACKER_INDEXER_SERVICE      "org.freedesktop.TrackerIndexer"
-#define TRACKER_INDEXER_PATH         "/org/freedesktop/TrackerIndexer"
-#define TRACKER_INDEXER_INTERFACE    "org.freedesktop.TrackerIndexer"
+#define TRACKER_INDEXER_SERVICE      "org.freedesktop.Tracker.Indexer"
+#define TRACKER_INDEXER_PATH         "/org/freedesktop/Tracker/Indexer"
+#define TRACKER_INDEXER_INTERFACE    "org.freedesktop.Tracker.Indexer"
 
 G_BEGIN_DECLS
 

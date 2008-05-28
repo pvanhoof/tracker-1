@@ -143,8 +143,8 @@ indexer_finished_cb (TrackerIndexer *indexer,
 gint
 main (gint argc, gchar *argv[])
 {
-	TrackerIndexer *indexer;
         TrackerConfig  *config;
+	GObject        *indexer;
 	GOptionContext *context;
 	GError	       *error = NULL;
 	gchar	       *summary = NULL;
@@ -215,13 +215,17 @@ main (gint argc, gchar *argv[])
 	g_message ("Starting log");
         g_free (log_filename);
 
+        /* Make sure we initialize DBus, this shows we are started
+         * successfully when called upon from the daemon.
+         */
+        if (!tracker_dbus_init ()) {
+                return EXIT_FAILURE;
+        }
+
 #ifdef HAVE_IOPRIO
 	/* Set IO priority */
 	tracker_ioprio_init ();
 #endif
-
-	/* Set child's niceness to 19 */
-        errno = 0;
 
         /* nice() uses attribute "warn_unused_result" and so complains
 	 * if we do not check its returned value. But it seems that
@@ -236,25 +240,23 @@ main (gint argc, gchar *argv[])
                            str ? str : "no error given");
         }
 
-        /* Make sure we initialize DBus, this shows we are started
-         * successfully when called upon from the daemon.
-         */
-        if (!tracker_dbus_init ()) {
-                return EXIT_FAILURE;
-        }
+	/* Make Tracker available for introspection */
+	if (!tracker_dbus_register_objects ()) {
+		return EXIT_FAILURE;
+	}
 
         /* Create the indexer and run the main loop */
-	indexer = tracker_indexer_new (reindex);
-	main_loop = g_main_loop_new (NULL, FALSE);
+        indexer = tracker_dbus_get_object (TRACKER_TYPE_INDEXER);
 
+        g_object_set (G_OBJECT (indexer), "reindex", reindex, NULL);
 	g_signal_connect (indexer, "finished",
 			  G_CALLBACK (indexer_finished_cb), NULL);
 
+	main_loop = g_main_loop_new (NULL, FALSE);
 	g_main_loop_run (main_loop);
 
 	g_message ("Shutting down...\n");
 
-	g_object_unref (indexer);
 	g_object_unref (config);
 
 	return EXIT_SUCCESS;

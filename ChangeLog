@@ -1,5 +1,15 @@
 2008-05-29  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-indexer-db.[ch]: Added, These files are
+	going to contain all DB related functions.
+	* src/tracker-indexer/Makefile.am: Added these files to build.
+	* src/tracker-indexer/tracker-main.c: Initialize DB manager and
+	ontology.
+	* src/tracker-indexer/tracker-indexer.c: Added initial support to data
+	indexing.
+
+2008-05-29  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/libtracker-db/tracker-db-interface-sqlite.c: Make sure the
 	procedures table is unreferenced when setting a new one. Also, don't
 	create one during initialization.

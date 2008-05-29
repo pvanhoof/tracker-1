@@ -24,6 +24,7 @@
 #include <locale.h>
 #include <signal.h>
 #include <errno.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include <glib/gi18n.h>
@@ -31,9 +32,12 @@
 
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-log.h>
+#include <libtracker-common/tracker-ontology.h>
+#include <libtracker-db/tracker-db-manager.h>
 
 #include "tracker-dbus.h"
 #include "tracker-indexer.h"
+#include "tracker-indexer-db.h"
 
 #ifdef HAVE_IOPRIO
 #include "tracker-ioprio.h"
@@ -138,6 +142,44 @@ indexer_finished_cb (TrackerIndexer *indexer,
 		     gpointer	     user_data)
 {
 	g_main_loop_quit (main_loop);
+}
+
+static void
+initialize_indexer (void)
+{
+	gchar *data_dir, *user_data_dir, *sys_tmp_dir, *filename;
+
+	g_message ("Initializing...\n");
+
+	tracker_ontology_init ();
+
+	data_dir = g_build_filename (g_get_user_cache_dir (), 
+				     "tracker", 
+				     NULL);
+	user_data_dir = g_build_filename (g_get_user_data_dir (), 
+                                          "tracker", 
+                                          "data", 
+                                          NULL);
+
+	filename = g_strdup_printf ("Tracker-%s.%d", g_get_user_name (), getpid ());
+	sys_tmp_dir = g_build_filename (g_get_tmp_dir (), filename, NULL);
+	g_free (filename);
+
+	tracker_db_manager_init (data_dir, user_data_dir, sys_tmp_dir);
+	tracker_indexer_db_load_prepared_queries ();
+
+	g_free (data_dir);
+	g_free (user_data_dir);
+	g_free (sys_tmp_dir);
+}
+
+static void
+shutdown_indexer (void)
+{
+	g_message ("Shutting down...\n");
+
+	tracker_ontology_shutdown ();
+	tracker_db_manager_shutdown ();
 }
 
 gint
@@ -245,6 +287,8 @@ main (gint argc, gchar *argv[])
 		return EXIT_FAILURE;
 	}
 
+	initialize_indexer ();
+
         /* Create the indexer and run the main loop */
         indexer = tracker_dbus_get_object (TRACKER_TYPE_INDEXER);
 
@@ -255,9 +299,10 @@ main (gint argc, gchar *argv[])
 	main_loop = g_main_loop_new (NULL, FALSE);
 	g_main_loop_run (main_loop);
 
-	g_message ("Shutting down...\n");
-
+	g_object_unref (indexer);
 	g_object_unref (config);
+
+	shutdown_indexer ();
 
 	return EXIT_SUCCESS;
 }

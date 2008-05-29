@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2008, Nokia
 
@@ -54,6 +54,7 @@
 
 #include "tracker-indexer.h"
 #include "tracker-indexer-module.h"
+#include "tracker-indexer-db.h"
 
 #define TRACKER_INDEXER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_INDEXER, TrackerIndexerPrivate))
 
@@ -73,6 +74,7 @@ struct TrackerIndexerPrivate {
 	DEPOT *index;
 	TrackerDBInterface *metadata;
 	TrackerDBInterface *contents;
+	TrackerDBInterface *common;
 
 	TrackerConfig *config;
 
@@ -139,6 +141,14 @@ tracker_indexer_finalize (GObject *object)
 	g_hash_table_destroy (priv->indexer_modules);
 
 	g_object_unref (priv->config);
+
+	if (priv->common) {
+		g_object_unref (priv->common);
+	}
+
+	if (priv->metadata) {
+		g_object_unref (priv->metadata);
+	}
 
 	G_OBJECT_CLASS (tracker_indexer_parent_class)->finalize (object);
 }
@@ -233,28 +243,11 @@ init_indexer (TrackerIndexer *indexer)
 		tracker_dir_remove (priv->db_dir);
 	}
 
+	priv->common = tracker_indexer_db_get_common ();
+	priv->metadata = tracker_indexer_db_get_file_metadata ();
+
 	tracker_indexer_set_running (indexer, TRUE);
 	return FALSE;
-}
-
-TrackerDBInterface *
-create_db_interface (const gchar *filename)
-{
-#if 0
-	TrackerDBInterface *interface;
-	gchar *path;
-
-	path = g_build_filename (g_get_user_cache_dir (),
-				 "tracker",
-				 filename,
-				 NULL);
-
-	interface = tracker_db_interface_sqlite_new (path);
-	g_free (path);
-
-	return interface;
-#endif
-	return NULL;
 }
 
 static void
@@ -272,8 +265,6 @@ tracker_indexer_init (TrackerIndexer *indexer)
 
 	priv->db_dir = g_build_filename (g_get_user_cache_dir (),
 					 "tracker", NULL);
-
-	priv->index = create_db_interface ("file-meta.db");
 
 	priv->module_names = tracker_config_get_index_modules (priv->config);
 
@@ -355,19 +346,25 @@ process_file (TrackerIndexer *indexer,
 	metadata = tracker_indexer_module_get_file_metadata (info->module, info->path);
 
 	if (metadata) {
-		/* FIXME: store metadata in DB */
-		GList *keys, *k;
+		TrackerIndexerPrivate *priv;
+		const gchar *service_type;
+		guint32 id;
 
-		keys = g_hash_table_get_keys (metadata);
+		priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
-		for (k = keys; k; k = k->next) {
-			g_message ("  %s = %s",
-				   (gchar*) k->data,
-				   (gchar*) g_hash_table_lookup (metadata, k->data));
+		service_type = tracker_indexer_module_get_name (info->module);
+		id = tracker_db_get_new_service_id (priv->common);
+
+		if (tracker_db_create_service (priv->metadata, id, service_type, info->path, metadata)) {
+			tracker_db_increment_stats (priv->common, service_type);
+
+			/* FIXME
+			if (tracker_config_get_enable_xesam (tracker->config))
+				tracker_db_create_event (db_con, id, "Create");
+			*/
 		}
 
 		g_hash_table_destroy (metadata);
-		g_list_free (keys);
 	}
 }
 

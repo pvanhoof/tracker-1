@@ -20,6 +20,8 @@ tracker_indexer_SOURCES =						\
 	tracker-ioprio.h						\
 	tracker-indexer.c						\
 	tracker-indexer.h						\
+	tracker-indexer-db.c						\
+	tracker-indexer-db.h						\
 	tracker-indexer-module.c					\
 	tracker-indexer-module.h					\
 	tracker-main.c							\

@@ -1,3 +1,10 @@
+2008-05-29  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-dbus.h:
+	* src/libtracker-db/tracker-db-dbus.h:
+	* src/tracker-indexer/tracker-dbus.h: Forgot to svn add these
+	files for the last commit!
+
 2008-05-28  Martyn Russell  <martyn@imendio.com>
 
 	* data/Makefile.am:

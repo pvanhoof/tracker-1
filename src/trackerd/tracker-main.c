@@ -705,11 +705,13 @@ shutdown_threads (GThread *thread_to_join)
 	g_mutex_unlock (tracker->metadata_check_mutex);
 	g_mutex_unlock (tracker->files_check_mutex);
 
+#if 0
 	/* We wait now for the thread to exit and join, then clean up
 	 * the mutexts and conds. 
 	 */
 	g_message ("Waiting for thread to finish");
 	g_thread_join (thread_to_join);
+#endif
 
 	/* Clean up */
 #if 0
@@ -979,6 +981,27 @@ main (gint argc, gchar *argv[])
 			g_critical ("File monitoring failed to start");
 		} 
 		else if (tracker_config_get_enable_indexing (tracker->config)) {
+			gint initial_sleep;
+
+			initial_sleep = tracker_config_get_initial_sleep (tracker->config);
+			g_message ("Sleeping for:%d secs before starting...", initial_sleep);
+			
+			while (initial_sleep > 0) {
+				g_usleep (G_USEC_PER_SEC);
+				
+				initial_sleep --;
+				
+				if (!tracker->is_running || tracker->shutdown) {
+					break;
+				}
+			}
+			
+			if (tracker->is_running && !tracker->shutdown) {
+				g_message ("Starting indexer...");
+				tracker_dbus_start_indexer ();
+			}
+
+#if 0
 			thread = g_thread_create_full ((GThreadFunc) tracker_process_files, 
 						       tracker,
 						       (gulong) tracker_config_get_thread_stack_size (tracker->config),
@@ -986,6 +1009,7 @@ main (gint argc, gchar *argv[])
 						       FALSE, 
 						       G_THREAD_PRIORITY_NORMAL, 
 						       NULL);
+#endif
 		} else {
 			g_message ("Indexing disabled, waiting for DBus requests...");
 		}

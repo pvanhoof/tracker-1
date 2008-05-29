@@ -1,3 +1,20 @@
+2008-05-29  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-hal.[ch]: Consistency fixes.
+	
+	* src/tracker-indexer/modules/Makefile.am: Reorder some of the
+	linking so it is done in the right order. This doesn't matter on
+	Linux, but it does on Windows. Linking must occur with the system
+	deps last. Yes that sucks.
+	
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-dbus.[ch]:
+	* src/trackerd/tracker-main.c: Added the tracker-indexer.xml file
+	to the Makefile here but to produce the client side API so we can
+	call _set_running() on the indexer to exec() the binary and start
+	indexing when we are ready. So now we start the indexer when it is
+	needed through DBus. 
+
 2008-05-29  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-dbus.[ch]

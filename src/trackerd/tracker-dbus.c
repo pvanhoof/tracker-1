@@ -39,11 +39,13 @@
 #include "tracker-dbus-search-glue.h"
 #include "tracker-dbus-xesam.h"
 #include "tracker-dbus-xesam-glue.h"
+#include "tracker-indexer-client.h"
 #include "tracker-utils.h"
 #include "tracker-watch.h"
 
 static DBusGConnection *connection;
 static DBusGProxy      *proxy;
+static DBusGProxy      *proxy_for_indexer;
 static GSList          *objects;
 
 static gboolean
@@ -186,6 +188,11 @@ tracker_dbus_shutdown (void)
 		proxy = NULL;
 	}
 
+	if (proxy_for_indexer) {
+		g_object_unref (proxy_for_indexer);
+		proxy_for_indexer = NULL;
+	}
+
 	connection = NULL;
 }
 
@@ -314,4 +321,37 @@ tracker_dbus_get_object (GType type)
 	}
 
         return NULL;
+}
+
+void
+tracker_dbus_start_indexer (void)
+{
+	GError *error = NULL;
+
+	if (!connection) {
+		g_critical ("DBus support must be initialized before starting the indexer!");
+		return;
+	}
+
+	if (!proxy_for_indexer) {
+		/* Get proxy for Service / Path / Interface of the indexer */
+		proxy_for_indexer = dbus_g_proxy_new_for_name (connection,
+							       "org.freedesktop.Tracker.Indexer", 
+ 							       "/org/freedesktop/Tracker/Indexer",
+							       "org.freedesktop.Tracker.Indexer");
+		
+		if (!proxy_for_indexer) {
+			g_critical ("Couldn't create a DBusGProxy to the indexer service");
+			return;
+		}
+	}
+
+	org_freedesktop_Tracker_Indexer_set_running (proxy_for_indexer, 
+						     TRUE, 
+						     &error);
+
+	if (error) {
+		g_warning ("Couldn't start indexer, %s",
+			   error->message);
+	}
 }

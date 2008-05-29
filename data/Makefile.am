@@ -27,7 +27,7 @@ config_DATA =						\
 org.freedesktop.Tracker_servicedir = $(DBUS_SERVICES_DIR)
 org.freedesktop.Tracker_service_DATA = org.freedesktop.Tracker.service
 
-org.freedesktop.Tracker.Indexer_servicedir = $(DBUS_SERVICES_DIR) 
+org.freedesktop.Tracker.Indexer_servicedir = $(DBUS_SERVICES_DIR)
 org.freedesktop.Tracker.Indexer_service_DATA = org.freedesktop.Tracker.Indexer.service
 
 %.service: %.service.in

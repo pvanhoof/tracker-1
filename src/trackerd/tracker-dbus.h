@@ -36,6 +36,7 @@ gboolean tracker_dbus_init             (TrackerConfig *config);
 void     tracker_dbus_shutdown         (void);
 gboolean tracker_dbus_register_objects (Tracker       *tracker);
 GObject *tracker_dbus_get_object       (GType          type);
+void     tracker_dbus_start_indexer    (void);
 
 G_END_DECLS
 

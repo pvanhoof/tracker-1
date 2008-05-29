@@ -6,26 +6,36 @@ INCLUDES =								\
 	-DLIBDIR=\""$(libdir)"\"					\
 	-DLOCALEDIR=\""$(localedir)"\" 					\
 	-DINDEXER_MODULES_DIR=\"$(indexer_modulesdir)\"			\
-	$(GLIB2_CFLAGS)							\
+	-I$(top_srcdir)/src						\
 	$(GMODULE_CFLAGS)						\
-	-I$(top_srcdir)/src
+	$(GLIB2_CFLAGS)
 
 indexer_modules_LTLIBRARIES = 						\
 	libtracker-indexer-applications.la				\
 	libtracker-indexer-files.la					\
 	libtracker-indexer-gaim-conversations.la
 
+# Applications module
 libtracker_indexer_applications_la_SOURCES = applications.c
 libtracker_indexer_applications_la_LDFLAGS = $(module_flags)
-libtracker_indexer_applications_la_LIBADD = $(GLIB2_LIBS)
+libtracker_indexer_applications_la_LIBADD = 				\
+	$(GMODULE_LIBS)							\
+	$(GLIB2_LIBS)
 
+# 	$(top_builddir)/src/libtracker-common/libtracker-common.la	
+
+# Files module
 libtracker_indexer_files_la_SOURCES = files.c
 libtracker_indexer_files_la_LDFLAGS = $(module_flags)
 libtracker_indexer_files_la_LIBADD = 					\
-	$(GLIB2_LIBS)							\
 	$(top_builddir)/src/libtracker-db/libtracker-db.la		\
-	$(top_builddir)/src/xdgmime/libxdgmime.la
+	$(top_builddir)/src/xdgmime/libxdgmime.la			\
+	$(GMODULE_LIBS)							\
+	$(GLIB2_LIBS)
 
+# Instant messaging module
 libtracker_indexer_gaim_conversations_la_SOURCES = gaim-conversations.c
 libtracker_indexer_gaim_conversations_la_LDFLAGS = $(module_flags)
-libtracker_indexer_gaim_conversations_la_LIBADD = $(GLIB2_LIBS)
+libtracker_indexer_gaim_conversations_la_LIBADD = 			\
+	$(GMODULE_LIBS)							\
+	$(GLIB2_LIBS)

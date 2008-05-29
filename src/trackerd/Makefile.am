@@ -161,10 +161,14 @@ dbus_sources = 								\
 	tracker-dbus-keywords-glue.h					\
 	tracker-dbus-metadata-glue.h					\
 	tracker-dbus-search-glue.h					\
-	tracker-dbus-xesam-glue.h
+	tracker-dbus-xesam-glue.h					\
+	tracker-indexer-client.h
 
 %-glue.h: $(top_builddir)/data/%.xml
 	$(DBUSBINDINGTOOL) --mode=glib-server --output=$@ --prefix=$(subst -,_,$*) $^
+
+%-client.h: $(top_builddir)/data/%.xml
+	$(DBUSBINDINGTOOL) --mode=glib-client --output=$@ --prefix=$(subst -,_,$*) $^
 
 BUILT_SOURCES = 							\
 	$(dbus_sources)							\

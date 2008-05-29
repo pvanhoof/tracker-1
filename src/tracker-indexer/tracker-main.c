@@ -149,8 +149,6 @@ initialize_indexer (void)
 {
 	gchar *data_dir, *user_data_dir, *sys_tmp_dir, *filename;
 
-	g_message ("Initializing...\n");
-
 	tracker_ontology_init ();
 
 	data_dir = g_build_filename (g_get_user_cache_dir (), 
@@ -191,7 +189,7 @@ main (gint argc, gchar *argv[])
 	GError	       *error = NULL;
 	gchar	       *summary = NULL;
 	gchar	       *example;
-        gchar          *log_filename;
+        gchar          *filename;
 
 	g_type_init ();
 	
@@ -248,14 +246,14 @@ main (gint argc, gchar *argv[])
 		tracker_config_set_verbosity (config, verbosity);
 	}
 
-	log_filename = g_build_filename (g_get_user_data_dir (), 
-					 "tracker", 
-					 "tracker-indexer.log", 
-					 NULL);
+	filename = g_build_filename (g_get_user_data_dir (), 
+                                     "tracker", 
+                                     "tracker-indexer.log", 
+                                     NULL);
 
-        tracker_log_init (log_filename, tracker_config_get_verbosity (config));
-	g_message ("Starting log");
-        g_free (log_filename);
+        tracker_log_init (filename, tracker_config_get_verbosity (config));
+	g_print ("Starting log:\n  File:'%s'\n", filename);
+        g_free (filename);
 
         /* Make sure we initialize DBus, this shows we are started
          * successfully when called upon from the daemon.
@@ -295,6 +293,8 @@ main (gint argc, gchar *argv[])
 
 	g_signal_connect (indexer, "finished",
 			  G_CALLBACK (indexer_finished_cb), NULL);
+
+	g_message ("Starting...");
 
 	main_loop = g_main_loop_new (NULL, FALSE);
 	g_main_loop_run (main_loop);

@@ -67,6 +67,7 @@ static void     hal_get_property                (GObject         *object,
                                                  GParamSpec      *pspec);
 static gboolean hal_setup_devices               (TrackerHal      *hal);
 static gboolean hal_setup_batteries             (TrackerHal      *hal);
+
 static gboolean hal_device_add                  (TrackerHal      *hal,
                                                  LibHalVolume    *volume);
 static void     hal_device_added_cb             (LibHalContext   *context,

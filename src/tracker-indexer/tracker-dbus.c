@@ -38,14 +38,14 @@ dbus_register_service (DBusGProxy  *proxy,
         guint   result;
 
         g_message ("Registering DBus service...\n"
-		   "  Name '%s'", 
+		   "  Name:'%s'", 
 		   name);
 
         if (!org_freedesktop_DBus_request_name (proxy,
                                                 name,
                                                 DBUS_NAME_FLAG_DO_NOT_QUEUE,
                                                 &result, &error)) {
-                g_critical ("Could not aquire name: %s, %s",
+                g_critical ("Could not aquire name:'%s', %s",
 			    name,
 			    error ? error->message : "no error given");
                 g_error_free (error);
@@ -54,7 +54,7 @@ dbus_register_service (DBusGProxy  *proxy,
 		}
 
         if (result != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER) {
-                g_critical ("DBus service name '%s' is already taken, "
+                g_critical ("DBus service name:'%s' is already taken, "
 			    "perhaps the application is already running?",
 			    name);
                 return FALSE;
@@ -71,8 +71,8 @@ dbus_register_object (GObject               *object,
                       const gchar           *path)
 {
         g_message ("Registering DBus object...");
-        g_message ("  Path '%s'", path);
-        g_message ("  Object Type '%s'", G_OBJECT_TYPE_NAME (object));
+        g_message ("  Path:'%s'", path);
+        g_message ("  Object Type:'%s'", G_OBJECT_TYPE_NAME (object));
 
         dbus_g_object_type_install_info (G_OBJECT_TYPE (object), info);
         dbus_g_connection_register_g_object (connection, path, object);

@@ -19,10 +19,10 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifdef HAVE_HAL
-
 #ifndef __LIBTRACKER_HAL_H__
 #define __LIBTRACKER_HAL_H__
+
+#ifdef HAVE_HAL 
 
 #include <glib-object.h>
 
@@ -56,6 +56,6 @@ GSList *    tracker_hal_get_removable_device_roots  (TrackerHal *hal);
 
 G_END_DECLS
 
-#endif /* __LIBTRACKER_HAL_H__ */
-
 #endif /* HAVE_HAL */
+
+#endif /* __LIBTRACKER_HAL_H__ */

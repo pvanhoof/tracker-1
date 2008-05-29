@@ -1,5 +1,29 @@
 2008-05-29  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/Makefile.am: Don't include the HAL files
+	twice, this was causing some serious headaches today.
+
+	* src/libtracker-common/tracker-hal.h: Put the HAVE_HAL check
+	after the already included check.
+	
+	* src/libtracker-db/Makefile.am: Make sure we depend on
+	libtracker-common because we need some of the dbus API calls
+	there. 
+	
+	* src/tracker-indexer/modules/Makefile.am: Remove commented out
+	libtracker-common include. Not needed.
+	
+	* src/tracker-indexer/tracker-dbus.c:
+	* src/tracker-indexer/tracker-main.c:
+	* src/trackerd/tracker-dbus.c:
+	* src/trackerd/tracker-indexer.c:
+	* src/trackerd/tracker-main.c: Some logging/debugging updates. Now
+	we say where the log file is and print it to the terminal so users
+	know where to look. Also state when we are done loading so the
+	user knows we aren't hanging for some startup processes.
+
+2008-05-29  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-hal.[ch]: Consistency fixes.
 	
 	* src/tracker-indexer/modules/Makefile.am: Reorder some of the

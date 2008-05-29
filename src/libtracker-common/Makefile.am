@@ -17,7 +17,7 @@ endif
 
 if HAVE_HAL
 hal_sources = 					\
-	tracker-hal.c        			\
+	tracker-hal.c				\
 	tracker-hal.h
 endif
 
@@ -36,8 +36,6 @@ libtracker_common_la_SOURCES = 			\
 	tracker-field-data.h			\
 	tracker-file-utils.c			\
 	tracker-file-utils.h			\
-	tracker-hal.c				\
-	tracker-hal.h				\
 	tracker-language.c			\
 	tracker-language.h			\
 	tracker-log.c	 			\

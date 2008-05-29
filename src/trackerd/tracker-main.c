@@ -931,7 +931,7 @@ main (gint argc, gchar *argv[])
 
 	/* Initialise other subsystems */
 	tracker_log_init (log_filename, tracker_config_get_verbosity (tracker->config));
-	g_message ("Starting log");
+	g_print ("Starting log:\n  File:'%s'\n", log_filename);
 	
 	if (!tracker_dbus_init (tracker->config)) {
 		return EXIT_FAILURE;
@@ -947,8 +947,8 @@ main (gint argc, gchar *argv[])
 	tracker_ontology_init ();
 	tracker_email_init (tracker->config);
 
-#ifdef HAVE_HAL 
- 	tracker->hal = tracker_hal_new ();       
+#ifdef HAVE_HAL
+ 	tracker->hal = tracker_hal_new ();
 #endif /* HAVE_HAL */
 
 	initialise_directories (&need_index);
@@ -984,7 +984,8 @@ main (gint argc, gchar *argv[])
 			gint initial_sleep;
 
 			initial_sleep = tracker_config_get_initial_sleep (tracker->config);
-			g_message ("Sleeping for:%d secs before starting...", initial_sleep);
+			g_message ("Indexing enabled, sleeping for %d secs before starting...", 
+				   initial_sleep);
 			
 			while (initial_sleep > 0) {
 				g_usleep (G_USEC_PER_SEC);
@@ -997,7 +998,7 @@ main (gint argc, gchar *argv[])
 			}
 			
 			if (tracker->is_running && !tracker->shutdown) {
-				g_message ("Starting indexer...");
+				g_message ("Indexing enabled, starting...");
 				tracker_dbus_start_indexer ();
 			}
 
@@ -1011,9 +1012,11 @@ main (gint argc, gchar *argv[])
 						       NULL);
 #endif
 		} else {
-			g_message ("Indexing disabled, waiting for DBus requests...");
+			g_message ("Indexing disabled, not starting");
 		}
 	}
+
+	g_message ("Waiting for DBus requests...");
 	
 	if (tracker->is_running) {
 		main_loop = g_main_loop_new (NULL, FALSE);

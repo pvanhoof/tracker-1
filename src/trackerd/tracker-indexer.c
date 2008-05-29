@@ -17,23 +17,7 @@
  * Boston, MA  02110-1301, USA.
  */
 
-/* Needed before including math.h for lrintf() */
-#define _ISOC9X_SOURCE   1
-#define _ISOC99_SOURCE   1
-
-#define __USE_ISOC9X     1
-#define __USE_ISOC99     1
-
-/* Size of free block pool of inverted index */
-#define INDEXFBP            32     
-#define SCORE_MULTIPLIER    100000
-#define MAX_HIT_BUFFER      480000
-#define MAX_HITS_FOR_WORD   30000
-#define MAX_INDEX_FILE_SIZE 2000000000
-
-#define CREATE_INDEX                                                      \
-        "CREATE TABLE HitIndex (Word Text not null "                      \
-        "unique, HitCount Integer, HitArraySize Integer, HitArray Blob);"
+#include "config.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -41,6 +25,14 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
+
+/* Needed before including math.h for lrintf() */
+#define _ISOC9X_SOURCE   1
+#define _ISOC99_SOURCE   1
+
+#define __USE_ISOC9X     1
+#define __USE_ISOC99     1
+
 #include <math.h>
 
 #include <depot.h>
@@ -65,6 +57,17 @@
 #include "tracker-query-tree.h"
 #include "tracker-main.h"
 #include "tracker-status.h"
+
+/* Size of free block pool of inverted index */
+#define INDEXFBP            32     
+#define SCORE_MULTIPLIER    100000
+#define MAX_HIT_BUFFER      480000
+#define MAX_HITS_FOR_WORD   30000
+#define MAX_INDEX_FILE_SIZE 2000000000
+
+#define CREATE_INDEX                                                      \
+        "CREATE TABLE HitIndex (Word Text not null "                      \
+        "unique, HitCount Integer, HitArraySize Integer, HitArray Blob);"
 
 extern Tracker *tracker;
 
@@ -408,7 +411,7 @@ tracker_indexer_apply_changes (Indexer *dest, Indexer *src,  gboolean update)
 	if (tracker_hal_get_battery_exists (tracker->hal)) {
                 interval /= 2;
         }
-#endif
+#endif /* HAVE_HAL */
 
 	dpiterinit (src->word_index);
 	
@@ -772,7 +775,7 @@ tracker_indexer_merge_indexes (IndexType type)
                                                 if (tracker_hal_get_battery_exists (tracker->hal)) {
                                                         interval /=  2;
                                                 }
-#endif
+#endif /* HAVE_HAL */
 					}
 				}
 			

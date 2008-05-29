@@ -22,8 +22,6 @@ libtracker_indexer_applications_la_LIBADD = 				\
 	$(GMODULE_LIBS)							\
 	$(GLIB2_LIBS)
 
-# 	$(top_builddir)/src/libtracker-common/libtracker-common.la	
-
 # Files module
 libtracker_indexer_files_la_SOURCES = files.c
 libtracker_indexer_files_la_LDFLAGS = $(module_flags)

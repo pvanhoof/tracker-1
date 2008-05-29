@@ -60,7 +60,7 @@ dbus_sources = 					\
 	tracker-dbus-metadata-glue.h		\
 	tracker-dbus-search-glue.h
 
-%-glue.h: $(top_builddir)/data/%.xml
+%-glue.h: $(top_srcdir)/data/%.xml
 	$(DBUSBINDINGTOOL) --mode=glib-client --output=$@ --prefix=$(subst -,_,$*) $^
 
 BUILT_SOURCES = $(dbus_sources)

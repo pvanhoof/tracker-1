@@ -33,38 +33,38 @@
 #include <libtracker-db/tracker-db-dbus.h>
 
 #include "tracker-dbus.h"
-#include "tracker-dbus-files.h"
+#include "tracker-files.h"
 #include "tracker-db.h"
 #include "tracker-marshal.h"
 
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DBUS_FILES, TrackerDBusFilesPriv))
+#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_FILES, TrackerFilesPriv))
 
 typedef struct {
 	DBConnection *db_con;
-} TrackerDBusFilesPriv;
+} TrackerFilesPriv;
 
 enum {
 	PROP_0,
 	PROP_DB_CONNECTION
 };
 
-static void dbus_files_finalize     (GObject      *object);
-static void dbus_files_set_property (GObject      *object,
-                                     guint         param_id,
-                                     const GValue *value,
-                                     GParamSpec   *pspec);
+static void files_finalize     (GObject      *object);
+static void files_set_property (GObject      *object,
+				guint         param_id,
+				const GValue *value,
+				GParamSpec   *pspec);
 
-G_DEFINE_TYPE(TrackerDBusFiles, tracker_dbus_files, G_TYPE_OBJECT)
+G_DEFINE_TYPE(TrackerFiles, tracker_files, G_TYPE_OBJECT)
 
 static void
-tracker_dbus_files_class_init (TrackerDBusFilesClass *klass)
+tracker_files_class_init (TrackerFilesClass *klass)
 {
 	GObjectClass *object_class;
 
 	object_class = G_OBJECT_CLASS (klass);
 
-	object_class->finalize = dbus_files_finalize;
-	object_class->set_property = dbus_files_set_property;
+	object_class->finalize = files_finalize;
+	object_class->set_property = files_set_property;
 
 	g_object_class_install_property (object_class,
 					 PROP_DB_CONNECTION,
@@ -73,38 +73,38 @@ tracker_dbus_files_class_init (TrackerDBusFilesClass *klass)
 							       "Database connection to use in transactions",
 							       G_PARAM_WRITABLE));
 
-	g_type_class_add_private (object_class, sizeof (TrackerDBusFilesPriv));
+	g_type_class_add_private (object_class, sizeof (TrackerFilesPriv));
 }
 
 static void
-tracker_dbus_files_init (TrackerDBusFiles *object)
+tracker_files_init (TrackerFiles *object)
 {
 }
 
 static void
-dbus_files_finalize (GObject *object)
+files_finalize (GObject *object)
 {
-	TrackerDBusFilesPriv *priv;
+	TrackerFilesPriv *priv;
 	
 	priv = GET_PRIV (object);
 
-	G_OBJECT_CLASS (tracker_dbus_files_parent_class)->finalize (object);
+	G_OBJECT_CLASS (tracker_files_parent_class)->finalize (object);
 }
 
 static void
-dbus_files_set_property (GObject      *object,
-                         guint	       param_id,
-                         const GValue *value,
-                         GParamSpec   *pspec)
+files_set_property (GObject      *object,
+		    guint         param_id,
+		    const GValue *value,
+		    GParamSpec   *pspec)
 {
-	TrackerDBusFilesPriv *priv;
+	TrackerFilesPriv *priv;
 
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
 	case PROP_DB_CONNECTION:
-		tracker_dbus_files_set_db_connection (TRACKER_DBUS_FILES (object),
-                                                      g_value_get_pointer (value));
+		tracker_files_set_db_connection (TRACKER_FILES (object),
+						 g_value_get_pointer (value));
 		break;
 
 	default:
@@ -113,12 +113,12 @@ dbus_files_set_property (GObject      *object,
 	};
 }
 
-TrackerDBusFiles *
-tracker_dbus_files_new (DBConnection *db_con)
+TrackerFiles *
+tracker_files_new (DBConnection *db_con)
 {
-	TrackerDBusFiles *object;
+	TrackerFiles *object;
 
-	object = g_object_new (TRACKER_TYPE_DBUS_FILES, 
+	object = g_object_new (TRACKER_TYPE_FILES, 
 			       "db-connection", db_con,
 			       NULL);
 	
@@ -126,12 +126,12 @@ tracker_dbus_files_new (DBConnection *db_con)
 }
 
 void
-tracker_dbus_files_set_db_connection (TrackerDBusFiles *object,
-                                      DBConnection     *db_con)
+tracker_files_set_db_connection (TrackerFiles *object,
+				 DBConnection *db_con)
 {
-	TrackerDBusFilesPriv *priv;
+	TrackerFilesPriv *priv;
 
-	g_return_if_fail (TRACKER_IS_DBUS_FILES (object));
+	g_return_if_fail (TRACKER_IS_FILES (object));
 	g_return_if_fail (db_con != NULL);
 
 	priv = GET_PRIV (object);
@@ -145,13 +145,13 @@ tracker_dbus_files_set_db_connection (TrackerDBusFiles *object,
  * Functions
  */
 gboolean
-tracker_dbus_files_exist (TrackerDBusFiles  *object,
-                          const gchar       *uri,
-                          gboolean           auto_create,
-                          gboolean          *value,
-                          GError           **error)
+tracker_files_exist (TrackerFiles  *object,
+		     const gchar       *uri,
+		     gboolean           auto_create,
+		     gboolean          *value,
+		     GError           **error)
 {
-	TrackerDBusFilesPriv *priv;
+	TrackerFilesPriv *priv;
 	guint                 request_id;
 	DBConnection         *db_con;
 	guint32               file_id;
@@ -202,23 +202,23 @@ tracker_dbus_files_exist (TrackerDBusFiles  *object,
 }
 
 gboolean
-tracker_dbus_files_create (TrackerDBusFiles  *object,
-                           const gchar       *uri,
-                           gboolean           is_directory,
-                           const gchar       *mime,
-                           gint               size,
-                           gint               mtime,
-                           GError           **error)
+tracker_files_create (TrackerFiles  *object,
+		      const gchar   *uri,
+		      gboolean       is_directory,
+		      const gchar   *mime,
+		      gint           size,
+		      gint           mtime,
+		      GError       **error)
 {
-	TrackerDBusFilesPriv *priv;
-	guint                 request_id;
-	DBConnection         *db_con;
-	TrackerDBFileInfo    *info;
-	gchar                *name;
-	gchar                *path;
-	gchar                *service;
-	guint32               file_id;
-	gboolean              created;
+	TrackerFilesPriv  *priv;
+	guint              request_id;
+	DBConnection      *db_con;
+	TrackerDBFileInfo *info;
+	gchar             *name;
+	gchar             *path;
+	gchar             *service;
+	guint32            file_id;
+	gboolean           created;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -327,19 +327,19 @@ tracker_dbus_files_create (TrackerDBusFiles  *object,
 }
 
 gboolean
-tracker_dbus_files_delete (TrackerDBusFiles  *object,
-                           const gchar       *uri,
-                           GError           **error)
+tracker_files_delete (TrackerFiles  *object,
+		      const gchar   *uri,
+		      GError       **error)
 {
-	TrackerDBusFilesPriv *priv;
-	TrackerDBResultSet   *result_set;
-	guint                 request_id;
-	DBConnection         *db_con;
-	guint32               file_id;
-	gchar                *name;
-	gchar                *path;
-	gboolean              is_directory;
-	TrackerDBAction       action;
+	TrackerFilesPriv   *priv;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
+	DBConnection       *db_con;
+	guint32             file_id;
+	gchar              *name;
+	gchar              *path;
+	gboolean            is_directory;
+	TrackerDBAction     action;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -405,18 +405,18 @@ tracker_dbus_files_delete (TrackerDBusFiles  *object,
 }
 
 gboolean
-tracker_dbus_files_get_service_type (TrackerDBusFiles  *object,
-                                     const gchar       *uri,
-                                     gchar            **value,  
-                                     GError           **error)
+tracker_files_get_service_type (TrackerFiles  *object,
+				const gchar   *uri,
+				gchar        **value,  
+				GError       **error)
 {
-	TrackerDBusFilesPriv   *priv;
-	TrackerDBResultSet     *result_set;
-	guint                   request_id;
-	DBConnection           *db_con;
-	guint32                 file_id;
-	gchar                  *file_id_str;
-	const gchar            *mime = NULL;
+	TrackerFilesPriv   *priv;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
+	DBConnection       *db_con;
+	guint32             file_id;
+	gchar              *file_id_str;
+	const gchar        *mime = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -487,20 +487,20 @@ tracker_dbus_files_get_service_type (TrackerDBusFiles  *object,
 }
 
 gboolean
-tracker_dbus_files_get_text_contents (TrackerDBusFiles  *object,
-                                      const gchar       *uri,
-                                      gint               offset,
-                                      gint               max_length,
-                                      gchar            **value,  
-                                      GError           **error)
+tracker_files_get_text_contents (TrackerFiles  *object,
+				 const gchar   *uri,
+				 gint           offset,
+				 gint           max_length,
+				 gchar        **value,  
+				 GError       **error)
 {
-	TrackerDBusFilesPriv *priv;
-	TrackerDBResultSet   *result_set;
-	guint                 request_id;
-	DBConnection         *db_con;
-	gchar                *service_id;
-	gchar                *offset_str;
-	gchar                *max_length_str;
+	TrackerFilesPriv   *priv;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
+	DBConnection       *db_con;
+	gchar              *service_id;
+	gchar              *offset_str;
+	gchar              *max_length_str;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -568,20 +568,20 @@ tracker_dbus_files_get_text_contents (TrackerDBusFiles  *object,
 }
 
 gboolean
-tracker_dbus_files_search_text_contents (TrackerDBusFiles  *object,
-                                         const gchar       *uri,
-                                         const gchar       *text,
-                                         gint               max_length,
-                                         gchar            **value,  
-                                         GError           **error)
+tracker_files_search_text_contents (TrackerFiles  *object,
+				    const gchar   *uri,
+				    const gchar   *text,
+				    gint           max_length,
+				    gchar        **value,  
+				    GError       **error)
 {
-	TrackerDBusFilesPriv *priv;
-	TrackerDBResultSet   *result_set = NULL;
-	guint                 request_id;
-	DBConnection         *db_con;
-	gchar                *name;
-	gchar                *path;
-	gchar                *max_length_str;
+	TrackerFilesPriv   *priv;
+	TrackerDBResultSet *result_set = NULL;
+	guint               request_id;
+	DBConnection       *db_con;
+	gchar              *name;
+	gchar              *path;
+	gchar              *max_length_str;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -642,18 +642,18 @@ tracker_dbus_files_search_text_contents (TrackerDBusFiles  *object,
 }
 
 gboolean
-tracker_dbus_files_get_by_service_type (TrackerDBusFiles   *object,
-                                        gint                live_query_id,
-                                        const gchar        *service,
-                                        gint                offset,
-                                        gint                max_hits,
-                                        gchar            ***values,  
-                                        GError            **error)
+tracker_files_get_by_service_type (TrackerFiles   *object,
+				   gint            live_query_id,
+				   const gchar    *service,
+				   gint            offset,
+				   gint            max_hits,
+				   gchar        ***values,  
+				   GError        **error)
 {
-	TrackerDBusFilesPriv *priv;
-	TrackerDBResultSet   *result_set;
-	guint                 request_id;
-	DBConnection         *db_con;
+	TrackerFilesPriv   *priv;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
+	DBConnection       *db_con;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -699,18 +699,18 @@ tracker_dbus_files_get_by_service_type (TrackerDBusFiles   *object,
 }
 
 gboolean
-tracker_dbus_files_get_by_mime_type (TrackerDBusFiles   *object,
-                                     gint                live_query_id,
-                                     gchar             **mime_types,
-                                     gint                offset,
-                                     gint                max_hits,
-                                     gchar            ***values,  
-                                     GError            **error)
+tracker_files_get_by_mime_type (TrackerFiles   *object,
+				gint            live_query_id,
+				gchar         **mime_types,
+				gint            offset,
+				gint            max_hits,
+				gchar        ***values,  
+				GError        **error)
 {
-	TrackerDBusFilesPriv *priv;
-	TrackerDBResultSet   *result_set;
-	guint                 request_id;
-	DBConnection         *db_con;
+	TrackerFilesPriv   *priv;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
+	DBConnection       *db_con;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -751,18 +751,18 @@ tracker_dbus_files_get_by_mime_type (TrackerDBusFiles   *object,
 }
 
 gboolean
-tracker_dbus_files_get_by_mime_type_vfs (TrackerDBusFiles   *object,
-					 gint                live_query_id,
-					 gchar             **mime_types,
-					 gint                offset,
-					 gint                max_hits,
-					 gchar            ***values,  
-					 GError            **error)
+tracker_files_get_by_mime_type_vfs (TrackerFiles   *object,
+				    gint            live_query_id,
+				    gchar         **mime_types,
+				    gint            offset,
+				    gint            max_hits,
+				    gchar        ***values,  
+				    GError        **error)
 {
-	TrackerDBusFilesPriv *priv;
-	TrackerDBResultSet   *result_set;
-	guint                 request_id;
-	DBConnection         *db_con;
+	TrackerFilesPriv   *priv;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
+	DBConnection       *db_con;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -806,17 +806,17 @@ tracker_dbus_files_get_by_mime_type_vfs (TrackerDBusFiles   *object,
 }
 
 gboolean
-tracker_dbus_files_get_mtime (TrackerDBusFiles  *object,
-                              const gchar       *uri,
-                              gint              *value,
-                              GError           **error)
+tracker_files_get_mtime (TrackerFiles  *object,
+			 const gchar   *uri,
+			 gint          *value,
+			 GError       **error)
 {
-	TrackerDBusFilesPriv   *priv;
-	TrackerDBResultSet     *result_set;
-	guint                   request_id;
-	DBConnection           *db_con;
-	gchar                  *path;
-	gchar                  *name;
+	TrackerFilesPriv   *priv;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
+	DBConnection       *db_con;
+	gchar              *path;
+	gchar              *name;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -865,24 +865,24 @@ tracker_dbus_files_get_mtime (TrackerDBusFiles  *object,
 }
 
 gboolean
-tracker_dbus_files_get_metadata_for_files_in_folder (TrackerDBusFiles  *object,
-                                                     gint               live_query_id,
-                                                     const gchar       *uri,
-                                                     gchar            **fields,
-                                                     GPtrArray        **values,
-                                                     GError           **error)
+tracker_files_get_metadata_for_files_in_folder (TrackerFiles  *object,
+						gint           live_query_id,
+						const gchar   *uri,
+						gchar        **fields,
+						GPtrArray    **values,
+						GError       **error)
 {
-	TrackerDBusFilesPriv *priv;
-	TrackerDBResultSet   *result_set;
-	guint                 request_id;
-	DBConnection         *db_con;
-	TrackerField         *defs[255];
-	guint                 i;
-	gchar                *uri_filtered;
-	guint32               file_id;
-	GString              *sql;
-	gboolean 	      needs_join[255];
-	gchar                *query;
+	TrackerFilesPriv   *priv;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
+	DBConnection       *db_con;
+	TrackerField       *defs[255];
+	guint               i;
+	gchar              *uri_filtered;
+	guint32             file_id;
+	GString            *sql;
+	gboolean            needs_join[255];
+	gchar              *query;
 
 	request_id = tracker_dbus_get_next_request_id ();
 

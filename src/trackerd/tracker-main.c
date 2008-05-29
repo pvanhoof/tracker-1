@@ -52,7 +52,7 @@
 #include "tracker-process-files.h"
 #include "tracker-status.h"
 #include "tracker-watch.h"
-#include "tracker-xesam.h"
+#include "tracker-xesam-manager.h"
 
 #ifdef OS_WIN32
 #include <windows.h>
@@ -942,7 +942,7 @@ main (gint argc, gchar *argv[])
 	tracker_nfs_lock_init (tracker_config_get_nfs_locking (tracker->config));
 	tracker_db_init ();
 	tracker_db_manager_init (data_dir, user_data_dir, sys_tmp_dir);
-	tracker_xesam_init ();
+	tracker_xesam_manager_init ();
 	tracker_cache_init ();
 	tracker_ontology_init ();
 	tracker_email_init (tracker->config);
@@ -1049,7 +1049,7 @@ main (gint argc, gchar *argv[])
 	tracker_dbus_shutdown ();
 	tracker_ontology_shutdown ();
 	tracker_cache_shutdown ();
-	tracker_xesam_shutdown ();
+	tracker_xesam_manager_shutdown ();
 	tracker_db_shutdown ();
 	tracker_db_manager_shutdown ();
 	tracker_nfs_lock_shutdown ();

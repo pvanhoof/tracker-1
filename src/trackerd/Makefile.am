@@ -67,6 +67,8 @@ trackerd_SOURCES =							\
 	$(unix_sources)							\
 	tracker-cache.c							\
 	tracker-cache.h							\
+	tracker-daemon.c						\
+	tracker-daemon.h						\
 	tracker-db.c							\
 	tracker-db.h							\
 	tracker-db-email.c						\
@@ -75,22 +77,14 @@ trackerd_SOURCES =							\
 	tracker-db-sqlite.h						\
 	tracker-dbus.c							\
 	tracker-dbus.h							\
-	tracker-dbus-daemon.c						\
-	tracker-dbus-daemon.h						\
-	tracker-dbus-files.c						\
-	tracker-dbus-files.h						\
-	tracker-dbus-keywords.c						\
-	tracker-dbus-keywords.h						\
-	tracker-dbus-metadata.c						\
-	tracker-dbus-metadata.h						\
-	tracker-dbus-search.c						\
-	tracker-dbus-search.h						\
-	tracker-dbus-xesam.c						\
-	tracker-dbus-xesam.h						\
 	tracker-email.c							\
 	tracker-email.h							\
 	tracker-email-utils.c						\
 	tracker-email-utils.h						\
+	tracker-files.c							\
+	tracker-files.h							\
+	tracker-keywords.c						\
+	tracker-keywords.h						\
 	tracker-indexer.c						\
 	tracker-indexer.h						\
 	tracker-index-stage.c						\
@@ -98,21 +92,27 @@ trackerd_SOURCES =							\
 	tracker-main.c							\
 	tracker-main.h							\
 	tracker-marshal-main.c						\
+	tracker-metadata.c						\
+	tracker-metadata.h						\
 	tracker-process-files.c						\
 	tracker-process-files.h						\
 	tracker-query-tree.c						\
 	tracker-query-tree.h						\
 	tracker-rdf-query.c						\
 	tracker-rdf-query.h						\
+	tracker-search.c						\
+	tracker-search.h						\
+	tracker-status.c						\
+	tracker-status.h						\
 	tracker-utils.c							\
 	tracker-utils.h							\
 	tracker-watch.h							\
-	tracker-status.c						\
-	tracker-status.h						\
-	tracker-xesam.h							\
 	tracker-xesam.c							\
+	tracker-xesam.h							\
 	tracker-xesam-ontology.c					\
 	tracker-xesam-ontology.h					\
+	tracker-xesam-manager.c						\
+	tracker-xesam-manager.h						\
 	tracker-xesam-query.c						\
 	tracker-xesam-query.h						\
 	tracker-xesam-session.c						\
@@ -156,18 +156,18 @@ marshal_sources =                                         		\
         tracker-marshal.c
 
 dbus_sources = 								\
-	tracker-dbus-daemon-glue.h					\
-	tracker-dbus-files-glue.h					\
-	tracker-dbus-keywords-glue.h					\
-	tracker-dbus-metadata-glue.h					\
-	tracker-dbus-search-glue.h					\
-	tracker-dbus-xesam-glue.h					\
+	tracker-daemon-glue.h						\
+	tracker-files-glue.h						\
+	tracker-keywords-glue.h						\
+	tracker-metadata-glue.h						\
+	tracker-search-glue.h						\
+	tracker-xesam-glue.h						\
 	tracker-indexer-client.h
 
-%-glue.h: $(top_srcdir)/data/%.xml
+%-glue.h: $(top_srcdir)/data/dbus/%.xml
 	$(DBUSBINDINGTOOL) --mode=glib-server --output=$@ --prefix=$(subst -,_,$*) $^
 
-%-client.h: $(top_srcdir)/data/%.xml
+%-client.h: $(top_srcdir)/data/dbus/%.xml
 	$(DBUSBINDINGTOOL) --mode=glib-client --output=$@ --prefix=$(subst -,_,$*) $^
 
 BUILT_SOURCES = 							\

@@ -19,11 +19,11 @@
 
 #include <string.h>
 
-#include "tracker-dbus-daemon-glue.h"
-#include "tracker-dbus-files-glue.h"
-#include "tracker-dbus-keywords-glue.h"
-#include "tracker-dbus-metadata-glue.h"
-#include "tracker-dbus-search-glue.h"
+#include "tracker-daemon-glue.h"
+#include "tracker-files-glue.h"
+#include "tracker-keywords-glue.h"
+#include "tracker-metadata-glue.h"
+#include "tracker-search-glue.h"
 
 #include "tracker.h"
 

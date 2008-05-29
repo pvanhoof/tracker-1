@@ -1,5 +1,55 @@
 2008-05-29  Martyn Russell  <martyn@imendio.com>
 
+	* configure.ac:
+	* data/Makefile.am:
+	* data/dbus/Makefile.am:
+	* data/org.freedesktop.Tracker.Indexer.service.in:
+	* data/org.freedesktop.Tracker.service.in:
+	* data/tracker-dbus-daemon.xml:
+	* data/tracker-dbus-files.xml:
+	* data/tracker-dbus-keywords.xml:
+	* data/tracker-dbus-metadata.xml:
+	* data/tracker-dbus-search.xml:
+	* data/tracker-dbus-xesam.xml:
+	* data/tracker-indexer.xml: Moved to data/dbus/ and the -dbus-
+	prefix has been removed from the daemon xml files.
+
+	* data/tracker.cfg: Removed, it is generated initially now.
+	
+	* src/libtracker/Makefile.am:
+	* src/libtracker/tracker.c: Used the new data/dbus/*.xml files and
+	removed the -dbus- name space from the included generated files.
+	
+	* src/tracker-indexer/Makefile.am:
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-cache.c: 
+	* src/trackerd/tracker-daemon.[ch]: 
+	* src/trackerd/tracker-db-sqlite.c: 
+	* src/trackerd/tracker-dbus-daemon.[ch]:
+	* src/trackerd/tracker-dbus-files.[ch]:
+	* src/trackerd/tracker-dbus-keywords.[ch]:
+	* src/trackerd/tracker-dbus-metadata.[ch]:
+	* src/trackerd/tracker-dbus-search.[ch]:
+	* src/trackerd/tracker-dbus-xesam.[ch]:
+	* src/trackerd/tracker-dbus.c:
+	* src/trackerd/tracker-email-evolution.c:
+	* src/trackerd/tracker-email-modest.c:
+	* src/trackerd/tracker-email-utils.c:
+	* src/trackerd/tracker-main.c:
+	* src/trackerd/tracker-process-files.c:
+	* src/trackerd/tracker-status.c:
+	* src/trackerd/tracker-utils.c: Renamed all tracker_dbus_ files
+	and functions to tracker_ to make things simpler.
+	
+	* src/trackerd/tracker-xesam-manager.[ch]: Moved the old
+	tracker-xesam.[ch] to tracker-xesam-manager.[ch].
+
+	* src/trackerd/tracker-xesam-live-search.c:
+	* src/trackerd/tracker-xesam-session.[ch]: Improved the code here
+	as well as changed all tracker_xesam_() to tracker_xesam_manager_().
+
+2008-05-29  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/Makefile.am: Don't include the HAL files
 	twice, this was causing some serious headaches today.
 

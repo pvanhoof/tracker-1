@@ -31,19 +31,19 @@
 #include <libtracker-db/tracker-db-dbus.h>
 
 #include "tracker-dbus.h"
-#include "tracker-dbus-daemon.h"
+#include "tracker-daemon.h"
 #include "tracker-db.h"
 #include "tracker-status.h"
 #include "tracker-marshal.h"
 
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DBUS_DAEMON, TrackerDBusDaemonPriv))
+#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DAEMON, TrackerDaemonPriv))
 
 typedef struct {
 	DBusGProxy    *fd_proxy;
 	DBConnection  *db_con;
 	TrackerConfig *config;
 	Tracker       *tracker;
-} TrackerDBusDaemonPriv;
+} TrackerDaemonPriv;
 
 enum {
 	PROP_0,
@@ -59,25 +59,25 @@ enum {
         LAST_SIGNAL
 };
 
-static void dbus_daemon_finalize     (GObject      *object);
-static void dbus_daemon_set_property (GObject      *object,
-				      guint         param_id,
-				      const GValue *value,
-				      GParamSpec   *pspec);
+static void daemon_finalize     (GObject      *object);
+static void daemon_set_property (GObject      *object,
+				 guint         param_id,
+				 const GValue *value,
+				 GParamSpec   *pspec);
 
 static guint signals[LAST_SIGNAL] = {0};
 
-G_DEFINE_TYPE(TrackerDBusDaemon, tracker_dbus_daemon, G_TYPE_OBJECT)
+G_DEFINE_TYPE(TrackerDaemon, tracker_daemon, G_TYPE_OBJECT)
 
 static void
-tracker_dbus_daemon_class_init (TrackerDBusDaemonClass *klass)
+tracker_daemon_class_init (TrackerDaemonClass *klass)
 {
 	GObjectClass *object_class;
 
 	object_class = G_OBJECT_CLASS (klass);
 
-	object_class->finalize = dbus_daemon_finalize;
-	object_class->set_property = dbus_daemon_set_property;
+	object_class->finalize = daemon_finalize;
+	object_class->set_property = daemon_set_property;
 
 	g_object_class_install_property (object_class,
 					 PROP_DB_CONNECTION,
@@ -140,18 +140,18 @@ tracker_dbus_daemon_class_init (TrackerDBusDaemonClass *klass)
 			      G_TYPE_INT,
 			      G_TYPE_INT);
 
-	g_type_class_add_private (object_class, sizeof (TrackerDBusDaemonPriv));
+	g_type_class_add_private (object_class, sizeof (TrackerDaemonPriv));
 }
 
 static void
-tracker_dbus_daemon_init (TrackerDBusDaemon *object)
+tracker_daemon_init (TrackerDaemon *object)
 {
 }
 
 static void
-dbus_daemon_finalize (GObject *object)
+daemon_finalize (GObject *object)
 {
-	TrackerDBusDaemonPriv *priv;
+	TrackerDaemonPriv *priv;
 	
 	priv = GET_PRIV (object);
 
@@ -163,31 +163,31 @@ dbus_daemon_finalize (GObject *object)
 		g_object_unref (priv->config);
 	}
 
-	G_OBJECT_CLASS (tracker_dbus_daemon_parent_class)->finalize (object);
+	G_OBJECT_CLASS (tracker_daemon_parent_class)->finalize (object);
 }
 
 static void
-dbus_daemon_set_property (GObject      *object,
-			  guint	        param_id,
-			  const GValue *value,
-			  GParamSpec   *pspec)
+daemon_set_property (GObject      *object,
+		     guint	   param_id,
+		     const GValue *value,
+		     GParamSpec   *pspec)
 {
-	TrackerDBusDaemonPriv *priv;
+	TrackerDaemonPriv *priv;
 
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
 	case PROP_DB_CONNECTION:
-		tracker_dbus_daemon_set_db_connection (TRACKER_DBUS_DAEMON (object),
-							 g_value_get_pointer (value));
+		tracker_daemon_set_db_connection (TRACKER_DAEMON (object),
+						  g_value_get_pointer (value));
 		break;
 	case PROP_CONFIG:
-		tracker_dbus_daemon_set_config (TRACKER_DBUS_DAEMON (object),
-						g_value_get_object (value));
+		tracker_daemon_set_config (TRACKER_DAEMON (object),
+					   g_value_get_object (value));
 		break;
 	case PROP_TRACKER:
-		tracker_dbus_daemon_set_tracker (TRACKER_DBUS_DAEMON (object),
-						 g_value_get_pointer (value));
+		tracker_daemon_set_tracker (TRACKER_DAEMON (object),
+					    g_value_get_pointer (value));
 		break;
 
 	default:
@@ -196,17 +196,17 @@ dbus_daemon_set_property (GObject      *object,
 	};
 }
 
-TrackerDBusDaemon *
-tracker_dbus_daemon_new (DBConnection  *db_con,
-			 TrackerConfig *config,
-			 Tracker       *tracker)
+TrackerDaemon *
+tracker_daemon_new (DBConnection  *db_con,
+		    TrackerConfig *config,
+		    Tracker       *tracker)
 {
-	TrackerDBusDaemon *object;
+	TrackerDaemon *object;
 
 	g_return_val_if_fail (db_con != NULL, NULL);
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 
-	object = g_object_new (TRACKER_TYPE_DBUS_DAEMON, 
+	object = g_object_new (TRACKER_TYPE_DAEMON, 
 			       "db-connection", db_con,
 			       "config", config,
 			       "tracker", tracker,
@@ -216,12 +216,12 @@ tracker_dbus_daemon_new (DBConnection  *db_con,
 }
 
 void
-tracker_dbus_daemon_set_db_connection (TrackerDBusDaemon *object,
-				       DBConnection      *db_con)
+tracker_daemon_set_db_connection (TrackerDaemon *object,
+				  DBConnection  *db_con)
 {
-	TrackerDBusDaemonPriv *priv;
+	TrackerDaemonPriv *priv;
 
-	g_return_if_fail (TRACKER_IS_DBUS_DAEMON (object));
+	g_return_if_fail (TRACKER_IS_DAEMON (object));
 	g_return_if_fail (db_con != NULL);
 
 	priv = GET_PRIV (object);
@@ -232,12 +232,12 @@ tracker_dbus_daemon_set_db_connection (TrackerDBusDaemon *object,
 }
 
 void
-tracker_dbus_daemon_set_config (TrackerDBusDaemon *object,
-				TrackerConfig     *config)
+tracker_daemon_set_config (TrackerDaemon *object,
+			   TrackerConfig *config)
 {
-	TrackerDBusDaemonPriv *priv;
+	TrackerDaemonPriv *priv;
 
-	g_return_if_fail (TRACKER_IS_DBUS_DAEMON (object));
+	g_return_if_fail (TRACKER_IS_DAEMON (object));
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
 	priv = GET_PRIV (object);
@@ -261,12 +261,12 @@ tracker_dbus_daemon_set_config (TrackerDBusDaemon *object,
 }
 
 void
-tracker_dbus_daemon_set_tracker (TrackerDBusDaemon *object,
-				 Tracker           *tracker)
+tracker_daemon_set_tracker (TrackerDaemon *object,
+			    Tracker       *tracker)
 {
-	TrackerDBusDaemonPriv *priv;
+	TrackerDaemonPriv *priv;
 
-	g_return_if_fail (TRACKER_IS_DBUS_DAEMON (object));
+	g_return_if_fail (TRACKER_IS_DAEMON (object));
 	g_return_if_fail (tracker != NULL);
 
 	priv = GET_PRIV (object);
@@ -280,9 +280,9 @@ tracker_dbus_daemon_set_tracker (TrackerDBusDaemon *object,
  * Functions
  */
 gboolean
-tracker_dbus_daemon_get_version (TrackerDBusDaemon  *object,
-				 gint               *version,
-				 GError            **error)
+tracker_daemon_get_version (TrackerDaemon  *object,
+			    gint           *version,
+			    GError        **error)
 {
 	guint  request_id;
 	gint   major = 0;
@@ -309,11 +309,11 @@ tracker_dbus_daemon_get_version (TrackerDBusDaemon  *object,
 }
 
 gboolean
-tracker_dbus_daemon_get_status (TrackerDBusDaemon  *object,
-				gchar             **status,
-				GError            **error)
+tracker_daemon_get_status (TrackerDaemon  *object,
+			   gchar         **status,
+			   GError        **error)
 {
-	TrackerDBusDaemonPriv *priv;
+	TrackerDaemonPriv *priv;
 	guint                  request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
@@ -333,12 +333,12 @@ tracker_dbus_daemon_get_status (TrackerDBusDaemon  *object,
 }
 
 gboolean
-tracker_dbus_daemon_get_services (TrackerDBusDaemon  *object,
-				  gboolean            main_services_only,
-				  GHashTable        **values,
-				  GError            **error)
+tracker_daemon_get_services (TrackerDaemon  *object,
+			     gboolean        main_services_only,
+			     GHashTable    **values,
+			     GError        **error)
 {
-	TrackerDBusDaemonPriv *priv;
+	TrackerDaemonPriv *priv;
 	TrackerDBResultSet    *result_set;
 	guint                  request_id;
 	DBConnection          *db_con;
@@ -369,11 +369,11 @@ tracker_dbus_daemon_get_services (TrackerDBusDaemon  *object,
 }
 
 gboolean
-tracker_dbus_daemon_get_stats (TrackerDBusDaemon  *object,
-			       GPtrArray         **values,
-			       GError            **error)
+tracker_daemon_get_stats (TrackerDaemon  *object,
+			  GPtrArray     **values,
+			  GError        **error)
 {
-	TrackerDBusDaemonPriv *priv;
+	TrackerDaemonPriv *priv;
 	TrackerDBResultSet    *result_set;
 	guint                  request_id;
 	DBConnection          *db_con;
@@ -402,12 +402,12 @@ tracker_dbus_daemon_get_stats (TrackerDBusDaemon  *object,
 }
 
 gboolean
-tracker_dbus_daemon_set_bool_option (TrackerDBusDaemon  *object,
-				     const gchar        *option,
-				     gboolean            value,
-				     GError            **error)
+tracker_daemon_set_bool_option (TrackerDaemon  *object,
+				const gchar    *option,
+				gboolean        value,
+				GError        **error)
 {
-	TrackerDBusDaemonPriv *priv;
+	TrackerDaemonPriv *priv;
 	guint                  request_id;
 	gboolean               signal_state_change = FALSE;
 
@@ -491,12 +491,12 @@ tracker_dbus_daemon_set_bool_option (TrackerDBusDaemon  *object,
 }
 
 gboolean
-tracker_dbus_daemon_set_int_option (TrackerDBusDaemon  *object,
-				    const gchar        *option,
-				    gint                value,
-				    GError            **error)
+tracker_daemon_set_int_option (TrackerDaemon  *object,
+			       const gchar    *option,
+			       gint            value,
+			       GError        **error)
 {
-	TrackerDBusDaemonPriv *priv;
+	TrackerDaemonPriv *priv;
 	guint                  request_id;
 
 	/* FIXME: Shouldn't we just make the TrackerConfig module a
@@ -535,11 +535,11 @@ tracker_dbus_daemon_set_int_option (TrackerDBusDaemon  *object,
 }
 
 gboolean
-tracker_dbus_daemon_shutdown (TrackerDBusDaemon  *object,
-			      gboolean            reindex,
-			      GError            **error)
+tracker_daemon_shutdown (TrackerDaemon  *object,
+			 gboolean        reindex,
+			 GError        **error)
 {
-	TrackerDBusDaemonPriv *priv;
+	TrackerDaemonPriv *priv;
 	guint                  request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
@@ -563,10 +563,10 @@ tracker_dbus_daemon_shutdown (TrackerDBusDaemon  *object,
 }
 
 gboolean
-tracker_dbus_daemon_prompt_index_signals (TrackerDBusDaemon  *object,
-					  GError            **error)
+tracker_daemon_prompt_index_signals (TrackerDaemon  *object,
+				     GError        **error)
 {
-	TrackerDBusDaemonPriv *priv;
+	TrackerDaemonPriv *priv;
 	guint                  request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();

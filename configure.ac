@@ -800,6 +800,7 @@ AC_CONFIG_FILES([
 	libtracker-gtk.pc
 	docs/Makefile
 	data/Makefile
+	data/dbus/Makefile
 	data/languages/Makefile
 	data/icons/Makefile
 	data/icons/16x16/Makefile

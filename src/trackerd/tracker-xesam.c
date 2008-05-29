@@ -10,332 +10,858 @@
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public
  * License along with this library; if not, write to the
  * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301, USA. 
- */ 
+ * Boston, MA  02110-1301, USA.
+ */
 
-#include <sys/types.h>
-#include <unistd.h>
+#include "config.h"
+
+#include <string.h>
 
 #include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-dbus.h>
+#include <libtracker-common/tracker-log.h>
+#include <libtracker-common/tracker-ontology.h>
+#include <libtracker-common/tracker-utils.h>
 
+#include "tracker-dbus.h"
 #include "tracker-xesam.h"
-#include "tracker-main.h"
+#include "tracker-status.h"
+#include "tracker-xesam-manager.h"
+#include "tracker-rdf-query.h"
+#include "tracker-query-tree.h"
+#include "tracker-indexer.h"
+#include "tracker-marshal.h"
 
-static GHashTable *xesam_sessions; 
-static gchar      *xesam_dir;
-static gboolean    live_search_handler_running = FALSE;
+#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_XESAM, TrackerXesamPriv))
 
-GQuark
-tracker_xesam_error_quark (void)
+enum {
+	XESAM_HITS_ADDED,
+	XESAM_HITS_REMOVED,
+	XESAM_HITS_MODIFIED,
+	XESAM_SEARCH_DONE,
+	XESAM_STATE_CHANGED,
+	XESAM_LAST_SIGNAL
+};
+
+enum {
+	PROP_0,
+	PROP_DB_CONNECTION,
+};
+
+typedef struct {
+	DBConnection *db_con;
+} TrackerXesamPriv;
+
+static GHashTable *sessions = NULL;
+static guint       signals[XESAM_LAST_SIGNAL] = {0};
+
+G_DEFINE_TYPE(TrackerXesam, tracker_xesam, G_TYPE_OBJECT)
+
+static void
+xesam_search_finalize (GObject *object)
 {
-	static GQuark quark = 0;
-
-	if (quark == 0) {
-		quark = g_quark_from_static_string ("TrackerXesam");
-	}
-
-	return quark;
-}
-
-void 
-tracker_xesam_init (void)
-{
-	if (xesam_sessions) {
-		return;
-	}
-
-	xesam_sessions = g_hash_table_new_full (g_str_hash, 
-						g_str_equal, 
-						(GDestroyNotify) g_free, 
-						(GDestroyNotify) g_object_unref);
-	
-	xesam_dir = g_build_filename (g_get_home_dir (), ".xesam", NULL);
+	G_OBJECT_CLASS (tracker_xesam_parent_class)->finalize (object);
 }
 
 void
-tracker_xesam_shutdown (void)
+tracker_xesam_set_db_connection (TrackerXesam *object,
+				 DBConnection *db_con)
 {
-	if (!xesam_sessions) {
-		return;
-	}
+	TrackerXesamPriv *priv;
 
-	g_free (xesam_dir);
-	xesam_dir = NULL;
+	priv = GET_PRIV (object);
 
-	g_hash_table_unref (xesam_sessions);
-	xesam_sessions = NULL;
+	priv->db_con = db_con;
+
+	g_object_notify (G_OBJECT (object), "db-connection");
 }
 
-TrackerXesamSession *
-tracker_xesam_create_session (TrackerDBusXesam  *dbus_proxy, 
-			      gchar            **session_id, 
-			      GError           **error)
+static void
+xesam_get_property (GObject    *object, 
+		    guint       prop_id, 
+		    GValue     *value, 
+		    GParamSpec *pspec)
+{
+	TrackerXesamPriv *priv;
+
+	priv = GET_PRIV (object);
+
+	switch (prop_id) {
+	case PROP_DB_CONNECTION:
+		g_value_set_pointer (value, priv->db_con);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	};
+}
+
+static void
+xesam_set_property (GObject      *object,
+		    guint         param_id,
+		    const GValue *value,
+		    GParamSpec   *pspec)
+{
+	switch (param_id) {
+	case PROP_DB_CONNECTION:
+		tracker_xesam_set_db_connection (TRACKER_XESAM (object),
+						 g_value_get_pointer (value));
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
+		break;
+	};
+}
+
+static void
+tracker_xesam_class_init (TrackerXesamClass *klass)
+{
+	GObjectClass *object_class;
+
+	object_class = G_OBJECT_CLASS (klass);
+
+	object_class->finalize = xesam_search_finalize;
+
+	object_class->set_property = xesam_set_property;
+	object_class->get_property = xesam_get_property;
+
+	g_object_class_install_property (object_class,
+					 PROP_DB_CONNECTION,
+					 g_param_spec_pointer ("db-connection",
+							       "DB connection",
+							       "Database connection to use in transactions",
+							       G_PARAM_WRITABLE|G_PARAM_READABLE));
+
+	signals[XESAM_HITS_ADDED] =
+		g_signal_new ("hits-added",
+			G_TYPE_FROM_CLASS (klass),
+			G_SIGNAL_RUN_LAST,
+			0,
+			NULL, NULL,
+			tracker_marshal_VOID__STRING_UINT,
+			G_TYPE_NONE,
+			2, 
+			G_TYPE_STRING,
+			G_TYPE_UINT);
+
+	signals[XESAM_HITS_REMOVED] =
+		g_signal_new ("hits-removed",
+			G_TYPE_FROM_CLASS (klass),
+			G_SIGNAL_RUN_LAST,
+			0,
+			NULL, NULL,
+			tracker_marshal_VOID__STRING_BOXED,
+			G_TYPE_NONE,
+			2, 
+			G_TYPE_STRING,
+			DBUS_TYPE_G_UINT_ARRAY);
+
+	signals[XESAM_HITS_MODIFIED] =
+		g_signal_new ("hits-modified",
+			G_TYPE_FROM_CLASS (klass),
+			G_SIGNAL_RUN_LAST,
+			0,
+			NULL, NULL,
+			tracker_marshal_VOID__STRING_BOXED,
+			G_TYPE_NONE,
+			2, 
+			G_TYPE_STRING,
+			DBUS_TYPE_G_UINT_ARRAY);
+
+	signals[XESAM_SEARCH_DONE] =
+		g_signal_new ("search-done",
+			G_TYPE_FROM_CLASS (klass),
+			G_SIGNAL_RUN_LAST,
+			0,
+			NULL, NULL,
+			g_cclosure_marshal_VOID__STRING,
+			G_TYPE_NONE,
+			1, 
+			G_TYPE_STRING);
+
+
+	signals[XESAM_STATE_CHANGED] =
+		g_signal_new ("state-changed",
+			G_TYPE_FROM_CLASS (klass),
+			G_SIGNAL_RUN_LAST,
+			0,
+			NULL, NULL,
+			g_cclosure_marshal_VOID__BOXED,
+			G_TYPE_NONE,
+			1, 
+			G_TYPE_STRV);
+
+	g_type_class_add_private (object_class, sizeof (TrackerXesamPriv));
+}
+
+static void
+tracker_xesam_init (TrackerXesam *object)
+{
+}
+
+TrackerXesam *
+tracker_xesam_new (DBConnection *db_con)
+{
+	return g_object_new (TRACKER_TYPE_XESAM, 
+			     "db-connection", db_con,
+			     NULL);
+}
+
+static void
+tracker_xesam_close_session_interal (const gchar  *session_id,
+				     GError      **error)
 {
 	TrackerXesamSession *session;
 
-	session = tracker_xesam_session_new ();
-	tracker_xesam_session_set_id (session, tracker_xesam_generate_unique_key ());
+	session = tracker_xesam_manager_get_session (session_id, error);
 
-	g_hash_table_insert (xesam_sessions, 
-			     g_strdup (tracker_xesam_session_get_id (session)),
-			     g_object_ref (session));
-
-	if (session_id)
-		*session_id = g_strdup (tracker_xesam_session_get_id (session));
-
-	return session;
-}
-
-void 
-tracker_xesam_close_session (const gchar *session_id, GError **error)
-{
-	gpointer inst = g_hash_table_lookup (xesam_sessions, session_id);
-	if (!inst)
-		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
-				TRACKER_XESAM_ERROR_SESSION_ID_NOT_REGISTERED,
-				"Session ID is not registered");
-	else
-		g_hash_table_remove (xesam_sessions, session_id);
-}
-
-TrackerXesamSession *
-tracker_xesam_get_session (const gchar *session_id, GError **error)
-{
-	TrackerXesamSession *session = g_hash_table_lookup (xesam_sessions, session_id);
-	if (session)
-		g_object_ref (session);
-	else
-		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
-				TRACKER_XESAM_ERROR_SESSION_ID_NOT_REGISTERED,
-				"Session ID is not registered");
-	return session;
-}
-
-TrackerXesamSession *
-tracker_xesam_get_session_for_search (const gchar             *search_id, 
-				      TrackerXesamLiveSearch **search_in, 
-				      GError                 **error)
-{
-	TrackerXesamSession *session = NULL;
-	GList               *sessions;
-
-	sessions = g_hash_table_get_values (xesam_sessions);
-
-	while (sessions) {
-		TrackerXesamLiveSearch *search;
-
-		search = tracker_xesam_session_get_search (sessions->data, search_id, NULL);
-		if (search) {
-			/* Search got a reference added already */
-			if (search_in) {
-				*search_in = search;
-			} else {
-				g_object_unref (search);
-			}
-
-			session = g_object_ref (sessions->data);
-			break;
-		}
-
-		sessions = g_list_next (sessions);
-	}
-
-	g_list_free (sessions);
-
-	if (!session) 
-		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
-				TRACKER_XESAM_ERROR_SEARCH_ID_NOT_REGISTERED,
-				"Search ID is not registered");
-	return session;
-}
-
-TrackerXesamLiveSearch *
-tracker_xesam_get_live_search (const gchar *search_id, GError **error)
-{
-	TrackerXesamLiveSearch *search = NULL;
-	GList                  *sessions;
-
-	sessions = g_hash_table_get_values (xesam_sessions);
-
-	while (sessions) {
-		TrackerXesamLiveSearch *p;
-		
-		p = tracker_xesam_session_get_search (sessions->data, search_id, NULL);
-		if (p) {
-			/* Search got a reference added already */
-			search = p;
-			break;
-		}
-
-		sessions = g_list_next (sessions);
-	}
-
-	g_list_free (sessions);
-
-	if (!search) 
-		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
-				TRACKER_XESAM_ERROR_SEARCH_ID_NOT_REGISTERED,
-				"Search ID is not registered");
-
-	return search;
-}
-
-static gboolean 
-live_search_handler (gpointer data)
-{
-	TrackerDBusXesam   *proxy;
-	DBConnection       *db_con = NULL;
-	GList              *sessions;
-	gboolean            reason_to_live = FALSE;
-
-	proxy = TRACKER_DBUS_XESAM (tracker_dbus_get_object (TRACKER_TYPE_DBUS_XESAM));
-
-	if (!proxy) {
-		return FALSE;
-	}
-
-	g_object_get (proxy, "db-connection", &db_con, NULL);
-
-	if (!db_con) { 
-		return FALSE;
-	}
-
-	sessions = g_hash_table_get_values (xesam_sessions);
-
-	while (sessions) {
-		GList *searches;
-
-		g_debug ("Session being handled, ID :%s", tracker_xesam_session_get_id (sessions->data));
-
-		searches = tracker_xesam_session_get_searches (sessions->data);
-
+	if (session) {
+		GList *searches = tracker_xesam_session_get_searches (session);
 		while (searches) {
-			TrackerXesamLiveSearch *search;
-			GArray                 *added = NULL;
-			GArray                 *removed = NULL;
-			GArray                 *modified = NULL;
-
-			g_debug ("Search being handled, ID :%s", tracker_xesam_live_search_get_id (searches->data));
-
-			search = searches->data;
-			tracker_xesam_live_search_match_with_events (search, 
-								     &added, 
-								     &removed, 
-								     &modified);
-
-			if (added && added->len > 0) {
-				reason_to_live = TRUE;
-				tracker_xesam_live_search_emit_hits_added (search, added->len);
-			}
-
-			if (added) {
-				g_array_free (added, TRUE);
-			}
-
-			if (removed && removed->len > 0) {
-				reason_to_live = TRUE;
-				tracker_xesam_live_search_emit_hits_removed (search, removed);
-			}
-
-			if (removed) {
-				g_array_free (removed, TRUE);
-			}
-
-			if (modified && modified->len > 0) {
-				reason_to_live = TRUE;
-				tracker_xesam_live_search_emit_hits_modified (search, modified);
-			}
-
-			if (modified) {
-				g_array_free (modified, TRUE);
-			}
-
+			TrackerXesamLiveSearch *search = searches->data;
+			tracker_xesam_live_search_close (search, NULL);
 			searches = g_list_next (searches);
 		}
-
 		g_list_free (searches);
 
-		sessions = g_list_next (sessions);
+		tracker_xesam_manager_close_session (session_id, error);
+		g_object_unref (session);
 	}
-
-	g_list_free (sessions);
-
-	tracker_db_delete_handled_events (db_con);
-
-	return reason_to_live;
 }
 
-static void 
-live_search_handler_destroy (gpointer data)
+static void
+my_sessions_cleanup (GList *data)
 {
-	live_search_handler_running = FALSE;
+	g_list_foreach (data, (GFunc) g_free, NULL);
+	g_list_free (data);
 }
 
 void 
-tracker_xesam_wakeup (guint32 last_id)
+tracker_xesam_name_owner_changed (DBusGProxy   *proxy,
+				  const char   *name,
+				  const char   *prev_owner,
+				  const char   *new_owner,
+				  TrackerXesam *self)
 {
-	/* This happens each time a new event is created */
+	if (sessions) {
+		GList *my_sessions;
 
-	/* We could do this in a thread too, in case blocking the GMainLoop is
-	 * not ideal (it's not, because during these blocks of code, no DBus
-	 * request handler can run). 
-	 * 
-	 * In case of a thread we could use usleep() and stop the thread if
-	 * we didn't get a wakeup-call nor we had items to process this loop
-	 */
+		my_sessions = g_hash_table_lookup (sessions, prev_owner);
 
+		if (my_sessions) {
+			GList *copy;
 
-	if (!live_search_handler_running) {
-		live_search_handler_running = TRUE;
-		g_timeout_add_full (G_PRIORITY_DEFAULT_IDLE,
-				    2000, /* 2 seconds */
-				    live_search_handler,
-				    NULL,
-				    live_search_handler_destroy);
+			copy = my_sessions;
+
+			while (copy) {
+				gchar *session_id;
+
+				session_id = copy->data;
+				tracker_xesam_close_session_interal (session_id, NULL);
+				copy = g_list_next (copy);
+			}
+
+			my_sessions_cleanup (my_sessions);
+		}
+
+		g_hash_table_remove (sessions, prev_owner);
 	}
 }
 
-gchar *
-tracker_xesam_generate_unique_key (void)
+/*
+ * Functions
+ */
+void 
+tracker_xesam_new_session (TrackerXesam          *object,
+			   DBusGMethodInvocation *context)
 {
-	static guint  serial = 0;
-	gchar        *key;
-	guint         t, ut, p, u, r;
-	GTimeVal      tv;
+	GList    *my_sessions;
+	GError   *error = NULL;
+	gchar    *session_id = NULL;
+	guint     request_id;
+	gchar    *key;
+	gboolean  insert = FALSE;
 
-	g_get_current_time (&tv);
+	request_id = tracker_dbus_get_next_request_id ();
+	key = dbus_g_method_get_sender (context);
 
-	t = tv.tv_sec;
-	ut = tv.tv_usec;
+	if (!sessions)
+		sessions = g_hash_table_new_full (g_str_hash, 
+						  g_str_equal, 
+						  (GDestroyNotify) g_free, 
+						  NULL);
 
-	p = getpid ();
+	my_sessions = g_hash_table_lookup (sessions, key);
 
-#ifdef HAVE_GETUID
-	u = getuid ();
-#else
-	u = 0;
-#endif
+	if (!my_sessions)
+		insert = TRUE;
 
-	r = rand ();
-	key = g_strdup_printf ("%ut%uut%uu%up%ur%uk%u",
-			       serial, t, ut, u, p, r,
-			       GPOINTER_TO_UINT (&key));
+	tracker_xesam_manager_create_session (object, &session_id, &error);
 
-	++serial;
+	if (error) {
+		dbus_g_method_return_error (context, error);
+		g_error_free (error);
+	} else {
+		my_sessions = g_list_prepend (my_sessions, 
+					      g_strdup (session_id));
+		
+		if (insert)
+			g_hash_table_insert (sessions, 
+					     g_strdup (key), 
+					     my_sessions);
+		else
+			g_hash_table_replace (sessions, 
+					      g_strdup (key), 
+					      my_sessions);
+		
+		dbus_g_method_return (context, session_id);
 
-	return key;
+		g_message ("Created new xesam session: %s", session_id);
+	}
+
+	g_free (session_id);
+	g_free (key);
+
+	tracker_dbus_request_success (request_id);
 }
 
-gboolean
-tracker_xesam_is_uri_in_xesam_dir (const gchar *uri) 
+void 
+tracker_xesam_close_session (TrackerXesam          *object,
+			     const gchar           *session_id,
+			     DBusGMethodInvocation *context)
 {
-	g_return_val_if_fail (uri != NULL, FALSE);
+	GError *error = NULL;
+	gchar  *key;
+	guint   request_id;
 
-	return g_str_has_prefix (uri, xesam_dir);
+	request_id = tracker_dbus_get_next_request_id ();
+	key = dbus_g_method_get_sender (context);
+	tracker_xesam_close_session_interal (session_id, &error);
+
+	if (error) {
+		dbus_g_method_return_error (context, error);
+		g_error_free (error);
+	} else {
+		if (sessions) {
+			GList *my_sessions;
+
+			my_sessions = g_hash_table_lookup (sessions, key);
+
+			if (my_sessions) {
+				GList *found;
+
+				found = g_list_find_custom (my_sessions, 
+							    session_id, 
+							    (GCompareFunc) strcmp);
+
+				if (found) {
+					g_free (found->data);
+					my_sessions = g_list_delete_link (my_sessions, found);
+					g_hash_table_replace (sessions, 
+							      g_strdup (key), 
+							      my_sessions);
+				}
+			}
+
+			g_hash_table_remove (sessions, key);
+		}
+
+		dbus_g_method_return (context);
+	}
+
+	g_free (key);
+	tracker_dbus_request_success (request_id);
+}
+
+void 
+tracker_xesam_set_property (TrackerXesam          *object,
+			    const gchar           *session_id,
+			    const gchar           *prop,
+			    GValue                *val, 
+			    DBusGMethodInvocation *context)
+{
+	TrackerXesamSession *session;
+	GError              *error = NULL;
+	guint                request_id;
+
+	request_id = tracker_dbus_get_next_request_id ();
+	session = tracker_xesam_manager_get_session (session_id, &error);
+
+	if (session) {
+		GValue *new_val = NULL;
+
+		g_clear_error (&error);
+
+		tracker_xesam_session_set_property (session, 
+						    prop, 
+						    val, 
+						    &new_val, 
+						    &error);
+
+		if (error) {
+			dbus_g_method_return_error (context, error);
+			g_error_free (error);
+		} else if (new_val)
+			dbus_g_method_return (context, new_val);
+
+		if (new_val)
+			g_value_unset (new_val);
+
+	} else if (error) {
+		dbus_g_method_return_error (context, error);
+		g_error_free (error);
+	}
+
+	if (session)
+		g_object_unref (session);
+
+	tracker_dbus_request_success (request_id);
+}
+
+void
+tracker_xesam_get_property (TrackerXesam          *object,
+			    const gchar           *session_id,
+			    const gchar           *prop,
+			    DBusGMethodInvocation *context)
+{
+	TrackerXesamSession *session;
+	GError              *error = NULL;
+	guint                request_id;
+
+	request_id = tracker_dbus_get_next_request_id ();
+	session = tracker_xesam_manager_get_session (session_id, &error);
+
+	if (session) {
+		GValue *value = NULL;
+
+		g_clear_error (&error);
+
+		tracker_xesam_session_get_property (session, 
+						    prop, 
+						    &value, 
+						    &error);
+
+		if (error) {
+			dbus_g_method_return_error (context, error);
+			g_error_free (error);
+		} else
+			dbus_g_method_return (context, value);
+
+		if (value) {
+			g_value_unset (value);
+			g_free (value);
+		}
+
+	} else if (error) {
+		dbus_g_method_return_error (context, error);
+		g_error_free (error);
+	}
+
+	if (session)
+		g_object_unref (session);
+
+	tracker_dbus_request_success (request_id);
+}
+
+void
+tracker_xesam_new_search (TrackerXesam          *object,
+			  const gchar           *session_id,
+			  const gchar           *query_xml,
+			  DBusGMethodInvocation *context)
+{
+	TrackerXesamSession *session;
+	GError              *error = NULL;
+	guint                request_id;
+
+	request_id = tracker_dbus_get_next_request_id ();
+	session = tracker_xesam_manager_get_session (session_id, &error);
+
+	if (session) {
+		TrackerXesamLiveSearch *search;
+		gchar                  *search_id = NULL;
+
+		g_clear_error (&error);
+
+		search = tracker_xesam_session_create_search (session, 
+							      query_xml, 
+							      &search_id,
+							      &error);
+
+		if (error) {
+			dbus_g_method_return_error (context, error);
+			g_error_free (error);
+		} else 
+			dbus_g_method_return (context, search_id);
+
+		if (search)
+			g_object_unref (search);
+
+		g_debug ("Created new xesam search: %s  for session: %s",
+			 search_id, session_id);
+
+		g_free (search_id);
+
+	} else if (error) {
+		dbus_g_method_return_error (context, error);
+		g_error_free (error);
+	}
+
+	if (session)
+		g_object_unref (session);
+
+	tracker_dbus_request_success (request_id);
+}
+
+void
+tracker_xesam_start_search (TrackerXesam          *object,
+			    const gchar           *search_id,
+			    DBusGMethodInvocation *context)
+{
+	TrackerXesamLiveSearch *search;
+	GError                 *error = NULL;
+	guint                   request_id;
+
+	request_id = tracker_dbus_get_next_request_id ();
+	search = tracker_xesam_manager_get_live_search (search_id, &error);
+
+	if (search) {
+		g_clear_error (&error);
+
+		tracker_xesam_live_search_activate (search, &error);
+
+		if (error) {
+			dbus_g_method_return_error (context, error);
+			g_error_free (error);
+		} else {
+			dbus_g_method_return (context);
+		}
+	} else if (error) {
+		dbus_g_method_return_error (context, error);
+		g_error_free (error);
+	}
+
+	if (search)
+		g_object_unref (search);
+
+	tracker_dbus_request_success (request_id);
+}
+
+void
+tracker_xesam_get_hit_count (TrackerXesam          *object,
+			     const gchar           *search_id,
+			     DBusGMethodInvocation *context)
+{
+	TrackerXesamLiveSearch *search;
+	GError                 *error = NULL;
+	guint                   request_id;
+
+	request_id = tracker_dbus_get_next_request_id ();
+	search = tracker_xesam_manager_get_live_search (search_id, &error);
+
+	if (search) {
+		guint count = -1;
+
+		g_clear_error (&error);
+
+		tracker_xesam_live_search_get_hit_count (search, &count, &error);
+
+		if (error) {
+			dbus_g_method_return_error (context, error);
+			g_error_free (error);
+		} else {
+			dbus_g_method_return (context, count);
+		}
+	} else if (error) {
+		dbus_g_method_return_error (context, error);
+		g_error_free (error);
+	}
+
+	if (search)
+		g_object_unref (search);
+
+	tracker_dbus_request_success (request_id);
+}
+
+inline static void
+unsetvalue (gpointer data, 
+	    gpointer user_data)
+{
+	g_value_unset (data);
+	g_free (data);
+}
+
+inline static void 
+foreach_hits_data (gpointer hits_data, 
+		   gpointer user_data)
+{
+	g_ptr_array_foreach ((GPtrArray *) hits_data, unsetvalue, NULL);
+}
+
+inline static void
+freeup_hits_data (GPtrArray *hits_data)
+{
+	g_ptr_array_foreach (hits_data, foreach_hits_data, NULL);
+}
+
+void
+tracker_xesam_get_hits (TrackerXesam          *object,
+			const gchar           *search_id,
+			guint                  count,
+			DBusGMethodInvocation *context)
+{
+	TrackerXesamLiveSearch *search;
+	GError                 *error = NULL;
+	guint                   request_id;
+
+	request_id = tracker_dbus_get_next_request_id ();
+	search = tracker_xesam_manager_get_live_search (search_id, &error);
+
+	if (search) {
+		GPtrArray *hits = NULL;
+
+		g_clear_error (&error);
+
+		tracker_xesam_live_search_get_hits (search, 
+						    count, 
+						    &hits, 
+						    &error);
+
+		if (error) {
+			dbus_g_method_return_error (context, error);
+			g_error_free (error);
+		} else {
+			dbus_g_method_return (context, hits);
+		}
+
+		if (hits)
+			freeup_hits_data (hits);
+	} else if (error) {
+		dbus_g_method_return_error (context, error);
+		g_error_free (error);
+	}
+
+	if (search)
+		g_object_unref (search);
+
+	tracker_dbus_request_success (request_id);
+}
+
+void
+tracker_xesam_get_range_hits (TrackerXesam          *object,
+			      const gchar           *search_id,
+			      guint                  a,
+			      guint                  b,
+			      DBusGMethodInvocation *context)
+{
+	TrackerXesamLiveSearch *search;
+	GError                 *error = NULL;
+	guint                   request_id;
+
+	request_id = tracker_dbus_get_next_request_id ();
+	search = tracker_xesam_manager_get_live_search (search_id, &error);
+
+	if (search) {
+		GPtrArray *hits = NULL;
+
+		g_clear_error (&error);
+
+		tracker_xesam_live_search_get_range_hits (search, 
+							  a, 
+							  b, 
+							  &hits, 
+							  &error);
+
+		if (error) {
+			dbus_g_method_return_error (context, error);
+			g_error_free (error);
+		} else  {
+			dbus_g_method_return (context, hits);
+		}
+
+		if (hits)
+			freeup_hits_data (hits);
+	} else if (error) {
+		dbus_g_method_return_error (context, error);
+		g_error_free (error);
+	}
+
+	if (search)
+		g_object_unref (search);
+
+	tracker_dbus_request_success (request_id);
+}
+
+
+void 
+tracker_xesam_get_hit_data (TrackerXesam          *object,
+			    const gchar           *search_id,
+			    GArray                *hit_ids, 
+			    GStrv                  fields, 
+			    DBusGMethodInvocation *context)
+{
+	TrackerXesamLiveSearch *search;
+	GError                 *error = NULL;
+	guint                   request_id;
+
+	request_id = tracker_dbus_get_next_request_id ();
+	search = tracker_xesam_manager_get_live_search (search_id, &error);
+
+	if (search) {
+		GPtrArray *hit_data = NULL;
+
+		g_clear_error (&error);
+
+		tracker_xesam_live_search_get_hit_data (search, 
+							hit_ids, 
+							fields, 
+							&hit_data,
+							&error);
+
+		if (error) {
+			dbus_g_method_return_error (context, error);
+			g_error_free (error);
+		} else {
+			dbus_g_method_return (context, hit_data);
+		}
+
+		if (hit_data)
+			freeup_hits_data (hit_data);
+	} else if (error) {
+		dbus_g_method_return_error (context, error);
+		g_error_free (error);
+	}
+
+	if (search)
+		g_object_unref (search);
+
+	tracker_dbus_request_success (request_id);
+}
+
+void 
+tracker_xesam_get_range_hit_data (TrackerXesam          *object,
+				  const gchar           *search_id,
+				  guint                  a,
+				  guint                  b,
+				  GStrv                  fields, 
+				  DBusGMethodInvocation *context)
+{
+	TrackerXesamLiveSearch *search;
+	GError                 *error = NULL;
+	guint                   request_id;
+
+	request_id = tracker_dbus_get_next_request_id ();
+	search = tracker_xesam_manager_get_live_search (search_id, &error);
+
+	if (search) {
+		GPtrArray *hit_data = NULL;
+
+		g_clear_error (&error);
+
+		tracker_xesam_live_search_get_range_hit_data (search, 
+							      a, 
+							      b, 
+							      fields, 
+							      &hit_data, 
+							      &error);
+
+		if (error) {
+			dbus_g_method_return_error (context, error);
+			g_error_free (error);
+		} else {
+			dbus_g_method_return (context, hit_data);
+		}
+
+		if (hit_data)
+			freeup_hits_data (hit_data);
+	} else if (error) {
+		dbus_g_method_return_error (context, error);
+		g_error_free (error);
+	}
+
+	if (search)
+		g_object_unref (search);
+
+	tracker_dbus_request_success (request_id);
+}
+
+void 
+tracker_xesam_close_search (TrackerXesam          *object,
+			    const gchar           *search_id,
+			    DBusGMethodInvocation *context)
+{
+	TrackerXesamLiveSearch *search;
+	GError                 *error = NULL;
+	guint                   request_id;
+
+	request_id = tracker_dbus_get_next_request_id ();
+	search = tracker_xesam_manager_get_live_search (search_id, &error);
+
+	if (search) {
+		g_clear_error (&error);
+
+		tracker_xesam_live_search_close (search, &error);
+
+		if (error) {
+			dbus_g_method_return_error (context, error);
+			g_error_free (error);
+		} else {
+			dbus_g_method_return (context);
+		}
+	} else if (error) {
+		dbus_g_method_return_error (context, error);
+		g_error_free (error);
+	}
+
+	if (search)
+		g_object_unref (search);
+
+	tracker_dbus_request_success (request_id);
+}
+
+void 
+tracker_xesam_get_state (TrackerXesam          *object,
+			 DBusGMethodInvocation *context)
+{
+	GStrv   state_info;
+	gchar **state;
+	guint   request_id;
+
+	request_id = tracker_dbus_get_next_request_id ();
+	state = g_malloc (sizeof (gchar*) * 1);
+	state[0] = g_strdup (tracker_status_get_as_string ());
+
+	dbus_g_method_return (context, state_info);
+
+	g_strfreev (state_info);
+
+	tracker_dbus_request_success (request_id);
+}
+
+/**
+ * tracker_xesam_emit_state_changed:
+ * @self: A #TrackerXesam
+ * @state_info: (in): an array of strings that contain the state
+ *
+ * Emits the @state-changed signal on the DBus proxy for Xesam.
+ *
+ * When the state as returned by @tracker_get_state changes this @state-changed
+ * signal must be fired with an argument as described in said method. If the 
+ * indexer expects to only enter the UPDATE state for a very brief period 
+ * - indexing one changed file - it is not required that the @state-changed
+ * signal is fired. The signal only needs to be fired if the process of updating 
+ * the index is going to be non-negligible. The purpose of this signal is not to 
+ * provide exact details on the engine, just to provide hints for a user 
+ * interface.
+ **/
+void 
+tracker_xesam_emit_state_changed (TrackerXesam *self, 
+				  GStrv         state_info) 
+{
+	g_signal_emit (self, signals[XESAM_STATE_CHANGED], 0, state_info);
 }

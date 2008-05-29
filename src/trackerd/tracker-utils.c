@@ -29,7 +29,7 @@
 #include "tracker-utils.h"
 #include "tracker-main.h"
 #include "tracker-process-files.h"
-#include "tracker-xesam.h"
+#include "tracker-xesam-manager.h"
 
 extern Tracker *tracker;
 
@@ -131,7 +131,7 @@ tracker_add_metadata_to_table (GHashTable  *meta_table,
 void
 tracker_add_io_grace (const gchar *uri)
 {
-	if (tracker_xesam_is_uri_in_xesam_dir (uri)) {
+	if (tracker_xesam_manager_is_uri_in_xesam_dir (uri)) {
 		return;
 	}
 

@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2008, Nokia
  * Authors: Philip Van Hoof (pvanhoof@gnome.org)
  *
@@ -10,54 +10,109 @@
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public
  * License along with this library; if not, write to the
  * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301, USA. 
- */  
+ * Boston, MA  02110-1301, USA.
+ */
 
 #ifndef __TRACKERD_XESAM_H__
 #define __TRACKERD_XESAM_H__
 
-#include "tracker-utils.h"
-#include "tracker-dbus.h"
-#include "tracker-xesam-session.h"
-#include "tracker-xesam-live-search.h"
+#include <glib-object.h>
+
+#include <dbus/dbus-glib-bindings.h>
+
+#include "tracker-db-sqlite.h"
+#include "tracker-indexer.h"
+
+#define TRACKER_XESAM_SERVICE         "org.freedesktop.xesam.searcher"
+#define TRACKER_XESAM_PATH            "/org/freedesktop/xesam/searcher/main"
+#define TRACKER_XESAM_INTERFACE       "org.freedesktop.xesam.Search"
 
 G_BEGIN_DECLS
 
-#define TRACKER_XESAM_ERROR_DOMAIN        tracker_xesam_error_quark()
+#define TRACKER_TYPE_XESAM            (tracker_xesam_get_type ())
+#define TRACKER_XESAM(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), TRACKER_TYPE_XESAM, TrackerXesam))
+#define TRACKER_XESAM_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), TRACKER_TYPE_XESAM, TrackerXesamClass))
+#define TRACKER_IS_XESAM(object)      (G_TYPE_CHECK_INSTANCE_TYPE ((object), TRACKER_TYPE_XESAM))
+#define TRACKER_IS_XESAM_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), TRACKER_TYPE_XESAM))
+#define TRACKER_XESAM_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), TRACKER_TYPE_XESAM, TrackerXesamClass))
 
-typedef enum {
-	TRACKER_XESAM_ERROR_SEARCH_ID_NOT_REGISTERED = 1,
-	TRACKER_XESAM_ERROR_SESSION_ID_NOT_REGISTERED = 2,
-	TRACKER_XESAM_ERROR_SEARCH_CLOSED = 3,
-	TRACKER_XESAM_ERROR_SEARCH_NOT_ACTIVE = 4,
-	TRACKER_XESAM_ERROR_PROPERTY_NOT_SUPPORTED = 5,
-	TRACKER_XESAM_ERROR_PARSING_FAILED = 6,
-} TrackerXesamError;
+typedef struct TrackerXesam      TrackerXesam;
+typedef struct TrackerXesamClass TrackerXesamClass;
 
-GQuark                  tracker_xesam_error_quark            (void);
-void                    tracker_xesam_init                   (void);
-void                    tracker_xesam_shutdown               (void);
-TrackerXesamSession*    tracker_xesam_create_session         (TrackerDBusXesam        *dbus_proxy,
-							      gchar                  **session_id,
-							      GError                 **error);
-void                    tracker_xesam_close_session          (const gchar             *session_id,
-							      GError                 **error);
-TrackerXesamSession*    tracker_xesam_get_session            (const gchar             *session_id,
-							      GError                 **error);
-TrackerXesamSession*    tracker_xesam_get_session_for_search (const gchar             *search_id,
-							      TrackerXesamLiveSearch **search_in,
-							      GError                 **error);
-TrackerXesamLiveSearch* tracker_xesam_get_live_search        (const gchar             *search_id,
-							      GError                 **error);
-void                    tracker_xesam_wakeup                 (guint32                  last_id);
-gchar *                 tracker_xesam_generate_unique_key    (void);
-gboolean                tracker_xesam_is_uri_in_xesam_dir    (const gchar             *uri);
+struct TrackerXesam {
+	GObject parent;
+};
+
+struct TrackerXesamClass {
+	GObjectClass parent;
+};
+
+GType         tracker_xesam_get_type           (void);
+TrackerXesam *tracker_xesam_new                (DBConnection          *db_con);
+void          tracker_xesam_new_session        (TrackerXesam          *object,
+						DBusGMethodInvocation *context);
+void          tracker_xesam_set_property       (TrackerXesam          *object,
+						const gchar           *session_id,
+						const gchar           *prop,
+						GValue                *val,
+						DBusGMethodInvocation *context);
+void          tracker_xesam_get_property       (TrackerXesam          *object,
+						const gchar           *session_id,
+						const gchar           *prop,
+						DBusGMethodInvocation *context);
+void          tracker_xesam_close_session      (TrackerXesam          *object,
+						const gchar           *session_id,
+						DBusGMethodInvocation *context);
+void          tracker_xesam_new_search         (TrackerXesam          *object,
+						const gchar           *session_id,
+						const gchar           *query_xml,
+						DBusGMethodInvocation *context);
+void          tracker_xesam_start_search       (TrackerXesam          *object,
+						const gchar           *search_id,
+						DBusGMethodInvocation *context);
+void          tracker_xesam_get_hit_count      (TrackerXesam          *object,
+						const gchar           *search_id,
+						DBusGMethodInvocation *context);
+void          tracker_xesam_get_hits           (TrackerXesam          *object,
+						const gchar           *search_id,
+						guint                  count,
+						DBusGMethodInvocation *context);
+void          tracker_xesam_get_range_hits     (TrackerXesam          *object,
+						const gchar           *search_id,
+						guint                  a,
+						guint                  b,
+						DBusGMethodInvocation *context);
+void          tracker_xesam_get_hit_data       (TrackerXesam          *object,
+						const gchar           *search_id,
+						GArray                *hit_ids,
+						GStrv                  fields,
+						DBusGMethodInvocation *context);
+void          tracker_xesam_get_range_hit_data (TrackerXesam          *object,
+						const gchar           *search_id,
+						guint                  a,
+						guint                  b,
+						GStrv                  fields,
+						DBusGMethodInvocation *context);
+void          tracker_xesam_close_search       (TrackerXesam          *object,
+						const gchar           *search_id,
+						DBusGMethodInvocation *context);
+void          tracker_xesam_get_state          (TrackerXesam          *object,
+						DBusGMethodInvocation *context);
+void          tracker_xesam_emit_state_changed (TrackerXesam          *self,
+						GStrv                  state_info);
+void          tracker_xesam_name_owner_changed (DBusGProxy            *proxy,
+						const char            *name,
+						const char            *prev_owner,
+						const char            *new_owner,
+						TrackerXesam          *self);
+void          tracker_xesam_set_db_connection  (TrackerXesam          *object,
+						DBConnection          *db_con);
 
 G_END_DECLS
 

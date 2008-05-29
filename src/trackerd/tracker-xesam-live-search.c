@@ -24,18 +24,19 @@
 #include <dbus/dbus-glib-bindings.h>
 
 #include "tracker-xesam-live-search.h"
-#include "tracker-dbus-xesam.h"
-#include "tracker-dbus.h"
 #include "tracker-xesam.h"
+#include "tracker-xesam-manager.h"
 #include "tracker-xesam-query.h"
+#include "tracker-dbus.h"
 
 struct _TrackerXesamLiveSearchPriv {
-	gchar *search_id;
 	TrackerXesamSession *session;
-	gboolean active;
-	gboolean closed;
-	gchar *query;
-	gchar *from_sql, *where_sql;
+	gchar               *search_id;
+	gboolean             active;
+	gboolean             closed;
+	gchar               *query;
+	gchar               *from_sql;
+	gchar               *where_sql;
 };
 
 enum {
@@ -65,23 +66,41 @@ tracker_xesam_live_search_finalize (GObject *object)
 
 void
 tracker_xesam_live_search_set_session (TrackerXesamLiveSearch *self, 
-				       gpointer session)
+				       gpointer                session)
 {
 	TrackerXesamLiveSearchPriv *priv = self->priv;
 
-	if (priv->session)
-		g_object_unref (priv->session);
+	g_return_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self));
+	g_return_if_fail (session != NULL);
 
-	priv->session = g_object_ref (session);
+	if (priv->session) {
+		g_object_unref (priv->session);
+	}
+
+	if (session) {
+		priv->session = g_object_ref (session);
+	} else {
+		priv->session = NULL;
+	}
 }
 
 void
-tracker_xesam_live_search_set_xml_query (TrackerXesamLiveSearch *self, const gchar *query)
+tracker_xesam_live_search_set_xml_query (TrackerXesamLiveSearch *self, 
+					 const gchar            *query)
 {
-	TrackerXesamLiveSearchPriv *priv = self->priv;
+	TrackerXesamLiveSearchPriv *priv;
+
+	g_return_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self));
+
+	priv = self->priv;
 
 	g_free (priv->query);
-	priv->query = g_strdup (query);
+
+	if (query) {
+		priv->query = g_strdup (query);
+	} else {
+		priv->query = NULL;
+	}
 }
 
 static void
@@ -93,7 +112,7 @@ xesam_search_set_property (GObject      *object,
 	switch (param_id) {
 	case PROP_XMLQUERY:
 		tracker_xesam_live_search_set_xml_query (TRACKER_XESAM_LIVE_SEARCH (object),
-						     g_value_get_pointer (value));
+							 g_value_get_pointer (value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
@@ -106,7 +125,10 @@ static void
 tracker_xesam_live_search_class_init (TrackerXesamLiveSearchClass *klass) 
 {
 	GObjectClass *object_class;
+
 	object_class = G_OBJECT_CLASS (klass);
+
+	object_class->finalize = tracker_xesam_live_search_finalize;
 	object_class->set_property = xesam_search_set_property;
 
 	g_object_class_install_property (object_class,
@@ -116,8 +138,7 @@ tracker_xesam_live_search_class_init (TrackerXesamLiveSearchClass *klass)
 							       "XML Query",
 							       G_PARAM_WRITABLE));
 
-	object_class->finalize = tracker_xesam_live_search_finalize;
-	g_type_class_add_private( klass, sizeof(struct _TrackerXesamLiveSearchPriv) );
+	g_type_class_add_private (klass, sizeof (struct _TrackerXesamLiveSearchPriv));
 
 }
 
@@ -126,7 +147,7 @@ tracker_xesam_live_search_init (TrackerXesamLiveSearch *self)
 {
 	TrackerXesamLiveSearchPriv *priv;
 
-	priv = self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self,TRACKER_TYPE_XESAM_LIVE_SEARCH,struct _TrackerXesamLiveSearchPriv);
+	priv = self->priv = GET_PRIV (self);
 
 	priv->session = NULL;
 	priv->search_id = NULL;
@@ -151,9 +172,15 @@ void
 tracker_xesam_live_search_emit_hits_added (TrackerXesamLiveSearch *self, 
 					   guint                   count) 
 {
-	TrackerDBusXesam *proxy = TRACKER_DBUS_XESAM (tracker_dbus_get_object (TRACKER_TYPE_DBUS_XESAM));
+	GObject *xesam;
+	
+	g_return_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self));
 
-	g_signal_emit_by_name (proxy, "hits-added", tracker_xesam_live_search_get_id (self), count);
+	xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
+
+	g_signal_emit_by_name (xesam, "hits-added", 
+			       tracker_xesam_live_search_get_id (self), 
+			       count);
 }
 
 /**
@@ -171,9 +198,16 @@ void
 tracker_xesam_live_search_emit_hits_removed (TrackerXesamLiveSearch *self, 
 					     GArray                 *hit_ids) 
 {
-	TrackerDBusXesam *proxy = TRACKER_DBUS_XESAM (tracker_dbus_get_object (TRACKER_TYPE_DBUS_XESAM));
+	GObject *xesam;
 
-	g_signal_emit_by_name (proxy, "hits-removed", tracker_xesam_live_search_get_id (self), hit_ids); 
+	g_return_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self));
+	g_return_if_fail (hit_ids != NULL);
+
+	xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
+
+	g_signal_emit_by_name (xesam, "hits-removed", 
+			       tracker_xesam_live_search_get_id (self), 
+			       hit_ids); 
 }
 
 /**
@@ -191,9 +225,16 @@ void
 tracker_xesam_live_search_emit_hits_modified (TrackerXesamLiveSearch *self, 
 					      GArray                 *hit_ids) 
 {
-	TrackerDBusXesam *proxy = TRACKER_DBUS_XESAM (tracker_dbus_get_object (TRACKER_TYPE_DBUS_XESAM));
+	GObject *xesam;
 
-	g_signal_emit_by_name (proxy, "hits-modified", tracker_xesam_live_search_get_id (self), hit_ids); 
+	g_return_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self));
+	g_return_if_fail (hit_ids != NULL);
+
+	xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
+
+	g_signal_emit_by_name (xesam, "hits-modified", 
+			       tracker_xesam_live_search_get_id (self), 
+			       hit_ids); 
 }
 
 /**
@@ -210,11 +251,15 @@ tracker_xesam_live_search_emit_hits_modified (TrackerXesamLiveSearch *self,
 void 
 tracker_xesam_live_search_emit_done (TrackerXesamLiveSearch *self) 
 {
-	TrackerDBusXesam *proxy = TRACKER_DBUS_XESAM (tracker_dbus_get_object (TRACKER_TYPE_DBUS_XESAM));
+	GObject *xesam;
 
-	g_signal_emit_by_name (proxy, "search-done", tracker_xesam_live_search_get_id (self)); 
+	g_return_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self));
+
+	xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
+
+	g_signal_emit_by_name (xesam, "search-done", 
+			       tracker_xesam_live_search_get_id (self)); 
 }
-
 
 /**
  * tracker_xesam_live_search_match_with_events:
@@ -226,27 +271,39 @@ tracker_xesam_live_search_emit_done (TrackerXesamLiveSearch *self)
  * Find all items that match with the current events for @self.
  **/
 void
-tracker_xesam_live_search_match_with_events (TrackerXesamLiveSearch *self, GArray **added, GArray **removed, GArray **modified)
+tracker_xesam_live_search_match_with_events (TrackerXesamLiveSearch  *self, 
+					     GArray                 **added, 
+					     GArray                 **removed, 
+					     GArray                 **modified)
 {
-	TrackerDBusXesam *proxy = TRACKER_DBUS_XESAM (tracker_dbus_get_object (TRACKER_TYPE_DBUS_XESAM));
-	DBConnection *db_con = NULL;
+	GObject            *xesam;
+	DBConnection       *db_con = NULL;
 	TrackerDBResultSet *result_set;
-	gboolean ls_valid = TRUE;
-	GArray *m_added = NULL, *m_removed = NULL, *m_modified = NULL;
+	gboolean            ls_valid = TRUE;
+	GArray             *m_added = NULL;
+	GArray             *m_removed = NULL;
+	GArray             *m_modified = NULL;
 
-	g_object_get (proxy, "db-connection", &db_con, NULL);
+	g_return_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self));
+	g_return_if_fail (added != NULL);
+	g_return_if_fail (removed != NULL);
+	g_return_if_fail (modified != NULL);
+
+	xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
+
+	g_object_get (xesam, "db-connection", &db_con, NULL);
 
 	/* Deleted items */
 
 	result_set = tracker_db_get_live_search_deleted_ids (db_con, 
-		tracker_xesam_live_search_get_id (self));
+							     tracker_xesam_live_search_get_id (self));
 
 	if (!result_set)
 		goto part_two;
 
 	while (ls_valid) {
 		GValue ls_value = { 0, };
-		gint ls_i_value;
+		gint   ls_i_value;
 
 		_tracker_db_result_set_get_value (result_set, 0, &ls_value);
 		ls_i_value = g_value_get_int (&ls_value);
@@ -303,11 +360,13 @@ part_two:
 						break;
 					}
 			}
+
 			if (!noadd)
 				g_array_append_val (m_modified, ls_i_value);
 		} else {
 			if (m_added == NULL)
 				m_added = g_array_new (FALSE, TRUE, sizeof (guint32));
+
 			g_array_append_val (m_added, ls_i_value);
 		}
 
@@ -336,19 +395,26 @@ void
 tracker_xesam_live_search_close (TrackerXesamLiveSearch  *self, 
 				 GError                 **error)
 {
-	TrackerXesamLiveSearchPriv *priv = self->priv;
+	TrackerXesamLiveSearchPriv *priv;
 
-	if (priv->closed)
-		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
-				TRACKER_XESAM_ERROR_SEARCH_CLOSED,
-				"Search was already closed");
-	else {
+	g_return_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self));
+
+	priv = self->priv;
+
+	if (priv->closed) {
+		g_set_error (error, 
+			     TRACKER_XESAM_ERROR_DOMAIN, 
+			     TRACKER_XESAM_ERROR_SEARCH_CLOSED,
+			     "Search was already closed");
+	} else {
 		DBConnection *db_con = NULL;
-		TrackerDBusXesam *proxy = TRACKER_DBUS_XESAM (tracker_dbus_get_object (TRACKER_TYPE_DBUS_XESAM));
+		GObject      *xesam;
+		
+		xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
 
-		g_object_get (proxy, "db-connection", &db_con, NULL);
+		g_object_get (xesam, "db-connection", &db_con, NULL);
 		tracker_db_stop_live_search (db_con, 
-			tracker_xesam_live_search_get_id (self));
+					     tracker_xesam_live_search_get_id (self));
 	}
 
 	priv->closed = TRUE;
@@ -371,30 +437,35 @@ tracker_xesam_live_search_get_hit_count (TrackerXesamLiveSearch  *self,
 					 guint                   *count, 
 					 GError                 **error)
 {
-	TrackerXesamLiveSearchPriv *priv = self->priv;
+	TrackerXesamLiveSearchPriv *priv;
 
-	if (!priv->active)
-		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
-				TRACKER_XESAM_ERROR_SEARCH_NOT_ACTIVE,
-				"Search is not active");
-	else {
+	g_return_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self));
+	g_return_if_fail (count != NULL);
+
+	priv = self->priv;
+
+	if (!priv->active) {
+		g_set_error (error,
+			     TRACKER_XESAM_ERROR_DOMAIN, 
+			     TRACKER_XESAM_ERROR_SEARCH_NOT_ACTIVE,
+			     "Search is not active");
+	} else {
 		TrackerDBResultSet *result_set;
-		TrackerDBusXesam *proxy = TRACKER_DBUS_XESAM (tracker_dbus_get_object (TRACKER_TYPE_DBUS_XESAM));
-		GValue value = {0, };
-		DBConnection *db_con = NULL;
+		GValue              value = {0, };
+		DBConnection       *db_con = NULL;
+		GObject            *xesam;
 
-		g_object_get (proxy, "db-connection", &db_con, NULL);
+		xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
+		g_object_get (xesam, "db-connection", &db_con, NULL);
 
 		result_set = tracker_db_get_live_search_hit_count (db_con, 
-			tracker_xesam_live_search_get_id (self));
+								   tracker_xesam_live_search_get_id (self));
 		_tracker_db_result_set_get_value (result_set, 0, &value);
 		*count = g_value_get_int (&value);
 		g_value_unset (&value);
 		g_object_unref (result_set);
 	}
-
 }
-
 
 /**
  * Retrieving Hits
@@ -420,25 +491,32 @@ tracker_xesam_live_search_get_hit_count (TrackerXesamLiveSearch  *self,
  **/
 static void
 get_hit_data (TrackerXesamLiveSearch  *self, 
-	      TrackerDBResultSet *result_set,
-	      GPtrArray **hit_data)
+	      TrackerDBResultSet      *result_set,
+	      GPtrArray              **hit_data)
 {
-	gboolean valid = TRUE;
-	gint hitfields_columns = 0, column;
-	GPtrArray *result = g_ptr_array_new ();
+	GPtrArray *result;
+	gboolean   valid = TRUE;
+	gint       hitfields_columns = 0;
+	gint       column;
 
+	result = g_ptr_array_new ();
 
 	while (valid) {
-		GPtrArray *row = g_ptr_array_new ();
+		GPtrArray *row;
+
+		row = g_ptr_array_new ();
 
 		for (column = 0; column < hitfields_columns; column++) {
-			GValue *value = g_new0 (GValue, 1);
-			GValue value_in = {0, };
+			GValue *value;
+			GValue  value_in = {0, };
 
-			// Question for ottela: how will we do list-values like
-			// xesam:userKeywords? That's a column with comma's? or
-			// how is this done? An extra result_set to loop? An
-			// extra query? A union?
+			value = g_new0 (GValue, 1);
+
+			/* Question for ottela: how will we do list-values like
+			 * xesam:userKeywords? That's a column with comma's? or
+			 * how is this done? An extra result_set to loop? An
+			 * extra query? A union?
+			 */
 
 			_tracker_db_result_set_get_value (result_set, column, &value_in);
 
@@ -478,7 +556,12 @@ tracker_xesam_live_search_get_hits (TrackerXesamLiveSearch  *self,
 				    GPtrArray              **hits,
 				    GError                 **error)
 {
-	TrackerXesamLiveSearchPriv *priv = self->priv;
+	TrackerXesamLiveSearchPriv *priv;
+
+	g_return_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self));
+	g_return_if_fail (hits != NULL);
+
+	priv = self->priv;
 
 	if (!priv->active)
 		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
@@ -486,17 +569,18 @@ tracker_xesam_live_search_get_hits (TrackerXesamLiveSearch  *self,
 				"Search is not active");
 	else {
 		TrackerDBResultSet *result_set = NULL;
-		DBConnection *db_con = NULL;
-		TrackerDBusXesam *proxy = TRACKER_DBUS_XESAM (tracker_dbus_get_object (TRACKER_TYPE_DBUS_XESAM));
-
-		g_object_get (proxy, "db-connection", &db_con, NULL);
+		DBConnection       *db_con = NULL;
+		GObject            *xesam;
+		
+		xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
+		g_object_get (xesam, "db-connection", &db_con, NULL);
 
 		g_debug ("live_search_get_hits");
 
-		// For ottela: fetch results for get_hits
+		/* For ottela: fetch results for get_hits */
 
 		result_set = tracker_db_get_live_search_get_hit_data (db_con,
-			tracker_xesam_live_search_get_id (self));
+								      tracker_xesam_live_search_get_id (self));
 
 		if (result_set) {
 			get_hit_data (self, result_set, hits);
@@ -505,29 +589,37 @@ tracker_xesam_live_search_get_hits (TrackerXesamLiveSearch  *self,
 	}
 }
 
-void tracker_xesam_live_search_get_range_hits (TrackerXesamLiveSearch  *self,
-					       guint                    a,
-					       guint                    b,
-					       GPtrArray              **hits,
-					       GError                 **error)
+void
+tracker_xesam_live_search_get_range_hits (TrackerXesamLiveSearch  *self,
+					  guint                    a,
+					  guint                    b,
+					  GPtrArray              **hits,
+					  GError                 **error)
 {
-	TrackerXesamLiveSearchPriv *priv = self->priv;
+	TrackerXesamLiveSearchPriv *priv;
 
-	if (!priv->active)
-		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
-				TRACKER_XESAM_ERROR_SEARCH_NOT_ACTIVE,
-				"Search is not active");
-	else {
+	g_return_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self));
+	g_return_if_fail (hits != NULL);
+
+	priv = self->priv;
+
+	if (!priv->active) {
+		g_set_error (error, 
+			     TRACKER_XESAM_ERROR_DOMAIN, 
+			     TRACKER_XESAM_ERROR_SEARCH_NOT_ACTIVE,
+			     "Search is not active");
+	} else {
 		TrackerDBResultSet *result_set = NULL;
-		DBConnection *db_con = NULL;
-		TrackerDBusXesam *proxy = TRACKER_DBUS_XESAM (tracker_dbus_get_object (TRACKER_TYPE_DBUS_XESAM));
+		DBConnection       *db_con = NULL;
+		GObject            *xesam;
+		
+		xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
+		g_object_get (xesam, "db-connection", &db_con, NULL);
 
-		g_object_get (proxy, "db-connection", &db_con, NULL);
-
-		// For ottela: fetch results for get_hits
+		/* For ottela: fetch results for get_hits */
 
 		result_set = tracker_db_get_live_search_get_hit_data (db_con,
-			tracker_xesam_live_search_get_id (self));
+								      tracker_xesam_live_search_get_id (self));
 
 		if (result_set) {
 			get_hit_data (self, result_set, hits);
@@ -535,7 +627,6 @@ void tracker_xesam_live_search_get_range_hits (TrackerXesamLiveSearch  *self,
 		}
 	}
 }
-
 
 /**
  * tracker_xesam_live_search_get_hit_data:
@@ -571,23 +662,31 @@ tracker_xesam_live_search_get_hit_data (TrackerXesamLiveSearch  *self,
 					GPtrArray              **hit_data, 
 					GError                 **error)
 {
-	TrackerXesamLiveSearchPriv *priv = self->priv;
+	TrackerXesamLiveSearchPriv *priv;
 
-	if (!priv->active)
-		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
-				TRACKER_XESAM_ERROR_SEARCH_NOT_ACTIVE,
-				"Search is not active yet");
-	else {
+	g_return_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self));
+	g_return_if_fail (hit_ids != NULL);
+	g_return_if_fail (hit_data != NULL);
+
+	priv = self->priv;
+
+	if (!priv->active) {
+		g_set_error (error, 
+			     TRACKER_XESAM_ERROR_DOMAIN, 
+			     TRACKER_XESAM_ERROR_SEARCH_NOT_ACTIVE,
+			     "Search is not active yet");
+	} else {
 		TrackerDBResultSet *result_set = NULL;
-		DBConnection *db_con = NULL;
-		TrackerDBusXesam *proxy = TRACKER_DBUS_XESAM (tracker_dbus_get_object (TRACKER_TYPE_DBUS_XESAM));
+		DBConnection       *db_con = NULL;
+		GObject            *xesam;
+		
+		xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
+		g_object_get (xesam, "db-connection", &db_con, NULL);
 
-		g_object_get (proxy, "db-connection", &db_con, NULL);
-
-		// For ottela: fetch results for get_hits
+		/* For ottela: fetch results for get_hits */
 
 		result_set = tracker_db_get_live_search_get_hit_data (db_con,
-			tracker_xesam_live_search_get_id (self));
+								      tracker_xesam_live_search_get_id (self));
 
 		if (result_set) {
 			get_hit_data (self, result_set, hit_data);
@@ -595,7 +694,6 @@ tracker_xesam_live_search_get_hit_data (TrackerXesamLiveSearch  *self,
 		}
 	}
 }
-
 
 void
 tracker_xesam_live_search_get_range_hit_data (TrackerXesamLiveSearch  *self,
@@ -605,23 +703,31 @@ tracker_xesam_live_search_get_range_hit_data (TrackerXesamLiveSearch  *self,
 					      GPtrArray              **hit_data,
 					      GError                 **error)
 {
-	TrackerXesamLiveSearchPriv *priv = self->priv;
+	TrackerXesamLiveSearchPriv *priv;
 
-	if (!priv->active)
-		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
-				TRACKER_XESAM_ERROR_SEARCH_NOT_ACTIVE,
-				"Search is not active yet");
-	else {
+	g_return_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self));
+	g_return_if_fail (fields != NULL);
+	g_return_if_fail (hit_data != NULL);
+
+	priv = self->priv;
+
+	if (!priv->active) { 
+		g_set_error (error,
+			     TRACKER_XESAM_ERROR_DOMAIN, 
+			     TRACKER_XESAM_ERROR_SEARCH_NOT_ACTIVE,
+			     "Search is not active yet");
+	} else {
 		TrackerDBResultSet *result_set = NULL;
-		DBConnection *db_con = NULL;
-		TrackerDBusXesam *proxy = TRACKER_DBUS_XESAM (tracker_dbus_get_object (TRACKER_TYPE_DBUS_XESAM));
+		DBConnection       *db_con = NULL;
+		GObject            *xesam;
 
-		g_object_get (proxy, "db-connection", &db_con, NULL);
+		xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
+		g_object_get (xesam, "db-connection", &db_con, NULL);
 
-		// For ottela: fetch results for get_hits
+		/* For ottela: fetch results for get_hits */
 
 		result_set = tracker_db_get_live_search_get_hit_data (db_con,
-			tracker_xesam_live_search_get_id (self));
+								      tracker_xesam_live_search_get_id (self));
 
 		if (result_set) {
 			get_hit_data (self, result_set, hit_data);
@@ -641,7 +747,11 @@ tracker_xesam_live_search_get_range_hit_data (TrackerXesamLiveSearch  *self,
 gboolean 
 tracker_xesam_live_search_is_active (TrackerXesamLiveSearch *self)
 {
-	TrackerXesamLiveSearchPriv *priv = self->priv;
+	TrackerXesamLiveSearchPriv *priv;
+
+	g_return_val_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self), FALSE);
+
+	priv = self->priv;
 
 	return priv->active;
 }
@@ -658,24 +768,31 @@ void
 tracker_xesam_live_search_activate (TrackerXesamLiveSearch  *self, 
 				    GError                 **error)
 {
-	TrackerXesamLiveSearchPriv *priv = self->priv;
+	TrackerXesamLiveSearchPriv *priv;
 
-	if (priv->closed)
-		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
-				TRACKER_XESAM_ERROR_SEARCH_CLOSED,
-				"Search is closed");
-	else {
+	g_return_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self));
+
+	priv = self->priv;
+
+	if (priv->closed) {
+		g_set_error (error, 
+			     TRACKER_XESAM_ERROR_DOMAIN, 
+			     TRACKER_XESAM_ERROR_SEARCH_CLOSED,
+			     "Search is closed");
+	} else {
 		DBConnection *db_con = NULL;
-		TrackerDBusXesam *proxy = TRACKER_DBUS_XESAM (tracker_dbus_get_object (TRACKER_TYPE_DBUS_XESAM));
+		GObject      *xesam;
 
-		g_object_get (proxy, "db-connection", &db_con, NULL);
+		xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
+		g_object_get (xesam, "db-connection", &db_con, NULL);
 
-		g_debug ("The from query for activate: %s",tracker_xesam_live_search_get_from_query (self)); 
+		g_debug ("The from query for activate: %s",
+			 tracker_xesam_live_search_get_from_query (self)); 
 
 		tracker_db_start_live_search (db_con, 
-			tracker_xesam_live_search_get_from_query (self),
-			tracker_xesam_live_search_get_where_query (self),
-			tracker_xesam_live_search_get_id (self));
+					      tracker_xesam_live_search_get_from_query (self),
+					      tracker_xesam_live_search_get_where_query (self),
+					      tracker_xesam_live_search_get_id (self));
 	}
 
 	priv->active = TRUE;
@@ -691,11 +808,16 @@ tracker_xesam_live_search_activate (TrackerXesamLiveSearch  *self,
  *
  * @returns: a read-only string with the query
  **/
-const gchar* 
+const gchar * 
 tracker_xesam_live_search_get_xml_query (TrackerXesamLiveSearch *self)
 {
-	TrackerXesamLiveSearchPriv *priv = self->priv;
-	return (const gchar *) priv->query;
+	TrackerXesamLiveSearchPriv *priv;
+
+	g_return_val_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self), NULL);
+
+	priv = self->priv;
+
+	return priv->query;
 }
 
 /**
@@ -709,11 +831,19 @@ void
 tracker_xesam_live_search_set_id (TrackerXesamLiveSearch *self, 
 				  const gchar            *search_id)
 {
-	TrackerXesamLiveSearchPriv *priv = self->priv;
+	TrackerXesamLiveSearchPriv *priv;
 
-	if (priv->search_id)
-		g_free (priv->search_id);
-	priv->search_id = g_strdup (search_id);
+	g_return_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self));
+
+	priv = self->priv;
+
+	g_free (priv->search_id);
+
+	if (search_id) {
+		priv->search_id = g_strdup (search_id);
+	} else {
+		priv->search_id = NULL;
+	}
 }
 
 /**
@@ -727,9 +857,13 @@ tracker_xesam_live_search_set_id (TrackerXesamLiveSearch *self,
 const gchar* 
 tracker_xesam_live_search_get_id (TrackerXesamLiveSearch *self)
 {
-	TrackerXesamLiveSearchPriv *priv = self->priv;
+	TrackerXesamLiveSearchPriv *priv;
 
-	return (const gchar*) priv->search_id;
+	g_return_val_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self), NULL);
+
+	priv = self->priv;
+
+	return priv->search_id;
 }
 
 
@@ -745,13 +879,18 @@ gboolean
 tracker_xesam_live_search_parse_query (TrackerXesamLiveSearch  *self,
 				       GError                 **error)
 {
-	TrackerXesamLiveSearchPriv *priv = self->priv;
-	TrackerDBusXesam           *proxy = TRACKER_DBUS_XESAM (tracker_dbus_get_object (TRACKER_TYPE_DBUS_XESAM));
+	TrackerXesamLiveSearchPriv *priv;
+	GObject                    *xesam;
 	DBConnection               *db_con = NULL;
 	GError                     *parse_error = NULL;
 	gchar                      *orig_from, *orig_where;
 
-	g_object_get (proxy, "db-connection", &db_con, NULL);
+	g_return_val_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self), FALSE);
+
+	priv = self->priv;
+
+	xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
+	g_object_get (xesam, "db-connection", &db_con, NULL);
 
 	orig_from = priv->from_sql;
 	orig_where = priv->where_sql;
@@ -767,7 +906,8 @@ tracker_xesam_live_search_parse_query (TrackerXesamLiveSearch  *self,
 	if (parse_error) {
 		gchar *str = g_strdup_printf ("Parse error: %s", 
 			parse_error->message);
-		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
+		g_set_error (error, 
+			     TRACKER_XESAM_ERROR_DOMAIN, 
 			     TRACKER_XESAM_ERROR_PARSING_FAILED,
 			     str);
 		g_free (str);
@@ -785,7 +925,8 @@ tracker_xesam_live_search_parse_query (TrackerXesamLiveSearch  *self,
 		g_free (orig_where);
 	}
 
-	g_message ("Parsed to '%s' and '%s'", priv->from_sql, priv->where_sql);
+	g_message ("Parsed to '%s' and '%s'", 
+		   priv->from_sql, priv->where_sql);
 
 	return TRUE;
 }
@@ -801,8 +942,13 @@ tracker_xesam_live_search_parse_query (TrackerXesamLiveSearch  *self,
 const gchar* 
 tracker_xesam_live_search_get_from_query (TrackerXesamLiveSearch *self)
 {
-	TrackerXesamLiveSearchPriv *priv = self->priv;
-	return (const gchar *) priv->from_sql;
+	TrackerXesamLiveSearchPriv *priv;
+
+	g_return_val_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self), NULL);
+
+	priv = self->priv;
+
+	return priv->from_sql;
 }
 
 /**
@@ -816,8 +962,13 @@ tracker_xesam_live_search_get_from_query (TrackerXesamLiveSearch *self)
 const gchar* 
 tracker_xesam_live_search_get_where_query (TrackerXesamLiveSearch *self)
 {
-	TrackerXesamLiveSearchPriv *priv = self->priv;
-	return (const gchar *) priv->where_sql;
+	TrackerXesamLiveSearchPriv *priv;
+
+	g_return_val_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self), NULL);
+
+	priv = self->priv;
+
+	return priv->where_sql;
 }
 
 /**
@@ -831,7 +982,8 @@ TrackerXesamLiveSearch*
 tracker_xesam_live_search_new (const gchar *query_xml) 
 {
 	return g_object_new (TRACKER_TYPE_XESAM_LIVE_SEARCH, 
-		"xml-query", query_xml, NULL);
+			     "xml-query", query_xml, 
+			     NULL);
 }
 
 

@@ -21,18 +21,17 @@
 
 #include <string.h>
 
-#include "tracker-xesam.h"
-
-struct _TrackerXesamSessionPriv {
-	GHashTable *searches;
-	gchar *session_id;
-	GHashTable *props;
-};
-
-G_DEFINE_TYPE (TrackerXesamSession, tracker_xesam_session, G_TYPE_OBJECT)
+#include "tracker-xesam-manager.h"
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_XESAM_SESSION, struct _TrackerXesamSessionPriv))
 
+struct _TrackerXesamSessionPriv {
+	GHashTable *searches;
+	GHashTable *props;
+	gchar      *session_id;
+};
+
+G_DEFINE_TYPE (TrackerXesamSession, tracker_xesam_session, G_TYPE_OBJECT)
 
 static void
 tracker_xesam_session_g_value_free (GValue *value)
@@ -386,7 +385,8 @@ tracker_xesam_session_create_search (TrackerXesamSession  *self,
 	search = tracker_xesam_live_search_new (query_xml);
 
 	tracker_xesam_live_search_set_session (search, self);
-	tracker_xesam_live_search_set_id (search, tracker_xesam_generate_unique_key ());
+	tracker_xesam_live_search_set_id (search, 
+					  tracker_xesam_manager_generate_unique_key ());
 
 	if (tracker_xesam_live_search_parse_query (search, error)) {
 

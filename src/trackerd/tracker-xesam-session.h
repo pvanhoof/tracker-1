@@ -22,12 +22,11 @@
 #ifndef __TRACKERD_XESAM_SESSION_H__
 #define __TRACKERD_XESAM_SESSION_H__
 
-#include <glib.h>
 #include <glib-object.h>
 
-#include "tracker-xesam.h"
+#include "tracker-xesam-manager.h"
 #include "tracker-xesam-live-search.h"
-#include "tracker-dbus-xesam.h"
+#include "tracker-xesam.h"
 
 G_BEGIN_DECLS
 

@@ -34,7 +34,7 @@
 #include <libtracker-db/tracker-db-dbus.h>
 
 #include "tracker-dbus.h"
-#include "tracker-dbus-search.h"
+#include "tracker-search.h"
 #include "tracker-rdf-query.h"
 #include "tracker-query-tree.h"
 #include "tracker-indexer.h"
@@ -42,7 +42,7 @@
 
 #define DEFAULT_SEARCH_MAX_HITS 1024
 
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DBUS_SEARCH, TrackerDBusSearchPriv))
+#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_SEARCH, TrackerSearchPriv))
 
 typedef struct {
 	DBusGProxy      *fd_proxy;
@@ -51,7 +51,7 @@ typedef struct {
 	TrackerLanguage *language;
         Indexer         *file_index;
         Indexer         *email_index;
-} TrackerDBusSearchPriv;
+} TrackerSearchPriv;
 
 enum {
 	PROP_0,
@@ -62,23 +62,23 @@ enum {
 	PROP_EMAIL_INDEX
 };
 
-static void dbus_search_finalize     (GObject      *object);
-static void dbus_search_set_property (GObject      *object,
-                                      guint         param_id,
-                                      const GValue *value,
-                                      GParamSpec   *pspec);
+static void search_finalize     (GObject      *object);
+static void search_set_property (GObject      *object,
+				 guint         param_id,
+				 const GValue *value,
+				 GParamSpec   *pspec);
 
-G_DEFINE_TYPE(TrackerDBusSearch, tracker_dbus_search, G_TYPE_OBJECT)
+G_DEFINE_TYPE(TrackerSearch, tracker_search, G_TYPE_OBJECT)
 
 static void
-tracker_dbus_search_class_init (TrackerDBusSearchClass *klass)
+tracker_search_class_init (TrackerSearchClass *klass)
 {
 	GObjectClass *object_class;
 
 	object_class = G_OBJECT_CLASS (klass);
 
-	object_class->finalize = dbus_search_finalize;
-	object_class->set_property = dbus_search_set_property;
+	object_class->finalize = search_finalize;
+	object_class->set_property = search_set_property;
 
 	g_object_class_install_property (object_class,
 					 PROP_DB_CONNECTION,
@@ -113,18 +113,18 @@ tracker_dbus_search_class_init (TrackerDBusSearchClass *klass)
 							       "Email index",
 							       G_PARAM_WRITABLE));
 
-	g_type_class_add_private (object_class, sizeof (TrackerDBusSearchPriv));
+	g_type_class_add_private (object_class, sizeof (TrackerSearchPriv));
 }
 
 static void
-tracker_dbus_search_init (TrackerDBusSearch *object)
+tracker_search_init (TrackerSearch *object)
 {
 }
 
 static void
-dbus_search_finalize (GObject *object)
+search_finalize (GObject *object)
 {
-	TrackerDBusSearchPriv *priv;
+	TrackerSearchPriv *priv;
 	
 	priv = GET_PRIV (object);
 
@@ -132,39 +132,39 @@ dbus_search_finalize (GObject *object)
 		g_object_unref (priv->fd_proxy);
 	}
 
-	G_OBJECT_CLASS (tracker_dbus_search_parent_class)->finalize (object);
+	G_OBJECT_CLASS (tracker_search_parent_class)->finalize (object);
 }
 
 static void
-dbus_search_set_property (GObject      *object,
-                          guint 	param_id,
-                          const GValue *value,
-                          GParamSpec   *pspec)
+search_set_property (GObject      *object,
+		     guint 	param_id,
+		     const GValue *value,
+		     GParamSpec   *pspec)
 {
-	TrackerDBusSearchPriv *priv;
+	TrackerSearchPriv *priv;
 
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
 	case PROP_DB_CONNECTION:
-		tracker_dbus_search_set_db_connection (TRACKER_DBUS_SEARCH (object),
-                                                       g_value_get_pointer (value));
+		tracker_search_set_db_connection (TRACKER_SEARCH (object),
+						  g_value_get_pointer (value));
 		break;
 	case PROP_CONFIG:
-		tracker_dbus_search_set_config (TRACKER_DBUS_SEARCH (object),
-						g_value_get_object (value));
+		tracker_search_set_config (TRACKER_SEARCH (object),
+					   g_value_get_object (value));
 		break;
 	case PROP_LANGUAGE:
-		tracker_dbus_search_set_language (TRACKER_DBUS_SEARCH (object),
-						  g_value_get_object (value));
+		tracker_search_set_language (TRACKER_SEARCH (object),
+					     g_value_get_object (value));
 		break;
 	case PROP_FILE_INDEX:
-		tracker_dbus_search_set_file_index (TRACKER_DBUS_SEARCH (object),
-                                                    g_value_get_pointer (value));
+		tracker_search_set_file_index (TRACKER_SEARCH (object),
+					       g_value_get_pointer (value));
 		break;
 	case PROP_EMAIL_INDEX:
-		tracker_dbus_search_set_email_index (TRACKER_DBUS_SEARCH (object),
-						     g_value_get_pointer (value));
+		tracker_search_set_email_index (TRACKER_SEARCH (object),
+						g_value_get_pointer (value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
@@ -172,12 +172,12 @@ dbus_search_set_property (GObject      *object,
 	};
 }
 
-TrackerDBusSearch *
-tracker_dbus_search_new (DBConnection *db_con)
+TrackerSearch *
+tracker_search_new (DBConnection *db_con)
 {
-	TrackerDBusSearch *object;
+	TrackerSearch *object;
 
-	object = g_object_new (TRACKER_TYPE_DBUS_SEARCH, 
+	object = g_object_new (TRACKER_TYPE_SEARCH, 
 			       "db-connection", db_con,
 			       NULL);
 	
@@ -185,12 +185,12 @@ tracker_dbus_search_new (DBConnection *db_con)
 }
 
 void
-tracker_dbus_search_set_db_connection (TrackerDBusSearch *object,
-                                       DBConnection      *db_con)
+tracker_search_set_db_connection (TrackerSearch *object,
+				  DBConnection  *db_con)
 {
-	TrackerDBusSearchPriv *priv;
+	TrackerSearchPriv *priv;
 
-	g_return_if_fail (TRACKER_IS_DBUS_SEARCH (object));
+	g_return_if_fail (TRACKER_IS_SEARCH (object));
 	g_return_if_fail (db_con != NULL);
 
 	priv = GET_PRIV (object);
@@ -201,12 +201,12 @@ tracker_dbus_search_set_db_connection (TrackerDBusSearch *object,
 }
 
 void
-tracker_dbus_search_set_config (TrackerDBusSearch *object,
-				TrackerConfig     *config)
+tracker_search_set_config (TrackerSearch *object,
+			   TrackerConfig *config)
 {
-	TrackerDBusSearchPriv *priv;
+	TrackerSearchPriv *priv;
 
-	g_return_if_fail (TRACKER_IS_DBUS_SEARCH (object));
+	g_return_if_fail (TRACKER_IS_SEARCH (object));
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
 	priv = GET_PRIV (object);
@@ -225,12 +225,12 @@ tracker_dbus_search_set_config (TrackerDBusSearch *object,
 }
 
 void
-tracker_dbus_search_set_language (TrackerDBusSearch *object,
-				  TrackerLanguage   *language)
+tracker_search_set_language (TrackerSearch   *object,
+			     TrackerLanguage *language)
 {
-	TrackerDBusSearchPriv *priv;
+	TrackerSearchPriv *priv;
 
-	g_return_if_fail (TRACKER_IS_DBUS_SEARCH (object));
+	g_return_if_fail (TRACKER_IS_SEARCH (object));
 	g_return_if_fail (language != NULL);
 
 	priv = GET_PRIV (object);
@@ -249,12 +249,12 @@ tracker_dbus_search_set_language (TrackerDBusSearch *object,
 }
 
 void
-tracker_dbus_search_set_file_index (TrackerDBusSearch *object,
-                                    Indexer           *file_index)
+tracker_search_set_file_index (TrackerSearch *object,
+			       Indexer        *file_index)
 {
-	TrackerDBusSearchPriv *priv;
+	TrackerSearchPriv *priv;
 
-	g_return_if_fail (TRACKER_IS_DBUS_SEARCH (object));
+	g_return_if_fail (TRACKER_IS_SEARCH (object));
 	g_return_if_fail (file_index != NULL);
 
 	priv = GET_PRIV (object);
@@ -265,12 +265,12 @@ tracker_dbus_search_set_file_index (TrackerDBusSearch *object,
 }
 
 void
-tracker_dbus_search_set_email_index (TrackerDBusSearch *object,
-				     Indexer           *email_index)
+tracker_search_set_email_index (TrackerSearch *object,
+				Indexer       *email_index)
 {
-	TrackerDBusSearchPriv *priv;
+	TrackerSearchPriv *priv;
 
-	g_return_if_fail (TRACKER_IS_DBUS_SEARCH (object));
+	g_return_if_fail (TRACKER_IS_SEARCH (object));
 	g_return_if_fail (email_index != NULL);
 
 	priv = GET_PRIV (object);
@@ -284,7 +284,7 @@ tracker_dbus_search_set_email_index (TrackerDBusSearch *object,
  * Functions
  */
 static gint
-dbus_search_sanity_check_max_hits (gint max_hits)
+search_sanity_check_max_hits (gint max_hits)
 {
         if (max_hits < 1) {
                 return DEFAULT_SEARCH_MAX_HITS;
@@ -294,8 +294,8 @@ dbus_search_sanity_check_max_hits (gint max_hits)
 }
 
 static const gchar *
-dbus_search_utf8_p_from_offset_skipping_decomp (const gchar *str,
-						gint         offset)
+search_utf8_p_from_offset_skipping_decomp (const gchar *str,
+					   gint         offset)
 {
 	const gchar *p, *q;
 	gchar       *casefold, *normal;
@@ -318,8 +318,8 @@ dbus_search_utf8_p_from_offset_skipping_decomp (const gchar *str,
 }
 
 static const char *
-dbus_search_utf8_strcasestr_array (const gchar  *haystack, 
-				   gchar       **needles)
+search_utf8_strcasestr_array (const gchar  *haystack, 
+			      gchar       **needles)
 {
 	gsize         needle_len;
 	gsize         haystack_len;
@@ -361,7 +361,7 @@ dbus_search_utf8_strcasestr_array (const gchar  *haystack,
 
 		while (*p) {
 			if ((strncmp (p, needle, needle_len) == 0)) {
-				ret = dbus_search_utf8_p_from_offset_skipping_decomp (haystack, i);
+				ret = search_utf8_p_from_offset_skipping_decomp (haystack, i);
 				goto done;
 			}
 
@@ -377,7 +377,7 @@ done:
 }
 
 static gint
-dbus_search_get_word_break (const char *a)
+search_get_word_break (const char *a)
 {
 	gchar **words;
 	gint    value;
@@ -396,7 +396,7 @@ dbus_search_get_word_break (const char *a)
 
 
 static gboolean
-dbus_search_is_word_break (const char a)
+search_is_word_break (const char a)
 {
 	const gchar *breaks = "\t\n\v\f\r !\"#$%&'()*/<=>?[\\]^`{|}~+,.:;@\"[]";
 	gint         i;
@@ -411,8 +411,8 @@ dbus_search_is_word_break (const char a)
 }
 
 static char *
-dbus_search_highlight_terms (const gchar  *text, 
-			     gchar       **terms)
+search_highlight_terms (const gchar  *text, 
+			gchar       **terms)
 {
 	GStrv         p;
 	GString      *s;
@@ -437,12 +437,12 @@ dbus_search_highlight_terms (const gchar  *text,
 		s = g_string_new ("");
 		text_p = text_copy;
 
-		while ((str = dbus_search_utf8_strcasestr_array (text_p, single_term))) {
+		while ((str = search_utf8_strcasestr_array (text_p, single_term))) {
 			gchar *pre_snip;
 			gchar *term;
 
 			pre_snip = g_strndup (text_p, (str - text_p));
-			term_len = dbus_search_get_word_break (str);
+			term_len = search_get_word_break (str);
 			term = g_strndup (str, term_len);
 
 			text_p = str + term_len;
@@ -466,9 +466,9 @@ dbus_search_highlight_terms (const gchar  *text,
 }
 
 gchar *
-dbus_search_get_snippet (const gchar  *text, 
-			 gchar       **terms, 
-			 gint          length)
+search_get_snippet (const gchar  *text, 
+		    gchar       **terms, 
+		    gint          length)
 {
 	const gchar *ptr = NULL;
 	const gchar *end_ptr;
@@ -481,7 +481,7 @@ dbus_search_get_snippet (const gchar  *text,
 	}
 
 	text_len = strlen (text);
-	ptr = dbus_search_utf8_strcasestr_array (text, terms);
+	ptr = search_utf8_strcasestr_array (text, terms);
 
 	if (ptr) {
 		gchar *snippet;
@@ -504,7 +504,7 @@ dbus_search_get_snippet (const gchar  *text,
 		if (*ptr != '\n' && ptr > text) {
 			i = 0;
 
-			while (!dbus_search_is_word_break (*ptr) && i < (length / 2)) {
+			while (!search_is_word_break (*ptr) && i < (length / 2)) {
 				ptr = g_utf8_next_char (ptr);
 				i++;
 			}
@@ -537,7 +537,7 @@ dbus_search_get_snippet (const gchar  *text,
 		/* Try to end snippet on a word break */
 		if (*end_ptr != '\n' && end_ptr < text_len + text) {
 			i=0;
-			while (!dbus_search_is_word_break (*end_ptr) && i < (length / 2)) {
+			while (!search_is_word_break (*end_ptr) && i < (length / 2)) {
 				end_ptr = g_utf8_prev_char (end_ptr);
 				i++;
 			}
@@ -552,7 +552,7 @@ dbus_search_get_snippet (const gchar  *text,
 		snippet_escaped = g_markup_escape_text (snippet, i);
 		g_free (snippet);
 
-		snippet_highlighted = dbus_search_highlight_terms (snippet_escaped, terms);
+		snippet_highlighted = search_highlight_terms (snippet_escaped, terms);
 		g_free (snippet_escaped);
 
 		return snippet_highlighted;
@@ -580,7 +580,7 @@ dbus_search_get_snippet (const gchar  *text,
 
 		snippet = g_strndup (text, ptr - text);
 		snippet_escaped = g_markup_escape_text (snippet, ptr - text);
-		snippet_highlighted = dbus_search_highlight_terms (snippet_escaped, terms);
+		snippet_highlighted = search_highlight_terms (snippet_escaped, terms);
 
 		g_free (snippet);
 		g_free (snippet_escaped);
@@ -592,19 +592,19 @@ dbus_search_get_snippet (const gchar  *text,
 }
 
 gboolean
-tracker_dbus_search_get_hit_count (TrackerDBusSearch  *object,
-                                   const gchar        *service,
-                                   const gchar        *search_text,
-                                   gint               *value,
-                                   GError            **error)
+tracker_search_get_hit_count (TrackerSearch  *object,
+			      const gchar    *service,
+			      const gchar    *search_text,
+			      gint           *value,
+			      GError        **error)
 {
-	TrackerDBusSearchPriv  *priv;
-	TrackerQueryTree       *tree;
-	GArray                 *array;
-	guint                   request_id;
-	DBConnection           *db_con;
-	gint                    services[12];
-        gint                    count = 0;
+	TrackerSearchPriv *priv;
+	TrackerQueryTree  *tree;
+	GArray            *array;
+	guint              request_id;
+	DBConnection      *db_con;
+	gint               services[12];
+        gint               count = 0;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -678,19 +678,19 @@ tracker_dbus_search_get_hit_count (TrackerDBusSearch  *object,
 }
 
 gboolean
-tracker_dbus_search_get_hit_count_all (TrackerDBusSearch  *object,
-                                       const gchar        *search_text,
-                                       GPtrArray         **values,
-                                       GError            **error)
+tracker_search_get_hit_count_all (TrackerSearch  *object,
+				  const gchar    *search_text,
+				  GPtrArray     **values,
+				  GError        **error)
 {
-	TrackerDBusSearchPriv *priv;
-	TrackerDBResultSet    *result_set = NULL;
-        TrackerQueryTree      *tree;
-        GArray                *hit_counts;
-	GArray                *mail_hit_counts;
-	guint                  request_id;
-	DBConnection          *db_con;
-	guint                  i;
+	TrackerSearchPriv  *priv;
+	TrackerDBResultSet *result_set = NULL;
+        TrackerQueryTree   *tree;
+        GArray             *hit_counts;
+	GArray             *mail_hit_counts;
+	guint               request_id;
+	DBConnection       *db_con;
+	guint               i;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -764,20 +764,20 @@ tracker_dbus_search_get_hit_count_all (TrackerDBusSearch  *object,
 }
 
 gboolean
-tracker_dbus_search_text (TrackerDBusSearch   *object,
-                          gint                 live_query_id,
-                          const gchar         *service,
-                          const gchar         *search_text,
-                          gint                 offset,
-                          gint                 max_hits,
-                          gchar             ***values,
-                          GError             **error)
+tracker_search_text (TrackerSearch   *object,
+		     gint             live_query_id,
+		     const gchar     *service,
+		     const gchar     *search_text,
+		     gint             offset,
+		     gint             max_hits,
+		     gchar         ***values,
+		     GError         **error)
 {
-	TrackerDBusSearchPriv  *priv;
-	TrackerDBResultSet     *result_set;
-	guint                   request_id;
-	DBConnection           *db_con;
-        gchar                 **strv = NULL;
+	TrackerSearchPriv   *priv;
+	TrackerDBResultSet  *result_set;
+	guint               request_id;
+	DBConnection        *db_con;
+        gchar              **strv = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -821,7 +821,7 @@ tracker_dbus_search_text (TrackerDBusSearch   *object,
 					     service, 
 					     search_text, 
 					     offset, 
-					     dbus_search_sanity_check_max_hits (max_hits), 
+					     search_sanity_check_max_hits (max_hits), 
 					     FALSE, 
 					     FALSE);
 
@@ -869,19 +869,19 @@ tracker_dbus_search_text (TrackerDBusSearch   *object,
 }
 
 gboolean
-tracker_dbus_search_text_detailed (TrackerDBusSearch  *object,
-                                   gint                live_query_id,
-                                   const gchar        *service,
-                                   const gchar        *search_text,
-                                   gint                offset,
-                                   gint                max_hits,
-                                   GPtrArray         **values,
-                                   GError            **error)
+tracker_search_text_detailed (TrackerSearch  *object,
+			      gint            live_query_id,
+			      const gchar    *service,
+			      const gchar    *search_text,
+			      gint            offset,
+			      gint            max_hits,
+			      GPtrArray     **values,
+			      GError        **error)
 {
-	TrackerDBusSearchPriv *priv;
-	TrackerDBResultSet    *result_set;
-	guint                  request_id;
-	DBConnection          *db_con;
+	TrackerSearchPriv  *priv;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
+	DBConnection       *db_con;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -925,7 +925,7 @@ tracker_dbus_search_text_detailed (TrackerDBusSearch  *object,
 					     service, 
 					     search_text, 
 					     offset, 
-					     dbus_search_sanity_check_max_hits (max_hits), 
+					     search_sanity_check_max_hits (max_hits), 
 					     FALSE, 
 					     TRUE);
 
@@ -941,19 +941,19 @@ tracker_dbus_search_text_detailed (TrackerDBusSearch  *object,
 }
 
 gboolean
-tracker_dbus_search_get_snippet (TrackerDBusSearch  *object,
-                                 const gchar        *service,
-                                 const gchar        *id,
-                                 const gchar        *search_text,
-                                 gchar             **values,
-                                 GError            **error)
+tracker_search_get_snippet (TrackerSearch  *object,
+			    const gchar    *service,
+			    const gchar    *id,
+			    const gchar    *search_text,
+			    gchar         **values,
+			    GError        **error)
 {
-	TrackerDBusSearchPriv *priv;
-	TrackerDBResultSet    *result_set;
-	guint                  request_id;
-	DBConnection          *db_con;
-        gchar                 *snippet = NULL;
-        gchar                 *service_id;
+	TrackerSearchPriv  *priv;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
+	DBConnection       *db_con;
+        gchar              *snippet = NULL;
+        gchar              *service_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -1017,7 +1017,7 @@ tracker_dbus_search_get_snippet (TrackerDBusSearch  *object,
 						       tracker_config_get_min_word_length (priv->config));
 
 		if (strv && strv[0]) {
-			snippet = dbus_search_get_snippet (text, strv, 120);
+			snippet = search_get_snippet (text, strv, 120);
 		}
 
 		g_strfreev (strv);
@@ -1038,19 +1038,19 @@ tracker_dbus_search_get_snippet (TrackerDBusSearch  *object,
 }
 
 gboolean
-tracker_dbus_search_files_by_text (TrackerDBusSearch  *object,
-                                   gint                live_query_id,
-                                   const gchar        *search_text,
-                                   gint                offset,
-                                   gint                max_hits,
-                                   gboolean            group_results,
-                                   GHashTable        **values,
-                                   GError            **error)
+tracker_search_files_by_text (TrackerSearch  *object,
+			      gint            live_query_id,
+			      const gchar    *search_text,
+			      gint            offset,
+			      gint            max_hits,
+			      gboolean        group_results,
+			      GHashTable    **values,
+			      GError        **error)
 {
-	TrackerDBusSearchPriv *priv;
-	TrackerDBResultSet    *result_set;
-	guint                  request_id;
-	DBConnection          *db_con;
+	TrackerSearchPriv  *priv;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
+	DBConnection       *db_con;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -1074,7 +1074,7 @@ tracker_dbus_search_files_by_text (TrackerDBusSearch  *object,
 	result_set = tracker_db_search_files_by_text (db_con, 
 						      search_text, 
 						      offset, 
-						      dbus_search_sanity_check_max_hits (max_hits),
+						      search_sanity_check_max_hits (max_hits),
 						      group_results);
 
 	*values = tracker_dbus_query_result_to_hash_table (result_set);
@@ -1089,19 +1089,19 @@ tracker_dbus_search_files_by_text (TrackerDBusSearch  *object,
 }
 
 gboolean
-tracker_dbus_search_metadata (TrackerDBusSearch   *object,
-                              const gchar         *service,
-                              const gchar         *field,
-                              const gchar         *search_text,
-                              gint                 offset,
-                              gint                 max_hits,
-                              gchar             ***values,
-                              GError             **error)
+tracker_search_metadata (TrackerSearch   *object,
+			 const gchar     *service,
+			 const gchar     *field,
+			 const gchar     *search_text,
+			 gint             offset,
+			 gint             max_hits,
+			 gchar         ***values,
+			 GError         **error)
 {
-	TrackerDBusSearchPriv *priv;
-	TrackerDBResultSet    *result_set;
-	guint                  request_id;
-	DBConnection          *db_con; 
+	TrackerSearchPriv  *priv;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
+	DBConnection       *db_con; 
 
         /* FIXME: This function is completely redundant */
 
@@ -1139,7 +1139,7 @@ tracker_dbus_search_metadata (TrackerDBusSearch   *object,
 	/* 					 field,  */
 	/* 					 text,  */
 	/* 					 offset,  */
-	/* 					 dbus_search_sanity_check_max_hits (max_hits)); */
+	/* 					 search_sanity_check_max_hits (max_hits)); */
 
         result_set = NULL;
 
@@ -1155,17 +1155,17 @@ tracker_dbus_search_metadata (TrackerDBusSearch   *object,
 }
 
 gboolean
-tracker_dbus_search_matching_fields (TrackerDBusSearch   *object,
-                                     const gchar         *service,
-                                     const gchar         *id,
-                                     const gchar         *search_text,
-                                     GHashTable         **values,
-                                     GError             **error)
+tracker_search_matching_fields (TrackerSearch  *object,
+				const gchar    *service,
+				const gchar    *id,
+				const gchar    *search_text,
+				GHashTable    **values,
+				GError        **error)
 {
-	TrackerDBusSearchPriv *priv;
-	TrackerDBResultSet    *result_set;
-	guint                  request_id;
-	DBConnection          *db_con;
+	TrackerSearchPriv  *priv;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
+	DBConnection       *db_con;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -1219,23 +1219,23 @@ tracker_dbus_search_matching_fields (TrackerDBusSearch   *object,
 }
 
 gboolean
-tracker_dbus_search_query (TrackerDBusSearch  *object,
-                           gint                live_query_id,
-                           const gchar        *service,
-                           gchar             **fields,
-                           const gchar        *search_text,
-                           const gchar        *keyword,
-                           const gchar        *query_condition,
-                           gboolean            sort_by_service,
-                           gint                offset,
-                           gint                max_hits,
-                           GPtrArray         **values,
-                           GError            **error)
+tracker_search_query (TrackerSearch  *object,
+		      gint            live_query_id,
+		      const gchar    *service,
+		      gchar         **fields,
+		      const gchar    *search_text,
+		      const gchar    *keyword,
+		      const gchar    *query_condition,
+		      gboolean        sort_by_service,
+		      gint            offset,
+		      gint            max_hits,
+		      GPtrArray     **values,
+		      GError        **error)
 {
-	TrackerDBusSearchPriv *priv;
-	TrackerDBResultSet    *result_set;
-	guint                  request_id;
-	DBConnection          *db_con;
+	TrackerSearchPriv  *priv;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
+	DBConnection       *db_con;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -1294,7 +1294,7 @@ tracker_dbus_search_query (TrackerDBusSearch  *object,
                                                              keyword, 
                                                              sort_by_service, 
                                                              offset, 
-                                                             dbus_search_sanity_check_max_hits (max_hits), 
+                                                             search_sanity_check_max_hits (max_hits), 
                                                              query_error);
                
 		if (query_error) {
@@ -1344,14 +1344,14 @@ tracker_dbus_search_query (TrackerDBusSearch  *object,
 }
 
 gboolean
-tracker_dbus_search_suggest (TrackerDBusSearch  *object,
-                             const gchar        *search_text,
-                             gint                max_dist,
-                             gchar             **value,
-                             GError            **error)
+tracker_search_suggest (TrackerSearch  *object,
+			const gchar    *search_text,
+			gint            max_dist,
+			gchar         **value,
+			GError        **error)
 {
-        TrackerDBusSearchPriv *priv;
-	guint                  request_id;
+        TrackerSearchPriv *priv;
+	guint              request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
 

@@ -1,5 +1,17 @@
 2008-05-29  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-dbus.[ch]
+	(tracker_dbus_register_object): Added, registers to the bus an already
+	created object.
+	(tracker_dbus_register_object) (tracker_dbus_get_object): Removed, no
+	longer necessary.
+	(dbus_register_object): Modify to register an already created object.
+	* src/tracker-indexer/tracker-main.c: Create the TrackerIndexer prior
+	to registering it in DBus, so we can pass it construct only
+	properties.
+
+2008-05-29  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-indexer-db.[ch]: Added, These files are
 	going to contain all DB related functions.
 	* src/tracker-indexer/Makefile.am: Added these files to build.

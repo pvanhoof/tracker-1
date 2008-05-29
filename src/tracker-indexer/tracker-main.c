@@ -186,7 +186,7 @@ gint
 main (gint argc, gchar *argv[])
 {
         TrackerConfig  *config;
-	GObject        *indexer;
+	TrackerIndexer *indexer;
 	GOptionContext *context;
 	GError	       *error = NULL;
 	gchar	       *summary = NULL;
@@ -264,6 +264,8 @@ main (gint argc, gchar *argv[])
                 return EXIT_FAILURE;
         }
 
+	initialize_indexer ();
+
 #ifdef HAVE_IOPRIO
 	/* Set IO priority */
 	tracker_ioprio_init ();
@@ -282,17 +284,15 @@ main (gint argc, gchar *argv[])
                            str ? str : "no error given");
         }
 
+	indexer = tracker_indexer_new (reindex);
+
 	/* Make Tracker available for introspection */
-	if (!tracker_dbus_register_objects ()) {
+	if (!tracker_dbus_register_object (G_OBJECT (indexer))) {
 		return EXIT_FAILURE;
 	}
 
-	initialize_indexer ();
-
         /* Create the indexer and run the main loop */
-        indexer = tracker_dbus_get_object (TRACKER_TYPE_INDEXER);
 
-        g_object_set (G_OBJECT (indexer), "reindex", reindex, NULL);
 	g_signal_connect (indexer, "finished",
 			  G_CALLBACK (indexer_finished_cb), NULL);
 

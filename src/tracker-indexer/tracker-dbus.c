@@ -29,7 +29,6 @@
 
 static DBusGConnection *connection;
 static DBusGProxy      *proxy;
-static GSList          *objects;
 
 static gboolean
 dbus_register_service (DBusGProxy  *proxy,
@@ -64,25 +63,21 @@ dbus_register_service (DBusGProxy  *proxy,
         return TRUE;
 }
 
-static gpointer
-dbus_register_object (DBusGConnection       *connection,
+static gboolean
+dbus_register_object (GObject               *object,
+		      DBusGConnection       *connection,
                       DBusGProxy            *proxy,
-                      GType                  object_type,
                       const DBusGObjectInfo *info,
                       const gchar           *path)
 {
-        GObject *object;
-
         g_message ("Registering DBus object...");
         g_message ("  Path '%s'", path);
-        g_message ("  Type '%s'", g_type_name (object_type));
+        g_message ("  Object Type '%s'", G_OBJECT_TYPE_NAME (object));
 
-        object = g_object_new (object_type, NULL);
-
-        dbus_g_object_type_install_info (object_type, info);
+        dbus_g_object_type_install_info (G_OBJECT_TYPE (object), info);
         dbus_g_connection_register_g_object (connection, path, object);
 
-        return object;
+        return TRUE;
 }
 
 static gboolean 
@@ -129,7 +124,7 @@ gboolean
 tracker_dbus_init (void)
 {
         /* Don't reinitialize */
-        if (objects) {
+        if (connection && proxy) {
                 return TRUE;
         }
 
@@ -144,12 +139,6 @@ tracker_dbus_init (void)
 void
 tracker_dbus_shutdown (void)
 {
-        if (objects) {
-		g_slist_foreach (objects, (GFunc) g_object_unref, NULL);
-		g_slist_free (objects);
-		objects = NULL;
-	}
-
 	if (proxy) {
 		g_object_unref (proxy);
 		proxy = NULL;
@@ -159,42 +148,22 @@ tracker_dbus_shutdown (void)
 }
 
 gboolean
-tracker_dbus_register_objects (void)
+tracker_dbus_register_object (GObject *object)
 {
-        GObject *object;
-
 	if (!connection || !proxy) {
 		g_critical ("DBus support must be initialized before registering objects!");
 		return FALSE;
 	}
 
-        /* Add org.freedesktop.Tracker.Indexer */
-        if (!(object = dbus_register_object (connection, 
-                                             proxy,
-                                             TRACKER_TYPE_INDEXER,
-                                             &dbus_glib_tracker_indexer_object_info,
-                                             TRACKER_INDEXER_PATH))) {
-                return FALSE;
-        }
-
-        objects = g_slist_prepend (objects, object);
-
-         /* Reverse list since we added objects at the top each time */
-        objects = g_slist_reverse (objects);
-  
-        return TRUE;
-}
-
-GObject *
-tracker_dbus_get_object (GType type)
-{
-        GSList *l;
-	
-        for (l = objects; l; l = l->next) {
-                if (G_OBJECT_TYPE (l->data) == type) {
-                        return l->data;
-		}
+	if (TRACKER_IS_INDEXER (object)) {
+		return dbus_register_object (object,
+					     connection,
+					     proxy,
+					     &dbus_glib_tracker_indexer_object_info,
+					     TRACKER_INDEXER_PATH);
+	} else {
+		g_warning ("Object not handled by DBus");
 	}
 
-        return NULL;
+	return FALSE;
 }

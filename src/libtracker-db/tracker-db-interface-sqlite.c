@@ -132,7 +132,10 @@ tracker_db_interface_sqlite_finalize (GObject *object)
 	g_free (priv->filename);
 
 	g_hash_table_destroy (priv->statements);
-	g_hash_table_unref (priv->procedures);
+
+	if (priv->procedures) {
+		g_hash_table_unref (priv->procedures);
+	}
 
 	g_slist_foreach (priv->function_data, (GFunc) g_free, NULL);
 	g_slist_free (priv->function_data);
@@ -175,9 +178,6 @@ tracker_db_interface_sqlite_init (TrackerDBInterfaceSqlite *db_interface)
 
 	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (db_interface);
 
-	priv->procedures = g_hash_table_new_full (g_str_hash, g_str_equal,
-						  (GDestroyNotify) g_free,
-						  (GDestroyNotify) g_free);
 	priv->statements = g_hash_table_new_full (g_str_hash, g_str_equal,
 						  (GDestroyNotify) g_free,
 						  (GDestroyNotify) sqlite3_finalize);
@@ -317,7 +317,15 @@ tracker_db_interface_sqlite_set_procedure_table (TrackerDBInterface *db_interfac
 	TrackerDBInterfaceSqlitePrivate *priv;
 
 	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (db_interface);
-	priv->procedures = g_hash_table_ref (procedure_table);
+
+	if (priv->procedures) {
+		g_hash_table_unref (priv->procedures);
+		priv->procedures = NULL;
+	}
+
+	if (procedure_table) {
+		priv->procedures = g_hash_table_ref (procedure_table);
+	}
 }
 
 static TrackerDBResultSet *

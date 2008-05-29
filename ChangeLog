@@ -1,3 +1,9 @@
+2008-05-29  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/libtracker-db/tracker-db-interface-sqlite.c: Make sure the
+	procedures table is unreferenced when setting a new one. Also, don't
+	create one during initialization.
+
 2008-05-29  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-dbus.h:

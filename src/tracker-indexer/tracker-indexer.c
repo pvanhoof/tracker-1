@@ -48,6 +48,7 @@
 
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-file-utils.h>
+#include <libtracker-common/tracker-ontology.h>
 #include <libtracker-db/tracker-db-interface-sqlite.h>
 
 #include <qdbm/depot.h>
@@ -346,6 +347,7 @@ process_file (TrackerIndexer *indexer,
 	metadata = tracker_indexer_module_get_file_metadata (info->module, info->path);
 
 	if (metadata) {
+		TrackerService *service;
 		TrackerIndexerPrivate *priv;
 		const gchar *service_type;
 		guint32 id;
@@ -353,10 +355,11 @@ process_file (TrackerIndexer *indexer,
 		priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
 		service_type = tracker_indexer_module_get_name (info->module);
+		service = tracker_ontology_get_service_type_by_name (service_type);
 		id = tracker_db_get_new_service_id (priv->common);
 
-		if (tracker_db_create_service (priv->metadata, id, service_type, info->path, metadata)) {
-			tracker_db_increment_stats (priv->common, service_type);
+		if (tracker_db_create_service (priv->metadata, id, service, info->path, metadata)) {
+			tracker_db_increment_stats (priv->common, service);
 
 			/* FIXME
 			if (tracker_config_get_enable_xesam (tracker->config))

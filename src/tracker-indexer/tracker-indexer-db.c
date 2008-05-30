@@ -525,32 +525,29 @@ tracker_db_get_new_service_id (TrackerDBInterface *iface)
 
 void
 tracker_db_increment_stats (TrackerDBInterface *iface,
-			    const gchar        *service)
+			    TrackerService     *service)
 {
-	gchar *parent;
+	const gchar *service_type, *parent;
 
-	tracker_db_interface_execute_procedure (iface, NULL, "IncStat", service, NULL);
+	service_type = tracker_service_get_name (service);
+	parent = tracker_service_get_parent (service);
 
-	parent = tracker_ontology_get_parent_service (service);
+	tracker_db_interface_execute_procedure (iface, NULL, "IncStat", service_type, NULL);
 
 	if (parent) {
 		tracker_db_interface_execute_procedure (iface, NULL, "IncStat", parent, NULL);
-		g_free (parent);
 	}
 }
 
 gboolean
 tracker_db_create_service (TrackerDBInterface *iface,
 			   guint32             id,
-			   const char         *service_type,
+			   TrackerService     *service,
 			   const gchar        *path,
 			   GHashTable         *metadata)
 {
-	TrackerService *service;
 	gchar *id_str, *service_type_id_str;
 	gchar *dirname, *basename;
-
-	service = tracker_ontology_get_service_type_by_name (service_type);
 
 	if (!service) {
 		return FALSE;

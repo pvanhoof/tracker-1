@@ -20,6 +20,7 @@
 #ifndef __TRACKER_INDEXER_DB_H__
 #define __TRACKER_INDEXER_DB_H__
 
+#include <libtracker-common/tracker-ontology.h>
 #include <libtracker-db/tracker-db-interface.h>
 
 G_BEGIN_DECLS
@@ -30,11 +31,11 @@ TrackerDBInterface * tracker_indexer_db_get_file_metadata     (void);
 
 guint32              tracker_db_get_new_service_id            (TrackerDBInterface *iface);
 void                 tracker_db_increment_stats               (TrackerDBInterface *iface,
-							       const gchar        *service);
+							       TrackerService     *service);
 
 gboolean             tracker_db_create_service                (TrackerDBInterface *iface,
 							       guint32             id,
-							       const char         *service_type,
+							       TrackerService     *service,
 							       const gchar        *path,
 							       GHashTable         *metadata);
 

@@ -1,3 +1,10 @@
+2008-05-30  Carlos Garnacho  <carlos@imendio.com>
+
+	* tracker-indexer-db.[ch] (tracker_db_increment_stats)
+	(tracker_db_create_service):
+	* tracker-indexer.c (process_file): Pass around the TrackerService
+	instead of having to look it up in the ontology several times.
+
 2008-05-30  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* Merged indexer-split with xesam-support

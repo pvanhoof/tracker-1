@@ -1,5 +1,13 @@
 2008-05-30  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-index.[ch]: New files. Provide methods
+	to store data in the QDBM index.
+	* src/tracker-indexer/Makefile.am: Added these files to build.
+	* src/tracker-indexer/tracker-indexer.c: Pass all metadata contents 
+	through the parser and store all the results with TrackerIndex.
+
+2008-05-30  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/libtracker-db/Makefile.am: Do not force -g.
 
 2008-05-30  Carlos Garnacho  <carlos@imendio.com>

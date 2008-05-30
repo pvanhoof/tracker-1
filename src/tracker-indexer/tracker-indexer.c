@@ -48,19 +48,21 @@
 
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-file-utils.h>
+#include <libtracker-common/tracker-language.h>
+#include <libtracker-common/tracker-parser.h>
 #include <libtracker-common/tracker-ontology.h>
 #include <libtracker-db/tracker-db-interface-sqlite.h>
-
-#include <qdbm/depot.h>
 
 #include "tracker-indexer.h"
 #include "tracker-indexer-module.h"
 #include "tracker-indexer-db.h"
+#include "tracker-index.h"
 
 #define TRACKER_INDEXER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_INDEXER, TrackerIndexerPrivate))
 
 typedef struct TrackerIndexerPrivate TrackerIndexerPrivate;
 typedef struct PathInfo PathInfo;
+typedef struct MetadataForeachData MetadataForeachData;
 
 struct TrackerIndexerPrivate {
 	GQueue *dir_queue;
@@ -72,12 +74,13 @@ struct TrackerIndexerPrivate {
 
 	gchar *db_dir;
 
-	DEPOT *index;
+	TrackerIndex *index;
 	TrackerDBInterface *metadata;
 	TrackerDBInterface *contents;
 	TrackerDBInterface *common;
 
 	TrackerConfig *config;
+	TrackerLanguage *language;
 
 	guint idle_id;
 
@@ -87,6 +90,14 @@ struct TrackerIndexerPrivate {
 struct PathInfo {
 	GModule *module;
 	gchar *path;
+};
+
+struct MetadataForeachData {
+	TrackerIndex *index;
+	TrackerLanguage *language;
+	TrackerConfig *config;
+	TrackerService *service;
+	guint32 id;
 };
 
 enum {
@@ -142,6 +153,11 @@ tracker_indexer_finalize (GObject *object)
 	g_hash_table_destroy (priv->indexer_modules);
 
 	g_object_unref (priv->config);
+	g_object_unref (priv->language);
+
+	if (priv->index) {
+		tracker_index_free (priv->index);
+	}
 
 	if (priv->common) {
 		g_object_unref (priv->common);
@@ -237,6 +253,7 @@ static gboolean
 init_indexer (TrackerIndexer *indexer)
 {
 	TrackerIndexerPrivate *priv;
+	gchar *index_file;
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
@@ -244,10 +261,17 @@ init_indexer (TrackerIndexer *indexer)
 		tracker_dir_remove (priv->db_dir);
 	}
 
+	index_file = g_build_filename (priv->db_dir, "file-index.db", NULL);
+
+	priv->index = tracker_index_new (index_file,
+					 tracker_config_get_max_bucket_count (priv->config));
 	priv->common = tracker_indexer_db_get_common ();
 	priv->metadata = tracker_indexer_db_get_file_metadata ();
 
 	tracker_indexer_set_running (indexer, TRUE);
+
+	g_free (index_file);
+
 	return FALSE;
 }
 
@@ -263,6 +287,7 @@ tracker_indexer_init (TrackerIndexer *indexer)
 	priv->dir_queue = g_queue_new ();
 	priv->file_process_queue = g_queue_new ();
 	priv->config = tracker_config_new ();
+	priv->language = tracker_language_new (priv->config);
 
 	priv->db_dir = g_build_filename (g_get_user_cache_dir (),
 					 "tracker", NULL);
@@ -337,6 +362,62 @@ tracker_indexer_add_directory (TrackerIndexer *indexer,
 }
 
 static void
+index_metadata_foreach (gpointer key,
+			gpointer value,
+			gpointer user_data)
+{
+	TrackerField *field;
+	MetadataForeachData *data;
+	gchar **arr;
+	gint i;
+
+	if (!value) {
+		return;
+	}
+
+	field = tracker_ontology_get_field_def ((gchar *) key);
+
+	data = (MetadataForeachData *) user_data;
+	arr = tracker_parser_text_into_array ((gchar *) value,
+					      data->language,
+					      tracker_config_get_max_word_length (data->config),
+					      tracker_config_get_min_word_length (data->config));
+
+	for (i = 0; arr[i]; i++) {
+		tracker_index_add_word (data->index,
+					arr[i],
+					data->id,
+					tracker_service_get_id (data->service),
+					tracker_field_get_weight (field));
+	}
+
+	g_strfreev (arr);
+}
+
+static void
+index_metadata (TrackerIndexer *indexer,
+		guint32         id,
+		TrackerService *service,
+		GHashTable     *metadata)
+{
+	TrackerIndexerPrivate *priv;
+	MetadataForeachData data;
+
+	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
+
+	data.index = priv->index;
+	data.language = priv->language;
+	data.config = priv->config;
+	data.service = service;
+	data.id = id;
+
+	g_hash_table_foreach (metadata, index_metadata_foreach, &data);
+
+	/* FIXME: flushing after adding each metadata set, not ideal */
+	tracker_index_flush (priv->index);
+}
+
+static void
 process_file (TrackerIndexer *indexer,
 	      PathInfo       *info)
 {
@@ -365,6 +446,8 @@ process_file (TrackerIndexer *indexer,
 			if (tracker_config_get_enable_xesam (tracker->config))
 				tracker_db_create_event (db_con, id, "Create");
 			*/
+
+			index_metadata (indexer, id, service, metadata);
 		}
 
 		g_hash_table_destroy (metadata);

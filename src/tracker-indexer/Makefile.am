@@ -18,6 +18,8 @@ tracker_indexer_SOURCES =						\
 	tracker-dbus.h							\
 	tracker-ioprio.c						\
 	tracker-ioprio.h						\
+	tracker-index.c							\
+	tracker-index.h							\
 	tracker-indexer.c						\
 	tracker-indexer.h						\
 	tracker-indexer-db.c						\

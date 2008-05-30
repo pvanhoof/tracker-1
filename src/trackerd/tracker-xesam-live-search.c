@@ -37,6 +37,7 @@ struct _TrackerXesamLiveSearchPriv {
 	gchar               *query;
 	gchar               *from_sql;
 	gchar               *where_sql;
+	gchar               *join_sql;
 };
 
 enum {
@@ -61,6 +62,7 @@ tracker_xesam_live_search_finalize (GObject *object)
 	g_free (priv->query);
 
 	g_free (priv->from_sql);
+	g_free (priv->join_sql);
 	g_free (priv->where_sql);
 }
 
@@ -157,6 +159,7 @@ tracker_xesam_live_search_init (TrackerXesamLiveSearch *self)
 	priv->closed = FALSE;
 	priv->query = NULL;
 	priv->from_sql = g_strdup ("");
+	priv->join_sql = g_strdup ("");
 	priv->where_sql = g_strdup ("");
 
 }
@@ -261,74 +264,21 @@ tracker_xesam_live_search_emit_done (TrackerXesamLiveSearch *self)
 			       tracker_xesam_live_search_get_id (self)); 
 }
 
-/**
- * tracker_xesam_live_search_match_with_events:
- * @self: A #TrackerXesamLiveSearch
- * @added: (caller-owns) (out): added items
- * @removed: (caller-owns) (out): removed items
- * @modified: (caller-owns) (out): modified items
- *
- * Find all items that match with the current events for @self.
- **/
-void
-tracker_xesam_live_search_match_with_events (TrackerXesamLiveSearch  *self, 
-					     GArray                 **added, 
-					     GArray                 **removed, 
-					     GArray                 **modified)
+
+
+/* Created and Modified items */
+static void
+get_hits_added_modified (TrackerXesamLiveSearch *self, DBConnection *db_con, GArray **added, GArray **modified) 
 {
-	GObject            *xesam;
-	DBConnection       *db_con = NULL;
-	TrackerDBResultSet *result_set;
 	gboolean            ls_valid = TRUE;
 	GArray             *m_added = NULL;
-	GArray             *m_removed = NULL;
 	GArray             *m_modified = NULL;
-
-	g_return_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self));
-	g_return_if_fail (added != NULL);
-	g_return_if_fail (removed != NULL);
-	g_return_if_fail (modified != NULL);
-
-	xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
-
-	g_object_get (xesam, "db-connection", &db_con, NULL);
-
-	/* Deleted items */
-
-	result_set = tracker_db_get_live_search_deleted_ids (db_con, 
-							     tracker_xesam_live_search_get_id (self));
-
-	if (!result_set)
-		goto part_two;
-
-	while (ls_valid) {
-		GValue ls_value = { 0, };
-		gint   ls_i_value;
-
-		_tracker_db_result_set_get_value (result_set, 0, &ls_value);
-		ls_i_value = g_value_get_int (&ls_value);
-
-		if (m_removed == NULL)
-			m_removed = g_array_new (FALSE, TRUE, sizeof (guint32));
-		g_array_append_val (m_removed, ls_i_value);
-
-		g_value_unset (&ls_value);
-
-		ls_valid = tracker_db_result_set_iter_next (result_set);
-	}
-
-	g_object_unref (result_set);
-
-part_two:
-
-	/* Created and Modified items */
-
-	ls_valid = TRUE;
+	TrackerDBResultSet *result_set;
 
 	result_set = tracker_db_get_live_search_new_ids (db_con, 
 		tracker_xesam_live_search_get_id (self),
-		NULL, /* Columns */
 		tracker_xesam_live_search_get_from_query (self),
+		tracker_xesam_live_search_get_join_query (self),
 		tracker_xesam_live_search_get_where_query (self)); /* Query */
 
 	if (!result_set)
@@ -360,13 +310,11 @@ part_two:
 						break;
 					}
 			}
-
 			if (!noadd)
 				g_array_append_val (m_modified, ls_i_value);
 		} else {
 			if (m_added == NULL)
 				m_added = g_array_new (FALSE, TRUE, sizeof (guint32));
-
 			g_array_append_val (m_added, ls_i_value);
 		}
 
@@ -377,6 +325,101 @@ part_two:
 	}
 
 	g_object_unref (result_set);
+
+	*added = m_added;
+	*modified = m_modified;
+}
+
+
+
+/* Created and Modified items */
+static void
+get_all_hits (TrackerXesamLiveSearch *self, DBConnection *db_con, GArray **hits) 
+{
+	gboolean            ls_valid = TRUE;
+	GArray             *m_hits = NULL;
+	TrackerDBResultSet *result_set;
+
+	result_set = tracker_db_get_live_search_all_ids (db_con, 
+		tracker_xesam_live_search_get_id (self));
+
+	if (!result_set)
+		return;
+
+	while (ls_valid) {
+		GValue ls_value = { 0, };
+		gint ls_i_value;
+
+		_tracker_db_result_set_get_value (result_set, 0, &ls_value);
+
+		ls_i_value = g_value_get_int (&ls_value);
+
+		if (m_hits == NULL)
+			m_hits = g_array_new (FALSE, TRUE, sizeof (guint32));
+		g_array_append_val (m_hits, ls_i_value);
+
+		g_value_unset (&ls_value);
+
+		ls_valid = tracker_db_result_set_iter_next (result_set);
+	}
+
+	g_object_unref (result_set);
+
+	*hits = m_hits;
+}
+
+
+/**
+ * tracker_xesam_live_search_match_with_events:
+ * @self: A #TrackerXesamLiveSearch
+ * @added: (caller-owns) (out): added items
+ * @removed: (caller-owns) (out): removed items
+ * @modified: (caller-owns) (out): modified items
+ *
+ * Find all items that match with the current events for @self.
+ **/
+void
+tracker_xesam_live_search_match_with_events (TrackerXesamLiveSearch *self, GArray **added, GArray **removed, GArray **modified)
+{
+	DBConnection *db_con = NULL;
+	TrackerDBResultSet *result_set;
+	gboolean ls_valid = TRUE;
+	GArray *m_added = NULL, *m_removed = NULL, *m_modified = NULL;
+
+	GObject *xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
+
+	g_object_get (xesam, "db-connection", &db_con, NULL);
+
+	/* Deleted items */
+
+	result_set = tracker_db_get_live_search_deleted_ids (db_con, 
+		tracker_xesam_live_search_get_id (self));
+
+	if (!result_set)
+		goto part_two;
+
+	while (ls_valid) {
+		GValue ls_value = { 0, };
+		gint ls_i_value;
+
+		_tracker_db_result_set_get_value (result_set, 0, &ls_value);
+		ls_i_value = g_value_get_int (&ls_value);
+
+		if (m_removed == NULL)
+			m_removed = g_array_new (FALSE, TRUE, sizeof (guint32));
+		g_array_append_val (m_removed, ls_i_value);
+
+		g_value_unset (&ls_value);
+
+		ls_valid = tracker_db_result_set_iter_next (result_set);
+	}
+
+	g_object_unref (result_set);
+
+part_two:
+
+	/* Created and Modified items */
+	get_hits_added_modified (self, db_con, &m_added, &m_modified);
 
 	*added = m_added;
 	*removed = m_removed;
@@ -768,31 +811,35 @@ void
 tracker_xesam_live_search_activate (TrackerXesamLiveSearch  *self, 
 				    GError                 **error)
 {
-	TrackerXesamLiveSearchPriv *priv;
+	TrackerXesamLiveSearchPriv *priv = self->priv;
 
-	g_return_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self));
-
-	priv = self->priv;
-
-	if (priv->closed) {
-		g_set_error (error, 
-			     TRACKER_XESAM_ERROR_DOMAIN, 
-			     TRACKER_XESAM_ERROR_SEARCH_CLOSED,
-			     "Search is closed");
-	} else {
+	if (priv->closed)
+		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
+				TRACKER_XESAM_ERROR_SEARCH_CLOSED,
+				"Search is closed");
+	else {
 		DBConnection *db_con = NULL;
-		GObject      *xesam;
-
-		xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
+		GObject      *xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
+		GArray       *hits = NULL;
+		
 		g_object_get (xesam, "db-connection", &db_con, NULL);
 
-		g_debug ("The from query for activate: %s",
-			 tracker_xesam_live_search_get_from_query (self)); 
-
 		tracker_db_start_live_search (db_con, 
-					      tracker_xesam_live_search_get_from_query (self),
-					      tracker_xesam_live_search_get_where_query (self),
-					      tracker_xesam_live_search_get_id (self));
+			tracker_xesam_live_search_get_from_query (self),
+			tracker_xesam_live_search_get_join_query (self),
+			tracker_xesam_live_search_get_where_query (self),
+			tracker_xesam_live_search_get_id (self));
+
+		get_all_hits (self, db_con, &hits);
+
+		if (hits && hits->len > 0) {
+			g_debug ("Emitting HitsAdded");
+			tracker_xesam_live_search_emit_hits_added (self, hits->len);
+		}
+
+		if (hits) {
+			g_array_free (hits, TRUE);
+		}
 	}
 
 	priv->active = TRUE;
@@ -883,7 +930,7 @@ tracker_xesam_live_search_parse_query (TrackerXesamLiveSearch  *self,
 	GObject                    *xesam;
 	DBConnection               *db_con = NULL;
 	GError                     *parse_error = NULL;
-	gchar                      *orig_from, *orig_where;
+	gchar                      *orig_from, *orig_join, *orig_where;
 
 	g_return_val_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self), FALSE);
 
@@ -893,13 +940,16 @@ tracker_xesam_live_search_parse_query (TrackerXesamLiveSearch  *self,
 	g_object_get (xesam, "db-connection", &db_con, NULL);
 
 	orig_from = priv->from_sql;
+	orig_join = priv->join_sql;
 	orig_where = priv->where_sql;
 
 	priv->from_sql = NULL;
+	priv->join_sql = NULL;
 	priv->where_sql = NULL;
 
 	tracker_xesam_query_to_sql (db_con, priv->query, 
-				    &priv->from_sql, 
+				    &priv->from_sql,
+				    &priv->join_sql,
 				    &priv->where_sql, 
 				    &parse_error);
 
@@ -914,14 +964,17 @@ tracker_xesam_live_search_parse_query (TrackerXesamLiveSearch  *self,
 		g_error_free (parse_error);
 
 		g_free (priv->from_sql);
+		g_free (priv->join_sql);
 		g_free (priv->where_sql);
 
 		priv->from_sql = orig_from;
+		priv->join_sql = orig_join;
 		priv->where_sql = orig_where;
 
 		return FALSE;
 	} else {
 		g_free (orig_from);
+		g_free (orig_join);
 		g_free (orig_where);
 	}
 
@@ -949,6 +1002,21 @@ tracker_xesam_live_search_get_from_query (TrackerXesamLiveSearch *self)
 	priv = self->priv;
 
 	return priv->from_sql;
+}
+
+/**
+ * tracker_xesam_live_search_get_join_query:
+ * @self: a #TrackerXesamLiveSearch
+ *
+ * Gets the parsed JOIN SQL string for the query
+ *
+ * @returns: a read-only string with the JOIN query
+ **/
+const gchar* 
+tracker_xesam_live_search_get_join_query (TrackerXesamLiveSearch *self)
+{
+	TrackerXesamLiveSearchPriv *priv = self->priv;
+	return (const gchar *) priv->join_sql;
 }
 
 /**

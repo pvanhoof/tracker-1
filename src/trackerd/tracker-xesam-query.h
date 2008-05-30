@@ -28,7 +28,8 @@
 
 void                    tracker_xesam_query_to_sql          (DBConnection *db_con, 
                                                              const char   *query, 
-                                                             gchar       **from, 
+                                                             gchar       **from,
+							     gchar       **join,
                                                              gchar       **where, 
                                                              GError      **error);
 

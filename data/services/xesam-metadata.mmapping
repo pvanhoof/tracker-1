@@ -77,7 +77,7 @@ MetaName=
 
 
 [xesam:author]
-MetaName=
+MetaName=Email:Sender
 
 
 [xesam:autoRating]
@@ -109,7 +109,7 @@ MetaName=
 
 
 [xesam:cc]
-MetaName=
+MetaName=Email:CC
 
 
 [xesam:ccdWidth]
@@ -625,7 +625,7 @@ MetaName=
 
 
 [xesam:primaryRecipient]
-MetaName=
+MetaName=Email:Recipient
 
 
 [xesam:programmingLanguage]
@@ -637,7 +637,7 @@ MetaName=
 
 
 [xesam:recipient]
-MetaName=
+MetaName=Email:Recipient
 
 
 [xesam:related]
@@ -685,7 +685,7 @@ MetaName=
 
 
 [xesam:secondaryRecipient]
-MetaName=
+MetaName=Email:Recipient
 
 
 [xesam:seenAttachedAs]
@@ -741,7 +741,7 @@ MetaName=Audio:Title;Doc:Title;Video:Title
 
 
 [xesam:to]
-MetaName=
+MetaName=Email:Recipient
 
 
 [xesam:totalSpace]

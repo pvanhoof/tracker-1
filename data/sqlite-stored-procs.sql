@@ -29,7 +29,10 @@ DeleteHandledEvents DELETE FROM Events WHERE BeingHandled = 1;
 GetEvents SELECT ID, ServiceID, EventType FROM Events WHERE BeingHandled = 1;
 SetEventsBeingHandled UPDATE Events SET BeingHandled = 1;
 
+GetLiveSearchAllIDs SELECT X.ServiceID FROM LiveSearches AS X WHERE X.SearchID = ?
 GetLiveSearchDeletedIDs SELECT E.ServiceID FROM Events as E, LiveSearches as X WHERE E.ServiceID = X.ServiceID AND X.SearchID = ? AND E.EventType IS 'Delete';
+DeleteLiveSearchDeletedIDs DELETE FROM LiveSearches AS Y WHERE Y.ServiceID IN SELECT ServiceID FROM Events as E, LiveSearches as X WHERE E.ServiceID = X.ServiceID AND X.SearchID = ? AND E.EventType IS 'Delete'
+
 GetLiveSearchHitCount SELECT count(*) FROM LiveSearches WHERE SearchID = ?;
 LiveSearchStopSearch DELETE FROM LiveSearches as X WHERE E.SearchID = ?
 

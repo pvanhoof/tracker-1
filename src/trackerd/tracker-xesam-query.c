@@ -155,6 +155,7 @@ typedef struct {
 	char			*current_value;
 	DBConnection	        *db_con;
 	GString			*sql_from;
+	GString                 *sql_join;
 	GString			*sql_where;
 	char			*service;
 } ParserData;
@@ -825,6 +826,8 @@ build_sql (ParserData *data)
 		g_free (avalue);
 		g_free (data->current_field);
 		g_free (data->current_value);
+		data->current_field = NULL;
+		data->current_value = NULL;
 		return FALSE;
 	}
 
@@ -840,7 +843,7 @@ build_sql (ParserData *data)
 		str = g_string_new ("");
 	
 		if (i>1) {
-			g_string_append (str, " OR ");	
+			g_string_append (str, " OR ");
 		}
 		
 		if (tracker_field_data_get_data_type (field_data->data) == TRACKER_FIELD_TYPE_DATE) {
@@ -864,7 +867,7 @@ build_sql (ParserData *data)
 			} else {
 				/* TODO Add error message */
 				return FALSE; 
-			}				         
+			}
 		} else {
 			value = g_strdup (avalue);
 		}
@@ -981,7 +984,7 @@ build_sql (ParserData *data)
 					g_string_append_printf (str, ",'%s'", *p);
 				}
 
-				g_string_append_printf (str, ") ) " ); 					
+				g_string_append_printf (str, ") ) " ); 
 			}
 			break;
 
@@ -1201,7 +1204,7 @@ error_handler (GMarkupParseContext *context,
 
 
 void
-tracker_xesam_query_to_sql (DBConnection *db_con, const char *query, gchar **from, gchar **where, GError **error)
+tracker_xesam_query_to_sql (DBConnection *db_con, const char *query, gchar **from, gchar **join, gchar **where, GError **error)
 {
 	static     gboolean inited = FALSE;
 	ParserData data;
@@ -1222,9 +1225,9 @@ tracker_xesam_query_to_sql (DBConnection *db_con, const char *query, gchar **fro
 	table_name = "Services";
 
 	data.sql_from = g_string_new ("");
-
 	g_string_append_printf (data.sql_from, "\n FROM %s S ", table_name);
 	
+	data.sql_join = g_string_new ("");
 	data.sql_where = g_string_new ("");
 
 	data.parser = g_new0 (GMarkupParser, 1);
@@ -1247,8 +1250,10 @@ tracker_xesam_query_to_sql (DBConnection *db_con, const char *query, gchar **fro
 
 		g_string_free (data.sql_from, TRUE);
 		g_string_free (data.sql_where, TRUE);
+		g_string_free (data.sql_join, TRUE);
 
 		*from = NULL;
+		*join = NULL;
 		*where = NULL;
 
 	} else {
@@ -1257,7 +1262,7 @@ tracker_xesam_query_to_sql (DBConnection *db_con, const char *query, gchar **fro
 		for (l = data.fields; l; l = l->next) {
 			if (!tracker_field_data_get_is_condition (l->data)) {
 				if (tracker_field_data_get_needs_join (l->data)) {
-					g_string_append_printf (data.sql_from, 
+					g_string_append_printf (data.sql_join, 
 								"\n LEFT OUTER JOIN %s %s ON (S.ID = %s.ServiceID and %s.MetaDataID = %s) ", 
 								tracker_field_data_get_table_name (l->data),
 								tracker_field_data_get_alias (l->data),
@@ -1270,7 +1275,7 @@ tracker_xesam_query_to_sql (DBConnection *db_con, const char *query, gchar **fro
 
 				related_metadata = tracker_get_related_metadata_names (db_con, 
 										       tracker_field_data_get_field_name (l->data));
-				g_string_append_printf (data.sql_from, 
+				g_string_append_printf (data.sql_join, 
 							"\n INNER JOIN %s %s ON (S.ID = %s.ServiceID and %s.MetaDataID in (%s)) ",
 							tracker_field_data_get_table_name (l->data),
 							tracker_field_data_get_alias (l->data),
@@ -1282,10 +1287,13 @@ tracker_xesam_query_to_sql (DBConnection *db_con, const char *query, gchar **fro
 		}
 
 		*from = g_strdup (data.sql_from->str);
+		*join = g_strdup (data.sql_join->str);
 		*where = g_strdup (data.sql_where->str);
 
 		g_string_free (data.sql_from, TRUE);
+		g_string_free (data.sql_join, TRUE);
 		g_string_free (data.sql_where, TRUE);
+		
 	}
 
 	g_slist_foreach (data.fields, (GFunc) g_object_unref, NULL);
@@ -1297,7 +1305,7 @@ tracker_xesam_query_to_sql (DBConnection *db_con, const char *query, gchar **fro
 	if (data.current_field) {
 		g_free (data.current_field);
 	}
-
+	
 	if (data.current_value) {
 		g_free (data.current_value);
 	}

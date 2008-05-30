@@ -3304,7 +3304,15 @@ tracker_db_get_live_search_deleted_ids (DBConnection *db_con, const gchar *searc
 	 * AND X.SearchID = ? 
 	 * AND E.EventType IS 'Delete' */
 
-	return tracker_db_exec_proc (db_con->db, "GetLiveSearchDeletedIDs", search_id, NULL);
+	/* DELETE FROM LiveSearches AS Y WHERE Y.ServiceID IN
+	 * SELECT ServiceID FROM Events as E, LiveSearches as X 
+	 * WHERE E.ServiceID = X.ServiceID 
+	 * AND X.SearchID = ? 
+	 * AND E.EventType IS 'Delete' */
+
+	TrackerDBResultSet *result_set = tracker_db_exec_proc (db_con->db, "GetLiveSearchDeletedIDs", search_id, NULL);
+	tracker_exec_proc_no_reply (db_con->db, "DeleteLiveSearchDeletedIDs", search_id, NULL);
+	return result_set;
 }
 
 void
@@ -3319,58 +3327,128 @@ tracker_db_stop_live_search (DBConnection *db_con, const gchar *search_id)
 
 
 void
-tracker_db_start_live_search (DBConnection *db_con, const gchar *from_query, const gchar *where_query, const gchar *search_id)
+tracker_db_start_live_search (DBConnection *db_con, const gchar *from_query, const gchar *join_query, const gchar *where_query, const gchar *search_id)
 {
 	/* INSERT
 	 * INTO LiveSearches
 	 * SELECT ID, SEARCH_ID FROM_QUERY WHERE_QUERY */
 
-	g_debug ("INSERT INTO LiveSearches SELECT S.ID, '%s' %s %s",
-			search_id, from_query, where_query);
+	g_debug ("INSERT INTO LiveSearches SELECT S.ID, '%s' %s %s %s",
+		 search_id, from_query, join_query, where_query);
 
 	tracker_db_exec_no_reply (db_con->db,
-		"INSERT INTO LiveSearches SELECT S.ID, '%s' %s %s",
-			search_id, from_query, where_query);
+				  "INSERT INTO LiveSearches SELECT S.ID, '%s' %s %s %s",
+				  search_id, from_query, join_query, where_query);
 
 }
 
 TrackerDBResultSet* 
-tracker_db_get_live_search_new_ids (DBConnection *db_con, const gchar *search_id, const gchar *columns, const gchar *from_query, const gchar *where_query)
+tracker_db_get_live_search_new_ids (DBConnection *db_con, const gchar *search_id, const gchar *from_query, const gchar *query_joins, const gchar *where_query)
 {
+	TrackerDBResultSet *result_set;
+	
 	// todo: this is a query for ottela to review
 
 	/* Contract, in @result:
 	 * ServiceID is #1
 	 * EventType is #2 */
 
-	/**
-	 * SELECT E.ServiceID, E.EventType, COLUMNS
-	 * FROM_QUERY XesamLiveSearches as X, Events as E
-	 * WHERE_QUERY"
-	 * AND X.ServiceID = E.ServiceID
-	 * AND X.SearchID = SEARCH_ID
-	 * AND (X.EventType IS 'Create' 
-	 *      OR X.EventType IS 'Update')
-	 **/
-
 	g_debug("tracker_db_get_live_search_new_ids");
 
-	return tracker_db_exec (db_con->db,
-	/* COLUMNS */      "SELECT E.ServiceID, E.EventType%s%s "
-	/* FROM_QUERY */   "%s%s LiveSearches as X, Events as E "
-	/* WHERE_QUERY */  "%s"
-	/* AND or space */ "%sX.ServiceID = E.ServiceID "
-			   "AND X.SearchID = '%s' " /* search_id arg */
-			   "AND (X.EventType IS 'Create' "
-			   "OR X.EventType IS 'Update') ",
+	/**
+	 * SELECT E.ServiceID, E.EventType
+	 * FROM_QUERY, LiveSearches as X, Events as E
+	 * QUERY_JOINS
+	 * WHERE_QUERY
+	 * AND X.ServiceID = E.ServiceID
+	 * AND X.SearchID = 'SEARCH_ID'
+	 * AND E.EventType = 'Update'
+	 * UNION
+	 * SELECT E.ServiceID, E.EventType
+	 * FROM_QUERY, Events as E
+	 * QUERY_JOINS
+	 * WHERE_QUERY
+	 * AND E.ServiceID = S.ID
+	 * AND E.EventType = 'Create'
+	 **/
 
-			   columns?", ":"", 
-			   columns?columns:"", 
-			   from_query?from_query:"FROM",
-			   from_query?",":"",
-			   where_query?where_query:"WHERE",
-			   where_query?"AND":" ", 
-			   search_id);
+	/**
+	 * INSERT INTO LiveSearches 
+	 * SELECT E.ServiceID, 'SEARCH_ID' 
+	 * FROM_QUERY, Events as E
+	 * QUERY_JOINS
+	 * WHERE_QUERY
+	 * AND E.ServiceID = S.ID
+	 * AND E.EventType = 'Create'
+	 **/
+
+	result_set = tracker_db_exec (db_con->db,
+/*           */ "SELECT E.ServiceID, E.EventType "
+/* FROM   A1 */ "%s%s LiveSearches as X, Events as E "
+/* JOINS  A2 */ "%s"
+/* WHERE  A3 */ "%s"
+/*           */ "%sX.ServiceID = E.ServiceID "
+/*        A4 */ "AND X.SearchID = '%s' "
+/*           */ "AND E.EventType = 'Update' "
+
+/*           */ "UNION "
+
+/*           */ "SELECT E.ServiceID, E.EventType "
+/* FROM   B1 */ "%s%s Events as E "
+/* JOINS  B2 */ "%s"
+/* WHERE  B3 */ "%s"
+/*           */ "%sE.ServiceID = S.ID "
+/*           */ "AND E.EventType = 'Create' ",
+
+/*        A1 */ from_query?from_query:"FROM",
+/*        A1 */ from_query?",":"",
+/*        A2 */ query_joins,
+/*        A3 */ where_query?where_query:"WHERE",
+/*        A3 */ where_query?"AND ":"",
+/*        A4 */ search_id,
+/*        B1 */ from_query?from_query:"FROM",
+/*        B1 */ from_query?",":"",
+/*        B2 */ query_joins,
+/*        B3 */ where_query?where_query:"WHERE",
+/*        B3 */ where_query?"AND ":"");
+
+
+	tracker_db_exec_no_reply (db_con->db,
+/*           */ "INSERT INTO LiveSearches "
+/*        B0 */ "SELECT E.ServiceID, '%s' "
+/* FROM   B1 */ "%s%s Events as E "
+/* JOINS  B2 */ "%s"
+/* WHERE  B3 */ "%s"
+/*           */ "%sE.ServiceID = S.ID"
+/*           */ "AND E.EventType = 'Create' ",
+
+/*        B0 */ search_id,
+/*        B1 */ from_query?from_query:"FROM",
+/*        B1 */ from_query?",":"",
+/*        B2 */ query_joins,
+/*        B3 */ where_query?where_query:"WHERE",
+/*        B3 */ where_query?"AND ":"");
+
+	return result_set;
+}
+
+
+TrackerDBResultSet* 
+tracker_db_get_live_search_all_ids (DBConnection *db_con, const gchar *search_id)
+{
+	/* Contract, in @result:
+	 * ServiceID is #1 */
+
+	/**
+	 * SELECT X.ServiceID
+	 * FROM LiveSearches as X
+	 * WHERE X.SearchID = SEARCH_ID
+	 **/
+
+	g_debug("tracker_db_get_live_search_all_ids");
+
+	return tracker_db_exec_proc (db_con->db, "GetLiveSearchAllIDs", search_id, NULL);
+
 }
 
 TrackerDBResultSet *

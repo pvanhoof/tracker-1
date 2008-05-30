@@ -55,6 +55,7 @@ void         tracker_xesam_live_search_set_id             (TrackerXesamLiveSearc
 const gchar* tracker_xesam_live_search_get_id             (TrackerXesamLiveSearch  *self);
 const gchar* tracker_xesam_live_search_get_where_query    (TrackerXesamLiveSearch  *self);
 const gchar* tracker_xesam_live_search_get_from_query     (TrackerXesamLiveSearch  *self);
+const gchar* tracker_xesam_live_search_get_join_query     (TrackerXesamLiveSearch  *self);
 const gchar* tracker_xesam_live_search_get_xml_query      (TrackerXesamLiveSearch  *self);
 void         tracker_xesam_live_search_set_xml_query      (TrackerXesamLiveSearch  *self, 
 							   const gchar             *xml_query);

@@ -327,9 +327,11 @@ TrackerDBResultSet *tracker_db_get_live_search_deleted_ids     (DBConnection *db
                                                                 const gchar *search_id);
 TrackerDBResultSet *tracker_db_get_live_search_new_ids         (DBConnection *db_con, 
                                                                 const gchar *search_id,
-                                                                const gchar *columns, 
-                                                                const gchar *tables, 
-                                                                const gchar *query);
+                                                                const gchar *from_query, 
+                                                                const gchar *query_joins, 
+                                                                const gchar *where_query);
+TrackerDBResultSet *tracker_db_get_live_search_all_ids         (DBConnection *db_con, 
+                                                                const gchar *search_id);
 TrackerDBResultSet *tracker_db_get_live_search_hit_count       (DBConnection *db_con, 
                                                                 const gchar *search_id);
 
@@ -345,7 +347,8 @@ gboolean            tracker_db_create_xesam_lookup             (TrackerDBInterfa
 void                tracker_db_stop_live_search                (DBConnection *db_con, 
                                                                 const gchar *search_id);
 void                tracker_db_start_live_search               (DBConnection *db_con, 
-                                                                const gchar *from_query, 
+                                                                const gchar *from_query,
+								const gchar *join_query,
                                                                 const gchar *where_query,
                                                                 const gchar *search_id);
 TrackerDBResultSet *tracker_db_get_live_search_get_hit_data    (DBConnection *db_con, 

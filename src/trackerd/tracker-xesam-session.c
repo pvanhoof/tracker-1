@@ -76,7 +76,7 @@ tracker_xesam_session_init (TrackerXesamSession *self)
 	priv = self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self,TRACKER_TYPE_XESAM_SESSION,struct _TrackerXesamSessionPriv);
 
 	g_ptr_array_add (ontos, dummy_onto);
-	
+
 	priv->session_id = NULL;
 
 

@@ -1,5 +1,12 @@
 2008-05-30  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/libtracker-common/tracker-parser.c
+	(tracker_parser_text_into_array): reverse wrongly passed arguments to
+	tracker_parser_text_to_string(). Also strip leading and trailing
+	whitespaces in order not to end with "\0" strings in the array.
+
+2008-05-30  Carlos Garnacho  <carlos@imendio.com>
+
 	* tracker-indexer-db.[ch] (tracker_db_increment_stats)
 	(tracker_db_create_service):
 	* tracker-indexer.c (process_file): Pass around the TrackerService

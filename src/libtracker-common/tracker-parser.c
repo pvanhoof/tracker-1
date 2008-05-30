@@ -443,12 +443,12 @@ tracker_parser_text_into_array (const gchar     *text,
 
         s = tracker_parser_text_to_string (text, 
                                            language, 
-                                           min_word_length,
                                            max_word_length,
+                                           min_word_length,
                                            TRUE, 
                                            FALSE, 
                                            FALSE);
-        strv = g_strsplit (s, " ", -1);
+        strv = g_strsplit (g_strstrip (s), " ", -1);
 	g_free (s);
 
 	return strv;

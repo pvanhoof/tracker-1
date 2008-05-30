@@ -1,5 +1,13 @@
 2008-05-30  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-indexer-db.[ch]
+	(tracker_db_set_metadata): Added, stores metadata values into
+	Service*MetaData tables.
+	* src/tracker-indexer/tracker-indexer.c (index_metadata_foreach): use
+	tracker_db_set_metadata() to store metadata contents.
+
+2008-05-30  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-index.[ch]: New files. Provide methods
 	to store data in the QDBM index.
 	* src/tracker-indexer/Makefile.am: Added these files to build.

@@ -584,6 +584,25 @@ tracker_db_create_service (TrackerDBInterface *iface,
 	return TRUE;
 }
 
+void
+tracker_db_set_metadata (TrackerDBInterface *iface,
+			 guint32             id,
+			 TrackerField       *field,
+			 const gchar        *value)
+{
+	gchar *id_str;
+
+	id_str = tracker_guint32_to_string (id);
+
+	/* FIXME: determine metadata type */
+	tracker_db_interface_execute_procedure (iface, NULL, "SetMetadataKeyword",
+						id_str,
+						tracker_field_get_id (field),
+						value,
+						NULL);
+	g_free (id_str);
+}
+
 /* sqlite utf-8 user defined collation sequence */
 static int
 utf8_collation_func (gchar *str1,

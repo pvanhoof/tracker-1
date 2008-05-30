@@ -38,6 +38,10 @@ gboolean             tracker_db_create_service                (TrackerDBInterfac
 							       TrackerService     *service,
 							       const gchar        *path,
 							       GHashTable         *metadata);
+void                 tracker_db_set_metadata                  (TrackerDBInterface *iface,
+							       guint32             id,
+							       TrackerField       *field,
+							       const gchar        *value);
 
 G_END_DECLS
 

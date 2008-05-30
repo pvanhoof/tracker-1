@@ -94,6 +94,8 @@ struct PathInfo {
 
 struct MetadataForeachData {
 	TrackerIndex *index;
+	TrackerDBInterface *db;
+
 	TrackerLanguage *language;
 	TrackerConfig *config;
 	TrackerService *service;
@@ -391,6 +393,8 @@ index_metadata_foreach (gpointer key,
 					tracker_field_get_weight (field));
 	}
 
+	tracker_db_set_metadata (data->db, data->id, field, (gchar *) value);
+
 	g_strfreev (arr);
 }
 
@@ -406,6 +410,7 @@ index_metadata (TrackerIndexer *indexer,
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
 	data.index = priv->index;
+	data.db = priv->metadata;
 	data.language = priv->language;
 	data.config = priv->config;
 	data.service = service;

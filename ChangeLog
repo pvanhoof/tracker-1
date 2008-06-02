@@ -1,3 +1,29 @@
+2008-06-02  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-db-sqlite.c:
+	* src/trackerd/tracker-dbus.c:
+	* src/trackerd/tracker-email-evolution.c:
+	* src/trackerd/tracker-email-kmail.c:
+	* src/trackerd/tracker-email-modest.c:
+	* src/trackerd/tracker-email-thunderbird.c:
+	* src/trackerd/tracker-email-utils.c:
+	* src/trackerd/tracker-fam.c:
+	* src/trackerd/tracker-inotify.c:
+	* src/trackerd/tracker-main.c:
+	* src/trackerd/tracker-poll.c:
+	* src/trackerd/tracker-process-files.c:
+	* src/trackerd/tracker-watch.h:
+	* src/trackerd/tracker-watcher-fam.c: 
+	* src/trackerd/tracker-watcher-inotify.c:
+	* src/trackerd/tracker-watcher-poll.c:
+	* src/trackerd/tracker-watcher-win.c: 
+	* src/trackerd/tracker-watcher.h:
+	* src/trackerd/tracker-win-fs-changes.c: Moved all watch files so
+	they use the prefix tracker-watch-*. Updated the API to have a
+	consistent tracker_watcher_() prefix. Refactored the FAM, inotify,
+	poll and windows backends. 
+
 2008-06-02  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/libtracker-common/tracker-field.h: Add TRACKER_TYPE_FIELD_TYPE

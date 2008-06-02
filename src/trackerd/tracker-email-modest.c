@@ -42,7 +42,7 @@
 #include "tracker-dbus.h"
 #include "tracker-daemon.h"
 #include "tracker-status.h"
-#include "tracker-watch.h"
+#include "tracker-watcher.h"
 
 
 #define MODEST_HOME	".modest"

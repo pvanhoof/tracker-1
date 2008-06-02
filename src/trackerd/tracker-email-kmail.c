@@ -35,7 +35,7 @@
 #include "tracker-db-email.h"
 #include "tracker-main.h"
 #include "tracker-process-files.h"
-#include "tracker-watch.h"
+#include "tracker-watcher.h"
 
 typedef struct {
         gchar            *imap_path;

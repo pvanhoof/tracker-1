@@ -43,7 +43,7 @@
 #include "tracker-indexer.h"
 #include "tracker-main.h"
 #include "tracker-utils.h"
-#include "tracker-watch.h"
+#include "tracker-watcher.h"
 #include "tracker-query-tree.h"
 #include "tracker-xesam-ontology.h"
 

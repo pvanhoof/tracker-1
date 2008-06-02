@@ -39,7 +39,7 @@
 #include "tracker-xesam-glue.h"
 #include "tracker-indexer-client.h"
 #include "tracker-utils.h"
-#include "tracker-watch.h"
+#include "tracker-watcher.h"
 
 static DBusGConnection *connection;
 static DBusGProxy      *proxy;

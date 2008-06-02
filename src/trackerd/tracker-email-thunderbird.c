@@ -28,7 +28,7 @@
 #include <libtracker-common/tracker-config.h>
 
 #include "tracker-db-email.h"
-#include "tracker-watch.h"
+#include "tracker-watcher.h"
 #include "tracker-main.h"
 
 typedef enum

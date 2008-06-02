@@ -50,7 +50,7 @@
 #include "tracker-indexer.h"
 #include "tracker-process-files.h"
 #include "tracker-status.h"
-#include "tracker-watch.h"
+#include "tracker-watcher.h"
 #include "tracker-xesam-manager.h"
 
 #ifdef OS_WIN32

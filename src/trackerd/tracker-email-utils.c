@@ -39,7 +39,7 @@
 #include "tracker-dbus.h"
 #include "tracker-daemon.h"
 #include "tracker-email-utils.h"
-#include "tracker-watch.h"
+#include "tracker-watcher.h"
 
 extern Tracker *tracker;
 

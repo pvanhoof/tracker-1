@@ -1,6 +1,7 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /* 
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2008, Nokia
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -18,8 +19,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKERD_WATCH_H__
-#define __TRACKERD_WATCH_H__
+#ifndef __TRACKERD_WATCHER_H__
+#define __TRACKERD_WATCHER_H__
 
 #include "tracker-db.h"
 
@@ -34,8 +35,8 @@ void     tracker_watcher_remove_dir     (const char   *dir,
 					 DBConnection *db_con);
 gboolean tracker_watcher_is_dir_watched (const char   *dir,
 					 DBConnection *db_con);
-gint      tracker_watcher_get_dir_count (void);
+gint     tracker_watcher_get_dir_count  (void);
 
 G_END_DECLS
 
-#endif /* __TRACKERD_WATCH_H__ */
+#endif /* __TRACKERD_WATCHER_H__ */

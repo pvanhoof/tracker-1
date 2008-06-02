@@ -17,22 +17,10 @@ INCLUDES =								\
 	$(GTHREAD_CFLAGS)						\
 	$(GLIB2_CFLAGS)
 
-if HAVE_INOTIFY
-watch_sources =								\
-	linux-inotify-syscalls.h					\
-	tracker-inotify.c
-else
-if HAVE_FAM
-watch_sources = tracker-fam.c
-else
-if OS_WIN32
-watch_sources = tracker-win-fs-changes.c
-else
-watch_sources = tracker-poll.c
-endif
-endif
-endif
 
+#
+# Mail sources
+#
 mail_modulesdir = $(libdir)/tracker/mail-modules
 mail_modules_LTLIBRARIES = \
 	libemail-evolution.la \
@@ -59,12 +47,32 @@ libemail_kmail_la_LDFLAGS = $(module_flags)
 libemail_kmail_la_LIBADD = $(GLIB2_LIBS)
 
 
+#
+# Use either inotify, fam, win32 or poll API to know about file
+# changes and in that order.
+#
+if HAVE_INOTIFY
+watcher_sources = tracker-watcher-inotify.c linux-inotify-syscalls.h
+else  # HAVE_INOTIFY 
+if HAVE_FAM
+watcher_sources = tracker-watcher-fam.c
+else  # HAVE_FAM 
+if OS_WIN32
+watcher_sources = tracker-watcher-win.c
+else  # OS_WIN32 
+watcher_sources = tracker-watcher-poll.c
+endif # OS_WIN32 
+endif # HAVE_FAM
+endif # HAVE_INOTIFY
+
+
+#
+# Daemon sources
+#
 bin_PROGRAMS = trackerd
 
 trackerd_SOURCES =							\
-	$(watch_sources)						\
-	$(win_sources)							\
-	$(unix_sources)							\
+	$(watcher_sources)						\
 	tracker-daemon.c						\
 	tracker-daemon.h						\
 	tracker-db.c							\

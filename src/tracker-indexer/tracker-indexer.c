@@ -259,8 +259,8 @@ init_indexer (TrackerIndexer *indexer)
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
-	if (priv->reindex) {
-		tracker_dir_remove (priv->db_dir);
+	if (priv->reindex || !g_file_test (priv->db_dir, G_FILE_TEST_IS_DIR)) {
+		tracker_path_remove (priv->db_dir);
 	}
 
 	if (!g_file_test (priv->db_dir, G_FILE_TEST_EXISTS)) {

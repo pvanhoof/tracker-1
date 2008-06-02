@@ -503,21 +503,21 @@ initialise_directories (gboolean *need_index)
 	
 	/* Remove an existing one */
 	if (g_file_test (sys_tmp_dir, G_FILE_TEST_EXISTS)) {
-		tracker_dir_remove (sys_tmp_dir);
+		tracker_path_remove (sys_tmp_dir);
 	}
 
 	/* Remove old tracker dirs */
         filename = g_build_filename (g_get_home_dir (), ".Tracker", NULL);
 
 	if (g_file_test (filename, G_FILE_TEST_EXISTS)) {
-		tracker_dir_remove (filename);
+		tracker_path_remove (filename);
 	}
 
 	g_free (filename);
 
 	/* Remove database if we are reindexing */
 	if (reindex || tracker_db_needs_setup ()) {
-		tracker_dir_remove (data_dir);
+		tracker_path_remove (data_dir);
 		*need_index = TRUE;
 	}
 
@@ -792,13 +792,13 @@ shutdown_directories (void)
 {
 	/* If we are reindexing, just remove the databases */
 	if (tracker->reindex) {
-		tracker_dir_remove (data_dir);
+		tracker_path_remove (data_dir);
 		g_mkdir_with_parents (data_dir, 00755);
 	}
 
 	/* Remove sys tmp directory */
 	if (sys_tmp_dir) {
-		tracker_dir_remove (sys_tmp_dir);
+		tracker_path_remove (sys_tmp_dir);
 	}
 }
 

@@ -422,7 +422,7 @@ tracker_file_get_vfs_name (const gchar *uri)
 }
 
 void
-tracker_dir_remove (const gchar *uri)
+tracker_path_remove (const gchar *uri)
 {
 	GQueue *dirs;
 	GSList *dirs_to_remove = NULL;
@@ -463,7 +463,7 @@ tracker_dir_remove (const gchar *uri)
 	g_queue_free (dirs);
 
 	/* Remove directories (now they are empty) */
-	g_slist_foreach (dirs_to_remove, (GFunc) g_rmdir, NULL);
+	g_slist_foreach (dirs_to_remove, (GFunc) g_remove, NULL);
 	g_slist_foreach (dirs_to_remove, (GFunc) g_free, NULL);
 	g_slist_free (dirs_to_remove);
 }

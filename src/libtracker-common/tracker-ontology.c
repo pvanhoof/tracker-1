@@ -53,6 +53,9 @@ static GSList	  *service_directory_list;
 /* Field descriptions */
 static GHashTable *metadata_table;
 
+/* FieldType enum class */
+static gpointer field_type_enum_class;
+
 
 
 static void
@@ -127,6 +130,12 @@ tracker_ontology_init (void)
 						g_str_equal,
 						NULL, //Pointer to the object name
 						g_object_unref);
+
+	/* We will need the class later in order to match strings to enum values
+	 * when inserting metadata types in the DB, so the enum class needs to be
+	 * created beforehand.
+	 */
+	field_type_enum_class = g_type_class_ref (TRACKER_TYPE_FIELD_TYPE);
 }
 
 void
@@ -144,6 +153,9 @@ tracker_ontology_shutdown (void)
 				 NULL); 
 		g_slist_free (mime_prefix_service);
 	}
+
+	g_type_class_unref (field_type_enum_class);
+	field_type_enum_class = NULL;
 }
 
 void 

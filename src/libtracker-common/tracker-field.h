@@ -44,6 +44,7 @@ typedef enum {
 GType tracker_field_type_get_type (void) G_GNUC_CONST;
 
 #define TRACKER_TYPE_FIELD         (tracker_field_get_type ())
+#define TRACKER_TYPE_FIELD_TYPE    (tracker_field_type_get_type ())
 #define TRACKER_FIELD(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_FIELD, TrackerField))
 #define TRACKER_FIELD_CLASS(k)     (G_TYPE_CHECK_CLASS_CAST ((k), TRACKER_TYPE_FIELD, TrackerFieldClass))
 #define TRACKER_IS_FIELD(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), TRACKER_TYPE_FIELD))

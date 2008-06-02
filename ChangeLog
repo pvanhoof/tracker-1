@@ -1,3 +1,15 @@
+2008-06-02  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/libtracker-common/tracker-field.h: Add TRACKER_TYPE_FIELD_TYPE
+	define for the TrackerFieldType enum GType.
+	* src/libtracker-common/tracker-ontology.c (tracker_ontology_init)
+	(tracker_ontology_shutdown): Make the class for the TrackerFieldType
+	enum is created during the ontology lifetime.
+	* src/tracker-indexer/tracker-indexer-db.c (load_metadata_file): Moved
+	from trackerd.
+	(tracker_indexer_db_get_common): Load all necessary
+	sql/metadata/services definitions into the common DB.
+
 2008-06-02  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/Makefile.am:

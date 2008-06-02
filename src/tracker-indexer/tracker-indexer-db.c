@@ -43,9 +43,9 @@ tracker_indexer_db_load_prepared_queries (void)
 
 	g_message ("Loading prepared queries...");
 
-	prepared_queries = g_hash_table_new_full (g_str_hash, 
-						  g_str_equal, 
-						  g_free, 
+	prepared_queries = g_hash_table_new_full (g_str_hash,
+						  g_str_equal,
+						  g_free,
 						  g_free);
 
 	sql_filename = tracker_db_manager_get_sql_file ("sqlite-stored-procs.sql");
@@ -69,7 +69,7 @@ tracker_indexer_db_load_prepared_queries (void)
 		return FALSE;
 	}
 
-	g_message ("Loaded prepared queries file:'%s' size:%" G_GSIZE_FORMAT " bytes", 
+	g_message ("Loaded prepared queries file:'%s' size:%" G_GSIZE_FORMAT " bytes",
 		   sql_filename,
 		   g_mapped_file_get_length (mapped_file));
 
@@ -95,8 +95,8 @@ tracker_indexer_db_load_prepared_queries (void)
 
 			g_message ("  Adding query:'%s'", details[0]);
 
-			g_hash_table_insert (prepared_queries, 
-					     g_strdup (details[0]), 
+			g_hash_table_insert (prepared_queries,
+					     g_strdup (details[0]),
 					     g_strdup (details[1]));
 			g_strfreev (details);
 		}
@@ -854,18 +854,122 @@ load_sql_file (TrackerDBInterface *iface,
 	g_free (path);
 }
 
+static void
+load_metadata_file (TrackerDBInterface *iface,
+		    const gchar        *filename)
+{
+	GKeyFile *key_file = NULL;
+	gchar *service_file, *str_id;
+	gchar **groups, **keys;
+	TrackerField *def;
+	gint id, i, j;
+
+	key_file = g_key_file_new ();
+	service_file = tracker_db_manager_get_service_file (filename);
+
+	if (!g_key_file_load_from_file (key_file, service_file, G_KEY_FILE_NONE, NULL)) {
+		g_free (service_file);
+		g_key_file_free (key_file);
+		return;
+	}
+
+	groups = g_key_file_get_groups (key_file, NULL);
+
+	for (i = 0; groups[i]; i++) {
+		def = tracker_ontology_get_field_def (groups[i]);
+
+		if (!def) {
+			tracker_db_interface_execute_procedure (iface, NULL, "InsertMetadataType", groups[i], NULL);
+			id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (iface));
+		} else {
+			id = atoi (tracker_field_get_id (def));
+			g_error ("Duplicated metadata description %s", groups[i]);
+		}
+
+		str_id = tracker_uint_to_string (id);
+		keys = g_key_file_get_keys (key_file, groups[i], NULL, NULL);
+
+		for (j = 0; keys[j]; j++) {
+			gchar *value, *new_value;
+
+			value = g_key_file_get_locale_string (key_file, groups[i], keys[j], NULL, NULL);
+
+			if (!value) {
+				continue;
+			}
+
+			new_value = tracker_boolean_as_text_to_number (value);
+			g_free (value);
+
+			if (strcasecmp (keys[j], "Parent") == 0) {
+				tracker_db_interface_execute_procedure (iface, NULL, "InsertMetaDataChildren",
+									str_id, new_value, NULL);
+			} else if (strcasecmp (keys[j], "DataType") == 0) {
+				GEnumValue *enum_value;
+
+				enum_value = g_enum_get_value_by_name (g_type_class_peek (TRACKER_TYPE_FIELD_TYPE), new_value);
+
+				if (enum_value) {
+					tracker_db_interface_execute_query (iface, NULL,
+									    "update MetaDataTypes set DataTypeID = %d where ID = %d",
+									    enum_value->value, id);
+				}
+			} else {
+				char *esc_value = tracker_escape_string (new_value);
+
+				tracker_db_interface_execute_query (iface, NULL,
+								    "update MetaDataTypes set  %s = '%s' where ID = %d",
+								    keys[j], esc_value, id);
+				g_free (esc_value);
+			}
+
+			g_free (new_value);
+		}
+
+		g_free (str_id);
+		g_strfreev (keys);
+	}
+
+	g_strfreev (groups);
+	g_free (service_file);
+	g_key_file_free (key_file);
+}
+
 TrackerDBInterface *
 tracker_indexer_db_get_common (void)
 {
 	TrackerDBInterface *interface;
-	const gchar *common_db_path;
+	const gchar *path;
+	gboolean create = FALSE;
 
-	common_db_path = tracker_db_manager_get_file (TRACKER_DB_COMMON);
-	interface = tracker_db_interface_sqlite_new (common_db_path);
+	path = tracker_db_manager_get_file (TRACKER_DB_COMMON);
+
+	if (!g_file_test (path, G_FILE_TEST_EXISTS)) {
+		create = TRUE;
+	}
+
+	interface = tracker_db_interface_sqlite_new (path);
 	tracker_db_interface_set_procedure_table (interface, prepared_queries);
 
-	/* Load services info */
-	load_service_file (interface, "default.service");
+	if (create) {
+		/* Create tables */
+		load_sql_file (interface, "sqlite-tracker.sql", NULL);
+		load_sql_file (interface, "sqlite-metadata.sql", NULL);
+		load_sql_file (interface, "sqlite-service-types.sql", NULL);
+
+		/* Load services info */
+		load_service_file (interface, "default.service");
+
+		/* Load metadata info */
+		load_metadata_file (interface, "default.metadata");
+		load_metadata_file (interface, "file.metadata");
+		load_metadata_file (interface, "audio.metadata");
+		load_metadata_file (interface, "application.metadata");
+		load_metadata_file (interface, "document.metadata");
+		load_metadata_file (interface, "email.metadata");
+		load_metadata_file (interface, "image.metadata");
+		load_metadata_file (interface, "video.metadata");
+	}
 
 	/* Load static data into tracker ontology */
 	tracker_db_get_static_data (interface);
@@ -897,7 +1001,6 @@ tracker_indexer_db_get_file_metadata (void)
 	if (create) {
 		load_sql_file (interface, "sqlite-service.sql", NULL);
 		load_sql_file (interface, "sqlite-service-triggers.sql", "!");
-		load_sql_file (interface, "sqlite-metadata.sql", NULL);
 	}
 
 	return interface;

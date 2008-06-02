@@ -263,6 +263,10 @@ init_indexer (TrackerIndexer *indexer)
 		tracker_dir_remove (priv->db_dir);
 	}
 
+	if (!g_file_test (priv->db_dir, G_FILE_TEST_EXISTS)) {
+		g_mkdir_with_parents (priv->db_dir, 00755);
+	}
+
 	index_file = g_build_filename (priv->db_dir, "file-index.db", NULL);
 
 	priv->index = tracker_index_new (index_file,

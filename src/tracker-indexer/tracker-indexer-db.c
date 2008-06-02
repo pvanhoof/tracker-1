@@ -762,6 +762,39 @@ set_params (TrackerDBInterface *iface,
 	}
 }
 
+static void
+load_sql_file (TrackerDBInterface *iface,
+	       const gchar        *file,
+	       const gchar        *delimiter)
+{
+	gchar *path, *content, **queries;
+	gint i;
+
+	path = tracker_db_manager_get_sql_file (file);
+
+	if (!delimiter) {
+		delimiter = ";";
+	}
+
+	if (!g_file_get_contents (path, &content, NULL, NULL)) {
+		g_critical ("Cannot read SQL file:'%s', please reinstall tracker"
+			    " or check read permissions on the file if it exists", file);
+		g_assert_not_reached ();
+	}
+
+	queries = g_strsplit (content, delimiter, -1);
+
+	for (i = 0; queries[i]; i++) {
+		tracker_db_interface_execute_query (iface, NULL, queries[i]);
+	}
+
+	g_message ("Loaded SQL file:'%s'", file);
+
+	g_strfreev (queries);
+	g_free (content);
+	g_free (path);
+}
+
 TrackerDBInterface *
 tracker_indexer_db_get_common (void)
 {
@@ -786,8 +819,14 @@ tracker_indexer_db_get_file_metadata (void)
 {
 	TrackerDBInterface *interface;
 	const gchar *path;
+	gboolean create = FALSE;
 
 	path = tracker_db_manager_get_file (TRACKER_DB_FILE_META);
+
+	if (!g_file_test (path, G_FILE_TEST_EXISTS)) {
+		create = TRUE;
+	}
+
 	interface = tracker_db_interface_sqlite_new (path);
 	tracker_db_interface_set_procedure_table (interface, prepared_queries);
 
@@ -795,6 +834,12 @@ tracker_indexer_db_get_file_metadata (void)
 		    tracker_db_manager_get_cache_size (TRACKER_DB_FILE_META),
 		    tracker_db_manager_get_page_size (TRACKER_DB_FILE_META),
 		    tracker_db_manager_get_add_functions (TRACKER_DB_FILE_META));
+
+	if (create) {
+		load_sql_file (interface, "sqlite-service.sql", NULL);
+		load_sql_file (interface, "sqlite-service-triggers.sql", "!");
+		load_sql_file (interface, "sqlite-metadata.sql", NULL);
+	}
 
 	return interface;
 }

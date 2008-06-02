@@ -1,3 +1,12 @@
+2008-06-02  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer-db.c (load_sql_file): Moved from
+	trackerd, executes the queries contained in a text file.
+	(tracker_indexer_db_get_file_metadata): Load sql files necessary to
+	create the tables/triggers if the DB file didn't exist.
+	* src/tracker-indexer/tracker-indexer.c (init_indexer): Create the
+	DB directory if it didn't exist or was deleted.
+
 2008-06-02  Martyn Russell  <martyn@imendio.com>
 
 	* src/tracker-indexer/tracker-index.c: (cache_flush_foreach):

@@ -523,6 +523,36 @@ tracker_db_get_new_service_id (TrackerDBInterface *iface)
 	return id;
 }
 
+
+guint32
+tracker_db_get_new_event_id (TrackerDBInterface *iface)
+{
+	TrackerDBResultSet *result_set;
+	gchar *id_str;
+	guint32 id;
+
+	result_set = tracker_db_interface_execute_procedure (iface, NULL, "GetNewEventID", NULL);
+
+	if (!result_set) {
+		g_critical ("Could not create event, GetNewEventID failed");
+		return 0;
+	}
+
+	tracker_db_result_set_get (result_set, 0, &id_str, -1);
+	g_object_unref (result_set);
+
+	id = atoi (id_str);
+	g_free (id_str);
+
+	id++;
+	id_str = tracker_int_to_string (id);
+
+	tracker_db_interface_execute_procedure (iface, NULL, "UpdateNewEventID", id_str, NULL);
+	g_free (id_str);
+
+	return id;
+}
+
 void
 tracker_db_increment_stats (TrackerDBInterface *iface,
 			    TrackerService     *service)
@@ -537,6 +567,30 @@ tracker_db_increment_stats (TrackerDBInterface *iface,
 	if (parent) {
 		tracker_db_interface_execute_procedure (iface, NULL, "IncStat", parent, NULL);
 	}
+}
+
+
+gboolean
+tracker_db_create_event (TrackerDBInterface *iface,
+			   guint32 id, 
+			   guint32 service_id, 
+			   const gchar *type)
+{
+	gchar *id_str, *service_id_str;
+
+	id_str = tracker_guint32_to_string (id);
+	service_id_str = tracker_guint32_to_string (service_id);
+
+	tracker_db_interface_execute_procedure (iface, NULL, "CreateEvent", 
+						id_str,
+						service_id_str,
+						type,
+						NULL);
+
+	g_free (id_str);
+	g_free (service_id_str);
+
+	return TRUE;
 }
 
 gboolean
@@ -580,6 +634,11 @@ tracker_db_create_service (TrackerDBInterface *iface,
 						    "Update services set Enabled = 0 where ID = %d",
 						    id);
 	}
+
+	g_free (id_str);
+	g_free (service_type_id_str);
+	g_free (dirname);
+	g_free (basename);
 
 	return TRUE;
 }

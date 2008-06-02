@@ -110,6 +110,7 @@ enum {
 
 enum {
 	FINISHED,
+	INDEX_UPDATED,
 	LAST_SIGNAL
 };
 
@@ -228,6 +229,15 @@ tracker_indexer_class_init (TrackerIndexerClass *class)
 					   G_OBJECT_CLASS_TYPE (object_class),
 					   G_SIGNAL_RUN_LAST,
 					   G_STRUCT_OFFSET (TrackerIndexerClass, finished),
+					   NULL, NULL,
+					   g_cclosure_marshal_VOID__VOID,
+					   G_TYPE_NONE, 0);
+
+	
+	signals [INDEX_UPDATED] = g_signal_new ("index-updated",
+					   G_OBJECT_CLASS_TYPE (object_class),
+					   G_SIGNAL_RUN_LAST,
+					   G_STRUCT_OFFSET (TrackerIndexerClass, index_updated),
 					   NULL, NULL,
 					   g_cclosure_marshal_VOID__VOID,
 					   G_TYPE_NONE, 0);
@@ -449,12 +459,13 @@ process_file (TrackerIndexer *indexer,
 		id = tracker_db_get_new_service_id (priv->common);
 
 		if (tracker_db_create_service (priv->metadata, id, service, info->path, metadata)) {
-			tracker_db_increment_stats (priv->common, service);
+			guint32 eid;
 
-			/* FIXME
-			if (tracker_config_get_enable_xesam (tracker->config))
-				tracker_db_create_event (db_con, id, "Create");
-			*/
+			eid = tracker_db_get_new_event_id (priv->common);
+
+			tracker_db_create_event (priv->common, eid, id, "Create");
+
+			tracker_db_increment_stats (priv->common, service);
 
 			index_metadata (indexer, id, service, metadata);
 		}
@@ -529,6 +540,7 @@ process_module (TrackerIndexer *indexer,
 	g_strfreev (dirs);
 }
 
+
 static gboolean
 indexing_func (gpointer data)
 {
@@ -562,6 +574,8 @@ indexing_func (gpointer data)
 		}
 
 		process_module (indexer, priv->current_module->data);
+
+		g_signal_emit (indexer, signals[INDEX_UPDATED], 0);
 	}
 
 	return TRUE;

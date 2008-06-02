@@ -34,6 +34,8 @@ static GHashTable *xesam_sessions;
 static gchar      *xesam_dir;
 static gboolean    live_search_handler_running = FALSE;
 
+static void tracker_xesam_manager_wakeup (gpointer user_data);
+
 GQuark
 tracker_xesam_manager_error_quark (void)
 {
@@ -57,8 +59,55 @@ tracker_xesam_manager_init (void)
 						g_str_equal, 
 						(GDestroyNotify) g_free, 
 						(GDestroyNotify) g_object_unref);
-	
+
 	xesam_dir = g_build_filename (g_get_home_dir (), ".xesam", NULL);
+
+}
+
+static void 
+tracker_xesam_manager_finished (DBusGProxy *proxy)
+{
+	dbus_g_proxy_disconnect_signal (proxy, 
+			"IndexUpdated",
+			G_CALLBACK (tracker_xesam_manager_wakeup),
+			NULL);
+
+	dbus_g_proxy_disconnect_signal (proxy, 
+			"Finished",
+			G_CALLBACK (tracker_xesam_manager_finished),
+			NULL);
+}
+
+void 
+tracker_xesam_subscribe_indexer_updated (DBusGProxy *proxy) 
+{
+	dbus_g_proxy_add_signal (proxy, "Finished",
+			   G_TYPE_INVALID,
+			   G_SIGNAL_RUN_LAST,
+			   NULL,
+			   NULL, NULL,
+			   g_cclosure_marshal_VOID__VOID,
+			   G_TYPE_NONE, 0);
+
+	dbus_g_proxy_add_signal (proxy, "IndexUpdated",
+			   G_TYPE_INVALID,
+			   G_SIGNAL_RUN_LAST,
+			   NULL,
+			   NULL, NULL,
+			   g_cclosure_marshal_VOID__VOID,
+			   G_TYPE_NONE, 0);
+
+	dbus_g_proxy_connect_signal (proxy, 
+			"Finished",
+			G_CALLBACK (tracker_xesam_manager_finished),
+			g_object_ref (proxy),
+			(GClosureNotify) g_object_unref);
+
+	dbus_g_proxy_connect_signal (proxy, 
+			"IndexUpdated",
+			G_CALLBACK (tracker_xesam_manager_wakeup),
+			g_object_ref (proxy),
+			(GClosureNotify) g_object_unref);
 }
 
 void
@@ -287,8 +336,8 @@ live_search_handler_destroy (gpointer data)
 	live_search_handler_running = FALSE;
 }
 
-void 
-tracker_xesam_manager_wakeup (guint32 last_id)
+static void 
+tracker_xesam_manager_wakeup (gpointer user_data)
 {
 	/* This happens each time a new event is created */
 

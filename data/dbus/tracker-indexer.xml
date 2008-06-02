@@ -19,5 +19,7 @@
 	 can add this later
       -->
     <signal name="Finished"/>
+    <signal name="IndexUpdated"/>
+
   </interface>
 </node>

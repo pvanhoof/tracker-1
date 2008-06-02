@@ -802,6 +802,7 @@ shutdown_directories (void)
 	}
 }
 
+
 gint
 main (gint argc, gchar *argv[])
 {
@@ -998,8 +999,10 @@ main (gint argc, gchar *argv[])
 			}
 			
 			if (tracker->is_running && !tracker->shutdown) {
+				DBusGProxy *proxy;
 				g_message ("Indexing enabled, starting...");
-				tracker_dbus_start_indexer ();
+				proxy = tracker_dbus_start_indexer ();
+				tracker_xesam_subscribe_indexer_updated (proxy);
 			}
 
 #if 0

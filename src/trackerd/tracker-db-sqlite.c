@@ -46,7 +46,6 @@
 #include "tracker-utils.h"
 #include "tracker-watch.h"
 #include "tracker-query-tree.h"
-#include "tracker-xesam-manager.h"
 #include "tracker-xesam-ontology.h"
 
 #define MAX_INDEX_TEXT_LENGTH 1048576
@@ -3474,6 +3473,7 @@ tracker_db_delete_handled_events (DBConnection *db_con)
 	tracker_exec_proc_no_reply (db_con->db, "DeleteHandledEvents", NULL);
 }
 
+/* Deprecated */
 static guint32
 tracker_db_create_event (DBConnection *db_con, const gchar *service_id_str, const gchar *type)
 {
@@ -3507,13 +3507,12 @@ tracker_db_create_event (DBConnection *db_con, const gchar *service_id_str, cons
 	if (result_set)
 		g_object_unref (result_set);
 
-	tracker_xesam_manager_wakeup (id);
-
 	g_free (eid);
 
 	return id;
 }
 
+/* Deprecated */
 guint32
 tracker_db_create_service (DBConnection *db_con, const char *service, TrackerDBFileInfo *info)
 {

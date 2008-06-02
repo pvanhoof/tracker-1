@@ -19,8 +19,6 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#include <dbus/dbus-glib-bindings.h>
-
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-utils.h>
@@ -323,14 +321,14 @@ tracker_dbus_get_object (GType type)
         return NULL;
 }
 
-void
+DBusGProxy *
 tracker_dbus_start_indexer (void)
 {
 	GError *error = NULL;
 
 	if (!connection) {
 		g_critical ("DBus support must be initialized before starting the indexer!");
-		return;
+		return NULL;
 	}
 
 	if (!proxy_for_indexer) {
@@ -342,7 +340,7 @@ tracker_dbus_start_indexer (void)
 		
 		if (!proxy_for_indexer) {
 			g_critical ("Couldn't create a DBusGProxy to the indexer service");
-			return;
+			return NULL;
 		}
 	}
 
@@ -354,4 +352,6 @@ tracker_dbus_start_indexer (void)
 		g_warning ("Couldn't start indexer, %s",
 			   error->message);
 	}
+	
+	return proxy_for_indexer;
 }

@@ -48,6 +48,7 @@ struct TrackerIndexerClass {
 	GObjectClass parent_class;
 
 	void (*finished) (TrackerIndexer *indexer);
+	void (*index_updated) (TrackerIndexer *indexer);
 };
 
 GType           tracker_indexer_get_type    (void) G_GNUC_CONST;

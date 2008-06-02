@@ -61,9 +61,9 @@ TrackerXesamSession*
 TrackerXesamLiveSearch* 
          tracker_xesam_manager_get_live_search        (const gchar             *search_id,
 						       GError                 **error);
-void     tracker_xesam_manager_wakeup                 (guint32                  last_id);
 gchar *  tracker_xesam_manager_generate_unique_key    (void);
 gboolean tracker_xesam_manager_is_uri_in_xesam_dir    (const gchar             *uri);
+void     tracker_xesam_subscribe_indexer_updated      (DBusGProxy *proxy);
 
 G_END_DECLS
 

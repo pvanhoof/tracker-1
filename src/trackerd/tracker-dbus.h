@@ -25,6 +25,7 @@
 #include <glib.h>
 
 #include <libtracker-common/tracker-config.h>
+#include <dbus/dbus-glib-bindings.h>
 
 #include <libtracker-db/tracker-db-interface.h>
 
@@ -32,11 +33,11 @@
 
 G_BEGIN_DECLS
 
-gboolean tracker_dbus_init             (TrackerConfig *config);
-void     tracker_dbus_shutdown         (void);
-gboolean tracker_dbus_register_objects (Tracker       *tracker);
-GObject *tracker_dbus_get_object       (GType          type);
-void     tracker_dbus_start_indexer    (void);
+gboolean    tracker_dbus_init             (TrackerConfig *config);
+void        tracker_dbus_shutdown         (void);
+gboolean    tracker_dbus_register_objects (Tracker       *tracker);
+GObject    *tracker_dbus_get_object       (GType          type);
+DBusGProxy *tracker_dbus_start_indexer    (void);
 
 G_END_DECLS
 

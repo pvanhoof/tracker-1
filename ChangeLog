@@ -1,3 +1,24 @@
+2008-06-02  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/tracker-indexer/tracker-indexer-db.c:
+	* src/tracker-indexer/tracker-indexer-db.h:
+	* src/tracker-indexer/tracker-indexer.c:
+	* src/tracker-indexer/tracker-indexer.h:
+	* src/trackerd/tracker-main.c:
+	* src/trackerd/tracker-dbus.c:
+	* src/trackerd/tracker-dbus.h:
+	* src/trackerd/tracker-db-sqlite.c:
+	* src/trackerd/tracker-xesam-manager.c:
+	* src/trackerd/tracker-xesam-manager.h:
+	* data/dbus/tracker-indexer.xml:
+
+	IndexerUpdated signal emitted by the indexer-process to notify trackerd
+	about changes it should act on in case LiveSearches are active that are
+	influenced by said changes.
+
+	Events table updating reinstalled after refactoring the indexing to a
+	separate process removed this functionality.
+
 2008-06-02  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/libtracker-utils/tracker-file-utils.[ch] (tracker_dir_remove):

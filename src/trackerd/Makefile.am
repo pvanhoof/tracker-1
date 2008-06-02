@@ -10,7 +10,6 @@ INCLUDES =								\
 	$(FAM_CFLAGS)							\
 	$(SQLITE3_CFLAGS)						\
 	$(QDBM_CFLAGS)							\
-	$(UNAC_CFLAGS)							\
 	$(DBUS_CFLAGS)							\
 	$(PANGO_CFLAGS)							\
 	$(GMODULE_CFLAGS)						\
@@ -139,7 +138,6 @@ trackerd_LDADD =							\
 	$(FAM_LIBS)							\
 	$(SQLITE3_LIBS)							\
 	$(QDBM_LIBS)							\
-	$(UNAC_LIBS)							\
 	$(DBUS_LIBS)							\
 	$(PANGO_LIBS)							\
 	$(GMODULE_LIBS)							\

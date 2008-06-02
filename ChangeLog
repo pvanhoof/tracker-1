@@ -1,3 +1,10 @@
+2008-06-02  Michael Biebl  <mbiebl@gmail.com>
+
+	* src/trackerd/Makefile.am:
+	* src/libtracker-common/Makefile.am: The accent stripping
+	functionality using unac, is now in libtracker-common, so link
+	libtracker-common against unac, not trackerd.
+
 2008-06-02  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/trackerd/tracker-db-sqlite.c:

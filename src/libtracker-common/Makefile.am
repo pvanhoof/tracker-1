@@ -4,6 +4,7 @@ INCLUDES =					\
 	-I$(top_srcdir)/src			\
 	$(HAL_CFLAGS)				\
 	$(DBUS_CFLAGS)				\
+	$(UNAC_CFLAGS)				\
 	$(PANGO_CFLAGS)				\
 	$(GLIB2_CFLAGS)
 
@@ -58,6 +59,7 @@ libtracker_common_la_LDFLAGS = -version-info 0:0:0
 libtracker_common_la_LIBADD = 			\
 	$(HAL_LIBS)				\
 	$(DBUS_LIBS)				\
+	$(UNAC_LIBS)				\
 	$(PANGO_LIBS)				\
 	$(GLIB2_LIBS)
 

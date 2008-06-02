@@ -34,8 +34,6 @@ static GHashTable *xesam_sessions;
 static gchar      *xesam_dir;
 static gboolean    live_search_handler_running = FALSE;
 
-static void tracker_xesam_manager_wakeup (gpointer user_data);
-
 GQuark
 tracker_xesam_manager_error_quark (void)
 {
@@ -336,7 +334,7 @@ live_search_handler_destroy (gpointer data)
 	live_search_handler_running = FALSE;
 }
 
-static void 
+void 
 tracker_xesam_manager_wakeup (gpointer user_data)
 {
 	/* This happens each time a new event is created */

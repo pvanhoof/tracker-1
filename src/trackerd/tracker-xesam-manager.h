@@ -64,6 +64,7 @@ TrackerXesamLiveSearch*
 gchar *  tracker_xesam_manager_generate_unique_key    (void);
 gboolean tracker_xesam_manager_is_uri_in_xesam_dir    (const gchar             *uri);
 void     tracker_xesam_subscribe_indexer_updated      (DBusGProxy *proxy);
+void     tracker_xesam_manager_wakeup                 (gpointer user_data);
 
 G_END_DECLS
 

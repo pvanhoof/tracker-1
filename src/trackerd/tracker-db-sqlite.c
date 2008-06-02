@@ -46,6 +46,7 @@
 #include "tracker-watcher.h"
 #include "tracker-query-tree.h"
 #include "tracker-xesam-ontology.h"
+#include "tracker-xesam-manager.h"
 
 #define MAX_INDEX_TEXT_LENGTH 1048576
 #define MAX_TEXT_BUFFER       65567
@@ -3509,6 +3510,8 @@ tracker_db_create_event (DBConnection *db_con, const gchar *service_id_str, cons
 		g_object_unref (result_set);
 
 	g_free (eid);
+
+	tracker_xesam_manager_wakeup (NULL);
 
 	return id;
 }

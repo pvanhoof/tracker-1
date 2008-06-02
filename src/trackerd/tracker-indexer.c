@@ -50,7 +50,6 @@
 
 #include "tracker-query-tree.h"
 #include "tracker-indexer.h"
-#include "tracker-cache.h"
 #include "tracker-dbus.h"
 #include "tracker-daemon.h"
 #include "tracker-process-files.h"
@@ -328,10 +327,6 @@ tracker_indexer_optimize (Indexer *indexer)
  
 	int num, b_count;
 
-        if (tracker->shutdown) {
-                return FALSE;
-        }
-
 	/* set bucket count to bucket_ratio times no. of recs divided by no. of divisions */
         num = CLAMP (get_preferred_bucket_count (indexer), 
                      tracker_config_get_min_bucket_count (tracker->config),
@@ -434,9 +429,18 @@ tracker_indexer_apply_changes (Indexer *dest, Indexer *src,  gboolean update)
 		i++;
 
 		if (i > 1 && (i % 200 == 0)) {
+#if 0
+                        /* FIXME-indexer-split: This has been commented out as
+                         * a result of removing the tracker-cache.[ch] which
+                         * is no longer used. This code is in a transitional
+                         * period.  
+                         *
+                         * -Martyn
+                         */ 
 			if (!tracker_cache_process_events (NULL, FALSE)) {
 				return;	
 			}
+#endif
 		}
 
 		if (i > 1 && (i % interval == 0)) {
@@ -498,12 +502,10 @@ tracker_indexer_has_tmp_merge_files (IndexType type)
 
 
 	if (type == INDEX_TYPE_FILES) {
-		files =  tracker_process_files_get_files_with_prefix (tracker, 
-                                                                      tracker_get_data_dir (),
+		files =  tracker_process_files_get_files_with_prefix (tracker_get_data_dir (),
                                                                       "file-index.tmp.");
 	} else {
-		files =  tracker_process_files_get_files_with_prefix (tracker, 
-                                                                      tracker_get_data_dir (), 
+		files =  tracker_process_files_get_files_with_prefix (tracker_get_data_dir (), 
                                                                       "email-index.tmp.");
 	}
 
@@ -531,13 +533,11 @@ tracker_indexer_has_merge_files (IndexType type)
         data_dir = tracker_get_data_dir ();
 
 	if (type == INDEX_TYPE_FILES) {
-		files =  tracker_process_files_get_files_with_prefix (tracker, 
-                                                                      data_dir, 
+		files =  tracker_process_files_get_files_with_prefix (data_dir, 
                                                                       "file-index.tmp.");
 		final = g_build_filename (data_dir, "file-index-final", NULL);
 	} else {
-		files =  tracker_process_files_get_files_with_prefix (tracker, 
-                                                                      data_dir,
+		files =  tracker_process_files_get_files_with_prefix (data_dir,
                                                                       "email-index.tmp.");
 		final = g_build_filename (data_dir, "email-index-final", NULL);
 	}
@@ -609,10 +609,6 @@ tracker_indexer_merge_indexes (IndexType type)
 	gboolean     final_exists;
         gchar       *tmp;
 
-	if (tracker->shutdown) {
-                return;
-        }
-
         data_dir = tracker_get_data_dir ();
         object = tracker_dbus_get_object (TRACKER_TYPE_DAEMON);
 
@@ -636,7 +632,7 @@ tracker_indexer_merge_indexes (IndexType type)
 		g_free (tmp);
 	}
 	
-	file_list = tracker_process_files_get_files_with_prefix (tracker, data_dir, prefix);
+	file_list = tracker_process_files_get_files_with_prefix (data_dir, prefix);
 
 	if (!file_list || !file_list->data) {
 		g_slist_free (index_list);
@@ -738,6 +734,14 @@ tracker_indexer_merge_indexes (IndexType type)
 				i++;
 
 				if (i > 101 && (i % 100 == 0)) {
+#if 0
+                                        /* FIXME-indexer-split: This has been commented out as
+                                         * a result of removing the tracker-cache.[ch] which
+                                         * is no longer used. This code is in a transitional
+                                         * period.  
+                                         *
+                                         * -Martyn
+                                         */ 
 					if (!tracker_cache_process_events (NULL, FALSE)) {
                                                 tracker_status_set_and_signal (TRACKER_STATUS_SHUTDOWN,
                                                                                tracker->first_time_index,
@@ -748,6 +752,7 @@ tracker_indexer_merge_indexes (IndexType type)
                                                                                tracker_config_get_enable_indexing (tracker->config));
 						return;	
 					}
+#endif
 				}
 
 				if (i > interval && (i % interval == 0)) {
@@ -889,10 +894,6 @@ tracker_indexer_merge_indexes (IndexType type)
 gboolean
 tracker_indexer_append_word_chunk (Indexer *indexer, const gchar *word, WordDetails *details, gint word_detail_count)
 {
-        if (tracker->shutdown) {
-                return FALSE;
-        }
-
 	g_return_val_if_fail (indexer, FALSE);
 	g_return_val_if_fail (indexer->word_index, FALSE);
 	g_return_val_if_fail (word, FALSE);

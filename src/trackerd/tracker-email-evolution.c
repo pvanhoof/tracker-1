@@ -41,7 +41,6 @@
 
 #include "tracker-email-utils.h"
 #include "tracker-db-email.h"
-#include "tracker-cache.h"
 #include "tracker-dbus.h"
 #include "tracker-daemon.h"
 #include "tracker-watch.h"
@@ -1447,6 +1446,7 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
 				email_free_mail_file (mail_msg->parent_mail_file);
 				email_free_mail_message (mail_msg);
 
+#if 0
 				if (!tracker_cache_process_events (db_con->data, TRUE)) {
 					tracker->shutdown = TRUE;
                                         tracker_status_set_and_signal (TRACKER_STATUS_SHUTDOWN,
@@ -1458,6 +1458,7 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
                                                                        tracker_config_get_enable_indexing (tracker->config));
 					return;
 				}
+#endif
 
 				if (tracker_db_regulate_transactions (db_con->data, 500)) {
                                         if (tracker_config_get_verbosity (tracker->config) == 1) {

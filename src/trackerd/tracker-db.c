@@ -1006,12 +1006,14 @@ tracker_db_index_service (DBConnection      *db_con,
 		tracker_db_save_metadata (db_con, meta_table, index_table, service, info->file_id, info->is_new);
 	}
 
+#if 0
 	/* Update full text indexes */
 	if (info->is_new) {
 		tracker_db_update_indexes_for_new_service (info->file_id, info->service_type_id, index_table);
 	} else {
 		tracker_db_update_differential_index (old_table, index_table, str_file_id, info->service_type_id);
 	}
+#endif
 
 	tracker_parser_text_free (index_table);
 	tracker_parser_text_free (old_table);

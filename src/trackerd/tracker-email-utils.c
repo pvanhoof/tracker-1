@@ -35,7 +35,6 @@
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-utils.h>
 
-#include "tracker-cache.h"
 #include "tracker-db-email.h"
 #include "tracker-dbus.h"
 #include "tracker-daemon.h"
@@ -177,10 +176,19 @@ email_parse_mail_file_and_save_new_emails (DBConnection *db_con, MailApplication
 
 		email_free_mail_message (mail_msg);
 
+#if 0
+                /* FIXME-indexer-split: This has been commented out as
+                 * a result of removing the tracker-cache.[ch] which
+                 * is no longer used. This code is in a transitional
+                 * period.  
+                 *
+                 * -Martyn
+                 */ 
 		if (!tracker_cache_process_events (db_con->data, TRUE) ) {
 			tracker->shutdown = TRUE;
 			return FALSE;	
 		}
+#endif
 
 		if (tracker_db_regulate_transactions (db_con->data, 500)) {
                         GObject *object;

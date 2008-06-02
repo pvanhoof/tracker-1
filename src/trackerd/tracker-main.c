@@ -46,7 +46,6 @@
 #include <libtracker-db/tracker-db-manager.h>
 
 #include "tracker-email.h"
-#include "tracker-cache.h"
 #include "tracker-dbus.h"
 #include "tracker-indexer.h"
 #include "tracker-process-files.h"
@@ -403,6 +402,15 @@ create_index (gboolean need_data)
 
 }
 
+static gboolean 
+shutdown_timeout_cb (gpointer user_data)
+{
+	g_critical ("Could not exit in a timely fashion - terminating...");
+	exit (EXIT_FAILURE);
+
+	return FALSE;
+}
+
 static void
 signal_handler (gint signo)
 {
@@ -426,14 +434,8 @@ signal_handler (gint signo)
 	case SIGTERM:
 	case SIGINT:
 		in_loop = TRUE;
-		
 		tracker->is_running = FALSE;
-		tracker_end_watching ();
-		
-		g_timeout_add_full (G_PRIORITY_LOW, 1,
-				    (GSourceFunc) tracker_shutdown,
-				    g_strdup (g_strsignal (signo)), NULL);
-		
+	
 	default:
 		if (g_strsignal (signo)) {
 			g_message ("Received signal:%d->'%s'", 
@@ -659,15 +661,6 @@ initialise_databases (gboolean need_index)
 	tracker_db_get_static_data (db_con);
 }
 
-static gboolean 
-shutdown_timeout_cb (gpointer user_data)
-{
-	g_critical ("Could not exit in a timely fashion - terminating...");
-	exit (EXIT_FAILURE);
-
-	return FALSE;
-}
-
 static void
 shutdown_threads (GThread *thread_to_join)
 {
@@ -854,7 +847,6 @@ main (gint argc, gchar *argv[])
 
 	g_option_context_add_main_entries (context, entries, NULL);
 	g_option_context_parse (context, &argc, &argv, &error);
-
 	g_option_context_free (context);
 	g_free (example);
 
@@ -940,11 +932,15 @@ main (gint argc, gchar *argv[])
 
 	sanity_check_option_values ();
 
+	if (!tracker_watcher_init ()) {
+		return EXIT_FAILURE;
+	} 
+
 	tracker_nfs_lock_init (tracker_config_get_nfs_locking (tracker->config));
+	tracker_watcher_init ();
 	tracker_db_init ();
 	tracker_db_manager_init (data_dir, user_data_dir, sys_tmp_dir);
 	tracker_xesam_manager_init ();
-	tracker_cache_init ();
 	tracker_ontology_init ();
 	tracker_email_init (tracker->config);
 
@@ -977,11 +973,9 @@ main (gint argc, gchar *argv[])
 	}
 
 	if (!tracker->readonly) {
-		if (!tracker_start_watching ()) {
-			tracker->is_running = FALSE;
-			g_critical ("File monitoring failed to start");
-		} 
-		else if (tracker_config_get_enable_indexing (tracker->config)) {
+		tracker_process_files_init (tracker);
+
+		if (tracker_config_get_enable_indexing (tracker->config)) {
 			gint initial_sleep;
 
 			initial_sleep = tracker_config_get_initial_sleep (tracker->config);
@@ -993,12 +987,12 @@ main (gint argc, gchar *argv[])
 				
 				initial_sleep --;
 				
-				if (!tracker->is_running || tracker->shutdown) {
+				if (!tracker->is_running) {
 					break;
 				}
 			}
 			
-			if (tracker->is_running && !tracker->shutdown) {
+			if (tracker->is_running) {
 				DBusGProxy *proxy;
 				g_message ("Indexing enabled, starting...");
 				proxy = tracker_dbus_start_indexer ();
@@ -1031,7 +1025,6 @@ main (gint argc, gchar *argv[])
 	/* 
 	 * Shutdown the daemon
 	 */
-	tracker->shutdown = TRUE;
 	tracker_status_set (TRACKER_STATUS_SHUTDOWN);
 
 	/* Reset black list files */
@@ -1040,7 +1033,7 @@ main (gint argc, gchar *argv[])
 	g_slist_free (l);
 
 	/* Set kill timeout */
-	g_timeout_add_full (G_PRIORITY_LOW, 20000, shutdown_timeout_cb, NULL, NULL);
+	g_timeout_add_full (G_PRIORITY_LOW, 10000, shutdown_timeout_cb, NULL, NULL);
 
 	shutdown_indexer ();
 	shutdown_databases ();
@@ -1048,13 +1041,14 @@ main (gint argc, gchar *argv[])
 	shutdown_directories ();
 
 	/* Shutdown major subsystems */
+	tracker_process_files_shutdown ();
 	tracker_email_shutdown ();
 	tracker_dbus_shutdown ();
 	tracker_ontology_shutdown ();
-	tracker_cache_shutdown ();
 	tracker_xesam_manager_shutdown ();
 	tracker_db_shutdown ();
 	tracker_db_manager_shutdown ();
+	tracker_watcher_shutdown ();
 	tracker_nfs_lock_shutdown ();
 	tracker_log_shutdown ();
 

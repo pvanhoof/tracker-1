@@ -41,7 +41,6 @@
 
 #include "tracker-db-sqlite.h"
 #include "tracker-indexer.h"
-#include "tracker-cache.h"
 #include "tracker-main.h"
 #include "tracker-utils.h"
 #include "tracker-watch.h"
@@ -2298,7 +2297,9 @@ update_metadata_index (const char   *id,
 
 	/* we only do differential updates so only changed words scores are updated */
 	sid = tracker_ontology_get_id_for_service_type (service);
+#if 0
 	tracker_db_update_differential_index (old_table, new_table, id, sid);
+#endif
 
 	tracker_parser_text_free (old_table);
 	tracker_parser_text_free (new_table);
@@ -4275,19 +4276,17 @@ move_directory_files (DBConnection *db_con, const char *moved_from_uri, const ch
 
 
 static inline void
-move_directory (DBConnection *db_con, const char *moved_from_uri, const char *moved_to_uri)
+move_directory (DBConnection *db_con, 
+		const gchar  *moved_from_uri, 
+		const gchar  *moved_to_uri)
 {
-
 	/* stop watching old dir, start watching new dir */
-	tracker_remove_watch_dir (moved_from_uri, TRUE, db_con);
+	tracker_watcher_remove_dir (moved_from_uri, TRUE, db_con);
 		
 	tracker_db_move_file (db_con, moved_from_uri, moved_to_uri);
 	move_directory_files (db_con, moved_from_uri, moved_to_uri);
 
-	if (tracker_count_watch_dirs () < (int) tracker->watch_limit) {
-		tracker_add_watch_dir (moved_to_uri, db_con);
-	}
-	
+	tracker_watcher_add_dir (moved_to_uri, db_con);
 }
 
 
@@ -4362,121 +4361,6 @@ tracker_db_get_file_subfolders (DBConnection *db_con, const char *uri)
 
 	return result_set;
 }
-
-static void
-append_index_data (gpointer key,
-		   gpointer value,
-		   gpointer user_data)
-{
-	char		*word;
-	int		score;
-	ServiceTypeInfo	*info;
-
-	word = (char *) key;
-	score = GPOINTER_TO_INT (value);
-	info = user_data;
-
-	if (score != 0) {
-		/* cache word update */
-		tracker_cache_add (word, info->service_id, info->service_type_id, score, TRUE);
-	}
-
-
-}
-
-
-static void
-update_index_data (gpointer key,
-		   gpointer value,
-		   gpointer user_data)
-{
-	char		*word;
-	int		score;
-	ServiceTypeInfo	*info;
-
-	word = (char *) key;
-	score = GPOINTER_TO_INT (value);
-	info = user_data;
-
-	if (score == 0) return;
-
-	g_debug ("Updating index for word %s with score %d", word, score);
-	
-	tracker_cache_add (word, info->service_id, info->service_type_id, score, FALSE);
-
-}
-
-
-void
-tracker_db_update_indexes_for_new_service (guint32 service_id, int service_type_id, GHashTable *table)
-{
-	
-	if (table) {
-		ServiceTypeInfo *info;
-
-		info = g_slice_new (ServiceTypeInfo);
-
-		info->service_id = service_id;
-		info->service_type_id = service_type_id;
-	
-		g_hash_table_foreach (table, append_index_data, info);
-		g_slice_free (ServiceTypeInfo, info);
-	}
-}
-
-
-
-
-
-static void
-cmp_data (gpointer key,
-	  gpointer value,
-	  gpointer user_data)
-{
-	char	   *word;
-	int	   score;
-	GHashTable *new_table;
-
-	gpointer k=0,v=0;
-
-	word = (char *) key;
-	score = GPOINTER_TO_INT (value);
-	new_table = user_data;
-
-	if (!g_hash_table_lookup_extended (new_table, word, &k, &v)) {
-		g_hash_table_insert (new_table, g_strdup (word), GINT_TO_POINTER (0 - score));
-	} else {
-		g_hash_table_insert (new_table, (char *) word, GINT_TO_POINTER (GPOINTER_TO_INT (v) - score));
-	}
-}
-
-
-void
-tracker_db_update_differential_index (GHashTable *old_table, GHashTable *new_table, const char *id, int service_type_id)
-{
-	ServiceTypeInfo *info;
-
-	g_return_if_fail (id || service_type_id > -1);
-
-	if (!new_table) {
-		new_table = g_hash_table_new (g_str_hash, g_str_equal);
-	}
-
-	/* calculate the differential word scores between old and new data*/
-	if (old_table) {
-		g_hash_table_foreach (old_table, cmp_data, new_table);
-	}
-
-	info = g_new (ServiceTypeInfo, 1);
-
-	info->service_id = strtoul (id, NULL, 10);
-	info->service_type_id = service_type_id;
-
-	g_hash_table_foreach (new_table, update_index_data, info);
-
-	g_free (info);
-}
-
 
 TrackerDBResultSet *
 tracker_db_get_keyword_list (DBConnection *db_con, const char *service)

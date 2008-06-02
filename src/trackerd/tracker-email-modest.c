@@ -41,7 +41,6 @@
 #include "tracker-db-email.h"
 #include "tracker-dbus.h"
 #include "tracker-daemon.h"
-#include "tracker-cache.h"
 #include "tracker-status.h"
 #include "tracker-watch.h"
 
@@ -934,6 +933,15 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
 				email_free_mail_file (mail_msg->parent_mail_file);
 				email_free_mail_message (mail_msg);
 
+#if 0
+                                /* FIXME-indexer-split: This has been
+                                 * commented out as a result of
+                                 * removing the tracker-cache.[ch] which
+                                 * is no longer used. This code is in a
+                                 * transitional period.
+                                 *
+                                 * -Martyn
+                                 */ 
 				if (!tracker_cache_process_events (db_con->data, TRUE)) {
 					tracker->shutdown = TRUE;
                                         tracker_status_set_and_signal (TRACKER_STATUS_SHUTDOWN,
@@ -945,6 +953,7 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
                                                                        tracker_config_get_enable_indexing (tracker->config));
 					return;
 				}
+#endif
 
 				if (tracker_db_regulate_transactions (db_con->data, 500)) {
 

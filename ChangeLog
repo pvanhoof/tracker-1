@@ -1,3 +1,36 @@
+2008-06-02  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-cache.[ch]: 
+	* src/trackerd/tracker-db-email.c:
+	* src/trackerd/tracker-db-sqlite.c:
+	* src/trackerd/tracker-db.c: 
+	* src/trackerd/tracker-email-evolution.c:
+	* src/trackerd/tracker-email-modest.c:
+	* src/trackerd/tracker-email-utils.c: Removed tracker-cache.[ch]
+	now used in the tracker-indexer code and cleaned up all places
+	that call cache functions.
+	
+	* src/trackerd/tracker-email-kmail.c: 
+	* src/trackerd/tracker-indexer.c:
+
+	* src/trackerd/tracker-watch.h:
+	* src/trackerd/tracker-inotify.c: Refactored the code here and
+	changed the API to be more consistent.
+
+	* src/trackerd/tracker-main.[ch]: Updated the shutdown process so
+	we initialize and shutdown the process-files module which will
+	scan the disk for files to index. Also removed the
+	tracker->shutdown member, there is no point in having that AND the
+	->is_running member.
+	
+	* src/trackerd/tracker-process-files.[ch]: Removed a lot of the
+	indexer functionality and just left most of the directory
+	processing functions.
+	
+	* src/trackerd/tracker-utils.c: Removed the _add_io_grace()
+	function now it is no longer used.
+
 2008-06-02  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/tracker-indexer/tracker-indexer-db.c:

@@ -45,65 +45,99 @@
 
 #define INOTIFY_WATCH_LIMIT "/proc/sys/fs/inotify/max_user_watches"
 
-/* project wide global vars */
+static void process_event (const gchar     *uri, 
+                           gboolean         is_dir, 
+                           TrackerDBAction  action, 
+                           guint32          cookie);
 
 extern Tracker	    *tracker;
 extern DBConnection *main_thread_db_con;
 
-/* list to temporarily store moved_from events so they can be matched against moved_to events */
+static GIOChannel   *channel;
 static GSList 	    *move_list;
-static GQueue 	    *inotify_queue;
-static int           inotify_monitor_fd = -1;
-static int           inotify_count = 0;
+static GQueue 	    *event_queue;
+static gint          monitor_fd = -1;
+static gint          monitor_count;
+static gint          monitor_limit = 8191;
 
-static GIOChannel   *gio;
-
-
-static gboolean process_moved_events ();
-
-
-gboolean
-tracker_is_directory_watched (const char * dir, DBConnection *db_con)
+static gboolean
+is_delete_event (TrackerDBAction event_type)
 {
-	TrackerDBResultSet *result_set;
-	gint id;
+	return 
+                event_type == TRACKER_DB_ACTION_DELETE ||
+		event_type == TRACKER_DB_ACTION_DELETE_SELF ||
+		event_type == TRACKER_DB_ACTION_FILE_DELETED ||
+		event_type == TRACKER_DB_ACTION_DIRECTORY_DELETED;
+}
 
-	g_return_val_if_fail (dir != NULL && dir[0] == G_DIR_SEPARATOR, FALSE);
+static gboolean
+process_moved_events (void)
+{
+	GSList *l;
 
 	if (!tracker->is_running) {
 		return FALSE;
 	}
 
-	result_set = tracker_exec_proc (db_con->cache, "GetWatchID", dir, NULL);
-
-	if (!result_set) {
-		return FALSE;
+	if (!move_list) {
+		return TRUE;
 	}
 
-	tracker_db_result_set_get (result_set, 0, &id, -1);
-	g_object_unref (result_set);
+	for (l = move_list; l; l = l->next) {
+		TrackerDBFileInfo *info;
 
-	return (id >= 0);
+		info = l->data;
+
+		/* Make it a DELETE if we have not received a
+                 * corresponding MOVED_TO event after a certain
+                 * period.
+                 */
+		if (info->counter < 1 && 
+                    (info->action == TRACKER_DB_ACTION_FILE_MOVED_FROM || 
+                     info->action == TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM)) {
+			/* Make sure file no longer exists before
+                         * issuing a "delete".
+                         */
+			if (!tracker_file_is_valid (info->uri)) {
+				if (info->action == TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM) {
+					process_event (info->uri, 
+                                                       TRUE, 
+                                                       TRACKER_DB_ACTION_DIRECTORY_DELETED, 
+                                                       0);
+				} else {
+					process_event (info->uri, 
+                                                       FALSE, 
+                                                       TRACKER_DB_ACTION_FILE_DELETED, 
+                                                       0);
+				}
+			}
+
+			move_list = g_slist_remove (move_list, info);
+			tracker_db_file_info_free (info);
+
+			continue;
+		} else {
+			info->counter--;
+		}
+	}
+
+	if (!move_list) {
+		return FALSE;
+        }
+
+	return TRUE;
 }
-
-
-static gboolean
-is_delete_event (TrackerDBAction event_type)
-{
-	return (event_type == TRACKER_DB_ACTION_DELETE ||
-		event_type == TRACKER_DB_ACTION_DELETE_SELF ||
-		event_type == TRACKER_DB_ACTION_FILE_DELETED ||
-		event_type == TRACKER_DB_ACTION_DIRECTORY_DELETED);
-}
-
-
 
 static void
-process_event (const char *uri, gboolean is_dir, TrackerDBAction action, guint32 cookie)
+process_event (const gchar     *uri, 
+               gboolean         is_dir, 
+               TrackerDBAction  action, 
+               guint32          cookie)
 {
 	TrackerDBFileInfo *info;
 
-	g_return_if_fail (uri && (uri[0] == '/'));
+        g_return_if_fail (uri != NULL);
+        g_return_if_fail (uri[0] == G_DIR_SEPARATOR);
 
 	info = tracker_db_file_info_new (uri, action, 1, TRACKER_DB_WATCH_OTHER);
 
@@ -114,7 +148,7 @@ process_event (const char *uri, gboolean is_dir, TrackerDBAction action, guint32
 	info->is_directory = is_dir;
 
 	if (is_delete_event (action)) {
-		char *parent;
+		gchar *parent;
 
 		parent = g_path_get_dirname (info->uri);
 
@@ -127,148 +161,147 @@ process_event (const char *uri, gboolean is_dir, TrackerDBAction action, guint32
 		}
 
 		g_free (parent);
+
 		return;
 	}
 
-	/* we are not interested in create events for non-folders (we use writable file closed instead) */
-	if (action == TRACKER_DB_ACTION_DIRECTORY_CREATED) {
-
+	/* We are not interested in create events for non-folders (we
+         * use writable file closed instead).
+         */
+        switch (action) {
+	case TRACKER_DB_ACTION_DIRECTORY_CREATED:
 		info->action = TRACKER_DB_ACTION_DIRECTORY_CREATED;
 		info->is_directory = TRUE;
-		tracker_db_insert_pending_file (main_thread_db_con, info->file_id, info->uri,  NULL, info->mime, 0, info->action, info->is_directory, TRUE, -1);
+		tracker_db_insert_pending_file (main_thread_db_con, 
+                                                info->file_id, 
+                                                info->uri,  
+                                                NULL, 
+                                                info->mime, 
+                                                0, 
+                                                info->action, 
+                                                info->is_directory, 
+                                                TRUE, 
+                                                -1);
 		tracker_db_file_info_free (info);
-		return;
-
-	} else if (action == TRACKER_DB_ACTION_FILE_CREATED) {
-		tracker_add_io_grace (info->uri);
+		break;
+        case TRACKER_DB_ACTION_FILE_CREATED:
 		tracker_db_file_info_free (info);
-		return;
+		break;
 
-	} else	if (action == TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM || action == TRACKER_DB_ACTION_FILE_MOVED_FROM) {
-		tracker_add_io_grace (info->uri);
+        case TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM:
+        case TRACKER_DB_ACTION_FILE_MOVED_FROM:
 		info->cookie = cookie;
 		info->counter = 1;
 		move_list = g_slist_prepend (move_list, info);
-		g_timeout_add_full (G_PRIORITY_LOW,
-		    350,
-		    (GSourceFunc) process_moved_events,
-		    NULL, NULL
-		    );
-		return;
+	
+                g_timeout_add_full (G_PRIORITY_LOW,
+                                    350,
+                                    (GSourceFunc) process_moved_events,
+                                    NULL, NULL);
+		break;
 
-	} else if (action == TRACKER_DB_ACTION_FILE_MOVED_TO || action == TRACKER_DB_ACTION_DIRECTORY_MOVED_TO) {
+        case TRACKER_DB_ACTION_FILE_MOVED_TO:
+        case TRACKER_DB_ACTION_DIRECTORY_MOVED_TO: {
 		TrackerDBFileInfo *moved_to_info;
-		GSList   *tmp;
+		GSList            *l;
+                gboolean           item_removed = FALSE;
 
 		moved_to_info = info;
-		tracker_add_io_grace (info->uri);
-		for (tmp = move_list; tmp; tmp = tmp->next) {
+
+		for (l = move_list; l && !item_removed; l = l->next) {
 			TrackerDBFileInfo *moved_from_info;
 
-			moved_from_info = (TrackerDBFileInfo *) tmp->data;
+			moved_from_info = l->data;
 
 			if (!moved_from_info) {
-				g_critical ("bad FileInfo struct found in move list. Skipping...");
 				continue;
 			}
 
-			if ((cookie > 0) && (moved_from_info->cookie == cookie)) {
+			if (cookie > 0 && moved_from_info->cookie == cookie) {
+                                TrackerDBAction action;
+                                gboolean        is_dir;
 
 				g_message ("Found matching inotify pair from:'%s' to:'%s'", 
                                            moved_from_info->uri, 
                                            moved_to_info->uri);
 
-				tracker->grace_period = 2;
-
 				if (!tracker_file_is_directory (moved_to_info->uri)) {
-					tracker_db_insert_pending_file (main_thread_db_con, moved_from_info->file_id, moved_from_info->uri, moved_to_info->uri, moved_from_info->mime, 0, TRACKER_DB_ACTION_FILE_MOVED_FROM, FALSE, TRUE, -1);
-					
-//					tracker_db_move_file (main_thread_db_con, moved_from_info->uri, moved_to_info->uri);
+                                        is_dir = FALSE;
+                                        action = TRACKER_DB_ACTION_FILE_MOVED_FROM;
 				} else {
-					tracker_db_insert_pending_file (main_thread_db_con, moved_from_info->file_id, moved_from_info->uri, moved_to_info->uri, moved_from_info->mime, 0, TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM, TRUE, TRUE, -1);
-//					tracker_db_move_directory (main_thread_db_con, moved_from_info->uri, moved_to_info->uri);
+                                        is_dir = TRUE;
+                                        action = TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM;
 				}
 
-				move_list = g_slist_remove (move_list, tmp->data);
+                                tracker_db_insert_pending_file (main_thread_db_con, 
+                                                                moved_from_info->file_id, 
+                                                                moved_from_info->uri, 
+                                                                moved_to_info->uri, 
+                                                                moved_from_info->mime, 
+                                                                0,
+                                                                action, 
+                                                                is_dir, 
+                                                                TRUE, 
+                                                                -1);
 
-				return;
+				move_list = g_slist_remove (move_list, l->data);
+                                item_removed = TRUE;
 			}
 		}
 
-		/* matching pair not found so treat as a create action */
-		g_debug ("no matching pair found for inotify move event for %s", 
+                /* FIXME: Shouldn't we be freeing the moved_from_info
+                 * here? -mr
+                 */
+                if (item_removed) {
+                        break;
+                }
+
+		/* Matching pair not found so treat as a create action */
+		g_debug ("No matching pair found for inotify move event for %s", 
                          info->uri);
+
 		if (tracker_file_is_directory (info->uri)) {
 			info->action = TRACKER_DB_ACTION_DIRECTORY_CREATED;
 		} else {
 			info->action = TRACKER_DB_ACTION_WRITABLE_FILE_CLOSED;
 		}
-		tracker_db_insert_pending_file (main_thread_db_con, info->file_id, info->uri,  NULL, info->mime, 10, info->action, info->is_directory, TRUE, -1);
-		tracker_db_file_info_free (info);
-		return;
 
-	} else if (action == TRACKER_DB_ACTION_WRITABLE_FILE_CLOSED) {
-		tracker_add_io_grace (info->uri);
+		tracker_db_insert_pending_file (main_thread_db_con, 
+                                                info->file_id, info->uri,  
+                                                NULL, 
+                                                info->mime, 
+                                                10, 
+                                                info->action, 
+                                                info->is_directory, 
+                                                TRUE, 
+                                                -1);
+		tracker_db_file_info_free (info);
+		break;
+        }
+
+        case TRACKER_DB_ACTION_WRITABLE_FILE_CLOSED:
 		g_message ("File:'%s' has finished changing", info->uri);
-		tracker_db_insert_pending_file (main_thread_db_con, info->file_id, info->uri,  NULL, info->mime, 0, info->action, info->is_directory, TRUE, -1);
+
+		tracker_db_insert_pending_file (main_thread_db_con,
+                                                info->file_id, 
+                                                info->uri,  
+                                                NULL, 
+                                                info->mime, 
+                                                0, 
+                                                info->action, 
+                                                info->is_directory, 
+                                                TRUE, 
+                                                -1);
 		tracker_db_file_info_free (info);
-		return;
+		break;
 
+        default:
+                g_warning ("Not processing event:'%s' for uri:'%s'", 
+                           tracker_db_action_to_string (info->action), 
+                           info->uri);
+                tracker_db_file_info_free (info);
 	}
-
-	g_warning ("Not processing event:'%s' for uri:'%s'", 
-                   tracker_db_action_to_string (info->action), 
-                   info->uri);
-	tracker_db_file_info_free (info);
 }
-
-
-static gboolean
-process_moved_events ()
-{
-	const GSList *tmp;
-
-	if (!tracker->is_running) {
-		return FALSE;
-	}
-
-	if (!move_list) {
-		return TRUE;
-	}
-
-	for (tmp = move_list; tmp; tmp = tmp->next) {
-		TrackerDBFileInfo *info;
-
-		info = (TrackerDBFileInfo *) tmp->data;
-
-		/* make it a DELETE if we have not received a corresponding MOVED_TO event after a certain period */
-		if ((info->counter < 1) && ((info->action == TRACKER_DB_ACTION_FILE_MOVED_FROM) || (info->action == TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM))) {
-
-			/* make sure file no longer exists before issuing a "delete" */
-
-			if (!tracker_file_is_valid (info->uri)) {
-				if (info->action == TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM) {
-					process_event (info->uri, TRUE, TRACKER_DB_ACTION_DIRECTORY_DELETED, 0);
-				} else {
-					process_event (info->uri, FALSE, TRACKER_DB_ACTION_FILE_DELETED, 0);
-				}
-			}
-
-			move_list = g_slist_remove (move_list, info);
-			tracker_db_file_info_free (info);
-			continue;
-
-		} else {
-			info->counter--;
-		}
-	}
-
-	if (!move_list)
-		return FALSE;
-
-	return TRUE;
-}
-
 
 static TrackerDBAction
 get_event (guint32 event_type)
@@ -289,7 +322,6 @@ get_event (guint32 event_type)
 		}
 	}
 
-
 	if (event_type & IN_MOVED_FROM) {
 		if (event_type & IN_ISDIR) {
 			return TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM;
@@ -306,11 +338,9 @@ get_event (guint32 event_type)
 		}
 	}
 
-
 	if (event_type & IN_CLOSE_WRITE) {
 		return TRACKER_DB_ACTION_WRITABLE_FILE_CLOSED;
 	}
-
 
 	if (event_type & IN_CREATE) {
 		if (event_type & IN_ISDIR) {
@@ -326,20 +356,23 @@ get_event (guint32 event_type)
 static gboolean
 process_inotify_events (void)
 {
-	while (g_queue_get_length (inotify_queue) > 0) {
+	while (g_queue_get_length (event_queue) > 0) {
 		TrackerDBResultSet   *result_set;
-		TrackerDBAction         action_type;
-		char		     *str = NULL, *filename = NULL, *monitor_name = NULL, *str_wd;
-		char		     *file_utf8_uri = NULL, *dir_utf8_uri = NULL;
+		TrackerDBAction       action_type;
+                gchar                *str_wd;
+		gchar		     *str = NULL;
+                gchar                *filename = NULL;
+                gchar                *monitor_name = NULL;
+		gchar		     *file_utf8_uri = NULL;
+                gchar                *dir_utf8_uri = NULL;
 		guint		      cookie;
-
 		struct inotify_event *event;
 
 		if (!tracker->is_running) {
 			return FALSE;
 		}
 
-		event = g_queue_pop_head (inotify_queue);
+		event = g_queue_pop_head (event_queue);
 
 		if (!event) {
 			continue;
@@ -360,12 +393,13 @@ process_inotify_events (void)
 
 		cookie = event->cookie;
 
-		/* get watch name as monitor */
-
+		/* Get watch name as monitor */
 		str_wd = g_strdup_printf ("%d", event->wd);
 
-		result_set = tracker_exec_proc (main_thread_db_con->cache, "GetWatchUri", str_wd, NULL);
-
+		result_set = tracker_exec_proc (main_thread_db_con->cache, 
+                                                "GetWatchUri", 
+                                                str_wd, 
+                                                NULL);
 		g_free (str_wd);
 
 		if (result_set) {
@@ -382,7 +416,6 @@ process_inotify_events (void)
 		}
 
 		if (tracker_is_empty_string (filename)) {
-			//g_message ("WARNING: inotify event has no filename");
 			g_free (event);
 			continue;
 		}
@@ -390,7 +423,8 @@ process_inotify_events (void)
 		file_utf8_uri = g_filename_to_utf8 (filename, -1, NULL, NULL, NULL);
 
 		if (tracker_is_empty_string (file_utf8_uri)) {
-			g_critical ("file uri could not be converted to utf8 format");
+			g_critical ("File uri:'%s' could not be converted to utf8 format",
+                                    filename);
 			g_free (event);
 			continue;
 		}
@@ -399,85 +433,75 @@ process_inotify_events (void)
 			str = g_strdup (file_utf8_uri);
 			dir_utf8_uri = NULL;
 		} else {
-
 			dir_utf8_uri = g_filename_to_utf8 (monitor_name, -1, NULL, NULL, NULL);
 
 			if (!dir_utf8_uri) {
-				g_critical ("file uri could not be converted to utf8 format");
+				g_critical ("File uri:'%s' could not be converted to utf8 format",
+                                            monitor_name);
 				g_free (file_utf8_uri);
 				g_free (event);
 				continue;
 			}
 
-			str = g_build_filename(dir_utf8_uri, file_utf8_uri, NULL);
+			str = g_build_filename (dir_utf8_uri, file_utf8_uri, NULL);
 		}
 
-		if (str && str[0] == '/' && 
+		if (str && str[0] == G_DIR_SEPARATOR && 
                     (!tracker_process_files_should_be_ignored (str) || 
                      action_type == TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM) && 
-                    tracker_process_files_should_be_crawled (tracker, str) && 
+                    tracker_process_files_should_be_crawled (str) && 
                     tracker_process_files_should_be_watched (tracker->config, str)) {
 			process_event (str, tracker_file_is_directory (str), action_type, cookie);
 		} else {
-			g_debug ("ignoring action %d on file %s", action_type, str);
+			g_debug ("Ignoring action:%d on file:'%s'", 
+                                 action_type, str);
 		}
 
-		if (monitor_name) {
-			g_free (monitor_name);
-		}
-
-		if (str) {
-			g_free (str);
-		}
-
-		if (file_utf8_uri) {
-			g_free (file_utf8_uri);
-		}
-
-		if (dir_utf8_uri) {
-			g_free (dir_utf8_uri);
-		}
+                g_free (monitor_name);
+                g_free (str);
+                g_free (file_utf8_uri);
+                g_free (dir_utf8_uri);
 		g_free (event);
 	}
 
 	return FALSE;
 }
 
-
 static gboolean
-inotify_watch_func (GIOChannel *source, GIOCondition condition, gpointer data)
+inotify_watch_func (GIOChannel   *source, 
+                    GIOCondition  condition, 
+                    gpointer      data)
 {
-	char   buffer[16384];
-	size_t buffer_i;
-	size_t r;
-	int    fd;
+	gchar   buffer[16384];
+	size_t  i;
+	size_t  bytes_read;
+	gint    fd;
 
 	fd = g_io_channel_unix_get_fd (source);
+	bytes_read = read (fd, buffer, 16384);
 
-	r = read (fd, buffer, 16384);
-
-	if (r <= 0) {
-		g_critical ("inotify system failure - unable to watch files");
+	if (bytes_read <= 0) {
+		g_critical ("Unable to watch files with inotify, read() failed on file descriptor");
 		return FALSE;
 	}
 
-	buffer_i = 0;
+	i = 0;
 
-	while (buffer_i < (size_t)r) {
-		struct inotify_event *pevent, *event;
-		size_t event_size;
+	while (i < (size_t) bytes_read) {
+		struct inotify_event *p;
+                struct inotify_event *event;
+		size_t                event_size;
 
 		/* Parse events and process them ! */
-
 		if (!tracker->is_running) {
 			return FALSE;
 		}
 
-		pevent = (struct inotify_event *) &buffer[buffer_i];
-		event_size = sizeof (struct inotify_event) + pevent->len;
-		event = g_memdup (pevent, event_size);
-		g_queue_push_tail (inotify_queue, event);
-		buffer_i += event_size;
+		p = (struct inotify_event*) &buffer[i];
+		event_size = sizeof (struct inotify_event) + p->len;
+		event = g_memdup (p, event_size);
+		g_queue_push_tail (event_queue, event);
+		i += event_size;
 	}
 
 	g_idle_add ((GSourceFunc) process_inotify_events, NULL);
@@ -485,100 +509,131 @@ inotify_watch_func (GIOChannel *source, GIOCondition condition, gpointer data)
 	return TRUE;
 }
 
-
 gboolean
-tracker_start_watching (void)
+tracker_watcher_init (void)
 {
-	g_return_val_if_fail (inotify_monitor_fd == -1, FALSE);
+        gchar *str;
 
-	inotify_monitor_fd = inotify_init ();
+        if (monitor_fd != -1) {
+                return TRUE;
+        }
 
-	g_return_val_if_fail (inotify_monitor_fd >= 0, FALSE);
+	monitor_fd = inotify_init ();
 
-	inotify_queue = g_queue_new ();
+        if (monitor_fd == -1) {
+                g_critical ("Could not initialize file watching, inotify_init() failed");
+                return FALSE;
+        }
 
-	if (tracker->watch_limit == 0) {
-		tracker->watch_limit = 8191;
-		if (g_file_test (INOTIFY_WATCH_LIMIT, G_FILE_TEST_EXISTS)) {
-			gchar   *limit;
-			gsize    size;
-			if (g_file_get_contents (INOTIFY_WATCH_LIMIT, &limit, &size, NULL)) {
+	event_queue = g_queue_new ();
 
-				/* leave 500 watches for other users */
-				tracker->watch_limit = atoi (limit) - 500;
+        /* We don't really care if we couldn't read from this file, in
+         * that case we assume a set value.
+         */
+        if (g_file_get_contents (INOTIFY_WATCH_LIMIT, &str, NULL, NULL)) {
+                /* Leave 500 watches for other users and make sure we don't
+                 * reply with a negative value
+                 */
+                monitor_limit = MAX (atoi (str) - 500, 500);
+                g_free (str);
+        }
+       
+        g_message ("Using inotify monitor limit of %d", monitor_limit);
 
-				g_message ("Setting inotify watch limit to %d.", tracker->watch_limit);
-				g_free (limit);
-			}
-		}
-	}
-
-	gio = g_io_channel_unix_new (inotify_monitor_fd);
-	g_io_add_watch (gio, G_IO_IN, inotify_watch_func, NULL);
-	g_io_channel_set_flags (gio, G_IO_FLAG_NONBLOCK, NULL);
-
-	/* periodically process unmatched moved_from events */
+	channel = g_io_channel_unix_new (monitor_fd);
+	g_io_add_watch (channel, G_IO_IN, inotify_watch_func, NULL);
+	g_io_channel_set_flags (channel, G_IO_FLAG_NONBLOCK, NULL);
 
 	return TRUE;
 }
 
-
-int
-tracker_count_watch_dirs (void)
+void
+tracker_watcher_shutdown (void)
 {
-	return inotify_count;
+        g_slist_foreach (move_list, (GFunc) tracker_db_file_info_free, NULL);
+        g_slist_free (move_list);
+        move_list = NULL;
+
+	if (channel) {
+		g_io_channel_shutdown (channel, TRUE, NULL);
+                channel = NULL;
+	}
+
+        g_queue_free (event_queue);
+        event_queue = NULL;
+
+        monitor_fd = -1;
 }
 
-
 gboolean
-tracker_add_watch_dir (const char *dir, DBConnection *db_con)
+tracker_watcher_add_dir (const gchar  *dir, 
+                         DBConnection *db_con)
 {
-	char *dir_in_locale;
-	static gboolean limit_exceeded_msg = FALSE;
+	gchar           *dir_in_locale;
+	static gboolean  limit_exceeded = FALSE;
 
-	g_return_val_if_fail (dir, FALSE);
-	g_return_val_if_fail (dir[0] == '/', FALSE);
+	g_return_val_if_fail (dir != NULL, FALSE);
+	g_return_val_if_fail (dir[0] == G_DIR_SEPARATOR, FALSE);
 
 	if (!tracker->is_running) {
 		return FALSE;
 	}
 
-	if (tracker_is_directory_watched (dir, db_con)) {
+	if (tracker_watcher_is_dir_watched (dir, db_con)) {
 		return FALSE;
 	}
 
-	if (tracker_count_watch_dirs () >= (int) tracker->watch_limit) {
-
-		if (!limit_exceeded_msg) {
-			g_message ("Inotify Watch Limit has been exceeded - for best results you should increase number of inotify watches on your system");
-			limit_exceeded_msg = TRUE;
+	if (tracker_watcher_get_dir_count () >= monitor_limit) {
+		if (!limit_exceeded) {
+			g_warning ("The directory watch limit (%d) has been reached, "
+                                   "you should increase the number of inotify watches on your system",
+                                   monitor_limit);
+			limit_exceeded = TRUE;
 		}
 
 		return FALSE;
-	}
+	} else {
+                /* We should set this to FALSE in case we remove
+                 * watches and then add some which exceed the limit
+                 * again.
+                 */
+                limit_exceeded = FALSE;
+        }
 
 	dir_in_locale = g_filename_from_utf8 (dir, -1, NULL, NULL, NULL);
 
-	/* check directory permissions are okay */
-	if (g_access (dir_in_locale, F_OK) == 0 && g_access (dir_in_locale, R_OK) == 0) {
-		const guint32 mask = (IN_CLOSE_WRITE | IN_MOVE | IN_CREATE | IN_DELETE| IN_DELETE_SELF | IN_MOVE_SELF);
-		int   wd;
-		char *str_wd;
+	/* Check directory permissions are okay */
+	if (g_access (dir_in_locale, F_OK) == 0 && 
+            g_access (dir_in_locale, R_OK) == 0) {
+		gchar   *str_wd;
+		gint     wd;
+		guint32  mask;
 
-		wd = inotify_add_watch (inotify_monitor_fd, dir_in_locale, mask);
+                mask  = 0;
+                mask |= IN_CLOSE_WRITE;
+                mask |= IN_MOVE;
+                mask |= IN_CREATE;
+                mask |= IN_DELETE;
+                mask |= IN_DELETE_SELF;
+                mask |= IN_MOVE_SELF;
 
+		wd = inotify_add_watch (monitor_fd, dir_in_locale, mask);
 		g_free (dir_in_locale);
 
 		if (wd < 0) {
-			g_critical ("Inotify watch on %s has failed", dir);
+			g_critical ("Could not watch directory:'%s', inotify_add_watch() failed",
+                                    dir);
 			return FALSE;
 		}
 
 		str_wd = g_strdup_printf ("%d", wd);
 		tracker_exec_proc (db_con->cache, "InsertWatch", dir, str_wd, NULL);
 		g_free (str_wd);
-		inotify_count++;
-		g_message ("Watching directory %s (total watches = %d)", dir, inotify_count);
+
+		monitor_count++;
+		g_message ("Watching directory:'%s' (total = %d)", 
+                           dir, monitor_count);
+
 		return TRUE;
 	}
 
@@ -587,22 +642,26 @@ tracker_add_watch_dir (const char *dir, DBConnection *db_con)
 	return FALSE;
 }
 
-
-static gboolean
-delete_watch (const char *dir, DBConnection *db_con)
+void
+tracker_watcher_remove_dir (const gchar  *dir, 
+                            gboolean      delete_subdirs,
+                            DBConnection *db_con)
 {
 	TrackerDBResultSet *result_set;
-	int wd;
+	gboolean            valid = TRUE;
+	gint                wd;
 
-	g_return_val_if_fail (dir != NULL && dir[0] == G_DIR_SEPARATOR, FALSE);
+	g_return_if_fail (dir != NULL);
+	g_return_if_fail (dir[0] == G_DIR_SEPARATOR);
 
 	result_set = tracker_exec_proc (db_con->cache, "GetWatchID", dir, NULL);
 
 	wd = -1;
 
 	if (!result_set) {
-		g_message ("WARNING: watch id not found for uri %s", dir);
-		return FALSE;
+		g_message ("Could not find watch ID in the database for:'%s'", 
+                           dir);
+		return;
 	}
 
 	tracker_db_result_set_get (result_set, 0, &wd, -1);
@@ -611,32 +670,15 @@ delete_watch (const char *dir, DBConnection *db_con)
 	tracker_exec_proc (db_con->cache, "DeleteWatch", dir, NULL);
 
 	if (wd > -1) {
-		inotify_rm_watch (inotify_monitor_fd, wd);
-		inotify_count--;
+		inotify_rm_watch (monitor_fd, wd);
+		monitor_count--;
 	}
-
-	return TRUE;
-}
-
-
-void
-tracker_remove_watch_dir (const char *dir, gboolean delete_subdirs, DBConnection *db_con)
-{
-	TrackerDBResultSet *result_set;
-	gboolean valid = TRUE;
-	int wd;
-
-	g_return_if_fail (dir != NULL && dir[0] == G_DIR_SEPARATOR);
-
-	delete_watch (dir, db_con);
 
 	if (!delete_subdirs) {
 		return;
 	}
 
 	result_set = tracker_db_get_sub_watches (db_con, dir);
-
-	wd = -1;
 
 	if (!result_set) {
 		return;
@@ -650,19 +692,42 @@ tracker_remove_watch_dir (const char *dir, gboolean delete_subdirs, DBConnection
 			continue;
 		}
 
-		inotify_rm_watch (inotify_monitor_fd, wd);
-		inotify_count--;
+		inotify_rm_watch (monitor_fd, wd);
+		monitor_count--;
 	}
 
 	g_object_unref (result_set);
 	tracker_db_delete_sub_watches (db_con, dir);
 }
 
-
-void
-tracker_end_watching (void)
+gboolean
+tracker_watcher_is_dir_watched (const char   *dir, 
+                                DBConnection *db_con)
 {
-	if (gio) {
-		g_io_channel_shutdown (gio, TRUE, NULL);
+	TrackerDBResultSet *result_set;
+	gint                id;
+
+        g_return_val_if_fail (dir != NULL, FALSE);
+        g_return_val_if_fail (dir[0] == G_DIR_SEPARATOR, FALSE);
+
+	if (!tracker->is_running) {
+		return FALSE;
 	}
+
+	result_set = tracker_exec_proc (db_con->cache, "GetWatchID", dir, NULL);
+
+	if (!result_set) {
+		return FALSE;
+	}
+
+	tracker_db_result_set_get (result_set, 0, &id, -1);
+	g_object_unref (result_set);
+
+	return id >= 0;
+}
+
+gint
+tracker_watcher_get_dir_count (void)
+{
+	return monitor_count;
 }

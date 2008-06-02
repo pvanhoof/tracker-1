@@ -46,23 +46,23 @@
 G_BEGIN_DECLS
 
 typedef struct {
- 	gboolean         is_running; 
-	gboolean         readonly;
+ 	gboolean          is_running; 
+	gboolean          readonly;
 
-	gint             pid; 
+	gint              pid; 
 
-	gboolean         reindex;
+	gboolean          reindex;
 
 
 #ifdef HAVE_HAL
-	TrackerHal      *hal;
+	TrackerHal       *hal;
 #endif
 
-        TrackerConfig   *config;
-        TrackerLanguage *language;
+        TrackerConfig    *config;
+        TrackerLanguage  *language;
 
 	/* Config options */
-	guint32          watch_limit; 
+	guint32           watch_limit; 
 
 	/* Performance and memory usage options */
 	gint              max_process_queue_size;
@@ -70,7 +70,6 @@ typedef struct {
 	gint              memory_limit;
      
 	/* Pause/shutdown */
-	gboolean          shutdown;
 	gboolean          pause_manual;
 	gboolean          pause_battery;
 	gboolean          pause_io;
@@ -87,8 +86,6 @@ typedef struct {
 	gint              folders_processed;
 	gint              mbox_count; 
 	gint              mbox_processed;
-
-	gint	          grace_period; 
 
 	/* Email config options */
 	gint              email_service_min;

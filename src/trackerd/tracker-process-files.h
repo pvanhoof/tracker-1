@@ -31,12 +31,12 @@
 
 G_BEGIN_DECLS
 
-/* Thread entry point */
-gpointer tracker_process_files                         (gpointer            data);
+gboolean tracker_process_files_init                    (Tracker            *tracker);
+void     tracker_process_files_shutdown                (void);
+
 gboolean tracker_process_files_should_be_watched       (TrackerConfig      *config,
 							const gchar        *uri);
-gboolean tracker_process_files_should_be_crawled       (Tracker            *tracker,
-							const gchar        *uri);
+gboolean tracker_process_files_should_be_crawled       (const gchar        *uri);
 gboolean tracker_process_files_should_be_ignored       (const char         *uri);
 
 /* Black list API */
@@ -45,11 +45,9 @@ void     tracker_process_files_set_temp_black_list     (GSList             *blac
 void     tracker_process_files_append_temp_black_list  (const gchar        *str);
 
 /* File/Directory API */
-void     tracker_process_files_get_all_dirs            (Tracker            *tracker,
-							const char         *dir,
+void     tracker_process_files_get_all_dirs            (const char         *dir,
 							GSList            **files);
-GSList * tracker_process_files_get_files_with_prefix   (Tracker            *tracker,
-							const char         *dir,
+GSList * tracker_process_files_get_files_with_prefix   (const char         *dir,
 							const char         *prefix);
 gboolean tracker_process_files_is_file_info_valid      (TrackerDBFileInfo  *info);
 

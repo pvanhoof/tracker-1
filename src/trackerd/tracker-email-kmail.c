@@ -33,8 +33,9 @@
 
 #include "tracker-email-utils.h"
 #include "tracker-db-email.h"
-#include "tracker-watch.h"
+#include "tracker-main.h"
 #include "tracker-process-files.h"
+#include "tracker-watch.h"
 
 typedef struct {
         gchar            *imap_path;
@@ -652,7 +653,7 @@ get_dirs_to_watch (DBConnection *db_con, const gchar *dir_path, gboolean in_imap
         dirs = NULL;
         tmp_dirs = NULL;
 
-        tracker_process_files_get_all_dirs (tracker, dir_path, &tmp_dirs);
+        tracker_process_files_get_all_dirs (dir_path, &tmp_dirs);
 
         for (dir = tmp_dirs; dir; dir = dir->next) {
                 gchar *dir_path = g_unescape_uri_string (dir->data, "");
@@ -662,7 +663,7 @@ get_dirs_to_watch (DBConnection *db_con, const gchar *dir_path, gboolean in_imap
                     (( in_imap_dir && dir_name[0] == '.' && g_str_has_suffix (dir_name, ".directory")) ||
                       !in_imap_dir )
                     ) {
-                        if (!tracker_is_directory_watched (dir_path, db_con)) {
+                        if (!tracker_watcher_is_dir_watched (dir_path, db_con)) {
                                 /* if we are in a maildir directory, we will only index emails in directory "cur" */
                                 gchar *dir_cur = g_build_filename (dir_path, "cur", NULL);
 

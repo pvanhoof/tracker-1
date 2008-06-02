@@ -665,7 +665,6 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
 			}
 		}
 
-		tracker_db_update_indexes_for_new_service (id, type_id, index_table);
 		tracker_parser_text_free (index_table);
 
 		g_free (str_id);

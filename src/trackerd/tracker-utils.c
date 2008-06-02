@@ -128,19 +128,6 @@ tracker_add_metadata_to_table (GHashTable  *meta_table,
 	g_hash_table_insert (meta_table, (gchar*) key, list);
 }
 
-void
-tracker_add_io_grace (const gchar *uri)
-{
-	if (tracker_xesam_manager_is_uri_in_xesam_dir (uri)) {
-		return;
-	}
-
-	g_message ("File changes to:'%s' is causing tracker to pause...", 
-		   uri);
-
-	tracker->grace_period++;
-}
-
 gboolean
 tracker_is_low_diskspace (void)
 {

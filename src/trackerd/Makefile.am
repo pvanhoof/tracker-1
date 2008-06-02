@@ -65,8 +65,6 @@ trackerd_SOURCES =							\
 	$(watch_sources)						\
 	$(win_sources)							\
 	$(unix_sources)							\
-	tracker-cache.c							\
-	tracker-cache.h							\
 	tracker-daemon.c						\
 	tracker-daemon.h						\
 	tracker-db.c							\
@@ -89,13 +87,13 @@ trackerd_SOURCES =							\
 	tracker-indexer.h						\
 	tracker-index-stage.c						\
 	tracker-index-stage.h						\
+	tracker-process-files.c						\
+	tracker-process-files.h						\
 	tracker-main.c							\
 	tracker-main.h							\
 	tracker-marshal-main.c						\
 	tracker-metadata.c						\
 	tracker-metadata.h						\
-	tracker-process-files.c						\
-	tracker-process-files.h						\
 	tracker-query-tree.c						\
 	tracker-query-tree.h						\
 	tracker-rdf-query.c						\

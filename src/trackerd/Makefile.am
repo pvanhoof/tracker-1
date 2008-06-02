@@ -111,7 +111,7 @@ trackerd_SOURCES =							\
 	tracker-status.h						\
 	tracker-utils.c							\
 	tracker-utils.h							\
-	tracker-watch.h							\
+	tracker-watcher.h							\
 	tracker-xesam.c							\
 	tracker-xesam.h							\
 	tracker-xesam-ontology.c					\

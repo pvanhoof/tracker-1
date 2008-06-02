@@ -129,9 +129,12 @@ cache_flush_foreach (gpointer key,
 		     gpointer user_data)
 {
 	GArray *array;
-	DEPOT *index;
-	gchar *word, *tmp;
-	gint table_size;
+	DEPOT  *index;
+	gchar  *word;
+#if 0
+	gchar *tmp;
+	gint   table_size;
+#endif
 
 	word = (gchar *) key;
 	array = (GArray *) value;

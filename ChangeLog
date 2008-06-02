@@ -1,3 +1,8 @@
+2008-06-02  Martyn Russell  <martyn@imendio.com>
+
+	* src/tracker-indexer/tracker-index.c: (cache_flush_foreach):
+	Fixed some warnings.
+
 2008-05-30  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer-db.[ch]

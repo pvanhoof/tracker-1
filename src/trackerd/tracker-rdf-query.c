@@ -19,6 +19,7 @@
 
 #include <string.h>
 
+#include <libtracker-common/tracker-field-data.h>
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-utils.h>
@@ -1184,31 +1185,48 @@ tracker_rdf_query_to_sql (DBConnection *db_con, const char *query, const char *s
 	result = NULL;
 
 	if (!g_markup_parse_context_parse (data.context, query, -1, &error)) {
-
 		g_string_free (data.sql_select, TRUE);
 		g_string_free (data.sql_from, TRUE);
 		g_string_free (data.sql_where, TRUE);
 		g_string_free (data.sql_order, TRUE);
-
 	} else {
-		const GSList *tmp;
-		FieldData    *tmp_field;
+		GSList *l;
 
-		for (tmp = data.fields; tmp; tmp = tmp->next) {
-			tmp_field = tmp->data;
-
-			if (!tmp_field->is_condition) {
-				if (tmp_field->needs_join) {
-					g_string_append_printf (data.sql_from, "\n LEFT OUTER JOIN %s %s ON (S.ID = %s.ServiceID and %s.MetaDataID = %s) ", tmp_field->table_name, tmp_field->alias, tmp_field->alias, tmp_field->alias, tmp_field->id_field);
+		for (l = data.fields; l; l = l->next) {
+			if (!tracker_field_data_get_is_condition (l->data)) {
+				if (tracker_field_data_get_needs_join (l->data)) {
+					g_string_append_printf (data.sql_from, 
+                                                                "\n LEFT OUTER JOIN %s %s ON (S.ID = %s.ServiceID and %s.MetaDataID = %s) ", 
+                                                                tracker_field_data_get_table_name (l->data), 
+                                                                tracker_field_data_get_alias (l->data),
+                                                                tracker_field_data_get_alias (l->data),
+                                                                tracker_field_data_get_alias (l->data),
+                                                                tracker_field_data_get_id_field (l->data));
 				}
 			} else {
-				char *related_metadata = tracker_get_related_metadata_names (db_con, tmp_field->field_name);
-				g_string_append_printf (data.sql_from, "\n INNER JOIN %s %s ON (S.ID = %s.ServiceID and %s.MetaDataID in (%s)) ", tmp_field->table_name, tmp_field->alias, tmp_field->alias, tmp_field->alias, related_metadata);
+				gchar *related_metadata;
+
+                                related_metadata = tracker_get_related_metadata_names (db_con, 
+                                                                                       tracker_field_data_get_field_name (l->data));
+				g_string_append_printf (data.sql_from, 
+                                                        "\n INNER JOIN %s %s ON (S.ID = %s.ServiceID and %s.MetaDataID in (%s)) ", 
+                                                        tracker_field_data_get_table_name (l->data), 
+                                                        tracker_field_data_get_alias (l->data),
+                                                        tracker_field_data_get_alias (l->data),
+                                                        tracker_field_data_get_alias (l->data),
+                                                        related_metadata);
 				g_free (related_metadata);
 			}
 		}
 
-		result = g_strconcat (data.sql_select->str, " ", data.sql_from->str, " ", data.sql_where->str, " ", data.sql_order->str, NULL);
+		result = g_strconcat (data.sql_select->str, 
+                                      " ", 
+                                      data.sql_from->str, 
+                                      " ", 
+                                      data.sql_where->str, 
+                                      " ", 
+                                      data.sql_order->str, 
+                                      NULL);
 		
 		g_string_free (data.sql_select, TRUE);
 		g_string_free (data.sql_from, TRUE);

@@ -1,5 +1,11 @@
 2008-06-03  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-db-sqlite.h:
+	* src/trackerd/tracker-rdf-query.c: Cleaned up some uses of
+	FieldData and changed them to TrackerFieldData instead.
+
+2008-06-03  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-file-utils.c:
 	* src/libtracker-common/tracker-os-dependant-unix.c:
 	* src/libtracker-common/tracker-os-dependant-win.c:

@@ -49,21 +49,6 @@ struct DBConnection {
 	Indexer         *word_index;
 };
 
-typedef struct {
-	char 		 *alias;
-	char 	 	 *field_name;
-	char	 	 *select_field;
-	char	 	 *where_field;
-	char	 	 *table_name;
-	char	 	 *id_field;
-	TrackerFieldType data_type;
-	guint            multiple_values : 1;
-	guint            is_select : 1;
-	guint            is_condition : 1;
-	guint            needs_join : 1;
-
-} FieldData;
-
 /* Module wide ops */
 gboolean            tracker_db_needs_setup                     (void);
 gboolean            tracker_db_common_need_build               (void);
@@ -308,8 +293,6 @@ GHashTable *        tracker_db_get_indexable_content_words     (DBConnection   *
 
 gchar *             tracker_db_get_field_name                  (const gchar    *service,
                                                                 const gchar    *meta_name);
-void                tracker_free_metadata_field                (FieldData *field_data);
-
 void                tracker_db_delete_service                  (DBConnection   *db_con,
                                                                 guint32         id,
                                                                 const gchar    *uri);

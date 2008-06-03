@@ -22,6 +22,8 @@
 #ifndef __LIBTRACKER_COMMON_TYPE_UTILS_H__
 #define __LIBTRACKER_COMMON_TYPE_UTILS_H__
 
+#include <glib.h>
+
 gchar *  tracker_date_format                (const gchar  *time_string);
 time_t   tracker_string_to_date             (const gchar  *time_string);
 gchar *  tracker_date_to_string             (time_t        date_time);

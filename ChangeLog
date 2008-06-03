@@ -1,5 +1,23 @@
 2008-06-03  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-type-utils.h: Fixed glib include
+	build warning.
+	
+	* src/libtracker-db/tracker-db-manager.[ch]: 
+	* src/tracker-indexer/tracker-indexer-db.[ch]:
+	* src/tracker-indexer/tracker-indexer.c:
+	* src/tracker-indexer/tracker-main.c:  Added functions from
+	tracker-indexer/tracker-indexer-db.c[ch] which set up databases.
+	So now when we request a database type like the common database or
+	the file metadata database, we return an interface and it is
+	already set up if it had to be created first, etc.
+	
+	* src/trackerd/tracker-db-sqlite.c: 
+	* src/trackerd/tracker-indexer.c: Changed the TrackerDB type names
+	for metadata from "META" to "METADATA".
+
+2008-06-03  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-db-sqlite.h:
 	* src/trackerd/tracker-rdf-query.c: Cleaned up some uses of
 	FieldData and changed them to TrackerFieldData instead.

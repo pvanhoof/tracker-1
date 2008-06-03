@@ -164,7 +164,6 @@ initialize_indexer (void)
 	g_free (filename);
 
 	tracker_db_manager_init (data_dir, user_data_dir, sys_tmp_dir);
-	tracker_indexer_db_load_prepared_queries ();
 
 	g_free (data_dir);
 	g_free (user_data_dir);

@@ -1,6 +1,8 @@
-/* Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
- * Copyright (C) 2008, Nokia
-
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/* 
+ * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2008, Nokia (urho.konttori@nokia.com)
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation; either
@@ -25,28 +27,23 @@
 
 G_BEGIN_DECLS
 
-gboolean             tracker_indexer_db_load_prepared_queries (void);
-TrackerDBInterface * tracker_indexer_db_get_common            (void);
-TrackerDBInterface * tracker_indexer_db_get_file_metadata     (void);
-
-guint32              tracker_db_get_new_service_id            (TrackerDBInterface *iface);
-guint32              tracker_db_get_new_event_id              (TrackerDBInterface *iface);
-void                 tracker_db_increment_stats               (TrackerDBInterface *iface,
-							       TrackerService     *service);
-
-gboolean             tracker_db_create_service                (TrackerDBInterface *iface,
-							       guint32             id,
-							       TrackerService     *service,
-							       const gchar        *path,
-							       GHashTable         *metadata);
-void                 tracker_db_set_metadata                  (TrackerDBInterface *iface,
-							       guint32             id,
-							       TrackerField       *field,
-							       const gchar        *value);
-gboolean             tracker_db_create_event                  (TrackerDBInterface *iface,
-							       guint32 id, 
-							       guint32 service_id, 
-							       const gchar *type);
+guint32  tracker_db_get_new_service_id (TrackerDBInterface *iface);
+guint32  tracker_db_get_new_event_id   (TrackerDBInterface *iface);
+void     tracker_db_increment_stats    (TrackerDBInterface *iface,
+                                        TrackerService     *service);
+gboolean tracker_db_create_service     (TrackerDBInterface *iface,
+                                        guint32             id,
+                                        TrackerService     *service,
+                                        const gchar        *path,
+                                        GHashTable         *metadata);
+void     tracker_db_set_metadata       (TrackerDBInterface *iface,
+                                        guint32             id,
+                                        TrackerField       *field,
+                                        const gchar        *value);
+gboolean tracker_db_create_event       (TrackerDBInterface *iface,
+                                        guint32             id,
+                                        guint32             service_id,
+                                        const gchar        *type);
 
 G_END_DECLS
 

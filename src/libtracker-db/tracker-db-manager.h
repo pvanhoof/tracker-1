@@ -23,6 +23,8 @@
 
 #include <glib-object.h>
 
+#include "tracker-db-interface.h"
+
 #define TRACKER_DB_PAGE_SIZE_DEFAULT  4096
 #define TRACKER_DB_PAGE_SIZE_DONT_SET -1
 
@@ -33,9 +35,9 @@ G_BEGIN_DECLS
 typedef enum {
         TRACKER_DB_COMMON,
         TRACKER_DB_CACHE,
-        TRACKER_DB_FILE_META,
+        TRACKER_DB_FILE_METADATA,
         TRACKER_DB_FILE_CONTENTS,
-        TRACKER_DB_EMAIL_META,
+        TRACKER_DB_EMAIL_METADATA,
         TRACKER_DB_EMAIL_CONTENTS,
 	TRACKER_DB_XESAM,
 } TrackerDB;
@@ -55,6 +57,9 @@ gint         tracker_db_manager_get_cache_size    (TrackerDB    db);
 gint         tracker_db_manager_get_page_size     (TrackerDB    db);
 gboolean     tracker_db_manager_get_add_functions (TrackerDB    db);
 const gchar *tracker_db_manager_get_name          (TrackerDB    db);
+
+TrackerDBInterface *
+             tracker_db_manager_get_db_interface  (TrackerDB    db);
 
 G_END_DECLS
 

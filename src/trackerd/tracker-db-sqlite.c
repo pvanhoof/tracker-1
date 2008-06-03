@@ -996,13 +996,13 @@ tracker_db_connect_xesam ()
 
 	tracker_db_exec_no_reply (iface, 
 				  "ATTACH '%s' as %s",
-				  tracker_db_manager_get_file (TRACKER_DB_FILE_META),
-				  tracker_db_manager_get_name (TRACKER_DB_FILE_META));
+				  tracker_db_manager_get_file (TRACKER_DB_FILE_METADATA),
+				  tracker_db_manager_get_name (TRACKER_DB_FILE_METADATA));
 
 	tracker_db_exec_no_reply (iface, 
 				  "ATTACH '%s' as %s",
-				  tracker_db_manager_get_file (TRACKER_DB_EMAIL_META),
-				  tracker_db_manager_get_name (TRACKER_DB_EMAIL_META));
+				  tracker_db_manager_get_file (TRACKER_DB_EMAIL_METADATA),
+				  tracker_db_manager_get_name (TRACKER_DB_EMAIL_METADATA));
 
 	tracker_db_exec_no_reply (iface, 
 				  "ATTACH '%s' as %s",
@@ -1127,7 +1127,7 @@ tracker_db_connect (void)
 	DBConnection *db_con;
 	gboolean create_table = FALSE;
 
-	create_table = !tracker_db_manager_file_exists (TRACKER_DB_FILE_META);
+	create_table = !tracker_db_manager_file_exists (TRACKER_DB_FILE_METADATA);
 
 	db_con = tracker_db_connect_file_meta ();
 
@@ -1135,7 +1135,7 @@ tracker_db_connect (void)
 	
 	if (create_table) {
 		g_message ("Creating database for file metadata:'%s'",
-			     tracker_db_manager_get_file (TRACKER_DB_FILE_META));
+			     tracker_db_manager_get_file (TRACKER_DB_FILE_METADATA));
 		load_sql_file (db_con->db, "sqlite-service.sql");
 		load_sql_trigger (db_con->db, "sqlite-service-triggers.sql");
 
@@ -1162,7 +1162,7 @@ tracker_db_connect (void)
 	tracker_db_attach_db (db_con, TRACKER_DB_CACHE);
 
 	/* this is not needed, it's the root db
-	tracker_db_attach_db (db_con, TRACKER_DB_FILE_META); */
+	tracker_db_attach_db (db_con, TRACKER_DB_FILE_METADATA); */
 
 	db_con->cache = db_con;
 	db_con->common = db_con;
@@ -1173,7 +1173,7 @@ tracker_db_connect (void)
 static inline void
 open_file_db (DBConnection *db_con)
 {
-	db_con->db = open_db_interface (TRACKER_DB_FILE_META);
+	db_con->db = open_db_interface (TRACKER_DB_FILE_METADATA);
 }
 
 DBConnection *
@@ -1183,7 +1183,7 @@ tracker_db_connect_file_meta (void)
 
 	db_con = g_new0 (DBConnection, 1);
 
-	db_con->db = open_db_interface (TRACKER_DB_FILE_META);
+	db_con->db = open_db_interface (TRACKER_DB_FILE_METADATA);
 
 	return db_con;
 }
@@ -1192,7 +1192,7 @@ tracker_db_connect_file_meta (void)
 static inline void
 open_email_db (DBConnection *db_con)
 {
-	db_con->db = open_db_interface (TRACKER_DB_EMAIL_META);
+	db_con->db = open_db_interface (TRACKER_DB_EMAIL_METADATA);
 }
 
 DBConnection *
@@ -1375,12 +1375,12 @@ tracker_db_connect_emails (void)
 	gboolean     create_table;
 	DBConnection *db_con;
 	
-	create_table = !tracker_db_manager_file_exists (TRACKER_DB_EMAIL_META);
+	create_table = !tracker_db_manager_file_exists (TRACKER_DB_EMAIL_METADATA);
 
 	db_con = g_new0 (DBConnection, 1);
 
-	db_con->db = open_db_interface (TRACKER_DB_EMAIL_META);
-	//db_con->db = open_db (tracker->data_dir, TRACKER_INDEXER_EMAIL_META_DB_FILENAME, &create_table);
+	db_con->db = open_db_interface (TRACKER_DB_EMAIL_METADATA);
+	//db_con->db = open_db (tracker->data_dir, TRACKER_INDEXER_EMAIL_METADATA_DB_FILENAME, &create_table);
 	/* Old: always 8    Now: normal 8  low battery 4 */
 //set_params (db_con->db, 8, TRACKER_DB_PAGE_SIZE_DEFAULT, TRUE);
 
@@ -1538,7 +1538,7 @@ file_exists (const gchar *dir, const char *name)
 gboolean
 tracker_db_needs_setup (void)
 {
-	return (!tracker_db_manager_file_exists (TRACKER_DB_FILE_META) ||
+	return (!tracker_db_manager_file_exists (TRACKER_DB_FILE_METADATA) ||
 		!file_exists (tracker_get_data_dir (), TRACKER_INDEXER_FILE_INDEX_DB_FILENAME) ||
 		!tracker_db_manager_file_exists (TRACKER_DB_FILE_CONTENTS));
 }

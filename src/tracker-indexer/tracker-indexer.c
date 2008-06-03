@@ -43,6 +43,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+
 #include <gmodule.h>
 #include <glib/gstdio.h>
 
@@ -51,6 +52,8 @@
 #include <libtracker-common/tracker-language.h>
 #include <libtracker-common/tracker-parser.h>
 #include <libtracker-common/tracker-ontology.h>
+
+#include <libtracker-db/tracker-db-manager.h>
 #include <libtracker-db/tracker-db-interface-sqlite.h>
 
 #include "tracker-indexer.h"
@@ -281,8 +284,9 @@ init_indexer (TrackerIndexer *indexer)
 
 	priv->index = tracker_index_new (index_file,
 					 tracker_config_get_max_bucket_count (priv->config));
-	priv->common = tracker_indexer_db_get_common ();
-	priv->metadata = tracker_indexer_db_get_file_metadata ();
+
+	priv->common = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
+	priv->metadata = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
 
 	tracker_indexer_set_running (indexer, TRUE);
 

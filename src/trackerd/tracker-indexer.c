@@ -1421,7 +1421,7 @@ tracker_indexer_are_databases_too_big (void)
 		return TRUE;	
 	}
 
-        filename_const = tracker_db_manager_get_file (TRACKER_DB_FILE_META);
+        filename_const = tracker_db_manager_get_file (TRACKER_DB_FILE_METADATA);
 	too_big = tracker_file_get_size (filename_const) > MAX_INDEX_FILE_SIZE;
         
         if (too_big) {
@@ -1429,7 +1429,7 @@ tracker_indexer_are_databases_too_big (void)
 		return TRUE;	
 	}
 
-        filename_const = tracker_db_manager_get_file (TRACKER_DB_EMAIL_META);
+        filename_const = tracker_db_manager_get_file (TRACKER_DB_EMAIL_METADATA);
 	too_big = tracker_file_get_size (filename_const) > MAX_INDEX_FILE_SIZE;
         
         if (too_big) {

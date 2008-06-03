@@ -1,5 +1,19 @@
 2008-06-03  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-file-utils.h: Fixed includes so we
+	don't get warnings if glib isn't already included.
+	
+	* src/trackerd/tracker-db-email.c: 
+	* src/trackerd/tracker-db-sqlite.c: 
+	* src/trackerd/tracker-db.[ch]:
+	* src/trackerd/tracker-files.c: 
+	* src/trackerd/tracker-main.c:
+	* src/trackerd/tracker-process-files.c:
+	* src/trackerd/tracker-watcher-inotify.c: Removed a lot of
+	tracker_db_() API which is only needed by the indexer.
+
+2008-06-03  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/Makefile.am:
 	* src/trackerd/tracker-index-stage.[ch]:
 	* src/trackerd/tracker-main.h: Removed tracker-index-stage, it is

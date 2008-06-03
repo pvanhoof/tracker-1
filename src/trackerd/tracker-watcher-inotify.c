@@ -174,16 +174,16 @@ process_event (const gchar     *uri,
 	case TRACKER_DB_ACTION_DIRECTORY_CREATED:
 		info->action = TRACKER_DB_ACTION_DIRECTORY_CREATED;
 		info->is_directory = TRUE;
-		tracker_db_insert_pending_file (main_thread_db_con, 
-                                                info->file_id, 
-                                                info->uri,  
-                                                NULL, 
-                                                info->mime, 
-                                                0, 
-                                                info->action, 
-                                                info->is_directory, 
-                                                TRUE, 
-                                                -1);
+		/* tracker_db_insert_pending_file (main_thread_db_con,  */
+                /*                                 info->file_id,  */
+                /*                                 info->uri,   */
+                /*                                 NULL,  */
+                /*                                 info->mime,  */
+                /*                                 0,  */
+                /*                                 info->action,  */
+                /*                                 info->is_directory,  */
+                /*                                 TRUE,  */
+                /*                                 -1); */
 		tracker_db_file_info_free (info);
 		break;
         case TRACKER_DB_ACTION_FILE_CREATED:
@@ -235,16 +235,16 @@ process_event (const gchar     *uri,
                                         action = TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM;
 				}
 
-                                tracker_db_insert_pending_file (main_thread_db_con, 
-                                                                moved_from_info->file_id, 
-                                                                moved_from_info->uri, 
-                                                                moved_to_info->uri, 
-                                                                moved_from_info->mime, 
-                                                                0,
-                                                                action, 
-                                                                is_dir, 
-                                                                TRUE, 
-                                                                -1);
+                                /* tracker_db_insert_pending_file (main_thread_db_con,  */
+                                /*                                 moved_from_info->file_id,  */
+                                /*                                 moved_from_info->uri,  */
+                                /*                                 moved_to_info->uri,  */
+                                /*                                 moved_from_info->mime,  */
+                                /*                                 0, */
+                                /*                                 action,  */
+                                /*                                 is_dir,  */
+                                /*                                 TRUE,  */
+                                /*                                 -1); */
 
 				move_list = g_slist_remove (move_list, l->data);
                                 item_removed = TRUE;
@@ -268,15 +268,15 @@ process_event (const gchar     *uri,
 			info->action = TRACKER_DB_ACTION_WRITABLE_FILE_CLOSED;
 		}
 
-		tracker_db_insert_pending_file (main_thread_db_con, 
-                                                info->file_id, info->uri,  
-                                                NULL, 
-                                                info->mime, 
-                                                10, 
-                                                info->action, 
-                                                info->is_directory, 
-                                                TRUE, 
-                                                -1);
+		/* tracker_db_insert_pending_file (main_thread_db_con,  */
+                /*                                 info->file_id, info->uri,   */
+                /*                                 NULL,  */
+                /*                                 info->mime,  */
+                /*                                 10,  */
+                /*                                 info->action,  */
+                /*                                 info->is_directory,  */
+                /*                                 TRUE,  */
+                /*                                 -1); */
 		tracker_db_file_info_free (info);
 		break;
         }
@@ -284,16 +284,16 @@ process_event (const gchar     *uri,
         case TRACKER_DB_ACTION_WRITABLE_FILE_CLOSED:
 		g_message ("File:'%s' has finished changing", info->uri);
 
-		tracker_db_insert_pending_file (main_thread_db_con,
-                                                info->file_id, 
-                                                info->uri,  
-                                                NULL, 
-                                                info->mime, 
-                                                0, 
-                                                info->action, 
-                                                info->is_directory, 
-                                                TRUE, 
-                                                -1);
+		/* tracker_db_insert_pending_file (main_thread_db_con, */
+                /*                                 info->file_id,  */
+                /*                                 info->uri,   */
+                /*                                 NULL,  */
+                /*                                 info->mime,  */
+                /*                                 0,  */
+                /*                                 info->action,  */
+                /*                                 info->is_directory,  */
+                /*                                 TRUE,  */
+                /*                                 -1); */
 		tracker_db_file_info_free (info);
 		break;
 

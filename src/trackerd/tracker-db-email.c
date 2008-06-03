@@ -692,7 +692,7 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
                                 uri = g_strconcat (mm->uri, "/", ma->attachment_name, NULL);
                                 g_message ("Indexing attachment with uri:'%s' and mime:'%s'",
                                            uri, attachment_info->mime);
-                                tracker_db_index_file (db_con, attachment_info, uri, attachment_service);
+                                /* tracker_db_index_file (db_con, attachment_info, uri, attachment_service); */
                                 g_free (uri);
 
                                 tracker_db_file_info_unref (attachment_info);

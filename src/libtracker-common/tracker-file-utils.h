@@ -22,6 +22,8 @@
 #ifndef __LIBTRACKER_COMMON_FILE_UTILS_H__
 #define __LIBTRACKER_COMMON_FILE_UTILS_H__
 
+#include <glib.h>
+
 gint     tracker_file_open          (const gchar *uri,
 				     gboolean     readahead);
 void     tracker_file_close         (gint         fd,

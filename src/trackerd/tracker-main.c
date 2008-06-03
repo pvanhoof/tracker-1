@@ -106,21 +106,20 @@
  *  threads are waiting to process them. 
  */
 
-#define ABOUT								\
-	"Tracker " VERSION "\n"						\
+#define ABOUT								  \
+	"Tracker " VERSION "\n"						  \
 	"Copyright (c) 2005-2008 Jamie McCracken (jamiemcc@gnome.org)\n" 
 
-#define LICENSE								\
+#define LICENSE								  \
 	"This program is free software and comes without any warranty.\n" \
-	"It is licensed under version 2 or later of the General Public " \
-	"License which can be viewed at:\n"				\
-        "\n"								\
+	"It is licensed under version 2 or later of the General Public "  \
+	"License which can be viewed at:\n"				  \
+        "\n"								  \
 	"  http://www.gnu.org/licenses/gpl.txt\n" 
 
 /* Public */
 Tracker	             *tracker;
 DBConnection         *main_thread_db_con;
-DBConnection         *main_thread_cache_con;
 
 /* Private */
 static GMainLoop     *main_loop;

@@ -4172,7 +4172,7 @@ tracker_db_move_file (DBConnection *db_con, const char *moved_from_uri, const ch
 	guint32 id = tracker_db_get_file_id (db_con, moved_from_uri);
 	if (id == 0) {
 		g_warning ("Original file:'%s' not found in database", moved_from_uri);
-		tracker_db_insert_pending_file (db_con, id, moved_to_uri,  NULL, "unknown", 0, TRACKER_DB_ACTION_WRITABLE_FILE_CLOSED, FALSE, TRUE, -1);
+		/* tracker_db_insert_pending_file (db_con, id, moved_to_uri,  NULL, "unknown", 0, TRACKER_DB_ACTION_WRITABLE_FILE_CLOSED, FALSE, TRUE, -1); */
 		tracker_db_interface_end_transaction (db_con->db);
 		return;
 	}

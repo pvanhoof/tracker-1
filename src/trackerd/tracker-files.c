@@ -385,16 +385,16 @@ tracker_files_delete (TrackerFiles  *object,
 		action = TRACKER_DB_ACTION_FILE_DELETED;
 	}
 	
-	tracker_db_insert_pending_file (db_con,
-					file_id, 
-					uri, 
-					NULL,  
-					g_strdup ("unknown"), 
-					0, 
-					action,
-					is_directory, 
-					FALSE, 
-					-1);
+	/* tracker_db_insert_pending_file (db_con, */
+	/* 				file_id,  */
+	/* 				uri,  */
+	/* 				NULL,   */
+	/* 				g_strdup ("unknown"),  */
+	/* 				0,  */
+	/* 				action, */
+	/* 				is_directory,  */
+	/* 				FALSE,  */
+	/* 				-1); */
 
 	g_free (path);
 	g_free (name);

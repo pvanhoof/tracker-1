@@ -272,9 +272,9 @@ static void
 process_schedule_directory_check_foreach (const gchar  *uri, 
                                           DBConnection *db_con)
 {
-	tracker_db_insert_pending_file (db_con, 0, uri, NULL, "unknown", 0, 
-                                        TRACKER_DB_ACTION_DIRECTORY_REFRESH,
-                                        TRUE, FALSE, -1);
+	/* tracker_db_insert_pending_file (db_con, 0, uri, NULL, "unknown", 0,  */
+        /*                                 TRACKER_DB_ACTION_DIRECTORY_REFRESH, */
+        /*                                 TRUE, FALSE, -1); */
 }
 
 static void
@@ -288,8 +288,8 @@ process_schedule_file_check_foreach (const gchar  *uri,
 	process_my_yield ();
 
 	if (!tracker_file_is_directory (uri)) {
-		tracker_db_insert_pending_file (db_con, 0, uri, NULL, "unknown", 0, 
-                                                TRACKER_DB_ACTION_CHECK, 0, FALSE, -1);
+		/* tracker_db_insert_pending_file (db_con, 0, uri, NULL, "unknown", 0,  */
+                /*                                 TRACKER_DB_ACTION_CHECK, 0, FALSE, -1); */
 	} else {
 		process_schedule_directory_check_foreach (uri, db_con);
 	}

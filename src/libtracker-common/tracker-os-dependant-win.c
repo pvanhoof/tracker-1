@@ -25,12 +25,6 @@
 #include "tracker-os-dependant.h"
 
 gboolean
-tracker_check_uri (const gchar *uri)
-{
-        return uri != NULL;
-}
-
-gboolean
 tracker_spawn (gchar **argv, 
                gint    timeout, 
                gchar **tmp_stdout, 

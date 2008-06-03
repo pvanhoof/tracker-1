@@ -1,5 +1,17 @@
 2008-06-03  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-file-utils.c:
+	* src/libtracker-common/tracker-os-dependant-unix.c:
+	* src/libtracker-common/tracker-os-dependant-win.c:
+	* src/libtracker-common/tracker-os-dependant.h:
+	* src/trackerd/tracker-process-files.c: Removed
+	tracker_check_uri(), it is hardly used and it is only a pointer
+	check.
+
+	* src/trackerd/tracker-db.c: Refactored the code in places.
+
+2008-06-03  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-file-utils.h: Fixed includes so we
 	don't get warnings if glib isn't already included.
 	

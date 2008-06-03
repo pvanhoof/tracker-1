@@ -207,7 +207,7 @@ tracker_file_is_valid (const gchar *uri)
 	/* g_file_test (file,G_FILE_TEST_EXISTS) uses the access ()
 	 * system call and so needs locale filenames.
 	 */
-	is_valid &= tracker_check_uri (uri);
+	is_valid &= uri != NULL;
 	is_valid &= g_file_test (str, 
 				 G_FILE_TEST_IS_REGULAR | 
 				 G_FILE_TEST_IS_DIR | 

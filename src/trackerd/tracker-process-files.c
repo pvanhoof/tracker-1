@@ -281,8 +281,8 @@ static void
 process_schedule_file_check_foreach (const gchar  *uri, 
                                      DBConnection *db_con)
 {
-	g_return_if_fail (tracker_check_uri (uri));
-	g_return_if_fail (db_con);
+	g_return_if_fail (uri != NULL);
+	g_return_if_fail (db_con != NULL);
 
 	/* Keep mainloop responsive */
 	process_my_yield ();
@@ -331,8 +331,8 @@ process_scan_directory (const gchar  *uri,
 {
 	GSList *files;
 
-	g_return_if_fail (db_con);
-	g_return_if_fail (tracker_check_uri (uri));
+	g_return_if_fail (db_con != NULL);
+	g_return_if_fail (uri != NULL);
 	g_return_if_fail (tracker_file_is_directory (uri));
 
 	/* Keep mainloop responsive */
@@ -453,7 +453,7 @@ process_check_directory (const gchar *uri)
 {
 	GSList *files;
 
-	g_return_if_fail (tracker_check_uri (uri));
+	g_return_if_fail (uri != NULL);
 	g_return_if_fail (tracker_file_is_directory (uri));
 
         files = process_get_files (uri, FALSE, TRUE, NULL);
@@ -916,10 +916,6 @@ tracker_process_files_should_be_watched (TrackerConfig *config,
 
         g_return_val_if_fail (TRACKER_IS_CONFIG (config), FALSE);
         g_return_val_if_fail (uri != NULL, FALSE);
-
-	if (!tracker_check_uri (uri)) {
-		return FALSE;
-	}
 
 	if (process_is_in_path (uri, g_get_tmp_dir ())) {
 		return FALSE;

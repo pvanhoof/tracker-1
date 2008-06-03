@@ -32,12 +32,6 @@
 #define MAX_MEM_AMD64 512
 
 gboolean
-tracker_check_uri (const gchar *uri)
-{
-        return uri && uri[0] == G_DIR_SEPARATOR;
-}
-
-gboolean
 tracker_spawn (gchar **argv, 
                gint    timeout, 
                gchar **tmp_stdout, 

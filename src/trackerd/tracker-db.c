@@ -29,14 +29,17 @@
 #include "tracker-process-files.h"
 
 gboolean
-tracker_db_is_file_up_to_date (DBConnection *db_con, const char *uri, guint32 *id)
+tracker_db_is_file_up_to_date (DBConnection *db_con, 
+			       const gchar  *uri, 
+			       guint32      *id)
 {
 	TrackerDBResultSet *result_set;
-	char	*path, *name;
-	gint32	index_time;
+	gchar              *path, *name;
+	gint32              index_time;
 
-	g_return_val_if_fail (db_con, FALSE);
-	g_return_val_if_fail (tracker_check_uri (uri), FALSE);
+	g_return_val_if_fail (db_con != NULL, FALSE);
+	g_return_val_if_fail (uri != NULL, FALSE);
+	g_return_val_if_fail (id != NULL, FALSE);
 
 	if (uri[0] == G_DIR_SEPARATOR) {
 		name = g_path_get_basename (uri);
@@ -65,7 +68,7 @@ tracker_db_is_file_up_to_date (DBConnection *db_con, const char *uri, guint32 *i
 		return FALSE;
 	}
 
-	if (index_time < (gint32) tracker_file_get_mtime (uri)) {
+	if (index_time < tracker_file_get_mtime (uri)) {
 		return FALSE;
 	}
 
@@ -73,14 +76,15 @@ tracker_db_is_file_up_to_date (DBConnection *db_con, const char *uri, guint32 *i
 }
 
 guint32
-tracker_db_get_file_id (DBConnection *db_con, const char *uri)
+tracker_db_get_file_id (DBConnection *db_con, 
+			const gchar  *uri)
 {
 	TrackerDBResultSet *result_set;
 	char	*path, *name;
 	guint32	id;
 
-	g_return_val_if_fail (db_con, 0);
-	g_return_val_if_fail (uri, 0);
+	g_return_val_if_fail (db_con != NULL, 0);
+	g_return_val_if_fail (uri != NULL, 0);
 
 	if (uri[0] == G_DIR_SEPARATOR) {
 		name = g_path_get_basename (uri);
@@ -106,13 +110,14 @@ tracker_db_get_file_id (DBConnection *db_con, const char *uri)
 }
 
 TrackerDBFileInfo *
-tracker_db_get_file_info (DBConnection *db_con, TrackerDBFileInfo *info)
+tracker_db_get_file_info (DBConnection      *db_con, 
+			  TrackerDBFileInfo *info)
 {
 	TrackerDBResultSet *result_set;
-	gchar *path, *name;
+	gchar              *path, *name;
 
-	g_return_val_if_fail (db_con, info);
-	g_return_val_if_fail (info, info);
+	g_return_val_if_fail (db_con != NULL, info);
+	g_return_val_if_fail (info != NULL, info);
 
 	if (!tracker_process_files_is_file_info_valid (info)) {
 		return NULL;
@@ -127,7 +132,7 @@ tracker_db_get_file_info (DBConnection *db_con, TrackerDBFileInfo *info)
 	g_free (path);
 
 	if (result_set) {
-		gint id, indextime, service_type_id;
+		gint     id, indextime, service_type_id;
 		gboolean is_directory;
 
 		tracker_db_result_set_get (result_set,
@@ -152,22 +157,22 @@ tracker_db_get_file_info (DBConnection *db_con, TrackerDBFileInfo *info)
 	return info;
 }
 
-char **
-tracker_db_get_files_in_folder (DBConnection *db_con, const char *folder_uri)
+gchar **
+tracker_db_get_files_in_folder (DBConnection *db_con, 
+				const gchar  *uri)
 {
 	TrackerDBResultSet *result_set;
-	GPtrArray *array;
+	GPtrArray          *array;
 
-	g_return_val_if_fail (db_con, NULL);
-	g_return_val_if_fail (folder_uri, NULL);
-	g_return_val_if_fail (folder_uri[0] != '\0', NULL);
+	g_return_val_if_fail (db_con != NULL, NULL);
+	g_return_val_if_fail (uri != NULL, NULL);
 
-	result_set = tracker_exec_proc (db_con, "SelectFileChild", folder_uri, NULL);
+	result_set = tracker_exec_proc (db_con, "SelectFileChild", uri, NULL);
 	array = g_ptr_array_new ();
 
 	if (result_set) {
-		gboolean valid = TRUE;
-		gchar *name, *prefix;
+		gchar    *name, *prefix;
+		gboolean  valid = TRUE;
 
 		while (valid) {
 			tracker_db_result_set_get (result_set,
@@ -187,15 +192,17 @@ tracker_db_get_files_in_folder (DBConnection *db_con, const char *folder_uri)
 
 	g_ptr_array_add (array, NULL);
 
-	return (gchar **) g_ptr_array_free (array, FALSE);
+	return (gchar**) g_ptr_array_free (array, FALSE);
 }
 
 void
 tracker_db_init (void)
 {
+	/* Nothing to do? - maybe create connections? */
 }
 
 void
 tracker_db_shutdown (void)
 {
+	/* Nothing to do? */
 }

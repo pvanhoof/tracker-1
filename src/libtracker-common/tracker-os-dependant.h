@@ -25,7 +25,6 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 
-gboolean tracker_check_uri                (const gchar  *uri);
 gboolean tracker_spawn                    (gchar       **argv,
                                            gint          timeout,
                                            gchar       **tmp_stdout,

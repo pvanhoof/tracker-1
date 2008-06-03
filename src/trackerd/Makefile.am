@@ -92,8 +92,6 @@ trackerd_SOURCES =							\
 	tracker-keywords.h						\
 	tracker-indexer.c						\
 	tracker-indexer.h						\
-	tracker-index-stage.c						\
-	tracker-index-stage.h						\
 	tracker-process-files.c						\
 	tracker-process-files.h						\
 	tracker-main.c							\
@@ -111,7 +109,7 @@ trackerd_SOURCES =							\
 	tracker-status.h						\
 	tracker-utils.c							\
 	tracker-utils.h							\
-	tracker-watcher.h							\
+	tracker-watcher.h						\
 	tracker-xesam.c							\
 	tracker-xesam.h							\
 	tracker-xesam-ontology.c					\

@@ -37,7 +37,6 @@
 #include <libtracker-db/tracker-db-action.h>
 
 #include "tracker-indexer.h"
-#include "tracker-index-stage.h"
 
 /* default performance options */
 #define MAX_PROCESS_QUEUE_SIZE 100

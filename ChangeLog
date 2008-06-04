@@ -1,3 +1,11 @@
+2008-06-04  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/libtracker-db/tracker-db-interface-sqlite.c
+	(tracker_db_interface_sqlite_execute_procedure)
+	(tracker_db_interface_sqlite_execute_procedure_len): Do not choke with
+	NULL arguments, instead trust the caller on the number of arguments
+	passed and allow passing NULL values to these functions.
+
 2008-06-03  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-type-utils.h: Fixed glib include

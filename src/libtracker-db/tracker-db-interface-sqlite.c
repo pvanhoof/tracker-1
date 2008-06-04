@@ -451,15 +451,11 @@ tracker_db_interface_sqlite_execute_procedure (TrackerDBInterface  *db_interface
 	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (db_interface);
 	stmt = get_stored_stmt (TRACKER_DB_INTERFACE_SQLITE (db_interface), procedure_name);
 	stmt_args = sqlite3_bind_parameter_count (stmt);
-	n_args = 1;
 
-	while ((str = va_arg (args, gchar *)) != NULL) {
+	for (n_args = 1; n_args <= stmt_args; n_args++) {
+		str = va_arg (args, gchar *);
 		sqlite3_bind_text (stmt, n_args, str, -1, SQLITE_STATIC);
-		n_args++;
 	}
-
-	/* Just panic if the number of arguments don't match */
-	g_assert (n_args != stmt_args);
 
 	return create_result_set_from_stmt (TRACKER_DB_INTERFACE_SQLITE (db_interface), stmt, error);
 }
@@ -478,9 +474,9 @@ tracker_db_interface_sqlite_execute_procedure_len (TrackerDBInterface  *db_inter
 	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (db_interface);
 	stmt = get_stored_stmt (TRACKER_DB_INTERFACE_SQLITE (db_interface), procedure_name);
 	stmt_args = sqlite3_bind_parameter_count (stmt);
-	n_args = 1;
 
-	while ((str = va_arg (args, gchar *)) != NULL) {
+	for (n_args = 1; n_args <= stmt_args; n_args++) {
+		str = va_arg (args, gchar *);
 		len = va_arg (args, gint);
 
 		if (len == -1) {
@@ -490,12 +486,7 @@ tracker_db_interface_sqlite_execute_procedure_len (TrackerDBInterface  *db_inter
 			/* Deal with it as a blob */
 			sqlite3_bind_blob (stmt, n_args, str, len, SQLITE_STATIC);
 		}
-
-		n_args++;
 	}
-
-	/* Just panic if the number of arguments don't match */
-	g_assert (n_args != stmt_args);
 
 	return create_result_set_from_stmt (TRACKER_DB_INTERFACE_SQLITE (db_interface), stmt, error);
 }

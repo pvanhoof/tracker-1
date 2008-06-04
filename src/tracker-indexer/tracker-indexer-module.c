@@ -26,6 +26,7 @@
 typedef const gchar * (* TrackerIndexerModuleGetName) (void);
 typedef gchar **      (* TrackerIndexerModuleGetDirectories) (void);
 typedef GHashTable *  (* TrackerIndexerModuleGetData) (const gchar *path);
+typedef gchar *       (* TrackerIndexerModuleGetText) (const gchar *path);
 
 GModule *
 tracker_indexer_module_load (const gchar *module_name)
@@ -95,6 +96,19 @@ tracker_indexer_module_get_file_metadata (GModule     *module,
 	TrackerIndexerModuleGetData func;
 
 	if (g_module_symbol (module, "tracker_module_get_file_metadata", (gpointer *) &func)) {
+		return (func) (file);
+        }
+
+	return NULL;
+}
+
+gchar *
+tracker_indexer_module_get_text (GModule     *module,
+				 const gchar *file)
+{
+	TrackerIndexerModuleGetText func;
+
+	if (g_module_symbol (module, "tracker_module_get_file_text", (gpointer *) &func)) {
 		return (func) (file);
         }
 

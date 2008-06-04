@@ -179,7 +179,7 @@ static gboolean
 check_exclude_file (const gchar *path)
 {
 	gchar *name;
-	gint i;
+	guint i;
 
 	const gchar const *ignore_suffix[] = {
 		"~", ".o", ".la", ".lo", ".loT", ".in",
@@ -291,4 +291,75 @@ tracker_module_get_file_metadata (const gchar *file)
 	 */
 
 	return metadata;
+}
+
+gchar *
+tracker_metadata_call_text_filter (const gchar *path,
+				   const gchar *mime)
+{
+	gchar *str, *text_filter_file;
+	gchar *text = NULL;
+
+#ifdef OS_WIN32
+	str = g_strconcat (mime, "_filter.bat", NULL);
+#else
+	str = g_strconcat (mime, "_filter", NULL);
+#endif
+
+	text_filter_file = g_build_filename (LIBDIR,
+					     "tracker",
+					     "filters",
+					     str,
+					     NULL);
+
+	if (g_file_test (text_filter_file, G_FILE_TEST_EXISTS)) {
+		gchar **argv;
+
+		argv = g_new0 (gchar *, 3);
+		argv[0] = g_strdup (text_filter_file);
+		argv[1] = g_strdup (path);
+
+		g_message ("Extracting text for:'%s' using filter:'%s'",
+                           argv[1], argv[0]);
+
+		tracker_spawn (argv, 30, &text, NULL);
+
+		g_strfreev (argv);
+	}
+
+	g_free (text_filter_file);
+	g_free (str);
+
+	return text;
+}
+
+gchar *
+tracker_module_get_file_text (const gchar *file)
+{
+	gchar *mimetype, *service_type;
+	gchar *text = NULL;
+	GMappedFile *mapped_file;
+
+	mimetype = tracker_file_get_mime_type (file);
+	service_type = tracker_ontology_get_service_type_for_mime (mimetype);
+
+	/* No need to filter text based files - index them directly */
+	if (strcmp (service_type, "Text") == 0 ||
+            strcmp (service_type, "Development") == 0) {
+		GMappedFile *mapped_file;
+
+		mapped_file = g_mapped_file_new (file, FALSE, NULL);
+
+		if (mapped_file) {
+			text = g_strdup (g_mapped_file_get_contents (mapped_file));
+			g_mapped_file_free (mapped_file);
+		}
+	} else {
+		text = tracker_metadata_call_text_filter (file, mimetype);
+	}
+
+	g_free (mimetype);
+	g_free (service_type);
+
+	return text;
 }

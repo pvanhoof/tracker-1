@@ -1,5 +1,15 @@
 2008-06-04  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-indexer-module.[ch]
+	(tracker_indexer_module_get_text): New
+	function, returns the contained/extracted text for a file.
+	* src/tracker-indexer/modules/files.c (tracker_module_get_file_text)
+	(tracker_metadata_call_text_filter): Added, either get the text for
+	text/development files, or call the external filter, which returns the
+	contained text.
+
+2008-06-04  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/modules/files.c (tracker_metadata_get_embedded):
 	Check ontology to see whether the file could contain embedded
 	metadata.

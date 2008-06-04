@@ -34,6 +34,8 @@ gchar **                tracker_indexer_module_get_ignore_directories (GModule  
 
 GHashTable *            tracker_indexer_module_get_file_metadata      (GModule     *module,
 								       const gchar *file);
+gchar *                 tracker_indexer_module_get_text               (GModule     *module,
+								       const gchar *file);
 
 G_END_DECLS
 

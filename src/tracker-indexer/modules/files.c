@@ -27,6 +27,7 @@
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-os-dependant.h>
+#include <libtracker-common/tracker-ontology.h>
 
 #define METADATA_FILE_NAME_DELIMITED "File:NameDelimited"
 #define METADATA_FILE_EXT            "File:Ext"
@@ -92,18 +93,17 @@ tracker_module_get_ignore_directories (void)
 }
 
 void
-tracker_metadata_get_embedded (const char *uri,
+tracker_metadata_get_embedded (const char *path,
 			       const char *mimetype,
 			       GHashTable *table)
 {
 	gboolean success;
-	gchar **argv, *output, **values;
+	gchar **argv, *output, **values, *service_type;
 	gint i;
 
-	/* FIXME: lookup the service type to check whether it possibly has metadata */
-#if 0
-	service_type = tracker_ontology_get_service_type_for_mime (mime);
-	if (!service_type ) {
+	service_type = tracker_ontology_get_service_type_for_mime (mimetype);
+
+	if (!service_type) {
 		return;
 	}
 
@@ -111,16 +111,15 @@ tracker_metadata_get_embedded (const char *uri,
 		g_free (service_type);
 		return;
 	}
-#endif
 
 	/* we extract metadata out of process using pipes */
 	argv = g_new0 (gchar *, 4);
 	argv[0] = g_strdup ("tracker-extract");
-	argv[1] = g_filename_from_utf8 (uri, -1, NULL, NULL, NULL);
+	argv[1] = g_filename_from_utf8 (path, -1, NULL, NULL, NULL);
 	argv[2] = g_strdup (mimetype);
 
 	if (!argv[1] || !argv[2]) {
-		g_critical ("uri or mime could not be converted to locale format");
+		g_critical ("path or mime could not be converted to locale format");
 		g_strfreev (argv);
 		return;
 	}
@@ -176,6 +175,72 @@ tracker_metadata_get_embedded (const char *uri,
 	g_free (output);
 }
 
+static gboolean
+check_exclude_file (const gchar *path)
+{
+	gchar *name;
+	gint i;
+
+	const gchar const *ignore_suffix[] = {
+		"~", ".o", ".la", ".lo", ".loT", ".in",
+		".csproj", ".m4", ".rej", ".gmo", ".orig",
+		".pc", ".omf", ".aux", ".tmp", ".po",
+		".vmdk",".vmx",".vmxf",".vmsd",".nvram",
+		".part"
+	};
+
+	const gchar const *ignore_prefix[] = {
+		"autom4te", "conftest.", "confstat",
+		"config."
+	};
+
+	const gchar const *ignore_name[] = {
+		"po", "CVS", "aclocal", "Makefile", "CVS",
+		"SCCS", "ltmain.sh","libtool", "config.status",
+		"conftest", "confdefs.h"
+	};
+
+	if (g_str_has_prefix (path, "/proc/") ||
+	    g_str_has_prefix (path, "/dev/") ||
+	    g_str_has_prefix (path, "/tmp/") ||
+	    g_str_has_prefix (path, g_get_tmp_dir ())) {
+		return TRUE;
+	}
+
+	name = g_path_get_basename (path);
+
+	if (name[0] == '.') {
+		g_free (name);
+		return TRUE;
+	}
+
+	for (i = 0; i < G_N_ELEMENTS (ignore_suffix); i++) {
+		if (g_str_has_suffix (name, ignore_suffix[i])) {
+			g_free (name);
+			return TRUE;
+		}
+	}
+
+	for (i = 0; i < G_N_ELEMENTS (ignore_prefix); i++) {
+		if (g_str_has_prefix (name, ignore_prefix[i])) {
+			g_free (name);
+			return TRUE;
+		}
+	}
+
+	for (i = 0; i < G_N_ELEMENTS (ignore_name); i++) {
+		if (strcmp (name, ignore_name[i]) == 0) {
+			g_free (name);
+			return TRUE;
+		}
+	}
+
+	/* FIXME: check NoIndexFileTypes in configuration */
+
+	g_free (name);
+	return FALSE;
+}
+
 GHashTable *
 tracker_module_get_file_metadata (const gchar *file)
 {
@@ -184,7 +249,9 @@ tracker_module_get_file_metadata (const gchar *file)
 	const gchar *ext;
 	gchar *mimetype;
 
-	/* FIXME: check exclude extensions */
+	if (check_exclude_file (file)) {
+		return NULL;
+	}
 
 	g_lstat (file, &st);
 	metadata = g_hash_table_new_full (g_str_hash, g_str_equal,

@@ -12,4 +12,4 @@ nice -n19 w3m \
     -o ucs_conv=true \
     -T text/html \
     -dump \
-    "$1" > "$2"
+    "$1"

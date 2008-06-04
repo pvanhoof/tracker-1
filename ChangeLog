@@ -1,5 +1,10 @@
 2008-06-04  Carlos Garnacho  <carlos@imendio.com>
 
+	* filters/application/*:
+	* filters/text/*: Dump text in stdout instead of a temp file.
+
+2008-06-04  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-indexer-module.[ch]
 	(tracker_indexer_module_get_text): New
 	function, returns the contained/extracted text for a file.

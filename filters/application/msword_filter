@@ -3,6 +3,8 @@
 tmpdir=${TMPDIR-/tmp}
 tmpdir="$tmpdir"/tmpdir.$$
 
+tmptxtfile=`mktemp`
+
 (umask 077 && mkdir "$tmpdir") || exit 1
 
 tmpfile="$tmpdir"/tmpfile.$$
@@ -15,6 +17,8 @@ cp "$1" "$tmpfile"
 
 cd "$tmpdir"
 
-nice -n19 wvText "$tmpfile" "$2"
+nice -n19 wvText "$tmpfile" "$tmptxtfile"
 
 rm -rf "$tmpdir"
+rm "$tmptxtfile"
+

@@ -40,6 +40,7 @@
 #include <libtracker-common/tracker-utils.h>
 
 #include <libtracker-db/tracker-db-action.h>
+#include <libtracker-db/tracker-db-file-info.h>
 
 #include "tracker-watcher.h"
 #include "tracker-process-files.h"
@@ -143,7 +144,7 @@ process_event (const gchar     *uri,
 
 	info = tracker_db_file_info_new (uri, action, 1, TRACKER_DB_WATCH_OTHER);
 
-	if (!tracker_process_files_is_file_info_valid (info)) {
+	if (!tracker_db_file_info_is_valid (info)) {
 		return;
 	}
 

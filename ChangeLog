@@ -1,3 +1,13 @@
+2008-06-05  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/libtracker-db/tracker-db-file-info.[ch]
+	* src/trackerd/tracker-db.c
+	* src/trackerd/tracker-process-files.[ch]
+	* src/trackerd/tracker-watcher-inotify.c:
+	(tracker_process_files_is_file_info_valid) moved to
+	tracker-db-file-info (tracker_db_file_info_is_valid).
+	
+	
 2008-06-05  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/modules/files.c (check_exclude_file): Exclude

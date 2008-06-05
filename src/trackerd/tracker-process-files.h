@@ -49,7 +49,6 @@ void     tracker_process_files_get_all_dirs            (const char         *dir,
 							GSList            **files);
 GSList * tracker_process_files_get_files_with_prefix   (const char         *dir,
 							const char         *prefix);
-gboolean tracker_process_files_is_file_info_valid      (TrackerDBFileInfo  *info);
 
 /* Metadata Queue API */
 gint     tracker_process_files_metadata_queue_length   (void);

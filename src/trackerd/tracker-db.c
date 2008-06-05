@@ -119,7 +119,7 @@ tracker_db_get_file_info (DBConnection      *db_con,
 	g_return_val_if_fail (db_con != NULL, info);
 	g_return_val_if_fail (info != NULL, info);
 
-	if (!tracker_process_files_is_file_info_valid (info)) {
+	if (!tracker_db_file_info_is_valid (info)) {
 		return NULL;
 	}
 

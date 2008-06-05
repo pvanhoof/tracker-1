@@ -326,4 +326,21 @@ tracker_db_file_info_get (TrackerDBFileInfo *info)
 	return info;
 }
 
+gboolean
+tracker_db_file_info_is_valid (TrackerDBFileInfo *info)
+{
+        g_return_val_if_fail (info != NULL, FALSE);
+        g_return_val_if_fail (info->uri != NULL, FALSE);
+
+        if (!g_utf8_validate (info->uri, -1, NULL)) {
+                g_warning ("Expected UTF-8 validation of TrackerDBFileInfo URI");
+                return FALSE;
+        }
+
+        if (info->action == TRACKER_DB_ACTION_IGNORE) {
+                return FALSE;
+        }
+                               
+        return TRUE;
+}
 

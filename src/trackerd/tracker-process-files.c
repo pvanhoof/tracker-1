@@ -366,7 +366,7 @@ process_index_delete_file (TrackerDBFileInfo *info,
 	/* Info struct may have been deleted in transit here so check
          * if still valid and intact.
          */
-	g_return_if_fail (tracker_process_files_is_file_info_valid (info));
+	g_return_if_fail (tracker_db_file_info_is_valid (info));
 
 	/* If we dont have an entry in the db for the deleted file, we
          * ignore it.
@@ -387,7 +387,7 @@ process_index_delete_directory (TrackerDBFileInfo *info,
 	/* Info struct may have been deleted in transit here so check
          * if still valid and intact.
          */
-	g_return_if_fail (tracker_process_files_is_file_info_valid (info));
+	g_return_if_fail (tracker_db_file_info_is_valid (info));
 
 	/* If we dont have an entry in the db for the deleted
          * directory, we ignore it.
@@ -1143,24 +1143,6 @@ tracker_process_files_get_files_with_prefix (const char *dir,
                                              const char *prefix)
 {
 	return process_get_files (dir, FALSE, FALSE, prefix);
-}
-
-gboolean
-tracker_process_files_is_file_info_valid (TrackerDBFileInfo *info)
-{
-        g_return_val_if_fail (info != NULL, FALSE);
-        g_return_val_if_fail (info->uri != NULL, FALSE);
-
-        if (!g_utf8_validate (info->uri, -1, NULL)) {
-                g_warning ("Expected UTF-8 validation of TrackerDBFileInfo URI");
-                return FALSE;
-        }
-
-        if (info->action == TRACKER_DB_ACTION_IGNORE) {
-                return FALSE;
-        }
-                               
-        return TRUE;
 }
 
 gint

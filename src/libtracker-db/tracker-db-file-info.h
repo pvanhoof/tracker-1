@@ -94,13 +94,15 @@ struct _TrackerDBFileInfo {
 	gint             ref_count;
 };
 
-TrackerDBFileInfo *tracker_db_file_info_new   (const gchar       *uri,
-					       TrackerDBAction    action,
-					       gint               counter,
-					       TrackerDBWatch     watch);
-void               tracker_db_file_info_free  (TrackerDBFileInfo *info);
-TrackerDBFileInfo *tracker_db_file_info_ref   (TrackerDBFileInfo *info);
-TrackerDBFileInfo *tracker_db_file_info_unref (TrackerDBFileInfo *info);
-TrackerDBFileInfo *tracker_db_file_info_get   (TrackerDBFileInfo *info);
+TrackerDBFileInfo *tracker_db_file_info_new      (const gchar       *uri,
+						  TrackerDBAction    action,
+						  gint               counter,
+						  TrackerDBWatch     watch);
+void               tracker_db_file_info_free     (TrackerDBFileInfo *info);
+TrackerDBFileInfo *tracker_db_file_info_ref      (TrackerDBFileInfo *info);
+TrackerDBFileInfo *tracker_db_file_info_unref    (TrackerDBFileInfo *info);
+TrackerDBFileInfo *tracker_db_file_info_get      (TrackerDBFileInfo *info);
+gboolean           tracker_db_file_info_is_valid (TrackerDBFileInfo *info);
+
 
 #endif /* __TRACKER_DB_FILE_INFO_H__ */

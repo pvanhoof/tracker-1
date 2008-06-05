@@ -133,6 +133,7 @@ tracker_db_create_service (TrackerDBInterface *iface,
 {
 	gchar *id_str, *service_type_id_str;
 	gchar *dirname, *basename;
+	gboolean is_dir, is_symlink;
 
 	if (!service) {
 		return FALSE;
@@ -144,16 +145,19 @@ tracker_db_create_service (TrackerDBInterface *iface,
 	dirname = g_path_get_dirname (path);
 	basename = g_path_get_basename (path);
 
+	is_dir = g_file_test (path, G_FILE_TEST_IS_DIR);
+	is_symlink = g_file_test (path, G_FILE_TEST_IS_SYMLINK);
+
 	/* FIXME: do not hardcode arguments */
 	tracker_db_interface_execute_procedure (iface, NULL, "CreateService",
 						id_str,
 						dirname,
 						basename,
 						service_type_id_str,
-						g_hash_table_lookup (metadata, "File:Mime"),
+						is_dir ? "Folder" : g_hash_table_lookup (metadata, "File:Mime"),
 						g_hash_table_lookup (metadata, "File:Size"),
-						"0", /* is dir */
-						"0", /* is link */
+						is_dir ? "1" : "0",
+						is_symlink ? "1" : "0",
 						"0", /* offset */
 						g_hash_table_lookup (metadata, "File:Modified"),
 						"0", /* aux ID */

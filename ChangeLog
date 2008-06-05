@@ -1,3 +1,14 @@
+2008-06-05  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/modules/files.c (check_exclude_file): Exclude
+	also *.bak files.
+	(tracker_module_get_file_metadata): Insert missing things in the
+	metadata table, they're strings at the moment, although there should
+	be some way to deal with them as integer/times/boolean, etc...
+	* src/tracker-indexer/tracker-indexer-db.c
+	(tracker_db_create_service): Insert some missing data in the Services
+	table.
+
 2008-06-05  Ivan Frade <ivan.frade@nokia.com>
 	
 	* src/trackerd/tracker-email-plugin.h: Email plugin interface.
@@ -12,7 +23,6 @@
 	* src/trackerd/tracker-main.c: Use the new 
 	(_start,_end)_watching_emails functions.
 
-	
 2008-06-04  Carlos Garnacho  <carlos@imendio.com>
 
 	* filters/application/*:

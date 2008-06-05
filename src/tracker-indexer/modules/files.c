@@ -26,6 +26,7 @@
 
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-file-utils.h>
+#include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-os-dependant.h>
 #include <libtracker-common/tracker-ontology.h>
 
@@ -186,7 +187,7 @@ check_exclude_file (const gchar *path)
 		".csproj", ".m4", ".rej", ".gmo", ".orig",
 		".pc", ".omf", ".aux", ".tmp", ".po",
 		".vmdk",".vmx",".vmxf",".vmsd",".nvram",
-		".part"
+		".part", ".bak"
 	};
 
 	const gchar const *ignore_prefix[] = {
@@ -280,15 +281,15 @@ tracker_module_get_file_metadata (const gchar *file)
 		g_free (link_path);
 	}
 
-	tracker_metadata_get_embedded (file, mimetype, metadata);
+	/* FIXME: These should be dealt directly as integer/times/whatever, not strings */
+	g_hash_table_insert (metadata, METADATA_FILE_SIZE,
+			     tracker_uint_to_string (st.st_size));
+	g_hash_table_insert (metadata, METADATA_FILE_MODIFIED,
+			     tracker_uint_to_string (st.st_mtime));
+	g_hash_table_insert (metadata, METADATA_FILE_ACCESSED,
+			     tracker_uint_to_string (st.st_atime));
 
-	/* FIXME, Missing:
-	 *
-	 * File:Size
-	 * File:Modified
-	 * File:Accessed
-	 * Call external metadata extractor
-	 */
+	tracker_metadata_get_embedded (file, mimetype, metadata);
 
 	return metadata;
 }
@@ -338,7 +339,6 @@ tracker_module_get_file_text (const gchar *file)
 {
 	gchar *mimetype, *service_type;
 	gchar *text = NULL;
-	GMappedFile *mapped_file;
 
 	mimetype = tracker_file_get_mime_type (file);
 	service_type = tracker_ontology_get_service_type_for_mime (mimetype);

@@ -31,8 +31,6 @@
 #include <glib/gstdio.h>
 #include <dirent.h>
 
-#include <libtracker-common/tracker-log.h>
-#include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-utils.h>
 
@@ -219,11 +217,9 @@ modest_module_is_running (void)
 *********************************************************************************************/
 
 gboolean
-tracker_email_init (TrackerConfig *config)
+tracker_email_plugin_init (void)
 {
 	ModestConfig *conf;
-
-        g_return_val_if_fail (TRACKER_IS_CONFIG (config), FALSE);
 
 	if (modest_config) {
 		return TRUE;
@@ -241,7 +237,7 @@ tracker_email_init (TrackerConfig *config)
 
 
 gboolean
-tracker_email_finalize (void)
+tracker_email_plugin_finalize (void)
 {
 	if (!modest_config) {
 		return TRUE;
@@ -276,7 +272,7 @@ free_modest_config (ModestConfig *conf)
 }
 
 void
-tracker_email_watch_emails (DBConnection *db_con)
+tracker_email_plugin_watch_emails (DBConnection *db_con)
 {
 	TrackerDBResultSet *result_set;
 
@@ -319,8 +315,8 @@ tracker_email_watch_emails (DBConnection *db_con)
 	load_current_dynamic_folders (modest_config);
 }
 
-static gboolean
-modest_file_is_interesting (TrackerDBFileInfo *info)
+gboolean
+tracker_email_plugin_file_is_interesting (TrackerDBFileInfo *info)
 {
 	g_return_val_if_fail (info, FALSE);
 	g_return_val_if_fail (info->uri, FALSE);
@@ -339,14 +335,14 @@ modest_file_is_interesting (TrackerDBFileInfo *info)
 
 
 gboolean
-tracker_email_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
+tracker_email_plugin_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
 {
 	gchar *file_name;
 
 	g_return_val_if_fail (db_con, FALSE);
 	g_return_val_if_fail (info, FALSE);
 
-	if (!modest_file_is_interesting (info))
+	if (!tracker_email_plugin_file_is_interesting (info))
 		return FALSE;
 
 	file_name = g_path_get_basename (info->uri);
@@ -389,7 +385,7 @@ tracker_email_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
 }
 
 const gchar *
-tracker_email_get_name (void)
+tracker_email_plugin_get_name (void)
 {
 	return "ModestEmails";
 }

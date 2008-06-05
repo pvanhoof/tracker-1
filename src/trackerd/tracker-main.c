@@ -941,7 +941,7 @@ main (gint argc, gchar *argv[])
 	tracker_db_manager_init (data_dir, user_data_dir, sys_tmp_dir);
 	tracker_xesam_manager_init ();
 	tracker_ontology_init ();
-	tracker_email_init (tracker->config);
+	tracker_email_start_email_watching (tracker_config_get_email_client (tracker->config));
 
 #ifdef HAVE_HAL
  	tracker->hal = tracker_hal_new ();
@@ -1041,7 +1041,7 @@ main (gint argc, gchar *argv[])
 
 	/* Shutdown major subsystems */
 	tracker_process_files_shutdown ();
-	tracker_email_shutdown ();
+	tracker_email_end_email_watching ();
 	tracker_dbus_shutdown ();
 	tracker_ontology_shutdown ();
 	tracker_xesam_manager_shutdown ();

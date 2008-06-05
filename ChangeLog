@@ -1,3 +1,18 @@
+2008-06-05  Ivan Frade <ivan.frade@nokia.com>
+	
+	* src/trackerd/tracker-email-plugin.h: Email plugin interface.
+	
+	* src/trackerd/tracker-email.c: Consistent function names. _init
+	is now _start_watching_emails and _shutdown is now 
+	_end_watching_emails.	
+
+	* src/trackerd/tracker-email-[modest,kmail,evolution,thunderbird].c:
+	Renamed method names to "implement" the plugin interface.
+
+	* src/trackerd/tracker-main.c: Use the new 
+	(_start,_end)_watching_emails functions.
+
+	
 2008-06-04  Carlos Garnacho  <carlos@imendio.com>
 
 	* filters/application/*:

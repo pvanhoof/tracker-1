@@ -31,8 +31,7 @@
 
 #include <glib/gstdio.h>
 
-#include <libtracker-common/tracker-log.h>
-#include <libtracker-common/tracker-config.h>
+
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-utils.h>
@@ -41,6 +40,7 @@
 
 #include "tracker-email-utils.h"
 #include "tracker-db-email.h"
+#include "tracker-email-plugin.h"
 #include "tracker-dbus.h"
 #include "tracker-daemon.h"
 #include "tracker-watcher.h"
@@ -236,11 +236,9 @@ evolution_module_is_running (void)
 *********************************************************************************************/
 
 gboolean
-tracker_email_init (TrackerConfig *config)
+tracker_email_plugin_init (void)
 {
 	EvolutionConfig *conf;
-
-	g_return_val_if_fail (TRACKER_IS_CONFIG (config), FALSE);
 
 	if (evolution_config) {
 		return TRUE;
@@ -257,7 +255,7 @@ tracker_email_init (TrackerConfig *config)
 
 
 gboolean
-tracker_email_finalize (void)
+tracker_email_plugin_finalize (void)
 {
 	if (!evolution_config) {
 		return TRUE;
@@ -271,7 +269,7 @@ tracker_email_finalize (void)
 
 
 void
-tracker_email_watch_emails (DBConnection *db_con)
+tracker_email_plugin_watch_emails (DBConnection *db_con)
 {
 	TrackerDBResultSet *result_set;
 
@@ -318,8 +316,8 @@ tracker_email_watch_emails (DBConnection *db_con)
 }
 
 
-static gboolean
-evolution_file_is_interesting (TrackerDBFileInfo *info)
+gboolean
+tracker_email_plugin_file_is_interesting (TrackerDBFileInfo *info)
 {
 	GSList *dir;
 
@@ -375,14 +373,14 @@ evolution_file_is_interesting (TrackerDBFileInfo *info)
 
 
 gboolean
-tracker_email_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
+tracker_email_plugin_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
 {
 	gchar *file_name;
 
 	g_return_val_if_fail (db_con, FALSE);
 	g_return_val_if_fail (info, FALSE);
 
-	if (!evolution_file_is_interesting (info))
+	if (!tracker_email_plugin_file_is_interesting (info))
 		return FALSE;
 
 	file_name = g_path_get_basename (info->uri);
@@ -543,7 +541,7 @@ tracker_email_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
 }
 
 const gchar *
-tracker_email_get_name (void)
+tracker_email_plugin_get_name (void)
 {
 	return "EvolutionEmails";
 }

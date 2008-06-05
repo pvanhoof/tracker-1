@@ -19,78 +19,32 @@
  */
 
 #include <glib.h>
-#include <glib/gstdio.h>
 #include <gmodule.h>
 
-#include <libtracker-common/tracker-config.h>
+#include <gmime/gmime.h>
 
 #include "tracker-email.h"
-#include "tracker-email-utils.h"
-#include "tracker-main.h"
+
+typedef gboolean      (* TrackerMailInit)          (void);
+typedef void          (* TrackerMailFinalize)      (void);
+typedef void          (* TrackerMailWatchEmails)   (DBConnection      *db_con);
+typedef gboolean      (* TrackerMailIndexFile)     (DBConnection      *db_con,
+						    TrackerDBFileInfo *info);
+typedef gboolean      (* TrackerMailFileIsInteresting) (TrackerDBFileInfo *info);
+typedef const gchar * (* TrackerMailGetName)       (void);
 
 static GModule *module = NULL;
 
-/* Must be called before any work on files containing mails */
-void
-tracker_email_add_service_directories (DBConnection *db_con)
-{
-	TrackerMailWatchEmails func;
-
-	if (!module)
-		return;
-
-	if (g_module_symbol (module, "tracker_email_watch_emails", (gpointer *) &func)) {
-		(func) (db_con);
-        }
-}
-
-void
-tracker_email_end_email_watching (void)
-{
-	TrackerMailFinalize func;
-
-	if (!module)
-		return;
-
-	if (g_module_symbol (module, "tracker_email_finalize", (gpointer *) &func)) {
-		(func) ();
-	}
-
-	g_mime_shutdown ();
-}
-
 
 gboolean
-tracker_email_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
-{
-	TrackerMailIndexFile func;
-
-	g_return_val_if_fail (db_con, FALSE);
-	g_return_val_if_fail (info, FALSE);
-
-	if (!module)
-		return FALSE;
-
-	if (!g_module_symbol (module, "tracker_email_index_file", (gpointer *) &func))
-		return FALSE;
-
-	return (func) (db_con, info);
-}
-
-gboolean
-tracker_email_init (TrackerConfig *config)
+tracker_email_start_email_watching (const gchar *email_client)
 {
 	TrackerMailInit func;
-	const gchar *email_client;
 	gchar *module_name, *module_path;
 	gboolean result = FALSE;
 
-	g_return_val_if_fail (TRACKER_IS_CONFIG (config), FALSE);
-
 	if (module)
 		return result;
-
-	email_client = tracker_config_get_email_client (config);
 
 	if (!email_client)
 		return result;
@@ -114,10 +68,10 @@ tracker_email_init (TrackerConfig *config)
 
 	g_module_make_resident (module);
 
-	if (g_module_symbol (module, "tracker_email_init", (gpointer *) &func)) {
+	if (g_module_symbol (module, "tracker_email_plugin_init", (gpointer *) &func)) {
 		g_mime_init (0);
 
-		result = (func) (config);
+		result = (func) ();
 	}
 
 	g_free (module_name);
@@ -127,12 +81,71 @@ tracker_email_init (TrackerConfig *config)
 }
 
 void
-tracker_email_shutdown (void)
+tracker_email_end_email_watching (void)
 {
-	/* Nothing to do here it seems, this function is here for
-	 * completeness.
-	 */
+	TrackerMailFinalize func;
+
+	if (!module)
+		return;
+
+	if (g_module_symbol (module, "tracker_email_plugin_finalize", (gpointer *) &func)) {
+		(func) ();
+	}
+
+	g_mime_shutdown ();
 }
+
+
+/* Must be called before any work on files containing mails */
+void
+tracker_email_add_service_directories (DBConnection *db_con)
+{
+	TrackerMailWatchEmails func;
+
+	if (!module)
+		return;
+
+	if (g_module_symbol (module, "tracker_email_plugin_watch_emails", (gpointer *) &func)) {
+		(func) (db_con);
+        }
+}
+
+gboolean
+tracker_email_file_is_interesting (TrackerDBFileInfo *info)
+{
+	TrackerMailFileIsInteresting func;
+
+	if (!module)
+		return FALSE;
+
+	
+	if (g_module_symbol (module, "tracker_email_plugin_file_is_interesting", (gpointer *) &func)) {
+		(func) (info);
+        } else {
+		g_warning ("%s module doesnt implement _file_is_interesting function", 
+			   tracker_email_get_name ());
+	}
+
+	return TRUE;
+}
+
+gboolean
+tracker_email_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
+{
+	TrackerMailIndexFile func;
+
+	g_return_val_if_fail (db_con, FALSE);
+	g_return_val_if_fail (info, FALSE);
+
+	if (!module)
+		return FALSE;
+
+	if (!g_module_symbol (module, "tracker_email_plugin_index_file", (gpointer *) &func))
+		return FALSE;
+
+	return (func) (db_con, info);
+}
+
 
 const gchar *
 tracker_email_get_name (void)
@@ -142,7 +155,7 @@ tracker_email_get_name (void)
 	if (!module)
 		return NULL;
 
-	if (!g_module_symbol (module, "tracker_email_get_name", (gpointer *) &func))
+	if (!g_module_symbol (module, "tracker_email_plugin_get_name", (gpointer *) &func))
 		return NULL;
 
 	return (func) ();

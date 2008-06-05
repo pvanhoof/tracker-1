@@ -30,8 +30,6 @@
 
 #include <glib/gstdio.h>
 
-#include <libtracker-common/tracker-log.h>
-#include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-utils.h>
 
@@ -39,7 +37,6 @@
 #include "tracker-dbus.h"
 #include "tracker-daemon.h"
 #include "tracker-email-utils.h"
-#include "tracker-watcher.h"
 
 extern Tracker *tracker;
 

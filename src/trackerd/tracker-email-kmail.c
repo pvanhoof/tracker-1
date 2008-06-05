@@ -25,11 +25,11 @@
 
 #include <glib/gstdio.h>
 
-#include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-utils.h>
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-type-utils.h>
-#include <libtracker-common/tracker-utils.h>
+
+#include "tracker-email-plugin.h"
 
 #include "tracker-email-utils.h"
 #include "tracker-db-email.h"
@@ -106,7 +106,7 @@ kmail_module_is_running (void)
 *********************************************************************************************/
 
 gboolean
-kmail_init_module (void)
+tracker_email_plugin_init (void)
 {
         KMailConfig *conf;
 
@@ -125,7 +125,7 @@ kmail_init_module (void)
 
 
 gboolean
-tracker_email_finalize (void)
+tracker_email_plugin_finalize (void)
 {
         if (!kmail_config) {
                 return TRUE;
@@ -139,7 +139,7 @@ tracker_email_finalize (void)
 
 
 void
-tracker_email_watch_emails (DBConnection *db_con)
+tracker_email_plugin_watch_emails (DBConnection *db_con)
 {
         g_return_if_fail (kmail_config);
 
@@ -159,8 +159,8 @@ tracker_email_watch_emails (DBConnection *db_con)
 }
 
 
-static gboolean
-kmail_file_is_interesting (TrackerDBFileInfo *info)
+gboolean
+tracker_email_plugin_file_is_interesting (TrackerDBFileInfo *info)
 {
         const GSList *account;
 
@@ -186,14 +186,14 @@ kmail_file_is_interesting (TrackerDBFileInfo *info)
 
 
 gboolean
-tracker_email_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
+tracker_email_plugin_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
 {
         KMailMailProtocol mail_protocol;
 
         g_return_val_if_fail (db_con, FALSE);
         g_return_val_if_fail (info, FALSE);
 
-	if (!kmail_file_is_interesting (info))
+	if (!tracker_email_plugin_file_is_interesting (info))
 		return FALSE;
 
         mail_protocol = find_mail_protocol (info->uri);
@@ -270,7 +270,7 @@ tracker_email_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
 }
 
 const gchar *
-tracker_email_get_name (void)
+tracker_email_plugin_get_name (void)
 {
 	return "KMailEmails";
 }

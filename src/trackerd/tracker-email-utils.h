@@ -23,7 +23,7 @@
 
 #include <gmime/gmime.h>
 
-#include "tracker-email.h"
+#include "tracker-db-sqlite.h"
 
 G_BEGIN_DECLS
 

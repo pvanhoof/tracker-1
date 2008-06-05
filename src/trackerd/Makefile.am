@@ -86,6 +86,7 @@ trackerd_SOURCES =							\
 	tracker-email.h							\
 	tracker-email-utils.c						\
 	tracker-email-utils.h						\
+	tracker-email-plugin.h						\
 	tracker-files.c							\
 	tracker-files.h							\
 	tracker-keywords.c						\

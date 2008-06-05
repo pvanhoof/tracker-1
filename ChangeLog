@@ -1,3 +1,9 @@
+2008-06-05  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer-db.c
+	(tracker_db_create_service): Take into account directories when
+	marking services as disabled.
+
 2008-06-05  Ivan frade  <ivan.frade@nokia.com>
 
 	* src/libtracker-db/tracker-db-action.[ch]

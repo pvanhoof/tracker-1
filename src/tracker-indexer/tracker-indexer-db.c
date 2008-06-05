@@ -133,7 +133,7 @@ tracker_db_create_service (TrackerDBInterface *iface,
 {
 	gchar *id_str, *service_type_id_str;
 	gchar *dirname, *basename;
-	gboolean is_dir, is_symlink;
+	gboolean is_dir, is_symlink, enabled;
 
 	if (!service) {
 		return FALSE;
@@ -163,8 +163,11 @@ tracker_db_create_service (TrackerDBInterface *iface,
 						"0", /* aux ID */
 						NULL);
 
-	/* FIXME: make it work for dirs */
-	if (!tracker_service_get_show_service_files (service)) {
+	enabled = (is_dir) ?
+		tracker_service_get_show_service_directories (service) :
+		tracker_service_get_show_service_files (service);
+
+	if (!enabled) {
 		tracker_db_interface_execute_query (iface, NULL,
 						    "Update services set Enabled = 0 where ID = %d",
 						    id);

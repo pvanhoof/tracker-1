@@ -138,3 +138,12 @@ tracker_db_action_to_string (TrackerDBAction action)
         return enum_value->value_nick;
 }
 
+gboolean     
+tracker_db_action_is_delete (TrackerDBAction action)
+{
+	return 
+                action == TRACKER_DB_ACTION_DELETE ||
+		action == TRACKER_DB_ACTION_DELETE_SELF ||
+		action == TRACKER_DB_ACTION_FILE_DELETED ||
+		action == TRACKER_DB_ACTION_DIRECTORY_DELETED;
+}

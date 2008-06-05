@@ -55,7 +55,9 @@ typedef enum {
 } TrackerDBAction;
 
 GType        tracker_db_action_get_type  (void) G_GNUC_CONST;
-const gchar *tracker_db_action_to_string (TrackerDBAction action);
+const gchar *tracker_db_action_to_string       (TrackerDBAction action);
+gboolean     tracker_db_action_is_delete (TrackerDBAction action);
+
 
 G_END_DECLS
 

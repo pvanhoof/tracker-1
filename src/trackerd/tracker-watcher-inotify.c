@@ -64,16 +64,6 @@ static gint          monitor_count;
 static gint          monitor_limit = 8191;
 
 static gboolean
-is_delete_event (TrackerDBAction event_type)
-{
-	return 
-                event_type == TRACKER_DB_ACTION_DELETE ||
-		event_type == TRACKER_DB_ACTION_DELETE_SELF ||
-		event_type == TRACKER_DB_ACTION_FILE_DELETED ||
-		event_type == TRACKER_DB_ACTION_DIRECTORY_DELETED;
-}
-
-static gboolean
 process_moved_events (void)
 {
 	GSList *l;
@@ -150,7 +140,7 @@ process_event (const gchar     *uri,
 
 	info->is_directory = is_dir;
 
-	if (is_delete_event (action)) {
+	if (tracker_db_action_is_delete (action)) {
 		gchar *parent;
 
 		parent = g_path_get_dirname (info->uri);

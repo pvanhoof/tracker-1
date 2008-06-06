@@ -1,5 +1,10 @@
 2008-06-06  Carlos Garnacho  <carlos@imendio.com>
 
+	* data/services/*.metadata: Change DataType to match TrackerFieldType
+	enum nicks.
+
+2008-06-06  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/libtracker-db/tracker-db-manager.c (load_metadata_file): Try to
 	find enum value based on the nick, not the name.
 	(db_manager_row_to_field_def): Set data type when creating

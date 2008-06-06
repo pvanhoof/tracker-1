@@ -1,7 +1,7 @@
 [Audio:Title]
 DisplayName=Title
 Description=Track title
-DataType=Indexable
+DataType=index
 Parent=DC:Title
 Weight=20
 Filtered=false
@@ -9,7 +9,7 @@ Filtered=false
 [Audio:Artist]
 DisplayName=Artist
 Description=Track artist
-DataType=Indexable
+DataType=index
 Parent=DC:Creator
 Weight=15
 Filtered=false
@@ -17,14 +17,14 @@ Filtered=false
 [Audio:Album]
 DisplayName=Title
 Description=Track title
-DataType=Indexable
+DataType=index
 Weight=10
 Filtered=false
 
 [Audio:Genre]
 DisplayName=Genre
 Description=The type or genre of the music track
-DataType=Keyword
+DataType=keyword
 Parent=DC:Type
 Weight=5
 MultipleValues=true
@@ -32,18 +32,18 @@ MultipleValues=true
 [Audio:Duration]
 DisplayName=Duration
 Description=The length in seconds of the music track
-DataType=Integer
+DataType=integer
 
 [Audio:ReleaseDate]
 DisplayName=Release date
 Description=The date the track was released
-DataType=DateTime
+DataType=date
 Parent=DC:Date
 
 [Audio:AlbumArtist]
 DisplayName=Album artist
 Description=The artist of the track's album
-DataType=Indexable
+DataType=index
 Parent=DC:Creator
 Weight=10
 Filtered=false
@@ -51,22 +51,22 @@ Filtered=false
 [Audio:AlbumTrackCount]
 DisplayName=Album track count
 Description=The number of tracks in the album
-DataType=Integer
+DataType=integer
 
 [Audio:TrackNo]
 DisplayName=Track number
 Description=The position of the track relative to the others
-DataType=Integer
+DataType=integer
 
 [Audio:DiscNo]
 DisplayName=Disc number
 Description=On which disc the track is located
-DataType=Integer
+DataType=integer
 
 [Audio:Performer]
 DisplayName=Performer
 Description=The individual or group performing the track
-DataType=Indexable
+DataType=index
 Weight=5
 Parent=DC:Contributor
 MultipleValues=true
@@ -74,100 +74,100 @@ MultipleValues=true
 [Audio:TrackGain]
 DisplayName=Track gain
 Description=The amount of gain needed for the track
-DataType=Double
+DataType=double
 
 [Audio:PeakTrackGain]
 DisplayName=Peak track gain
 Description=The peak amount of gain needed for the track
-DataType=Double
+DataType=double
 
 [Audio:AlbumGain]
 DisplayName=Album gain
 Description=The amount of gain needed for the entire album
-DataType=Double
+DataType=double
 
 [Audio:AlbumPeakGain]
 DisplayName=Peak album gain
 Description=The peak amount of gain needed for the entire album
-DataType=Double
+DataType=double
 
 [Audio:Comment]
 DisplayName=Comments
 Description=General purpose comments
-DataType=Indexable
+DataType=index
 Weight=1
 Parent=DC:Description
 
 [Audio:Codec]
 DisplayName=Codec
 Description=Codec name
-DataType=Indexable
+DataType=index
 Weight=1
 
 [Audio:CodecVersion]
 DisplayName=Codec version
 Description=Codec version string
-DataType=String
+DataType=string
 
 [Audio:Samplerate]
 DisplayName=Sample rate
 Description=Sample rate of track in Hz
-DataType=Double
+DataType=double
 
 [Audio:Bitrate]
 DisplayName=Bitrate
 Description=Bitrate in bits/sec
-DataType=Double
+DataType=double
 
 [Audio:Channels]
 DisplayName=Channels
 Description=The number of channels in the track
-DataType=Integer
+DataType=integer
 
 [Audio:LastPlay]
 DisplayName=Last Played
 Description=The date and time the track was last played
-DataType=DateTime
+DataType=date
 Parent=DC:Date
 
 [Audio:PlayCount]
 DisplayName=Play Count
 Description=Number of times the track has been played
-DataType=Integer
+DataType=integer
 
 [Audio:DateAdded]
 DisplayName=Date Added
 Description=Date track was first added
-DataType=DateTime
+DataType=date
 
 [Audio:Lyrics]
 DisplayName=Lyrics
 Description=Lyrics of the track
-DataType=Indexable
+DataType=index
 weight=1
 
 [Audio:MBAlbumID]
 DisplayName=MusicBrainz album ID
 Description=The MusicBrainz album ID for the track
-DataType=String
+DataType=string
 Parent=DC:Identifier
 
 [Audio:MBArtistID]
 DisplayName=MusicBrainz artist ID
 Description=The MusicBrainz artist ID for the track
-DataType=String
+DataType=string
 Parent=DC:Identifier
 
 [Audio:MBAlbumArtistID]
 DisplayName=MusicBrainz album artist ID
 Description=The MusicBrainz album artist ID for the track
-DataType=String
+DataType=string
 Parent=DC:Identifier
 
 [Audio:MBTrackID]
 DisplayName=MusicBrainz track ID
 Description=The MusicBrainz track ID
-DataType=String
+DataType=string
 Parent=DC:Identifier
 
 

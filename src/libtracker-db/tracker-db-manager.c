@@ -244,7 +244,7 @@ load_metadata_file (TrackerDBInterface *iface,
 			} else if (strcasecmp (keys[j], "DataType") == 0) {
 				GEnumValue *enum_value;
 
-				enum_value = g_enum_get_value_by_name (g_type_class_peek (TRACKER_TYPE_FIELD_TYPE), new_value);
+				enum_value = g_enum_get_value_by_nick (g_type_class_peek (TRACKER_TYPE_FIELD_TYPE), new_value);
 
 				if (enum_value) {
 					tracker_db_interface_execute_query (iface, NULL,
@@ -535,6 +535,7 @@ db_manager_row_to_field_def (TrackerDBResultSet *result_set)
 
 	tracker_field_set_id (field_def, tracker_int_to_string (id));
 	tracker_field_set_name (field_def, name);
+	tracker_field_set_data_type (field_def, field_type);
 	tracker_field_set_field_name (field_def, field_name);
 	tracker_field_set_weight (field_def, weight);
 	tracker_field_set_embedded (field_def, embedded);

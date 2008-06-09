@@ -119,7 +119,6 @@
 
 /* Public */
 Tracker	             *tracker;
-DBConnection         *main_thread_db_con;
 
 /* Private */
 static GMainLoop     *main_loop;
@@ -248,11 +247,13 @@ reset_blacklist_file (gchar *uri)
 	/* Reset mtime on parent folder of all outstanding black list
 	 * files so they get indexed when next restarted 
 	 */
-	tracker_exec_proc (main_thread_db_con, 
-			   "UpdateFileMTime", "0", 
-			   dirname_parent, basename, 
-			   NULL);
-
+	tracker_db_exec_proc (tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA), 
+			      "UpdateFileMTime", 
+			      "0", 
+			      dirname_parent, 
+			      basename, 
+			      NULL);
+	
 	g_free (basename);
 	g_free (dirname_parent);
 	g_free (dirname);
@@ -369,36 +370,22 @@ sanity_check_option_values (void)
 static void
 create_index (gboolean need_data)
 {
-	DBConnection *db_con;
+	TrackerDBInterface *iface;
 	
 	tracker->first_time_index = TRUE;
 
-	/* Create files db and emails db */
-	db_con = tracker_db_connect ();
-
 	/* Reset stats for embedded services if they are being reindexed */
 	if (!need_data) {
+		iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
+
 		g_message ("*** DELETING STATS *** ");
-		tracker_db_exec_no_reply (db_con->db, 
+		tracker_db_exec_no_reply (iface, 
 					  "update ServiceTypes set TypeCount = 0 where Embedded = 1");
 	}
 
-	tracker_db_close (db_con->db);
-	g_free (db_con);
-
 	/* Create databases */
-	db_con = tracker_db_connect_file_content ();
-	tracker_db_close (db_con->db);
-	g_free (db_con);
 
-	db_con = tracker_db_connect_email_content ();
-	tracker_db_close (db_con->db);
-	g_free (db_con);
-
-	db_con = tracker_db_connect_emails ();
-	tracker_db_close (db_con->db);
-	g_free (db_con);
-
+	/* create file content, email content and email dbs */
 }
 
 static gboolean 
@@ -517,7 +504,7 @@ initialise_directories (gboolean *need_index)
 	g_free (filename);
 
 	/* Remove database if we are reindexing */
-	if (reindex || tracker_db_needs_setup ()) {
+	if (reindex) {
 		tracker_path_remove (data_dir);
 		*need_index = TRUE;
 	}
@@ -554,54 +541,32 @@ initialise_threading (void)
 static void
 initialise_databases (gboolean need_index)
 {
-	Indexer      *index;
-	DBConnection *db_con;
-	gchar        *final_index_name;
-	gboolean      need_data;
+	Indexer  *index;
+	gchar    *final_index_name;
+	gboolean  need_data;
 	
-	/* FIXME: is this actually necessary? */
-	db_con = tracker_db_connect_cache ();
-	tracker_db_close (db_con->db);
-
-	need_data = tracker_db_common_need_build ();
-
-	if (need_data) {
-		tracker_create_common_db ();
-	}
-
 	if (!tracker->readonly && need_index) {
 		create_index (need_data);
 	} else {
 		tracker->first_time_index = FALSE;
 	}
 
-        /* Set up main database connection */
-	db_con = tracker_db_connect ();
-
 	/* Check db integrity if not previously shut down cleanly */
 	if (!tracker->readonly && 
 	    !need_index && 
-	    tracker_db_get_option_int (db_con, "IntegrityCheck") == 1) {
+	    tracker_db_get_option_int ("IntegrityCheck") == 1) {
 		g_message ("Performing integrity check as the daemon was not shutdown cleanly");
 		/* FIXME: Finish */
 	} 
 
 	if (!tracker->readonly) {
-		tracker_db_set_option_int (db_con, "IntegrityCheck", 1);
+		tracker_db_set_option_int ("IntegrityCheck", 1);
 	} 
 
 	if (tracker->first_time_index) {
-		tracker_db_set_option_int (db_con, "InitialIndex", 1);
+		tracker_db_set_option_int ("InitialIndex", 1);
 	}
 
-	/* Create connections */
-	// you shouldn't have to do this at all !
-	// In fact, it's even terribly wrong to do this!
-	//db_con->cache = tracker_db_connect_cache ();
-	//db_con->common = tracker_db_connect_common ();
-
-	main_thread_db_con = db_con;
-	
 	/* Move final file to index file if present and no files left
 	 * to merge.
 	 */
@@ -655,9 +620,7 @@ initialise_databases (gboolean need_index)
 	index = tracker_indexer_open (TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME, TRUE);
 	tracker->email_index = index;
 
-	db_con->word_index = tracker->file_index;
-
-	tracker_db_get_static_data (db_con);
+	/* db_con->word_index = tracker->file_index; */
 }
 
 static void
@@ -762,9 +725,7 @@ static void
 shutdown_databases (void)
 {
 	/* Reset integrity status as threads have closed cleanly */
-	tracker_db_set_option_int (main_thread_db_con, "IntegrityCheck", 0);
-
-	tracker_db_close (main_thread_db_con->db);
+	tracker_db_set_option_int ("IntegrityCheck", 0);
 }
 
 static void
@@ -937,10 +898,10 @@ main (gint argc, gchar *argv[])
 
 	tracker_nfs_lock_init (tracker_config_get_nfs_locking (tracker->config));
 	tracker_watcher_init ();
+	tracker_ontology_init ();
 	tracker_db_init ();
 	tracker_db_manager_init (data_dir, user_data_dir, sys_tmp_dir);
 	tracker_xesam_manager_init ();
-	tracker_ontology_init ();
 	tracker_email_start_email_watching (tracker_config_get_email_client (tracker->config));
 
 #ifdef HAVE_HAL
@@ -953,11 +914,6 @@ main (gint argc, gchar *argv[])
 	umask (077);
 
 	tracker->readonly = check_multiple_instances ();
-
-        if (!tracker_db_load_prepared_queries ()) {
-		g_critical ("Could not initialize database engine!");
-		return EXIT_FAILURE;
-        }
 
 	initialise_databases (need_index);
 
@@ -1043,10 +999,10 @@ main (gint argc, gchar *argv[])
 	tracker_process_files_shutdown ();
 	tracker_email_end_email_watching ();
 	tracker_dbus_shutdown ();
-	tracker_ontology_shutdown ();
 	tracker_xesam_manager_shutdown ();
 	tracker_db_shutdown ();
 	tracker_db_manager_shutdown ();
+	tracker_ontology_shutdown ();
 	tracker_watcher_shutdown ();
 	tracker_nfs_lock_shutdown ();
 	tracker_log_shutdown ();

@@ -29,28 +29,12 @@
 #include <libtracker-common/tracker-utils.h>
 
 #include <libtracker-db/tracker-db-dbus.h>
+#include <libtracker-db/tracker-db-manager.h>
 
 #include "tracker-dbus.h"
 #include "tracker-metadata.h"
 #include "tracker-db.h"
 #include "tracker-marshal.h"
-
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_METADATA, TrackerMetadataPriv))
-
-typedef struct {
-	DBConnection *db_con;
-} TrackerMetadataPriv;
-
-enum {
-	PROP_0,
-	PROP_DB_CONNECTION
-};
-
-static void metadata_finalize     (GObject      *object);
-static void metadata_set_property (GObject      *object,
-				   guint         param_id,
-				   const GValue *value,
-				   GParamSpec   *pspec);
 
 static const gchar *types[] = {
 	"index", 
@@ -65,21 +49,6 @@ G_DEFINE_TYPE(TrackerMetadata, tracker_metadata, G_TYPE_OBJECT)
 static void
 tracker_metadata_class_init (TrackerMetadataClass *klass)
 {
-	GObjectClass *object_class;
-
-	object_class = G_OBJECT_CLASS (klass);
-
-	object_class->finalize = metadata_finalize;
-	object_class->set_property = metadata_set_property;
-
-	g_object_class_install_property (object_class,
-					 PROP_DB_CONNECTION,
-					 g_param_spec_pointer ("db-connection",
-							       "DB connection",
-							       "Database connection to use in transactions",
-							       G_PARAM_WRITABLE));
-
-	g_type_class_add_private (object_class, sizeof (TrackerMetadataPriv));
 }
 
 static void
@@ -87,64 +56,10 @@ tracker_metadata_init (TrackerMetadata *object)
 {
 }
 
-static void
-metadata_finalize (GObject *object)
-{
-	TrackerMetadataPriv *priv;
-	
-	priv = GET_PRIV (object);
-
-	G_OBJECT_CLASS (tracker_metadata_parent_class)->finalize (object);
-}
-
-static void
-metadata_set_property (GObject      *object,
-		       guint	     param_id,
-		       const GValue *value,
-		       GParamSpec   *pspec)
-{
-	TrackerMetadataPriv *priv;
-
-	priv = GET_PRIV (object);
-
-	switch (param_id) {
-	case PROP_DB_CONNECTION:
-		tracker_metadata_set_db_connection (TRACKER_METADATA (object),
-						    g_value_get_pointer (value));
-		break;
-
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
-		break;
-	};
-}
-
 TrackerMetadata *
-tracker_metadata_new (DBConnection *db_con)
+tracker_metadata_new (void)
 {
-	TrackerMetadata *object;
-
-	object = g_object_new (TRACKER_TYPE_METADATA, 
-			       "db-connection", db_con,
-			       NULL);
-	
-	return object;
-}
-
-void
-tracker_metadata_set_db_connection (TrackerMetadata *object,
-				    DBConnection    *db_con)
-{
-	TrackerMetadataPriv *priv;
-
-	g_return_if_fail (TRACKER_IS_METADATA (object));
-	g_return_if_fail (db_con != NULL);
-
-	priv = GET_PRIV (object);
-
-	priv->db_con = db_con;
-	
-	g_object_notify (G_OBJECT (object), "db-connection");
+	return g_object_new (TRACKER_TYPE_METADATA, NULL);
 }
 
 /*
@@ -158,16 +73,15 @@ tracker_metadata_get (TrackerMetadata   *object,
 		      gchar           ***values,
 		      GError           **error)
 {
-	TrackerMetadataPriv *priv;
-	TrackerDBResultSet  *result_set;
-	guint                request_id;
-	DBConnection        *db_con;
-	gchar               *service_result;
-	gchar               *service_id;
-	guint                i;
-	GString             *sql;
-	GString             *sql_join;
-	gchar               *query;
+	TrackerDBInterface *iface;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
+	gchar              *service_result;
+	gchar              *service_id;
+	guint               i;
+	GString            *sql;
+	GString            *sql_join;
+	gchar              *query;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -175,10 +89,6 @@ tracker_metadata_get (TrackerMetadata   *object,
 	tracker_dbus_return_val_if_fail (keys != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (g_strv_length (keys) > 0, FALSE, error);
 	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
-
-	priv = GET_PRIV (object);
-
-	db_con = priv->db_con;
 
 	if (!tracker_ontology_is_valid_service_type (service)) {
 		tracker_dbus_request_failed (request_id,
@@ -193,10 +103,9 @@ tracker_metadata_get (TrackerMetadata   *object,
 				  "service:'%s'",
 				  service);
 
-	/* Check we have the right database connection */
-	db_con = tracker_db_get_service_connection (db_con, service);
+	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
 
-	service_id = tracker_db_get_id (db_con, service, id);
+	service_id = tracker_db_get_id (iface, service, id);
         if (!service_id) {
 		tracker_dbus_request_failed (request_id,
 					     error,
@@ -205,7 +114,7 @@ tracker_metadata_get (TrackerMetadata   *object,
                 return FALSE;
         }
 
-	service_result = tracker_db_get_service_for_entity (db_con, service_id);
+	service_result = tracker_db_service_get_by_entity (iface, service_id);
 	if (!service_result) {
 		g_free (service_id);
 		tracker_dbus_request_failed (request_id,
@@ -222,7 +131,7 @@ tracker_metadata_get (TrackerMetadata   *object,
 	for (i = 0; i < g_strv_length (keys); i++) {
 		TrackerFieldData *field_data;
 
-		field_data = tracker_db_get_metadata_field (db_con, 
+		field_data = tracker_db_get_metadata_field (iface, 
 							    service_result, 
 							    keys[i], 
 							    i, 
@@ -275,7 +184,7 @@ tracker_metadata_get (TrackerMetadata   *object,
 
 	g_debug (query);
 
-	result_set = tracker_db_interface_execute_query (db_con->db, NULL, query);
+	result_set = tracker_db_interface_execute_query (iface, NULL, query);
 	*values = tracker_dbus_query_result_to_strv (result_set, NULL);
 	g_free (query);
 
@@ -303,11 +212,10 @@ tracker_metadata_set (TrackerMetadata  *object,
 		      gchar           **values,
 		      GError          **error)
 {
-	TrackerMetadataPriv *priv;
-	guint                request_id;
-	DBConnection        *db_con;
-	gchar               *service_id;
-	guint                i;
+	TrackerDBInterface *iface;
+	guint               request_id;
+	gchar              *service_id;
+	guint               i;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -318,10 +226,6 @@ tracker_metadata_set (TrackerMetadata  *object,
 	tracker_dbus_return_val_if_fail (g_strv_length (values) > 0, FALSE, error);
 	tracker_dbus_return_val_if_fail (g_strv_length (keys) != g_strv_length (values), FALSE, error);
 
-	priv = GET_PRIV (object);
-
-	db_con = priv->db_con;
-	
 	tracker_dbus_request_new (request_id,
 				  "DBus request to set metadata keys, "
 				  "service:'%s'",
@@ -335,10 +239,9 @@ tracker_metadata_set (TrackerMetadata  *object,
 		return FALSE;
 	}
 
-	/* Check we have the right database connection */
-	db_con = tracker_db_get_service_connection (db_con, service);
+	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
 
-	service_id = tracker_db_get_id (db_con, service, id);
+	service_id = tracker_db_get_id (iface, service, id);
         if (!service_id) {
 		tracker_dbus_request_failed (request_id,
 					     error, 
@@ -364,7 +267,7 @@ tracker_metadata_set (TrackerMetadata  *object,
 			return FALSE;
 		}
 
-		tracker_db_set_single_metadata (db_con, 
+		tracker_db_metadata_set_single (iface, 
 						service, 
 						service_id,
 						key, 
@@ -388,19 +291,15 @@ tracker_metadata_register_type (TrackerMetadata  *object,
 				const gchar      *type,
 				GError          **error)
 {
-	TrackerMetadataPriv *priv;
-	guint                request_id;
-	DBConnection        *db_con;
-	const gchar         *type_id;
+	TrackerDBInterface *iface;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
+	const gchar        *type_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_return_val_if_fail (metadata != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (type != NULL, FALSE, error);
-
-	priv = GET_PRIV (object);
-
-	db_con = priv->db_con;
 	
 	tracker_dbus_request_new (request_id,
 				  "DBus request to register metadata type, "
@@ -434,14 +333,19 @@ tracker_metadata_register_type (TrackerMetadata  *object,
 		return FALSE;
 	}
 
-	/* FIXME: Check return value? */
-	tracker_exec_proc (db_con, 
-			   "InsertMetadataType", 
-			   4, 
-			   metadata, 
-			   type_id, 
-			   "0", 
-			   "1");
+	iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
+
+	result_set = tracker_db_exec_proc (iface, 
+					   "InsertMetadataType", 
+					   4, 
+					   metadata, 
+					   type_id, 
+					   "0", 
+					   "1");
+
+	if (result_set) {
+		g_object_unref (result_set);
+	}
 
 	tracker_dbus_request_success (request_id);
 
@@ -456,11 +360,10 @@ tracker_metadata_get_type_details (TrackerMetadata  *object,
 				   gboolean         *is_writable,
 				   GError          **error)
 {
-	TrackerMetadataPriv *priv;
-	TrackerDBResultSet  *result_set;
-	guint                request_id;
-	DBConnection        *db_con;
-	gint                 i;
+	TrackerDBInterface *iface;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
+	gint                i;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -469,16 +372,17 @@ tracker_metadata_get_type_details (TrackerMetadata  *object,
 	tracker_dbus_return_val_if_fail (is_embedded != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (is_writable != NULL, FALSE, error);
 
-	priv = GET_PRIV (object);
-
-	db_con = priv->db_con;
+	iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
 	
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get metadata details, "
 				  "name:'%s'",
 				  metadata);
 
-	result_set = tracker_exec_proc (db_con, "GetMetadataTypeInfo", metadata, NULL);
+	result_set = tracker_db_exec_proc (iface, 
+					   "GetMetadataTypeInfo",
+					   metadata, 
+					   NULL);
 
 	if (!result_set) {
 		tracker_dbus_request_failed (request_id,
@@ -508,26 +412,23 @@ tracker_metadata_get_registered_types (TrackerMetadata   *object,
 				       gchar           ***values,
 				       GError           **error)
 {
-	TrackerMetadataPriv *priv;
-	TrackerDBResultSet  *result_set;
-	guint                request_id;
-	DBConnection        *db_con;
+	TrackerDBInterface *iface;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_return_val_if_fail (class != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
 
-	priv = GET_PRIV (object);
-
-	db_con = priv->db_con;
-	
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get registered metadata types, "
 				  "class:'%s'",
 				  class);
 
-	result_set = tracker_db_get_metadata_types (db_con, class, TRUE);
+	iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
+
+	result_set = tracker_db_metadata_get_types (iface, class, TRUE);
 	if (result_set) {
 		*values = tracker_dbus_query_result_to_strv (result_set, NULL);
 		g_object_unref (result_set);
@@ -544,28 +445,25 @@ tracker_metadata_get_writable_types (TrackerMetadata   *object,
 				     gchar           ***values,
 				     GError           **error)
 {
-	TrackerMetadataPriv *priv;
-	TrackerDBResultSet  *result_set;
-	guint                request_id;
-	DBConnection        *db_con;
-	gchar               *class_formatted;
+	TrackerDBInterface *iface;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
+	gchar              *class_formatted;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_return_val_if_fail (class != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
 
-	priv = GET_PRIV (object);
-
-	db_con = priv->db_con;
-	
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get writable metadata types, "
 				  "class:'%s'",
 				  class);
 
+	iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
+
 	class_formatted = g_strconcat (class, ".*", NULL);
-	result_set = tracker_db_get_metadata_types (db_con, 
+	result_set = tracker_db_metadata_get_types (iface, 
 						    class_formatted, 
 						    TRUE);
 	if (result_set) {
@@ -585,25 +483,22 @@ tracker_metadata_get_registered_classes (TrackerMetadata   *object,
 					 gchar           ***values,
 					 GError           **error)
 {
-	TrackerMetadataPriv *priv;
-	TrackerDBResultSet  *result_set;
-	guint                request_id;
-	DBConnection        *db_con;
+	TrackerDBInterface *iface;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
 
-	priv = GET_PRIV (object);
-
-	db_con = priv->db_con;
-	
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get registered classes");
 
-	result_set = tracker_exec_proc (db_con, 
-					"SelectMetadataClasses", 
-					NULL);
+	iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
+
+	result_set = tracker_db_exec_proc (iface, 
+					   "SelectMetadataClasses", 
+					   NULL);
 	
 	if (result_set) {
 		*values = tracker_dbus_query_result_to_strv (result_set, NULL);

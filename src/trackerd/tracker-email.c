@@ -25,23 +25,14 @@
 
 #include "tracker-email.h"
 
-typedef gboolean      (* TrackerMailInit)          (void);
-typedef void          (* TrackerMailFinalize)      (void);
-typedef void          (* TrackerMailWatchEmails)   (DBConnection      *db_con);
-typedef gboolean      (* TrackerMailIndexFile)     (DBConnection      *db_con,
-						    TrackerDBFileInfo *info);
-typedef gboolean      (* TrackerMailFileIsInteresting) (TrackerDBFileInfo *info);
-typedef const gchar * (* TrackerMailGetName)       (void);
-
 static GModule *module = NULL;
-
 
 gboolean
 tracker_email_start_email_watching (const gchar *email_client)
 {
-	TrackerMailInit func;
-	gchar *module_name, *module_path;
-	gboolean result = FALSE;
+	TrackerMailInit    func;
+	gchar             *module_name, *module_path;
+	gboolean           result = FALSE;
 
 	if (module)
 		return result;
@@ -98,7 +89,7 @@ tracker_email_end_email_watching (void)
 
 /* Must be called before any work on files containing mails */
 void
-tracker_email_add_service_directories (DBConnection *db_con)
+tracker_email_add_service_directories (TrackerDBInterface *iface)
 {
 	TrackerMailWatchEmails func;
 
@@ -106,7 +97,7 @@ tracker_email_add_service_directories (DBConnection *db_con)
 		return;
 
 	if (g_module_symbol (module, "tracker_email_plugin_watch_emails", (gpointer *) &func)) {
-		(func) (db_con);
+		(func) (iface);
         }
 }
 
@@ -130,11 +121,12 @@ tracker_email_file_is_interesting (TrackerDBFileInfo *info)
 }
 
 gboolean
-tracker_email_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
+tracker_email_index_file (TrackerDBInterface *iface,
+			  TrackerDBFileInfo  *info)
 {
 	TrackerMailIndexFile func;
 
-	g_return_val_if_fail (db_con, FALSE);
+	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), FALSE);
 	g_return_val_if_fail (info, FALSE);
 
 	if (!module)
@@ -143,7 +135,7 @@ tracker_email_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
 	if (!g_module_symbol (module, "tracker_email_plugin_index_file", (gpointer *) &func))
 		return FALSE;
 
-	return (func) (db_con, info);
+	return (func) (iface, info);
 }
 
 

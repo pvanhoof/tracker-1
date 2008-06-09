@@ -29,6 +29,7 @@
 #include <libtracker-common/tracker-dbus.h>
 
 #include <libtracker-db/tracker-db-dbus.h>
+#include <libtracker-db/tracker-db-manager.h>
 
 #include "tracker-dbus.h"
 #include "tracker-daemon.h"
@@ -40,14 +41,12 @@
 
 typedef struct {
 	DBusGProxy    *fd_proxy;
-	DBConnection  *db_con;
 	TrackerConfig *config;
 	Tracker       *tracker;
 } TrackerDaemonPriv;
 
 enum {
 	PROP_0,
-	PROP_DB_CONNECTION,
 	PROP_CONFIG,
 	PROP_TRACKER
 };
@@ -79,12 +78,6 @@ tracker_daemon_class_init (TrackerDaemonClass *klass)
 	object_class->finalize = daemon_finalize;
 	object_class->set_property = daemon_set_property;
 
-	g_object_class_install_property (object_class,
-					 PROP_DB_CONNECTION,
-					 g_param_spec_pointer ("db-connection",
-							       "DB connection",
-							       "DBConnection object use for transactions",
-							       G_PARAM_WRITABLE));
 	g_object_class_install_property (object_class,
 					 PROP_CONFIG,
 					 g_param_spec_object ("config",
@@ -177,10 +170,6 @@ daemon_set_property (GObject      *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
-	case PROP_DB_CONNECTION:
-		tracker_daemon_set_db_connection (TRACKER_DAEMON (object),
-						  g_value_get_pointer (value));
-		break;
 	case PROP_CONFIG:
 		tracker_daemon_set_config (TRACKER_DAEMON (object),
 					   g_value_get_object (value));
@@ -197,38 +186,19 @@ daemon_set_property (GObject      *object,
 }
 
 TrackerDaemon *
-tracker_daemon_new (DBConnection  *db_con,
-		    TrackerConfig *config,
+tracker_daemon_new (TrackerConfig *config,
 		    Tracker       *tracker)
 {
 	TrackerDaemon *object;
 
-	g_return_val_if_fail (db_con != NULL, NULL);
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 
 	object = g_object_new (TRACKER_TYPE_DAEMON, 
-			       "db-connection", db_con,
 			       "config", config,
 			       "tracker", tracker,
 			       NULL);
 	
 	return object;
-}
-
-void
-tracker_daemon_set_db_connection (TrackerDaemon *object,
-				  DBConnection  *db_con)
-{
-	TrackerDaemonPriv *priv;
-
-	g_return_if_fail (TRACKER_IS_DAEMON (object));
-	g_return_if_fail (db_con != NULL);
-
-	priv = GET_PRIV (object);
-
-	priv->db_con = db_con;
-	
-	g_object_notify (G_OBJECT (object), "db-connection");
 }
 
 void
@@ -314,7 +284,7 @@ tracker_daemon_get_status (TrackerDaemon  *object,
 			   GError        **error)
 {
 	TrackerDaemonPriv *priv;
-	guint                  request_id;
+	guint              request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -338,10 +308,9 @@ tracker_daemon_get_services (TrackerDaemon  *object,
 			     GHashTable    **values,
 			     GError        **error)
 {
-	TrackerDaemonPriv *priv;
-	TrackerDBResultSet    *result_set;
-	guint                  request_id;
-	DBConnection          *db_con;
+	TrackerDBInterface *iface;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
 
 	/* FIXME: Note, the main_services_only variable is redundant */
 
@@ -349,14 +318,11 @@ tracker_daemon_get_services (TrackerDaemon  *object,
 
 	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
 
-	priv = GET_PRIV (object);
-
-	db_con = priv->db_con;
-
         tracker_dbus_request_new (request_id,
 				  "DBus request to get daemon services");
 
-	result_set = tracker_exec_proc (db_con, "GetServices", 0);
+	iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
+	result_set = tracker_db_exec_proc (iface, "GetServices", 0);
 	*values = tracker_dbus_query_result_to_hash_table (result_set);
 
 	if (result_set) {
@@ -373,23 +339,20 @@ tracker_daemon_get_stats (TrackerDaemon  *object,
 			  GPtrArray     **values,
 			  GError        **error)
 {
-	TrackerDaemonPriv *priv;
-	TrackerDBResultSet    *result_set;
-	guint                  request_id;
-	DBConnection          *db_con;
+	TrackerDBInterface *iface;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
 
-	priv = GET_PRIV (object);
-
-	db_con = priv->db_con;
-
         tracker_dbus_request_new (request_id,
 				  "DBus request to get daemon service stats");
 
-	result_set = tracker_exec_proc (db_con, "GetStats", 0);
+	iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
+
+	result_set = tracker_db_exec_proc (iface, "GetStats", 0);
         *values = tracker_dbus_query_result_to_ptr_array (result_set);
 
 	if (result_set) {
@@ -408,8 +371,8 @@ tracker_daemon_set_bool_option (TrackerDaemon  *object,
 				GError        **error)
 {
 	TrackerDaemonPriv *priv;
-	guint                  request_id;
-	gboolean               signal_state_change = FALSE;
+	guint              request_id;
+	gboolean           signal_state_change = FALSE;
 
 	/* FIXME: Shouldn't we just make the TrackerConfig module a
 	 * DBus object instead so values can be tweaked in real time
@@ -497,7 +460,7 @@ tracker_daemon_set_int_option (TrackerDaemon  *object,
 			       GError        **error)
 {
 	TrackerDaemonPriv *priv;
-	guint                  request_id;
+	guint              request_id;
 
 	/* FIXME: Shouldn't we just make the TrackerConfig module a
 	 * DBus object instead so values can be tweaked in real time
@@ -540,7 +503,7 @@ tracker_daemon_shutdown (TrackerDaemon  *object,
 			 GError        **error)
 {
 	TrackerDaemonPriv *priv;
-	guint                  request_id;
+	guint              request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -567,7 +530,7 @@ tracker_daemon_prompt_index_signals (TrackerDaemon  *object,
 				     GError        **error)
 {
 	TrackerDaemonPriv *priv;
-	guint                  request_id;
+	guint              request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
 

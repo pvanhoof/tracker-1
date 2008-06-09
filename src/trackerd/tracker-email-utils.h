@@ -131,12 +131,12 @@ void            email_watch_directory                           (const gchar    
                                                                  const gchar              *service);
 void            email_watch_directories                         (const GSList             *dirs,
                                                                  const gchar              *service);
-gboolean        email_parse_and_save_mail_message               (DBConnection             *db_con,
+gboolean        email_parse_and_save_mail_message               (TrackerDBInterface       *iface,
                                                                  MailApplication           mail_app,
                                                                  const char               *path,
                                                                  ReadMailHelperFct         read_mail_helper,
                                                                  gpointer                  read_mail_user_data);
-gboolean        email_parse_mail_file_and_save_new_emails       (DBConnection             *db_con,
+gboolean        email_parse_mail_file_and_save_new_emails       (TrackerDBInterface       *iface,
                                                                  MailApplication           mail_app,
                                                                  const char               *path,
                                                                  ReadMailHelperFct         read_mail_helper,
@@ -145,7 +145,7 @@ gboolean        email_parse_mail_file_and_save_new_emails       (DBConnection   
                                                                  gpointer                  make_uri_user_data,
                                                                  MailStore                *store);
 gboolean        email_is_in_a_maildir_dir                       (const gchar              *path);
-void            email_maildir_watch_mail_messages               (DBConnection             *db_con,
+void            email_maildir_watch_mail_messages               (TrackerDBInterface       *iface,
                                                                  const gchar              *path);
 MailPerson *    email_allocate_mail_person                      (void);
 void            email_free_mail_person                          (MailPerson               *mp);

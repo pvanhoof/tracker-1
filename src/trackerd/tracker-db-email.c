@@ -28,17 +28,19 @@
 #include <libtracker-common/tracker-parser.h>
 #include <libtracker-common/tracker-type-utils.h>
 
+#include <libtracker-db/tracker-db-manager.h>
+
 #include "tracker-db-email.h"
 
 #define MAX_ADDRESSES 255
 
 static gint
-tracker_db_email_get_mbox_offset (DBConnection *db_con, const gchar *mbox_uri)
+tracker_db_email_get_mbox_offset (TrackerDBInterface *iface, const gchar *mbox_uri)
 {
 	TrackerDBResultSet *result_set;
 	gint  offset;
 
-	result_set = tracker_exec_proc (db_con, "GetMBoxDetails", mbox_uri, NULL);
+	result_set = tracker_db_exec_proc (iface, "GetMBoxDetails", mbox_uri, NULL);
 
 	if (!result_set) {
 		return -1;
@@ -52,7 +54,7 @@ tracker_db_email_get_mbox_offset (DBConnection *db_con, const gchar *mbox_uri)
 
 
 void
-tracker_db_email_register_mbox (DBConnection    *db_con,
+tracker_db_email_register_mbox (TrackerDBInterface    *iface,
                                 MailApplication mail_app,
                                 MailType        mail_type,
                                 const gchar     *path,
@@ -64,7 +66,7 @@ tracker_db_email_register_mbox (DBConnection    *db_con,
 	gchar *str_mail_app = tracker_int_to_string (mail_app);
 	gchar *str_mail_type = tracker_int_to_string (mail_type);
 
-	tracker_exec_proc (db_con, "InsertMboxDetails", str_mail_app, str_mail_type, filename, path, uri_prefix, NULL);
+	tracker_db_exec_proc (iface, "InsertMboxDetails", str_mail_app, str_mail_type, filename, path, uri_prefix, NULL);
 
 	g_message ("Registered email store %s of type %s", filename, types[mail_type]);
 
@@ -74,30 +76,30 @@ tracker_db_email_register_mbox (DBConnection    *db_con,
 
 
 void
-tracker_db_email_flag_mbox_junk (DBConnection *db_con, const gchar *mbox_uri)
+tracker_db_email_flag_mbox_junk (TrackerDBInterface *iface, const gchar *mbox_uri)
 {
-	tracker_exec_proc (db_con, "SetJunkMbox", "1", mbox_uri, NULL);
+	tracker_db_exec_proc (iface, "SetJunkMbox", "1", mbox_uri, NULL);
 }
 
 
 void
-tracker_db_email_reset_mbox_junk (DBConnection *db_con, const gchar *mbox_uri)
+tracker_db_email_reset_mbox_junk (TrackerDBInterface *iface, const gchar *mbox_uri)
 {
-	tracker_exec_proc (db_con, "SetJunkMbox", "0", mbox_uri, NULL);
+	tracker_db_exec_proc (iface, "SetJunkMbox", "0", mbox_uri, NULL);
 }
 
 
 TrackerDBResultSet *
-tracker_db_email_get_mboxes (DBConnection *db_con)
+tracker_db_email_get_mboxes (TrackerDBInterface *iface)
 {
-	return tracker_exec_proc (db_con, "GetMboxes", NULL);
+	return tracker_db_exec_proc (iface, "GetMboxes", NULL);
 }
 
 
 void
-tracker_db_email_insert_junk (DBConnection *db_con, const gchar *mbox_uri, guint32 uid)
+tracker_db_email_insert_junk (TrackerDBInterface *iface, const gchar *mbox_uri, guint32 uid)
 {
-	gint mbox_id = tracker_db_email_get_mbox_id (db_con, mbox_uri);
+	gint mbox_id = tracker_db_email_get_mbox_id (iface, mbox_uri);
 		
 	if (mbox_id == -1) {
 		return;
@@ -106,9 +108,9 @@ tracker_db_email_insert_junk (DBConnection *db_con, const gchar *mbox_uri, guint
 	gchar *str_mbox_id = tracker_int_to_string (mbox_id);
 	gchar *str_uid = tracker_uint_to_string (uid);
 
-	if (!tracker_db_email_lookup_junk (db_con, str_mbox_id, uid)) {
+	if (!tracker_db_email_lookup_junk (iface, str_mbox_id, uid)) {
 
-		tracker_exec_proc (db_con, "InsertJunk", str_uid, str_mbox_id, NULL);
+		tracker_db_exec_proc (iface, "InsertJunk", str_uid, str_mbox_id, NULL);
 	}
 
 	g_free (str_uid);	
@@ -117,12 +119,12 @@ tracker_db_email_insert_junk (DBConnection *db_con, const gchar *mbox_uri, guint
 
 
 MailStore *
-tracker_db_email_get_mbox_details (DBConnection *db_con, const gchar *mbox_uri)
+tracker_db_email_get_mbox_details (TrackerDBInterface *iface, const gchar *mbox_uri)
 {
 	TrackerDBResultSet *result_set;
         MailStore *mail_store;
 
-        result_set = tracker_exec_proc (db_con, "GetMBoxDetails", mbox_uri, NULL);
+        result_set = tracker_db_exec_proc (iface, "GetMBoxDetails", mbox_uri, NULL);
 
         if (!result_set) {
                 return NULL;
@@ -157,12 +159,12 @@ tracker_db_email_free_mail_store (MailStore *store)
 
 
 gint
-tracker_db_email_get_mbox_id (DBConnection *db_con, const gchar *mbox_uri)
+tracker_db_email_get_mbox_id (TrackerDBInterface *iface, const gchar *mbox_uri)
 {
 	TrackerDBResultSet *result_set;
 	gint  id;
 
-	result_set = tracker_exec_proc (db_con, "GetMboxID", mbox_uri, NULL);
+	result_set = tracker_db_exec_proc (iface, "GetMboxID", mbox_uri, NULL);
 
 	if (!result_set) {
 		return -1;
@@ -176,12 +178,12 @@ tracker_db_email_get_mbox_id (DBConnection *db_con, const gchar *mbox_uri)
 
 
 gchar *
-tracker_db_email_get_mbox_uri_prefix (DBConnection *db_con, const gchar *mbox_uri)
+tracker_db_email_get_mbox_uri_prefix (TrackerDBInterface *iface, const gchar *mbox_uri)
 {
 	TrackerDBResultSet *result_set;
 	gchar *uri;
 
-	result_set = tracker_exec_proc (db_con, "GetMBoxDetails", mbox_uri, NULL);
+	result_set = tracker_db_exec_proc (iface, "GetMBoxDetails", mbox_uri, NULL);
 
 	if (!result_set) {
 		return NULL;
@@ -195,12 +197,12 @@ tracker_db_email_get_mbox_uri_prefix (DBConnection *db_con, const gchar *mbox_ur
 
 
 gchar *
-tracker_db_email_get_mbox_path (DBConnection *db_con, const gchar *filename)
+tracker_db_email_get_mbox_path (TrackerDBInterface *iface, const gchar *filename)
 {
 	TrackerDBResultSet *result_set;
 	gchar *path;
 
-	result_set = tracker_exec_proc (db_con, "GetMBoxPath", filename, NULL);
+	result_set = tracker_db_exec_proc (iface, "GetMBoxPath", filename, NULL);
 
 	if (!result_set) {
 		return NULL;
@@ -214,7 +216,7 @@ tracker_db_email_get_mbox_path (DBConnection *db_con, const gchar *filename)
 
 
 void
-tracker_db_email_get_message_counts (DBConnection *db_con,
+tracker_db_email_get_message_counts (TrackerDBInterface *iface,
                                      const gchar  *mbox_file_path,
                                      gint         *mail_count,
                                      gint         *junk_count,
@@ -226,7 +228,7 @@ tracker_db_email_get_message_counts (DBConnection *db_con,
 	*junk_count = 0;
 	*delete_count = 0;
 
-	result_set = tracker_exec_proc (db_con, "GetMBoxDetails", mbox_file_path, NULL);
+	result_set = tracker_db_exec_proc (iface, "GetMBoxDetails", mbox_file_path, NULL);
 
 	if (!result_set) {
 		return;
@@ -243,24 +245,24 @@ tracker_db_email_get_message_counts (DBConnection *db_con,
 
 
 void
-tracker_db_email_set_message_counts (DBConnection *db_con,
+tracker_db_email_set_message_counts (TrackerDBInterface *iface,
                                      const gchar  *dir_path,
                                      gint         mail_count,
                                      gint         junk_count,
                                      gint         delete_count)
 {
-	g_return_if_fail (db_con);
+	g_return_if_fail (iface);
 	g_return_if_fail (dir_path);
 	
 	/* make sure dir_path is registered in DB before doing an update */
-	if (tracker_db_email_get_mbox_offset (db_con, dir_path) != -1) {
+	if (tracker_db_email_get_mbox_offset (iface, dir_path) != -1) {
 		gchar *str_mail_count, *str_junk_count, *str_delete_count;
 
 		str_mail_count = tracker_uint_to_string (mail_count);
 		str_junk_count = tracker_uint_to_string (junk_count);
 		str_delete_count = tracker_uint_to_string (delete_count);
 
-		tracker_exec_proc (db_con, "UpdateMboxCounts", str_mail_count, str_junk_count, str_delete_count, dir_path, NULL);
+		tracker_db_exec_proc (iface, "UpdateMboxCounts", str_mail_count, str_junk_count, str_delete_count, dir_path, NULL);
 
 		g_free (str_mail_count);
 		g_free (str_junk_count);
@@ -273,14 +275,14 @@ tracker_db_email_set_message_counts (DBConnection *db_con,
 
 
 off_t
-tracker_db_email_get_last_mbox_offset (DBConnection *db_con, const gchar *mbox_file_path)
+tracker_db_email_get_last_mbox_offset (TrackerDBInterface *iface, const gchar *mbox_file_path)
 {
 	off_t offset;
 
-	g_return_val_if_fail (db_con, 0);
+	g_return_val_if_fail (iface, 0);
 	g_return_val_if_fail (mbox_file_path, 0);
 
-	offset = tracker_db_email_get_mbox_offset (db_con, mbox_file_path);
+	offset = tracker_db_email_get_mbox_offset (iface, mbox_file_path);
 
 	if (offset == -1) {
 		/* we need to add this mbox */
@@ -292,9 +294,9 @@ tracker_db_email_get_last_mbox_offset (DBConnection *db_con, const gchar *mbox_f
 
 
 void
-tracker_db_email_update_mbox_offset (DBConnection *db_con, MailFile *mf)
+tracker_db_email_update_mbox_offset (TrackerDBInterface *iface, MailFile *mf)
 {
-	g_return_if_fail (db_con);
+	g_return_if_fail (iface);
 	g_return_if_fail (mf);
 
 	if (!mf->path) {
@@ -303,11 +305,11 @@ tracker_db_email_update_mbox_offset (DBConnection *db_con, MailFile *mf)
 	}
 
 	/* make sure mbox is registered in DB before doing an update */
-	if (tracker_db_email_get_mbox_offset (db_con, mf->path) != -1) {
+	if (tracker_db_email_get_mbox_offset (iface, mf->path) != -1) {
 		gchar *str_offset;
 
 		str_offset = tracker_uint_to_string (mf->next_email_offset);
-		tracker_exec_proc (db_con, "UpdateMboxOffset", str_offset, mf->path, NULL);
+		tracker_db_exec_proc (iface, "UpdateMboxOffset", str_offset, mf->path, NULL);
 
 		g_free (str_offset);
 
@@ -398,9 +400,17 @@ get_attachment_service_name (MailApplication app)
 
 
 gboolean
-tracker_db_email_is_up_to_date (DBConnection *db_con, const gchar *uri, guint32 *id)
+tracker_db_email_is_up_to_date (const gchar *uri, 
+                                guint32     *id)
 {
-        return tracker_db_is_file_up_to_date (db_con->emails, uri, id);
+        TrackerDBInterface *iface;
+        
+        g_return_val_if_fail (uri != NULL, FALSE);
+        g_return_val_if_fail (id != NULL, FALSE);
+
+        iface = tracker_db_manager_get_db_interface (TRACKER_DB_EMAIL_METADATA);
+        
+        return tracker_db_is_file_up_to_date (iface, uri, id);
 }
 
 
@@ -418,13 +428,13 @@ limit_address_count (int len)
 
 
 gboolean
-tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplication mail_app)
+tracker_db_email_save_email (TrackerDBInterface *iface, MailMessage *mm, MailApplication mail_app)
 {
        	gint  mbox_id, type_id, id, len;
 	gchar *service, *attachment_service, *mime;
 	gchar *array[MAX_ADDRESSES];
 
-     	g_return_val_if_fail (db_con, FALSE);
+     	g_return_val_if_fail (iface, FALSE);
 	g_return_val_if_fail (mm, FALSE);
 
 	if (!mm->uri) {
@@ -450,7 +460,7 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
 
 	if (mm->deleted || mm->junk) {
 		if (mm->parent_mail_file) {
-			tracker_db_email_insert_junk (db_con, mm->parent_mail_file->path, mm->id);
+			tracker_db_email_insert_junk (iface, mm->parent_mail_file->path, mm->id);
 		}
 
 		if (mm->store) {
@@ -470,7 +480,7 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
 
 	if (mm->parent_mail_file) {
 		if (mm->is_mbox) {
-			mbox_id = tracker_db_email_get_mbox_id (db_con, mm->parent_mail_file->path);
+			mbox_id = tracker_db_email_get_mbox_id (iface, mm->parent_mail_file->path);
 			if (mbox_id == -1) {
 				g_critical ("no mbox is registered for email %s", mm->uri);
 				return TRUE;
@@ -504,7 +514,7 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
 	info->aux_id = mbox_id;
         info->mtime = mm->mtime;
 
-	id = tracker_db_create_service (db_con, service, info);
+	id = tracker_db_service_create (iface, service, info);
 
 	tracker_db_file_info_free (info);
 
@@ -524,20 +534,20 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
 			gchar *value = get_utf8 (mm->body);
 
 			if (value) {
-				tracker_db_insert_single_embedded_metadata (db_con, service, str_id, "Email:Body", value, index_table);
+				tracker_db_metadata_insert_single_embedded (iface, service, str_id, "Email:Body", value, index_table);
 				g_free (value);
 			}			
 		}
 
 		if (str_date) {
-			tracker_db_insert_single_embedded_metadata (db_con, service, str_id, "Email:Date", str_date, index_table);
+			tracker_db_metadata_insert_single_embedded (iface, service, str_id, "Email:Date", str_date, index_table);
 		}
 
 		if (mm->from) {
 			gchar *value = get_utf8 (mm->from);
 			
 			if (value) {
-				tracker_db_insert_single_embedded_metadata (db_con, service, str_id, "Email:Sender", value, index_table);
+				tracker_db_metadata_insert_single_embedded (iface, service, str_id, "Email:Sender", value, index_table);
 				g_free (value);
 			}
 		}
@@ -546,7 +556,7 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
 			gchar *value = get_utf8 (mm->subject);
 
 			if (value) {
-				tracker_db_insert_single_embedded_metadata (db_con, service, str_id, "Email:Subject", value, index_table);
+				tracker_db_metadata_insert_single_embedded (iface, service, str_id, "Email:Subject", value, index_table);
 				g_free (value);
 			}
 		}
@@ -587,12 +597,15 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
 			}
 
 			if (i > 0) {
-				tracker_db_insert_embedded_metadata (db_con, service, str_id, "Email:SentTo", array, i, index_table);
+				tracker_db_metadata_insert_embedded (iface, 
+                                                                     service, 
+                                                                     str_id,
+                                                                     "Email:SentTo", 
+                                                                     array, 
+                                                                     index_table);
 			}
 
-			for (i--; i>-1; i--) {
-				g_free (array[i]);
-			}
+                        g_strfreev (array);
 		}
 
 		len = g_slist_length (mm->cc);
@@ -627,12 +640,15 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
 			}
 
 			if (i > 0) {
-				tracker_db_insert_embedded_metadata (db_con, service, str_id, "Email:CC", array, i, index_table);
+				tracker_db_metadata_insert_embedded (iface, 
+                                                                     service, 
+                                                                     str_id,
+                                                                     "Email:CC", 
+                                                                     array,
+                                                                     index_table);
 			}
 
-			for (i--; i > -1; i--) {
-				g_free (array[i]);
-			}		
+                        g_strfreev (array);
 		}
 
 		len = g_slist_length (mm->attachments);
@@ -657,12 +673,15 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
 			}
 
 			if (i > 0) {
-				tracker_db_insert_embedded_metadata (db_con, service, str_id, "Email:Attachments", array, i, index_table);
+				tracker_db_metadata_insert_embedded (iface, 
+                                                                     service, 
+                                                                     str_id,
+                                                                     "Email:Attachments", 
+                                                                     array, 
+                                                                     index_table);
 			}
 
-			for (i--; i > -1; i--) {
-				g_free (array[i]);
-			}
+                        g_strfreev (array);
 		}
 
 		tracker_parser_text_free (index_table);
@@ -692,7 +711,7 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
                                 uri = g_strconcat (mm->uri, "/", ma->attachment_name, NULL);
                                 g_message ("Indexing attachment with uri:'%s' and mime:'%s'",
                                            uri, attachment_info->mime);
-                                /* tracker_db_index_file (db_con, attachment_info, uri, attachment_service); */
+                                /* tracker_db_index_file (iface, attachment_info, uri, attachment_service); */
                                 g_free (uri);
 
                                 tracker_db_file_info_unref (attachment_info);
@@ -720,19 +739,19 @@ tracker_db_email_save_email (DBConnection *db_con, MailMessage *mm, MailApplicat
 
 
 gboolean
-tracker_db_email_is_saved_email_file (DBConnection *db_con, const gchar *uri)
+tracker_db_email_is_saved_email_file (TrackerDBInterface *iface, const gchar *uri)
 {
-        g_return_val_if_fail (db_con, FALSE);
+        g_return_val_if_fail (iface, FALSE);
         g_return_val_if_fail (uri, FALSE);
 
-        return tracker_db_get_file_id (db_con, uri) != 0 ;
+        return tracker_db_get_file_id (iface, uri) != 0 ;
 }
 
 
 void
-tracker_db_email_update_email (DBConnection *db_con, MailMessage *mm)
+tracker_db_email_update_email (TrackerDBInterface *iface, MailMessage *mm)
 {
-	g_return_if_fail (db_con);
+	g_return_if_fail (iface);
 	g_return_if_fail (mm);
 
 	g_message ("update email with uri \"%s\" and subject \"%s\" from \"%s\"", mm->uri, mm->subject, mm->from);
@@ -742,9 +761,9 @@ tracker_db_email_update_email (DBConnection *db_con, MailMessage *mm)
 
 
 gboolean
-tracker_db_email_delete_emails_of_mbox (DBConnection *db_con, const gchar *mbox_file_path)
+tracker_db_email_delete_emails_of_mbox (TrackerDBInterface *iface, const gchar *mbox_file_path)
 {
-        g_return_val_if_fail (db_con, FALSE);
+        g_return_val_if_fail (iface, FALSE);
         g_return_val_if_fail (mbox_file_path, FALSE);
 
 	/* FIXME: add code... */
@@ -753,12 +772,12 @@ tracker_db_email_delete_emails_of_mbox (DBConnection *db_con, const gchar *mbox_
 
 
 gboolean
-tracker_db_email_delete_email (DBConnection *db_con, const gchar *uri)
+tracker_db_email_delete_email (TrackerDBInterface *iface, const gchar *uri)
 {
-        g_return_val_if_fail (db_con, FALSE);
+        g_return_val_if_fail (iface, FALSE);
         g_return_val_if_fail (uri, FALSE);
 
-	gchar *id = tracker_db_get_id (db_con, "Emails", uri);
+	gchar *id = tracker_db_get_id (iface, "Emails", uri);
 
 	if (!id) {
 		return FALSE;
@@ -766,7 +785,7 @@ tracker_db_email_delete_email (DBConnection *db_con, const gchar *uri)
 
 	g_message ("Deleting email:'%s'", uri);
 
-	tracker_db_delete_directory (db_con, atoi (id), uri);
+	tracker_db_directory_delete (iface, atoi (id), uri);
 
 	g_free (id);
 
@@ -775,7 +794,7 @@ tracker_db_email_delete_email (DBConnection *db_con, const gchar *uri)
 
 
 gboolean
-tracker_db_email_lookup_junk (DBConnection *db_con, const gchar *mbox_id, gint uid)
+tracker_db_email_lookup_junk (TrackerDBInterface *iface, const gchar *mbox_id, gint uid)
 {
 	TrackerDBResultSet *result_set;
         gchar *str_uid;
@@ -783,7 +802,7 @@ tracker_db_email_lookup_junk (DBConnection *db_con, const gchar *mbox_id, gint u
 
 	str_uid = tracker_uint_to_string (uid);
 
-	result_set = tracker_exec_proc (db_con, "LookupJunk", str_uid, mbox_id, NULL);
+	result_set = tracker_db_exec_proc (iface, "LookupJunk", str_uid, mbox_id, NULL);
 
 	g_free (str_uid);
 

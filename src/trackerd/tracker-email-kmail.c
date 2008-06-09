@@ -79,12 +79,12 @@ static void             free_kmail_config               (KMailConfig *conf);
 static FileAndImapPaths ** find_dir_and_imap_path_pairs (GKeyFile *key_file, gchar **groups, const gchar *imap_id);
 static void             free_file_and_imap_path_pair    (FileAndImapPaths *pair);
 static void             free_kmail_account              (KMailAccount *account);
-static GSList *         get_dirs_to_watch               (DBConnection *db_con, const gchar *dir_path, gboolean in_imap_dir);
+static GSList *         get_dirs_to_watch               (TrackerDBInterface *iface, const gchar *dir_path, gboolean in_imap_dir);
 static gboolean         ignore_email                    (const gchar *uri);
 static KMailMailProtocol find_mail_protocol             (const gchar *mail_path);
-static gboolean         index_mail_file_in_maildir_dir  (DBConnection *db_con, const gchar *dir, TrackerDBFileInfo *info, MailType mail_type);
-//static void           watch_imap_cache                (DBConnection *db_con, const gchar *imap_dir_path);
-//static void           watch_local_maildir_dir         (DBConnection *db_con, const gchar *dir_path);
+static gboolean         index_mail_file_in_maildir_dir  (TrackerDBInterface *iface, const gchar *dir, TrackerDBFileInfo *info, MailType mail_type);
+//static void           watch_imap_cache                (TrackerDBInterface *iface, const gchar *imap_dir_path);
+//static void           watch_local_maildir_dir         (TrackerDBInterface *iface, const gchar *dir_path);
 
 static void             load_uri_of_mbox_mail_message   (GMimeMessage *g_m_message, MailMessage *mail_msg, gpointer user_data);
 static gchar *          forward_uri_for_mbox_email      (MailMessage *mail_msg, gpointer user_data);
@@ -139,13 +139,13 @@ tracker_email_plugin_finalize (void)
 
 
 void
-tracker_email_plugin_watch_emails (DBConnection *db_con)
+tracker_email_plugin_watch_emails (TrackerDBInterface *iface)
 {
         g_return_if_fail (kmail_config);
 
         #define WATCH_DIRS(root_dir, in_imap_dir)                                       \
         {                                                                               \
-                GSList *dirs = get_dirs_to_watch (db_con, root_dir, in_imap_dir);       \
+                GSList *dirs = get_dirs_to_watch (iface, root_dir, in_imap_dir);       \
                 email_watch_directories (dirs, "KMailEmails");                          \
                 g_slist_foreach (dirs, (GFunc) g_free, NULL);                           \
                 g_slist_free (dirs);                                                    \
@@ -186,11 +186,11 @@ tracker_email_plugin_file_is_interesting (TrackerDBFileInfo *info)
 
 
 gboolean
-tracker_email_plugin_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
+tracker_email_plugin_index_file (TrackerDBInterface *iface, TrackerDBFileInfo *info)
 {
         KMailMailProtocol mail_protocol;
 
-        g_return_val_if_fail (db_con, FALSE);
+        g_return_val_if_fail (iface, FALSE);
         g_return_val_if_fail (info, FALSE);
 
 	if (!tracker_email_plugin_file_is_interesting (info))
@@ -204,7 +204,7 @@ tracker_email_plugin_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
                         if (email_is_in_a_maildir_dir (info->uri)) {
                                 /* check directory is registered */
                                 gchar *dir = g_path_get_dirname (info->uri);
-                                index_mail_file_in_maildir_dir (db_con, dir, info,
+                                index_mail_file_in_maildir_dir (iface, dir, info,
                                                                 (mail_protocol == KMAIL_MAIL_PROTOCOL_MBOX ? MAIL_TYPE_MBOX : MAIL_TYPE_IMAP));
                                 g_free (dir);
 
@@ -220,11 +220,11 @@ tracker_email_plugin_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
                                 }
 
                                 /* check mbox is registered */
-                                if (tracker_db_email_get_mbox_id (db_con, info->uri) == -1) {
+                                if (tracker_db_email_get_mbox_id (iface, info->uri) == -1) {
                                         gchar *mbox_name = g_path_get_basename (info->uri);
                                         gchar *uri_prefix = g_path_get_dirname (info->uri);
 
-                                        tracker_db_email_register_mbox (db_con, MAIL_APP_KMAIL,
+                                        tracker_db_email_register_mbox (iface, MAIL_APP_KMAIL,
                                                                         (mail_protocol == KMAIL_MAIL_PROTOCOL_MBOX ? MAIL_TYPE_MBOX : MAIL_TYPE_IMAP),
                                                                         info->uri, mbox_name, uri_prefix);
 
@@ -232,19 +232,19 @@ tracker_email_plugin_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
                                         g_free (uri_prefix);
                                 }
 
-                                MailStore *store = tracker_db_email_get_mbox_details (db_con, info->uri);
+                                MailStore *store = tracker_db_email_get_mbox_details (iface, info->uri);
                                 if (!store) {
                                         g_critical ("Could not retrieve store for file:'%s'", info->uri);
                                         return FALSE;
                                 }
 
                                 if (mail_protocol == KMAIL_MAIL_PROTOCOL_MBOX) {
-                                        email_parse_mail_file_and_save_new_emails (db_con, MAIL_APP_KMAIL, info->uri,
+                                        email_parse_mail_file_and_save_new_emails (iface, MAIL_APP_KMAIL, info->uri,
                                                                                    load_uri_of_mbox_mail_message, NULL,
                                                                                    forward_uri_for_mbox_email, NULL,
                                                                                    store);
                                 } else {
-                                        email_parse_mail_file_and_save_new_emails (db_con, MAIL_APP_KMAIL, info->uri,
+                                        email_parse_mail_file_and_save_new_emails (iface, MAIL_APP_KMAIL, info->uri,
                                                                                    fill_uri_with_uid_for_imap, NULL,
                                                                                    make_imap_email_uri, kmail_config->accounts,
                                                                                    store);
@@ -256,8 +256,8 @@ tracker_email_plugin_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
                 }
                 case KMAIL_MAIL_PROTOCOL_CACHED_IMAP: {
                         gchar *dir = g_path_get_dirname (info->uri) ;
-                        //tracker_db_index_file (db_con, info, NULL, NULL);
-                        index_mail_file_in_maildir_dir (db_con, dir, info, MAIL_TYPE_IMAP);
+                        //tracker_db_index_file (iface, info, NULL, NULL);
+                        index_mail_file_in_maildir_dir (iface, dir, info, MAIL_TYPE_IMAP);
                         g_free (dir);
                         break;
                 }
@@ -638,12 +638,12 @@ ignore_email (const gchar *uri)
 
 
 static GSList *
-get_dirs_to_watch (DBConnection *db_con, const gchar *dir_path, gboolean in_imap_dir)
+get_dirs_to_watch (TrackerDBInterface *iface, const gchar *dir_path, gboolean in_imap_dir)
 {
         GSList       *tmp_dirs, *dirs;
         const GSList *dir;
 
-        g_return_val_if_fail (db_con, NULL);
+        g_return_val_if_fail (iface, NULL);
         g_return_val_if_fail (dir_path, NULL);
 
         if (!tracker_process_files_should_be_watched (tracker->config, dir_path)) {
@@ -663,7 +663,7 @@ get_dirs_to_watch (DBConnection *db_con, const gchar *dir_path, gboolean in_imap
                     (( in_imap_dir && dir_name[0] == '.' && g_str_has_suffix (dir_name, ".directory")) ||
                       !in_imap_dir )
                     ) {
-                        if (!tracker_watcher_is_dir_watched (dir_path, db_con)) {
+                        if (!tracker_watcher_is_dir_watched (dir_path, iface)) {
                                 /* if we are in a maildir directory, we will only index emails in directory "cur" */
                                 gchar *dir_cur = g_build_filename (dir_path, "cur", NULL);
 
@@ -704,21 +704,21 @@ find_mail_protocol (const gchar *mail_path)
 
 
 static gboolean
-index_mail_file_in_maildir_dir (DBConnection *db_con, const gchar *dir, TrackerDBFileInfo *info, MailType mail_type)
+index_mail_file_in_maildir_dir (TrackerDBInterface *iface, const gchar *dir, TrackerDBFileInfo *info, MailType mail_type)
 {
         MailStore *store;
 
-        if (tracker_db_email_get_mbox_id (db_con, dir) == -1) {
+        if (tracker_db_email_get_mbox_id (iface, dir) == -1) {
                 gchar *filename = g_path_get_basename (info->uri);
                 gchar *uri_prefix = g_path_get_dirname (info->uri);
 
-                tracker_db_email_register_mbox (db_con, MAIL_APP_KMAIL, mail_type, dir, filename, uri_prefix);
+                tracker_db_email_register_mbox (iface, MAIL_APP_KMAIL, mail_type, dir, filename, uri_prefix);
 
                 g_free (filename);
                 g_free (uri_prefix);
         }
 
-        store = tracker_db_email_get_mbox_details (db_con, dir);
+        store = tracker_db_email_get_mbox_details (iface, dir);
         if (!store) {
                 g_warning ("Could not retrieve store for directory:'%s'", dir);
                 return FALSE;
@@ -726,7 +726,7 @@ index_mail_file_in_maildir_dir (DBConnection *db_con, const gchar *dir, TrackerD
 
         g_message ("Looking for email file:'%s'", info->uri);
 
-        if (!tracker_db_email_is_saved_email_file (db_con, info->uri)) {
+        if (!tracker_db_email_is_saved_email_file (iface, info->uri)) {
                 MailMessage *mail_msg = email_parse_mail_message_by_path (MAIL_APP_KMAIL, info->uri, NULL, NULL, NULL);
 
                 if (!mail_msg) {
@@ -742,7 +742,7 @@ index_mail_file_in_maildir_dir (DBConnection *db_con, const gchar *dir, TrackerD
                 mail_msg->uri = g_strdup (mail_msg->path);
                 mail_msg->store = store;
                 mail_msg->mtime = tracker_file_get_mtime (mail_msg->path);
-                tracker_db_email_save_email (db_con, mail_msg, MAIL_APP_KMAIL);
+                tracker_db_email_save_email (iface, mail_msg, MAIL_APP_KMAIL);
 
                 email_free_mail_file (mail_msg->parent_mail_file);
                 email_free_mail_message (mail_msg);
@@ -765,19 +765,19 @@ index_mail_file_in_maildir_dir (DBConnection *db_con, const gchar *dir, TrackerD
 /*
 
 static void
-watch_local_maildir_dir (DBConnection *db_con, const gchar *dir_path)
+watch_local_maildir_dir (TrackerDBInterface *iface, const gchar *dir_path)
 {
         gchar *dir_names[] = {"inbox", "sent-mail", "drafts", NULL};
         gchar **dir_name;
 
-        g_return_if_fail (db_con);
+        g_return_if_fail (iface);
         g_return_if_fail (dir_path);
 
         for (dir_name = dir_names; *dir_name; dir_name++) {
                 gchar *dir_path = g_build_filename (dir_path, *dir_name, NULL);
 
                 if (tracker_is_directory (dir_path)) {
-                        email_maildir_watch_mail_messages (db_con, dir_path);
+                        email_maildir_watch_mail_messages (iface, dir_path);
                 }
 
                 g_free (dir_path);

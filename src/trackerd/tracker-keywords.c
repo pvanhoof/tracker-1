@@ -26,6 +26,7 @@
 #include <libtracker-common/tracker-utils.h>
 
 #include <libtracker-db/tracker-db-dbus.h>
+#include <libtracker-db/tracker-db-manager.h>
 
 #include "tracker-dbus.h"
 #include "tracker-keywords.h"
@@ -35,14 +36,8 @@
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_KEYWORDS, TrackerKeywordsPriv))
 
 typedef struct {
-	DBusGProxy   *fd_proxy;
-	DBConnection *db_con;
+	DBusGProxy *fd_proxy;
 } TrackerKeywordsPriv;
-
-enum {
-	PROP_0,
-	PROP_DB_CONNECTION
-};
 
 enum {
         KEYWORD_ADDED,
@@ -51,10 +46,6 @@ enum {
 };
 
 static void keywords_finalize     (GObject      *object);
-static void keywords_set_property (GObject      *object,
-				   guint         param_id,
-				   const GValue *value,
-				   GParamSpec   *pspec);
 
 static guint signals[LAST_SIGNAL] = {0};
 
@@ -68,14 +59,6 @@ tracker_keywords_class_init (TrackerKeywordsClass *klass)
 	object_class = G_OBJECT_CLASS (klass);
 
 	object_class->finalize = keywords_finalize;
-	object_class->set_property = keywords_set_property;
-
-	g_object_class_install_property (object_class,
-					 PROP_DB_CONNECTION,
-					 g_param_spec_pointer ("db-connection",
-							       "DB connection",
-							       "Database connection to use in transactions",
-							       G_PARAM_WRITABLE));
 
         signals[KEYWORD_ADDED] =
                 g_signal_new ("keyword-added",
@@ -118,54 +101,10 @@ keywords_finalize (GObject *object)
 	G_OBJECT_CLASS (tracker_keywords_parent_class)->finalize (object);
 }
 
-static void
-keywords_set_property (GObject      *object,
-		       guint	  param_id,
-		       const GValue *value,
-		       GParamSpec	 *pspec)
-{
-	TrackerKeywordsPriv *priv;
-
-	priv = GET_PRIV (object);
-
-	switch (param_id) {
-	case PROP_DB_CONNECTION:
-		tracker_keywords_set_db_connection (TRACKER_KEYWORDS (object),
-						    g_value_get_pointer (value));
-		break;
-
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
-		break;
-	};
-}
-
 TrackerKeywords *
-tracker_keywords_new (DBConnection *db_con)
+tracker_keywords_new (void)
 {
-	TrackerKeywords *object;
-
-	object = g_object_new (TRACKER_TYPE_KEYWORDS, 
-			       "db-connection", db_con,
-			       NULL);
-	
-	return object;
-}
-
-void
-tracker_keywords_set_db_connection (TrackerKeywords *object,
-				    DBConnection    *db_con)
-{
-	TrackerKeywordsPriv *priv;
-
-	g_return_if_fail (TRACKER_IS_KEYWORDS (object));
-	g_return_if_fail (db_con != NULL);
-
-	priv = GET_PRIV (object);
-
-	priv->db_con = db_con;
-	
-	g_object_notify (G_OBJECT (object), "db-connection");
+	return g_object_new (TRACKER_TYPE_KEYWORDS, NULL);
 }
 
 /*
@@ -177,20 +116,15 @@ tracker_keywords_get_list (TrackerKeywords  *object,
 			   GPtrArray       **values,
 			   GError          **error)
 {
-	TrackerKeywordsPriv *priv;
-	TrackerDBResultSet  *result_set;
-	guint                request_id;
-	DBConnection        *db_con;
+	TrackerDBInterface *iface;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
 
-	priv = GET_PRIV (object);
-
-	db_con = priv->db_con;
-	
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get keywords list, "
 				  "service:'%s'",
@@ -204,10 +138,8 @@ tracker_keywords_get_list (TrackerKeywords  *object,
 		return FALSE;
 	}
 
-	/* Check we have the right database connection */
-	db_con = tracker_db_get_service_connection (db_con, service);
-
-	result_set = tracker_db_get_keyword_list (db_con, service);
+ 	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
+	result_set = tracker_db_keywords_get_list (iface, service);
         *values = tracker_dbus_query_result_to_ptr_array (result_set);
 
 	if (result_set) {
@@ -226,21 +158,16 @@ tracker_keywords_get (TrackerKeywords   *object,
 		      gchar           ***values,
 		      GError           **error)
 {
-	TrackerKeywordsPriv *priv;
-	TrackerDBResultSet  *result_set;
-	DBConnection        *db_con;
-	guint                request_id;
-	gchar               *id;
+	TrackerDBInterface *iface;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
+	gchar              *id;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
 
-	priv = GET_PRIV (object);
-
-	db_con = priv->db_con;
-	
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get keywords, "
 				  "service:'%s', uri:'%s'",
@@ -262,10 +189,8 @@ tracker_keywords_get (TrackerKeywords   *object,
 		return FALSE;
         }
 
-	/* Check we have the right database connection */
-	db_con = tracker_db_get_service_connection (db_con, service);
-
-	id = tracker_db_get_id (db_con, service, uri);
+	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
+	id = tracker_db_get_id (iface, service, uri);
 	if (!id) {
 		tracker_dbus_request_failed (request_id,
 					     error,
@@ -274,8 +199,7 @@ tracker_keywords_get (TrackerKeywords   *object,
 		return FALSE;
 	}
 
-	result_set = tracker_db_get_metadata (db_con, 
-					      service, 
+	result_set = tracker_db_metadata_get (iface, 
 					      id, 
 					      "User:Keywords");
 	*values = tracker_dbus_query_result_to_strv (result_set, NULL);
@@ -298,11 +222,10 @@ tracker_keywords_add (TrackerKeywords  *object,
 		      gchar           **values,
 		      GError          **error)
 {
-	TrackerKeywordsPriv  *priv;
-	DBConnection         *db_con;
-	guint                 request_id;
-	gchar                *id;
-	gchar               **p;
+	TrackerDBInterface  *iface;
+	guint                request_id;
+	gchar               *id;
+	gchar              **p;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -310,10 +233,6 @@ tracker_keywords_add (TrackerKeywords  *object,
 	tracker_dbus_return_val_if_fail (uri != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
 
-	priv = GET_PRIV (object);
-
-	db_con = priv->db_con;
-	
 	tracker_dbus_request_new (request_id,
 				  "DBus request to add keywords, "
 				  "service:'%s', uri:'%s'",
@@ -335,18 +254,15 @@ tracker_keywords_add (TrackerKeywords  *object,
 		return FALSE;
         }
 
-	/* Check we have the right database connection */
-	db_con = tracker_db_get_service_connection (db_con, service);
-
-	id = tracker_db_get_id (db_con, service, uri);
+	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
+	id = tracker_db_get_id (iface, service, uri);
 	tracker_dbus_return_val_if_fail (id != NULL, FALSE, error);
 
-	tracker_db_set_metadata (db_con, 
+	tracker_db_metadata_set (iface, 
 				 service, 
 				 id, 
 				 "User:Keywords", 
 				 values, 
-				 g_strv_length (values), 
 				 TRUE);
 	g_free (id);
 
@@ -369,11 +285,10 @@ tracker_keywords_remove (TrackerKeywords  *object,
 			 gchar           **values,
 			 GError          **error)
 {
-	TrackerKeywordsPriv  *priv;
-	DBConnection         *db_con;
-	guint                 request_id;
-	gchar                *id;
-	gchar               **p;
+	TrackerDBInterface  *iface;
+	guint                request_id;
+	gchar               *id;
+	gchar              **p;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -381,10 +296,6 @@ tracker_keywords_remove (TrackerKeywords  *object,
 	tracker_dbus_return_val_if_fail (uri != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
 
-	priv = GET_PRIV (object);
-
-	db_con = priv->db_con;
-	
 	tracker_dbus_request_new (request_id,
 				  "DBus request to remove keywords, "
 				  "service:'%s', uri:'%s'",
@@ -406,10 +317,8 @@ tracker_keywords_remove (TrackerKeywords  *object,
 		return FALSE;
         }
 
-	/* Check we have the right database connection */
-	db_con = tracker_db_get_service_connection (db_con, service);
-
-	id = tracker_db_get_id (db_con, service, uri);
+	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
+	id = tracker_db_get_id (iface, service, uri);
 	if (!id) {
 		tracker_dbus_request_failed (request_id,
 					     error,
@@ -422,7 +331,7 @@ tracker_keywords_remove (TrackerKeywords  *object,
 
 	for (p = values; *p; p++) {
 		g_message ("Removed keyword %s from %s with ID %s", *p, uri, id);
-		tracker_db_delete_metadata_value (db_con, service, id, "User:Keywords", *p);
+		tracker_db_metadata_delete_value (iface, service, id, "User:Keywords", *p);
 
 		/* FIXME: Should we be doing this for EACH keyword? */
 		tracker_notify_file_data_available ();
@@ -443,20 +352,15 @@ tracker_keywords_remove_all (TrackerKeywords  *object,
 			     const gchar      *uri,
 			     GError          **error)
 {
-	TrackerKeywordsPriv *priv;
-	DBConnection        *db_con;
-	guint                request_id;
-	gchar               *id;
+	TrackerDBInterface *iface;
+	guint               request_id;
+	gchar              *id;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (uri != NULL, FALSE, error);
 
-	priv = GET_PRIV (object);
-
-	db_con = priv->db_con;
-	
 	tracker_dbus_request_new (request_id,
 				  "DBus request to remove all keywords, "
 				  "service:'%s', uri:'%s'",
@@ -478,10 +382,8 @@ tracker_keywords_remove_all (TrackerKeywords  *object,
 		return FALSE;
         }
 
-	/* Check we have the right database connection */
-	db_con = tracker_db_get_service_connection (db_con, service);
-
-	id = tracker_db_get_id (db_con, service, uri);
+	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
+	id = tracker_db_get_id (iface, service, uri);
 	if (!id) {
 		tracker_dbus_request_failed (request_id,
 					     error,
@@ -490,7 +392,11 @@ tracker_keywords_remove_all (TrackerKeywords  *object,
 		return FALSE;
 	}
 
-	tracker_db_delete_metadata (db_con, service, id, "User:Keywords", TRUE);
+	tracker_db_metadata_delete (iface,
+				    service,
+				    id,
+				    "User:Keywords", 
+				    TRUE);
 	g_free (id);
 
 	tracker_notify_file_data_available ();
@@ -510,26 +416,21 @@ tracker_keywords_search (TrackerKeywords  *object,
 			 gchar          ***values,
 			 GError          **error)
 {
-	TrackerKeywordsPriv  *priv;
-	TrackerDBResultSet   *result_set;
-	DBConnection         *db_con;
-	guint                 request_id;
-	const gchar         **p;
-	GString              *search;
-	GString              *select;
-	GString              *where;
-	gchar                *related_metadata;
-	gchar                *query;
+	TrackerDBInterface  *iface;
+	TrackerDBResultSet  *result_set;
+	guint                request_id;
+	const gchar        **p;
+	GString             *search;
+	GString             *select;
+	GString             *where;
+	gchar               *related_metadata;
+	gchar               *query;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (keywords != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
-
-	priv = GET_PRIV (object);
-
-	db_con = priv->db_con;
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to search keywords, "
@@ -548,8 +449,7 @@ tracker_keywords_search (TrackerKeywords  *object,
 		return FALSE;
 	}
 
-	/* Check we have the right database connection */
-	db_con = tracker_db_get_service_connection (db_con, service);
+	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
 
 	/* Sanity check values */
 	offset = MAX (offset, 0);
@@ -575,7 +475,7 @@ tracker_keywords_search (TrackerKeywords  *object,
 				  "' || S.Name as EntityName from Services S, ServiceKeywordMetaData M ");
 
 	/* Create where string */
-	related_metadata = tracker_get_related_metadata_names (db_con, "User:Keywords");
+	related_metadata = tracker_db_metadata_get_related_names (iface, "User:Keywords");
 
 	where = g_string_new ("");
 	g_string_append_printf (where, 
@@ -603,7 +503,7 @@ tracker_keywords_search (TrackerKeywords  *object,
 
 	g_debug (query);
 
-	result_set = tracker_db_interface_execute_query (db_con->db, NULL, query);
+	result_set = tracker_db_interface_execute_query (iface, NULL, query);
 	*values = tracker_dbus_query_result_to_strv (result_set, NULL);
 
 	if (result_set) {

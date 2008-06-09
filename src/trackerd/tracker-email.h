@@ -23,20 +23,30 @@
 
 #include "config.h"
 
-#include <libtracker-db/tracker-db-file-info.h>
+#include <libtracker-common/tracker-config.h>
 
-#include "tracker-db-sqlite.h"
+#include <libtracker-db/tracker-db-interface.h>
+#include <libtracker-db/tracker-db-file-info.h>
 
 G_BEGIN_DECLS
 
-gboolean     tracker_email_start_email_watching    (const gchar *email_client);
-void         tracker_email_end_email_watching      (void);
+typedef gboolean      (* TrackerMailInit)              (void);
+typedef void          (* TrackerMailFinalize)          (void);
+typedef void          (* TrackerMailWatchEmails)       (TrackerDBInterface *iface);
+typedef gboolean      (* TrackerMailIndexFile)         (TrackerDBInterface *iface,
+						        TrackerDBFileInfo  *info);
+typedef const gchar * (* TrackerMailGetName)           (void);
+typedef const gchar * (* TrackerMailFileIsInteresting) (TrackerDBFileInfo  *info);
 
-void         tracker_email_add_service_directories (DBConnection      *db_con);
-gboolean     tracker_email_file_is_interesting     (TrackerDBFileInfo *info);
-gboolean     tracker_email_index_file              (DBConnection      *db_con,
-						    TrackerDBFileInfo *info);
+gboolean     tracker_email_init                    (TrackerConfig      *config);
+void         tracker_email_shutdown                (void);
+void         tracker_email_add_service_directories (TrackerDBInterface *iface);
+gboolean     tracker_email_file_is_interesting     (TrackerDBFileInfo  *info);
+gboolean     tracker_email_index_file              (TrackerDBInterface *iface,
+						    TrackerDBFileInfo  *info);
 const gchar *tracker_email_get_name                (void);
+gboolean     tracker_email_start_email_watching    (const gchar        *email_client);
+void         tracker_email_end_email_watching      (void);
 
 G_END_DECLS
 

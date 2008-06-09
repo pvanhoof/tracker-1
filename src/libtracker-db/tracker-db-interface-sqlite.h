@@ -31,7 +31,7 @@ G_BEGIN_DECLS
 #define TRACKER_IS_DB_INTERFACE_SQLITE_CLASS(c)  (G_TYPE_CHECK_CLASS_TYPE ((o),    TRACKER_TYPE_DB_INTERFACE_SQLITE))
 #define TRACKER_DB_INTERFACE_SQLITE_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o),  TRACKER_TYPE_DB_INTERFACE_SQLITE, TrackerDBInterfaceSqliteClass))
 
-typedef struct TrackerDBInterfaceSqlite TrackerDBInterfaceSqlite;
+typedef struct TrackerDBInterfaceSqlite      TrackerDBInterfaceSqlite;
 typedef struct TrackerDBInterfaceSqliteClass TrackerDBInterfaceSqliteClass;
 
 typedef gint (* TrackerDBCollationFunc) (gchar *str1,

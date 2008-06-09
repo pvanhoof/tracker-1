@@ -26,6 +26,8 @@
 
 #include <libtracker-common/tracker-config.h>
 
+#include <libtracker-db/tracker-db-manager.h>
+
 #include "tracker-xesam-manager.h"
 #include "tracker-dbus.h"
 #include "tracker-main.h"
@@ -246,29 +248,24 @@ tracker_xesam_manager_get_live_search (const gchar  *search_id,
 static gboolean 
 live_search_handler (gpointer data)
 {
-	TrackerXesam *xesam;
-	DBConnection *db_con = NULL;
-	GList        *sessions;
-	gboolean      reason_to_live = FALSE;
+	TrackerXesam       *xesam;
+	TrackerDBInterface *iface;
+	GList              *sessions;
+	gboolean            reason_to_live = FALSE;
 
 	xesam = TRACKER_XESAM (tracker_dbus_get_object (TRACKER_TYPE_XESAM));
+	g_return_val_if_fail (xesam != NULL, FALSE);
 
-	if (!xesam) {
-		return FALSE;
-	}
-
-	g_object_get (xesam, "db-connection", &db_con, NULL);
-
-	if (!db_con) { 
-		return FALSE;
-	}
+	iface = tracker_db_manager_get_db_interface (TRACKER_DB_XESAM);
+	g_return_val_if_fail (iface != NULL, FALSE);
 
 	sessions = g_hash_table_get_values (xesam_sessions);
 
 	while (sessions) {
 		GList *searches;
 
-		g_debug ("Session being handled, ID :%s", tracker_xesam_session_get_id (sessions->data));
+		g_debug ("Session being handled, ID :%s", 
+			 tracker_xesam_session_get_id (sessions->data));
 
 		searches = tracker_xesam_session_get_searches (sessions->data);
 
@@ -278,7 +275,8 @@ live_search_handler (gpointer data)
 			GArray                 *removed = NULL;
 			GArray                 *modified = NULL;
 
-			g_debug ("Search being handled, ID :%s", tracker_xesam_live_search_get_id (searches->data));
+			g_debug ("Search being handled, ID :%s", 
+				 tracker_xesam_live_search_get_id (searches->data));
 
 			search = searches->data;
 			tracker_xesam_live_search_match_with_events (search, 
@@ -323,7 +321,7 @@ live_search_handler (gpointer data)
 
 	g_list_free (sessions);
 
-	tracker_db_delete_handled_events (db_con);
+	tracker_db_xesam_delete_handled_events (iface);
 
 	return reason_to_live;
 }

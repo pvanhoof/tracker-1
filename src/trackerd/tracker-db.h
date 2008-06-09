@@ -31,16 +31,18 @@ G_BEGIN_DECLS
 
 void               tracker_db_init                (void);
 void               tracker_db_shutdown            (void);
-gboolean           tracker_db_is_file_up_to_date  (DBConnection      *db_con,
-						   const gchar       *uri,
-						   guint32           *id);
-TrackerDBFileInfo *tracker_db_get_file_info       (DBConnection      *db_con,
-						   TrackerDBFileInfo *info);
-gchar *            tracker_db_get_id              (DBConnection      *db_con,
-						   const gchar       *service,
-						   const gchar       *uri);
-gchar **           tracker_db_get_files_in_folder (DBConnection      *db_con,
-						   const gchar       *folder_uri);
+gboolean           tracker_db_is_file_up_to_date  (TrackerDBInterface *iface,
+						   const gchar        *uri,
+						   guint32            *id);
+TrackerDBFileInfo *tracker_db_get_file_info       (TrackerDBInterface *iface,
+						   TrackerDBFileInfo  *info);
+guint32            tracker_db_get_file_id         (TrackerDBInterface *iface,
+						   const gchar        *uri);
+gchar *            tracker_db_get_id              (TrackerDBInterface *iface,
+						   const gchar        *service,
+						   const gchar        *uri);
+gchar **           tracker_db_get_files_in_folder (TrackerDBInterface *iface,
+						   const gchar        *folder_uri);
 
 G_END_DECLS
 

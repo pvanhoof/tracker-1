@@ -41,6 +41,7 @@
 
 #include <libtracker-db/tracker-db-action.h>
 #include <libtracker-db/tracker-db-file-info.h>
+#include <libtracker-db/tracker-db-manager.h>
 
 #include "tracker-watcher.h"
 #include "tracker-process-files.h"
@@ -54,7 +55,6 @@ static void process_event (const gchar     *uri,
                            guint32          cookie);
 
 extern Tracker	    *tracker;
-extern DBConnection *main_thread_db_con;
 
 static GIOChannel   *channel;
 static GSList 	    *move_list;
@@ -349,6 +349,10 @@ get_event (guint32 event_type)
 static gboolean
 process_inotify_events (void)
 {
+	TrackerDBInterface *iface_cache;
+
+	iface_cache = tracker_db_manager_get_db_interface (TRACKER_DB_CACHE);
+
 	while (g_queue_get_length (event_queue) > 0) {
 		TrackerDBResultSet   *result_set;
 		TrackerDBAction       action_type;
@@ -389,10 +393,11 @@ process_inotify_events (void)
 		/* Get watch name as monitor */
 		str_wd = g_strdup_printf ("%d", event->wd);
 
-		result_set = tracker_exec_proc (main_thread_db_con->cache, 
-                                                "GetWatchUri", 
-                                                str_wd, 
-                                                NULL);
+		
+		result_set = tracker_db_exec_proc (iface_cache, 
+						   "GetWatchUri", 
+						   str_wd, 
+						   NULL);
 		g_free (str_wd);
 
 		if (result_set) {
@@ -559,20 +564,17 @@ tracker_watcher_shutdown (void)
 }
 
 gboolean
-tracker_watcher_add_dir (const gchar  *dir, 
-                         DBConnection *db_con)
+tracker_watcher_add_dir (const gchar        *dir, 
+                         TrackerDBInterface *iface)
 {
-	gchar           *dir_in_locale;
-	static gboolean  limit_exceeded = FALSE;
+	TrackerDBInterface *iface_cache;
+	gchar              *dir_in_locale;
+	static gboolean     limit_exceeded = FALSE;
 
 	g_return_val_if_fail (dir != NULL, FALSE);
 	g_return_val_if_fail (dir[0] == G_DIR_SEPARATOR, FALSE);
 
-	if (!tracker->is_running) {
-		return FALSE;
-	}
-
-	if (tracker_watcher_is_dir_watched (dir, db_con)) {
+	if (tracker_watcher_is_dir_watched (dir, iface)) {
 		return FALSE;
 	}
 
@@ -619,8 +621,10 @@ tracker_watcher_add_dir (const gchar  *dir,
 			return FALSE;
 		}
 
+		iface_cache = tracker_db_manager_get_db_interface (TRACKER_DB_CACHE);
+
 		str_wd = g_strdup_printf ("%d", wd);
-		tracker_exec_proc (db_con->cache, "InsertWatch", dir, str_wd, NULL);
+		tracker_db_exec_proc (iface_cache, "InsertWatch", dir, str_wd, NULL);
 		g_free (str_wd);
 
 		monitor_count++;
@@ -636,10 +640,11 @@ tracker_watcher_add_dir (const gchar  *dir,
 }
 
 void
-tracker_watcher_remove_dir (const gchar  *dir, 
-                            gboolean      delete_subdirs,
-                            DBConnection *db_con)
+tracker_watcher_remove_dir (const gchar        *dir, 
+                            gboolean            delete_subdirs,
+                            TrackerDBInterface *iface)
 {
+	TrackerDBInterface *iface_cache;
 	TrackerDBResultSet *result_set;
 	gboolean            valid = TRUE;
 	gint                wd;
@@ -647,7 +652,8 @@ tracker_watcher_remove_dir (const gchar  *dir,
 	g_return_if_fail (dir != NULL);
 	g_return_if_fail (dir[0] == G_DIR_SEPARATOR);
 
-	result_set = tracker_exec_proc (db_con->cache, "GetWatchID", dir, NULL);
+	iface_cache = tracker_db_manager_get_db_interface (TRACKER_DB_CACHE);
+	result_set = tracker_db_exec_proc (iface_cache, "GetWatchID", dir, NULL);
 
 	wd = -1;
 
@@ -659,8 +665,7 @@ tracker_watcher_remove_dir (const gchar  *dir,
 
 	tracker_db_result_set_get (result_set, 0, &wd, -1);
 	g_object_unref (result_set);
-
-	tracker_exec_proc (db_con->cache, "DeleteWatch", dir, NULL);
+	tracker_db_exec_proc (iface_cache, "DeleteWatch", dir, NULL);
 
 	if (wd > -1) {
 		inotify_rm_watch (monitor_fd, wd);
@@ -671,7 +676,7 @@ tracker_watcher_remove_dir (const gchar  *dir,
 		return;
 	}
 
-	result_set = tracker_db_get_sub_watches (db_con, dir);
+	result_set = tracker_db_uri_sub_watches_get (dir);
 
 	if (!result_set) {
 		return;
@@ -690,24 +695,22 @@ tracker_watcher_remove_dir (const gchar  *dir,
 	}
 
 	g_object_unref (result_set);
-	tracker_db_delete_sub_watches (db_con, dir);
+	tracker_db_uri_sub_watches_delete (dir);
 }
 
 gboolean
-tracker_watcher_is_dir_watched (const char   *dir, 
-                                DBConnection *db_con)
+tracker_watcher_is_dir_watched (const char         *dir, 
+                                TrackerDBInterface *iface)
 {
+	TrackerDBInterface *iface_cache;
 	TrackerDBResultSet *result_set;
 	gint                id;
 
         g_return_val_if_fail (dir != NULL, FALSE);
         g_return_val_if_fail (dir[0] == G_DIR_SEPARATOR, FALSE);
 
-	if (!tracker->is_running) {
-		return FALSE;
-	}
-
-	result_set = tracker_exec_proc (db_con->cache, "GetWatchID", dir, NULL);
+	iface_cache = tracker_db_manager_get_db_interface (TRACKER_DB_CACHE);
+	result_set = tracker_db_exec_proc (iface_cache, "GetWatchID", dir, NULL);
 
 	if (!result_set) {
 		return FALSE;

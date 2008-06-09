@@ -24,8 +24,6 @@
 
 #include <glib-object.h>
 
-#include "tracker-db-sqlite.h"
-
 #define TRACKER_KEYWORDS_SERVICE         "org.freedesktop.Tracker"
 #define TRACKER_KEYWORDS_PATH            "/org/freedesktop/Tracker/Keywords"
 #define TRACKER_KEYWORDS_INTERFACE       "org.freedesktop.Tracker.Keywords"
@@ -51,9 +49,7 @@ struct TrackerKeywordsClass {
 };
 
 GType            tracker_keywords_get_type          (void);
-TrackerKeywords *tracker_keywords_new               (DBConnection      *db_con);
-void             tracker_keywords_set_db_connection (TrackerKeywords   *object,
-						     DBConnection      *db_con);
+TrackerKeywords *tracker_keywords_new               (void);
 gboolean         tracker_keywords_get_list          (TrackerKeywords   *object,
 						     const gchar       *service,
 						     GPtrArray        **values,

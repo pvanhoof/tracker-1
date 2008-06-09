@@ -107,9 +107,9 @@ static gboolean	is_in_dir_maildir			(const gchar *dir);
 typedef gboolean (* LoadSummaryFileMetaHeaderFct) (SummaryFile *summary, SummaryFileHeader *header);
 typedef gboolean (* LoadMailMessageFct) (SummaryFile *summary, MailMessage **mail_msg);
 typedef gboolean (* SkipMailMessageFct) (SummaryFile *summary);
-typedef gboolean (* SaveOnDiskMailMessageFct) (DBConnection *db_con, MailMessage *msg);
+typedef gboolean (* SaveOnDiskMailMessageFct) (TrackerDBInterface *iface, MailMessage *msg);
 
-static void	index_mail_messages_by_summary_file	(DBConnection *db_con, MailType mail_type,
+static void	index_mail_messages_by_summary_file	(TrackerDBInterface *iface, MailType mail_type,
 							 const gchar *summary_file_path,
 							 LoadSummaryFileMetaHeaderFct load_meta_header,
 							 LoadMailMessageFct load_mail,
@@ -147,11 +147,11 @@ static gboolean	skip_mail_message			(SummaryFile *summary);
 static gboolean	skip_loading_content_info		(SummaryFile *summary);
 static gboolean	do_skip_loading_content_info		(SummaryFile *summary);
 
-static gboolean	save_ondisk_email_message_for_imap	(DBConnection *db_con, MailMessage *mail_msg);
-static gboolean	save_ondisk_email_message_for_pop	(DBConnection *db_con, MailMessage *mail_msg);
-static gboolean	save_ondisk_email_message_for_maildir	(DBConnection *db_con, MailMessage *mail_msg);
-static gboolean	do_save_ondisk_email_message_generic	(DBConnection *db_con, MailMessage *mail_msg);
-static gboolean	do_save_ondisk_email_message		(DBConnection *db_con, MailMessage *mail_msg);
+static gboolean	save_ondisk_email_message_for_imap	(TrackerDBInterface *iface, MailMessage *mail_msg);
+static gboolean	save_ondisk_email_message_for_pop	(TrackerDBInterface *iface, MailMessage *mail_msg);
+static gboolean	save_ondisk_email_message_for_maildir	(TrackerDBInterface *iface, MailMessage *mail_msg);
+static gboolean	do_save_ondisk_email_message_generic	(TrackerDBInterface *iface, MailMessage *mail_msg);
+static gboolean	do_save_ondisk_email_message		(TrackerDBInterface *iface, MailMessage *mail_msg);
 
 static GSList *	add_persons_from_internet_address_list_string_parsing	(GSList *list, const gchar *s);
 
@@ -167,7 +167,7 @@ static inline gboolean	decode_string		(FILE *f, gchar **str);
 static inline gboolean	skip_string_decoding	(FILE *f);
 static inline gboolean	skip_token_decoding	(FILE *f);
 
-static void  check_summary_file (DBConnection *db_con, const gchar *filename, MailStore *store);
+static void  check_summary_file (TrackerDBInterface *iface, const gchar *filename, MailStore *store);
 
 static void
 load_current_dynamic_folders (ModestConfig *modest_config)
@@ -217,7 +217,7 @@ modest_module_is_running (void)
 *********************************************************************************************/
 
 gboolean
-tracker_email_plugin_init (void)
+tracker_email_plugin_init (TrackerConfig *config)
 {
 	ModestConfig *conf;
 
@@ -272,20 +272,20 @@ free_modest_config (ModestConfig *conf)
 }
 
 void
-tracker_email_plugin_watch_emails (DBConnection *db_con)
+tracker_email_plugin_watch_emails (TrackerDBInterface *iface)
 {
 	TrackerDBResultSet *result_set;
 
 	/* if initial indexing has not finished reset mtime on all email stuff so they are rechecked */
-	if (tracker_db_get_option_int (db_con->common, "InitialIndex") == 1) {
+	if (tracker_db_get_option_int ("InitialIndex") == 1) {
 		char *sql = g_strdup_printf ("update Services set mtime = 0 where path like '%s/.modest/%s'", g_get_home_dir (), "%");
 
-		tracker_db_interface_execute_query (db_con->db, NULL, sql);
+		tracker_db_interface_execute_query (iface, NULL, sql);
 		g_free (sql);
 	}
 
 	/* check all registered mbox/paths for deletions */
-	result_set = tracker_db_email_get_mboxes (db_con);
+	result_set = tracker_db_email_get_mboxes (iface);
 
 	if (result_set) {
 		gboolean valid = TRUE;
@@ -298,10 +298,10 @@ tracker_email_plugin_watch_emails (DBConnection *db_con)
 						   3, &path,
 						   -1);
 
-			store = tracker_db_email_get_mbox_details (db_con, path);
+			store = tracker_db_email_get_mbox_details (iface, path);
 
 			if (store) {
-				check_summary_file (db_con, filename, store);
+				check_summary_file (iface, filename, store);
 				tracker_db_email_free_mail_store (store);
 			}
 
@@ -335,11 +335,11 @@ tracker_email_plugin_file_is_interesting (TrackerDBFileInfo *info)
 
 
 gboolean
-tracker_email_plugin_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
+tracker_email_plugin_index_file (TrackerDBInterface *iface, TrackerDBFileInfo *info)
 {
 	gchar *file_name;
 
-	g_return_val_if_fail (db_con, FALSE);
+	g_return_val_if_fail (iface, FALSE);
 	g_return_val_if_fail (info, FALSE);
 
 	if (!tracker_email_plugin_file_is_interesting (info))
@@ -351,7 +351,7 @@ tracker_email_plugin_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
 
 	if (is_in_dir_imap (info->uri)) {
 		if (strcmp (file_name, "summary.mmap") == 0) {
-			index_mail_messages_by_summary_file (db_con, MAIL_TYPE_IMAP, info->uri,
+			index_mail_messages_by_summary_file (iface, MAIL_TYPE_IMAP, info->uri,
 							     load_summary_file_meta_header_for_imap,
 							     load_mail_message_for_imap,
 							     skip_mail_message_for_imap,
@@ -361,7 +361,7 @@ tracker_email_plugin_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
 
 	if (is_in_dir_pop (info->uri)) {
 		if (strcmp (file_name, "summary.mmap") == 0) {
-			index_mail_messages_by_summary_file (db_con, MAIL_TYPE_POP, info->uri,
+			index_mail_messages_by_summary_file (iface, MAIL_TYPE_POP, info->uri,
 							     load_summary_file_meta_header_for_pop,
 							     load_mail_message_for_pop,
 							     skip_mail_message_for_pop,
@@ -371,7 +371,7 @@ tracker_email_plugin_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
 
 	if (is_in_dir_maildir (info->uri)) {
 		if (strcmp (file_name, "summary.mmap") || g_str_has_suffix (info->uri, "summary.mmap")) {
-			index_mail_messages_by_summary_file (db_con, MAIL_TYPE_MAILDIR, info->uri,
+			index_mail_messages_by_summary_file (iface, MAIL_TYPE_MAILDIR, info->uri,
 							     load_summary_file_meta_header_for_maildir,
 							     load_mail_message_for_maildir,
 							     skip_mail_message_for_maildir,
@@ -397,7 +397,7 @@ tracker_email_plugin_get_name (void)
 
 
 static void
-check_summary_file (DBConnection *db_con, const gchar *filename, MailStore *store)
+check_summary_file (TrackerDBInterface *iface, const gchar *filename, MailStore *store)
 {
 	SummaryFile *summary = NULL;
 
@@ -448,8 +448,8 @@ check_summary_file (DBConnection *db_con, const gchar *filename, MailStore *stor
 
 		}
 
-		path = tracker_db_email_get_mbox_path (db_con, filename);
-		tracker_db_email_set_message_counts (db_con, path, store->mail_count, header->junk_count, header->deleted_count);
+		path = tracker_db_email_get_mbox_path (iface, filename);
+		tracker_db_email_set_message_counts (iface, path, store->mail_count, header->junk_count, header->deleted_count);
 		g_free (path);
 
 		free_summary_file_header (header);
@@ -694,7 +694,7 @@ char *maildir_get_filename (const gchar *fpath, const gchar *uid)
 }
 
 static void
-index_mail_messages_by_summary_file (DBConnection                 *db_con,
+index_mail_messages_by_summary_file (TrackerDBInterface                 *iface,
 				     MailType                     mail_type,
 				     const gchar                  *summary_file_path,
 				     LoadSummaryFileMetaHeaderFct load_meta_header,
@@ -751,7 +751,7 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
 		}
 
 		/* check summary file is registered */
-		if (tracker_db_email_get_mbox_id (db_con, dir) == -1) {
+		if (tracker_db_email_get_mbox_id (iface, dir) == -1) {
 			char *uri_prefix = NULL;
 
 			if (mail_type == MAIL_TYPE_IMAP || mail_type == MAIL_TYPE_POP) {
@@ -822,12 +822,12 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
 			else 
 				uri_prefix = g_strdup ("unknown://location/");
 
-			tracker_db_email_register_mbox (db_con, MAIL_APP_MODEST, mail_type, dir, summary_file_path, uri_prefix);
+			tracker_db_email_register_mbox (iface, MAIL_APP_MODEST, mail_type, dir, summary_file_path, uri_prefix);
 			g_free (uri_prefix);
 		}
 
 
-		MailStore *store = tracker_db_email_get_mbox_details (db_con, dir);
+		MailStore *store = tracker_db_email_get_mbox_details (iface, dir);
 
 		if (!store) {
 			g_critical ("could not retrieve store for file %s", dir);
@@ -910,10 +910,10 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
 
 				mail_msg->store = store;
 
-				if (!(*save_ondisk_mail) (db_con, mail_msg)) {
+				if (!(*save_ondisk_mail) (iface, mail_msg)) {
 					g_message ("WARNING: Message, or message parts, could not be found locally - if you are using IMAP make sure you have selected the \"copy folder content locally for offline operation\" option in Modest");
 					/* we do not have all infos but we still save them */
-					if (!tracker_db_email_save_email (db_con, mail_msg, MAIL_APP_MODEST)) {
+					if (!tracker_db_email_save_email (iface, mail_msg, MAIL_APP_MODEST)) {
 						g_message ("Failed to save email");
 					}
 				}
@@ -938,7 +938,7 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
                                  *
                                  * -Martyn
                                  */ 
-				if (!tracker_cache_process_events (db_con->data, TRUE)) {
+				if (!tracker_cache_process_events (iface->data, TRUE)) {
 					tracker->shutdown = TRUE;
                                         tracker_status_set_and_signal (TRACKER_STATUS_SHUTDOWN,
                                                                        tracker->first_time_index,
@@ -951,12 +951,12 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
 				}
 #endif
 
-				if (tracker_db_regulate_transactions (db_con->data, 500)) {
+				if (tracker_db_regulate_transactions (iface, 500)) {
 
 					if (tracker->index_count % 1000 == 0) {
-						tracker_db_end_index_transaction (db_con->data);
-						tracker_db_refresh_all (db_con->data);
-						tracker_db_start_index_transaction (db_con->data);
+						tracker_db_interface_end_transaction (iface);
+						tracker_db_refresh_all (iface);
+						tracker_db_interface_start_transaction (iface);
 					}
 					
                                         /* Signal progress */
@@ -974,11 +974,11 @@ index_mail_messages_by_summary_file (DBConnection                 *db_con,
 
 			g_message ("No. of new emails indexed in summary file %s is %d, %d junk, %d deleted", dir, mail_count, junk_count, delete_count);
 
-			tracker_db_email_set_message_counts (db_con, dir, store->mail_count, store->junk_count, store->delete_count);
+			tracker_db_email_set_message_counts (iface, dir, store->mail_count, store->junk_count, store->delete_count);
 
 		} else {
 			/* schedule check for junk */
-			tracker_db_email_flag_mbox_junk (db_con, dir);
+			tracker_db_email_flag_mbox_junk (iface, dir);
 		}
 
 		tracker->mbox_processed++;
@@ -1710,35 +1710,35 @@ do_skip_loading_content_info (SummaryFile *summary)
 
 
 static gboolean
-save_ondisk_email_message_for_imap (DBConnection *db_con, MailMessage *mail_msg)
+save_ondisk_email_message_for_imap (TrackerDBInterface *iface, MailMessage *mail_msg)
 {
-	return do_save_ondisk_email_message_generic (db_con, mail_msg);
+	return do_save_ondisk_email_message_generic (iface, mail_msg);
 }
 
 
 static gboolean
-save_ondisk_email_message_for_pop (DBConnection *db_con, MailMessage *mail_msg)
+save_ondisk_email_message_for_pop (TrackerDBInterface *iface, MailMessage *mail_msg)
 {
-	return do_save_ondisk_email_message_generic (db_con, mail_msg);
+	return do_save_ondisk_email_message_generic (iface, mail_msg);
 }
 
 static gboolean
-save_ondisk_email_message_for_maildir (DBConnection *db_con, MailMessage *mail_msg)
+save_ondisk_email_message_for_maildir (TrackerDBInterface *iface, MailMessage *mail_msg)
 {
-	return do_save_ondisk_email_message_generic (db_con, mail_msg);
+	return do_save_ondisk_email_message_generic (iface, mail_msg);
 }
 
 static gboolean
-do_save_ondisk_email_message_generic (DBConnection *db_con, MailMessage *mail_msg)
+do_save_ondisk_email_message_generic (TrackerDBInterface *iface, MailMessage *mail_msg)
 {
-	g_return_val_if_fail (db_con, FALSE);
+	g_return_val_if_fail (iface, FALSE);
 	g_return_val_if_fail (mail_msg, FALSE);
 
 	g_message ("Trying to index mail \"%s\"", mail_msg->uri);
 
-	if (!do_save_ondisk_email_message (db_con, mail_msg)) {
+	if (!do_save_ondisk_email_message (iface, mail_msg)) {
 		g_message ("Indexing mail without body nor attachment parsing \"%s\"", mail_msg->uri);
-		tracker_db_email_save_email (db_con, mail_msg, MAIL_APP_MODEST);
+		tracker_db_email_save_email (iface, mail_msg, MAIL_APP_MODEST);
 	} else {
 		g_message ("Simple index of mail \"%s\" finished", mail_msg->uri);
 	}
@@ -1756,9 +1756,9 @@ find_attachment (GMimeObject *obj, gpointer data)
 }
 
 static gboolean
-do_save_ondisk_email_message (DBConnection *db_con, MailMessage *mail_msg)
+do_save_ondisk_email_message (TrackerDBInterface *iface, MailMessage *mail_msg)
 {
-	g_return_val_if_fail (db_con, FALSE);
+	g_return_val_if_fail (iface, FALSE);
 	g_return_val_if_fail (mail_msg, FALSE);
 
 	if (mail_msg->path && g_file_test (mail_msg->path, G_FILE_TEST_EXISTS) && tracker_file_is_indexable (mail_msg->path)) {
@@ -1777,7 +1777,7 @@ do_save_ondisk_email_message (DBConnection *db_con, MailMessage *mail_msg)
 			mail_msg_on_disk->uri = g_strdup (mail_msg->uri);
 			mail_msg_on_disk->store = mail_msg->store;
 
-			tracker_db_email_save_email (db_con, mail_msg_on_disk, MAIL_APP_MODEST);
+			tracker_db_email_save_email (iface, mail_msg_on_disk, MAIL_APP_MODEST);
 
 			email_free_mail_file (mail_msg_on_disk->parent_mail_file);
 			email_free_mail_message (mail_msg_on_disk);

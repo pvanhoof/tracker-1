@@ -24,7 +24,6 @@
 
 #include <glib-object.h>
 
-#include "tracker-db-sqlite.h"
 #include "tracker-indexer.h"
 
 #define TRACKER_METADATA_SERVICE         "org.freedesktop.Tracker"
@@ -52,9 +51,7 @@ struct TrackerMetadataClass {
 };
 
 GType            tracker_metadata_get_type               (void);
-TrackerMetadata *tracker_metadata_new                    (DBConnection      *db_con);
-void             tracker_metadata_set_db_connection      (TrackerMetadata   *object,
-							  DBConnection      *db_con);
+TrackerMetadata *tracker_metadata_new                    (void);
 gboolean         tracker_metadata_get                    (TrackerMetadata   *object,
 							  const gchar       *service,
 							  const gchar       *id,

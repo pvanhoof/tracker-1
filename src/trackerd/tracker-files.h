@@ -24,8 +24,6 @@
 
 #include <glib-object.h>
 
-#include "tracker-db-sqlite.h"
-
 #define TRACKER_FILES_SERVICE         "org.freedesktop.Tracker"
 #define TRACKER_FILES_PATH            "/org/freedesktop/Tracker/Files"
 #define TRACKER_FILES_INTERFACE       "org.freedesktop.Tracker.Files"
@@ -53,9 +51,7 @@ struct TrackerFilesClass {
 GType    tracker_files_get_type                         (void);
 
 TrackerFiles *
-         tracker_files_new                              (DBConnection   *db_con);
-void     tracker_files_set_db_connection                (TrackerFiles   *object,
-							 DBConnection   *db_con);
+         tracker_files_new                              (void);
 gboolean tracker_files_exist                            (TrackerFiles   *object,
 							 const gchar    *uri,
 							 gboolean        auto_create,

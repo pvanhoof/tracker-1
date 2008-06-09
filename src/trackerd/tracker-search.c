@@ -32,7 +32,10 @@
 #include <libtracker-common/tracker-utils.h>
 
 #include <libtracker-db/tracker-db-dbus.h>
+#include <libtracker-db/tracker-db-manager.h>
 
+#include "tracker-db.h"
+#include "tracker-db-sqlite.h"
 #include "tracker-dbus.h"
 #include "tracker-search.h"
 #include "tracker-rdf-query.h"
@@ -46,7 +49,6 @@
 
 typedef struct {
 	DBusGProxy      *fd_proxy;
-	DBConnection    *db_con;
 	TrackerConfig   *config;
 	TrackerLanguage *language;
         Indexer         *file_index;
@@ -55,7 +57,6 @@ typedef struct {
 
 enum {
 	PROP_0,
-	PROP_DB_CONNECTION,
 	PROP_CONFIG,
 	PROP_LANGUAGE,
 	PROP_FILE_INDEX,
@@ -80,12 +81,6 @@ tracker_search_class_init (TrackerSearchClass *klass)
 	object_class->finalize = search_finalize;
 	object_class->set_property = search_set_property;
 
-	g_object_class_install_property (object_class,
-					 PROP_DB_CONNECTION,
-					 g_param_spec_pointer ("db-connection",
-							       "DB connection",
-							       "Database connection to use in transactions",
-							       G_PARAM_WRITABLE));
 	g_object_class_install_property (object_class,
 					 PROP_CONFIG,
 					 g_param_spec_object ("config",
@@ -146,10 +141,6 @@ search_set_property (GObject      *object,
 	priv = GET_PRIV (object);
 
 	switch (param_id) {
-	case PROP_DB_CONNECTION:
-		tracker_search_set_db_connection (TRACKER_SEARCH (object),
-						  g_value_get_pointer (value));
-		break;
 	case PROP_CONFIG:
 		tracker_search_set_config (TRACKER_SEARCH (object),
 					   g_value_get_object (value));
@@ -173,31 +164,9 @@ search_set_property (GObject      *object,
 }
 
 TrackerSearch *
-tracker_search_new (DBConnection *db_con)
+tracker_search_new (void)
 {
-	TrackerSearch *object;
-
-	object = g_object_new (TRACKER_TYPE_SEARCH, 
-			       "db-connection", db_con,
-			       NULL);
-	
-	return object;
-}
-
-void
-tracker_search_set_db_connection (TrackerSearch *object,
-				  DBConnection  *db_con)
-{
-	TrackerSearchPriv *priv;
-
-	g_return_if_fail (TRACKER_IS_SEARCH (object));
-	g_return_if_fail (db_con != NULL);
-
-	priv = GET_PRIV (object);
-
-	priv->db_con = db_con;
-	
-	g_object_notify (G_OBJECT (object), "db-connection");
+	return g_object_new (TRACKER_TYPE_SEARCH, NULL); 
 }
 
 void
@@ -602,7 +571,6 @@ tracker_search_get_hit_count (TrackerSearch  *object,
 	TrackerQueryTree  *tree;
 	GArray            *array;
 	guint              request_id;
-	DBConnection      *db_con;
 	gint               services[12];
         gint               count = 0;
 
@@ -612,10 +580,6 @@ tracker_search_get_hit_count (TrackerSearch  *object,
 	tracker_dbus_return_val_if_fail (search_text != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (value != NULL, FALSE, error);
 
-	priv = GET_PRIV (object);
-
-	db_con = priv->db_con;
-	
 	tracker_dbus_request_new (request_id,
                                   "DBus request to get hit count, "
 				  "service:'%s', search text:'%s'",
@@ -636,9 +600,6 @@ tracker_search_get_hit_count (TrackerSearch  *object,
                                              "No search term was specified");
 		return FALSE;
         }
-
-	/* Check we have the right database connection */
-	db_con = tracker_db_get_service_connection (db_con, service);
 
 	services[count++] = tracker_ontology_get_id_for_service_type (service);
 
@@ -664,7 +625,7 @@ tracker_search_get_hit_count (TrackerSearch  *object,
 	array = g_array_new (TRUE, TRUE, sizeof (gint));
 	g_array_append_vals (array, services, G_N_ELEMENTS (services));
 	tree = tracker_query_tree_new (search_text, 
-				       db_con->word_index, 
+				       priv->file_index, 
 				       priv->config,
 				       priv->language,
 				       array);
@@ -689,7 +650,6 @@ tracker_search_get_hit_count_all (TrackerSearch  *object,
         GArray             *hit_counts;
 	GArray             *mail_hit_counts;
 	guint               request_id;
-	DBConnection       *db_con;
 	guint               i;
 
 	request_id = tracker_dbus_get_next_request_id ();
@@ -698,8 +658,6 @@ tracker_search_get_hit_count_all (TrackerSearch  *object,
 	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
 
 	priv = GET_PRIV (object);
-
-	db_con = priv->db_con;
 	
 	tracker_dbus_request_new (request_id,
                                   "DBus request to get search hit count for all, "
@@ -714,7 +672,7 @@ tracker_search_get_hit_count_all (TrackerSearch  *object,
         }
 
         tree = tracker_query_tree_new (search_text, 
-				       db_con->word_index, 
+				       priv->file_index, 
 				       priv->config,
 				       priv->language,
 				       NULL);
@@ -773,10 +731,9 @@ tracker_search_text (TrackerSearch   *object,
 		     gchar         ***values,
 		     GError         **error)
 {
-	TrackerSearchPriv   *priv;
+	TrackerDBInterface  *iface;
 	TrackerDBResultSet  *result_set;
 	guint               request_id;
-	DBConnection        *db_con;
         gchar              **strv = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
@@ -785,10 +742,6 @@ tracker_search_text (TrackerSearch   *object,
 	tracker_dbus_return_val_if_fail (search_text != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
 
-	priv = GET_PRIV (object);
-
-	db_con = priv->db_con;
-	
 	tracker_dbus_request_new (request_id,
                                   "DBus request to search text, "
 				  "query id:%d, service:'%s', search text:'%s', "
@@ -814,10 +767,9 @@ tracker_search_text (TrackerSearch   *object,
 		return FALSE;
         }
 
-	/* Check we have the right database connection */
-	db_con = tracker_db_get_service_connection (db_con, service);
+	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
 
-	result_set = tracker_db_search_text (db_con, 
+	result_set = tracker_db_search_text (iface, 
 					     service, 
 					     search_text, 
 					     offset, 
@@ -878,10 +830,9 @@ tracker_search_text_detailed (TrackerSearch  *object,
 			      GPtrArray     **values,
 			      GError        **error)
 {
-	TrackerSearchPriv  *priv;
+	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
 	guint               request_id;
-	DBConnection       *db_con;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -889,10 +840,6 @@ tracker_search_text_detailed (TrackerSearch  *object,
 	tracker_dbus_return_val_if_fail (search_text != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
 
-	priv = GET_PRIV (object);
-
-	db_con = priv->db_con;
-	
         tracker_dbus_request_new (request_id,
                                   "DBus request to search text detailed, "
 				  "query id:%d, service:'%s', search text:'%s', "
@@ -918,10 +865,9 @@ tracker_search_text_detailed (TrackerSearch  *object,
 		return FALSE;
         }
 
-	/* Check we have the right database connection */
-	db_con = tracker_db_get_service_connection (db_con, service);
+	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
 
-	result_set = tracker_db_search_text (db_con, 
+	result_set = tracker_db_search_text (iface, 
 					     service, 
 					     search_text, 
 					     offset, 
@@ -949,9 +895,9 @@ tracker_search_get_snippet (TrackerSearch  *object,
 			    GError        **error)
 {
 	TrackerSearchPriv  *priv;
+	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
 	guint               request_id;
-	DBConnection       *db_con;
         gchar              *snippet = NULL;
         gchar              *service_id;
 
@@ -964,8 +910,6 @@ tracker_search_get_snippet (TrackerSearch  *object,
 
 	priv = GET_PRIV (object);
 
-	db_con = priv->db_con;
-	
         tracker_dbus_request_new (request_id,
                                   "DBus request to get snippet, "
 				  "service:'%s', search text:'%s', id:'%s'",
@@ -988,10 +932,9 @@ tracker_search_get_snippet (TrackerSearch  *object,
 		return FALSE;
         }
 
-	/* Check we have the right database connection */
-	db_con = tracker_db_get_service_connection (db_con, service);
+	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
 
-	service_id = tracker_db_get_id (db_con, service, id);
+	service_id = tracker_db_get_id (iface, service, id);
         if (!service_id) {
 		tracker_dbus_request_failed (request_id,
 					     error, 
@@ -999,11 +942,13 @@ tracker_search_get_snippet (TrackerSearch  *object,
                                              id);
                 return FALSE;
         }
+
+	iface = tracker_db_manager_get_db_interface_by_service (service, TRUE);
              
-	result_set = tracker_exec_proc (db_con->blob, 
-					"GetAllContents", 
-					service_id, 
-					NULL);
+	result_set = tracker_db_exec_proc (iface, 
+					   "GetAllContents", 
+					   service_id, 
+					   NULL);
         g_free (service_id);
 
 	if (result_set) {
@@ -1047,19 +992,14 @@ tracker_search_files_by_text (TrackerSearch  *object,
 			      GHashTable    **values,
 			      GError        **error)
 {
-	TrackerSearchPriv  *priv;
+	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
 	guint               request_id;
-	DBConnection       *db_con;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_return_val_if_fail (search_text != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
-
-	priv = GET_PRIV (object);
-
-	db_con = priv->db_con;
 
         tracker_dbus_request_new (request_id,
                                   "DBus request to search files by text, "
@@ -1071,11 +1011,19 @@ tracker_search_files_by_text (TrackerSearch  *object,
                                   max_hits,
                                   group_results ? "yes" : "no");
 
-	result_set = tracker_db_search_files_by_text (db_con, 
-						      search_text, 
-						      offset, 
-						      search_sanity_check_max_hits (max_hits),
-						      group_results);
+	iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
+
+	/* FIXME: This function no longer exists, it was returning
+	 * NULL in every case, this DBus function needs rewriting or
+	 * to be removed.
+	 */
+	result_set = NULL;
+
+	/* result_set = tracker_db_search_files_by_text (iface,  */
+	/* 					      search_text,  */
+	/* 					      offset,  */
+	/* 					      search_sanity_check_max_hits (max_hits), */
+	/* 					      group_results); */
 
 	*values = tracker_dbus_query_result_to_hash_table (result_set);
 
@@ -1098,10 +1046,9 @@ tracker_search_metadata (TrackerSearch   *object,
 			 gchar         ***values,
 			 GError         **error)
 {
-	TrackerSearchPriv  *priv;
+	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
 	guint               request_id;
-	DBConnection       *db_con; 
 
         /* FIXME: This function is completely redundant */
 
@@ -1111,10 +1058,6 @@ tracker_search_metadata (TrackerSearch   *object,
 	tracker_dbus_return_val_if_fail (field != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (search_text != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
-
-	priv = GET_PRIV (object);
-
-	db_con = priv->db_con;
 
         tracker_dbus_request_new (request_id,
                                   "DBus request to search metadata, "
@@ -1134,15 +1077,20 @@ tracker_search_metadata (TrackerSearch   *object,
 		return FALSE;
 	}
 
-	/* result_set = tracker_db_search_metadata (db_con,  */
+	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
+
+	/* FIXME: This function no longer exists, it was returning
+	 * NULL in every case, this DBus function needs rewriting or
+	 * to be removed.
+	 */
+        result_set = NULL;
+
+	/* result_set = tracker_db_search_metadata (iface,  */
 	/* 					 service,  */
 	/* 					 field,  */
 	/* 					 text,  */
 	/* 					 offset,  */
 	/* 					 search_sanity_check_max_hits (max_hits)); */
-
-        result_set = NULL;
-
 	*values = tracker_dbus_query_result_to_strv (result_set, NULL);
 
 	if (result_set) {
@@ -1162,10 +1110,9 @@ tracker_search_matching_fields (TrackerSearch  *object,
 				GHashTable    **values,
 				GError        **error)
 {
-	TrackerSearchPriv  *priv;
+	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
 	guint               request_id;
-	DBConnection       *db_con;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -1173,10 +1120,6 @@ tracker_search_matching_fields (TrackerSearch  *object,
 	tracker_dbus_return_val_if_fail (id != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (search_text != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
-
-	priv = GET_PRIV (object);
-
-	db_con = priv->db_con;
 	
         tracker_dbus_request_new (request_id,
                                   "DBus request to search matching fields, "
@@ -1200,13 +1143,18 @@ tracker_search_matching_fields (TrackerSearch  *object,
 		return FALSE;
         }
 
-	/* Check we have the right database connection */
-	db_con = tracker_db_get_service_connection (db_con, service);
+	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
 
-	result_set = tracker_db_search_matching_metadata (db_con, 
-							  service, 
-							  id, 
-							  search_text);
+	/* FIXME: This function no longer exists, it was returning
+	 * NULL in every case, this DBus function needs rewriting or
+	 * to be removed.
+	 */
+        result_set = NULL;
+
+	/* result_set = tracker_db_search_matching_metadata (iface,  */
+	/* 						  service,  */
+	/* 						  id,  */
+	/* 						  search_text); */
 	*values = tracker_dbus_query_result_to_hash_table (result_set);
 
 	if (result_set) {
@@ -1232,10 +1180,9 @@ tracker_search_query (TrackerSearch  *object,
 		      GPtrArray     **values,
 		      GError        **error)
 {
-	TrackerSearchPriv  *priv;
+	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
 	guint               request_id;
-	DBConnection       *db_con;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -1245,10 +1192,6 @@ tracker_search_query (TrackerSearch  *object,
 	tracker_dbus_return_val_if_fail (keyword != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (query_condition != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
-
-	priv = GET_PRIV (object);
-
-	db_con = priv->db_con;
 
         tracker_dbus_request_new (request_id,
                                   "DBus request to search query, "
@@ -1274,6 +1217,8 @@ tracker_search_query (TrackerSearch  *object,
 
 	result_set = NULL;
 
+	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
+
 	if (query_condition) {
 		GError *query_error = NULL;
 		gchar  *query_translated;
@@ -1285,7 +1230,7 @@ tracker_search_query (TrackerSearch  *object,
 					      search_text,
 					      keyword);
 	
-		query_translated = tracker_rdf_query_to_sql (db_con, 
+		query_translated = tracker_rdf_query_to_sql (iface, 
                                                              query_condition, 
                                                              service, 
                                                              fields, 
@@ -1316,10 +1261,8 @@ tracker_search_query (TrackerSearch  *object,
 					      "Translated RDF query:'%s'",
 					      query_translated);
 
-		db_con = tracker_db_get_service_connection (db_con, service);
-
 		if (!tracker_is_empty_string (search_text)) {
-			tracker_db_search_text (db_con, 
+			tracker_db_search_text (iface, 
                                                 service, 
                                                 search_text, 
                                                 0, 
@@ -1328,7 +1271,9 @@ tracker_search_query (TrackerSearch  *object,
                                                 FALSE);
 		}
 
-		result_set = tracker_db_interface_execute_query (db_con->db, NULL, query_translated);
+		result_set = tracker_db_interface_execute_query (iface, 
+								 NULL, 
+								 query_translated);
 		g_free (query_translated);
 	}
 

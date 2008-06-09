@@ -26,7 +26,6 @@
 
 #include <libtracker-common/tracker-config.h>
 
-#include "tracker-db-sqlite.h"
 #include "tracker-main.h"
 
 #define TRACKER_DAEMON_SERVICE         "org.freedesktop.Tracker"
@@ -54,11 +53,8 @@ struct TrackerDaemonClass {
 };
 
 GType          tracker_daemon_get_type             (void);
-TrackerDaemon *tracker_daemon_new                  (DBConnection   *db_con,
-						    TrackerConfig  *config,
+TrackerDaemon *tracker_daemon_new                  (TrackerConfig  *config,
 						    Tracker        *tracker);
-void           tracker_daemon_set_db_connection    (TrackerDaemon  *object,
-						    DBConnection   *db_con);
 void           tracker_daemon_set_config           (TrackerDaemon  *object,
 						    TrackerConfig  *config);
 void           tracker_daemon_set_tracker          (TrackerDaemon  *object,

@@ -23,21 +23,21 @@
 
 #include <glib.h>
 
-#include "tracker-db.h"
+#include <libtracker-db/tracker-db-manager.h>
 
 G_BEGIN_DECLS
 
-char *tracker_rdf_query_to_sql (DBConnection  *db_con,
-                                const char    *query,
-                                const char    *service,
-                                char         **fields,
-                                int            field_count,
-                                const char    *search_text,
-                                const char    *keyword,
-                                gboolean       sort_by_service,
-                                int            offset,
-                                int            limit,
-                                GError        *error);
+gchar *tracker_rdf_query_to_sql (TrackerDBInterface  *iface,
+				 const gchar         *query,
+				 const gchar         *service,
+				 gchar              **fields,
+				 gint                 field_count,
+				 const gchar         *search_text,
+				 const gchar         *keyword,
+				 gboolean             sort_by_service,
+				 gint                 offset,
+				 gint                 limit,
+				 GError              *error);
 
 G_END_DECLS
 

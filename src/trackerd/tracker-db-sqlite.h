@@ -1,6 +1,7 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2008, Nokia
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -35,307 +36,183 @@
 
 G_BEGIN_DECLS
 
-typedef struct DBConnection DBConnection;
-
-struct DBConnection {
-	TrackerDBInterface *db;
-
-	/* pointers to other database connection objects */
-	DBConnection	*data;
-	DBConnection	*common;
-	DBConnection	*emails;
-	DBConnection	*blob;
-	DBConnection	*cache;
-	Indexer         *word_index;
-};
-
-/* Module wide ops */
-gboolean            tracker_db_needs_setup                     (void);
-gboolean            tracker_db_common_need_build               (void);
-gboolean            tracker_db_load_prepared_queries           (void);
-void                tracker_create_common_db                   (void);
-void                tracker_db_get_static_data                 (DBConnection   *db_con);
-
-
-/* Open, create, connect DBs */
-DBConnection *      tracker_db_connect                         (void);
-DBConnection *      tracker_db_connect_common                  (void);
-DBConnection *      tracker_db_connect_file_content            (void);
-DBConnection *      tracker_db_connect_email_content           (void);
-DBConnection *      tracker_db_connect_cache                   (void);
-DBConnection *      tracker_db_connect_emails                  (void);
-DBConnection *      tracker_db_connect_email_meta              (void);
-DBConnection *      tracker_db_connect_file_meta               (void);
-DBConnection *      tracker_db_connect_all                     (void);
-DBConnection *      tracker_db_connect_xesam                   (void);
-void                tracker_db_close_all                       (DBConnection   *db_con);
-void                tracker_db_refresh_all                     (DBConnection   *db_con);
-void                tracker_db_refresh_email                   (DBConnection   *db_con);
+void                tracker_db_refresh_all                     (TrackerDBInterface   *iface);
 
 /* Operations for TrackerDBInterface */
 void                tracker_db_close                           (TrackerDBInterface   *iface);
-
-TrackerDBResultSet *tracker_exec_proc                          (DBConnection   *db_con,
-                                                                const gchar    *procedure,
-                                                                ...);
 TrackerDBResultSet *tracker_db_exec_proc                       (TrackerDBInterface   *iface,
-								const gchar    *procedure,
+								const gchar          *procedure,
 								...);
-
 gboolean            tracker_db_exec_no_reply                   (TrackerDBInterface   *iface,
-                                                                const gchar          *query,
-                                                                ...);
-TrackerDBResultSet *tracker_db_exec                            (TrackerDBInterface *iface, 
-                                                                const char *query,
-                                                                ...);
-gboolean            tracker_db_is_in_transaction               (DBConnection   *db_con);
+								const gchar          *query,
+								...);
+TrackerDBResultSet *tracker_db_exec                            (TrackerDBInterface   *iface,
+								const char           *query,
+								...);
+gchar *             tracker_db_get_option_string               (const gchar          *option);
+void                tracker_db_set_option_string               (const gchar          *option,
+								const gchar          *value);
+gint                tracker_db_get_option_int                  (const gchar          *option);
+void                tracker_db_set_option_int                  (const gchar          *option,
+								gint                  value);
 
-gchar *             tracker_db_get_option_string               (DBConnection   *db_con,
-                                                                const gchar    *option);
-void                tracker_db_set_option_string               (DBConnection   *db_con,
-                                                                const gchar    *option,
-                                                                const gchar    *value);
-gint                tracker_db_get_option_int                  (DBConnection   *db_con,
-                                                                const gchar    *option);
-void                tracker_db_set_option_int                  (DBConnection   *db_con,
-                                                                const gchar    *option,
-                                                                gint            value);
+/* High level transactions things */
+gboolean            tracker_db_regulate_transactions           (TrackerDBInterface   *iface,
+								gint                  interval);
 
 
-/* high level transactions things */
-void                tracker_db_start_index_transaction         (DBConnection   *db_con);
-void                tracker_db_end_index_transaction           (DBConnection   *db_con);
-gboolean            tracker_db_regulate_transactions           (DBConnection   *db_con,
-                                                                gint            interval);
 
-/* High level operations (with application logic and/or using more than one DB */
-void                tracker_db_save_file_contents              (DBConnection   *db_con,
-                                                                GHashTable     *index_table,
-                                                                GHashTable     *old_table,
-                                                                const gchar    *file_name,
-                                                                TrackerDBFileInfo *info);
-void                tracker_db_update_indexes_for_new_service  (guint32         service_id,
-                                                                gint            service_type_id,
-                                                                GHashTable     *table);
-void                tracker_db_update_differential_index       (GHashTable     *old_table,
-                                                                GHashTable     *new_table,
-                                                                const gchar    *id,
-                                                                gint            service_type_id);
-void                tracker_db_update_index_file_contents      (DBConnection   *blob_db_con,
-                                                                GHashTable     *index_table);
-gint                tracker_db_flush_words_to_qdbm             (DBConnection   *db_con,
-                                                                gint            limit);
-gchar *             tracker_get_related_metadata_names         (DBConnection   *db_con,
-                                                                const gchar    *name);
-gchar *             tracker_get_metadata_table                 (TrackerFieldType  type);
-TrackerDBResultSet *tracker_db_search_text                     (DBConnection   *db_con,
-                                                                const gchar    *service,
-                                                                const gchar    *search_string,
-                                                                gint            offset,
-                                                                gint            limit,
-                                                                gboolean        save_results,
-                                                                gboolean        detailed);
-TrackerDBResultSet *tracker_db_search_files_by_text            (DBConnection   *db_con,
-                                                                const gchar    *text,
-                                                                gint            offset,
-                                                                gint            limit,
-                                                                gboolean        sort);
-TrackerDBResultSet *tracker_db_search_metadata                 (DBConnection   *db_con,
-                                                                const gchar    *service,
-                                                                const gchar    *field,
-                                                                const gchar    *text,
-                                                                gint            offset,
-                                                                gint            limit);
-TrackerDBResultSet *tracker_db_search_matching_metadata        (DBConnection   *db_con,
-                                                                const gchar    *service,
-                                                                const gchar    *id,
-                                                                const gchar    *text);
+/* Metadata API */
+gchar *             tracker_db_metadata_get_related_names      (TrackerDBInterface   *iface,
+								const gchar          *name);
+const gchar *       tracker_db_metadata_get_table              (TrackerFieldType      type);
+TrackerDBResultSet *tracker_db_metadata_get                    (TrackerDBInterface   *iface,
+								const gchar          *id,
+								const gchar          *key);
+gchar *             tracker_db_metadata_get_delimited          (TrackerDBInterface   *iface,
+								const gchar          *id,
+								const gchar          *key);
+gchar *             tracker_db_metadata_set                    (TrackerDBInterface   *iface,
+								const gchar          *service,
+								const gchar          *id,
+								const gchar          *key,
+								gchar               **values,
+								gboolean              do_backup);
+void                tracker_db_metadata_set_single             (TrackerDBInterface   *iface,
+								const gchar          *service,
+								const gchar          *id,
+								const gchar          *key,
+								const gchar          *value,
+								gboolean              do_backup);
+void                tracker_db_metadata_insert_embedded        (TrackerDBInterface   *iface,
+								const gchar          *service,
+								const gchar          *id,
+								const gchar          *key,
+								gchar               **values,
+								GHashTable           *table);
+void                tracker_db_metadata_insert_single_embedded (TrackerDBInterface   *iface,
+								const gchar          *service,
+								const gchar          *id,
+								const gchar          *key,
+								const gchar          *value,
+								GHashTable           *table);
+void                tracker_db_metadata_delete_value           (TrackerDBInterface   *iface,
+								const gchar          *service,
+								const gchar          *id,
+								const gchar          *key,
+								const gchar          *value);
+void                tracker_db_metadata_delete                 (TrackerDBInterface   *iface,
+								const gchar          *service,
+								const gchar          *id,
+								const gchar          *key,
+								gboolean              update_indexes);
+TrackerDBResultSet *tracker_db_metadata_get_types              (TrackerDBInterface   *iface,
+								const gchar          *class,
+								gboolean              writeable);
 
-/* Gets metadata as a single row (with multiple values delimited by semicolons) */
-TrackerDBResultSet *tracker_db_get_metadata                    (DBConnection   *db_con,
-                                                                const gchar    *service,
-                                                                const gchar    *id,
-                                                                const gchar    *key);
+/* Search API */
+TrackerDBResultSet *tracker_db_search_text                     (TrackerDBInterface   *iface,
+								const gchar          *service,
+								const gchar          *search_string,
+								gint                  offset,
+								gint                  limit,
+								gboolean              save_results,
+								gboolean              detailed);
+/* Service API */
+guint32             tracker_db_service_create                  (TrackerDBInterface   *iface,
+								const gchar          *service,
+								TrackerDBFileInfo    *info);
+gchar *             tracker_db_service_get_by_entity           (TrackerDBInterface   *iface,
+								const gchar          *id);
 
-/* Gets metadata using a separate row for each value it has */
-gchar *             tracker_db_get_metadata_delimited          (DBConnection   *db_con,
-                                                                const gchar    *service,
-                                                                const gchar    *id,
-                                                                const gchar    *key);
-gchar *             tracker_db_set_metadata                    (DBConnection   *db_con,
-                                                                const gchar    *service,
-                                                                const gchar    *id,
-                                                                const gchar    *key,
-                                                                gchar         **values,
-                                                                gint            length,
-                                                                gboolean        do_backup);
-void                tracker_db_set_single_metadata             (DBConnection   *db_con,
-                                                                const gchar    *service,
-                                                                const gchar    *id,
-                                                                const gchar    *key,
-                                                                const gchar    *value,
-                                                                gboolean        do_backup);
-void                tracker_db_insert_embedded_metadata        (DBConnection   *db_con,
-                                                                const gchar    *service,
-                                                                const gchar    *id,
-                                                                const gchar    *key,
-                                                                gchar         **values,
-                                                                gint            length,
-                                                                GHashTable     *table);
-void                tracker_db_insert_single_embedded_metadata (DBConnection   *db_con,
-                                                                const gchar    *service,
-                                                                const gchar    *id,
-                                                                const gchar    *key,
-                                                                const gchar    *value,
-                                                                GHashTable     *table);
-void                tracker_db_delete_metadata_value           (DBConnection   *db_con,
-                                                                const gchar    *service,
-                                                                const gchar    *id,
-                                                                const gchar    *key,
-                                                                const gchar    *value);
-void                tracker_db_delete_metadata                 (DBConnection   *db_con,
-                                                                const gchar    *service,
-                                                                const gchar    *id,
-                                                                const gchar    *key,
-                                                                gboolean        update_indexes);
-gchar *             tracker_db_refresh_display_metadata        (DBConnection   *db_con,
-                                                                const gchar    *id,
-                                                                const gchar    *metadata_id,
-                                                                gint            data_type,
-                                                                const gchar    *key);
-void                tracker_db_refresh_all_display_metadata    (DBConnection   *db_con,
-                                                                const gchar    *id);
-void                tracker_db_update_keywords                 (DBConnection   *db_con,
-                                                                const gchar    *service,
-                                                                const gchar    *id,
-                                                                const gchar    *value);
-guint32             tracker_db_create_service                  (DBConnection   *db_con,
-                                                                const gchar    *service,
-                                                                TrackerDBFileInfo       *info);
-void                tracker_db_delete_file                     (DBConnection   *db_con,
-                                                                guint32         file_id);
-void                tracker_db_delete_directory                (DBConnection   *db_con,
-                                                                guint32         file_id,
-                                                                const gchar    *uri);
-void                tracker_db_update_file                     (DBConnection   *db_con,
-                                                                TrackerDBFileInfo       *info);
-void                tracker_db_move_file                       (DBConnection   *db_con,
-                                                                const gchar    *moved_from_uri,
-                                                                const gchar    *moved_to_uri);
-void                tracker_db_move_directory                  (DBConnection   *db_con,
-                                                                const gchar    *moved_from_uri,
-                                                                const gchar    *moved_to_uri);
-guint32             tracker_db_get_file_id                     (DBConnection   *db_con,
-                                                                const gchar    *uri);
-void                tracker_db_insert_pending_file             (DBConnection   *db_con,
-                                                                guint32         file_id,
-                                                                const gchar    *uri,
-                                                                const gchar    *moved_to_uri,
-                                                                const gchar    *mime,
-                                                                gint            counter,
-                                                                TrackerDBAction   action,
-                                                                gboolean        is_directory,
-                                                                gboolean        is_new,
-                                                                gint            service_type_id);
-gboolean            tracker_db_has_pending_files               (DBConnection   *db_con);
-TrackerDBResultSet *tracker_db_get_pending_files               (DBConnection   *db_con);
-void                tracker_db_remove_pending_files            (DBConnection   *db_con);
-void                tracker_db_insert_pending                  (DBConnection   *db_con,
-                                                                const gchar    *id,
-                                                                const gchar    *action,
-                                                                const gchar    *counter,
-                                                                const gchar    *uri,
-                                                                const gchar    *mime,
-                                                                gboolean        is_dir,
-                                                                gboolean        is_new,
-                                                                gint            service_type_id);
-void                tracker_db_update_pending                  (DBConnection   *db_con,
-                                                                const gchar    *counter,
-                                                                const gchar    *action,
-                                                                const gchar    *uri);
-TrackerDBResultSet *tracker_db_get_files_by_service            (DBConnection   *db_con,
-                                                                const gchar    *service,
-                                                                gint            offset,
-                                                                gint            limit);
-TrackerDBResultSet *tracker_db_get_files_by_mime               (DBConnection   *db_con,
-                                                                gchar         **mimes,
-                                                                gint            n,
-                                                                gint            offset,
-                                                                gint            limit,
-                                                                gboolean        vfs);
-TrackerDBResultSet *tracker_db_get_file_subfolders             (DBConnection   *db_con,
-                                                                const gchar    *uri);
-TrackerDBResultSet *tracker_db_get_metadata_types              (DBConnection   *db_con,
-                                                                const gchar    *class,
-                                                                gboolean        writeable);
-TrackerDBResultSet *tracker_db_get_sub_watches                 (DBConnection   *db_con,
-                                                                const gchar    *dir);
-TrackerDBResultSet *tracker_db_delete_sub_watches              (DBConnection   *db_con,
-                                                                const gchar    *dir);
-TrackerDBResultSet *tracker_db_get_keyword_list                (DBConnection   *db_con,
-                                                                const gchar    *service);
-void                tracker_db_update_index_multiple_metadata  (DBConnection   *db_con,
-                                                                const gchar    *service,
-                                                                const gchar    *id,
-                                                                const gchar    *key,
-                                                                gchar         **values);
-DBConnection *      tracker_db_get_service_connection          (DBConnection   *db_con,
-                                                                const gchar    *service);
-gchar *             tracker_db_get_service_for_entity          (DBConnection   *db_con,
-                                                                const gchar    *id);
-GHashTable *        tracker_db_get_file_contents_words         (DBConnection   *db_con,
-                                                                guint32         id,
-                                                                GHashTable     *old_table);
-GHashTable *        tracker_db_get_indexable_content_words     (DBConnection   *db_con,
-                                                                guint32         id,
-                                                                GHashTable     *table,
-                                                                gboolean        embedded_only);
+/* Files API */
+TrackerDBResultSet *tracker_db_files_get_by_service            (TrackerDBInterface   *iface,
+								const gchar          *service,
+								gint                  offset,
+								gint                  limit);
+TrackerDBResultSet *tracker_db_files_get_by_mime               (TrackerDBInterface   *iface,
+								gchar               **mimes,
+								gint                  n,
+								gint                  offset,
+								gint                  limit,
+								gboolean              vfs);
+void                tracker_db_file_delete                     (TrackerDBInterface   *iface,
+								guint32               file_id);
+void                tracker_db_file_move                       (TrackerDBInterface   *iface,
+								const gchar          *moved_from_uri,
+								const gchar          *moved_to_uri);
+void                tracker_db_directory_delete                (TrackerDBInterface   *iface,
+								guint32               file_id,
+								const gchar          *uri);
+void                tracker_db_directory_move                  (TrackerDBInterface   *iface,
+								const gchar          *moved_from_uri,
+								const gchar          *moved_to_uri);
+void                tracker_db_uri_insert_pending              (const gchar          *id,
+								const gchar          *action,
+								const gchar          *counter,
+								const gchar          *uri,
+								const gchar          *mime,
+								gboolean              is_dir,
+								gboolean              is_new,
+								gint                  service_type_id);
+void                tracker_db_uri_update_pending              (const gchar          *counter,
+								const gchar          *action,
+								const gchar          *uri);
+TrackerDBResultSet *tracker_db_uri_get_subfolders              (TrackerDBInterface   *iface,
+								const gchar          *uri);
+TrackerDBResultSet *tracker_db_uri_sub_watches_get             (const gchar          *dir);
+TrackerDBResultSet *tracker_db_uri_sub_watches_delete          (const gchar          *dir);
 
-gchar *             tracker_db_get_field_name                  (const gchar    *service,
-                                                                const gchar    *meta_name);
-void                tracker_db_delete_service                  (DBConnection   *db_con,
-                                                                guint32         id,
-                                                                const gchar    *uri);
-TrackerFieldData *  tracker_db_get_metadata_field              (DBConnection   *db_con,
-                                                                const gchar    *service,
-                                                                const gchar    *field_name,
-                                                                gint            field_count,
-                                                                gboolean        is_select,
-                                                                gboolean        is_condition);
+/* Keywords API */
+TrackerDBResultSet *tracker_db_keywords_get_list               (TrackerDBInterface   *iface,
+								const gchar          *service);
 
-/* XESAM stuff */
-TrackerDBResultSet *tracker_db_get_events                      (DBConnection *db_con);
-void                tracker_db_delete_handled_events           (DBConnection   *db_con);
-TrackerDBResultSet *tracker_db_get_live_search_deleted_ids     (DBConnection *db_con, 
-                                                                const gchar *search_id);
-TrackerDBResultSet *tracker_db_get_live_search_new_ids         (DBConnection *db_con, 
-                                                                const gchar *search_id,
-                                                                const gchar *from_query, 
-                                                                const gchar *query_joins, 
-                                                                const gchar *where_query);
-TrackerDBResultSet *tracker_db_get_live_search_all_ids         (DBConnection *db_con, 
-                                                                const gchar *search_id);
-TrackerDBResultSet *tracker_db_get_live_search_hit_count       (DBConnection *db_con, 
-                                                                const gchar *search_id);
+/* Miscellaneous API */
+GHashTable *        tracker_db_get_file_contents_words         (TrackerDBInterface   *iface,
+								guint32               id,
+								GHashTable           *old_table);
+GHashTable *        tracker_db_get_indexable_content_words     (TrackerDBInterface   *iface,
+								guint32               id,
+								GHashTable           *table,
+								gboolean              embedded_only);
+gchar *             tracker_db_get_field_name                  (const gchar          *service,
+								const gchar          *meta_name);
+TrackerFieldData *  tracker_db_get_metadata_field              (TrackerDBInterface   *iface,
+								const gchar          *service,
+								const gchar          *field_name,
+								gint                  field_count,
+								gboolean              is_select,
+								gboolean              is_condition);
 
 
-TrackerDBResultSet *tracker_get_xesam_metadata_names           (DBConnection *db_con, 
-                                                                const char *name);
-TrackerDBResultSet *tracker_get_xesam_service_names           (DBConnection *db_con, 
-                                                               const char *name);
+/* Live Search API */
+void                tracker_db_live_search_start               (TrackerDBInterface   *iface,
+								const gchar          *from_query,
+								const gchar          *join_query,
+								const gchar          *where_query,
+								const gchar          *search_id);
+void                tracker_db_live_search_stop                (TrackerDBInterface   *iface,
+								const gchar          *search_id);
+TrackerDBResultSet *tracker_db_live_search_get_all_ids         (TrackerDBInterface   *iface,
+								const gchar          *search_id);
+TrackerDBResultSet *tracker_db_live_search_get_new_ids         (TrackerDBInterface   *iface,
+								const gchar          *search_id,
+								const gchar          *from_query,
+								const gchar          *query_joins,
+								const gchar          *where_query);
+TrackerDBResultSet *tracker_db_live_search_get_deleted_ids     (TrackerDBInterface   *iface,
+								const gchar          *search_id);
+TrackerDBResultSet *tracker_db_live_search_get_hit_data        (TrackerDBInterface   *iface,
+								const gchar          *search_id);
+TrackerDBResultSet *tracker_db_live_search_get_hit_count       (TrackerDBInterface   *iface,
+								const gchar          *search_id);
 
-gboolean            tracker_db_load_xesam_service_file 	       (TrackerDBInterface *iface, 
-                                                                const char *filename);
-gboolean            tracker_db_create_xesam_lookup             (TrackerDBInterface *iface);
-void                tracker_db_stop_live_search                (DBConnection *db_con, 
-                                                                const gchar *search_id);
-void                tracker_db_start_live_search               (DBConnection *db_con, 
-                                                                const gchar *from_query,
-								const gchar *join_query,
-                                                                const gchar *where_query,
-                                                                const gchar *search_id);
-TrackerDBResultSet *tracker_db_get_live_search_get_hit_data    (DBConnection *db_con, 
-                                                                const gchar *search_id);
+/* XESAM API */
+void                tracker_db_xesam_delete_handled_events     (TrackerDBInterface   *iface);
+TrackerDBResultSet *tracker_db_xesam_get_metadata_names           (TrackerDBInterface   *iface,
+								const char           *name);
+TrackerDBResultSet *tracker_db_xesam_get_service_names            (TrackerDBInterface   *iface,
+								const char           *name);
 
 G_END_DECLS
 

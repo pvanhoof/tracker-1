@@ -28,13 +28,13 @@ G_BEGIN_DECLS
 
 gboolean tracker_watcher_init           (void);
 void     tracker_watcher_shutdown       (void);
-gboolean tracker_watcher_add_dir        (const char   *dir,
-					 DBConnection *db_con);
-void     tracker_watcher_remove_dir     (const char   *dir,
-					 gboolean      delete_subdirs,
-					 DBConnection *db_con);
-gboolean tracker_watcher_is_dir_watched (const char   *dir,
-					 DBConnection *db_con);
+gboolean tracker_watcher_add_dir        (const char         *dir,
+					 TrackerDBInterface *iface);
+void     tracker_watcher_remove_dir     (const char         *dir,
+					 gboolean            delete_subdirs,
+					 TrackerDBInterface *iface);
+gboolean tracker_watcher_is_dir_watched (const char         *dir,
+					 TrackerDBInterface *iface);
 gint     tracker_watcher_get_dir_count  (void);
 
 G_END_DECLS

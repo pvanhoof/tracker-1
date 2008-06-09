@@ -197,6 +197,7 @@ fam_callback (GIOChannel   *source,
 
 					g_free (parent);
 				} else {
+					
 					if (event_type == TRACKER_ACTION_CREATE) {
 						tracker_db_insert_pending_file (main_thread_db_con,
                                                                                 info->file_id, 

@@ -70,7 +70,7 @@ static GMarkupParser    tms_file_parser;
 
 
 static GSList *	add_persons_from_internet_address_list_string_parsing   (GSList *list, const gchar *s);
-static gboolean email_parse_mail_tms_file_and_save_new_emails   (DBConnection *db_con, MailApplication mail_app,
+static gboolean email_parse_mail_tms_file_and_save_new_emails   (TrackerDBInterface *iface, MailApplication mail_app,
                                                                  const gchar *path);
 static MailMessage *  email_parse_mail_tms_file_by_path         (MailApplication mail_app, const gchar *path);
 static void     text_handler                    (GMarkupParseContext *context, const gchar *text,
@@ -125,7 +125,7 @@ tracker_email_plugin_finalize (void)
 
 
 void
-tracker_email_plugin_watch_emails (DBConnection *db_con)
+tracker_email_plugin_watch_emails (TrackerDBInterface *iface)
 {
         if( thunderbird_mail_dir != NULL ) {
             g_message ("Thunderbird directory lookup: \"%s\"", thunderbird_mail_dir);
@@ -135,16 +135,16 @@ tracker_email_plugin_watch_emails (DBConnection *db_con)
 
 
 gboolean
-tracker_email_plugin_index_file (DBConnection *db_con, TrackerDBFileInfo *info)
+tracker_email_plugin_index_file (TrackerDBInterface *iface, TrackerDBFileInfo *info)
 {
-	g_return_val_if_fail (db_con, FALSE);
+	g_return_val_if_fail (iface, FALSE);
 	g_return_val_if_fail (info, FALSE);
 
 	if (!tracker_email_plugin_file_is_interesting (info))
 		return FALSE;
 
         g_message ("Thunderbird file being index:'%s'",info->uri);
-        if (email_parse_mail_tms_file_and_save_new_emails (db_con, MAIL_APP_THUNDERBIRD, info->uri)) {
+        if (email_parse_mail_tms_file_and_save_new_emails (iface, MAIL_APP_THUNDERBIRD, info->uri)) {
                 unlink(info->uri);
         }
 
@@ -162,11 +162,11 @@ tracker_email_plugin_get_name (void)
 *********************************************************************************************/
 
 static gboolean
-email_parse_mail_tms_file_and_save_new_emails (DBConnection *db_con, MailApplication mail_app, const gchar *path)
+email_parse_mail_tms_file_and_save_new_emails (TrackerDBInterface *iface, MailApplication mail_app, const gchar *path)
 {
 	MailMessage *mail_msg;
 
-        g_return_val_if_fail (db_con, FALSE);
+        g_return_val_if_fail (iface, FALSE);
         g_return_val_if_fail (path, FALSE);
 
 	mail_msg = email_parse_mail_tms_file_by_path (mail_app, path);
@@ -178,7 +178,7 @@ email_parse_mail_tms_file_and_save_new_emails (DBConnection *db_con, MailApplica
             
         if (mail_msg->parent_mail_file->mail_app == MAIL_APP_THUNDERBIRD ) {
 //           || mail_msg->parent_mail_file->mail_app == MAIL_APP_THUNDERBIRD_FEED) {
-                tracker_db_email_save_email (db_con, mail_msg, mail_app);
+                tracker_db_email_save_email (iface, mail_msg, mail_app);
                 email_free_mail_file(mail_msg->parent_mail_file);
                 email_free_mail_message (mail_msg);
                 return TRUE;

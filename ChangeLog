@@ -1,3 +1,42 @@
+2008-06-09  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-db/tracker-db-manager.[ch]:
+	* src/trackerd/tracker-daemon.[ch]:
+	* src/trackerd/tracker-db-email.[ch]:
+	* src/trackerd/tracker-db-sqlite.[ch]:
+	* src/trackerd/tracker-db.[ch]:
+	* src/trackerd/tracker-dbus.c:
+	* src/trackerd/tracker-email-evolution.c:
+	* src/trackerd/tracker-email-kmail.c:
+	* src/trackerd/tracker-email-modest.c: 
+	* src/trackerd/tracker-email-plugin.h:
+	* src/trackerd/tracker-email-thunderbird.c:
+	* src/trackerd/tracker-email-utils.[ch]:
+	* src/trackerd/tracker-email.[ch]:
+	* src/trackerd/tracker-files.[ch]:
+	* src/trackerd/tracker-keywords.[ch]:
+	* src/trackerd/tracker-main.c: 
+	* src/trackerd/tracker-metadata.[ch]:
+	* src/trackerd/tracker-process-files.c:
+	* src/trackerd/tracker-rdf-query.[ch]:
+	* src/trackerd/tracker-search.[ch]:
+	* src/trackerd/tracker-watcher-fam.c: 
+	* src/trackerd/tracker-watcher-inotify.c:
+	* src/trackerd/tracker-watcher.h:
+	* src/trackerd/tracker-xesam-live-search.c:
+	* src/trackerd/tracker-xesam-manager.c:
+	* src/trackerd/tracker-xesam-query.[ch]:
+	* src/trackerd/tracker-xesam.[ch]: Changed DBConnection into
+	TrackerDBInterface. This is interesting because the DBConnection
+	contained ALL connections. The TrackerDBInterface doesn't, it is
+	ONE connection to ONE database. This means we have to know which
+	database to use to call certain database API. This is less than
+	helpful to the application. This should be changed over time so
+	that all DB functions don't take a TrackerDBInterface and we just
+	get it automatically from the tracker-db-manager. This is the
+	first stage in removing DBConnection. The attach statements and
+	threadding have yet to be finished here.
+
 2008-06-06  Carlos Garnacho  <carlos@imendio.com>
 
 	* data/services/*.metadata: Change DataType to match TrackerFieldType

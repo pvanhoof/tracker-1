@@ -39,6 +39,8 @@
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-utils.h>
 
+#include <libtracker-db/tracker-db-manager.h>
+
 #include "../xdgmime/xdgmime.h"
 
 #include "tracker-db.h"
@@ -53,7 +55,7 @@
 static TrackerHal     *hal;
 static TrackerConfig  *config;
 
-static DBConnection   *db_con;
+/* static TrackerDBInterface   *db_con; */
 
 static GAsyncQueue    *dir_queue;
 static GAsyncQueue    *file_metadata_queue;
@@ -196,8 +198,8 @@ process_get_directories (const char  *dir,
 }
 
 static void
-process_watch_directories (GSList       *dirs,
-                           DBConnection *db_con)
+process_watch_directories (GSList             *dirs,
+                           TrackerDBInterface *iface)
 {
         GSList *list;
        
@@ -249,7 +251,7 @@ process_watch_directories (GSList       *dirs,
                                 continue;
                         }
                         
-                        if (!tracker_watcher_add_dir (dir, db_con)) {
+                        if (!tracker_watcher_add_dir (dir, iface)) {
                                 g_warning ("Watch failed for:'%s'", dir);
                         }
 		}
@@ -270,35 +272,35 @@ process_watch_directories (GSList       *dirs,
 
 static void
 process_schedule_directory_check_foreach (const gchar  *uri, 
-                                          DBConnection *db_con)
+                                          TrackerDBInterface *iface)
 {
-	/* tracker_db_insert_pending_file (db_con, 0, uri, NULL, "unknown", 0,  */
+	/* tracker_db_insert_pending_file (iface_cache, 0, uri, NULL, "unknown", 0,  */
         /*                                 TRACKER_DB_ACTION_DIRECTORY_REFRESH, */
         /*                                 TRUE, FALSE, -1); */
 }
 
 static void
 process_schedule_file_check_foreach (const gchar  *uri, 
-                                     DBConnection *db_con)
+                                     TrackerDBInterface *iface)
 {
 	g_return_if_fail (uri != NULL);
-	g_return_if_fail (db_con != NULL);
+	g_return_if_fail (iface != NULL);
 
 	/* Keep mainloop responsive */
 	process_my_yield ();
 
 	if (!tracker_file_is_directory (uri)) {
-		/* tracker_db_insert_pending_file (db_con, 0, uri, NULL, "unknown", 0,  */
+		/* tracker_db_insert_pending_file (iface_cache, 0, uri, NULL, "unknown", 0,  */
                 /*                                 TRACKER_DB_ACTION_CHECK, 0, FALSE, -1); */
 	} else {
-		process_schedule_directory_check_foreach (uri, db_con);
+		process_schedule_directory_check_foreach (uri, iface);
 	}
 }
 
 static inline void
 process_directory_list (GSList       *list, 
                         gboolean      recurse,
-                        DBConnection *db_con)
+                        TrackerDBInterface *iface)
 {
 	crawl_directories = NULL;
 
@@ -306,16 +308,16 @@ process_directory_list (GSList       *list,
 		return;
 	}
 
-        process_watch_directories (list, db_con);
+        process_watch_directories (list, iface);
 
 	g_slist_foreach (list, 
                          (GFunc) process_schedule_directory_check_foreach, 
-                         db_con);
+                         iface);
 
 	if (recurse && crawl_directories) {
 		g_slist_foreach (crawl_directories, 
                                  (GFunc) process_schedule_directory_check_foreach, 
-                                 db_con);
+                                 iface);
 	}
 
 	if (crawl_directories) {
@@ -327,11 +329,11 @@ process_directory_list (GSList       *list,
 
 static void
 process_scan_directory (const gchar  *uri,
-                        DBConnection *db_con)
+                        TrackerDBInterface *iface)
 {
 	GSList *files;
 
-	g_return_if_fail (db_con != NULL);
+	g_return_if_fail (iface != NULL);
 	g_return_if_fail (uri != NULL);
 	g_return_if_fail (tracker_file_is_directory (uri));
 
@@ -344,7 +346,7 @@ process_scan_directory (const gchar  *uri,
 
 	g_slist_foreach (files, 
                          (GFunc) process_schedule_file_check_foreach, 
-                         db_con);
+                         iface);
 
 	g_slist_foreach (files, 
                          (GFunc) g_free, 
@@ -354,14 +356,14 @@ process_scan_directory (const gchar  *uri,
 	/* Recheck directory to update its mtime if its changed whilst
          * scanning.
          */
-	process_schedule_directory_check_foreach (uri, db_con);
+	process_schedule_directory_check_foreach (uri, iface);
 
 	g_message ("Finished scanning");
 }
 
 static void
 process_index_delete_file (TrackerDBFileInfo *info,
-                           DBConnection      *db_con)
+                           TrackerDBInterface      *iface)
 {
 	/* Info struct may have been deleted in transit here so check
          * if still valid and intact.
@@ -375,14 +377,14 @@ process_index_delete_file (TrackerDBFileInfo *info,
 		return;
 	}
 
-	tracker_db_delete_file (db_con, info->file_id);
+	tracker_db_file_delete (iface, info->file_id);
 
 	g_message ("Deleting file:'%s'", info->uri);
 }
 
 static void
 process_index_delete_directory (TrackerDBFileInfo *info,
-                                DBConnection      *db_con)
+                                TrackerDBInterface      *iface)
 {
 	/* Info struct may have been deleted in transit here so check
          * if still valid and intact.
@@ -396,22 +398,22 @@ process_index_delete_directory (TrackerDBFileInfo *info,
 		return;
 	}
 
-	tracker_db_delete_directory (db_con, info->file_id, info->uri);
+	tracker_db_directory_delete (iface, info->file_id, info->uri);
 
-	tracker_watcher_remove_dir (info->uri, TRUE, db_con);
+	tracker_watcher_remove_dir (info->uri, TRUE, iface);
 
 	g_message ("Deleting directory:'%s' and subdirs", info->uri);
 }
 
 static void
 process_index_delete_directory_check (const gchar *uri,
-                                      DBConnection *db_con)
+                                      TrackerDBInterface *iface)
 {
 	gchar **files;
         gchar **p;
 
 	/* Check for any deletions*/
-	files = tracker_db_get_files_in_folder (db_con, uri);
+	files = tracker_db_get_files_in_folder (iface, uri);
 
         if (!files) {
                 return;
@@ -424,12 +426,12 @@ process_index_delete_directory_check (const gchar *uri,
                         TrackerDBFileInfo *info;
 
 			info = tracker_db_file_info_new (str, 1, 0, 0);
-			info = tracker_db_get_file_info (db_con, info);
+			info = tracker_db_get_file_info (iface, info);
 
 			if (!info->is_directory) {
-				process_index_delete_file (info, db_con);
+				process_index_delete_file (info, iface);
 			} else {
-				process_index_delete_directory (info, db_con);
+				process_index_delete_directory (info, iface);
 			}
 			tracker_db_file_info_free (info);
 		}
@@ -590,9 +592,10 @@ process_index_crawl_add_directories (GSList *dirs)
 }
 
 static void
-process_index_crawl_files (DBConnection *db_con)
+process_index_crawl_files (TrackerDBInterface *iface)
 {
-        GSList *crawl_directory_roots;
+        TrackerDBInterface *iface_cache;
+        GSList             *crawl_directory_roots;
 
         g_message ("Starting directory crawling...");
 
@@ -604,13 +607,14 @@ process_index_crawl_files (DBConnection *db_con)
                 return;
         }
         
-        tracker_db_interface_start_transaction (db_con->cache->db);
+        iface_cache = tracker_db_manager_get_db_interface (TRACKER_DB_CACHE);
+        tracker_db_interface_start_transaction (iface_cache);
         
         process_index_crawl_add_directories (crawl_directory_roots);
 
         g_slist_foreach (crawl_directories, 
                          (GFunc) process_schedule_directory_check_foreach, 
-                         db_con);
+                         iface);
         
         if (crawl_directories) {
                 g_slist_foreach (crawl_directories, (GFunc) g_free, NULL);
@@ -620,7 +624,7 @@ process_index_crawl_files (DBConnection *db_con)
         
         g_slist_foreach (crawl_directory_roots, 
                          (GFunc) process_schedule_directory_check_foreach, 
-                         db_con);
+                         iface);
 
         if (crawl_directories) {
                 g_slist_foreach (crawl_directories, (GFunc) g_free, NULL);
@@ -628,12 +632,12 @@ process_index_crawl_files (DBConnection *db_con)
                 crawl_directories = NULL;
         }
         
-        tracker_db_interface_end_transaction (db_con->cache->db);
+        tracker_db_interface_end_transaction (iface_cache);
 }
 
 static gboolean 
 process_action (TrackerDBFileInfo *info,
-                DBConnection      *db_con)
+                TrackerDBInterface      *iface)
 {
         gboolean need_index;
 
@@ -654,7 +658,7 @@ process_action (TrackerDBFileInfo *info,
                 g_message ("Starting moving file:'%s' to:'%s'",
                            info->uri, 
                            info->moved_to_uri);
-                tracker_db_move_file (db_con, info->uri, info->moved_to_uri);
+                tracker_db_file_move (iface, info->uri, info->moved_to_uri);
                 break;
                 
         case TRACKER_DB_ACTION_DIRECTORY_REFRESH:
@@ -672,14 +676,14 @@ process_action (TrackerDBFileInfo *info,
                         g_async_queue_push (dir_queue, g_strdup (info->uri));
 			
                         if (info->indextime > 0) {
-                                process_index_delete_directory_check (info->uri, db_con);
+                                process_index_delete_directory_check (info->uri, iface);
                         }
                 }
                 
                 break;
                 
         case TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM:
-                tracker_db_move_directory (db_con, info->uri, info->moved_to_uri);
+                tracker_db_directory_move (iface, info->uri, info->moved_to_uri);
                 need_index = FALSE;
                 break;
                 
@@ -698,8 +702,8 @@ process_action (TrackerDBFileInfo *info,
                          */
                         list = g_slist_prepend (NULL, info->uri);
 
-                        process_watch_directories (list, db_con);
-                        process_scan_directory (info->uri, db_con);
+                        process_watch_directories (list, iface);
+                        process_scan_directory (info->uri, iface);
 
                         g_slist_free (list);
                 } else {
@@ -721,25 +725,25 @@ process_action (TrackerDBFileInfo *info,
 static void
 process_mount_point_added_cb (TrackerHal   *hal,
                               const gchar  *mount_point,
-                              DBConnection *db_con)
+                              TrackerDBInterface *iface)
 {
         GSList *list;
         
         g_message ("** TRAWLING THROUGH NEW MOUNT POINT:'%s'", mount_point);
         
         list = g_slist_prepend (NULL, (gchar*) mount_point);
-        process_directory_list (list, TRUE, db_con);
+        process_directory_list (list, TRUE, iface);
         g_slist_free (list);
 }
 
 static void
 process_mount_point_removed_cb (TrackerHal  *hal,
                                 const gchar *mount_point,
-                                DBConnection *db_con)
+                                TrackerDBInterface *iface)
 {
         g_message ("** CLEANING UP OLD MOUNT POINT:'%s'", mount_point);
         
-        process_index_delete_directory_check (mount_point, db_con); 
+        process_index_delete_directory_check (mount_point, iface); 
 }
 
 #endif /* HAVE_HAL */
@@ -771,7 +775,7 @@ tracker_process_files_init (Tracker *tracker)
         hal = g_object_ref (tracker->hal);
         config = g_object_ref (tracker->config);
 
-        db_con = tracker_db_connect_all ();
+        /* iface = tracker_ifacenect_all (); */
 
 	dir_queue = g_async_queue_new ();
 	file_metadata_queue = g_async_queue_new ();
@@ -843,14 +847,15 @@ tracker_process_files_init (Tracker *tracker)
                 }
 
 		/* Check if file needs indexing */
-                need_index = process_action (info, db_con);
+                need_index = process_action (info, 
+                                             tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA));
 
                 /* FIXME: Finish, maybe call the indexer with the new file */
                 if (0) {
                         GSList *foo, *bar;
                         process_check_directory(NULL);
                         process_index_get_roots(&foo, &bar);
-                        process_index_crawl_files(db_con);
+                        process_index_crawl_files(tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA));
                 }
 
 
@@ -882,8 +887,8 @@ tracker_process_files_shutdown (void)
                 dir_queue = NULL;
 	}
 
-	tracker_db_close_all (db_con);
-        db_con = NULL;
+	/* tracker_db_close_all (iface); */
+        /* iface = NULL; */
 
         if (config) {
                 g_object_unref (config);

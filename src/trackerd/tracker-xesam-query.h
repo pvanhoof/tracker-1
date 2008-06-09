@@ -1,4 +1,5 @@
-/* Tracker - indexer and metadata database engine
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  *
  * This library is free software; you can redistribute it and/or
@@ -17,20 +18,21 @@
  * Boston, MA  02110-1301, USA.
  */
 
-
-
-#ifndef _TRACKER_XESAM_QUERY_H_
-#define _TRACKER_XESAM_QUERY_H_
+#ifndef __TRACKERD_XESAM_QUERY_H__
+#define __TRACKERD_XESAM_QUERY_H__
 
 #include <glib.h>
 
-#include "tracker-db.h"
+#include <libtracker-db/tracker-db-manager.h>
 
-void                    tracker_xesam_query_to_sql          (DBConnection *db_con, 
-                                                             const char   *query, 
-                                                             gchar       **from,
-							     gchar       **join,
-                                                             gchar       **where, 
-                                                             GError      **error);
+G_BEGIN_DECLS
 
-#endif
+void tracker_xesam_query_to_sql (TrackerDBInterface  *iface,
+                                 const gchar         *query,
+                                 gchar              **from,
+                                 gchar              **join,
+                                 gchar              **where,
+                                 GError             **error);
+G_END_DECLS
+
+#endif /* __TRACKERD_XESAM_QUERY_H__ */

@@ -38,8 +38,6 @@
 #include "tracker-indexer.h"
 #include "tracker-marshal.h"
 
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_XESAM, TrackerXesamPriv))
-
 enum {
 	XESAM_HITS_ADDED,
 	XESAM_HITS_REMOVED,
@@ -49,95 +47,14 @@ enum {
 	XESAM_LAST_SIGNAL
 };
 
-enum {
-	PROP_0,
-	PROP_DB_CONNECTION,
-};
-
-typedef struct {
-	DBConnection *db_con;
-} TrackerXesamPriv;
-
 static GHashTable *sessions = NULL;
 static guint       signals[XESAM_LAST_SIGNAL] = {0};
 
 G_DEFINE_TYPE(TrackerXesam, tracker_xesam, G_TYPE_OBJECT)
 
 static void
-xesam_search_finalize (GObject *object)
-{
-	G_OBJECT_CLASS (tracker_xesam_parent_class)->finalize (object);
-}
-
-void
-tracker_xesam_set_db_connection (TrackerXesam *object,
-				 DBConnection *db_con)
-{
-	TrackerXesamPriv *priv;
-
-	priv = GET_PRIV (object);
-
-	priv->db_con = db_con;
-
-	g_object_notify (G_OBJECT (object), "db-connection");
-}
-
-static void
-xesam_get_property (GObject    *object, 
-		    guint       prop_id, 
-		    GValue     *value, 
-		    GParamSpec *pspec)
-{
-	TrackerXesamPriv *priv;
-
-	priv = GET_PRIV (object);
-
-	switch (prop_id) {
-	case PROP_DB_CONNECTION:
-		g_value_set_pointer (value, priv->db_con);
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-		break;
-	};
-}
-
-static void
-xesam_set_property (GObject      *object,
-		    guint         param_id,
-		    const GValue *value,
-		    GParamSpec   *pspec)
-{
-	switch (param_id) {
-	case PROP_DB_CONNECTION:
-		tracker_xesam_set_db_connection (TRACKER_XESAM (object),
-						 g_value_get_pointer (value));
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
-		break;
-	};
-}
-
-static void
 tracker_xesam_class_init (TrackerXesamClass *klass)
 {
-	GObjectClass *object_class;
-
-	object_class = G_OBJECT_CLASS (klass);
-
-	object_class->finalize = xesam_search_finalize;
-
-	object_class->set_property = xesam_set_property;
-	object_class->get_property = xesam_get_property;
-
-	g_object_class_install_property (object_class,
-					 PROP_DB_CONNECTION,
-					 g_param_spec_pointer ("db-connection",
-							       "DB connection",
-							       "Database connection to use in transactions",
-							       G_PARAM_WRITABLE|G_PARAM_READABLE));
-
 	signals[XESAM_HITS_ADDED] =
 		g_signal_new ("hits-added",
 			G_TYPE_FROM_CLASS (klass),
@@ -196,8 +113,6 @@ tracker_xesam_class_init (TrackerXesamClass *klass)
 			G_TYPE_NONE,
 			1, 
 			G_TYPE_STRV);
-
-	g_type_class_add_private (object_class, sizeof (TrackerXesamPriv));
 }
 
 static void
@@ -206,11 +121,9 @@ tracker_xesam_init (TrackerXesam *object)
 }
 
 TrackerXesam *
-tracker_xesam_new (DBConnection *db_con)
+tracker_xesam_new (void)
 {
-	return g_object_new (TRACKER_TYPE_XESAM, 
-			     "db-connection", db_con,
-			     NULL);
+	return g_object_new (TRACKER_TYPE_XESAM, NULL);
 }
 
 static void

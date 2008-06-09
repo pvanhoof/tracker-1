@@ -29,15 +29,15 @@
 #include "tracker-process-files.h"
 
 gboolean
-tracker_db_is_file_up_to_date (DBConnection *db_con, 
-			       const gchar  *uri, 
-			       guint32      *id)
+tracker_db_is_file_up_to_date (TrackerDBInterface *iface, 
+			       const gchar        *uri, 
+			       guint32      *      id)
 {
 	TrackerDBResultSet *result_set;
 	gchar              *path, *name;
 	gint32              index_time;
 
-	g_return_val_if_fail (db_con != NULL, FALSE);
+	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), FALSE);
 	g_return_val_if_fail (uri != NULL, FALSE);
 	g_return_val_if_fail (id != NULL, FALSE);
 
@@ -49,7 +49,11 @@ tracker_db_is_file_up_to_date (DBConnection *db_con,
 		path = tracker_file_get_vfs_path (uri);
 	}
 
-	result_set = tracker_exec_proc (db_con, "GetServiceID", path, name, NULL);
+	result_set = tracker_db_exec_proc (iface,
+					   "GetServiceID", 
+					   path, 
+					   name, 
+					   NULL);
 
 	g_free (path);
 	g_free (name);
@@ -76,14 +80,14 @@ tracker_db_is_file_up_to_date (DBConnection *db_con,
 }
 
 guint32
-tracker_db_get_file_id (DBConnection *db_con, 
-			const gchar  *uri)
+tracker_db_get_file_id (TrackerDBInterface *iface, 
+			const gchar        *uri)
 {
 	TrackerDBResultSet *result_set;
-	char	*path, *name;
-	guint32	id;
+	gchar              *path, *name;
+	guint32	            id;
 
-	g_return_val_if_fail (db_con != NULL, 0);
+	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), 0);
 	g_return_val_if_fail (uri != NULL, 0);
 
 	if (uri[0] == G_DIR_SEPARATOR) {
@@ -94,7 +98,11 @@ tracker_db_get_file_id (DBConnection *db_con,
 		path = tracker_file_get_vfs_path (uri);
 	}
 
-	result_set = tracker_exec_proc (db_con, "GetServiceID", path, name, NULL);
+	result_set = tracker_db_exec_proc (iface,
+					   "GetServiceID", 
+					   path, 
+					   name, 
+					   NULL);
 
 	g_free (path);
 	g_free (name);
@@ -110,13 +118,13 @@ tracker_db_get_file_id (DBConnection *db_con,
 }
 
 TrackerDBFileInfo *
-tracker_db_get_file_info (DBConnection      *db_con, 
-			  TrackerDBFileInfo *info)
+tracker_db_get_file_info (TrackerDBInterface *iface, 
+			  TrackerDBFileInfo  *info)
 {
 	TrackerDBResultSet *result_set;
 	gchar              *path, *name;
 
-	g_return_val_if_fail (db_con != NULL, info);
+	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), info);
 	g_return_val_if_fail (info != NULL, info);
 
 	if (!tracker_db_file_info_is_valid (info)) {
@@ -126,7 +134,11 @@ tracker_db_get_file_info (DBConnection      *db_con,
 	name = g_path_get_basename (info->uri);
 	path = g_path_get_dirname (info->uri);
 
-	result_set = tracker_exec_proc (db_con, "GetServiceID", path, name, NULL);
+	result_set = tracker_db_exec_proc (iface, 
+					   "GetServiceID", 
+					   path, 
+					   name, 
+					   NULL);
 
 	g_free (name);
 	g_free (path);
@@ -158,16 +170,19 @@ tracker_db_get_file_info (DBConnection      *db_con,
 }
 
 gchar **
-tracker_db_get_files_in_folder (DBConnection *db_con, 
-				const gchar  *uri)
+tracker_db_get_files_in_folder (TrackerDBInterface *iface, 
+				const gchar        *uri)
 {
 	TrackerDBResultSet *result_set;
 	GPtrArray          *array;
 
-	g_return_val_if_fail (db_con != NULL, NULL);
+	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
 	g_return_val_if_fail (uri != NULL, NULL);
 
-	result_set = tracker_exec_proc (db_con, "SelectFileChild", uri, NULL);
+	result_set = tracker_db_exec_proc (iface,
+					   "SelectFileChild", 
+					   uri, 
+					   NULL);
 	array = g_ptr_array_new ();
 
 	if (result_set) {

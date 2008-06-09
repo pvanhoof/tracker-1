@@ -26,7 +26,6 @@
 
 #include <libtracker-common/tracker-language.h>
 
-#include "tracker-db-sqlite.h"
 #include "tracker-indexer.h"
 
 #define TRACKER_SEARCH_SERVICE         "org.freedesktop.Tracker"
@@ -54,9 +53,7 @@ struct TrackerSearchClass {
 };
 
 GType          tracker_search_get_type          (void);
-TrackerSearch *tracker_search_new               (DBConnection      *db_con);
-void           tracker_search_set_db_connection (TrackerSearch     *object,
-						 DBConnection      *db_con);
+TrackerSearch *tracker_search_new               (void);
 void           tracker_search_set_config        (TrackerSearch     *object,
 						 TrackerConfig     *config);
 void           tracker_search_set_language      (TrackerSearch     *object,

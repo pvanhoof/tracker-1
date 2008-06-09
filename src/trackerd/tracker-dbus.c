@@ -23,6 +23,8 @@
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-utils.h>
 
+#include <libtracker-db/tracker-db-manager.h>
+
 #include "tracker-db-sqlite.h"
 #include "tracker-dbus.h"
 #include "tracker-daemon.h"
@@ -197,8 +199,7 @@ tracker_dbus_shutdown (void)
 gboolean
 tracker_dbus_register_objects (Tracker *tracker)
 {
-        GObject      *object;
-	DBConnection *db_connection;
+        GObject *object;
 
 	g_return_val_if_fail (tracker != NULL, FALSE);
 
@@ -216,9 +217,6 @@ tracker_dbus_register_objects (Tracker *tracker)
                 return FALSE;
         }
 
-        db_connection = tracker_db_connect_all ();
-
-        g_object_set (object, "db-connection", db_connection, NULL);
         g_object_set (object, "config", tracker->config, NULL);
         g_object_set (object, "tracker", tracker, NULL);
         objects = g_slist_prepend (objects, object);
@@ -232,7 +230,6 @@ tracker_dbus_register_objects (Tracker *tracker)
                 return FALSE;
         }
 
-        g_object_set (object, "db-connection", db_connection, NULL);
         objects = g_slist_prepend (objects, object);
 
         /* Add org.freedesktop.Tracker.Keywords */
@@ -244,7 +241,6 @@ tracker_dbus_register_objects (Tracker *tracker)
                 return FALSE;
         }
 
-        g_object_set (object, "db-connection", db_connection, NULL);
         objects = g_slist_prepend (objects, object);
 
         /* Add org.freedesktop.Tracker.Metadata */
@@ -256,7 +252,6 @@ tracker_dbus_register_objects (Tracker *tracker)
                 return FALSE;
         }
 
-        g_object_set (object, "db-connection", db_connection, NULL);
         objects = g_slist_prepend (objects, object);
 
         /* Add org.freedesktop.Tracker.Search */
@@ -268,7 +263,6 @@ tracker_dbus_register_objects (Tracker *tracker)
                 return FALSE;
         }
 
-	g_object_set (object, "db-connection", db_connection, NULL);
 	g_object_set (object, "config", tracker->config, NULL);
 	g_object_set (object, "language", tracker->language, NULL);
 	g_object_set (object, "file-index", tracker->file_index, NULL);
@@ -285,9 +279,6 @@ tracker_dbus_register_objects (Tracker *tracker)
 						     TRACKER_XESAM_PATH))) {
 			return FALSE;
 		}
-		
-		db_connection = tracker_db_connect_xesam ();
-		g_object_set (object, "db-connection", db_connection, NULL);
 		
 		dbus_g_proxy_add_signal (proxy, "NameOwnerChanged",
 					 G_TYPE_STRING, G_TYPE_STRING,

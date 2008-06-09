@@ -23,14 +23,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <regex.h>
+#include <zlib.h>
 
 #include <libtracker-common/tracker-field.h>
+#include <libtracker-common/tracker-nfs-lock.h>
 #include <libtracker-common/tracker-ontology.h>
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-utils.h>
 
 #include "tracker-db-manager.h"
 #include "tracker-db-interface-sqlite.h"
+
+#define ZLIBBUFSIZ 8192
 
 typedef enum {
         TRACKER_DB_LOCATION_DATA_DIR,
@@ -39,19 +43,21 @@ typedef enum {
 } TrackerDBLocation;
 
 typedef struct {
-        TrackerDB          db;
-        TrackerDBLocation  location;
-        const gchar       *file;
-        const gchar       *name;
-        gchar             *abs_filename;
-        gint               cache_size;
-        gint               page_size;
-        gboolean           add_functions;
+        TrackerDB           db;
+        TrackerDBLocation   location;
+	TrackerDBInterface *iface;
+        const gchar        *file;
+        const gchar        *name;
+        gchar              *abs_filename;
+        gint                cache_size;
+        gint                page_size;
+        gboolean            add_functions;
 } TrackerDBDefinition;
 
 static TrackerDBDefinition dbs[] = {
         { TRACKER_DB_COMMON, 
           TRACKER_DB_LOCATION_USER_DATA_DIR, 
+	  NULL,
           "common.db",
           "common",
           NULL,
@@ -60,6 +66,7 @@ static TrackerDBDefinition dbs[] = {
           FALSE },
         { TRACKER_DB_CACHE, 
           TRACKER_DB_LOCATION_SYS_TMP_ROOT_DIR,
+	  NULL,
           "cache.db",
           "cache",
           NULL, 
@@ -68,6 +75,7 @@ static TrackerDBDefinition dbs[] = {
           FALSE },
         { TRACKER_DB_FILE_METADATA,
           TRACKER_DB_LOCATION_DATA_DIR,
+	  NULL,
           "file-meta.db",
           NULL,
           NULL,
@@ -76,6 +84,7 @@ static TrackerDBDefinition dbs[] = {
           TRUE },
         { TRACKER_DB_FILE_CONTENTS,
           TRACKER_DB_LOCATION_DATA_DIR,
+	  NULL,
           "file-contents.db",
           NULL,
           NULL,
@@ -84,6 +93,7 @@ static TrackerDBDefinition dbs[] = {
           FALSE },
         { TRACKER_DB_EMAIL_METADATA,
           TRACKER_DB_LOCATION_DATA_DIR,
+	  NULL,
           "email-meta.db",
           NULL,
           NULL,
@@ -92,6 +102,7 @@ static TrackerDBDefinition dbs[] = {
           TRUE },
         { TRACKER_DB_EMAIL_CONTENTS,
           TRACKER_DB_LOCATION_DATA_DIR,
+	  NULL,
           "email-contents.db",
           NULL,
           NULL,
@@ -100,6 +111,7 @@ static TrackerDBDefinition dbs[] = {
           FALSE },
         { TRACKER_DB_XESAM,
           TRACKER_DB_LOCATION_DATA_DIR,
+	  NULL,
           "xesam.db",
           NULL,
           NULL,
@@ -107,6 +119,8 @@ static TrackerDBDefinition dbs[] = {
           TRACKER_DB_PAGE_SIZE_DEFAULT,
           TRUE },
 };
+
+static TrackerDBInterface *create_db_interface (TrackerDB db);
 
 static gboolean    initialized;
 static gchar      *services_dir;
@@ -147,6 +161,7 @@ configure_database_description (const gchar *data_dir,
                                              sys_tmp_root_dir);
                 
                 dbs[i].abs_filename = g_build_filename (dir, dbs[i].file, NULL);
+		dbs[i].iface = create_db_interface (i);
         }
 }
 
@@ -176,7 +191,7 @@ load_sql_file (TrackerDBInterface *iface,
 		tracker_db_interface_execute_query (iface, NULL, queries[i]);
 	}
 
-	g_message ("Loaded SQL file:'%s'", file);
+	g_message ("  Loaded SQL file:'%s'", file);
 
 	g_strfreev (queries);
 	g_free (content);
@@ -430,6 +445,300 @@ load_service_file (TrackerDBInterface *iface,
 	g_free (service_file);
 }
 
+static TrackerDBResultSet *
+db_exec_proc (TrackerDBInterface *iface, 
+	      const gchar        *procedure, 
+	      ...)
+{
+	TrackerDBResultSet *result_set;
+	va_list             args;
+
+	va_start (args, procedure);
+	result_set = tracker_db_interface_execute_vprocedure (iface, 
+							      NULL, 
+							      procedure, 
+							      args);
+	va_end (args);
+
+	return result_set;
+}
+
+static gboolean
+db_exec_no_reply (TrackerDBInterface *iface, 
+		  const gchar        *query, 
+		  ...)
+{
+	TrackerDBResultSet *result_set;
+	va_list             args;
+
+	tracker_nfs_lock_obtain ();
+
+	va_start (args, query);
+	result_set = tracker_db_interface_execute_vquery (iface, NULL, query, args);
+	va_end (args);
+
+	if (result_set) {
+		g_object_unref (result_set);
+	}
+
+	tracker_nfs_lock_release ();
+
+	return TRUE;
+}
+
+static void
+load_service_file_xesam_map (TrackerDBInterface *iface,
+			     const gchar        *db_proc,
+			     const gchar        *data_to_split,
+			     const gchar        *data_to_insert)
+{
+	gchar **mappings;
+	gchar **mapping;
+	
+	mappings = g_strsplit_set (data_to_split, ";", -1);
+	
+	if (!mappings) {
+		return;
+	}
+
+	for (mapping = mappings; *mapping; mapping++) {
+		gchar *esc_value;
+		
+		esc_value = tracker_escape_string (*mapping);
+		db_exec_proc (iface,
+			      db_proc,
+			      data_to_insert,
+			      esc_value, 
+			      NULL);
+		g_free (esc_value);
+	}
+
+	g_strfreev (mappings);
+}
+
+static void
+load_service_file_xesam_insert (TrackerDBInterface *iface,
+				const gchar        *sql_format,
+				const gchar        *data_to_split,
+				const gchar        *data_to_insert)
+{
+	gchar **parents;
+	gchar **parent;
+	
+	parents = g_strsplit_set (data_to_split, ";", -1);
+	
+	if (!parents) {
+		return;
+	}
+
+	for (parent = parents; *parent; parent++) {
+		gchar *sql;
+
+		sql = g_strdup_printf (sql_format, *parent, data_to_insert);
+		db_exec_no_reply (iface, sql);
+		g_free (sql);
+	}
+
+	g_strfreev (parents);
+}
+
+static void
+load_service_file_xesam_update (TrackerDBInterface *iface,
+				const gchar        *sql_format,
+				const gchar        *data_to_update,
+				const gchar        *data_key,
+				const gchar        *data_value)
+{
+	gchar *str;
+	gchar *sql;
+	
+	str = tracker_escape_string (data_key);
+	sql = g_strdup_printf (sql_format, 
+			       data_to_update, 
+			       str, 
+			       data_value);
+	db_exec_no_reply (iface, sql);
+	g_free (sql);
+	g_free (str);
+}
+
+static gboolean
+load_service_file_xesam (TrackerDBInterface *iface, 
+			 const gchar        *filename)
+{
+	GKeyFile 	     *key_file;
+	GError               *error = NULL;
+	const gchar * const  *language_names;
+	gchar               **groups;
+	gchar               **group;
+	gchar 		     *service_file;
+	gchar                *sql;
+	gboolean              is_metadata;
+	gboolean              is_service;
+	gboolean              is_metadata_mapping;
+	gboolean              is_service_mapping;
+	gint                  id; 
+
+	const gchar          *data_types[] = {
+		"string", 
+		"float", 
+		"integer", 
+		"boolean", 
+		"dateTime", 
+		"List of strings", 
+		"List of Uris", 
+		"List of Urls", 
+		NULL
+	};
+
+	key_file = g_key_file_new ();
+	service_file = tracker_db_manager_get_service_file (filename);
+
+	if (!g_key_file_load_from_file (key_file, service_file, G_KEY_FILE_NONE, &error)) {
+		g_critical ("Couldn't load XESAM service file:'%s', %s",
+			    filename,
+			    error->message);
+		g_clear_error (&error);
+		g_free (service_file);
+		g_key_file_free (key_file);
+
+		return FALSE;
+	}
+
+	g_free (service_file);
+
+	is_metadata = FALSE;
+	is_service = FALSE;
+	is_metadata_mapping = FALSE;
+	is_service_mapping = FALSE;
+		
+	if (g_str_has_suffix (filename, ".metadata")) {
+		is_metadata = TRUE;
+	} else if (g_str_has_suffix (filename, ".service")) {
+		is_service = TRUE;
+	} else if (g_str_has_suffix (filename, ".mmapping")) {
+		is_metadata_mapping = TRUE;
+	} else if (g_str_has_suffix (filename, ".smapping")) {
+		is_service_mapping = TRUE;
+	} else {
+		g_warning ("XESAM Service file:'%s' does not a recognised suffix "
+			   "('.service', '.metadata', '.mmapping' or '.smapping')",
+			   filename);
+		g_key_file_free (key_file);
+		return FALSE;
+	} 
+
+	language_names = g_get_language_names ();
+		
+	groups = g_key_file_get_groups (key_file, NULL);
+	
+	for (group = groups; *group; group++) {
+		gchar  *str_id;
+		gchar **keys;
+		gchar **key;
+
+		if (is_metadata) {
+			db_exec_proc (iface, 
+				      "InsertXesamMetadataType", 
+				      *group, 
+				      NULL);
+			id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (iface));
+		} else if (is_service) {
+			db_exec_proc (iface, 
+				      "InsertXesamServiceType", 
+				      *group, 
+				      NULL);
+			id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (iface));
+		}
+		
+		/* Get inserted ID */
+		str_id = tracker_uint_to_string (id);
+		keys = g_key_file_get_keys (key_file, *group, NULL, NULL);
+		
+		for (key = keys; *key; key++) {
+			gchar *value;
+			
+			value = g_key_file_get_locale_string (key_file, 
+							      *group, 
+							      *key, 
+							      language_names[0],
+							      NULL);
+			
+			if (!value) {
+				continue;
+			}
+			
+			if (strcasecmp (value, "true") == 0) {
+				g_free (value);
+				value = g_strdup ("1");
+			} else if  (strcasecmp (value, "false") == 0) {
+				g_free (value);
+				value = g_strdup ("0");
+			}
+			
+			if (is_metadata) {
+				if (strcasecmp (*key, "Parents") == 0) {
+					load_service_file_xesam_insert (iface,
+									"INSERT INTO XesamMetadataChildren (Parent, Child) VALUES ('%s', '%s')",
+									value,
+									*group);
+				} else if (strcasecmp (*key, "ValueType") == 0) {
+					gint data_id;
+					
+					data_id = tracker_string_in_string_list (value, (gchar **) data_types);
+					
+					if (data_id != -1) {
+						sql = g_strdup_printf ("update XesamMetadataTypes set DataTypeID = %d where ID = %s", 
+								       data_id, 
+								       str_id);
+						db_exec_no_reply (iface, sql);
+						g_free (sql);
+					}
+				} else {
+					load_service_file_xesam_update (iface,
+									"update XesamMetadataTypes set  %s = '%s' where ID = %s",
+									*key, 
+									value, 
+									str_id);
+				}
+			} else 	if (is_service) {
+				if (strcasecmp (*key, "Parents") == 0) {
+					load_service_file_xesam_insert (iface,
+									"INSERT INTO XesamServiceChildren (Parent, Child) VALUES ('%s', '%s')",
+									value,
+									*group);
+				} else {
+					load_service_file_xesam_update (iface,
+									"update XesamServiceTypes set  %s = '%s' where typeID = %s",
+									*key, 
+									value, 
+									str_id);
+				}
+			} else 	if (is_metadata_mapping) {
+				load_service_file_xesam_map (iface,
+							     "InsertXesamMetaDataMapping", 
+							     value, 
+							     *group);
+			} else {
+				load_service_file_xesam_map (iface,
+							     "InsertXesamServiceMapping", 
+							     value, 
+							     *group);
+			}
+			
+			g_free (value);
+		}
+		
+		g_strfreev (keys);
+		g_free (str_id);
+	}
+	
+	g_strfreev (groups);
+	g_key_file_free (key_file);
+
+	return TRUE;
+}
+
 static gboolean
 load_prepared_queries (void)
 {
@@ -510,7 +819,7 @@ load_prepared_queries (void)
 }
 
 static TrackerField *
-db_manager_row_to_field_def (TrackerDBResultSet *result_set) 
+db_row_to_field_def (TrackerDBResultSet *result_set) 
 {
         TrackerField     *field_def;
 	TrackerFieldType  field_type;
@@ -551,7 +860,7 @@ db_manager_row_to_field_def (TrackerDBResultSet *result_set)
 }
 
 static TrackerService *
-db_manager_row_to_service (TrackerDBResultSet *result_set)
+db_row_to_service (TrackerDBResultSet *result_set)
 {
         TrackerService *service;
         GSList         *new_list = NULL;
@@ -643,9 +952,9 @@ db_manager_row_to_service (TrackerDBResultSet *result_set)
 }
 
 static GSList *
-db_manager_mime_query (TrackerDBInterface *iface,
-                       const gchar        *stored_proc,
-                       gint                service_id)
+db_mime_query (TrackerDBInterface *iface,
+	       const gchar        *stored_proc,
+	       gint                service_id)
 {
 	TrackerDBResultSet *result_set;
 	GSList             *result = NULL;
@@ -676,25 +985,25 @@ db_manager_mime_query (TrackerDBInterface *iface,
 }
 
 static GSList *
-db_manager_get_mimes_for_service_id (TrackerDBInterface *iface,
-                                     gint                service_id)
+db_get_mimes_for_service_id (TrackerDBInterface *iface,
+			     gint                service_id)
 {
-	return db_manager_mime_query (iface, "GetMimeForServiceId", service_id);
+	return db_mime_query (iface, "GetMimeForServiceId", service_id);
 }
 
 static GSList *
-db_manager_get_mime_prefixes_for_service_id (TrackerDBInterface *iface,
-                                             gint                service_id)
+db_get_mime_prefixes_for_service_id (TrackerDBInterface *iface,
+				     gint                service_id)
 {
-	return db_manager_mime_query (iface, "GetMimePrefixForServiceId", service_id);
+	return db_mime_query (iface, "GetMimePrefixForServiceId", service_id);
 }
 
 /* Sqlite utf-8 user defined collation sequence */
 static gint
-db_manager_utf8_collation_func (gchar *str1,
-                                gint   len1,
-                                gchar *str2,
-                                int    len2)
+utf8_collation_func (gchar *str1,
+		     gint   len1,
+		     gchar *str2,
+		     int    len2)
 {
 	gchar *word1, *word2;
 	gint   result;
@@ -806,11 +1115,126 @@ function_get_max_service_type (TrackerDBInterface *interface,
 	return result;
 }
 
+static gchar *
+function_uncompress_string (const gchar *ptr, 
+			    gint         size, 
+			    gint        *uncompressed_size)
+{
+	z_stream       zs;
+	gchar         *buf, *swap;
+	unsigned char  obuf[ZLIBBUFSIZ];
+	gint           rv, asiz, bsiz, osiz;
+
+	zs.zalloc = Z_NULL;
+	zs.zfree = Z_NULL;
+	zs.opaque = Z_NULL;
+
+	if (inflateInit2 (&zs, 15) != Z_OK) {
+		return NULL;
+	}
+
+	asiz = size * 2 + 16;
+
+	if (asiz < ZLIBBUFSIZ) {
+		asiz = ZLIBBUFSIZ;
+	}
+
+	if (!(buf = malloc (asiz))) {
+		inflateEnd (&zs);
+		return NULL;
+	}
+
+	bsiz = 0;
+	zs.next_in = (unsigned char *)ptr;
+	zs.avail_in = size;
+	zs.next_out = obuf;
+	zs.avail_out = ZLIBBUFSIZ;
+
+	while ((rv = inflate (&zs, Z_NO_FLUSH)) == Z_OK) {
+		osiz = ZLIBBUFSIZ - zs.avail_out;
+
+		if (bsiz + osiz >= asiz) {
+			asiz = asiz * 2 + osiz;
+
+			if (!(swap = realloc (buf, asiz))) {
+				free (buf);
+				inflateEnd (&zs);
+				return NULL;
+			}
+
+			buf = swap;
+		}
+
+		memcpy (buf + bsiz, obuf, osiz);
+		bsiz += osiz;
+		zs.next_out = obuf;
+		zs.avail_out = ZLIBBUFSIZ;
+	}
+
+	if (rv != Z_STREAM_END) {
+		free (buf);
+		inflateEnd (&zs);
+		return NULL;
+	}
+	osiz = ZLIBBUFSIZ - zs.avail_out;
+
+	if (bsiz + osiz >= asiz) {
+		asiz = asiz * 2 + osiz;
+
+		if (!(swap = realloc (buf, asiz))) {
+			free (buf);
+			inflateEnd (&zs);
+			return NULL;
+		}
+
+		buf = swap;
+	}
+
+	memcpy (buf + bsiz, obuf, osiz);
+	bsiz += osiz;
+	buf[bsiz] = '\0';
+	*uncompressed_size = bsiz;
+	inflateEnd (&zs);
+
+	return buf;
+}
+
+static GValue
+function_uncompress (TrackerDBInterface *interface,
+		     gint                argc,
+		     GValue              values[])
+{
+	GByteArray *array;
+	GValue      result = { 0, };
+	gchar      *output;
+	gint        len;
+
+	array = g_value_get_boxed (&values[0]);
+
+	if (!array) {
+		return result;
+	}
+
+	output = function_uncompress_string ((const gchar *) array->data, 
+					     array->len, 
+					     &len);
+
+	if (!output) {
+		g_warning ("Uncompress failed");
+		return result;
+	}
+
+	g_value_init (&result, G_TYPE_STRING);
+	g_value_take_string (&result, output);
+
+	return result;
+}
+
 static void
-db_manager_set_params (TrackerDBInterface *iface,
-		       gint                cache_size,
-		       gint                page_size,
-		       gboolean            add_functions)
+db_set_params (TrackerDBInterface *iface,
+	       gint                cache_size,
+	       gint                page_size,
+	       gboolean            add_functions)
 {
 	tracker_db_interface_execute_query (iface, NULL, "PRAGMA synchronous = NORMAL;");
 	tracker_db_interface_execute_query (iface, NULL, "PRAGMA count_changes = 0;");
@@ -827,7 +1251,7 @@ db_manager_set_params (TrackerDBInterface *iface,
 	if (add_functions) {
 		if (!tracker_db_interface_sqlite_set_collation_function (TRACKER_DB_INTERFACE_SQLITE (iface),
 									 "UTF8", 
-									 db_manager_utf8_collation_func)) {
+									 utf8_collation_func)) {
 			g_critical ("Collation sequence failed");
 		}
 
@@ -856,7 +1280,7 @@ db_manager_set_params (TrackerDBInterface *iface,
 }
 
 static void
-db_manager_get_static_data (TrackerDBInterface *iface)
+db_get_static_data (TrackerDBInterface *iface)
 {
 	TrackerDBResultSet *result_set;
 
@@ -875,7 +1299,7 @@ db_manager_get_static_data (TrackerDBInterface *iface)
 			TrackerField       *def;
 			GSList             *child_ids = NULL;
 
-			def = db_manager_row_to_field_def (result_set);
+			def = db_row_to_field_def (result_set);
 
 			result_set2 = tracker_db_interface_execute_procedure (iface, 
 									      NULL,
@@ -925,7 +1349,7 @@ db_manager_get_static_data (TrackerDBInterface *iface)
 			const gchar     *name;
 			gint             id;
 
-                        service = db_manager_row_to_service (result_set);
+                        service = db_row_to_service (result_set);
 
                         if (!service) {
                                 continue;
@@ -934,8 +1358,8 @@ db_manager_get_static_data (TrackerDBInterface *iface)
                         id = tracker_service_get_id (service);
                         name = tracker_service_get_name (service);
 
-                        mimes = db_manager_get_mimes_for_service_id (iface, id);
-                        mime_prefixes = db_manager_get_mime_prefixes_for_service_id (iface, id);
+                        mimes = db_get_mimes_for_service_id (iface, id);
+                        mime_prefixes = db_get_mime_prefixes_for_service_id (iface, id);
 
                         g_message ("Adding service:'%s' with id:%d and mimes:%d",
 				   name,
@@ -957,10 +1381,10 @@ db_manager_get_static_data (TrackerDBInterface *iface)
 	}
 }
 
-TrackerDBInterface *
-db_manager_get_common (void)
+static TrackerDBInterface *
+db_interface_get_common (void)
 {
-	TrackerDBInterface *interface;
+	TrackerDBInterface *iface;
 	const gchar        *path;
 	gboolean            create = FALSE;
 
@@ -970,41 +1394,72 @@ db_manager_get_common (void)
 		create = TRUE;
 	}
 
-	interface = tracker_db_interface_sqlite_new (path);
-	tracker_db_interface_set_procedure_table (interface, prepared_queries);
+	iface = tracker_db_interface_sqlite_new (path);
+	tracker_db_interface_set_procedure_table (iface, prepared_queries);
 
 	if (create) {
+		g_message ("Creating database (common)... '%s'", path);
+
 		/* Create tables */
-		load_sql_file (interface, "sqlite-tracker.sql", NULL);
-		load_sql_file (interface, "sqlite-metadata.sql", NULL);
-		load_sql_file (interface, "sqlite-service-types.sql", NULL);
+		load_sql_file (iface, "sqlite-tracker.sql", NULL);
+		load_sql_file (iface, "sqlite-metadata.sql", NULL);
+		load_sql_file (iface, "sqlite-service-types.sql", NULL);
 
 		/* Load services info */
-		load_service_file (interface, "default.service");
+		load_service_file (iface, "default.service");
 
 		/* Load metadata info */
-		load_metadata_file (interface, "default.metadata");
-		load_metadata_file (interface, "file.metadata");
-		load_metadata_file (interface, "audio.metadata");
-		load_metadata_file (interface, "application.metadata");
-		load_metadata_file (interface, "document.metadata");
-		load_metadata_file (interface, "email.metadata");
-		load_metadata_file (interface, "image.metadata");
-		load_metadata_file (interface, "video.metadata");
+		load_metadata_file (iface, "default.metadata");
+		load_metadata_file (iface, "file.metadata");
+		load_metadata_file (iface, "audio.metadata");
+		load_metadata_file (iface, "application.metadata");
+		load_metadata_file (iface, "document.metadata");
+		load_metadata_file (iface, "email.metadata");
+		load_metadata_file (iface, "image.metadata");
+		load_metadata_file (iface, "video.metadata");
+
+		db_exec_no_reply (iface, "ANALYZE");
 	}
 
 	/* Load static data into tracker ontology */
-	db_manager_get_static_data (interface);
+	db_get_static_data (iface);
 
-	return interface;
+	return iface;
 }
 
-TrackerDBInterface *
-db_manager_get_file_metadata (void)
+static TrackerDBInterface *
+db_interface_get_cache (void)
 {
-	TrackerDBInterface *interface;
-	const gchar *path;
-	gboolean create = FALSE;
+	TrackerDBInterface *iface;
+	const gchar        *path;
+	gboolean            create = FALSE;
+
+	path = tracker_db_manager_get_file (TRACKER_DB_CACHE);
+
+	if (!g_file_test (path, G_FILE_TEST_EXISTS)) {
+		create = TRUE;
+	}
+
+	iface = tracker_db_interface_sqlite_new (path);
+	tracker_db_interface_set_procedure_table (iface, prepared_queries);
+
+	if (create) {
+		g_message ("Creating database... '%s' (for cache)", path);
+
+		load_sql_file (iface, "sqlite-cache.sql", NULL);
+
+		db_exec_no_reply (iface, "ANALYZE");
+	}
+
+	return iface;
+}
+
+static TrackerDBInterface *
+db_interface_get_file_metadata (void)
+{
+	TrackerDBInterface *iface;
+	const gchar        *path;
+	gboolean            create = FALSE;
 
 	path = tracker_db_manager_get_file (TRACKER_DB_FILE_METADATA);
 
@@ -1012,20 +1467,385 @@ db_manager_get_file_metadata (void)
 		create = TRUE;
 	}
 
-	interface = tracker_db_interface_sqlite_new (path);
-	tracker_db_interface_set_procedure_table (interface, prepared_queries);
+	iface = tracker_db_interface_sqlite_new (path);
+	tracker_db_interface_set_procedure_table (iface, prepared_queries);
 
-	db_manager_set_params (interface,
-			       tracker_db_manager_get_cache_size (TRACKER_DB_FILE_METADATA),
-			       tracker_db_manager_get_page_size (TRACKER_DB_FILE_METADATA),
-			       tracker_db_manager_get_add_functions (TRACKER_DB_FILE_METADATA));
+	db_set_params (iface,
+		       tracker_db_manager_get_cache_size (TRACKER_DB_FILE_METADATA),
+		       tracker_db_manager_get_page_size (TRACKER_DB_FILE_METADATA),
+		       tracker_db_manager_get_add_functions (TRACKER_DB_FILE_METADATA));
 
 	if (create) {
-		load_sql_file (interface, "sqlite-service.sql", NULL);
-		load_sql_file (interface, "sqlite-service-triggers.sql", "!");
+		g_message ("Creating database... '%s' (for file metadata)", path);
+
+		load_sql_file (iface, "sqlite-service.sql", NULL);
+		load_sql_file (iface, "sqlite-service-triggers.sql", "!");
+
+		db_exec_no_reply (iface, "ANALYZE");
 	}
 
-	return interface;
+	return iface;
+}
+
+static TrackerDBInterface *
+db_interface_get_file_contents (void)
+{
+	TrackerDBInterface *iface;
+	const gchar        *path;
+	gboolean            create = FALSE;
+
+	path = tracker_db_manager_get_file (TRACKER_DB_FILE_CONTENTS);
+
+	if (!g_file_test (path, G_FILE_TEST_EXISTS)) {
+		create = TRUE;
+	}
+
+	iface = tracker_db_interface_sqlite_new (path);
+	tracker_db_interface_set_procedure_table (iface, prepared_queries);
+
+	db_set_params (iface,
+		       tracker_db_manager_get_cache_size (TRACKER_DB_FILE_CONTENTS),
+		       tracker_db_manager_get_page_size (TRACKER_DB_FILE_CONTENTS),
+		       tracker_db_manager_get_add_functions (TRACKER_DB_FILE_CONTENTS));
+
+	if (create) {
+		g_message ("Creating database... '%s' (for file contents)", path);
+
+		load_sql_file (iface, "sqlite-contents.sql", NULL);
+
+		db_exec_no_reply (iface, "ANALYZE");
+	}
+
+	tracker_db_interface_sqlite_create_function (iface, 
+						     "uncompress", 
+						     function_uncompress, 
+						     1);
+
+	return iface;
+}
+
+static TrackerDBInterface *
+db_interface_get_email_metadata (void)
+{
+	TrackerDBInterface *iface;
+	const gchar        *path;
+	gboolean            create = FALSE;
+
+	path = tracker_db_manager_get_file (TRACKER_DB_EMAIL_METADATA);
+
+	if (!g_file_test (path, G_FILE_TEST_EXISTS)) {
+		create = TRUE;
+	}
+
+	iface = tracker_db_interface_sqlite_new (path);
+	tracker_db_interface_set_procedure_table (iface, prepared_queries);
+
+	db_set_params (iface,
+		       tracker_db_manager_get_cache_size (TRACKER_DB_FILE_METADATA),
+		       tracker_db_manager_get_page_size (TRACKER_DB_FILE_METADATA),
+		       tracker_db_manager_get_add_functions (TRACKER_DB_FILE_METADATA));
+
+	if (create) {
+		g_message ("Creating database... '%s' (for email metadata)", path);
+
+		load_sql_file (iface, "sqlite-service.sql", NULL);
+		load_sql_file (iface, "sqlite-email.sql", NULL);
+		load_sql_file (iface, "sqlite-service-triggers.sql", "!");
+
+		db_exec_no_reply (iface, "ANALYZE");
+	}
+
+	/* tracker_db_attach_db (db_con, TRACKER_DB_COMMON); */
+	/* tracker_db_attach_db (db_con, TRACKER_DB_CACHE); */
+
+	return iface;
+}
+
+static TrackerDBInterface *
+db_interface_get_email_contents (void)
+{
+	TrackerDBInterface *iface;
+	const gchar        *path;
+	gboolean            create = FALSE;
+
+	path = tracker_db_manager_get_file (TRACKER_DB_EMAIL_CONTENTS);
+
+	if (!g_file_test (path, G_FILE_TEST_EXISTS)) {
+		create = TRUE;
+	}
+
+	iface = tracker_db_interface_sqlite_new (path);
+	tracker_db_interface_set_procedure_table (iface, prepared_queries);
+
+	db_set_params (iface,
+		       tracker_db_manager_get_cache_size (TRACKER_DB_EMAIL_CONTENTS),
+		       tracker_db_manager_get_page_size (TRACKER_DB_EMAIL_CONTENTS),
+		       tracker_db_manager_get_add_functions (TRACKER_DB_EMAIL_CONTENTS));
+
+	if (create) {
+		g_message ("Creating database... '%s' (for email contents)", path);
+
+		load_sql_file (iface, "sqlite-contents.sql", NULL);
+
+		db_exec_no_reply (iface, "ANALYZE");
+	}
+
+	tracker_db_interface_sqlite_create_function (iface, 
+						     "uncompress", 
+						     function_uncompress, 
+						     1);
+
+	return iface;
+}
+
+static gboolean
+db_xesam_get_service_mapping (TrackerDBInterface *iface, 
+			      const gchar        *type, 
+			      GList             **list)
+{
+	TrackerDBResultSet *result_set;
+	gboolean valid = TRUE;
+
+	result_set = db_exec_proc (iface,
+				   "GetXesamServiceMappings",
+				   type, 
+				   NULL);
+
+	if (result_set) {
+		while (valid) {
+			gchar *st;
+			
+			tracker_db_result_set_get (result_set, 0, &st, -1);
+			if (strcmp (st, " ") != 0) {			
+				*list = g_list_prepend (*list, g_strdup (st));
+			}
+			
+			valid = tracker_db_result_set_iter_next (result_set);
+			g_free (st);
+		}
+		
+		*list = g_list_reverse (*list);
+		g_object_unref (result_set);
+	}
+
+	result_set = db_exec_proc (iface, 
+				   "GetXesamServiceChildren", 
+				   type, 
+				   NULL);
+	valid = TRUE;
+
+	if (result_set) {
+		while (valid) {
+			gchar *st;
+			
+			tracker_db_result_set_get (result_set, 0, &st, -1);
+			db_xesam_get_service_mapping (iface, st, list);
+			
+			valid = tracker_db_result_set_iter_next (result_set);
+			g_free (st);
+		}
+		
+		g_object_unref (result_set);
+	}
+
+	return TRUE;
+}
+
+static gboolean
+db_xesam_get_metadata_mapping (TrackerDBInterface  *iface, 
+			       const gchar         *type, 
+			       GList              **list)
+{
+	TrackerDBResultSet *result_set;
+	gboolean            valid = TRUE;
+
+	result_set = db_exec_proc (iface, 
+				   "GetXesamMetaDataMappings", 
+				   type, 
+				   NULL);
+
+	if (result_set) {
+		while (valid) {
+			gchar *st;
+			
+			tracker_db_result_set_get (result_set, 0, &st, -1);
+
+			if (strcmp(st, " ") != 0) {			
+				*list = g_list_prepend (*list, g_strdup (st));
+			}
+			
+			valid = tracker_db_result_set_iter_next (result_set);
+			g_free (st);
+		}
+
+		*list = g_list_reverse (*list);
+		g_object_unref (result_set);
+	}
+
+	result_set = db_exec_proc (iface, 
+				   "GetXesamMetaDataChildren", 
+				   type, 
+				   NULL);
+	valid = TRUE;
+
+	if (result_set) {
+		while (valid) {
+			gchar *st;
+			
+			tracker_db_result_set_get (result_set, 0, &st, -1);
+			db_xesam_get_service_mapping (iface, st ,list);
+			
+			valid = tracker_db_result_set_iter_next (result_set);
+			g_free (st);
+		}
+		
+		g_object_unref (result_set);
+	}
+
+	return TRUE;
+}
+
+static gboolean
+db_xesam_create_lookup (TrackerDBInterface *iface)
+{
+	TrackerDBResultSet *result_set;
+	gboolean            valid;
+	
+	valid = TRUE;
+
+	result_set = db_exec_proc (iface, 
+				   "GetXesamServiceTypes", 
+				   NULL);
+	
+	if (result_set) {
+		while (valid) {
+			GList *list = NULL;
+			GList *iter = NULL;
+			gchar *st;
+			
+			tracker_db_result_set_get (result_set, 0, &st, -1);
+			db_xesam_get_service_mapping (iface, st, &list);
+			
+			iter = g_list_first (list);
+
+			while (iter) {
+				db_exec_proc (iface,
+					      "InsertXesamServiceLookup", 
+					      st, 
+					      iter->data, 
+					      NULL);
+				g_free (iter->data);
+				iter = g_list_next (iter);
+			}			
+			
+			g_list_free (list);
+			
+			valid = tracker_db_result_set_iter_next (result_set);	
+		g_free (st);
+		}
+	}
+	
+	g_object_unref (result_set);	
+	
+	valid = TRUE;
+	result_set = db_exec_proc (iface, 
+				   "GetXesamMetaDataTypes", 
+				   NULL);
+	
+	if (result_set) {
+		while (valid) {
+			GList *list = NULL;
+			GList *iter = NULL;	
+			gchar *st;
+			
+			tracker_db_result_set_get (result_set, 0, &st, -1);
+			db_xesam_get_metadata_mapping (iface, st, &list);
+			
+			iter = g_list_first (list);
+			while (iter) {
+				db_exec_proc (iface, 
+					      "InsertXesamMetaDataLookup", 
+					      st, 
+					      iter->data, 
+					      NULL);
+				g_free (iter->data);
+				iter = g_list_next (iter);
+			}			
+			
+			g_list_free (list);
+			
+			valid = tracker_db_result_set_iter_next (result_set);
+			g_free (st);
+		}
+	}
+	
+	g_object_unref (result_set);	
+
+	return TRUE;
+}
+
+static TrackerDBInterface *
+db_interface_get_xesam (void)
+{
+	TrackerDBInterface *iface;
+	const gchar        *path;
+	gboolean            create = FALSE;
+
+	path = tracker_db_manager_get_file (TRACKER_DB_XESAM);
+
+	if (!g_file_test (path, G_FILE_TEST_EXISTS)) {
+		create = TRUE;
+	}
+
+	iface = tracker_db_interface_sqlite_new (path);
+	tracker_db_interface_set_procedure_table (iface, prepared_queries);
+
+	db_set_params (iface,
+		       tracker_db_manager_get_cache_size (TRACKER_DB_XESAM),
+		       tracker_db_manager_get_page_size (TRACKER_DB_XESAM),
+		       tracker_db_manager_get_add_functions (TRACKER_DB_XESAM));
+
+	if (create) {
+		g_message ("Creating database... '%s' (for xesam)", path);
+
+		load_sql_file (iface, "sqlite-xesam.sql", NULL);
+		
+		load_service_file_xesam (iface, "xesam.metadata");
+		load_service_file_xesam (iface, "xesam-convenience.metadata");
+		load_service_file_xesam (iface, "xesam-virtual.metadata");
+		load_service_file_xesam (iface, "xesam.service");
+		load_service_file_xesam (iface, "xesam-convenience.service");
+		load_service_file_xesam (iface, "xesam-service.smapping");
+		load_service_file_xesam (iface, "xesam-metadata.mmapping");
+		
+		db_xesam_create_lookup (iface);
+
+		db_exec_no_reply (iface, "ANALYZE");
+	}
+
+#if 0	
+	db_exec_no_reply (iface, 
+			  "ATTACH '%s' as %s",
+			  tracker_db_manager_get_file (TRACKER_DB_FILE_METADATA),
+			  tracker_db_manager_get_name (TRACKER_DB_FILE_METADATA));
+
+	db_exec_no_reply (iface, 
+			  "ATTACH '%s' as %s",
+			  tracker_db_manager_get_file (TRACKER_DB_EMAIL_METADATA),
+			  tracker_db_manager_get_name (TRACKER_DB_EMAIL_METADATA));
+
+	db_exec_no_reply (iface, 
+			  "ATTACH '%s' as %s",
+			  tracker_db_manager_get_file (TRACKER_DB_COMMON),
+			  tracker_db_manager_get_name (TRACKER_DB_COMMON));
+
+	db_exec_no_reply (iface, 
+			  "ATTACH '%s' as %s",
+			  tracker_db_manager_get_file (TRACKER_DB_CACHE),
+			  tracker_db_manager_get_name (TRACKER_DB_CACHE));
+#endif
+
+	return iface;
 }
 
 const gchar *
@@ -1044,6 +1864,39 @@ db_manager_db_type_to_string (TrackerDB db)
         }
 
         return enum_value->value_nick;
+}
+
+static TrackerDBInterface *
+create_db_interface (TrackerDB db)
+{
+	switch (db) {
+        case TRACKER_DB_COMMON:
+		return db_interface_get_common ();
+
+        case TRACKER_DB_CACHE:
+		return db_interface_get_cache ();
+
+        case TRACKER_DB_FILE_METADATA:
+		return db_interface_get_file_metadata ();
+
+        case TRACKER_DB_FILE_CONTENTS:
+		return db_interface_get_file_contents ();
+
+        case TRACKER_DB_EMAIL_METADATA:
+		return db_interface_get_email_metadata ();
+
+        case TRACKER_DB_EMAIL_CONTENTS:
+		return db_interface_get_email_contents ();
+
+	case TRACKER_DB_XESAM:
+		return db_interface_get_xesam ();
+	}
+
+	g_critical ("This TrackerDB type:%d->'%s' has no interface set up yet!!",
+		    db,
+		    db_manager_db_type_to_string (db));
+
+	return NULL;
 }
 
 GType
@@ -1103,18 +1956,19 @@ tracker_db_manager_init (const gchar *data_dir,
 	sql_dir = g_build_filename (SHAREDIR, 
 				    "tracker", 
 				    NULL);
-	
-	configure_database_description (data_dir, 
-					user_data_dir, 
-					sys_tmp_dir);
-	
+
 	prepared_queries = g_hash_table_new_full (g_str_hash,
 						  g_str_equal,
 						  g_free,
 						  g_free);
-	
+
 	load_prepared_queries ();
 	
+	configure_database_description (data_dir, 
+					user_data_dir, 
+					sys_tmp_dir);
+
+
 	initialized = TRUE;
 }
 
@@ -1127,14 +1981,18 @@ tracker_db_manager_shutdown (void)
                 return;
         }
 
-	g_hash_table_unref (prepared_queries);
-	prepared_queries = NULL;
-
         for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
                 if (dbs[i].abs_filename) {
                         g_free (dbs[i].abs_filename);
+			dbs[i].abs_filename = NULL;
+
+			g_object_unref (dbs[i].iface);
+			dbs[i].iface = NULL;
                 }
         }
+
+	g_hash_table_unref (prepared_queries);
+	prepared_queries = NULL;
 
         g_free (services_dir);
         g_free (sql_dir);
@@ -1197,23 +2055,59 @@ tracker_db_manager_get_name (TrackerDB db)
 TrackerDBInterface *
 tracker_db_manager_get_db_interface (TrackerDB db)
 {
-	switch (db) {
-        case TRACKER_DB_COMMON:
-		return db_manager_get_common ();
+	return dbs[db].iface;
+}
 
-        case TRACKER_DB_CACHE:
-        case TRACKER_DB_FILE_METADATA:
-		return db_manager_get_file_metadata ();
+TrackerDBInterface *
+tracker_db_manager_get_db_interface_by_service (const gchar *service, 
+						gboolean     content)
+{
+	TrackerDBType type;
+	TrackerDB     db;
 
-        case TRACKER_DB_FILE_CONTENTS:
-        case TRACKER_DB_EMAIL_METADATA:
-        case TRACKER_DB_EMAIL_CONTENTS:
-	case TRACKER_DB_XESAM:
-		g_critical ("This TrackerDB type:%d->'%s' has no interface set up yet!!",
-			    db,
-			    db_manager_db_type_to_string (db));
+	g_return_val_if_fail (service != NULL, NULL);
+
+	type = tracker_ontology_get_db_for_service_type (service);
+
+	switch (type) {
+	case TRACKER_DB_TYPE_EMAIL:
+		if (G_UNLIKELY (content)) {
+			db = TRACKER_DB_EMAIL_CONTENTS;
+		} else {
+			db = TRACKER_DB_EMAIL_METADATA;
+		}
+		break;
+
+	default:
+		if (G_UNLIKELY (content)) {
+			db = TRACKER_DB_FILE_CONTENTS;
+		} else {
+			db = TRACKER_DB_FILE_METADATA;
+		}
 		break;
 	}
+
+	return tracker_db_manager_get_db_interface (db);
+}
+
+TrackerDBInterface *
+tracker_db_manager_get_db_interface_content (TrackerDBInterface *iface)
+{
+	guint i;
+
+	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
+
+        for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
+		if (dbs[i].iface != iface) {
+			continue;
+		}
+
+		if (i == TRACKER_DB_FILE_METADATA) { 
+			return dbs[TRACKER_DB_FILE_CONTENTS].iface;
+		} else if (i == TRACKER_DB_EMAIL_METADATA) { 
+			return dbs[TRACKER_DB_EMAIL_CONTENTS].iface;
+		}
+	}	
 
 	return NULL;
 }

@@ -54,7 +54,7 @@ struct TrackerXesamClass {
 };
 
 GType         tracker_xesam_get_type           (void);
-TrackerXesam *tracker_xesam_new                (DBConnection          *db_con);
+TrackerXesam *tracker_xesam_new                (void);
 void          tracker_xesam_new_session        (TrackerXesam          *object,
 						DBusGMethodInvocation *context);
 void          tracker_xesam_set_property       (TrackerXesam          *object,
@@ -111,8 +111,6 @@ void          tracker_xesam_name_owner_changed (DBusGProxy            *proxy,
 						const char            *prev_owner,
 						const char            *new_owner,
 						TrackerXesam          *self);
-void          tracker_xesam_set_db_connection  (TrackerXesam          *object,
-						DBConnection          *db_con);
 
 G_END_DECLS
 

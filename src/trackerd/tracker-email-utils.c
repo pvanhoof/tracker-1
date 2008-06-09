@@ -81,12 +81,15 @@ email_watch_directories (const GSList *dirs, const gchar *service)
 
 
 gboolean
-email_parse_and_save_mail_message (DBConnection *db_con, MailApplication mail_app, const char *path,
-                                   ReadMailHelperFct read_mail_helper, gpointer read_mail_user_data)
+email_parse_and_save_mail_message (TrackerDBInterface *iface,
+                                   MailApplication mail_app, 
+                                   const char *path,
+                                   ReadMailHelperFct read_mail_helper, 
+                                   gpointer read_mail_user_data)
 {
 	MailMessage *mail_msg;
 
-	g_return_val_if_fail (db_con, FALSE);
+	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), FALSE);
 	g_return_val_if_fail (path, FALSE);
 
 	mail_msg = email_parse_mail_message_by_path (mail_app, path,
@@ -96,7 +99,7 @@ email_parse_and_save_mail_message (DBConnection *db_con, MailApplication mail_ap
 		return FALSE;
 	}
 
-	tracker_db_email_save_email (db_con, mail_msg, mail_app);
+	tracker_db_email_save_email (iface, mail_msg, mail_app);
 
 	email_free_mail_message (mail_msg);
 
@@ -105,9 +108,13 @@ email_parse_and_save_mail_message (DBConnection *db_con, MailApplication mail_ap
 
 
 gboolean
-email_parse_mail_file_and_save_new_emails (DBConnection *db_con, MailApplication mail_app, const char *path,
-                                           ReadMailHelperFct read_mail_helper, gpointer read_mail_user_data,
-                                           MakeURIHelperFct uri_helper, gpointer make_uri_user_data,
+email_parse_mail_file_and_save_new_emails (TrackerDBInterface *iface,
+                                           MailApplication mail_app,
+                                           const char *path,
+                                           ReadMailHelperFct read_mail_helper, 
+                                           gpointer read_mail_user_data,
+                                           MakeURIHelperFct uri_helper, 
+                                           gpointer make_uri_user_data,
                                            MailStore *store)
 {
         GObject     *object;
@@ -115,11 +122,7 @@ email_parse_mail_file_and_save_new_emails (DBConnection *db_con, MailApplication
 	MailMessage *mail_msg;
 	gint        indexed = 0, junk = 0, deleted = 0;
 
-	if (!tracker->is_running) {
-                return FALSE;
-        }
-
-	g_return_val_if_fail (db_con, FALSE);
+	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), FALSE);
 	g_return_val_if_fail (path, FALSE);
 	g_return_val_if_fail (store, FALSE);
 
@@ -168,8 +171,8 @@ email_parse_mail_file_and_save_new_emails (DBConnection *db_con, MailApplication
 			deleted++;
 		}
 
-		tracker_db_email_save_email (db_con, mail_msg, mail_app);
-		tracker_db_email_update_mbox_offset (db_con, mf);
+		tracker_db_email_save_email (iface, mail_msg, mail_app);
+		tracker_db_email_update_mbox_offset (iface, mf);
 
 		email_free_mail_message (mail_msg);
 
@@ -181,13 +184,13 @@ email_parse_mail_file_and_save_new_emails (DBConnection *db_con, MailApplication
                  *
                  * -Martyn
                  */ 
-		if (!tracker_cache_process_events (db_con->data, TRUE) ) {
+		if (!tracker_cache_process_events (iface, TRUE) ) {
 			tracker->shutdown = TRUE;
 			return FALSE;	
 		}
 #endif
 
-		if (tracker_db_regulate_transactions (db_con->data, 500)) {
+		if (tracker_db_regulate_transactions (iface, 500)) {
                         GObject *object;
 
 			if (tracker_config_get_verbosity (tracker->config) == 1) {
@@ -195,9 +198,9 @@ email_parse_mail_file_and_save_new_emails (DBConnection *db_con, MailApplication
 			}
 
 			if (tracker->index_count % 2500 == 0) {
-				tracker_db_end_index_transaction (db_con->data);
-				tracker_db_refresh_all (db_con->data);
-				tracker_db_start_index_transaction (db_con->data);
+				tracker_db_interface_end_transaction (iface);
+				tracker_db_refresh_all (iface);
+				tracker_db_interface_start_transaction (iface);
 			}
 			
                         /* Signal progress */
@@ -251,12 +254,12 @@ email_is_in_a_mh_dir (const gchar *path)
 
 
 /* void */
-/* email_mh_watch_mail_messages (DBConnection *db_con, const gchar *path) */
+/* email_mh_watch_mail_messages (DBConnection *iface, const gchar *path) */
 /* { */
 /* 	gchar *mail_dirs[] = {"inbox", "sent", "trash", NULL}; */
 /* 	gchar **dir_name; */
 
-/* 	g_return_if_fail (db_con); */
+/* 	g_return_if_fail (iface); */
 /* 	g_return_if_fail (path); */
 
 /* 	if (tracker_file_is_no_watched (path)) { */
@@ -267,7 +270,7 @@ email_is_in_a_mh_dir (const gchar *path)
 /* 		gchar *dir_path = g_build_filename (path, *dir_name, NULL); */
 
 /* 		if (tracker_is_directory (dir_path)) { */
-/* 			mh_watch_mail_messages_in_dir (db_con, dir_path); */
+/* 			mh_watch_mail_messages_in_dir (iface, dir_path); */
 /* 		} */
 
 /* 		g_free (dir_path); */
@@ -287,11 +290,11 @@ email_is_in_a_maildir_dir (const gchar *path)
 
 
 /* void */
-/* email_maildir_watch_mail_messages (DBConnection *db_con, const gchar *path) */
+/* email_maildir_watch_mail_messages (DBConnection *iface, const gchar *path) */
 /* { */
 /* 	gchar *dir_cur; */
 
-/* 	g_return_if_fail (db_con); */
+/* 	g_return_if_fail (iface); */
 /* 	g_return_if_fail (path); */
 
 /* 	if (tracker_file_is_no_watched (path)) { */
@@ -305,8 +308,8 @@ email_is_in_a_maildir_dir (const gchar *path)
 /* 		const GSList *file; */
 /* 		GPatternSpec *pattern; */
 
-/* 		if (!tracker_is_directory_watched (dir_cur, db_con)) { */
-/* 			tracker_add_watch_dir (dir_cur, db_con); */
+/* 		if (!tracker_is_directory_watched (dir_cur, iface)) { */
+/* 			tracker_add_watch_dir (dir_cur, iface); */
 /* 		} */
 
 /* 		files = tracker_get_files (dir_cur, FALSE); */
@@ -318,7 +321,7 @@ email_is_in_a_maildir_dir (const gchar *path)
 /* 			const gchar *file_path = file->data; */
 
 /* 			if (g_pattern_match_string (pattern, file_path)) { */
-/* 				tracker_db_insert_pending_file (db_con, 0, file_path, NULL, 0, TRACKER_ACTION_CHECK, FALSE, FALSE, -1); */
+/* 				tracker_db_insert_pending_file (iface, 0, file_path, NULL, 0, TRACKER_ACTION_CHECK, FALSE, FALSE, -1); */
 /* 			} */
 /* 		} */
 
@@ -882,20 +885,20 @@ email_decode_mail_attachment_to_file (const gchar *src, const gchar *dst, MimeEn
 *********************************************************************************************/
 
 /* static void */
-/* mh_watch_mail_messages_in_dir (DBConnection *db_con, const gchar *dir_path) */
+/* mh_watch_mail_messages_in_dir (DBConnection *iface, const gchar *dir_path) */
 /* { */
 /* 	GSList       *files; */
 /* 	const GSList *file; */
 
-/* 	g_return_if_fail (db_con); */
+/* 	g_return_if_fail (iface); */
 /* 	g_return_if_fail (dir_path); */
 
 /* 	if (tracker_file_is_no_watched (dir_path)) { */
 /* 		return; */
 /* 	} */
 
-/* 	if (!tracker_is_directory_watched (dir_path, db_con)) { */
-/* 		tracker_add_watch_dir (dir_path, db_con); */
+/* 	if (!tracker_is_directory_watched (dir_path, iface)) { */
+/* 		tracker_add_watch_dir (dir_path, iface); */
 /* 	} */
 
 /* 	files = tracker_get_files (dir_path, FALSE); */
@@ -915,7 +918,7 @@ email_decode_mail_attachment_to_file (const gchar *src, const gchar *dst, MimeEn
 /* 				} */
 /* 			} */
 
-/* 			tracker_db_insert_pending_file (db_con, 0, file_path, NULL, 0, TRACKER_ACTION_CHECK, FALSE, FALSE, -1); */
+/* 			tracker_db_insert_pending_file (iface, 0, file_path, NULL, 0, TRACKER_ACTION_CHECK, FALSE, FALSE, -1); */
 
 /* 		end: */
 /* 			g_free (file_name); */

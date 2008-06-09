@@ -165,14 +165,6 @@ tracker_indexer_finalize (GObject *object)
 		tracker_index_free (priv->index);
 	}
 
-	if (priv->common) {
-		g_object_unref (priv->common);
-	}
-
-	if (priv->metadata) {
-		g_object_unref (priv->metadata);
-	}
-
 	G_OBJECT_CLASS (tracker_indexer_parent_class)->finalize (object);
 }
 
@@ -287,6 +279,7 @@ init_indexer (TrackerIndexer *indexer)
 
 	priv->common = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
 	priv->metadata = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
+	priv->contents = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_CONTENTS);
 
 	tracker_indexer_set_running (indexer, TRUE);
 
@@ -463,6 +456,7 @@ process_file (TrackerIndexer *indexer,
 		id = tracker_db_get_new_service_id (priv->common);
 
 		if (tracker_db_create_service (priv->metadata, id, service, info->path, metadata)) {
+			gchar *text;
 			guint32 eid;
 
 			eid = tracker_db_get_new_event_id (priv->common);
@@ -472,6 +466,13 @@ process_file (TrackerIndexer *indexer,
 			tracker_db_increment_stats (priv->common, service);
 
 			index_metadata (indexer, id, service, metadata);
+
+			text = tracker_indexer_module_get_text (info->module, info->path);
+
+			if (text) {
+				tracker_db_set_text (priv->contents, id, text);
+				g_free (text);
+			}
 		}
 
 		g_hash_table_destroy (metadata);

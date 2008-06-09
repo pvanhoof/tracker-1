@@ -200,3 +200,22 @@ tracker_db_set_metadata (TrackerDBInterface *iface,
 	g_free (id_str);
 }
 
+void
+tracker_db_set_text (TrackerDBInterface *iface,
+		     guint32             id,
+		     const gchar        *text)
+{
+	TrackerField *field;
+	gchar *id_str;
+
+	id_str = tracker_guint32_to_string (id);
+	field = tracker_ontology_get_field_def ("File:Contents");
+
+	tracker_db_interface_execute_procedure (iface, NULL,
+						"SaveServiceContents",
+						id_str,
+						tracker_field_get_id (field),
+						text,
+						NULL);
+	g_free (id_str);
+}

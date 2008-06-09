@@ -40,6 +40,9 @@ void     tracker_db_set_metadata       (TrackerDBInterface *iface,
                                         guint32             id,
                                         TrackerField       *field,
                                         const gchar        *value);
+void     tracker_db_set_text           (TrackerDBInterface *iface,
+					guint32             id,
+					const gchar        *text);
 gboolean tracker_db_create_event       (TrackerDBInterface *iface,
                                         guint32             id,
                                         guint32             service_id,

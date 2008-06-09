@@ -70,6 +70,9 @@
 
 extern Tracker *tracker;
 
+static gint merge_count = 0;
+static gint merge_processed = 0;
+
 struct Indexer_ {
 	DEPOT  		*word_index;	/* file hashtable handle for the word -> {serviceID, ServiceTypeID, Score}  */
 	GMutex 		*word_mutex;
@@ -411,8 +414,8 @@ tracker_indexer_apply_changes (Indexer *dest, Indexer *src,  gboolean update)
 	dpiterinit (src->word_index);
 	
 	tracker->in_merge = TRUE;
-	tracker->merge_count = 1;
-	tracker->merge_processed = 0;
+	merge_count = 1;
+	merge_processed = 0;
 	
         /* Signal progress */
         object = tracker_dbus_get_object (TRACKER_TYPE_DAEMON);
@@ -421,8 +424,8 @@ tracker_indexer_apply_changes (Indexer *dest, Indexer *src,  gboolean update)
                                "Merging",
                                "",
                                tracker->index_count,
-                               tracker->merge_processed,
-                               tracker->merge_count);
+                               merge_processed,
+                               merge_count);
 	
 	while ((str = dpiternext (src->word_index, NULL))) {
 		
@@ -480,8 +483,8 @@ tracker_indexer_apply_changes (Indexer *dest, Indexer *src,  gboolean update)
 	}
 	
 	tracker->in_merge = FALSE;
-	tracker->merge_count = 1;
-	tracker->merge_processed = 1;
+	merge_count = 1;
+	merge_processed = 1;
 
         /* Signal progress */
         object = tracker_dbus_get_object (TRACKER_TYPE_DAEMON);
@@ -490,8 +493,8 @@ tracker_indexer_apply_changes (Indexer *dest, Indexer *src,  gboolean update)
                                "Merging",                     
                                "",
                                tracker->index_count,        
-                               tracker->merge_processed,  
-                               tracker->merge_count);     
+                               merge_processed,  
+                               merge_count);     
 }
 
 gboolean
@@ -671,8 +674,8 @@ tracker_indexer_merge_indexes (IndexType type)
 
 	g_message ("starting merge of %d indexes", index_count);
 	tracker->in_merge = TRUE;
-	tracker->merge_count = index_count;
-	tracker->merge_processed = 0;
+	merge_count = index_count;
+	merge_processed = 0;
 	
         /* Signal progress */
         g_signal_emit_by_name (object, 
@@ -680,8 +683,8 @@ tracker_indexer_merge_indexes (IndexType type)
                                "Merging",
                                "",
                                tracker->index_count,
-                               tracker->merge_processed,
-                               tracker->merge_count);
+                               merge_processed,
+                               merge_count);
 
 	if (index_count == 2 && !final_exists) {
                 Indexer *index1 = index_list->data ;
@@ -837,7 +840,7 @@ tracker_indexer_merge_indexes (IndexType type)
                                 GObject *object;
 
 				tracker_indexer_free (index, TRUE);
-				tracker->merge_processed++;
+				merge_processed++;
 
                                 /* Signal progress */
                                 object = tracker_dbus_get_object (TRACKER_TYPE_DAEMON);
@@ -846,8 +849,8 @@ tracker_indexer_merge_indexes (IndexType type)
                                                        "Merging",
                                                        "",
                                                        tracker->index_count,
-                                                       tracker->merge_processed,
-                                                       tracker->merge_count);
+                                                       merge_processed,
+                                                       merge_count);
 			}
 
 

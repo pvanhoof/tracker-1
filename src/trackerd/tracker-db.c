@@ -3458,8 +3458,8 @@ tracker_db_regulate_transactions (TrackerDBInterface *iface,
 
 			g_message ("Current memory usage is %d, word count %d and hits %d", 
 				   get_memory_usage (), 
-				   tracker->word_count, 
-				   tracker->word_detail_count);
+				   0,  /* was tracker->word_count, */
+				   0); /* was tracker->word_detail_count */
 		}
 
 		return TRUE;

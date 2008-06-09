@@ -38,21 +38,9 @@
 
 #include "tracker-indexer.h"
 
-/* default performance options */
-#define MAX_PROCESS_QUEUE_SIZE 100
-#define MAX_EXTRACT_QUEUE_SIZE 500
-
 G_BEGIN_DECLS
 
 typedef struct {
- 	gboolean          is_running; 
-	gboolean          readonly;
-
-	gint              pid; 
-
-	gboolean          reindex;
-
-
 #ifdef HAVE_HAL
 	TrackerHal       *hal;
 #endif
@@ -60,14 +48,13 @@ typedef struct {
         TrackerConfig    *config;
         TrackerLanguage  *language;
 
-	/* Config options */
-	guint32           watch_limit; 
+ 	gboolean          is_running; 
+	gboolean          readonly;
 
-	/* Performance and memory usage options */
-	gint              max_process_queue_size;
-	gint              max_extract_queue_size;
-	gint              memory_limit;
-     
+	gint              pid; 
+
+	gboolean          reindex;
+  
 	/* Pause/shutdown */
 	gboolean          pause_manual;
 	gboolean          pause_battery;
@@ -86,21 +73,11 @@ typedef struct {
 	gint              mbox_count; 
 	gint              mbox_processed;
 
-	/* Email config options */
-	gint              email_service_min;
-	gint              email_service_max; 
-
 	/* Progress info for merges */
 	gboolean          in_merge; 
-	gint              merge_count; 
-	gint              merge_processed;
 	
 	/* Application run time values */
 	gint              index_count; 
-
-	gint              word_detail_count; 
-	gint              word_count;
-	gint              word_update_count; 
 } Tracker;
 
 void         tracker_shutdown        (void);

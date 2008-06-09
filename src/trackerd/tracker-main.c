@@ -291,18 +291,6 @@ sanity_check_option_values (void)
 
         no_index_file_types = tracker_config_get_no_index_file_types (tracker->config);
 
-	if (!tracker_config_get_low_memory_mode (tracker->config)) {
-		tracker->memory_limit = 16000 *1024;
-	
-		tracker->max_process_queue_size = 5000;
-		tracker->max_extract_queue_size = 5000;
-	} else {
-		tracker->memory_limit = 8192 * 1024;
-
-		tracker->max_process_queue_size = 500;
-		tracker->max_extract_queue_size = 500;
-	}
-
 	g_message ("Tracker configuration options:");
 	g_message ("  Verbosity  ............................  %d", 
 		   tracker_config_get_verbosity (tracker->config));
@@ -754,9 +742,6 @@ main (gint argc, gchar *argv[])
 	tracker = g_new0 (Tracker, 1);
 
 	tracker->pid = getpid ();
-
-	tracker->max_process_queue_size = MAX_PROCESS_QUEUE_SIZE;
-	tracker->max_extract_queue_size = MAX_EXTRACT_QUEUE_SIZE;
 
 	/* This makes sure we have all the locations like the data
 	 * dir, user data dir, etc all configured.

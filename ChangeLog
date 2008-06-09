@@ -1,5 +1,13 @@
 2008-06-09  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-db/tracker-db-manager.c:
+	* src/trackerd/tracker-db.c: 
+	* src/trackerd/tracker-indexer.c:
+	* src/trackerd/tracker-main.[ch]: Removed more unused members from
+	the Tracker struct.
+
+2008-06-09  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-daemon.c:
 	* src/trackerd/tracker-files.c:
 	* src/trackerd/tracker-keywords.c:

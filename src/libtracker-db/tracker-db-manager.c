@@ -908,25 +908,6 @@ db_row_to_service (TrackerDBResultSet *result_set)
         tracker_service_set_has_thumbs (service, has_thumbs);
 	tracker_service_set_content_metadata (service, content_metadata);
 
-#if 0
-        if (g_str_has_prefix (name, "Email") ||
-            g_str_has_suffix (name, "Emails")) {
-                tracker_service_set_db_type (service, TRACKER_DB_TYPE_EMAIL);
-
-                if (tracker->email_service_min == 0 || 
-                    id < tracker->email_service_min) {
-                        tracker->email_service_min = id;
-                }
-
-                if (tracker->email_service_max == 0 || 
-                    id > tracker->email_service_max) {
-                        tracker->email_service_max = id;
-                }
-        } else {
-                tracker_service_set_db_type (service, TRACKER_DB_TYPE_DATA);
-        }
-#endif
-
         tracker_service_set_show_service_files (service, show_service_files);
         tracker_service_set_show_service_directories (service, show_service_directories);
 

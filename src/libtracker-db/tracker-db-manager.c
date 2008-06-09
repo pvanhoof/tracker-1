@@ -127,6 +127,7 @@ static TrackerDBInterface *db_interface_create (TrackerDB           db,
 						gboolean            attach_all);
 
 static gboolean      initialized;
+static gboolean      attach_all;
 static GHashTable   *prepared_queries;
 static gchar        *services_dir;
 static gchar        *sql_dir;
@@ -151,8 +152,7 @@ location_to_directory (TrackerDBLocation  location,
 }
 
 void 
-set_up_databases (gboolean     attach_all,
-		  const gchar *data_dir,
+set_up_databases (const gchar *data_dir,
 		  const gchar *user_data_dir,
 		  const gchar *sys_tmp_root_dir)
 {
@@ -169,7 +169,6 @@ set_up_databases (gboolean     attach_all,
                                              sys_tmp_root_dir);
                 
                 dbs[i].abs_filename = g_build_filename (dir, dbs[i].file, NULL);
-		dbs[i].iface = db_interface_create (i, attach_all);
         }
 
 	g_message ("Setting up all databases completed");
@@ -1803,7 +1802,7 @@ db_interface_get_xesam (gboolean attach_all)
 }
 
 static TrackerDBInterface *
-db_interface_create (TrackerDB db, 
+db_interface_create (TrackerDB db,
 		     gboolean  attach_all)
 {
 	switch (db) {
@@ -1889,6 +1888,7 @@ tracker_db_manager_init (gboolean     attach_all_dbs,
 		return;
 	}
 
+	attach_all = attach_all_dbs;
 
 	/* Since we don't reference this enum anywhere, we do
 	 * it here to make sure it exists when we call
@@ -1920,8 +1920,7 @@ tracker_db_manager_init (gboolean     attach_all_dbs,
 	load_prepared_queries ();
 
 	/* Configure database locations and interfaces */
-	set_up_databases (attach_all_dbs, 
-			  data_dir, 
+	set_up_databases (data_dir, 
 			  user_data_dir, 
 			  sys_tmp_dir);
 
@@ -1943,8 +1942,10 @@ tracker_db_manager_shutdown (void)
                         g_free (dbs[i].abs_filename);
 			dbs[i].abs_filename = NULL;
 
-			g_object_unref (dbs[i].iface);
-			dbs[i].iface = NULL;
+			if (dbs[i].iface) {
+				g_object_unref (dbs[i].iface);
+				dbs[i].iface = NULL;
+			}
                 }
         }
 
@@ -1978,6 +1979,10 @@ tracker_db_manager_get_file (TrackerDB db)
 TrackerDBInterface *
 tracker_db_manager_get_db_interface (TrackerDB db)
 {
+	if (!dbs[db].iface) {
+		dbs[db].iface = db_interface_create (db, attach_all);
+	}
+
 	return dbs[db].iface;
 }
 
@@ -2026,9 +2031,9 @@ tracker_db_manager_get_db_interface_content (TrackerDBInterface *iface)
 		}
 
 		if (i == TRACKER_DB_FILE_METADATA) { 
-			return dbs[TRACKER_DB_FILE_CONTENTS].iface;
+			return tracker_db_manager_get_db_interface (TRACKER_DB_FILE_CONTENTS);
 		} else if (i == TRACKER_DB_EMAIL_METADATA) { 
-			return dbs[TRACKER_DB_EMAIL_CONTENTS].iface;
+			return tracker_db_manager_get_db_interface (TRACKER_DB_EMAIL_CONTENTS);
 		}
 	}	
 

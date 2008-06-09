@@ -1,3 +1,13 @@
+2008-06-09  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-daemon.c:
+	* src/trackerd/tracker-files.c:
+	* src/trackerd/tracker-keywords.c:
+	* src/trackerd/tracker-main.[ch]:
+	* src/trackerd/tracker-metadata.c: 
+	* src/trackerd/tracker-utils.c: 
+	* src/trackerd/tracker-watcher-inotify.c: Removed unused threading code.
+
 2008-06-09  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/trackerd/tracker-main.c: initialise_directories before

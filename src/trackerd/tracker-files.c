@@ -215,7 +215,6 @@ tracker_files_create (TrackerFiles  *object,
 						"File:Format",
 						mime, 
 						FALSE);
-		tracker_notify_file_data_available ();
 
 		g_free (size_str);
 		g_free (mtime_str);

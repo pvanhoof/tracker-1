@@ -147,7 +147,6 @@ process_event (const gchar     *uri,
 
 		if (tracker_file_is_valid (parent)) {
                         tracker_process_files_process_queue_push (info);
-			tracker_notify_file_data_available ();
 		} else {
 			tracker_db_file_info_free (info);
                         info = NULL;

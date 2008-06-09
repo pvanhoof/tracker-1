@@ -101,14 +101,6 @@ typedef struct {
 	gint              word_detail_count; 
 	gint              word_count;
 	gint              word_update_count; 
-
-	GMutex           *files_check_mutex;
-	GMutex           *files_signal_mutex;
-	GCond            *files_signal_cond;
-
-	GMutex           *metadata_check_mutex;
-	GMutex           *metadata_signal_mutex;
-	GCond            *metadata_signal_cond;
 } Tracker;
 
 void         tracker_shutdown        (void);

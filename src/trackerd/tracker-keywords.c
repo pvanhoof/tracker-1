@@ -266,8 +266,6 @@ tracker_keywords_add (TrackerKeywords  *object,
 				 TRUE);
 	g_free (id);
 
-	tracker_notify_file_data_available ();
-
 	for (p = values; *p; p++) {
 		g_message ("Added keyword %s to %s with ID %s", *p, uri, id);
 		g_signal_emit (object, signals[KEYWORD_ADDED], 0, service, uri, *p);
@@ -327,14 +325,9 @@ tracker_keywords_remove (TrackerKeywords  *object,
 		return FALSE;
 	}
 
-	tracker_notify_file_data_available ();
-
 	for (p = values; *p; p++) {
 		g_message ("Removed keyword %s from %s with ID %s", *p, uri, id);
 		tracker_db_metadata_delete_value (iface, service, id, "User:Keywords", *p);
-
-		/* FIXME: Should we be doing this for EACH keyword? */
-		tracker_notify_file_data_available ();
 
 		g_signal_emit (object, signals[KEYWORD_REMOVED], 0, service, uri, *p);
 	}
@@ -398,8 +391,6 @@ tracker_keywords_remove_all (TrackerKeywords  *object,
 				    "User:Keywords", 
 				    TRUE);
 	g_free (id);
-
-	tracker_notify_file_data_available ();
 
 	tracker_dbus_request_success (request_id);
 

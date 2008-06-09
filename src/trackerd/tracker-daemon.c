@@ -446,10 +446,6 @@ tracker_daemon_set_bool_option (TrackerDaemon  *object,
 				       tracker_config_get_enable_indexing (priv->config));
 	}
 
-	tracker_notify_file_data_available ();
-
-	tracker_dbus_request_success (request_id);
-
 	return TRUE;
 }
 
@@ -489,8 +485,6 @@ tracker_daemon_set_int_option (TrackerDaemon  *object,
                 tracker_config_set_max_words_to_index (priv->config, value);
 		g_message ("Maxinum number of unique words set to %d", value);
 	} 
-
-	tracker_notify_file_data_available ();
 
 	tracker_dbus_request_success (request_id);
 

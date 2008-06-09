@@ -66,56 +66,6 @@ tracker_throttle (gint multiplier)
 }
 
 void
-tracker_notify_file_data_available (void)
-{
-	gint revs = 0;
-
-	if (!tracker->is_running) {
-		return;
-	}
-
-	/* If file thread is asleep then we just need to wake it up! */
-	if (g_mutex_trylock (tracker->files_signal_mutex)) {
-		g_cond_signal (tracker->files_signal_cond);
-		g_mutex_unlock (tracker->files_signal_mutex);
-		return;
-	}
-
-	/* If busy - check if async queue has new stuff as we do not need to notify then */
-	if (tracker_process_files_process_queue_length () > 1) {
-		return;
-	}
-
-	/* If file thread not in check phase then we need do nothing */
-	if (g_mutex_trylock (tracker->files_check_mutex)) {
-		g_mutex_unlock (tracker->files_check_mutex);
-		return;
-	}
-
-	/* We are in check phase - we need to wait until either
-	 * check_mutex is unlocked or file thread is asleep then
-	 * awaken it.
-	 */
-	while (revs < 100000) {
-		if (g_mutex_trylock (tracker->files_check_mutex)) {
-			g_mutex_unlock (tracker->files_check_mutex);
-			return;
-		}
-
-		if (g_mutex_trylock (tracker->files_signal_mutex)) {
-			g_cond_signal (tracker->files_signal_cond);
-			g_mutex_unlock (tracker->files_signal_mutex);
-			return;
-		}
-
-		g_thread_yield ();
-		g_usleep (10);
-
-		revs++;
-	}
-}
-
-void
 tracker_add_metadata_to_table (GHashTable  *meta_table, 
 			       const gchar *key, 
 			       const gchar *value)

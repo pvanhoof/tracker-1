@@ -527,18 +527,6 @@ initialise_directories (gboolean *need_index)
 }
 
 static void
-initialise_threading (void)
-{
-	tracker->files_check_mutex = g_mutex_new ();
-	tracker->files_signal_mutex = g_mutex_new ();
-	tracker->files_signal_cond = g_cond_new ();
-
-	tracker->metadata_check_mutex = g_mutex_new ();
-	tracker->metadata_signal_mutex = g_mutex_new ();
-	tracker->metadata_signal_cond = g_cond_new ();
-}
-
-static void
 initialise_databases (gboolean need_index)
 {
 	Indexer  *index;
@@ -623,65 +611,6 @@ initialise_databases (gboolean need_index)
 	/* db_con->word_index = tracker->file_index; */
 }
 
-static void
-shutdown_threads (GThread *thread_to_join)
-{
-	g_message ("Shutting down threads");
-
-	/* Wait for files thread to sleep */
-	while (!g_mutex_trylock (tracker->files_signal_mutex)) {
-		g_usleep (100);
-	}
-
-	g_mutex_unlock (tracker->files_signal_mutex);
-
-	while (!g_mutex_trylock (tracker->metadata_signal_mutex)) {
-		g_usleep (100);
-	}
-
-	g_mutex_unlock (tracker->metadata_signal_mutex);
-
-	/* Send signals to each thread to wake them up and then stop
-	 * them.
-	 */
-	g_mutex_lock (tracker->metadata_signal_mutex);
-	g_cond_signal (tracker->metadata_signal_cond);
-	g_mutex_unlock (tracker->metadata_signal_mutex);
-
-	g_mutex_unlock (tracker->files_check_mutex);
-
-	g_mutex_lock (tracker->files_signal_mutex);
-	g_cond_signal (tracker->files_signal_cond);
-	g_mutex_unlock (tracker->files_signal_mutex);
-
-	/* Wait for threads to exit and unlock check mutexes to
-	 * prevent any deadlocks 
-	 */
-	g_mutex_unlock (tracker->metadata_check_mutex);
-	g_mutex_unlock (tracker->files_check_mutex);
-
-#if 0
-	/* We wait now for the thread to exit and join, then clean up
-	 * the mutexts and conds. 
-	 */
-	g_message ("Waiting for thread to finish");
-	g_thread_join (thread_to_join);
-#endif
-
-	/* Clean up */
-#if 0
-	g_message ("Waiting for file check/signal mutexes to unlock before cleaning up...");
-	g_mutex_free (tracker->files_check_mutex); 
-	g_mutex_free (tracker->files_signal_mutex);
-	g_cond_free (tracker->files_signal_cond);
-
-	g_message ("Waiting for metadata check/signal mutexes to unlock before cleaning up...");
-	g_mutex_free (tracker->metadata_check_mutex);
-	g_mutex_free (tracker->metadata_signal_mutex);
-	g_cond_free (tracker->metadata_signal_cond);
-#endif
-}
-
 static gboolean
 check_multiple_instances (void)
 {
@@ -761,7 +690,6 @@ main (gint argc, gchar *argv[])
 {
 	GOptionContext *context = NULL;
 	GError         *error = NULL;
-	GThread        *thread; 
 	GSList         *l;
 	gchar          *example;
 	gboolean        need_index;
@@ -909,7 +837,6 @@ main (gint argc, gchar *argv[])
  	tracker->hal = tracker_hal_new ();
 #endif /* HAVE_HAL */
 
-	initialise_threading ();
 
 	umask (077);
 
@@ -992,7 +919,6 @@ main (gint argc, gchar *argv[])
 
 	shutdown_indexer ();
 	shutdown_databases ();
-	shutdown_threads (thread);
 	shutdown_directories ();
 
 	/* Shutdown major subsystems */

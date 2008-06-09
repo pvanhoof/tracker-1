@@ -273,7 +273,6 @@ tracker_metadata_set (TrackerMetadata  *object,
 						key, 
 						value, 
 						TRUE);
-		tracker_notify_file_data_available ();
 	}
 	
 	g_free (service_id);

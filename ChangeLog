@@ -1,3 +1,10 @@
+2008-06-09  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/trackerd/tracker-main.c: initialise_directories before
+	tracker_db_manager_init. Removed second call to tracker_watcher-init.
+	* src/trackerd/tracker-db.c: Fixed assert. Offset must be equal or
+	greater than 0.
+
 2008-06-09  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-db/tracker-db-manager.[ch]: Removed a lot of

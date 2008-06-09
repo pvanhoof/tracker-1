@@ -896,8 +896,9 @@ main (gint argc, gchar *argv[])
 		return EXIT_FAILURE;
 	} 
 
+	initialise_directories (&need_index);
+
 	tracker_nfs_lock_init (tracker_config_get_nfs_locking (tracker->config));
-	tracker_watcher_init ();
 	tracker_ontology_init ();
 	tracker_db_init ();
 	tracker_db_manager_init (FALSE, data_dir, user_data_dir, sys_tmp_dir); /* Using TRUE=broken */
@@ -908,7 +909,6 @@ main (gint argc, gchar *argv[])
  	tracker->hal = tracker_hal_new ();
 #endif /* HAVE_HAL */
 
-	initialise_directories (&need_index);
 	initialise_threading ();
 
 	umask (077);

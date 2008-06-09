@@ -782,7 +782,7 @@ tracker_db_search_text (TrackerDBInterface *iface,
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
 	g_return_val_if_fail (service != NULL, NULL);
 	g_return_val_if_fail (search_string != NULL, NULL);
-	g_return_val_if_fail (offset < 0, NULL);
+	g_return_val_if_fail (offset >= 0, NULL);
 
 	array = tracker_parser_text_into_array (search_string,
 						tracker->language,

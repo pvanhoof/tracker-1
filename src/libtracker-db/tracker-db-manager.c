@@ -823,7 +823,7 @@ db_row_to_field_def (TrackerDBResultSet *result_set)
 {
         TrackerField     *field_def;
 	TrackerFieldType  field_type;
-	gchar            *field_name, *name;
+	gchar            *id_str, *field_name, *name;
 	gint              weight, id;
 	gboolean          embedded, multiple_values, delimited, filtered, store_metadata;
 
@@ -842,7 +842,9 @@ db_row_to_field_def (TrackerDBResultSet *result_set)
 				   9, &store_metadata,
 				   -1);
 
-	tracker_field_set_id (field_def, tracker_int_to_string (id));
+	id_str = tracker_int_to_string (id);
+
+	tracker_field_set_id (field_def, id_str);
 	tracker_field_set_name (field_def, name);
 	tracker_field_set_data_type (field_def, field_type);
 	tracker_field_set_field_name (field_def, field_name);
@@ -853,6 +855,7 @@ db_row_to_field_def (TrackerDBResultSet *result_set)
 	tracker_field_set_filtered (field_def, filtered);
 	tracker_field_set_store_metadata (field_def, store_metadata);
 
+	g_free (id_str);
 	g_free (field_name);
 	g_free (name);
 

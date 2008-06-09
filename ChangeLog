@@ -1,3 +1,8 @@
+2008-06-09  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/libtracker-db/tracker-db-manager.c
+	(db_manager_row_to_field_def): Plug a leak.
+
 2008-06-09  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-utils.h:

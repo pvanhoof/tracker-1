@@ -22,6 +22,8 @@
 #ifndef __LIBTRACKER_COMMON_UTILS_H__
 #define __LIBTRACKER_COMMON_UTILS_H__
 
+#include <glib.h>
+
 gboolean tracker_is_empty_string (const char  *str);
 gchar *  tracker_string_replace  (const gchar *haystack,
 				  gchar       *needle,

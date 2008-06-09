@@ -35,7 +35,6 @@
 #include <libtracker-db/tracker-db-manager.h>
 
 #include "tracker-db.h"
-#include "tracker-db-sqlite.h"
 #include "tracker-dbus.h"
 #include "tracker-search.h"
 #include "tracker-rdf-query.h"
@@ -934,7 +933,7 @@ tracker_search_get_snippet (TrackerSearch  *object,
 
 	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
 
-	service_id = tracker_db_get_id (iface, service, id);
+	service_id = tracker_db_file_get_id_as_string (iface, service, id);
         if (!service_id) {
 		tracker_dbus_request_failed (request_id,
 					     error, 

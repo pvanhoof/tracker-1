@@ -78,8 +78,6 @@ trackerd_SOURCES =							\
 	tracker-db.h							\
 	tracker-db-email.c						\
 	tracker-db-email.h						\
-	tracker-db-sqlite.c						\
-	tracker-db-sqlite.h						\
 	tracker-dbus.c							\
 	tracker-dbus.h							\
 	tracker-email.c							\

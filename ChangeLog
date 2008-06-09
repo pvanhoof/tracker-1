@@ -1,5 +1,25 @@
 2008-06-09  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-utils.h:
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-db-email.c:
+	* src/trackerd/tracker-db-sqlite.[ch]:
+	* src/trackerd/tracker-db.[ch]:
+	* src/trackerd/tracker-dbus.c:
+	* src/trackerd/tracker-email-utils.h:
+	* src/trackerd/tracker-files.c:
+	* src/trackerd/tracker-keywords.c:
+	* src/trackerd/tracker-metadata.c:
+	* src/trackerd/tracker-process-files.c:
+	* src/trackerd/tracker-rdf-query.c:
+	* src/trackerd/tracker-search.c: 
+	* src/trackerd/tracker-xesam-live-search.c:
+	* src/trackerd/tracker-xesam-query.c:
+	* src/trackerd/tracker-xesam.h: Removed tracker-db-sqlite.[ch] and
+	merged it with tracker-db.[ch].
+
+2008-06-09  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-db/tracker-db-manager.[ch]:
 	* src/trackerd/tracker-daemon.[ch]:
 	* src/trackerd/tracker-db-email.[ch]:

@@ -410,7 +410,7 @@ tracker_db_email_is_up_to_date (const gchar *uri,
 
         iface = tracker_db_manager_get_db_interface (TRACKER_DB_EMAIL_METADATA);
         
-        return tracker_db_is_file_up_to_date (iface, uri, id);
+        return tracker_db_file_is_up_to_date (iface, uri, id);
 }
 
 
@@ -744,7 +744,7 @@ tracker_db_email_is_saved_email_file (TrackerDBInterface *iface, const gchar *ur
         g_return_val_if_fail (iface, FALSE);
         g_return_val_if_fail (uri, FALSE);
 
-        return tracker_db_get_file_id (iface, uri) != 0 ;
+        return tracker_db_file_get_id (iface, uri) != 0 ;
 }
 
 
@@ -774,10 +774,12 @@ tracker_db_email_delete_emails_of_mbox (TrackerDBInterface *iface, const gchar *
 gboolean
 tracker_db_email_delete_email (TrackerDBInterface *iface, const gchar *uri)
 {
+        gchar *id;
+        
         g_return_val_if_fail (iface, FALSE);
         g_return_val_if_fail (uri, FALSE);
 
-	gchar *id = tracker_db_get_id (iface, "Emails", uri);
+	id = tracker_db_file_get_id_as_string (iface, "Emails", uri);
 
 	if (!id) {
 		return FALSE;

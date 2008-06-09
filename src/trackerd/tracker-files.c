@@ -83,7 +83,7 @@ tracker_files_exist (TrackerFiles  *object,
 	
 	iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
 
-	file_id = tracker_db_get_file_id (iface, uri);
+	file_id = tracker_db_file_get_id (iface, uri);
 	exists = file_id > 0;
 
 	if (!exists && auto_create) {
@@ -260,7 +260,7 @@ tracker_files_delete (TrackerFiles  *object,
 
 	iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
 
-	file_id = tracker_db_get_file_id (iface, uri);
+	file_id = tracker_db_file_get_id (iface, uri);
 	if (file_id == 0) {
 		tracker_dbus_request_comment (request_id, 
 					      "File or directory was not in database to delete, uri:'%s'",
@@ -339,7 +339,7 @@ tracker_files_get_service_type (TrackerFiles  *object,
 
 	iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
 
-	file_id = tracker_db_get_file_id (iface, uri);
+	file_id = tracker_db_file_get_id (iface, uri);
 
 	if (file_id < 1) {
 		tracker_dbus_request_failed (request_id,
@@ -425,9 +425,9 @@ tracker_files_get_text_contents (TrackerFiles  *object,
 	iface_metadata = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
 	iface_contents = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_CONTENTS);
 
-	service_id = tracker_db_get_id (iface_metadata, "Files", uri);
+	service_id = tracker_db_file_get_id_as_string (iface_metadata, "Files", uri);
 	if (!service_id) {
-		service_id = tracker_db_get_id (iface_metadata, "Emails", uri);
+		service_id = tracker_db_file_get_id_as_string (iface_metadata, "Emails", uri);
 
 		if (!service_id) {
 			tracker_dbus_request_failed (request_id,
@@ -811,7 +811,7 @@ tracker_files_get_metadata_for_files_in_folder (TrackerFiles  *object,
 	}
 
 	/* Get file ID in database */
-	file_id = tracker_db_get_file_id (iface, uri_filtered);
+	file_id = tracker_db_file_get_id (iface, uri_filtered);
 	if (file_id == 0) {
 		g_free (uri_filtered);
 		tracker_dbus_request_failed (request_id,

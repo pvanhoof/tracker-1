@@ -23,7 +23,7 @@
 
 #include <gmime/gmime.h>
 
-#include "tracker-db-sqlite.h"
+#include "tracker-db.h"
 
 G_BEGIN_DECLS
 

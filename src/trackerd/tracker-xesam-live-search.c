@@ -28,7 +28,7 @@
 #include "tracker-xesam-manager.h"
 #include "tracker-xesam-query.h"
 #include "tracker-dbus.h"
-#include "tracker-db-sqlite.h"
+#include "tracker-db.h"
 
 struct _TrackerXesamLiveSearchPriv {
 	TrackerXesamSession *session;

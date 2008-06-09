@@ -27,7 +27,7 @@
 #include <libtracker-common/tracker-utils.h>
 
 #include "tracker-xesam-query.h"
-#include "tracker-db-sqlite.h"
+#include "tracker-db.h"
 
 /* XESAM Query Condition
  * <query>

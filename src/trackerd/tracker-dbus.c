@@ -25,7 +25,7 @@
 
 #include <libtracker-db/tracker-db-manager.h>
 
-#include "tracker-db-sqlite.h"
+#include "tracker-db.h"
 #include "tracker-dbus.h"
 #include "tracker-daemon.h"
 #include "tracker-daemon-glue.h"

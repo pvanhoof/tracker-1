@@ -21,11 +21,12 @@
 
 #include <libtracker-common/tracker-field-data.h>
 #include <libtracker-common/tracker-log.h>
+#include <libtracker-common/tracker-ontology.h>
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-utils.h>
 
 #include "tracker-rdf-query.h"
-#include "tracker-db-sqlite.h"
+#include "tracker-db.h"
 
 /* RDF Query Condition
  * <rdfq:Condition>

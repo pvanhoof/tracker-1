@@ -413,7 +413,7 @@ process_index_delete_directory_check (const gchar *uri,
         gchar **p;
 
 	/* Check for any deletions*/
-	files = tracker_db_get_files_in_folder (iface, uri);
+	files = tracker_db_files_get (iface, uri);
 
         if (!files) {
                 return;
@@ -426,7 +426,7 @@ process_index_delete_directory_check (const gchar *uri,
                         TrackerDBFileInfo *info;
 
 			info = tracker_db_file_info_new (str, 1, 0, 0);
-			info = tracker_db_get_file_info (iface, info);
+			info = tracker_db_file_get_info (iface, info);
 
 			if (!info->is_directory) {
 				process_index_delete_file (info, iface);

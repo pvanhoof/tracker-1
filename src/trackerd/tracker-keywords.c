@@ -190,7 +190,7 @@ tracker_keywords_get (TrackerKeywords   *object,
         }
 
 	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
-	id = tracker_db_get_id (iface, service, uri);
+	id = tracker_db_file_get_id_as_string (iface, service, uri);
 	if (!id) {
 		tracker_dbus_request_failed (request_id,
 					     error,
@@ -255,7 +255,7 @@ tracker_keywords_add (TrackerKeywords  *object,
         }
 
 	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
-	id = tracker_db_get_id (iface, service, uri);
+	id = tracker_db_file_get_id_as_string (iface, service, uri);
 	tracker_dbus_return_val_if_fail (id != NULL, FALSE, error);
 
 	tracker_db_metadata_set (iface, 
@@ -318,7 +318,7 @@ tracker_keywords_remove (TrackerKeywords  *object,
         }
 
 	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
-	id = tracker_db_get_id (iface, service, uri);
+	id = tracker_db_file_get_id_as_string (iface, service, uri);
 	if (!id) {
 		tracker_dbus_request_failed (request_id,
 					     error,
@@ -383,7 +383,7 @@ tracker_keywords_remove_all (TrackerKeywords  *object,
         }
 
 	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
-	id = tracker_db_get_id (iface, service, uri);
+	id = tracker_db_file_get_id_as_string (iface, service, uri);
 	if (!id) {
 		tracker_dbus_request_failed (request_id,
 					     error,

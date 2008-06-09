@@ -900,7 +900,7 @@ main (gint argc, gchar *argv[])
 	tracker_watcher_init ();
 	tracker_ontology_init ();
 	tracker_db_init ();
-	tracker_db_manager_init (data_dir, user_data_dir, sys_tmp_dir);
+	tracker_db_manager_init (FALSE, data_dir, user_data_dir, sys_tmp_dir); /* Using TRUE=broken */
 	tracker_xesam_manager_init ();
 	tracker_email_start_email_watching (tracker_config_get_email_client (tracker->config));
 

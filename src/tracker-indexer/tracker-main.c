@@ -163,7 +163,7 @@ initialize_indexer (void)
 	sys_tmp_dir = g_build_filename (g_get_tmp_dir (), filename, NULL);
 	g_free (filename);
 
-	tracker_db_manager_init (data_dir, user_data_dir, sys_tmp_dir);
+	tracker_db_manager_init (FALSE, data_dir, user_data_dir, sys_tmp_dir);
 
 	g_free (data_dir);
 	g_free (user_data_dir);

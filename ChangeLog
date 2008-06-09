@@ -1,3 +1,18 @@
+2008-06-09  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-db/tracker-db-manager.[ch]: Removed a lot of
+	public API here because it is no longer needed. Simplified the way
+	we set up TrackerDBInterface objects. Improved the logging. Added
+	support for attaching all databases to one connection. Fixed the
+	odd bug found. 
+
+	* src/tracker-indexer/tracker-main.c: Initialise the database
+	manager without attaching all databases.
+	
+	* src/trackerd/tracker-main.c:  Initialise the database manager
+	with attach_all_dbs set to FALSE for now, setting this to TRUE
+	causes problems when running the daemon with --reindex.
+	
 2008-06-09  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/libtracker-db/tracker-db-manager.c

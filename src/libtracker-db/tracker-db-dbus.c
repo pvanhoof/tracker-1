@@ -25,6 +25,7 @@
 
 gchar **
 tracker_dbus_query_result_to_strv (TrackerDBResultSet *result_set, 
+				   gint                column,
                                    gint               *count)
 {
 	gchar **strv = NULL;
@@ -38,7 +39,7 @@ tracker_dbus_query_result_to_strv (TrackerDBResultSet *result_set,
 		strv = g_new (gchar*, rows + 1);
 		
 		while (valid) {
-			tracker_db_result_set_get (result_set, 0, &strv[i], -1);
+			tracker_db_result_set_get (result_set, column, &strv[i], -1);
 			valid = tracker_db_result_set_iter_next (result_set);
 			i++;
 		}

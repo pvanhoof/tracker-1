@@ -1090,7 +1090,7 @@ tracker_search_metadata (TrackerSearch   *object,
 	/* 					 text,  */
 	/* 					 offset,  */
 	/* 					 search_sanity_check_max_hits (max_hits)); */
-	*values = tracker_dbus_query_result_to_strv (result_set, NULL);
+	*values = tracker_dbus_query_result_to_strv (result_set, 0, NULL);
 
 	if (result_set) {
 		g_object_unref (result_set);

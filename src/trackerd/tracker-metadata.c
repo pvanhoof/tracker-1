@@ -185,7 +185,7 @@ tracker_metadata_get (TrackerMetadata   *object,
 	g_debug (query);
 
 	result_set = tracker_db_interface_execute_query (iface, NULL, query);
-	*values = tracker_dbus_query_result_to_strv (result_set, NULL);
+	*values = tracker_dbus_query_result_to_strv (result_set, 0, NULL);
 	g_free (query);
 
 	if (result_set) {
@@ -425,11 +425,11 @@ tracker_metadata_get_registered_types (TrackerMetadata   *object,
 				  "class:'%s'",
 				  class);
 
-	iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
+	iface = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
 
-	result_set = tracker_db_metadata_get_types (iface, class, TRUE);
+	result_set = tracker_db_metadata_get_types (iface, class, FALSE);
 	if (result_set) {
-		*values = tracker_dbus_query_result_to_strv (result_set, NULL);
+		*values = tracker_dbus_query_result_to_strv (result_set, 1, NULL);
 		g_object_unref (result_set);
 	}
 
@@ -466,7 +466,7 @@ tracker_metadata_get_writable_types (TrackerMetadata   *object,
 						    class_formatted, 
 						    TRUE);
 	if (result_set) {
-		*values = tracker_dbus_query_result_to_strv (result_set, NULL);
+		*values = tracker_dbus_query_result_to_strv (result_set, 0, NULL);
 		g_object_unref (result_set);
 	}
 
@@ -500,7 +500,7 @@ tracker_metadata_get_registered_classes (TrackerMetadata   *object,
 					   NULL);
 	
 	if (result_set) {
-		*values = tracker_dbus_query_result_to_strv (result_set, NULL);
+		*values = tracker_dbus_query_result_to_strv (result_set, 0, NULL);
 		g_object_unref (result_set);
 	}
 

@@ -29,6 +29,7 @@ G_BEGIN_DECLS
 #include "tracker-db-interface.h"
 
 gchar **    tracker_dbus_query_result_to_strv       (TrackerDBResultSet *result_set,
+						     gint                column,
 						     gint               *count);
 GHashTable *tracker_dbus_query_result_to_hash_table (TrackerDBResultSet *result_set);
 GPtrArray * tracker_dbus_query_result_to_ptr_array  (TrackerDBResultSet *result_set);

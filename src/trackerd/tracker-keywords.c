@@ -202,7 +202,7 @@ tracker_keywords_get (TrackerKeywords   *object,
 	result_set = tracker_db_metadata_get (iface, 
 					      id, 
 					      "User:Keywords");
-	*values = tracker_dbus_query_result_to_strv (result_set, NULL);
+	*values = tracker_dbus_query_result_to_strv (result_set, 0, NULL);
 
 	if (result_set) {
 		g_object_unref (result_set);
@@ -495,7 +495,7 @@ tracker_keywords_search (TrackerKeywords  *object,
 	g_debug (query);
 
 	result_set = tracker_db_interface_execute_query (iface, NULL, query);
-	*values = tracker_dbus_query_result_to_strv (result_set, NULL);
+	*values = tracker_dbus_query_result_to_strv (result_set, 0, NULL);
 
 	if (result_set) {
 		g_object_unref (result_set);

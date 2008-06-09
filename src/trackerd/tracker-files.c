@@ -585,7 +585,7 @@ tracker_files_get_by_service_type (TrackerFiles   *object,
 						      offset, 
 						      max_hits);
 
-	*values = tracker_dbus_query_result_to_strv (result_set, NULL);
+	*values = tracker_dbus_query_result_to_strv (result_set, 0, NULL);
 
 	if (result_set) {
 		g_object_unref (result_set);
@@ -634,7 +634,7 @@ tracker_files_get_by_mime_type (TrackerFiles   *object,
 						   max_hits, 
 						   FALSE);
 
-	*values = tracker_dbus_query_result_to_strv (result_set, NULL);
+	*values = tracker_dbus_query_result_to_strv (result_set, 0, NULL);
 
 	if (result_set) {
 		g_object_unref (result_set);
@@ -686,7 +686,7 @@ tracker_files_get_by_mime_type_vfs (TrackerFiles   *object,
 						   max_hits, 
 						   TRUE);
 
-	*values = tracker_dbus_query_result_to_strv (result_set, NULL);
+	*values = tracker_dbus_query_result_to_strv (result_set, 0, NULL);
 		
 	if (result_set) {
 		g_object_unref (result_set);

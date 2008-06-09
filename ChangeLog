@@ -1,5 +1,15 @@
 2008-06-09  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/libtracker-db/tracker-db-manager.c (function_compress_string)
+	(function_compress): Added, database function to compress a passed
+	string using zlib.
+	(db_interface_get_file_contents) (db_interface_get_email_contents):
+	Create that function for these database connections.
+	* data/sqlite-stored-procs.sql (SaveServiceContents): Use compress(),
+	so the indexer code doesn't have to compress the contents itself.
+
+2008-06-09  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/libtracker-db/tracker-db-manager.c (set_up_databases)
 	(db_interface_create) (tracker_db_manager_init)
 	(tracker_db_manager_shutdown) (tracker_db_manager_get_db_interface)

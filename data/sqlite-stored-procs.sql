@@ -81,7 +81,7 @@ DeleteEmbeddedServiceMetadata3 DELETE FROM ServiceNumericMetaData WHERE ServiceI
 
 GetByServiceType SELECT  DISTINCT F.Path || '/' || F.Name as uri  FROM Services F WHERE F.ServiceTypeID in (select TypeId from common.ServiceTypes where TypeName = ? or Parent = ?) LIMIT ?,?;
 
-SaveServiceContents REPLACE into ServiceContents (ServiceID, MetadataID, Content) values (?,?,?);
+SaveServiceContents REPLACE into ServiceContents (ServiceID, MetadataID, Content) values (?,?,compress (?));
 DeleteContent DELETE FROM ServiceContents where ServiceID = ? and MetadataId = ?;
 DeleteAllContents DELETE FROM ServiceContents where ServiceID = ?;
 GetContents Select uncompress (Content) from ServiceContents where ServiceID = ? and MetadataID = ? and Content is not null;

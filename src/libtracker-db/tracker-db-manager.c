@@ -1192,6 +1192,97 @@ function_uncompress_string (const gchar *ptr,
 	return buf;
 }
 
+static GByteArray *
+function_compress_string (const gchar *text)
+{
+	GByteArray *array;
+	z_stream zs;
+	gchar *buf, *swap;
+	guchar obuf[ZLIBBUFSIZ];
+	gint rv, asiz, bsiz, osiz, size;
+
+	size = strlen (text);
+
+	zs.zalloc = Z_NULL;
+	zs.zfree = Z_NULL;
+	zs.opaque = Z_NULL;
+
+	if (deflateInit2 (&zs, 6, Z_DEFLATED, 15, 6, Z_DEFAULT_STRATEGY) != Z_OK) {
+		return NULL;
+	}
+
+	asiz = size + 16;
+
+	if (asiz < ZLIBBUFSIZ) {
+		asiz = ZLIBBUFSIZ;
+	}
+
+	if (!(buf = malloc (asiz))) {
+		deflateEnd (&zs);
+		return NULL;
+	}
+
+	bsiz = 0;
+	zs.next_in = (unsigned char *) text;
+	zs.avail_in = size;
+	zs.next_out = obuf;
+	zs.avail_out = ZLIBBUFSIZ;
+
+	while ((rv = deflate (&zs, Z_FINISH)) == Z_OK) {
+		osiz = ZLIBBUFSIZ - zs.avail_out;
+
+		if (bsiz + osiz > asiz) {
+			asiz = asiz * 2 + osiz;
+
+			if (!(swap = realloc (buf, asiz))) {
+				free (buf);
+				deflateEnd (&zs);
+				return NULL;
+			}
+
+			buf = swap;
+		}
+
+		memcpy (buf + bsiz, obuf, osiz);
+		bsiz += osiz;
+		zs.next_out = obuf;
+		zs.avail_out = ZLIBBUFSIZ;
+	}
+
+	if (rv != Z_STREAM_END) {
+		free (buf);
+		deflateEnd (&zs);
+		return NULL;
+	}
+
+	osiz = ZLIBBUFSIZ - zs.avail_out;
+
+	if (bsiz + osiz + 1 > asiz) {
+		asiz = asiz * 2 + osiz;
+
+		if (!(swap = realloc (buf, asiz))) {
+			free (buf);
+			deflateEnd (&zs);
+			return NULL;
+		}
+
+		buf = swap;
+	}
+
+	memcpy (buf + bsiz, obuf, osiz);
+	bsiz += osiz;
+	buf[bsiz] = '\0';
+
+	array = g_byte_array_new ();
+	g_byte_array_append (array, (const guint8 *) buf, bsiz);
+
+	g_free (buf);
+
+	deflateEnd (&zs);
+
+	return array;
+}
+
 static GValue
 function_uncompress (TrackerDBInterface *interface,
 		     gint                argc,
@@ -1219,6 +1310,30 @@ function_uncompress (TrackerDBInterface *interface,
 
 	g_value_init (&result, G_TYPE_STRING);
 	g_value_take_string (&result, output);
+
+	return result;
+}
+
+static GValue
+function_compress (TrackerDBInterface *interface,
+		   gint                argc,
+		   GValue              values[])
+{
+	GByteArray *array;
+	GValue result = { 0, };
+	const gchar *text;
+
+	text = g_value_get_string (&values[0]);
+
+	array = function_compress_string (text);
+
+	if (!array) {
+		g_warning ("Compress failed");
+		return result;
+	}
+
+	g_value_init (&result, TRACKER_TYPE_DB_BLOB);
+	g_value_take_boxed (&result, array);
 
 	return result;
 }
@@ -1537,7 +1652,10 @@ db_interface_get_file_contents (gboolean attach_all)
 						     "uncompress", 
 						     function_uncompress, 
 						     1);
-
+	tracker_db_interface_sqlite_create_function (iface,
+						     "compress",
+						     function_compress,
+						     1);
 	return iface;
 }
 
@@ -1582,7 +1700,10 @@ db_interface_get_email_contents (gboolean attach_all)
 						     "uncompress", 
 						     function_uncompress, 
 						     1);
-
+	tracker_db_interface_sqlite_create_function (iface,
+						     "compress",
+						     function_compress,
+						     1);
 	return iface;
 }
 

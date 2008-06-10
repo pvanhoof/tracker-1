@@ -186,7 +186,7 @@ main (gint argc, gchar *argv[])
 	TrackerIndexer *indexer;
 	GOptionContext *context;
 	GError	       *error = NULL;
-	gchar	       *summary = NULL;
+	gchar	       *summary;
 	gchar	       *example;
         gchar          *filename;
 
@@ -214,7 +214,6 @@ main (gint argc, gchar *argv[])
 			       "-e ", _("DIRECTORY"),
 			       NULL);
 
-#ifdef HAVE_RECENT_GLIB
 	/* Translators: this message will appear after the usage
 	 * string and before the list of options, showing an usage
 	 * example.
@@ -224,9 +223,8 @@ main (gint argc, gchar *argv[])
 				     "\n"
 				     "\t%s"),
 				   example);
-	g_option_context_set_summary (context, summary);
-#endif /* HAVE_RECENT_GLIB */
 
+	g_option_context_set_summary (context, summary);
 	g_option_context_add_main_entries (context, entries, NULL);
 	g_option_context_parse (context, &argc, &argv, &error);
 	g_option_context_free (context);

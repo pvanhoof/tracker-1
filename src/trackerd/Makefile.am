@@ -64,7 +64,6 @@ endif # OS_WIN32
 endif # HAVE_FAM
 endif # HAVE_INOTIFY
 
-
 #
 # Daemon sources
 #

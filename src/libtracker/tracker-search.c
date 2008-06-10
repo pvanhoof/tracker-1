@@ -97,11 +97,7 @@ main (int argc, char **argv)
 			       _("The list of recognized services is:"),
 			       "\n\tDocuments Emails EmailAttachments Music Images Videos Text Development Applications Conversations Folders Files",
 			       NULL);
-
-#ifdef HAVE_RECENT_GLIB
-	g_option_context_set_summary (context, summary);
-#endif /* HAVE_RECENT_GLIB */
-
+        g_option_context_set_summary (context, summary);
 	g_option_context_add_main_entries (context, entries, NULL);
 	g_option_context_parse (context, &argc, &argv, &error);
 

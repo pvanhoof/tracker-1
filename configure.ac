@@ -79,6 +79,15 @@ PKG_CHECK_MODULES(LIBPNG, [ libpng >= 1.2 ])
 AC_SUBST(LIBPNG_CFLAGS)
 AC_SUBST(LIBPNG_LIBS)
 
+# Check we have the DBUS binding tool we need
+AC_PATH_PROG(DBUSBINDINGTOOL, dbus-binding-tool)
+if test -z $DBUSBINDINGTOOL; then
+        AC_MSG_ERROR([Could not find 'dbus-binding-tool'])
+fi
+
+GLIB_GENMARSHAL=`$PKG_CONFIG glib-2.0 --variable=glib_genmarshal`
+AC_SUBST(GLIB_GENMARSHAL)
+
 ####################################################################
 # DBus Service
 ####################################################################
@@ -152,6 +161,7 @@ AC_SUBST(DESKBAR_MODULE_DIR)
 ####################################################################
 # Compiler warning checks
 ####################################################################
+
 AC_ARG_ENABLE(warnings,
               AS_HELP_STRING([--disable-warnings], [disable GCC warnings]),,
               [enable_warnings=yes])
@@ -173,7 +183,6 @@ fi
 # Compiler generate debug code
 ####################################################################
 
-
 AC_ARG_ENABLE([debug_code],
               AS_HELP_STRING([--enable-debug-code], [build with debug symbols]),,
               [enable_debug_code=no])
@@ -193,32 +202,6 @@ AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,"$GETTEXT_PACKAGE",
 
 AM_GLIB_GNU_GETTEXT
 IT_PROG_INTLTOOL([0.35.0])
-
-####################################################################
-# check for newer glib (>= 2.12.0) for g_option_context_set_summary ()
-# availability
-# used as well in tracker-configuration.c and tracker-metadata-tile.c
-# for other methods availability
-####################################################################
-RECENT_GLIB=2.12.0
-
-PKG_CHECK_MODULES(glib2, [ glib-2.0 >= $RECENT_GLIB ],
-                  [have_recent_glib=yes], [have_recent_glib=no])
-
-if test "$have_recent_glib" = "yes" ; then
-   AC_DEFINE(HAVE_RECENT_GLIB, 1, [Define if we have recent glib])
-fi
-
-AM_CONDITIONAL(HAVE_RECENT_GLIB, test "$have_recent_glib" = "yes")
-
-# Check we have the DBUS binding tool we need
-AC_PATH_PROG(DBUSBINDINGTOOL, dbus-binding-tool)
-if test -z $DBUSBINDINGTOOL; then
-        AC_MSG_ERROR([Could not find 'dbus-binding-tool'])
-fi
-
-GLIB_GENMARSHAL=`$PKG_CONFIG glib-2.0 --variable=glib_genmarshal`
-AC_SUBST(GLIB_GENMARSHAL)
 
 ####################################################################
 # External QDBM check
@@ -390,8 +373,6 @@ PKG_CHECK_MODULES(SQLITE3, [ sqlite3 >= $SQLITE_REQUIRED ])
 
 AC_SUBST(SQLITE3_CFLAGS)
 AC_SUBST(SQLITE3_LIBS)
-
-
 
 ###############################################################################
 # Check for file monitor backends
@@ -847,37 +828,44 @@ AC_CONFIG_HEADERS([config.h])
 AC_OUTPUT
 
 echo "
-Tracker-$VERSION:
+Build Configuration:
 
 	prefix:					${prefix}
 	source code location:			${srcdir}
 	compiler:				${CC}
-	enable gcc warnings:			$enable_warnings
-	build with debug symbols:		$enable_debug_code
-	file monitor backend to be used:	$primary_backend
-	inotify header location:		$inotify_header
-	ioprio support:				$have_ioprio
-	Win32:					$native_win32
-	HAL support:                    	$have_hal
-	unac accent stripper support:		$enable_unac
-	deskbar-applet support:			$enable_deskbar_applet
-	build search tool (GNOME):		$have_gnome
-	build preferences ui:			$enable_preferences
+
+	win32:					$native_win32
+
+	enable warnings:			$enable_warnings
+	enable debug symbols:    		$enable_debug_code
+
+	enable unac accent stripper:	  	$enable_unac
+
+	support for file monitoring:           	$primary_backend
+	support for ioprio:			$have_ioprio
+	support for HAL:                    	$have_hal
+
+Applications:
+
+	build deskbar-applet:			$enable_deskbar_applet
+	build tracker-search-tool:	        $have_gnome
+	build tracker-preferences:		$enable_preferences
+	build tracker-applet:	                $enable_trackerapplet
 	build libtracker-gtk:			$enable_libtrackergtk
-	tracker applet notification icon:	$enable_trackerapplet
 
-Metadata extractors:
+Metadata Extractors:
 
-	pdf:					$have_poppler
 	png:					yes
+	pdf:					$have_poppler
 	exif (jpeg):				$have_libexif
-	ms and openoffice (gsf):		$have_libgsf
+	ms & openoffice (gsf):		        $have_libgsf
+	xml / html formats:			$have_libxml2
+	embedded / sidecar xmp:			$have_exempi
 	video files:				$videos_are_handled ($videos_handler)
-	xml/html formats:			$have_libxml2
-	embedded/sidecar xmp:			$have_exempi
 
-"
+Warning:
 
-echo "
-****WARNING**** : You must make sure a version of SQLite compiled with --enable-threadsafe is available otherwise expect pain!
+        You must make sure SQLite is compiled with --enable-threadsafe
+	otherwise expect pain!
+
 "

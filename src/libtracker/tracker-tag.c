@@ -73,11 +73,13 @@ get_meta_table_data (gpointer value)
 int 
 main (int argc, char **argv) 
 {
-	TrackerClient *client = NULL;
-	GOptionContext *context = NULL;
-	GError *error = NULL;
-	gchar *example;
-	int i = 0, k;
+	TrackerClient  *client;
+	GOptionContext *context;
+	GError         *error = NULL;
+	gchar          *example;
+        gchar          *summary;
+	gint            i = 0;
+        gint            k;
 
 	setlocale (LC_ALL, "");
 
@@ -85,28 +87,29 @@ main (int argc, char **argv)
         bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
         textdomain (GETTEXT_PACKAGE);
 
-	/* Translators: this messagge will apper immediately after the  */
-	/* usage string - Usage: COMMAND [OPTION]... <THIS_MESSAGE>     */
+	/* Translators: this messagge will apper immediately after the  
+         * usage string - Usage: COMMAND [OPTION]... <THIS_MESSAGE>     
+         */
 	context = g_option_context_new (_("FILE... - manipulate tags on files"));
+	example = g_strconcat ( "-a ", _("TAG"), 
+                               " -a ", _("TAG"), 
+                               " -a ", _("TAG"), 
+                               NULL);
 
-	example = g_strconcat ("-a ", _("TAG"), " -a ", _("TAG"), " -a ", _("TAG"), NULL);
+	/* Translators: this message will appear after the usage string 
+	 * and before the list of options, showing an usage example.   
+         */
+        summary = g_strconcat (_("To add, remove, or search for multiple tags "
+                                 "at the same time, join multiple options like:"), 
+                               "\n\n\t", 
+                               example, 
+                               NULL);
 
-
-#ifdef HAVE_RECENT_GLIB
-	/* Translators: this message will appear after the usage string */
-	/* and before the list of options, showing an usage example.    */
-	g_option_context_set_summary (context,
-				      g_strconcat(_("To add, remove, or search for multiple tags "
-						    "at the same time, join multiple options like:"), 
-						  "\n\n\t", 
-						  example, NULL));
-
-#endif /* HAVE_RECENT_GLIB */
-
+	g_option_context_set_summary (context, summary);	     
 	g_option_context_add_main_entries (context, entries, NULL);
 	g_option_context_parse (context, &argc, &argv, &error);
-
 	g_option_context_free (context);
+        g_free (summary);
 	g_free (example);
 	
 	if (error) {

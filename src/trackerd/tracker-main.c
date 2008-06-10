@@ -680,6 +680,7 @@ main (gint argc, gchar *argv[])
 	GError         *error = NULL;
 	GSList         *l;
 	gchar          *example;
+	gchar          *summary;
 	gboolean        need_index;
 
         g_type_init ();
@@ -708,22 +709,20 @@ main (gint argc, gchar *argv[])
 			       " -e ", _("DIRECTORY"),
 			       NULL);
 
-#ifdef HAVE_RECENT_GLIB
-        /* Translators: this message will appear after the usage string */
-        /* and before the list of options, showing an usage example.    */
-        g_option_context_set_summary (context,
-                                      g_strconcat(_("To include or exclude multiple directories "
-                                                    "at the same time, join multiple options like:"),
+        /* Translators: this message will appear after the usage string 
+         * and before the list of options, showing an usage example.   
+	 */
+	summary = g_strconcat (_("To include or exclude multiple directories "
+				 "at the same time, join multiple options like:"),
+			       "\n\n\t",
+			       example, 
+			       NULL);
 
-                                                  "\n\n\t",
-                                                  example, 
-						  NULL));
-
-#endif /* HAVE_RECENT_GLIB */
-
+        g_option_context_set_summary (context, summary);
 	g_option_context_add_main_entries (context, entries, NULL);
 	g_option_context_parse (context, &argc, &argv, &error);
 	g_option_context_free (context);
+	g_free (summary);
 	g_free (example);
 
 	if (error) {

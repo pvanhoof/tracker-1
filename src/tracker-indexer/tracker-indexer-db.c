@@ -185,18 +185,56 @@ void
 tracker_db_set_metadata (TrackerDBInterface *iface,
 			 guint32             id,
 			 TrackerField       *field,
-			 const gchar        *value)
+			 const gchar        *value,
+			 const gchar        *parsed_value)
 {
 	gchar *id_str;
 
 	id_str = tracker_guint32_to_string (id);
 
-	/* FIXME: determine metadata type */
-	tracker_db_interface_execute_procedure (iface, NULL, "SetMetadataKeyword",
-						id_str,
-						tracker_field_get_id (field),
-						value,
-						NULL);
+	switch (tracker_field_get_data_type (field)) {
+	case TRACKER_FIELD_TYPE_KEYWORD:
+		tracker_db_interface_execute_procedure (iface, NULL,
+							"SetMetadataKeyword",
+							id_str,
+							tracker_field_get_id (field),
+							value,
+							NULL);
+		break;
+	case TRACKER_FIELD_TYPE_INDEX:
+	case TRACKER_FIELD_TYPE_STRING:
+	case TRACKER_FIELD_TYPE_DOUBLE:
+		tracker_db_interface_execute_procedure (iface, NULL,
+							"SetMetadata",
+							id_str,
+							tracker_field_get_id (field),
+							parsed_value,
+							value,
+							NULL);
+		break;
+	case TRACKER_FIELD_TYPE_INTEGER:
+	case TRACKER_FIELD_TYPE_DATE:
+		tracker_db_interface_execute_procedure (iface, NULL,
+							"SetMetadataNumeric",
+							id_str,
+							tracker_field_get_id (field),
+							value,
+							NULL);
+		break;
+	case TRACKER_FIELD_TYPE_FULLTEXT:
+		/* FIXME: missing DB connection to contents here */
+		/*
+		  tracker_db_set_text (iface, id, value);
+		*/
+		break;
+	case TRACKER_FIELD_TYPE_BLOB:
+	case TRACKER_FIELD_TYPE_STRUCT:
+	case TRACKER_FIELD_TYPE_LINK:
+		/* not handled */
+	default:
+		break;
+	}
+
 	g_free (id_str);
 }
 

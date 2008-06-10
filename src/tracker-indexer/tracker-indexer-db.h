@@ -39,7 +39,8 @@ gboolean tracker_db_create_service     (TrackerDBInterface *iface,
 void     tracker_db_set_metadata       (TrackerDBInterface *iface,
                                         guint32             id,
                                         TrackerField       *field,
-                                        const gchar        *value);
+                                        const gchar        *value,
+					const gchar        *parsed_value);
 void     tracker_db_set_text           (TrackerDBInterface *iface,
 					guint32             id,
 					const gchar        *text);

@@ -381,6 +381,7 @@ index_metadata_foreach (gpointer key,
 {
 	TrackerField *field;
 	MetadataForeachData *data;
+	gchar *parsed_value;
 	gchar **arr;
 	gint i;
 
@@ -391,10 +392,14 @@ index_metadata_foreach (gpointer key,
 	field = tracker_ontology_get_field_def ((gchar *) key);
 
 	data = (MetadataForeachData *) user_data;
-	arr = tracker_parser_text_into_array ((gchar *) value,
-					      data->language,
-					      tracker_config_get_max_word_length (data->config),
-					      tracker_config_get_min_word_length (data->config));
+	parsed_value = tracker_parser_text_to_string ((gchar *) value,
+						      data->language,
+						      tracker_config_get_max_word_length (data->config),
+						      tracker_config_get_min_word_length (data->config),
+						      tracker_field_get_filtered (field),
+						      tracker_field_get_filtered (field),
+						      tracker_field_get_delimited (field));
+	arr = g_strsplit (parsed_value, " ", -1);
 
 	for (i = 0; arr[i]; i++) {
 		tracker_index_add_word (data->index,
@@ -404,8 +409,9 @@ index_metadata_foreach (gpointer key,
 					tracker_field_get_weight (field));
 	}
 
-	tracker_db_set_metadata (data->db, data->id, field, (gchar *) value);
+	tracker_db_set_metadata (data->db, data->id, field, (gchar *) value, parsed_value);
 
+	g_free (parsed_value);
 	g_strfreev (arr);
 }
 

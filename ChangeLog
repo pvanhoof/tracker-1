@@ -1,5 +1,17 @@
 2008-06-10  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/libtracker-db/tracker-db-manager.c (db_interface_get): Run
+	"analyze" here, before actually attaching any database. This prevents
+	sqlite from blocking when running this command after having attached a
+	database.
+	(db_interface_get_common) (db_interface_get_cache)
+	(db_interface_get_file_metadata) (db_interface_get_file_contents)
+	(db_interface_get_email_metadata) (db_interface_get_email_contents)
+	(db_interface_get_xesam): Do not analyze the DB here. It's already
+	done in db_interface_get().
+
+2008-06-10  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-indexer-db.[ch]
 	(tracker_db_set_metadata): Add argument to pass the parsed string for
 	a value. Store data in the correct tables depending on the field data

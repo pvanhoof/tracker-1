@@ -1544,6 +1544,8 @@ db_interface_get (TrackerDB  type,
 			       dbs[type].add_functions);
 	}
 
+	db_exec_no_reply (iface, "ANALYZE");
+
 	if (attach_all) {
 		g_message ("  Attaching to current DB connection");
 		db_exec_no_reply (iface, 
@@ -1583,8 +1585,6 @@ db_interface_get_common (gboolean attach_all)
 		load_metadata_file (iface, "email.metadata");
 		load_metadata_file (iface, "image.metadata");
 		load_metadata_file (iface, "video.metadata");
-
-		db_exec_no_reply (iface, "ANALYZE");
 	}
 
 	/* Load static data into tracker ontology */
@@ -1605,8 +1605,6 @@ db_interface_get_cache (gboolean attach_all)
 
 	if (create) {
 		load_sql_file (iface, "sqlite-cache.sql", NULL);
-
-		db_exec_no_reply (iface, "ANALYZE");
 	}
 
 	return iface;
@@ -1625,8 +1623,6 @@ db_interface_get_file_metadata (gboolean attach_all)
 	if (create) {
 		load_sql_file (iface, "sqlite-service.sql", NULL);
 		load_sql_file (iface, "sqlite-service-triggers.sql", "!");
-
-		db_exec_no_reply (iface, "ANALYZE");
 	}
 
 	return iface;
@@ -1644,8 +1640,6 @@ db_interface_get_file_contents (gboolean attach_all)
 
 	if (create) {
 		load_sql_file (iface, "sqlite-contents.sql", NULL);
-
-		db_exec_no_reply (iface, "ANALYZE");
 	}
 
 	tracker_db_interface_sqlite_create_function (iface, 
@@ -1673,8 +1667,6 @@ db_interface_get_email_metadata (gboolean attach_all)
 		load_sql_file (iface, "sqlite-service.sql", NULL);
 		load_sql_file (iface, "sqlite-email.sql", NULL);
 		load_sql_file (iface, "sqlite-service-triggers.sql", "!");
-
-		db_exec_no_reply (iface, "ANALYZE");
 	}
 
 	return iface;
@@ -1692,8 +1684,6 @@ db_interface_get_email_contents (gboolean attach_all)
 
 	if (create) {
 		load_sql_file (iface, "sqlite-contents.sql", NULL);
-
-		db_exec_no_reply (iface, "ANALYZE");
 	}
 
 	tracker_db_interface_sqlite_create_function (iface, 
@@ -1915,8 +1905,6 @@ db_interface_get_xesam (gboolean attach_all)
 		load_service_file_xesam (iface, "xesam-metadata.mmapping");
 		
 		db_xesam_create_lookup (iface);
-
-		db_exec_no_reply (iface, "ANALYZE");
 	}
 
 	return iface;

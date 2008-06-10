@@ -12,6 +12,7 @@ INCLUDES =								\
 	$(QDBM_CFLAGS)							\
 	$(DBUS_CFLAGS)							\
 	$(PANGO_CFLAGS)							\
+	$(GIO_CFLAGS)							\
 	$(GMODULE_CFLAGS)						\
 	$(GTHREAD_CFLAGS)						\
 	$(GLIB2_CFLAGS)
@@ -47,30 +48,13 @@ libemail_kmail_la_LIBADD = $(GLIB2_LIBS)
 
 
 #
-# Use either inotify, fam, win32 or poll API to know about file
-# changes and in that order.
-#
-if HAVE_INOTIFY
-watcher_sources = tracker-watcher-inotify.c linux-inotify-syscalls.h
-else  # HAVE_INOTIFY 
-if HAVE_FAM
-watcher_sources = tracker-watcher-fam.c
-else  # HAVE_FAM 
-if OS_WIN32
-watcher_sources = tracker-watcher-win.c
-else  # OS_WIN32 
-watcher_sources = tracker-watcher-poll.c
-endif # OS_WIN32 
-endif # HAVE_FAM
-endif # HAVE_INOTIFY
-
-#
 # Daemon sources
 #
 bin_PROGRAMS = trackerd
 
 trackerd_SOURCES =							\
-	$(watcher_sources)						\
+	tracker-crawler.c						\
+	tracker-crawler.h						\
 	tracker-daemon.c						\
 	tracker-daemon.h						\
 	tracker-db.c							\
@@ -97,6 +81,8 @@ trackerd_SOURCES =							\
 	tracker-marshal-main.c						\
 	tracker-metadata.c						\
 	tracker-metadata.h						\
+	tracker-monitor.c						\
+	tracker-monitor.h						\
 	tracker-query-tree.c						\
 	tracker-query-tree.h						\
 	tracker-rdf-query.c						\
@@ -107,7 +93,6 @@ trackerd_SOURCES =							\
 	tracker-status.h						\
 	tracker-utils.c							\
 	tracker-utils.h							\
-	tracker-watcher.h						\
 	tracker-xesam.c							\
 	tracker-xesam.h							\
 	tracker-xesam-ontology.c					\
@@ -136,6 +121,7 @@ trackerd_LDADD =							\
 	$(QDBM_LIBS)							\
 	$(DBUS_LIBS)							\
 	$(PANGO_LIBS)							\
+	$(GIO_LIBS)							\
 	$(GMODULE_LIBS)							\
 	$(GTHREAD_LIBS)							\
 	$(GLIB2_LIBS)							\

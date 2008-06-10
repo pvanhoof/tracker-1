@@ -25,7 +25,7 @@ AC_CHECK_HEADERS([fcntl.h sitdlib.h string.h sys/time.h unistd.h linux/unistd.h]
 
 AC_CHECK_HEADER([zlib.h], [], [AC_MSG_ERROR([You must have zlib.h and zlib installed])])
 
-dnl can posix_fadvise be used
+# Can posix_fadvise be used
 AC_CHECK_DECLS(posix_fadvise, [], [], [
 #define _XOPEN_SOURCE 600
 #include <fcntl.h>])
@@ -34,9 +34,9 @@ AC_CHECK_DECLS(posix_fadvise, [], [], [
 AC_CHECK_FUNCS([posix_fadvise])
 AC_CHECK_FUNCS([getline])
 
-dnl Library Checks
+# Library Checks
 DBUS_REQUIRED=0.60
-GLIB_REQUIRED=2.14.0
+GLIB_REQUIRED=2.16.0
 PANGO_REQUIRED=1.0.0
 GMIME_REQUIRED=2.1.0
 
@@ -59,7 +59,11 @@ PKG_CHECK_MODULES(GMODULE, [ gmodule-2.0 >= $GLIB_REQUIRED ])
 AC_SUBST(GMODULE_CFLAGS)
 AC_SUBST(GMODULE_LIBS)
 
-#Check for pango
+PKG_CHECK_MODULES(GIO, [ gio-2.0 >= $GLIB_REQUIRED ])
+AC_SUBST(GIO_CFLAGS)
+AC_SUBST(GIO_LIBS)
+
+# Check for pango
 PKG_CHECK_MODULES(PANGO, [ pango >= $PANGO_REQUIRED ])
 AC_SUBST(PANGO_CFLAGS)
 AC_SUBST(PANGO_LIBS)
@@ -166,7 +170,7 @@ AC_ARG_ENABLE(warnings,
               AS_HELP_STRING([--disable-warnings], [disable GCC warnings]),,
               [enable_warnings=yes])
 
-dnl Only use -Wall if we have gcc
+# Only use -Wall if we have gcc
 if test "x$GCC" = "xyes"; then
   if test "x$enable_warnings" = "xyes"; then
      CFLAGS="\
@@ -230,7 +234,7 @@ AC_SUBST(QDBM_LIBS)
 
 
 ##################################################################
-# check for libxml2
+# Check for libxml2
 ##################################################################
   
 LIBXML2_REQUIRED=0.6
@@ -253,7 +257,7 @@ fi
 AM_CONDITIONAL(HAVE_LIBXML2, test "x$have_libxml2" = "xyes")
 
 ##################################################################
-# check for HAL
+# Check for HAL
 ##################################################################
   
 AC_ARG_ENABLE(hal, AS_HELP_STRING([--disable-hal],[Disable HAL support for ac power detection]),,[enable_hal=yes])
@@ -374,131 +378,6 @@ PKG_CHECK_MODULES(SQLITE3, [ sqlite3 >= $SQLITE_REQUIRED ])
 AC_SUBST(SQLITE3_CFLAGS)
 AC_SUBST(SQLITE3_LIBS)
 
-###############################################################################
-# Check for file monitor backends
-###############################################################################
-
-FAM_LIBS=
-inotify_support=no
-inotify_linux=no
-inotify_header=none
-fam_support=no
-fam_type=none
-
-AM_CONDITIONAL(HAVE_INOTIFY, false)
-AM_CONDITIONAL(HAVE_INOTIFY_LINUX, false)
-AM_CONDITIONAL(HAVE_FAM, false)
-
-AC_ARG_ENABLE(file-monitoring,
-	AS_HELP_STRING(
-		[--enable-file-monitoring=ARG],
-		[enables one of the (inotify, fam, polling, auto) file monitoring backends]),,
-	enable_file_monitoring=auto)
-
-
-AC_CHECK_HEADERS([sys/inotify.h],
-		 [
-		 inotify_support=yes
-		 inotify_linux=no
-		 ])
-
-AC_CHECK_HEADERS([linux/inotify.h],
-		 [
-		 inotify_linux=yes
-		 inotify_support=yes
-		 ])
-
-AC_CHECK_LIB(fam, FAMOpen,
-		[AC_CHECK_HEADERS(fam.h,
-		[
-		fam_support=yes
-		fam_type=fam
-		],[fam_support=no])],
-		[fam_support=no])
-
-PKG_CHECK_MODULES(GAMIN, 
-		gamin,
-		[
-		fam_support=yes
-		fam_type=gamin
-		], 
-		[
-		fam_support=no
-		])
-
-if test "x$enable_file_monitoring" = "xauto"; then
-	if test "$inotify_support"  = "yes"; then
-		primary_backend="inotify"
-		if test "$inotify_linux" = "yes"; then
-			inotify_header="linux/inotify.h"
-		else
-			inotify_header="sys/inotify.h"
-		fi
-
-	elif test "$fam_support" = "yes"; then
-		if test "$fam_type" = "gamin"; then
-			primary_backend="gamin"
-		else
-			primary_backend="fam"
-		fi
-	else
-		if test "$native_win32" = "yes"; then
-			primary_backend="win32"
-		else
-			primary_backend="polling only"
-		fi
-	fi
-elif test "x$enable_file_monitoring" = "xinotify"; then
-	if test "$inotify_support" = "no"; then
-		AC_MSG_ERROR([***inotify requested but not found - exiting!])
-	else
-		primary_backend="inotify"
-		if test "$inotify_linux" = "yes"; then
-			inotify_header="linux/inotify.h"
-		else
-			inotify_header="sys/inotify.h"
-		fi
-	fi
-elif test "x$enable_file_monitoring" = "xfam"; then
-	if test "$fam_support" = "no"; then
-		AC_MSG_ERROR([***fam requested but not found - exiting!])
-	else
-		if test "$fam_type" = "gamin"; then
-			primary_backend="gamin"
-		else
-			primary_backend="fam"
-		fi
-	fi
-else
-	if test "$native_win32" = "yes"; then
-		primary_backend="win32"
-	else
-		primary_backend="polling only"
-	fi
-fi
-
-if test "$primary_backend" = "inotify"; then
-	AC_DEFINE(HAVE_INOTIFY, [], [Define if we have inotify])
-	AM_CONDITIONAL(HAVE_INOTIFY, true)
-	if test "$inotify_linux" = "yes"; then
-			AC_DEFINE(HAVE_INOTIFY_LINUX, [], 
-			[
-			Define if we have inotify and header is linux/inotify.h
-			])
-			AM_CONDITIONAL(HAVE_INOTIFY_LINUX, true)
-	fi
-elif test "$primary_backend" = "gamin"; then 
-	AC_DEFINE(HAVE_FAM, [], [Define if we have FAM])
-	AM_CONDITIONAL(HAVE_FAM, true)
-	FAM_LIBS="-lgamin-1"
-	AC_SUBST(FAM_LIBS)
-elif test "$primary_backend" = "fam"; then
-	AC_DEFINE(HAVE_FAM, [], [Define if we have FAM])
-	AM_CONDITIONAL(HAVE_FAM, true)
-	FAM_LIBS="-lfam"
-	AC_SUBST(FAM_LIBS)
-fi
-
 
 ##################################################################
 # Enable building libtracker-gtk?
@@ -527,10 +406,10 @@ fi
 
 AM_CONDITIONAL(ENABLE_LIBTRACKERGTK, test "$enable_libtrackergtk" = "yes")
 
-
 ##################################################################
 # Enable building tracker-applet notification icon?
 ##################################################################
+
 LIBNOTIFY_GTK2_REQUIRED=2.10
 LIBNOTIFY_GLIB_REQUIRED=2.10
 LIBNOTIFY_REQUIRED=0.4.3
@@ -557,11 +436,9 @@ fi
 
 AM_CONDITIONAL(ENABLE_TRACKERAPPLET, test "$enable_trackerapplet" = "yes")
 
-
 ##################################################################
 # Enable UNAC support?
 ##################################################################
-
 
 AC_ARG_ENABLE([unac], AS_HELP_STRING([--disable-unac], [Disable unac accent stripper support]),,[enable_unac=yes])
 
@@ -581,11 +458,8 @@ if test "$enable_unac" = "yes"; then
 fi
 AM_CONDITIONAL(ENABLE_UNAC, test "$enable_unac" = "yes")
 
-
-
-
 ##################################################################
-# check for GNOME/GTK dependencies to build tracker search tool (Gnome client)
+# Check for GNOME/GTK dependencies to build tracker search tool (Gnome client)
 ##################################################################
 
 GTK_REQUIRED=2.8.0
@@ -672,7 +546,7 @@ fi
 AM_CONDITIONAL(ENABLE_PREFERENCES, test "$enable_preferences" = "yes")
 
 ##################################################################
-# check for poppler's glib bingings
+# Check for poppler's glib bingings
 ##################################################################
 
 POPPLER_GLIB_REQUIRED=0.4.5
@@ -695,7 +569,7 @@ AM_CONDITIONAL(HAVE_POPPLER_GLIB, test "$have_poppler" = "yes")
 test "$have_poppler" = "yes" && AC_DEFINE(HAVE_POPPLER, [], [Define if we have poppler])
 
 ##################################################################
-# check for libexif
+# Check for libexif
 ##################################################################
 
 LIBEXIF_REQUIRED=0.6
@@ -714,7 +588,7 @@ AM_CONDITIONAL(HAVE_LIBEXIF, test "$have_libexif" = "yes")
 test "$have_libexif" = "yes" && AC_DEFINE(HAVE_LIBEXIF, [], [Define if we have libexif])
 
 ##################################################################
-# check for libgsf
+# Check for libgsf
 ##################################################################
 
 LIBGSF_REQUIRED=1.13
@@ -753,10 +627,8 @@ exit(ioprio_get(1,0));
    [ AC_DEFINE(HAVE_IOPRIO,[],[Define ioprio support]) have_ioprio=yes ])
 AC_MSG_RESULT([$have_ioprio])
 
-#####################################################
-
 ##################################################################
-# check for exempi
+# Check for exempi
 ##################################################################
 
 EXEMPI_REQUIRED=1.99.2
@@ -841,7 +713,7 @@ Build Configuration:
 
 	enable unac accent stripper:	  	$enable_unac
 
-	support for file monitoring:           	$primary_backend
+	support for file monitoring:           	gio
 	support for ioprio:			$have_ioprio
 	support for HAL:                    	$have_hal
 

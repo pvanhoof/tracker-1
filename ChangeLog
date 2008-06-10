@@ -1,3 +1,39 @@
+2008-06-10  Martyn Russell  <martyn@imendio.com>
+
+	* configure.ac: Bumped the version dependency of GLib to 2.16 for
+	the new GIO API and remove the old backend code checks.
+	
+	* data/dbus/tracker-indexer.xml: Added a "ProcessFiles" API call
+	and updated the "GetRunning" to return the state as a function
+	parameter.
+	
+	* src/tracker-indexer/tracker-indexer.[ch]: Update all DBus
+	functions to include the GError and other parameters so we return
+	valid errors when functions fail.
+	
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-crawler.[ch]:
+	* src/trackerd/tracker-monitor.[ch]: 
+	* src/trackerd/tracker-email-evolution.c:
+	* src/trackerd/tracker-email-kmail.c: 
+	* src/trackerd/tracker-email-modest.c:
+	* src/trackerd/tracker-email-thunderbird.c: 
+	* src/trackerd/tracker-process-files.c: Added to handle directory
+	monitoring and for crawling the file system. The crawler module
+	now contacts the indexer and sends files it finds across DBus. 
+	
+	* src/trackerd/tracker-db.c: Use tracker_monitor_() instead of
+	tracker_watcher_().
+	
+	* src/trackerd/tracker-dbus.[ch]: Added a function to get the
+	DBusGProxy for the indexer client connection.
+	
+	* src/trackerd/tracker-main.c: Initialise the TrackerCrawler
+	object so it crawls $HOME for now for testing.
+
+	* src/trackerd/tracker-watcher*.[ch]: Removed in favour of
+	tracker-monitor.[ch]. 
+
 2008-06-10  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/libtracker-db/tracker-db-manager.c (db_interface_get): Run

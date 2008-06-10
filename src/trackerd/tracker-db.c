@@ -40,7 +40,7 @@
 #include "tracker-db.h"
 #include "tracker-process-files.h"
 #include "tracker-query-tree.h"
-#include "tracker-watcher.h"
+#include "tracker-monitor.h"
 #include "tracker-xesam-manager.h"
 
 #define ZLIBBUFSIZ            8192
@@ -556,12 +556,12 @@ directory_move (TrackerDBInterface *iface,
 		const gchar        *moved_to_uri)
 {
 	/* Stop watching old dir, start watching new dir */
-	tracker_watcher_remove_dir (moved_from_uri, TRUE, iface);
+	tracker_monitor_remove (moved_from_uri, TRUE, iface);
 		
 	tracker_db_file_move (iface, moved_from_uri, moved_to_uri);
 	directory_move_files (iface, moved_from_uri, moved_to_uri);
 
-	tracker_watcher_add_dir (moved_to_uri, iface);
+	tracker_monitor_add (moved_to_uri, iface);
 }
 
 static gint 

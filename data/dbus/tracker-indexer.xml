@@ -10,9 +10,15 @@
 
 <node name="/">
   <interface name="org.freedesktop.Tracker.Indexer">  
-    <method name="GetRunning"/>
+    <method name="GetRunning">
+      <arg type="b" name="is_running" direction="out" />
+    </method>
     <method name="SetRunning">
-      <arg type="b" name="running" direction="in" />
+      <arg type="b" name="should_be_running" direction="in" />
+    </method>
+
+    <method name="ProcessFiles">
+      <arg type="as" name="files" direction="in" />
     </method>
     
     <!-- The old signal in the daemon used to send the time taken, we

@@ -46,11 +46,12 @@
 #include <libtracker-db/tracker-db-manager.h>
 
 #include "tracker-email.h"
+#include "tracker-crawler.h"
 #include "tracker-dbus.h"
 #include "tracker-indexer.h"
+#include "tracker-monitor.h"
 #include "tracker-process-files.h"
 #include "tracker-status.h"
-#include "tracker-watcher.h"
 #include "tracker-xesam-manager.h"
 
 #ifdef OS_WIN32
@@ -158,8 +159,8 @@ static GOptionEntry   entries[] = {
 	  N_("Disable any indexing or watching taking place"), NULL },
 	{ "verbosity", 'v', 0, 
 	  G_OPTION_ARG_INT, &verbosity, 
-	  N_("Value that controls the level of logging. "
-	     "Valid values are 0 (displays/logs only errors), "
+	  N_("Value that controls the level of logging."
+	     "Valid values are: 0 (displays/logs only errors), "
 	     "1 (minimal), 2 (detailed), and 3 (debug)"), 
 	  N_("VALUE") },
 	{ "throttle", 't', 0, 
@@ -679,6 +680,7 @@ main (gint argc, gchar *argv[])
 	GOptionContext *context = NULL;
 	GError         *error = NULL;
 	GSList         *l;
+	TrackerCrawler *crawler;
 	gchar          *example;
 	gchar          *summary;
 	gboolean        need_index;
@@ -804,7 +806,7 @@ main (gint argc, gchar *argv[])
 
 	sanity_check_option_values ();
 
-	if (!tracker_watcher_init ()) {
+	if (!tracker_monitor_init ()) {
 		return EXIT_FAILURE;
 	} 
 
@@ -817,10 +819,14 @@ main (gint argc, gchar *argv[])
 	tracker_xesam_manager_init ();
 	tracker_email_start_email_watching (tracker_config_get_email_client (tracker->config));
 
+	crawler = tracker_crawler_new ();
+
 #ifdef HAVE_HAL
  	tracker->hal = tracker_hal_new ();
+	tracker_crawler_set_hal (crawler, tracker->hal);
 #endif /* HAVE_HAL */
-
+	
+	tracker_crawler_set_config (crawler, tracker->config);
 
 	umask (077);
 
@@ -858,22 +864,20 @@ main (gint argc, gchar *argv[])
 				}
 			}
 			
+			/* Get files first */
+			tracker_crawler_start (crawler);
+
 			if (tracker->is_running) {
 				DBusGProxy *proxy;
-				g_message ("Indexing enabled, starting...");
-				proxy = tracker_dbus_start_indexer ();
-				tracker_xesam_subscribe_indexer_updated (proxy);
-			}
 
 #if 0
-			thread = g_thread_create_full ((GThreadFunc) tracker_process_files, 
-						       tracker,
-						       (gulong) tracker_config_get_thread_stack_size (tracker->config),
-						       TRUE, 
-						       FALSE, 
-						       G_THREAD_PRIORITY_NORMAL, 
-						       NULL);
+				g_message ("Indexing enabled, starting...");
+				tracker_dbus_indexer_start ();
 #endif
+
+				proxy = tracker_dbus_indexer_get_proxy ();
+				tracker_xesam_subscribe_indexer_updated (proxy);
+			}
 		} else {
 			g_message ("Indexing disabled, not starting");
 		}
@@ -887,6 +891,10 @@ main (gint argc, gchar *argv[])
 	}
 
 	g_message ("Shutting down...\n");
+
+	if (crawler) {
+		g_object_unref (crawler);
+	}
 
 	/* 
 	 * Shutdown the daemon
@@ -913,7 +921,7 @@ main (gint argc, gchar *argv[])
 	tracker_db_shutdown ();
 	tracker_db_manager_shutdown ();
 	tracker_ontology_shutdown ();
-	tracker_watcher_shutdown ();
+	tracker_monitor_shutdown ();
 	tracker_nfs_lock_shutdown ();
 	tracker_log_shutdown ();
 

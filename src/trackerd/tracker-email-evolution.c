@@ -43,7 +43,6 @@
 #include "tracker-email-plugin.h"
 #include "tracker-dbus.h"
 #include "tracker-daemon.h"
-#include "tracker-watcher.h"
 #include "tracker-status.h"
 #include "tracker-utils.h"
 #include "tracker-main.h"

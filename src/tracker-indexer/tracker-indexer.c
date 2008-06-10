@@ -48,6 +48,7 @@
 #include <glib/gstdio.h>
 
 #include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-dbus.h>
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-language.h>
 #include <libtracker-common/tracker-parser.h>
@@ -182,7 +183,9 @@ tracker_indexer_set_property (GObject      *object,
 
 	switch (prop_id) {
 	case PROP_RUNNING:
-		tracker_indexer_set_running (indexer, g_value_get_boolean (value));
+		tracker_indexer_set_running (indexer, 
+					     g_value_get_boolean (value), 
+					     NULL);
 		break;
 	case PROP_REINDEX:
 		priv->reindex = g_value_get_boolean (value);
@@ -281,7 +284,7 @@ init_indexer (TrackerIndexer *indexer)
 	priv->metadata = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
 	priv->contents = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_CONTENTS);
 
-	tracker_indexer_set_running (indexer, TRUE);
+	tracker_indexer_set_running (indexer, TRUE, NULL);
 
 	g_free (index_file);
 
@@ -600,21 +603,29 @@ tracker_indexer_new (gboolean reindex)
 			     NULL);
 }
 
-void
-tracker_indexer_set_running (TrackerIndexer *indexer,
-			     gboolean        running)
+gboolean
+tracker_indexer_set_running (TrackerIndexer  *indexer,
+			     gboolean         should_be_running,
+			     GError         **error)
 {
 	TrackerIndexerPrivate *priv;
-	gboolean changed = FALSE;
+	guint                  request_id;
+	gboolean               changed = FALSE;
 
-	g_return_if_fail (TRACKER_IS_INDEXER (indexer));
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_return_val_if_fail (TRACKER_IS_INDEXER (indexer), FALSE, error);
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
-	if (running && priv->idle_id == 0) {
+        tracker_dbus_request_new (request_id,
+                                  "DBus request to %s indexer", 
+                                  should_be_running ? "start" : "stop");
+
+	if (should_be_running && priv->idle_id == 0) {
 		priv->idle_id = g_idle_add ((GSourceFunc) indexing_func, indexer);
 		changed = TRUE;
-	} else if (!running && priv->idle_id != 0) {
+	} else if (!should_be_running && priv->idle_id != 0) {
 		g_source_remove (priv->idle_id);
 		priv->idle_id = 0;
 		changed = TRUE;
@@ -623,16 +634,57 @@ tracker_indexer_set_running (TrackerIndexer *indexer,
 	if (changed) {
 		g_object_notify (G_OBJECT (indexer), "running");
 	}
+
+	tracker_dbus_request_success (request_id);
+
+	return TRUE;
 }
 
 gboolean
-tracker_indexer_get_running (TrackerIndexer *indexer)
+tracker_indexer_get_running (TrackerIndexer  *indexer,
+			     gboolean        *is_running,
+			     GError         **error)
 {
 	TrackerIndexerPrivate *priv;
+	guint                  request_id;
 
-	g_return_val_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_return_val_if_fail (TRACKER_IS_INDEXER (indexer), FALSE, error);
+	tracker_dbus_return_val_if_fail (is_running != NULL, FALSE, error);
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
-	return (priv->idle_id != 0);
+	tracker_dbus_request_new (request_id,
+                                  "DBus request to get running status");
+
+	*is_running = priv->idle_id != 0;
+
+	tracker_dbus_request_success (request_id);
+
+	return TRUE;
+}
+
+gboolean
+tracker_indexer_process_files (TrackerIndexer  *indexer,
+			       GStrv            files,
+			       GError         **error)
+{
+	/* TrackerIndexerPrivate *priv; */
+	guint                  request_id;
+
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_return_val_if_fail (TRACKER_IS_INDEXER (indexer), FALSE, error);
+	tracker_dbus_return_val_if_fail (files != NULL, FALSE, error);
+
+	tracker_dbus_request_new (request_id,
+                                  "DBus request to process %d files",
+				  g_strv_length (files));
+
+	/* Do work */
+
+	tracker_dbus_request_success (request_id);
+
+	return TRUE;
 }

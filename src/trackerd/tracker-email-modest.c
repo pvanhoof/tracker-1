@@ -40,8 +40,6 @@
 #include "tracker-dbus.h"
 #include "tracker-daemon.h"
 #include "tracker-status.h"
-#include "tracker-watcher.h"
-
 
 #define MODEST_HOME	".modest"
 #define MODEST_HOME_CACHE_MAIL MODEST_HOME G_DIR_SEPARATOR_S "cache" G_DIR_SEPARATOR_S "mail"

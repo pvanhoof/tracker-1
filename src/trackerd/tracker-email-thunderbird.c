@@ -27,7 +27,6 @@
 #include "tracker-email-plugin.h"
 
 #include "tracker-db-email.h"
-#include "tracker-watcher.h"
 #include "tracker-main.h"
 
 typedef enum

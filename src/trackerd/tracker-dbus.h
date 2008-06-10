@@ -33,11 +33,12 @@
 
 G_BEGIN_DECLS
 
-gboolean    tracker_dbus_init             (TrackerConfig *config);
-void        tracker_dbus_shutdown         (void);
-gboolean    tracker_dbus_register_objects (Tracker       *tracker);
-GObject    *tracker_dbus_get_object       (GType          type);
-DBusGProxy *tracker_dbus_start_indexer    (void);
+gboolean    tracker_dbus_init              (TrackerConfig *config);
+void        tracker_dbus_shutdown          (void);
+gboolean    tracker_dbus_register_objects  (Tracker       *tracker);
+GObject    *tracker_dbus_get_object        (GType          type);
+void        tracker_dbus_indexer_start     (void);
+DBusGProxy *tracker_dbus_indexer_get_proxy (void);
 
 G_END_DECLS
 

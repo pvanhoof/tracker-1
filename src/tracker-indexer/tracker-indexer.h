@@ -22,13 +22,13 @@
 #ifndef __TRACKER_INDEXER_H__
 #define __TRACKER_INDEXER_H__
 
+#include <glib-object.h>
+
 #define TRACKER_INDEXER_SERVICE      "org.freedesktop.Tracker.Indexer"
 #define TRACKER_INDEXER_PATH         "/org/freedesktop/Tracker/Indexer"
 #define TRACKER_INDEXER_INTERFACE    "org.freedesktop.Tracker.Indexer"
 
 G_BEGIN_DECLS
-
-#include <glib-object.h>
 
 #define TRACKER_TYPE_INDEXER         (tracker_indexer_get_type())
 #define TRACKER_INDEXER(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_INDEXER, TrackerIndexer))
@@ -47,15 +47,21 @@ struct TrackerIndexer {
 struct TrackerIndexerClass {
 	GObjectClass parent_class;
 
-	void (*finished) (TrackerIndexer *indexer);
+	void (*finished)      (TrackerIndexer *indexer);
 	void (*index_updated) (TrackerIndexer *indexer);
 };
 
-GType           tracker_indexer_get_type    (void) G_GNUC_CONST;
-TrackerIndexer *tracker_indexer_new         (gboolean        reindex);
-void            tracker_indexer_set_running (TrackerIndexer *indexer,
-                                             gboolean        running);
-gboolean        tracker_indexer_get_running (TrackerIndexer *indexer);
+GType           tracker_indexer_get_type      (void) G_GNUC_CONST;
+TrackerIndexer *tracker_indexer_new           (gboolean         reindex);
+gboolean        tracker_indexer_set_running   (TrackerIndexer  *indexer,
+					       gboolean         should_be_running,
+					       GError         **error);
+gboolean        tracker_indexer_get_running   (TrackerIndexer  *indexer,
+					       gboolean        *is_running,
+					       GError         **error);
+gboolean        tracker_indexer_process_files (TrackerIndexer  *indexer,
+					       GStrv            files,
+					       GError         **error);
 
 G_END_DECLS
 

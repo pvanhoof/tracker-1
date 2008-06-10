@@ -19,24 +19,24 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKERD_WATCHER_H__
-#define __TRACKERD_WATCHER_H__
+#ifndef __TRACKERD_MONITOR_H__
+#define __TRACKERD_MONITOR_H__
 
 #include "tracker-db.h"
 
 G_BEGIN_DECLS
 
-gboolean tracker_watcher_init           (void);
-void     tracker_watcher_shutdown       (void);
-gboolean tracker_watcher_add_dir        (const gchar        *dir,
-					 TrackerDBInterface *iface);
-void     tracker_watcher_remove_dir     (const gchar        *dir,
-					 gboolean            delete_subdirs,
-					 TrackerDBInterface *iface);
-gboolean tracker_watcher_is_dir_watched (const gchar        *dir,
-					 TrackerDBInterface *iface);
-gint     tracker_watcher_get_dir_count  (void);
+gboolean tracker_monitor_init       (void);
+void     tracker_monitor_shutdown   (void);
+gboolean tracker_monitor_add        (const gchar        *uri,
+				     TrackerDBInterface *iface);
+gboolean tracker_monitor_remove     (const gchar        *uri,
+				     gboolean            delete_subdirs,
+				     TrackerDBInterface *iface);
+gboolean tracker_monitor_is_watched (const gchar        *uri,
+				     TrackerDBInterface *iface);
+gint     tracker_monitor_get_count  (void);
 
 G_END_DECLS
 
-#endif /* __TRACKERD_WATCHER_H__ */
+#endif /* __TRACKERD_MONITOR_H__ */

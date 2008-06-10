@@ -48,7 +48,7 @@
 #include "tracker-daemon.h"
 #include "tracker-email.h"
 #include "tracker-indexer.h"
-#include "tracker-watcher.h"
+#include "tracker-monitor.h"
 #include "tracker-status.h"
 #include "tracker-process-files.h"
 
@@ -251,7 +251,7 @@ process_watch_directories (GSList             *dirs,
                                 continue;
                         }
                         
-                        if (!tracker_watcher_add_dir (dir, iface)) {
+                        if (!tracker_monitor_add (dir, iface)) {
                                 g_warning ("Watch failed for:'%s'", dir);
                         }
 		}
@@ -400,7 +400,7 @@ process_index_delete_directory (TrackerDBFileInfo *info,
 
 	tracker_db_directory_delete (iface, info->file_id, info->uri);
 
-	tracker_watcher_remove_dir (info->uri, TRUE, iface);
+	tracker_monitor_remove (info->uri, TRUE, iface);
 
 	g_message ("Deleting directory:'%s' and subdirs", info->uri);
 }

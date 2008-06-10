@@ -1,3 +1,8 @@
+2008-06-10  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/libtracker-common/tracker-parser.c
+	(tracker_parser_text_to_string): Return a stripped string.
+
 2008-06-10  Martyn Russell  <martyn@imendio.com>
 
 	* configure.ac: 
@@ -21,7 +26,7 @@
 	* src/trackerd/tracker-metadata.c
 	* src/trackerd/tracker-search.c: Updated method calls
 	This fixes the get_registered_metadata method.
-	
+
 2008-06-09  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer-db.[ch] (tracker_db_set_text):

@@ -335,7 +335,8 @@ tracker_parser_text_to_string (const gchar     *txt,
                                gboolean         filter_numbers, 
                                gboolean         delimit)
 {
-	const gchar *p = txt;	
+	const gchar *p = txt;
+	gchar       *parsed_text;
 	gchar       *word = NULL;
 	guint32      i = 0;
 
@@ -400,7 +401,8 @@ tracker_parser_text_to_string (const gchar     *txt,
                 
                 g_free (attrs);
                 
-                return g_string_free (strs, FALSE);
+		parsed_text = g_string_free (strs, FALSE);
+		return g_strstrip (parsed_text);
         } else {
                 GString *str = g_string_new (" ");
                 
@@ -422,7 +424,8 @@ tracker_parser_text_to_string (const gchar     *txt,
                         }
                         
                         if (!p || !*p) {
-                                return g_string_free (str, FALSE);
+                                parsed_text = g_string_free (str, FALSE);
+				return g_strstrip (parsed_text);
                         }
                 }
         }

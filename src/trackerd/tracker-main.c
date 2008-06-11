@@ -847,6 +847,7 @@ main (gint argc, gchar *argv[])
 				proxy = tracker_dbus_indexer_get_proxy ();
 				tracker_xesam_subscribe_indexer_updated (proxy);
 			}
+
 		} else {
 			g_message ("Indexing disabled, not starting");
 		}

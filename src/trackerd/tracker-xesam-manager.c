@@ -248,13 +248,10 @@ tracker_xesam_manager_get_live_search (const gchar  *search_id,
 static gboolean 
 live_search_handler (gpointer data)
 {
-	TrackerXesam       *xesam;
 	TrackerDBInterface *iface;
 	GList              *sessions;
 	gboolean            reason_to_live = FALSE;
 
-	xesam = TRACKER_XESAM (tracker_dbus_get_object (TRACKER_TYPE_XESAM));
-	g_return_val_if_fail (xesam != NULL, FALSE);
 
 	iface = tracker_db_manager_get_db_interface (TRACKER_DB_XESAM);
 	g_return_val_if_fail (iface != NULL, FALSE);

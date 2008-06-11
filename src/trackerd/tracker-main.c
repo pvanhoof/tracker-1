@@ -404,7 +404,7 @@ signal_handler (gint signo)
 	case SIGTERM:
 	case SIGINT:
 		in_loop = TRUE;
-		tracker->is_running = FALSE;
+		tracker_shutdown ();
 	
 	default:
 		if (g_strsignal (signo)) {
@@ -805,7 +805,7 @@ main (gint argc, gchar *argv[])
 	tracker_nfs_lock_init (tracker_config_get_nfs_locking (tracker->config));
 	tracker_ontology_init ();
 	tracker_db_init ();
-	tracker_db_manager_init (FALSE, data_dir, user_data_dir, sys_tmp_dir); /* Using TRUE=broken */
+	tracker_db_manager_init (TRUE, data_dir, user_data_dir, sys_tmp_dir); /* Using TRUE=broken */
 	tracker_xesam_manager_init ();
 	tracker_email_start_email_watching (tracker_config_get_email_client (tracker->config));
 
@@ -882,7 +882,6 @@ main (gint argc, gchar *argv[])
 	shutdown_directories ();
 
 	/* Shutdown major subsystems */
-	tracker_process_files_shutdown ();
 	tracker_email_end_email_watching ();
 	tracker_dbus_shutdown ();
 	tracker_xesam_manager_shutdown ();
@@ -915,6 +914,8 @@ main (gint argc, gchar *argv[])
 void
 tracker_shutdown (void)
 {
+	tracker->is_running = FALSE;
+
 	/* Stop any tight loop operations */
 	tracker_crawler_stop (tracker->crawler);
 

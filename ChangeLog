@@ -1,5 +1,20 @@
 2008-06-11  Martyn Russell  <martyn@imendio.com>
 
+	* src/tracker-indexer/tracker-main.c: Removed commented out code.
+	
+	* src/trackerd/tracker-crawler.c: Renamed internal functions
+	better and fixed a nasty crasher because we weren't NULL
+	terminating the GStrv we send to the indexer to process.
+	
+	* src/trackerd/tracker-main.c: Don't initiate and shutdown the
+	process-files module, it is no longer used. Also make sure we
+	shutdown properly when using Ctrl+C. Now when we initiate the db
+	manager we set the attach_all to TRUE now that Carlos has fixed
+	that bug. This means we use one connection for all transactions in
+	the daemon now.
+	
+2008-06-11  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-crawler.c: Make sure we set the ignored
 	file types each time the TrackerConfig object is set for the
 	TrackerCrawler. This fixes the warning about TrackConfig not

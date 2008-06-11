@@ -86,6 +86,7 @@ signal_handler (gint signo)
 	case SIGSEGV:
 		/* we are screwed if we get this so exit immediately! */
 		exit (EXIT_FAILURE);
+
 	case SIGBUS:
 	case SIGILL:
 	case SIGFPE:
@@ -96,15 +97,6 @@ signal_handler (gint signo)
 		in_loop = TRUE;
 		g_main_loop_quit (main_loop);
 
-		/*
-		tracker->is_running = FALSE;
-		tracker_end_watching ();
-
-		g_timeout_add_full (G_PRIORITY_LOW,
-				    1,
-				    (GSourceFunc) tracker_do_cleanup,
-				    g_strdup (g_strsignal (signo)), NULL);
-		*/
 	default:
 		if (g_strsignal (signo)) {
 			g_warning ("Received signal: %s", g_strsignal (signo));

@@ -54,7 +54,7 @@ struct _TrackerCrawlerPriv {
 	gchar         **ignored_suffixes;
 	gchar         **ignored_prefixes;
 
-	guint           dirs_in_progress;
+	guint           enumerations;
 	guint           files_found; 
 	guint           files_ignored; 
 	
@@ -86,10 +86,8 @@ static void mount_point_removed_cb         (TrackerHal     *hal,
 					    gpointer        user_data);
 #endif /* HAVE_HAL */
 
-static void crawl_directory                (TrackerCrawler *crawler,
-					    const gchar    *path);
-static void crawl_directory_known_to_exist (TrackerCrawler *crawler,
-					    GFile          *file);
+static void file_enumerate (TrackerCrawler *crawler,
+			    GFile          *file);
 
 G_DEFINE_TYPE(TrackerCrawler, tracker_crawler, G_TYPE_OBJECT)
 
@@ -517,13 +515,13 @@ done:
 }
 
 static void
-dirs_crawling_increment (TrackerCrawler *crawler)
+file_enumerators_increment (TrackerCrawler *crawler)
 {
 	TrackerCrawlerPriv *priv;
 
 	priv = crawler->priv;
 
-	if (priv->dirs_in_progress == 0) {
+	if (priv->enumerations == 0) {
 		g_message ("Starting to crawl file system...");
 
 		if (!priv->timer) {
@@ -536,19 +534,19 @@ dirs_crawling_increment (TrackerCrawler *crawler)
 		priv->files_ignored = 0;
 	}
 
-	priv->dirs_in_progress++;
+	priv->enumerations++;
 }
 
 static void
-dirs_crawling_decrement (TrackerCrawler *crawler)
+file_enumerators_decrement (TrackerCrawler *crawler)
 {
 	TrackerCrawlerPriv *priv;
 
 	priv = crawler->priv;
 
-	priv->dirs_in_progress--;
+	priv->enumerations--;
 
-	if (priv->dirs_in_progress == 0) {
+	if (priv->enumerations == 0) {
 		g_timer_stop (priv->timer);
 
 		g_message ("%s crawling files in %4.4f seconds, %d found, %d ignored", 
@@ -556,13 +554,15 @@ dirs_crawling_decrement (TrackerCrawler *crawler)
 			   g_timer_elapsed (priv->timer, NULL),
 			   priv->files_found,
 			   priv->files_ignored);
+
+		priv->running = FALSE;
 	}
 }
 
 static void
-crawl_directory_cb (GObject      *file,
-		    GAsyncResult *res,
-		    gpointer      user_data)
+file_enumerate_cb (GObject      *file,
+		   GAsyncResult *res,
+		   gpointer      user_data)
 {
 	TrackerCrawler  *crawler;
 	GMainContext    *context;
@@ -576,7 +576,7 @@ crawl_directory_cb (GObject      *file,
 	enumerator = g_file_enumerate_children_finish (parent, res, NULL);
 
 	if (!enumerator) {
-		dirs_crawling_decrement (crawler);
+		file_enumerators_decrement (crawler);
 		return;
 	}
 
@@ -590,16 +590,16 @@ crawl_directory_cb (GObject      *file,
 			crawler->priv->files_ignored++;
 			g_debug ("Ignored:'%s' (%d)",  
 				 relative_path, 
-				 crawler->priv->dirs_in_progress); 
+				 crawler->priv->enumerations); 
 			g_free (relative_path);
 		} else {
 			crawler->priv->files_found++;
 			g_debug ("Found  :'%s' (%d)", 
 				 relative_path, 
-				 crawler->priv->dirs_in_progress);
+				 crawler->priv->enumerations);
 
 			if (g_file_info_get_file_type (info) == G_FILE_TYPE_DIRECTORY) {
-				crawl_directory_known_to_exist (crawler, child);
+				file_enumerate (crawler, child);
 				g_free (relative_path);
 			} else {
 				g_async_queue_push (crawler->priv->files,
@@ -620,42 +620,22 @@ crawl_directory_cb (GObject      *file,
 
 	g_file_enumerator_close (enumerator, NULL, NULL);
 	
-	dirs_crawling_decrement (crawler);
+	file_enumerators_decrement (crawler);
 }
 
 static void
-crawl_directory_known_to_exist (TrackerCrawler *crawler,
-				GFile          *file)
+file_enumerate (TrackerCrawler *crawler,
+		GFile          *file)
 {
-	dirs_crawling_increment (crawler);
+	file_enumerators_increment (crawler);
 
 	g_file_enumerate_children_async (file, 
 					 "*",
 					 G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
 					 G_PRIORITY_DEFAULT,
 					 NULL, 
-					 crawl_directory_cb,
+					 file_enumerate_cb,
 					 crawler);
-}
-
-static void
-crawl_directory (TrackerCrawler *crawler,
-		 const gchar    *path)
-{
-	GFile    *file;
-	gboolean  exists;
-
-	file = g_file_new_for_path (path);
-	exists = g_file_query_exists (file, NULL);
-	
-	if (exists) {
-		g_message ("Searching directory:'%s'", path);
-		crawl_directory_known_to_exist (crawler, file);
-	} else {
-		g_message ("Searching directory:'%s' failed, does not exist", path);
-	}
-
-	g_object_unref (file);
 }
 
 static gboolean
@@ -682,13 +662,12 @@ file_queue_handle_cb (gpointer user_data)
 	proxy = tracker_dbus_indexer_get_proxy ();
 	error = NULL;
 
-	g_debug ("Checking indexer is running");
 	org_freedesktop_Tracker_Indexer_get_running (proxy, 
 						     &running,
 						     &error);
 	if (error || !running) {
-		g_critical ("Couldn't process files, %s", 
-			    error ? error->message : "indexer not running");
+		g_message ("Couldn't process files, %s", 
+			   error ? error->message : "indexer not running");
 		g_clear_error (&error);
 		return TRUE;
 	}
@@ -717,6 +696,7 @@ file_queue_handle_cb (gpointer user_data)
 		}
 	}
 
+	g_ptr_array_add (ptr_array, NULL);
 	files = (gchar **) g_ptr_array_free (ptr_array, FALSE);
 
 	g_debug ("Sending %d files to indexer to process", 
@@ -744,6 +724,9 @@ void
 tracker_crawler_start (TrackerCrawler *crawler)
 {
 	TrackerCrawlerPriv *priv;
+	GFile              *file;
+	const gchar        *path;
+	gboolean            exists;
 
 	g_return_if_fail (TRACKER_IS_CRAWLER (crawler));
 
@@ -763,8 +746,21 @@ tracker_crawler_start (TrackerCrawler *crawler)
 		get_remote_roots (crawler, NULL, NULL);
 	}
 
-	/* crawl_directory (crawler, "/home/martyn/Documents");     */
-	crawl_directory (crawler, g_get_home_dir ());  
+	path = "/home/martyn/Documents";
+	/* path = g_get_home_dir (); */
+
+	file = g_file_new_for_path (path);
+	
+	exists = g_file_query_exists (file, NULL);
+	
+	if (exists) {
+		g_message ("Searching directory:'%s'", path);
+		file_enumerate (crawler, file);
+	} else {
+		g_message ("Searching directory:'%s' failed, does not exist", path);
+	}
+
+	g_object_unref (file);
 }
 
 void

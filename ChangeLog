@@ -1,5 +1,17 @@
 2008-06-11  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-crawler.c: Make sure we set the ignored
+	file types each time the TrackerConfig object is set for the
+	TrackerCrawler. This fixes the warning about TrackConfig not
+	existing for tracker_config_get_no_index_file_types().
+	
+	* src/trackerd/tracker-main.c: Removed the initial sleep from the
+	daemon, this is only meant for the indexer which implements the
+	feature and this also means that we don't respond to dbus events
+	in that interval.
+
+2008-06-11  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-crawler.[ch]: Added a _stop() function and
 	also iterate main context events after each file is iterated. This
 	means we respond to DBus events. Fixed a nasty crash where we were

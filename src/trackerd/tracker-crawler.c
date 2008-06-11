@@ -46,7 +46,7 @@ struct _TrackerCrawlerPriv {
 	GAsyncQueue    *files;
 	guint           files_queue_handle_id;
 
-	GSList         *ignored_patterns;
+	GSList         *ignored_file_types;
 
 	GHashTable     *ignored_names;
 	GHashTable     *temp_black_list;
@@ -74,6 +74,8 @@ static void crawler_set_property           (GObject        *object,
 					    guint           param_id,
 					    const GValue   *value,
 					    GParamSpec     *pspec);
+
+static void set_ignored_file_types         (TrackerCrawler *crawler);
 
 #ifdef HAVE_HAL
 static void mount_point_added_cb           (TrackerHal     *hal,
@@ -127,7 +129,6 @@ tracker_crawler_init (TrackerCrawler *object)
 {
 	TrackerCrawlerPriv *priv;
 	GPtrArray          *ptr_array;
-	GSList             *ignored_file_types;
 
 	object->priv = GET_PRIV (object);
 
@@ -135,22 +136,6 @@ tracker_crawler_init (TrackerCrawler *object)
 
 	/* Create async queue for handling file pushes to the indexer */
 	priv->files = g_async_queue_new ();
-
-	/* File types as configured to ignore, using pattern matching */
-	ignored_file_types = tracker_config_get_no_index_file_types (priv->config);
-
-	if (ignored_file_types) {
-		GPatternSpec *spec;
-		GSList       *patterns = NULL;
-		GSList       *l;
-		
-		for (l = ignored_file_types; l; l = l->next) {
-			spec = g_pattern_spec_new (l->data);
-			patterns = g_slist_prepend (patterns, spec);
-		}
-                
-		priv->ignored_patterns = g_slist_reverse (patterns);
-	}
 
 	/* Whole file names to ignore */
 	priv->ignored_names = g_hash_table_new (g_str_hash, g_str_equal);
@@ -220,10 +205,10 @@ crawler_finalize (GObject *object)
 	g_hash_table_unref (priv->temp_black_list); 
 	g_hash_table_unref (priv->ignored_names); 
 
-	g_slist_foreach (priv->ignored_patterns, 
+	g_slist_foreach (priv->ignored_file_types, 
 			 (GFunc) g_pattern_spec_free,
 			 NULL);
-	g_slist_free (priv->ignored_patterns);
+	g_slist_free (priv->ignored_file_types);
 
 	if (priv->files_queue_handle_id) {
 		g_source_remove (priv->files_queue_handle_id);	
@@ -293,7 +278,7 @@ tracker_crawler_new (void)
 
 void
 tracker_crawler_set_config (TrackerCrawler *object,
-			    TrackerConfig *config)
+			    TrackerConfig  *config)
 {
 	TrackerCrawlerPriv *priv;
 
@@ -311,6 +296,9 @@ tracker_crawler_set_config (TrackerCrawler *object,
 	}
 
 	priv->config = config;
+
+	/* The ignored file types depend on the config */
+	set_ignored_file_types (object);
 
 	g_object_notify (G_OBJECT (object), "config");
 }
@@ -358,6 +346,36 @@ tracker_crawler_set_hal (TrackerCrawler *object,
 /*
  * Functions
  */
+static void
+set_ignored_file_types (TrackerCrawler *crawler)
+{
+	TrackerCrawlerPriv *priv;
+	GPatternSpec       *spec;
+	GSList             *ignored_file_types;
+	GSList             *patterns = NULL;
+	GSList             *l;
+
+	priv = crawler->priv;
+
+	g_slist_foreach (priv->ignored_file_types, 
+			 (GFunc) g_pattern_spec_free,
+			 NULL);
+	g_slist_free (priv->ignored_file_types);
+
+	if (!priv->config) {
+		return;
+	}
+
+	/* File types as configured to ignore, using pattern matching */
+	ignored_file_types = tracker_config_get_no_index_file_types (priv->config);
+	
+	for (l = ignored_file_types; l; l = l->next) {
+		spec = g_pattern_spec_new (l->data);
+		patterns = g_slist_prepend (patterns, spec);
+	}
+        
+	priv->ignored_file_types = g_slist_reverse (patterns);
+}
 
 #ifdef HAVE_HAL
 
@@ -484,7 +502,7 @@ path_should_be_ignored (TrackerCrawler *crawler,
 	}
 
 	/* Test ignore types */
-	for (l = crawler->priv->ignored_patterns; l; l = l->next) {
+	for (l = crawler->priv->ignored_file_types; l; l = l->next) {
 		if (g_pattern_match_string (l->data, basename)) {
 			goto done;
 		}

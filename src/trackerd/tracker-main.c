@@ -139,7 +139,6 @@ static gboolean       reindex;
 static gboolean       low_memory;
 static gint           throttle = -1;
 static gint           verbosity = -1;
-static gint           initial_sleep = -1; 
 
 static GOptionEntry   entries[] = {
 	{ "exclude-dir", 'e', 0, 
@@ -172,10 +171,6 @@ static GOptionEntry   entries[] = {
 	{ "low-memory", 'm', 0, 
 	  G_OPTION_ARG_NONE, &low_memory, 
 	  N_("Minimizes the use of memory but may slow indexing down"), 
-	  NULL },
-	{ "initial-sleep", 's', 0, 
-	  G_OPTION_ARG_INT, &initial_sleep, 
-	  N_("Initial sleep time, just before indexing, in seconds"), 
 	  NULL },
 	{ "language", 'l', 0, 
 	  G_OPTION_ARG_STRING, &language, 
@@ -791,10 +786,6 @@ main (gint argc, gchar *argv[])
 		tracker_config_set_verbosity (tracker->config, verbosity);
 	}
 
-	if (initial_sleep > -1) {
-		tracker_config_set_initial_sleep (tracker->config, initial_sleep);
-	}
-
 	/* Initialise other subsystems */
 	tracker_log_init (log_filename, tracker_config_get_verbosity (tracker->config));
 	g_print ("Starting log:\n  File:'%s'\n", log_filename);
@@ -843,36 +834,15 @@ main (gint argc, gchar *argv[])
 		return EXIT_FAILURE;
 	}
 
+	g_message ("Waiting for DBus requests...");
+
 	if (!tracker->readonly) {
-		tracker_process_files_init (tracker);
-
 		if (tracker_config_get_enable_indexing (tracker->config)) {
-			gint initial_sleep;
-
-			initial_sleep = tracker_config_get_initial_sleep (tracker->config);
-			g_message ("Indexing enabled, sleeping for %d secs before starting...", 
-				   initial_sleep);
-			
-			while (initial_sleep > 0) {
-				g_usleep (G_USEC_PER_SEC);
-				
-				initial_sleep --;
-				
-				if (!tracker->is_running) {
-					break;
-				}
-			}
-			
 			/* Get files first */
 			tracker_crawler_start (tracker->crawler);
 
 			if (tracker->is_running) {
 				DBusGProxy *proxy;
-
-#if 0
-				g_message ("Indexing enabled, starting...");
-				tracker_dbus_indexer_start ();
-#endif
 
 				proxy = tracker_dbus_indexer_get_proxy ();
 				tracker_xesam_subscribe_indexer_updated (proxy);
@@ -882,8 +852,6 @@ main (gint argc, gchar *argv[])
 		}
 	}
 
-	g_message ("Waiting for DBus requests...");
-	
 	if (tracker->is_running) {
 		main_loop = g_main_loop_new (NULL, FALSE);
 		g_main_loop_run (main_loop);

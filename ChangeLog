@@ -1,3 +1,17 @@
+2008-06-11  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-crawler.[ch]: Added a _stop() function and
+	also iterate main context events after each file is iterated. This
+	means we respond to DBus events. Fixed a nasty crash where we were
+	fixing static strings added to the database when the
+	TrackerCrawler was created.
+	
+	* src/trackerd/tracker-daemon.c: Changed message from "restarting" to
+	"shuting down" when shutting down the daemon.
+	
+	* src/trackerd/tracker-main.[ch]: Create the crawler in the
+	Tracker struct so the shutdown function can stop it immediately.
+
 2008-06-10  Martyn Russell  <martyn@imendio.com>
 
 	* configure.ac: Bumped the version dependency of GLib to 2.16 for

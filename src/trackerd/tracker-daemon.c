@@ -508,7 +508,7 @@ tracker_daemon_shutdown (TrackerDaemon  *object,
 
 	priv = GET_PRIV (object);
 
-	g_message ("Tracker daemon attempting to restart");
+	g_message ("Tracker daemon attempting to shutdown");
 
 	priv->tracker->reindex = reindex;
 

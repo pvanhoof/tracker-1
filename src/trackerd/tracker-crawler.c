@@ -57,6 +57,8 @@ struct _TrackerCrawlerPriv {
 	guint           dirs_in_progress;
 	guint           files_found; 
 	guint           files_ignored; 
+	
+	gboolean        running;
 };
 
 enum {
@@ -151,19 +153,16 @@ tracker_crawler_init (TrackerCrawler *object)
 	}
 
 	/* Whole file names to ignore */
-	priv->ignored_names = g_hash_table_new_full (g_str_hash,
-						     g_str_equal,
-						     g_free, 
-						     NULL);
-	g_hash_table_insert (priv->ignored_names, "po", GINT_TO_POINTER (1));
-	g_hash_table_insert (priv->ignored_names, "CVS", GINT_TO_POINTER (1));
-	g_hash_table_insert (priv->ignored_names, "Makefile", GINT_TO_POINTER (1));
-	g_hash_table_insert (priv->ignored_names, "SCCS", GINT_TO_POINTER (1));
-	g_hash_table_insert (priv->ignored_names, "ltmain.sh", GINT_TO_POINTER (1));
-	g_hash_table_insert (priv->ignored_names, "libtool", GINT_TO_POINTER (1));
-	g_hash_table_insert (priv->ignored_names, "config.status", GINT_TO_POINTER (1));
-	g_hash_table_insert (priv->ignored_names, "conftest", GINT_TO_POINTER (1));
-	g_hash_table_insert (priv->ignored_names, "confdefs.h", GINT_TO_POINTER (1));
+	priv->ignored_names = g_hash_table_new (g_str_hash, g_str_equal);
+	g_hash_table_insert (priv->ignored_names, "po", NULL);
+	g_hash_table_insert (priv->ignored_names, "CVS", NULL);
+	g_hash_table_insert (priv->ignored_names, "Makefile", NULL);
+	g_hash_table_insert (priv->ignored_names, "SCCS", NULL);
+	g_hash_table_insert (priv->ignored_names, "ltmain.sh", NULL);
+	g_hash_table_insert (priv->ignored_names, "libtool", NULL);
+	g_hash_table_insert (priv->ignored_names, "config.status", NULL);
+	g_hash_table_insert (priv->ignored_names, "conftest", NULL);
+	g_hash_table_insert (priv->ignored_names, "confdefs.h", NULL);
 
 	/* Temporary black list */
 	priv->temp_black_list = g_hash_table_new_full (g_str_hash,
@@ -218,8 +217,8 @@ crawler_finalize (GObject *object)
 	g_strfreev (priv->ignored_prefixes);
 	g_strfreev (priv->ignored_suffixes);
 
-	g_hash_table_unref (priv->temp_black_list);
-	g_hash_table_unref (priv->ignored_names);
+	g_hash_table_unref (priv->temp_black_list); 
+	g_hash_table_unref (priv->ignored_names); 
 
 	g_slist_foreach (priv->ignored_patterns, 
 			 (GFunc) g_pattern_spec_free,
@@ -534,7 +533,8 @@ dirs_crawling_decrement (TrackerCrawler *crawler)
 	if (priv->dirs_in_progress == 0) {
 		g_timer_stop (priv->timer);
 
-		g_message ("Finished crawling files in %4.4f seconds, %d found, %d ignored", 
+		g_message ("%s crawling files in %4.4f seconds, %d found, %d ignored", 
+			   priv->running ? "Finished" : "Stopped",
 			   g_timer_elapsed (priv->timer, NULL),
 			   priv->files_found,
 			   priv->files_ignored);
@@ -547,6 +547,7 @@ crawl_directory_cb (GObject      *file,
 		    gpointer      user_data)
 {
 	TrackerCrawler  *crawler;
+	GMainContext    *context;
 	GFileEnumerator *enumerator;
 	GFileInfo       *info;
 	GFile           *parent, *child;
@@ -562,7 +563,7 @@ crawl_directory_cb (GObject      *file,
 	}
 
 	for (info = g_file_enumerator_next_file (enumerator, NULL, NULL);
-	     info;
+	     info && crawler->priv->running;
 	     info = g_file_enumerator_next_file (enumerator, NULL, NULL)) {
 		child = g_file_get_child (parent, g_file_info_get_name (info));
 		relative_path = g_file_get_path (child);
@@ -587,6 +588,14 @@ crawl_directory_cb (GObject      *file,
 						    relative_path);
 			}
 		}	
+
+		/* Iterate pending events between each file in case
+		 * there are requests waiting from DBus, etc
+		 */
+		context = g_main_context_default ();
+		while (g_main_context_pending (context)) {
+			g_main_context_iteration (context, FALSE);
+		}
 	
 		g_object_unref (child);
 	}
@@ -730,6 +739,8 @@ tracker_crawler_start (TrackerCrawler *crawler)
 						     file_queue_handle_cb,
 						     crawler);
 	
+	priv->running = TRUE;
+
 	if (0) {
 		get_remote_roots (crawler, NULL, NULL);
 	}
@@ -738,3 +749,14 @@ tracker_crawler_start (TrackerCrawler *crawler)
 	crawl_directory (crawler, g_get_home_dir ());  
 }
 
+void
+tracker_crawler_stop (TrackerCrawler *crawler)
+{
+	TrackerCrawlerPriv *priv;
+
+	g_return_if_fail (TRACKER_IS_CRAWLER (crawler));
+
+	priv = crawler->priv;
+
+	priv->running = FALSE;
+}

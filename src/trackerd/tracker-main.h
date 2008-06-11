@@ -36,6 +36,7 @@
 
 #include <libtracker-db/tracker-db-action.h>
 
+#include "tracker-crawler.h"
 #include "tracker-indexer.h"
 
 G_BEGIN_DECLS
@@ -47,6 +48,8 @@ typedef struct {
 
         TrackerConfig    *config;
         TrackerLanguage  *language;
+
+	TrackerCrawler   *crawler;
 
  	gboolean          is_running; 
 	gboolean          readonly;

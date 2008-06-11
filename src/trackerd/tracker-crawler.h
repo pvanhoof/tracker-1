@@ -62,6 +62,7 @@ void            tracker_crawler_set_hal      (TrackerCrawler *object,
 #endif /* HAVE_HAL */
 
 void            tracker_crawler_start        (TrackerCrawler *crawler);
+void            tracker_crawler_stop         (TrackerCrawler *crawler);
 
 G_END_DECLS
 

@@ -680,7 +680,6 @@ main (gint argc, gchar *argv[])
 	GOptionContext *context = NULL;
 	GError         *error = NULL;
 	GSList         *l;
-	TrackerCrawler *crawler;
 	gchar          *example;
 	gchar          *summary;
 	gboolean        need_index;
@@ -819,14 +818,14 @@ main (gint argc, gchar *argv[])
 	tracker_xesam_manager_init ();
 	tracker_email_start_email_watching (tracker_config_get_email_client (tracker->config));
 
-	crawler = tracker_crawler_new ();
+	tracker->crawler = tracker_crawler_new ();
 
 #ifdef HAVE_HAL
  	tracker->hal = tracker_hal_new ();
-	tracker_crawler_set_hal (crawler, tracker->hal);
+	tracker_crawler_set_hal (tracker->crawler, tracker->hal);
 #endif /* HAVE_HAL */
 	
-	tracker_crawler_set_config (crawler, tracker->config);
+	tracker_crawler_set_config (tracker->crawler, tracker->config);
 
 	umask (077);
 
@@ -865,7 +864,7 @@ main (gint argc, gchar *argv[])
 			}
 			
 			/* Get files first */
-			tracker_crawler_start (crawler);
+			tracker_crawler_start (tracker->crawler);
 
 			if (tracker->is_running) {
 				DBusGProxy *proxy;
@@ -892,8 +891,8 @@ main (gint argc, gchar *argv[])
 
 	g_message ("Shutting down...\n");
 
-	if (crawler) {
-		g_object_unref (crawler);
+	if (tracker->crawler) {
+		g_object_unref (tracker->crawler);
 	}
 
 	/* 
@@ -947,6 +946,9 @@ main (gint argc, gchar *argv[])
 void
 tracker_shutdown (void)
 {
+	/* Stop any tight loop operations */
+	tracker_crawler_stop (tracker->crawler);
+
 	g_main_loop_quit (main_loop);
 }
 

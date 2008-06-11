@@ -1,5 +1,10 @@
 2008-06-11  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-crawler.c: (tracker_crawler_start): Changed
+	jthe default location to $HOME from some testing directory of mine.
+
+2008-06-11  Martyn Russell  <martyn@imendio.com>
+
 	* src/tracker-indexer/tracker-main.c: Removed commented out code.
 	
 	* src/trackerd/tracker-crawler.c: Renamed internal functions

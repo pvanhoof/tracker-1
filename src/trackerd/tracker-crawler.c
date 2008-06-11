@@ -746,8 +746,8 @@ tracker_crawler_start (TrackerCrawler *crawler)
 		get_remote_roots (crawler, NULL, NULL);
 	}
 
-	path = "/home/martyn/Documents";
-	/* path = g_get_home_dir (); */
+	/* path = "/home/martyn/Documents"; */
+	path = g_get_home_dir (); 
 
 	file = g_file_new_for_path (path);
 	

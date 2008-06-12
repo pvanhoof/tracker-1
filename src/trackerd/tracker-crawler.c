@@ -196,11 +196,21 @@ static void
 crawler_finalize (GObject *object)
 {
 	TrackerCrawlerPriv *priv;
+	gint                i;
 	
 	priv = GET_PRIV (object);
 
-	g_strfreev (priv->ignored_prefixes);
-	g_strfreev (priv->ignored_suffixes);
+	for (i = 0; priv->ignored_prefixes[i] != NULL; i++) {
+		g_free (priv->ignored_prefixes[i]);
+	}
+
+	g_free (priv->ignored_prefixes);
+
+	for (i = 0; priv->ignored_suffixes[i] != NULL; i++) {
+		g_free (priv->ignored_suffixes[i]);
+	}
+
+	g_free (priv->ignored_suffixes);
 
 	g_hash_table_unref (priv->temp_black_list); 
 	g_hash_table_unref (priv->ignored_names); 
@@ -727,6 +737,7 @@ file_queue_handle_cb (gpointer user_data)
 	gboolean        running;
 	gint            length;
 	gint            items;
+	gint            i;
 
 	crawler = user_data;
 
@@ -774,11 +785,11 @@ file_queue_handle_cb (gpointer user_data)
 		}
 	}
 
+	length = ptr_array->len;
 	g_ptr_array_add (ptr_array, NULL);
 	files = (gchar **) g_ptr_array_free (ptr_array, FALSE);
 
-	g_debug ("Sending %d files to indexer to process", 
-		 g_strv_length (files));
+	g_debug ("Sending %d files to indexer to process", length);
 
 	org_freedesktop_Tracker_Indexer_process_files (proxy, 
 						       (const gchar **) files,
@@ -793,7 +804,11 @@ file_queue_handle_cb (gpointer user_data)
 		g_debug ("Sent!");
 	}
 
-	g_strfreev (files);
+	for (i = 0; files[i] != NULL; i++) {
+		g_free (files[i]);
+	}
+
+	g_free (files);
 							     
 	return TRUE;
 }

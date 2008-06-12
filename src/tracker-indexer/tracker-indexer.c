@@ -549,9 +549,11 @@ process_module (TrackerIndexer *indexer,
 
 		info = path_info_new (module, dirs[i]);
 		tracker_indexer_add_directory (indexer, info);
+
+		g_free (dirs[i]);
 	}
 
-	g_strfreev (dirs);
+	g_free (dirs);
 }
 
 

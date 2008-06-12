@@ -816,11 +816,11 @@ main (gint argc, gchar *argv[])
 		return EXIT_FAILURE;
 	}
 
-	sanity_check_option_values ();
-
-	if (!tracker_monitor_init ()) {
+	if (!tracker_monitor_init (tracker->config)) {
 		return EXIT_FAILURE;
 	} 
+
+	sanity_check_option_values ();
 
 	initialise_directories (&need_index);
 

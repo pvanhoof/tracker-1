@@ -22,16 +22,18 @@
 #ifndef __TRACKERD_MONITOR_H__
 #define __TRACKERD_MONITOR_H__
 
+#include <libtracker-common/tracker-config.h>
+
 #include "tracker-db.h"
 
 G_BEGIN_DECLS
 
-gboolean tracker_monitor_init       (void);
+gboolean tracker_monitor_init       (TrackerConfig *config);
 void     tracker_monitor_shutdown   (void);
-gboolean tracker_monitor_add        (const gchar *path);
-gboolean tracker_monitor_remove     (const gchar *path,
-				     gboolean     delete_subdirs);
-gboolean tracker_monitor_is_watched (const gchar *path);
+gboolean tracker_monitor_add        (const gchar   *path);
+gboolean tracker_monitor_remove     (const gchar   *path,
+				     gboolean       delete_subdirs);
+gboolean tracker_monitor_is_watched (const gchar   *path);
 gint     tracker_monitor_get_count  (void);
 
 G_END_DECLS

@@ -80,8 +80,10 @@ get_monitor_roots (GSList **included,
 #endif
 
 gboolean 
-tracker_monitor_init (void) 
+tracker_monitor_init (TrackerConfig *config) 
 {
+	g_return_val_if_fail (TRACKER_IS_CONFIG (config), FALSE);
+
 	if (monitors) {
 		return TRUE;
 	}

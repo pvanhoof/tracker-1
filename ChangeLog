@@ -1,3 +1,16 @@
+2008-06-12  Martyn Russell  <martyn@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer.c:
+	* src/trackerd/tracker-crawler.c: Change all instances of
+	g_strfreev() on dynamically allocated GPtrArrays, since they grow,
+	the strings should be freed separately and the array itself after
+	that, this is also better than g_strfreev() in case one or the
+	other changes to a GSlice implementation.
+	
+	* src/trackerd/tracker-main.c: 
+	* src/trackerd/tracker-monitor.[ch]: Pass the TrackerConfig since
+	we need it to know if we shouldn't monitor certain locations.
+
 2008-06-12  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* svn merge -r 1538:1656 ../xesam-support

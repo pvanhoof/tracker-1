@@ -941,6 +941,10 @@ db_row_to_service (TrackerDBResultSet *result_set)
 	g_slist_foreach (new_list, (GFunc) g_free, NULL);
         g_slist_free (new_list);
 
+	g_free (name);
+	g_free (parent);
+	g_free (content_metadata);
+
         return service;
 }
 
@@ -1432,6 +1436,9 @@ db_get_static_data (TrackerDBInterface *iface)
 
 				tracker_field_set_child_ids (def, child_ids);
 				g_object_unref (result_set2);
+
+				g_slist_foreach (child_ids, (GFunc) g_free, NULL);
+				g_slist_free (child_ids);
 			}
 
 			g_message ("Loading metadata def:'%s' with weight:%d",

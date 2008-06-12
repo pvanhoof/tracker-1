@@ -117,8 +117,8 @@ tracker_ontology_init (void)
 					       g_object_unref);
 	
 	mime_service = g_hash_table_new_full (g_str_hash, 
-					      g_str_equal, 
-					      NULL, 
+					      g_str_equal,
+					      g_free,
 					      NULL);
 
 	service_directory_table = g_hash_table_new_full (g_str_hash, 
@@ -128,7 +128,7 @@ tracker_ontology_init (void)
 
 	metadata_table = g_hash_table_new_full (g_str_hash,
 						g_str_equal,
-						NULL, //Pointer to the object name
+						g_free,
 						g_object_unref);
 
 	/* We will need the class later in order to match strings to enum values

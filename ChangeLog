@@ -1,3 +1,11 @@
+2008-06-12  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/libtracker-db/tracker-db-manager.c (db_get_static_data)
+	(db_row_to_service): Plug a few leaks
+	* src/libtracker-common/tracker-ontology.c (tracker_ontology_init):
+	Set the GDestroyNotify handler for mime/metadata keys, as these
+	hashtables have to take ownership of the strings passed.
+
 2008-06-11  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-crawler.c: (tracker_crawler_start): Changed

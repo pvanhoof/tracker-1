@@ -1,3 +1,9 @@
+2008-06-12  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer.c
+	(tracker_indexer_process_files): Queue files that get through DBus
+	calls. At the moment we just assume we want the files module.
+
 2008-06-12  Martyn Russell  <martyn@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer.c:

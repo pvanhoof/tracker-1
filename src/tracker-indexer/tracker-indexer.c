@@ -310,8 +310,8 @@ tracker_indexer_init (TrackerIndexer *indexer)
 
 	priv->module_names = tracker_config_get_index_modules (priv->config);
 
-	priv->indexer_modules = g_hash_table_new_full (g_direct_hash,
-						       g_direct_equal,
+	priv->indexer_modules = g_hash_table_new_full (g_str_hash,
+						       g_str_equal,
 						       NULL,
 						       (GDestroyNotify) g_module_close);
 
@@ -672,19 +672,38 @@ tracker_indexer_process_files (TrackerIndexer  *indexer,
 			       GStrv            files,
 			       GError         **error)
 {
-	/* TrackerIndexerPrivate *priv; */
+	TrackerIndexerPrivate *priv;
+	GModule               *module;
 	guint                  request_id;
-
-	request_id = tracker_dbus_get_next_request_id ();
+	gint                   i;
 
 	tracker_dbus_return_val_if_fail (TRACKER_IS_INDEXER (indexer), FALSE, error);
 	tracker_dbus_return_val_if_fail (files != NULL, FALSE, error);
+
+	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
+	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_request_new (request_id,
                                   "DBus request to process %d files",
 				  g_strv_length (files));
 
-	/* Do work */
+	/* Assume we're using always the files module, bail out if it's not available */
+	module = g_hash_table_lookup (priv->indexer_modules, "files");
+
+	if (!module) {
+		tracker_dbus_request_failed (request_id,
+					     error,
+					     "The files module is not loaded");
+		return FALSE;
+	}
+
+	/* Add files to the queue */
+	for (i = 0; files[i]; i++) {
+		PathInfo *info;
+
+		info = path_info_new (module, files[i]);
+		tracker_indexer_add_file (indexer, info);
+	}
 
 	tracker_dbus_request_success (request_id);
 

@@ -208,6 +208,45 @@ AM_GLIB_GNU_GETTEXT
 IT_PROG_INTLTOOL([0.35.0])
 
 ####################################################################
+# Check if glib includes GTests framework
+#
+# If glib is installed in a non-standard location (like /opt/xxx):
+# * PKG_CONFIG_PATH must be set correctly
+# * glib binaries must be in the PATH (i.e PATH=$PATH:/opt/xxx/bin)
+####################################################################
+GLIB_WITH_UNIT_TESTING=2.15.0
+
+AC_ARG_ENABLE(unit_tests, 
+	AS_HELP_STRING([--enable-unit-tests=@<:@no/yes/auto@:>@],
+			[Enable unit tests (if available)]), , 
+			[enable_unit_tests=auto])
+
+if test "x$enable_unit_tests" != "xno" ; then
+   glib_pkgconfig_tmp="glib-2.0 >= $GLIB_WITH_UNIT_TESTING"
+   PKG_CHECK_MODULES(GLIB_UNIT_TEST, $glib_pkgconfig_tmp, [have_unit_tests=yes], [have_unit_tests=no])
+
+   if test "x$have_unit_tests" = "xyes" ; then
+      AC_DEFINE(HAVE_UNIT_TEST, 1, [Unit test framework available in glib])
+      glib_pkgconfig=$glib_pkgconfig_tmp 
+      AC_PATH_PROG(GTESTER, [gtester], [no] )
+      if test "x$GTESTER" = "xno" ; then
+	 AC_MSG_ERROR([*** Gtester is not in the path])
+      fi
+   fi
+else
+   have_unit_tests=no
+   glib_pkgconfig=
+fi
+
+if test "x$enable_unit_tests" = "xyes"; then
+   if test "x$have_unit_tests" != "xyes"; then
+      AC_MSG_ERROR([Couldn't find unit test compatible glib.])
+   fi
+fi
+
+AM_CONDITIONAL(HAVE_UNIT_TESTS, test "x$have_unit_tests" = "xyes")
+
+####################################################################
 # External QDBM check
 ####################################################################
 
@@ -710,7 +749,7 @@ Build Configuration:
 
 	enable warnings:			$enable_warnings
 	enable debug symbols:    		$enable_debug_code
-
+	enable unit tests:			$have_unit_tests
 	enable unac accent stripper:	  	$enable_unac
 
 	support for file monitoring:           	gio

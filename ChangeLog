@@ -1,3 +1,9 @@
+2008-06-12  Ivan Frade  <ivan.frade@nokia.com>
+
+	* Makefile.decl: Make rules to build unit tests. Copied from glib.
+	* configure.ac: Added rules to build unit tests when the glib
+	installed version supports it.
+	
 2008-06-12  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/libtracker-db/tracker-db-manager.c (db_get_static_data)

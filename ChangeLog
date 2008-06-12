@@ -6,6 +6,13 @@
 	
 2008-06-12  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/libtracker-common/tracker-ontology.c
+	(ontology_hash_lookup_by_str) (tracker_ontology_add_service_type)
+	(tracker_ontology_add_field): Use collation keys for hashtable
+	lookups.
+
+2008-06-12  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/libtracker-db/tracker-db-manager.c (db_get_static_data)
 	(db_row_to_service): Plug a few leaks
 	* src/libtracker-common/tracker-ontology.c (tracker_ontology_init):

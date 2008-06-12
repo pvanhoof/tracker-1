@@ -77,7 +77,7 @@ ontology_hash_lookup_by_str (GHashTable  *hash_table,
 	gpointer *data;
 	gchar    *str_lower;
 
-	str_lower = g_utf8_strdown (str, -1);
+	str_lower = g_utf8_collate_key (str, -1);
 	data = g_hash_table_lookup (hash_table, str_lower);
 	g_free (str_lower);
 
@@ -175,7 +175,7 @@ tracker_ontology_add_service_type (TrackerService *service,
 	name = tracker_service_get_name (service);
 
 	g_hash_table_insert (service_table, 
-			     g_utf8_strdown (name, -1), 
+			     g_utf8_collate_key (name, -1), 
 			     g_object_ref (service));
 	g_hash_table_insert (service_id_table, 
 			     g_strdup_printf ("%d", id), 
@@ -544,7 +544,7 @@ tracker_ontology_add_field (TrackerField *field)
 	g_return_if_fail (tracker_field_get_name (field) != NULL);
 	
 	g_hash_table_insert (metadata_table, 
-			     g_utf8_strdown (tracker_field_get_name (field), -1),
+			     g_utf8_collate_key (tracker_field_get_name (field), -1),
 			     field);
 }
 

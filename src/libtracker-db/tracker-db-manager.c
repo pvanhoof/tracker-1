@@ -77,7 +77,7 @@ static TrackerDBDefinition dbs[] = {
           TRACKER_DB_LOCATION_DATA_DIR,
 	  NULL,
           "file-meta.db",
-          NULL,
+	  "file-meta",
           NULL,
           512,                          
           TRACKER_DB_PAGE_SIZE_DEFAULT, 
@@ -86,7 +86,7 @@ static TrackerDBDefinition dbs[] = {
           TRACKER_DB_LOCATION_DATA_DIR,
 	  NULL,
           "file-contents.db",
-          NULL,
+	  "file-contents",
           NULL,
           1024,
           TRACKER_DB_PAGE_SIZE_DEFAULT,
@@ -95,7 +95,7 @@ static TrackerDBDefinition dbs[] = {
           TRACKER_DB_LOCATION_DATA_DIR,
 	  NULL,
           "email-meta.db",
-          NULL,
+	  "email-meta",
           NULL,
           512, 
           TRACKER_DB_PAGE_SIZE_DEFAULT,
@@ -104,7 +104,7 @@ static TrackerDBDefinition dbs[] = {
           TRACKER_DB_LOCATION_DATA_DIR,
 	  NULL,
           "email-contents.db",
-          NULL,
+	  "email-contents",
           NULL,
           512,
           TRACKER_DB_PAGE_SIZE_DEFAULT,
@@ -113,7 +113,7 @@ static TrackerDBDefinition dbs[] = {
           TRACKER_DB_LOCATION_DATA_DIR,
 	  NULL,
           "xesam.db",
-          NULL,
+	  "xesam",
           NULL,
           512,
           TRACKER_DB_PAGE_SIZE_DEFAULT,
@@ -132,6 +132,7 @@ static GHashTable   *prepared_queries;
 static gchar        *services_dir;
 static gchar        *sql_dir;
 static gpointer      db_type_enum_class_pointer;
+static TrackerDBInterface *attach_interface = NULL;
 
 static const gchar * 
 location_to_directory (TrackerDBLocation  location,
@@ -1539,19 +1540,28 @@ db_interface_get (TrackerDB  type,
 		   path,
 		   db_type_to_string (type));
 
-	iface = tracker_db_interface_sqlite_new (path);
-	tracker_db_interface_set_procedure_table (iface, prepared_queries);
+	if (attach_all && attach_interface) {
+		iface = g_object_ref (attach_interface);
+	} else {
+		iface = tracker_db_interface_sqlite_new (path);
+		tracker_db_interface_set_procedure_table (iface, prepared_queries);
+
+		if (attach_all) {
+			attach_interface = g_object_ref (iface);
+		}
+
+		db_exec_no_reply (iface, "ANALYZE");
+	}
 
 	/* FIXME: Shouldn't we do this for common/cache dbs too? */
-	if (type != TRACKER_DB_COMMON &&
+	if (!attach_all &&
+	    type != TRACKER_DB_COMMON &&
 	    type != TRACKER_DB_CACHE) {
 		db_set_params (iface,
 			       dbs[type].cache_size,
 			       dbs[type].page_size,
 			       dbs[type].add_functions);
 	}
-
-	db_exec_no_reply (iface, "ANALYZE");
 
 	if (attach_all) {
 		g_message ("  Attaching to current DB connection");
@@ -2082,6 +2092,10 @@ tracker_db_manager_shutdown (void)
 	 */
 	g_type_class_unref (db_type_enum_class_pointer);
 	db_type_enum_class_pointer = NULL;
+
+	if (attach_interface) {
+		g_object_unref (attach_interface);
+	}
 
         initialized = FALSE;
 }

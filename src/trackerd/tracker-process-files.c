@@ -251,9 +251,7 @@ process_watch_directories (GSList             *dirs,
                                 continue;
                         }
                         
-                        if (!tracker_monitor_add (dir, iface)) {
-                                g_warning ("Watch failed for:'%s'", dir);
-                        }
+                        tracker_monitor_add (dir);
 		}
 
                 for (l = list; l; l = l->next) {
@@ -400,7 +398,7 @@ process_index_delete_directory (TrackerDBFileInfo *info,
 
 	tracker_db_directory_delete (iface, info->file_id, info->uri);
 
-	tracker_monitor_remove (info->uri, TRUE, iface);
+	tracker_monitor_remove (info->uri, TRUE);
 
 	g_message ("Deleting directory:'%s' and subdirs", info->uri);
 }

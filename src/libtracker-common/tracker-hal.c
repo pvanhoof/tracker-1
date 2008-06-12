@@ -152,7 +152,24 @@ tracker_hal_init (TrackerHal *hal)
 	DBusError       error;
 	DBusConnection *connection;
 
+        g_message ("Initializing HAL...");
+
 	priv = GET_PRIV (hal);
+
+        priv->all_devices = g_hash_table_new_full (g_str_hash,
+                                                   g_str_equal,
+                                                   (GDestroyNotify) g_free,
+                                                   (GDestroyNotify) g_free);
+
+        priv->mounted_devices = g_hash_table_new_full (g_str_hash,
+                                                       g_str_equal,
+                                                       (GDestroyNotify) g_free,
+                                                       (GDestroyNotify) g_free);
+
+        priv->removable_devices = g_hash_table_new_full (g_str_hash,
+							 g_str_equal,
+							 (GDestroyNotify) g_free,
+							 (GDestroyNotify) g_free);
 
 	dbus_error_init (&error);
 
@@ -166,7 +183,6 @@ tracker_hal_init (TrackerHal *hal)
 
         dbus_connection_setup_with_g_main (connection, NULL);	
         
-        g_message ("Initializing HAL...");
 	priv->context = libhal_ctx_new ();
 
 	if (!priv->context) {
@@ -191,21 +207,7 @@ tracker_hal_init (TrackerHal *hal)
                 return;
         }
 
-        priv->all_devices = g_hash_table_new_full (g_str_hash,
-                                                   g_str_equal,
-                                                   (GDestroyNotify) g_free,
-                                                   (GDestroyNotify) g_free);
-
-        priv->mounted_devices = g_hash_table_new_full (g_str_hash,
-                                                       g_str_equal,
-                                                       (GDestroyNotify) g_free,
-                                                       (GDestroyNotify) g_free);
-
-        priv->removable_devices = g_hash_table_new_full (g_str_hash,
-							 g_str_equal,
-							 (GDestroyNotify) g_free,
-							 (GDestroyNotify) g_free);
-        
+       
         /* Volume and property notification callbacks */
         g_message ("HAL monitors set for devices added/removed/mounted/umounted...");
 	libhal_ctx_set_device_added (priv->context, hal_device_added_cb);

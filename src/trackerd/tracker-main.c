@@ -139,6 +139,7 @@ static gboolean       reindex;
 static gboolean       low_memory;
 static gint           throttle = -1;
 static gint           verbosity = -1;
+static gint           initial_sleep = -1;
 
 static GOptionEntry   entries[] = {
 	{ "exclude-dir", 'e', 0, 
@@ -180,6 +181,10 @@ static GOptionEntry   entries[] = {
 	{ "reindex", 'R', 0, 
 	  G_OPTION_ARG_NONE, &reindex, 
 	  N_("Force a re-index of all content"), 
+	  NULL },
+	{ "initial-sleep", 's', 0, 
+	  G_OPTION_ARG_INT, &initial_sleep, 
+	  N_("Time to wait before crawling the file system"), 
 	  NULL },
 	{ NULL }
 };
@@ -668,6 +673,23 @@ shutdown_directories (void)
 	}
 }
 
+static gboolean
+start_cb (gpointer user_data)
+{
+	DBusGProxy *proxy;
+
+	if (!tracker->is_running) {
+		return FALSE;
+	}
+
+	/* Get files first */
+	tracker_crawler_start (tracker->crawler);
+	
+	proxy = tracker_dbus_indexer_get_proxy ();
+	tracker_xesam_subscribe_indexer_updated (proxy);
+
+	return FALSE;
+}
 
 gint
 main (gint argc, gchar *argv[])
@@ -836,21 +858,19 @@ main (gint argc, gchar *argv[])
 
 	g_message ("Waiting for DBus requests...");
 
-	if (!tracker->readonly) {
-		if (tracker_config_get_enable_indexing (tracker->config)) {
-			/* Get files first */
-			tracker_crawler_start (tracker->crawler);
-
-			if (tracker->is_running) {
-				DBusGProxy *proxy;
-
-				proxy = tracker_dbus_indexer_get_proxy ();
-				tracker_xesam_subscribe_indexer_updated (proxy);
-			}
-
+	if (!tracker->readonly && 
+	    tracker_config_get_enable_indexing (tracker->config)) {
+		if (initial_sleep > 0) {
+			g_message ("Waiting %d seconds before starting",
+				   initial_sleep);
+			g_timeout_add (initial_sleep * 1000, 
+				       start_cb,
+				       NULL);
 		} else {
-			g_message ("Indexing disabled, not starting");
+			g_idle_add (start_cb, tracker);
 		}
+	} else {
+		g_message ("Indexing disabled, not starting");
 	}
 
 	if (tracker->is_running) {
@@ -859,10 +879,6 @@ main (gint argc, gchar *argv[])
 	}
 
 	g_message ("Shutting down...\n");
-
-	if (tracker->crawler) {
-		g_object_unref (tracker->crawler);
-	}
 
 	/* 
 	 * Shutdown the daemon
@@ -897,6 +913,9 @@ main (gint argc, gchar *argv[])
                 g_object_unref (tracker->hal);
         }
 #endif
+	if (tracker->crawler) {
+		g_object_unref (tracker->crawler);
+	}
 
 	if (tracker->language) {
 		g_object_unref (tracker->language);

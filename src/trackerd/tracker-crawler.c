@@ -32,6 +32,8 @@
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_CRAWLER, TrackerCrawlerPriv))
 
+#define TESTING
+
 #define FILES_QUEUE_PROCESS_INTERVAL 2000
 #define FILES_QUEUE_PROCESS_MAX      5000
 
@@ -409,6 +411,10 @@ get_remote_roots (TrackerCrawler  *crawler,
         GSList *l1 = NULL;
         GSList *l2 = NULL;
 
+	/* FIXME: Shouldn't we keep this static for a period of time
+	 * so we make this process faster?
+	 */
+
 #ifdef HAVE_HAL        
         l1 = tracker_hal_get_mounted_directory_roots (crawler->priv->hal);
         l2 = tracker_hal_get_removable_device_roots (crawler->priv->hal);
@@ -442,6 +448,59 @@ get_remote_roots (TrackerCrawler  *crawler,
 }
 
 static gboolean
+path_should_be_ignored_for_media (TrackerCrawler *crawler,
+				  const gchar    *path)
+{
+        GSList   *roots = NULL;
+        GSList   *mounted_directory_roots = NULL;
+        GSList   *removable_device_roots = NULL;
+	GSList   *l;
+        gboolean  ignore_mounted_directories;
+        gboolean  ignore_removable_devices;
+        gboolean  ignore = FALSE;
+
+        ignore_mounted_directories =
+		!tracker_config_get_index_mounted_directories (crawler->priv->config);
+        ignore_removable_devices = 
+		!tracker_config_get_index_removable_devices (crawler->priv->config);
+
+        if (ignore_mounted_directories || ignore_removable_devices) {
+                get_remote_roots (crawler, 
+				  &mounted_directory_roots, 
+				  &removable_device_roots);        
+        }
+
+        if (ignore_mounted_directories) {
+                roots = g_slist_concat (roots, mounted_directory_roots);
+        }
+
+        if (ignore_removable_devices) {
+                roots = g_slist_concat (roots, removable_device_roots);
+        }
+
+	for (l = roots; l && !ignore; l = l->next) {
+		/* If path matches a mounted or removable device by
+		 * prefix then we should ignore it since we don't
+		 * crawl those by choice in the config.
+		 */
+		if (strcmp (path, l->data) == 0) {
+			ignore = TRUE;
+		}
+
+		/* FIXME: Should we add a DIR_SEPARATOR on the end of
+		 * these before comparing them? 
+		 */
+		if (g_str_has_prefix (path, l->data)) {
+			ignore = TRUE;
+		}
+	}
+
+        g_slist_free (roots);
+
+	return ignore;
+}
+
+static gboolean
 path_should_be_ignored (TrackerCrawler *crawler,
 			const gchar    *path)
 {
@@ -455,10 +514,13 @@ path_should_be_ignored (TrackerCrawler *crawler,
 	}
 
 	/* Most common things to ignore */
-	if (g_str_has_prefix (path, "/proc/") ||
-	    g_str_has_prefix (path, "/dev/") ||
-	    g_str_has_prefix (path, "/tmp/")) {
-		/* FIXME: What about /boot, /sys, /sbin, /bin ? */
+	if (strcmp (path, "/boot") == 0 ||
+	    strcmp (path, "/dev") == 0 ||
+	    strcmp (path, "/lib") == 0 ||
+	    strcmp (path, "/proc") == 0 ||
+	    strcmp (path, "/sys") == 0 ||
+	    strcmp (path, "/tmp") == 0 || 
+	    strcmp (path, "/var") == 0) {
 		return TRUE;
 	}
 	    
@@ -478,7 +540,7 @@ path_should_be_ignored (TrackerCrawler *crawler,
 				 basename)) {
 		goto done;
 	}
-
+	
 	/* Test temporary black list */
 	if (g_hash_table_lookup (crawler->priv->temp_black_list, 
 				 basename)) {
@@ -505,11 +567,22 @@ path_should_be_ignored (TrackerCrawler *crawler,
 			goto done;
 		}
 	}
+
+	/* Should we crawl mounted or removable media */
+	if (path_should_be_ignored_for_media (crawler, path)) {
+		goto done;
+	}
 	
         ignore = FALSE;
 
 done:
 	g_free (basename);
+
+#ifdef TESTING
+        /* g_debug ("%s:'%s'",  */
+	/* 	 ignore ? "Block  " : "Crawl  ", */
+	/* 	 path); */
+#endif /* TESTING */
 
 	return ignore;
 }
@@ -580,6 +653,8 @@ file_enumerate_cb (GObject      *file,
 		return;
 	}
 
+	context = g_main_context_default ();
+
 	for (info = g_file_enumerator_next_file (enumerator, NULL, NULL);
 	     info && crawler->priv->running;
 	     info = g_file_enumerator_next_file (enumerator, NULL, NULL)) {
@@ -588,15 +663,19 @@ file_enumerate_cb (GObject      *file,
 		
 		if (path_should_be_ignored (crawler, relative_path)) {
 			crawler->priv->files_ignored++;
+#ifdef TESTING
 			g_debug ("Ignored:'%s' (%d)",  
 				 relative_path, 
 				 crawler->priv->enumerations); 
+#endif /* TESTING */
 			g_free (relative_path);
 		} else {
 			crawler->priv->files_found++;
+#ifdef TESTING
 			g_debug ("Found  :'%s' (%d)", 
 				 relative_path, 
 				 crawler->priv->enumerations);
+#endif /* TESTING */
 
 			if (g_file_info_get_file_type (info) == G_FILE_TYPE_DIRECTORY) {
 				file_enumerate (crawler, child);
@@ -610,7 +689,6 @@ file_enumerate_cb (GObject      *file,
 		/* Iterate pending events between each file in case
 		 * there are requests waiting from DBus, etc
 		 */
-		context = g_main_context_default ();
 		while (g_main_context_pending (context)) {
 			g_main_context_iteration (context, FALSE);
 		}
@@ -720,18 +798,91 @@ file_queue_handle_cb (gpointer user_data)
 	return TRUE;
 }
 
+static GSList *
+check_roots_dont_coinside (TrackerCrawler *crawler,
+			   GSList         *roots)
+{
+	GSList *checked_roots = NULL;
+	GSList *l1, *l2;
+
+	/* ONLY HERE do we add separators on each location we check.
+	 * The reason for this is that these locations are user
+	 * entered in the configuration and we need to make sure we
+	 * don't include the same location more than once.
+	 */
+
+	for (l1 = roots; l1; l1 = l1->next) {
+		gchar    *path;
+		gboolean  should_add = TRUE;
+
+		if (!g_str_has_suffix (l1->data, G_DIR_SEPARATOR_S)) {
+			path = g_strconcat (l1->data, G_DIR_SEPARATOR_S, NULL);
+		} else {
+			path = g_strdup (l1->data);
+		}
+
+		l2 = checked_roots;
+
+		while (l2 && should_add) {
+			/* If the new path exists as a lower level
+			 * path or is the same as an existing checked
+			 * root we disgard it, it will be checked
+			 * anyway. 
+			 */
+			if (g_str_has_prefix (path, l2->data)) {
+				should_add = FALSE;
+			} 
+
+			/* If the new path exists as a higher level
+			 * path to one already in the checked roots,
+			 * we remove the checked roots version
+			 */
+			if (g_str_has_prefix (l2->data, path)) {
+				checked_roots = g_slist_remove_link (checked_roots, l2);
+				g_free (l2->data);
+				l2 = checked_roots;
+				continue;
+			}
+
+			l2 = l2->next;
+		}
+		
+		if (should_add) {
+			checked_roots = g_slist_prepend (checked_roots, path);
+			continue;
+		} 
+		
+		g_free (path);
+	}
+
+	checked_roots = g_slist_reverse (checked_roots);
+
+#ifdef TESTING
+	g_debug ("Using the following roots to crawl:");
+
+	for (l1 = checked_roots; l1; l1 = l1->next) {
+		g_debug ("  %s", (gchar*) l1->data);
+	}
+#endif /* TESTING */
+
+	return checked_roots;
+}
+
 void
 tracker_crawler_start (TrackerCrawler *crawler)
 {
 	TrackerCrawlerPriv *priv;
 	GFile              *file;
-	const gchar        *path;
+	GSList             *config_roots;
+	GSList             *roots = NULL;
+	GSList             *l;
 	gboolean            exists;
 
 	g_return_if_fail (TRACKER_IS_CRAWLER (crawler));
 
 	priv = crawler->priv;
-	
+
+	/* Set up queue handler */
 	if (priv->files_queue_handle_id) {
 		g_source_remove (priv->files_queue_handle_id);	
 	}
@@ -739,28 +890,48 @@ tracker_crawler_start (TrackerCrawler *crawler)
 	priv->files_queue_handle_id = g_timeout_add (FILES_QUEUE_PROCESS_INTERVAL, 
 						     file_queue_handle_cb,
 						     crawler);
-	
+
+	/* Get locations to index from config, if none are set, we use
+	 * $HOME as the default.
+	 */
+        config_roots = tracker_config_get_crawl_directory_roots (priv->config);
+	if (config_roots) {
+		/* Make sure none of the roots co-inside each other */
+		roots = check_roots_dont_coinside (crawler, config_roots);
+	}
+
+	if (!roots) {
+		const gchar *home;
+
+		home = g_get_home_dir ();
+		roots = g_slist_prepend (roots, g_strdup (home));
+
+		g_message ("No locations are configured to crawl, "
+			   "using default location (home directory)");
+	}
+
+	/* Set as running now */
 	priv->running = TRUE;
 
-	if (0) {
-		get_remote_roots (crawler, NULL, NULL);
+	/* Start iterating roots */
+	for (l = roots; l; l = l->next) {
+		file = g_file_new_for_path (l->data);
+		exists = g_file_query_exists (file, NULL);
+		
+		if (exists) {
+			g_message ("Searching directory:'%s'",
+				   (gchar*) l->data);
+			file_enumerate (crawler, file);
+		} else {
+			g_message ("Searching directory:'%s' failed, does not exist", 
+				   (gchar*) l->data);
+		}
+
+		g_object_unref (file);
+		g_free (l->data);
 	}
 
-	/* path = "/home/martyn/Documents"; */
-	path = g_get_home_dir (); 
-
-	file = g_file_new_for_path (path);
-	
-	exists = g_file_query_exists (file, NULL);
-	
-	if (exists) {
-		g_message ("Searching directory:'%s'", path);
-		file_enumerate (crawler, file);
-	} else {
-		g_message ("Searching directory:'%s' failed, does not exist", path);
-	}
-
-	g_object_unref (file);
+	g_slist_free (roots);
 }
 
 void

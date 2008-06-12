@@ -1,3 +1,29 @@
+2008-06-12  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-hal.c: Always initialise the hash
+	tables to avoid errors when we can't contact the HAL DBus service.
+	
+	* src/trackerd/linux-inotify-syscalls.h: Removed now we don't need
+	it thanks to the GIO file monitoring.
+	
+	* src/trackerd/tracker-crawler.c: Get the locations to crawl from
+	the config now and add a default of $HOME. Also added function to
+	check that we don't crawl the same location more than once and
+	added more locations to the ignore list.
+	
+	* src/trackerd/tracker-db.c:
+	* src/trackerd/tracker-email-kmail.c:
+	* src/trackerd/tracker-process-files.c: Removed the need for the
+	TrackerDBInterface when adding or removing monitors.
+
+	* src/trackerd/tracker-main.c: Added back the initial_sleep
+	command line argument so we can at least inspect the startup
+	details and logging before the console is spammed with file
+	crawling information.
+	
+	* src/trackerd/tracker-monitor.[ch]: Implemented the basics of
+	file monitoring here using the new GFileMonitor API.
+
 2008-06-12  Ivan Frade  <ivan.frade@nokia.com>
 
 	* tests/libtracker-common/tracker-ontology-test.c:

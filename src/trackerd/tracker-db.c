@@ -556,12 +556,12 @@ directory_move (TrackerDBInterface *iface,
 		const gchar        *moved_to_uri)
 {
 	/* Stop watching old dir, start watching new dir */
-	tracker_monitor_remove (moved_from_uri, TRUE, iface);
+	tracker_monitor_remove (moved_from_uri, TRUE);
 		
 	tracker_db_file_move (iface, moved_from_uri, moved_to_uri);
 	directory_move_files (iface, moved_from_uri, moved_to_uri);
 
-	tracker_monitor_add (moved_to_uri, iface);
+	tracker_monitor_add (moved_to_uri);
 }
 
 static gint 

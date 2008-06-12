@@ -25,6 +25,7 @@
 #include <gio/gio.h>
 
 #include <libtracker-common/tracker-utils.h>
+#include <libtracker-common/tracker-dbus.h>
 
 #include "tracker-crawler.h"
 #include "tracker-dbus.h"
@@ -731,13 +732,15 @@ file_queue_handle_cb (gpointer user_data)
 {
 	TrackerCrawler *crawler;
 	DBusGProxy     *proxy;
-	GPtrArray      *ptr_array;
 	GError         *error;
 	gchar **        files;
 	gboolean        running;
 	gint            length;
+#if 0
 	gint            items;
+	GPtrArray      *ptr_array;
 	gint            i;
+#endif
 
 	crawler = user_data;
 
@@ -762,35 +765,10 @@ file_queue_handle_cb (gpointer user_data)
 	}
 
 	g_debug ("Processing file queue...");
-        ptr_array = g_ptr_array_new ();
+	files = tracker_dbus_async_queue_to_strv (crawler->priv->files,
+						  FILES_QUEUE_PROCESS_MAX);
 
-	/* Throttle files we send over to the indexer */
-	items = MIN (FILES_QUEUE_PROCESS_MAX, length);
-	g_debug ("Processing %d/%d items in the queue", 
-		 items,
-		 length);
-
-	while (items > 0) {
-		GTimeVal  t;
-		gchar    *filename;
-		
-		g_get_current_time (&t);
-		g_time_val_add (&t, 100000);
-
-		/* Get next filename and wait 0.1 seconds max per try */
-		filename = g_async_queue_timed_pop (crawler->priv->files, &t);
-		if (filename) {
-			g_ptr_array_add (ptr_array, filename);
-			items--;
-		}
-	}
-
-	length = ptr_array->len;
-	g_ptr_array_add (ptr_array, NULL);
-	files = (gchar **) g_ptr_array_free (ptr_array, FALSE);
-
-	g_debug ("Sending %d files to indexer to process", length);
-
+	g_debug ("Sending %d files to indexer to process", g_strv_length (files));
 	org_freedesktop_Tracker_Indexer_process_files (proxy, 
 						       (const gchar **) files,
 						       &error);
@@ -804,12 +782,8 @@ file_queue_handle_cb (gpointer user_data)
 		g_debug ("Sent!");
 	}
 
-	for (i = 0; files[i] != NULL; i++) {
-		g_free (files[i]);
-	}
+	g_strfreev (files);
 
-	g_free (files);
-							     
 	return TRUE;
 }
 

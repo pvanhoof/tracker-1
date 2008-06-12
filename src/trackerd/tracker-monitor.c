@@ -31,79 +31,40 @@
  */
 #define MAX_MONITORS (guint) ((2 ^ 13) - 500)   
 
-static GHashTable *monitors;
-
-#if 0
-static void
-get_monitor_roots (GSList **included,
-		   GSList **excluded)
-{
-        GSList *watch_directory_roots;
-        GSList *no_watch_directory_roots;
-        GSList *mounted_directory_roots;
-        GSList *removable_device_roots;
-
-        *included = NULL;
-        *excluded = NULL;
-
-        get_remote_roots (&mounted_directory_roots, 
-			  &removable_device_roots);        
-        
-        /* Delete all stuff in the no watch dirs */
-        watch_directory_roots = 
-                tracker_config_get_watch_directory_roots (config);
-        
-        no_watch_directory_roots = 
-                tracker_config_get_no_watch_directory_roots (config);
-
-        /* Create list for enabled roots based on config */
-        *included = g_slist_concat (*included, g_slist_copy (watch_directory_roots));
-        
-        /* Create list for disabled roots based on config */
-        *excluded = g_slist_concat (*excluded, g_slist_copy (no_watch_directory_roots));
-
-        /* Add or remove roots which pertain to removable media */
-        if (tracker_config_get_index_removable_devices (config)) {
-                *included = g_slist_concat (*included, g_slist_copy (removable_device_roots));
-        } else {
-                *excluded = g_slist_concat (*excluded, g_slist_copy (removable_device_roots));
-        }
-
-        /* Add or remove roots which pertain to mounted directories */
-        if (tracker_config_get_index_mounted_directories (config)) {
-                *included = g_slist_concat (*included, g_slist_copy (mounted_directory_roots));
-        } else {
-                *excluded = g_slist_concat (*excluded, g_slist_copy (mounted_directory_roots));
-        }
-}
-
-#endif
+static GHashTable    *monitors;
+static TrackerConfig *config;
 
 gboolean 
-tracker_monitor_init (TrackerConfig *config) 
+tracker_monitor_init (TrackerConfig *_config) 
 {
-	g_return_val_if_fail (TRACKER_IS_CONFIG (config), FALSE);
-
-	if (monitors) {
-		return TRUE;
+	g_return_val_if_fail (TRACKER_IS_CONFIG (_config), FALSE);
+	
+	if (!config) {
+		config = g_object_ref (_config);
+	}
+	
+	if (!monitors) {
+		monitors = g_hash_table_new_full (g_str_hash,
+						  g_str_equal,
+						  g_free,
+						  (GDestroyNotify) g_file_monitor_cancel);
 	}
 
-	monitors = g_hash_table_new_full (g_str_hash,
-					  g_str_equal,
-					  g_free,
-					  (GDestroyNotify) g_file_monitor_cancel);
 	return TRUE;
 }
 
 void
 tracker_monitor_shutdown (void)
 {
-	if (!monitors) {
-		return;
+	if (monitors) {
+		g_hash_table_unref (monitors);
+		monitors = NULL;
 	}
-
-	g_hash_table_unref (monitors);
-	monitors = NULL;
+	
+	if (config) {
+		g_object_unref (config);
+		config = NULL;
+	}
 }
 
 gboolean

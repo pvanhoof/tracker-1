@@ -1,3 +1,16 @@
+2008-06-12  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-dbus.[ch]: Added a new function to
+	convert 'n' items from a GAsyncQueue to a GStrv for sending files
+	to the indexer process.
+	
+	* src/trackerd/tracker-crawler.c: Use the new
+	tracker_dbus_async_queue_to_strv() API to generate the GStrv
+	instead of using a GPtrArray.
+	
+	* src/trackerd/tracker-monitor.c: Save the config variable on
+	initialisation. 
+
 2008-06-12  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer.c

@@ -83,6 +83,8 @@ TrackerDBusData *tracker_dbus_data_new            (const gpointer   arg1,
 GValue *         tracker_dbus_g_value_slice_new   (GType            type);
 void             tracker_dbus_g_value_slice_free  (GValue          *value);
 gchar **         tracker_dbus_slist_to_strv       (GSList          *list);
+gchar **         tracker_dbus_async_queue_to_strv (GAsyncQueue     *queue, 
+						   gint             max);
 
 /* Requests */
 guint            tracker_dbus_get_next_request_id (void);

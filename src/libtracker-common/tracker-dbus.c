@@ -79,6 +79,44 @@ tracker_dbus_slist_to_strv (GSList *list)
 	return strv;
 }
 
+gchar **
+tracker_dbus_async_queue_to_strv (GAsyncQueue *queue, 
+				  gint         max)
+{
+	gchar **strv;
+	gint    i = 0;
+	gint    length;
+
+	length = g_async_queue_length (queue);
+		
+	if (max > 0) {
+		length = MIN (max, length);
+	}
+
+	strv = g_new0 (gchar*, length + 1);
+	
+	while (i <= length) {
+		GTimeVal  t;
+		gchar    *str;
+		
+		g_get_current_time (&t);
+		g_time_val_add (&t, 100000);
+
+		/* Get next item and wait 0.1 seconds max per try */
+		str = g_async_queue_timed_pop (queue, &t);
+		if (str) {
+			strv[i++] = str;
+		} else {
+			/* We don't expect this */
+			break;
+		}
+	}
+
+        strv[i] = NULL;
+
+	return strv;
+}
+
 guint
 tracker_dbus_get_next_request_id (void)
 {

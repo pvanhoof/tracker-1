@@ -728,6 +728,8 @@ AC_CONFIG_FILES([
 	src/tracker-preferences/Makefile
 	src/tracker-preferences/tracker-preferences.desktop.in	
 	src/trackerd/Makefile
+	tests/Makefile
+	tests/libtracker-common/Makefile
 	src/xdgmime/Makefile
 	po/Makefile.in
 	python/Makefile

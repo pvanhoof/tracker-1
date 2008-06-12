@@ -1,3 +1,8 @@
+2008-06-12  Ivan Frade  <ivan.frade@nokia.com>
+
+	* tests/libtracker-common/tracker-ontology-test.c:
+	Added unit test to tracker-ontology
+
 2008-06-12  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/libtracker-db/tracker-db-manager.c: Actually deal with a single

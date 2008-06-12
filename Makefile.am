@@ -1,5 +1,10 @@
 SUBDIRS = data src filters thumbnailers docs po python
 
+if HAVE_UNIT_TESTS
+include $(top_srcdir)/Makefile.decl
+SUBDIRS += tests
+endif
+
 autostartdir = $(sysconfdir)/xdg/autostart
 autostart_in_files = trackerd.desktop.in
 autostart_DATA = $(autostart_in_files:.desktop.in=.desktop)

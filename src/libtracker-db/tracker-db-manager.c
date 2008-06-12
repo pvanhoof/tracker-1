@@ -26,8 +26,10 @@
 #include <zlib.h>
 
 #include <libtracker-common/tracker-field.h>
+#include <libtracker-common/tracker-xesam-field.h>
 #include <libtracker-common/tracker-nfs-lock.h>
 #include <libtracker-common/tracker-ontology.h>
+#include <libtracker-common/tracker-xesam-ontology.h>
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-utils.h>
 
@@ -949,6 +951,107 @@ db_row_to_service (TrackerDBResultSet *result_set)
         return service;
 }
 
+static TrackerXesamField *
+db_row_to_xesam_field_def (TrackerDBResultSet *result_set) 
+{
+        TrackerXesamField *field_def;
+	TrackerFieldType   field_type;
+	gchar             *id_str, *name;
+	gint               id;
+
+	field_def = tracker_xesam_field_new ();
+
+	tracker_db_result_set_get (result_set,
+				   0, &id,
+				   1, &name,
+				   2, &field_type,
+				   -1);
+
+	id_str = tracker_int_to_string (id);
+
+	tracker_xesam_field_set_id (field_def, id_str);
+	tracker_xesam_field_set_name (field_def, name);
+	tracker_xesam_field_set_data_type (field_def, field_type);
+
+	g_free (id_str);
+	g_free (name);
+
+	return field_def;
+}
+
+static TrackerService *
+db_row_to_xesam_service (TrackerDBResultSet *result_set)
+{
+        TrackerService *service;
+        GSList         *new_list = NULL;
+        gint            id, i;
+	gchar          *name, *parent, *content_metadata;
+	gboolean        enabled, embedded, has_metadata, has_fulltext;
+	gboolean        has_thumbs, show_service_files, show_service_directories;
+
+        service = tracker_service_new ();
+
+	tracker_db_result_set_get (result_set,
+				   0, &id,
+				   1, &name,
+				   2, &parent,
+				   3, &enabled,
+				   4, &embedded,
+				   5, &has_metadata,
+				   6, &has_fulltext,
+				   7, &has_thumbs,
+				   8, &content_metadata,
+				   10, &show_service_files,
+				   11, &show_service_directories,
+				   -1);
+
+        tracker_service_set_id (service, id);
+        tracker_service_set_name (service, name);
+        tracker_service_set_parent (service, parent);
+        tracker_service_set_enabled (service, enabled);
+        tracker_service_set_embedded (service, embedded);
+        tracker_service_set_has_metadata (service, has_metadata);
+        tracker_service_set_has_full_text (service, has_fulltext);
+        tracker_service_set_has_thumbs (service, has_thumbs);
+	tracker_service_set_content_metadata (service, content_metadata);
+
+        tracker_service_set_show_service_files (service, show_service_files);
+        tracker_service_set_show_service_directories (service, show_service_directories);
+
+        for (i = 12; i < 23; i++) {
+		gchar *metadata;
+
+		tracker_db_result_set_get (result_set, i, &metadata, -1);
+
+		if (metadata) {
+			new_list = g_slist_prepend (new_list, metadata);
+		}
+        }
+
+	/* FIXME: is this necessary? */
+#if 0
+        /* Hack to prevent db change late in the cycle, check the
+         * service name matches "Applications", then add some voodoo.
+         */
+        if (strcmp (name, "Applications") == 0) {
+                /* These strings should be definitions at the top of
+                 * this file somewhere really.
+                 */
+                new_list = g_slist_prepend (new_list, g_strdup ("App:DisplayName"));
+                new_list = g_slist_prepend (new_list, g_strdup ("App:Exec"));
+                new_list = g_slist_prepend (new_list, g_strdup ("App:Icon"));
+        }
+#endif
+
+        new_list = g_slist_reverse (new_list);
+
+        tracker_service_set_key_metadata (service, new_list);
+	g_slist_foreach (new_list, (GFunc) g_free, NULL);
+        g_slist_free (new_list);
+
+        return service;
+}
+
 static GSList *
 db_mime_query (TrackerDBInterface *iface,
 	       const gchar        *stored_proc,
@@ -1501,6 +1604,84 @@ db_get_static_data (TrackerDBInterface *iface)
 	}
 }
 
+static void
+db_get_static_xesam_data (TrackerDBInterface *iface)
+{
+	TrackerDBResultSet *result_set;
+
+	/* Get static xesam metadata info */
+	result_set = tracker_db_interface_execute_procedure (iface, 
+							     NULL, 
+							     "GetXesamMetadataTypes", 
+							     NULL);
+
+	if (result_set) {
+		gboolean valid = TRUE;
+
+		while (valid) {
+			TrackerXesamField  *def;
+
+			def = db_row_to_xesam_field_def (result_set);
+
+			g_message ("Loading xesam metadata def:'%s' with type:%d",
+				   tracker_xesam_field_get_name (def),
+				   tracker_xesam_field_get_data_type (def));
+
+			tracker_xesam_ontology_add_field (def);
+
+			valid = tracker_db_result_set_iter_next (result_set);
+		}
+
+		g_object_unref (result_set);
+	}
+
+	/* Get static xesam service info */
+	result_set = tracker_db_interface_execute_procedure (iface,
+							     NULL, 
+							     "GetAllServices", 
+							     NULL);
+
+	if (result_set) {
+		gboolean valid = TRUE;
+
+		while (valid) {
+			TrackerService *service;
+			GSList         *mimes, *mime_prefixes;
+			const gchar    *name;
+			gint            id;
+
+                        service = db_row_to_service (result_set);
+
+                        if (!service) {
+                                continue;
+			}
+
+                        id = tracker_service_get_id (service);
+                        name = tracker_service_get_name (service);
+
+                        mimes = db_get_mimes_for_service_id (iface, id);
+                        mime_prefixes = db_get_mime_prefixes_for_service_id (iface, id);
+
+                        g_message ("Adding xesam service:'%s' with id:%d and mimes:%d",
+				   name,
+				   id,
+				   g_slist_length (mimes));
+
+                        tracker_xesam_ontology_add_service_type (service,
+								 mimes,
+								 mime_prefixes);
+
+                        g_slist_free (mimes);
+                        g_slist_free (mime_prefixes);
+                        g_object_unref (service);
+
+			valid = tracker_db_result_set_iter_next (result_set);
+		}
+
+		g_object_unref (result_set);
+	}
+}
+
 static const gchar *
 db_type_to_string (TrackerDB db)
 {
@@ -1923,6 +2104,25 @@ db_interface_get_xesam (gboolean attach_all)
 		
 		db_xesam_create_lookup (iface);
 	}
+
+	db_exec_no_reply (iface,
+			  "ATTACH '%s' as 'file-meta'",
+			  tracker_db_manager_get_file (TRACKER_DB_FILE_METADATA));
+
+	db_exec_no_reply (iface,
+			  "ATTACH '%s' as 'email-meta'",
+			  tracker_db_manager_get_file (TRACKER_DB_EMAIL_METADATA));
+
+	db_exec_no_reply (iface,
+			  "ATTACH '%s' as 'common'",
+			  tracker_db_manager_get_file (TRACKER_DB_COMMON));
+
+	db_exec_no_reply (iface,
+			  "ATTACH '%s' as 'cache'",
+			  tracker_db_manager_get_file (TRACKER_DB_CACHE));
+
+	/* Load static xesam data */
+	db_get_static_xesam_data (iface);
 
 	return iface;
 }

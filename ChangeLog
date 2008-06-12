@@ -1,3 +1,16 @@
+2008-06-12  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* svn merge -r 1538:1656 ../xesam-support
+ 
+2008-06-12  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* tests/trackerd/tracker-xesam-test.c:
+	* tests/trackerd/Makefile.am:
+	* tests/Makefile.am:
+	* configure.ac:
+
+	Added unit test infrastructure for Xesam
+
 2008-06-12  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-hal.c: Always initialise the hash
@@ -55,6 +68,36 @@
 	Set the GDestroyNotify handler for mime/metadata keys, as these
 	hashtables have to take ownership of the strings passed.
 
+
+2008-06-11  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-xesam-live-search.c:
+	* src/libtracker-common/tracker-xesam-field.c:
+	*src/libtracker-common/tracker-xesam-field.h:
+
+	List-field values in get_hit_data
+
+2008-06-11  Mikael Ottela <mikael.ottela@ixonos.com>
+
+	* src/trackerd/tracker-db.c
+	* src/trackerd/tracker-main.c
+	* src/trackerd/Makefile.am
+	* src/trackerd/tracker-xesam-live-search.c
+	* src/tracker-indexer/tracker-indexer.c
+	* src/tracker-indexer/tracker-indexer-db.c
+	* src/tracker-indexer/tracker-indexer-db.h
+	* src/libtracker-common/tracker-parser.c
+	* src/libtracker-common/Makefile.am
+	* src/libtracker-common/tracker-xesam-ontology.c
+	* src/libtracker-common/tracker-xesam-ontology.h
+	* src/libtracker-common/tracker-xesam-field.c
+	* src/libtracker-common/tracker-xesam-field.h
+	* src/libtracker-db/tracker-db-manager.c
+	* data/sqlite-stored-procs.sql
+	* data/services/xesam-metadata.mmapping
+
+	Added framework for xesam field handling. 
+
 2008-06-11  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-crawler.c: (tracker_crawler_start): Changed
@@ -100,6 +143,32 @@
 	
 	* src/trackerd/tracker-main.[ch]: Create the crawler in the
 	Tracker struct so the shutdown function can stop it immediately.
+
+
+2008-06-10  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-xesam-live-search.c: Preserving the sort order
+	in get_hit_data
+
+2008-06-10  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-xesam-live-search.c:
+	* src/trackerd/tracker-db.c:
+
+	Further preparations for get_hit_data, support for fields that
+	contain a list-value. Added the ServiceID field to the query so
+	that you can distinguish between actual items-to-return and
+	records (lines) that will add a item to the list-value field
+
+2008-06-10  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-xesam-live-search.c:
+	* src/trackerd/tracker-db.c:
+	* src/libtracker-db/tracker-db-manager.c:
+
+	Fixed the ATTACH statements in tracker-db-manager.c
+	Fixed an invalid assertion on fields for
+	tracker_db_live_search_get_hit_data
 
 2008-06-10  Martyn Russell  <martyn@imendio.com>
 
@@ -175,6 +244,11 @@
 	definition, it was checking for GLib 2.12, when we depend on 2.14
 	anyway. Also removed all places where we uses #if statements for
 	RECENT GLIB.
+
+
+2008-06-09  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-xesam-live-search.c: get_hit_data improvements
 
 2008-06-09  Ivan Frade  <ivan.frade@nokia.com>
 	
@@ -319,6 +393,19 @@
 	first stage in removing DBConnection. The attach statements and
 	threadding have yet to be finished here.
 
+2008-06-06  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-xesam-live-search.c: Memory leak fixes
+	* src/trackerd/tracker-xesam-live-search.c: SearchDone's delayer
+	correction
+
+2008-06-06  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/libtracker-db/tracker-db-interface-sqlite.c:
+	* src/trackerd/tracker-xesam-live-search.c: Some minor bugfixes. Delaying 
+	the SearchDone for a second (maybe we can remove this later)
+	* data/sqlite-stored-procs.sql: Two syntax errors in the SQL queries
+
 2008-06-06  Carlos Garnacho  <carlos@imendio.com>
 
 	* data/services/*.metadata: Change DataType to match TrackerFieldType
@@ -336,6 +423,11 @@
 	* src/tracker-indexer/tracker-indexer-db.c
 	(tracker_db_create_service): Take into account directories when
 	marking services as disabled.
+
+2008-06-05  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-xesam-live-search.c: Fixed a crash for searches
+	that yield no results.
 
 2008-06-05  Ivan frade  <ivan.frade@nokia.com>
 
@@ -377,6 +469,19 @@
 
 	* src/trackerd/tracker-main.c: Use the new 
 	(_start,_end)_watching_emails functions.
+
+
+2008-06-04  Mikael Ottela  <mikael.ottela@ixonos.com>
+
+	* src/trackerd/tracker-xesam-live-search.c:
+	* src/trackerd/tracker-db-sqlite.c
+	* src/trackerd/tracker-db-sqlite.c
+	Initial xesam get_hits implementation
+
+2008-06-04  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/libtracker-db/tracker-db-manager.c: Fixed the db-names of
+	certain ATTACH statements
 
 2008-06-04  Carlos Garnacho  <carlos@imendio.com>
 
@@ -473,6 +578,7 @@
 	functionality using unac, is now in libtracker-common, so link
 	libtracker-common against unac, not trackerd.
 
+
 2008-06-02  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/trackerd/tracker-db-sqlite.c:
@@ -481,6 +587,28 @@
 
 	Waking up the LiveSearches for not-yet refactored methods that also
 	(still) insert, delete and update the database
+
+
+2008-06-02  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/tracker-indexer/tracker-indexer-db.c:
+	* src/tracker-indexer/tracker-indexer-db.h:
+	* src/tracker-indexer/tracker-indexer.c:
+	* src/tracker-indexer/tracker-indexer.h:
+	* src/trackerd/tracker-main.c:
+	* src/trackerd/tracker-dbus.c:
+	* src/trackerd/tracker-dbus.h:
+	* src/trackerd/tracker-db-sqlite.c:
+	* src/trackerd/tracker-xesam-manager.c:
+	* src/trackerd/tracker-xesam-manager.h:
+	* data/dbus/tracker-indexer.xml:
+
+	IndexerUpdated signal emitted by the indexer-process to notify trackerd
+	about changes it should act on in case LiveSearches are active that are
+	influenced by said changes.
+
+	Events table updating reinstalled after refactoring the indexing to a
+	separate process removed this functionality.
 
 2008-06-02  Martyn Russell  <martyn@imendio.com>
 
@@ -635,10 +763,43 @@
 	* Merged indexer-split with xesam-support
 	svn merge -r 1495:1538 ../xesam-support
 
+
+2008-05-30  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* data/sqlite-stored-procs.sql: Fixed syntax error of a stored
+	procedure (LiveSearchStopSearch)
+	* src/trackerd/tracker-xesam-manager.c: Unneeded casting removed
+
+2008-05-30  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* tracker-xesam-live-search.h:
+	* tracker-xesam-ontology.c:
+	* tracker-xesam-ontology.h:
+	* tracker-xesam-query.c:
+	* tracker-xesam-query.h:
+
+	Normalizing copyright notes and original author names to the
+	respective authors of the files involved in this patch (i.e.
+	Ottela Mikael for xesam-query and xesam-ontology)
+
 2008-05-29  Philip Van Hoof  <pvanhoof@gnome.org>
 
-	* Merged xesam-support with indexer-split
-	svn merge -r 1524:1537 ../indexer-split
+	* src/trackerd/tracker-dbus-xesam.c:
+	* src/trackerd/tracker-dbus-xesam.h:
+
+	Refactored tracker_dbus_xesam_emit_search_done to
+	tracker_xesam_live_search_emit_done
+
+
+2008-05-30  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-xesam-live-search.c:
+	* src/trackerd/tracker-xesam-live-search.h:
+	* src/trackerd/tracker-xesam-manager.c:
+	
+	Making it possible to pass which exact events occurred, to better
+	finetune the periodic LiveSearch query in future
+
 
 2008-05-29  Philip Van Hoof  <pvanhoof@gnome.org>
 
@@ -650,8 +811,11 @@
 
 2008-05-29  Philip Van Hoof  <pvanhoof@gnome.org>
 
-	* Merged xesam-support with indexer-split
-	svn merge -r 1502:1524 ../indexer-split
+	* src/trackerd/tracker-dbus-xesam.c:
+	* src/trackerd/tracker-dbus-xesam.h:
+
+	Refactored tracker_dbus_xesam_emit_search_done to
+	tracker_xesam_live_search_emit_done
 
 2008-05-29  Martyn Russell  <martyn@imendio.com>
 
@@ -929,11 +1093,6 @@
 	New TODO item: we are only detecting the Updates and Deletes for 
 	the live searches, not the creates
 
-2008-05-27  Philip Van Hoof  <pvanhoof@gnome.org>
-
-	 * Merged xesam-support with indexer-split
-	 svn merge -r 1495:1502 ../indexer-split
-
 2008-05-27  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/Makefile.am:
@@ -1016,7 +1175,6 @@
 2008-05-27  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* Fixed the Xesam DBus namespaces for Xesam r0.95
-	* svn merge -r 1487:1493 ../indexer-split
 
 2008-05-27  Philip Van Hoof  <pvanhoof@gnome.org>
 
@@ -1049,18 +1207,12 @@
 2008-05-27  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* Fixed the Xesam DBus namespaces for Xesam r0.95
-	* svn merge -r 1487:1493 ../indexer-split
 
 2008-05-27  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* Fixes some bugs with xesam search structures and 
 	field definitions
 	* Patch by Ottela Mikael <mikael.ottela@ixonos.com>
-
-2008-05-27  Philip Van Hoof  <pvanhoof@gnome.org>
-
-        * Merged with indexer-split with xesam-support
-	 svn merge -r 1481:1491 ../indexer-split
 
 2008-05-26  Carlos Garnacho  <carlos@imendio.com>
 

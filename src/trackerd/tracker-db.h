@@ -218,7 +218,8 @@ TrackerDBResultSet *tracker_db_live_search_get_new_ids         (TrackerDBInterfa
 TrackerDBResultSet *tracker_db_live_search_get_deleted_ids     (TrackerDBInterface  *iface,
 								const gchar         *search_id);
 TrackerDBResultSet *tracker_db_live_search_get_hit_data        (TrackerDBInterface  *iface,
-								const gchar         *search_id);
+								const gchar         *search_id,
+								GStrv                fields);
 TrackerDBResultSet *tracker_db_live_search_get_hit_count       (TrackerDBInterface  *iface,
 								const gchar         *search_id);
 

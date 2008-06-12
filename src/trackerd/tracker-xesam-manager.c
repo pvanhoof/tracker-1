@@ -79,7 +79,7 @@ tracker_xesam_manager_finished (DBusGProxy *proxy)
 }
 
 void 
-tracker_xesam_subscribe_indexer_updated (DBusGProxy *proxy) 
+tracker_xesam_subscribe_index_updated (DBusGProxy *proxy) 
 {
 	dbus_g_proxy_add_signal (proxy, "Finished",
 			   G_TYPE_INVALID,
@@ -252,7 +252,6 @@ live_search_handler (gpointer data)
 	GList              *sessions;
 	gboolean            reason_to_live = FALSE;
 
-
 	iface = tracker_db_manager_get_db_interface (TRACKER_DB_XESAM);
 	g_return_val_if_fail (iface != NULL, FALSE);
 
@@ -276,7 +275,13 @@ live_search_handler (gpointer data)
 				 tracker_xesam_live_search_get_id (searches->data));
 
 			search = searches->data;
-			tracker_xesam_live_search_match_with_events (search, 
+
+			/* TODO: optimize by specifying what exactly got changed
+			 * during this event ping in the MatchWithEventsFlags 
+			 being passed (second parameter) */
+
+			tracker_xesam_live_search_match_with_events (search,
+								     MATCH_WITH_EVENTS_ALL_FLAGS,
 								     &added, 
 								     &removed, 
 								     &modified);

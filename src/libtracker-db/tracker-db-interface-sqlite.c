@@ -328,6 +328,13 @@ tracker_db_interface_sqlite_set_procedure_table (TrackerDBInterface *db_interfac
 	}
 }
 
+static void
+foreach_print_error (gpointer key, gpointer value, gpointer stmt)
+{
+	if (value == stmt)
+		g_print ("In %s\n", (char*) key);
+}
+
 static TrackerDBResultSet *
 create_result_set_from_stmt (TrackerDBInterfaceSqlite  *interface,
 			     sqlite3_stmt              *stmt,
@@ -377,6 +384,9 @@ create_result_set_from_stmt (TrackerDBInterfaceSqlite  *interface,
 	}
 
 	if (result != SQLITE_DONE) {
+		
+		g_hash_table_foreach (priv->statements, foreach_print_error, stmt);
+		
 		if (result == SQLITE_CORRUPT) {
 			g_critical ("Database %s is corrupt. Can't live without it", priv->filename);
 			g_assert_not_reached ();

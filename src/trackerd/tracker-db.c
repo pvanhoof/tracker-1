@@ -1955,9 +1955,9 @@ tracker_db_metadata_delete (TrackerDBInterface *iface,
 	if (!def) {
 		return;
 	}
-	
+
 	if (!tracker_field_get_embedded (def) && 
-            tracker_ontology_service_type_has_embedded (service)) {
+	     tracker_ontology_service_type_has_embedded (service)) {
 		backup_delete_non_embedded_metadata (iface,
 						     id, 
 						     tracker_field_get_id (def));
@@ -1987,7 +1987,7 @@ tracker_db_metadata_delete (TrackerDBInterface *iface,
 					  "update Services set KeyMetadata%d = NULL where id = %s",
 					  key_field, id);
 	}
-		
+
 	/* Perform deletion */
 	switch (tracker_field_get_data_type (def)) {
 	case TRACKER_FIELD_TYPE_INDEX:
@@ -2034,7 +2034,7 @@ tracker_db_metadata_delete (TrackerDBInterface *iface,
 		break;
 	}
 
-	
+
 	/* Update fulltext index differentially with old values and NULL */
 	if (update_index && old_value) {
 		update_metadata_index (id, service, def, old_value, " ");
@@ -2212,7 +2212,7 @@ tracker_db_live_search_get_new_ids (TrackerDBInterface *iface,
 				  query_joins,                               /*        B2 */
 				  where_query ? where_query : "WHERE",       /*        B3 */
 				  where_query ? "AND " : "");                /*        B3 */
-	
+
 	return result_set;
 }
 
@@ -2249,17 +2249,155 @@ tracker_db_live_search_get_deleted_ids (TrackerDBInterface *iface,
 	return result_set;
 }
 
+/* FIXME This function should be moved with other help-functions somewhere. 
+ * It is used by xesam_live_search parsing. */
+
+static GList *
+add_metadata_field (TrackerDBInterface *iface,
+		    GSList **fields, 
+		    const char *xesam_name)
+{
+	TrackerDBResultSet *result_set;
+	TrackerFieldData   *field_data;
+	gboolean            field_exists;
+	const GSList       *l;
+	GList              *reply;
+	gboolean            valid;
+
+	reply = NULL;
+	field_exists = FALSE;
+	field_data = NULL;
+	valid = TRUE;
+
+	/* Do the xesam mapping */
+
+	g_debug ("add metadata field");
+
+	result_set = tracker_db_exec_proc (iface, "GetXesamMetaDataMappings",xesam_name, NULL);
+
+	if (!result_set) {
+		return NULL;
+	}
+
+	while (valid) {
+		gchar *field_name;
+
+		tracker_db_result_set_get (result_set, 0, &field_name, -1);
+
+		/* Check if field is already in list */
+		for (l = *fields; l; l = l->next) {
+			const gchar *this_field_name;
+			
+			this_field_name = tracker_field_data_get_field_name (l->data);
+			
+			if (!this_field_name) {
+				continue;
+			}
+
+			if (strcasecmp (this_field_name, field_name) != 0) {
+				continue;
+			}
+
+			field_exists = TRUE;
+
+			break;
+		}
+		
+		if (!field_exists) {
+			field_data = tracker_db_get_metadata_field (iface, 
+								    "Files", 
+								    field_name, 
+								    g_slist_length (*fields),
+								    FALSE, 
+								    FALSE);
+
+			if (field_data) {
+				*fields = g_slist_prepend (*fields, field_data);
+			} 
+		} 
+		
+		reply = g_list_append (reply, field_data);
+		valid = tracker_db_result_set_iter_next (result_set);
+		g_free (field_name);
+	}
+	
+	return reply;
+}
+
+
+
 TrackerDBResultSet *
 tracker_db_live_search_get_hit_data (TrackerDBInterface *iface, 
-				     const gchar        *search_id)
+				     const gchar        *search_id,
+				     GStrv               field_names)
 {
+	TrackerDBResultSet *result;
+	GSList             *fields = NULL;
+	GSList             *l = NULL;
+	GString            *sql_select;
+	GString            *sql_join;
+	gint                i = 0;
+
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
 	g_return_val_if_fail (search_id != NULL, NULL);
 
-	return tracker_db_exec (iface, 
-				"SELECT * FROM LiveSearches as X "
-				"WHERE X.SearchID = '%s'", 
-				search_id);
+	sql_select = g_string_new ("X.ServiceID, ");
+	sql_join = g_string_new ("");
+
+	while (field_names[i]) {
+		GList *field_data_list = NULL;
+
+		field_data_list = add_metadata_field (iface, 
+						      &fields, 
+						      field_names[i]);
+
+		if (!field_data_list) {
+			g_warning ("Asking for a non-mapped xesam field: %s", field_names[i]);
+			g_string_free (sql_select, TRUE);
+			g_string_free (sql_join, TRUE);
+			return NULL;
+		}
+		
+		if (i) {
+			g_string_append_printf (sql_select, ",");
+		}
+
+		g_string_append_printf (sql_select, " %s", 
+					tracker_field_data_get_select_field (field_data_list->data) );
+		
+		i++;
+	}
+
+	for (l = fields; l; l = l->next) {
+		gchar *field_name;
+
+		field_name = tracker_db_metadata_get_related_names (iface, 
+								    tracker_field_data_get_field_name (l->data));
+		g_string_append_printf (sql_join, 
+					"INNER JOIN %s %s ON (X.ServiceID = %s.ServiceID AND %s.MetaDataID in (%s))\n ",
+					tracker_field_data_get_table_name (l->data),
+					tracker_field_data_get_alias (l->data),
+					tracker_field_data_get_alias (l->data),
+					tracker_field_data_get_alias (l->data),
+					field_name);
+		g_free (field_name);
+	}
+
+	g_debug("Query : SELECT %s FROM LiveSearches as X \n"
+		"%s"
+		"WHERE X.SearchID = '%s'", 
+		sql_select->str, sql_join->str, search_id); 
+
+	result = tracker_db_exec (iface, 
+				  "SELECT %s FROM LiveSearches as X \n"
+				  "%s"
+				  "WHERE X.SearchID = '%s'", 
+				  sql_select->str, sql_join->str, search_id);
+
+	g_string_free (sql_select, TRUE);
+	g_string_free (sql_join, TRUE);
+
+	return result;
 }
 
 void 

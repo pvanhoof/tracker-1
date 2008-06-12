@@ -1,6 +1,7 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
  * Copyright (C) 2008, Nokia
+ * Authors: Philip Van Hoof (pvanhoof@gnome.org)
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -38,6 +39,14 @@ G_BEGIN_DECLS
 typedef struct _TrackerXesamLiveSearch TrackerXesamLiveSearch;
 typedef struct _TrackerXesamLiveSearchClass TrackerXesamLiveSearchClass;
 typedef struct _TrackerXesamLiveSearchPriv TrackerXesamLiveSearchPriv;
+
+typedef enum {
+	MATCH_WITH_EVENTS_CREATES = 1<<0,
+	MATCH_WITH_EVENTS_DELETES = 1<<1,
+	MATCH_WITH_EVENTS_MODIFIES = 1<<2
+} MatchWithEventsFlags;
+
+#define MATCH_WITH_EVENTS_ALL_FLAGS (MATCH_WITH_EVENTS_CREATES|MATCH_WITH_EVENTS_DELETES|MATCH_WITH_EVENTS_MODIFIES)
 
 struct _TrackerXesamLiveSearch {
 	GObject parent_instance;
@@ -101,6 +110,7 @@ void         tracker_xesam_live_search_emit_hits_modified (TrackerXesamLiveSearc
 							   GArray                  *hit_ids);
 void         tracker_xesam_live_search_emit_done          (TrackerXesamLiveSearch  *self);
 void         tracker_xesam_live_search_match_with_events  (TrackerXesamLiveSearch  *self, 
+							   MatchWithEventsFlags     flags,
 							   GArray                 **added, 
 							   GArray                 **removed, 
 							   GArray                 **modified);

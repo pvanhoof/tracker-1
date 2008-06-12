@@ -238,13 +238,18 @@ else
    glib_pkgconfig=
 fi
 
+have_xesam_glib=no
 if test "x$enable_unit_tests" = "xyes"; then
    if test "x$have_unit_tests" != "xyes"; then
       AC_MSG_ERROR([Couldn't find unit test compatible glib.])
+   else
+	PKG_CHECK_MODULES(XESAM_GLIB, xesam-glib, [have_xesam_glib=yes], [have_xesam_glib=no])
    fi
 fi
 
 AM_CONDITIONAL(HAVE_UNIT_TESTS, test "x$have_unit_tests" = "xyes")
+AM_CONDITIONAL(HAVE_XESAM_GLIB, test "x$have_xesam_glib" = "xyes")
+
 
 ####################################################################
 # External QDBM check
@@ -730,6 +735,7 @@ AC_CONFIG_FILES([
 	src/trackerd/Makefile
 	tests/Makefile
 	tests/libtracker-common/Makefile
+	tests/trackerd/Makefile
 	src/xdgmime/Makefile
 	po/Makefile.in
 	python/Makefile

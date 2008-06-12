@@ -2,6 +2,7 @@
 /* 
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2008, Nokia (urho.konttori@nokia.com)
+ * Authors: Ottela Mikael (mikael.ottela@ixonos.com)
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -501,26 +502,26 @@ tracker_xesam_ontology_get_service_type_for_dir (const gchar *path)
 
 /* Field Handling */
 void
-tracker_xesam_ontology_add_field (TrackerField *field)
+tracker_xesam_ontology_add_field (TrackerXesamField *field)
 {
-	g_return_if_fail (TRACKER_IS_FIELD (field));
-	g_return_if_fail (tracker_field_get_name (field) != NULL);
+	g_return_if_fail (TRACKER_IS_XESAM_FIELD (field));
+	g_return_if_fail (tracker_xesam_field_get_name (field) != NULL);
 	
 	g_hash_table_insert (metadata_table, 
-			     g_utf8_strdown (tracker_field_get_name (field), -1),
+			     g_utf8_strdown (tracker_xesam_field_get_name (field), -1),
 			     field);
 
 }
 
 gchar *
-tracker_xesam_ontology_get_field_column_in_services (TrackerField *field, 
+tracker_xesam_ontology_get_field_column_in_services (TrackerXesamField *field, 
 						     const gchar  *service_type)
 {
 	const gchar *field_name;
 	const gchar *meta_name;
 	gint         key_field;
 
-	meta_name = tracker_field_get_name (field);
+	meta_name = tracker_xesam_field_get_name (field);
 	key_field = tracker_xesam_ontology_metadata_key_in_service (service_type, 
 								    meta_name);
 
@@ -529,8 +530,8 @@ tracker_xesam_ontology_get_field_column_in_services (TrackerField *field,
 
 	} 
 
-	/* TODO do it using field_name in TrackerField! */
-	field_name = tracker_field_get_field_name (field);
+	/* TODO do it using field_name in TrackerXesamField! */
+	field_name = tracker_xesam_field_get_field_name (field);
 	if (field_name) {
 		return g_strdup (field_name);
 	} else {
@@ -539,15 +540,16 @@ tracker_xesam_ontology_get_field_column_in_services (TrackerField *field,
 }
 
 gchar *
-tracker_xesam_ontology_get_display_field (TrackerField *field)
+tracker_xesam_ontology_get_display_field (TrackerXesamField *field)
 {
-	TrackerFieldType type;
+	// FIXME
 
-	type = tracker_field_get_data_type (field);
+	TrackerXesamFieldType type;
 
-	if (type == TRACKER_FIELD_TYPE_INDEX ||
-	    type == TRACKER_FIELD_TYPE_STRING || 
-	    type == TRACKER_FIELD_TYPE_DOUBLE) {
+	type = tracker_xesam_field_get_data_type (field);
+
+	if (type == TRACKER_XESAM_FIELD_TYPE_STRING || 
+	    type == TRACKER_XESAM_FIELD_TYPE_FLOAT) {
 		return g_strdup ("MetaDataDisplay");
 	}
 
@@ -558,8 +560,8 @@ gboolean
 tracker_xesam_ontology_field_is_child_of (const gchar *child, 
 					  const gchar *parent) 
 {
-	TrackerField *def_child;
-	TrackerField *def_parent;
+	TrackerXesamField *def_child;
+	TrackerXesamField *def_parent;
 	const GSList *tmp;
 
 	def_child = tracker_xesam_ontology_get_field_def (child);
@@ -574,11 +576,11 @@ tracker_xesam_ontology_field_is_child_of (const gchar *child,
 		return FALSE;
 	}
 
-	for (tmp = tracker_field_get_child_ids (def_parent); tmp; tmp = tmp->next) {
+	for (tmp = tracker_xesam_field_get_child_ids (def_parent); tmp; tmp = tmp->next) {
 		
 		if (!tmp->data) return FALSE;
 
-		if (strcmp (tracker_field_get_id (def_child), tmp->data) == 0) {
+		if (strcmp (tracker_xesam_field_get_id (def_child), tmp->data) == 0) {
 			return TRUE;
 		}
 	}
@@ -586,7 +588,7 @@ tracker_xesam_ontology_field_is_child_of (const gchar *child,
 	return FALSE;
 }
 
-TrackerField *
+TrackerXesamField *
 tracker_xesam_ontology_get_field_def (const gchar *name) 
 {
 	return xesam_ontology_hash_lookup_by_str (metadata_table, name);
@@ -595,12 +597,12 @@ tracker_xesam_ontology_get_field_def (const gchar *name)
 const gchar *
 tracker_xesam_ontology_get_field_id (const gchar *name)
 {
-	TrackerField *field;
+	TrackerXesamField *field;
 
 	field = tracker_xesam_ontology_get_field_def (name);
 
 	if (field) {
-		return tracker_field_get_id (field);
+		return tracker_xesam_field_get_id (field);
 	}
 	
 	return NULL;

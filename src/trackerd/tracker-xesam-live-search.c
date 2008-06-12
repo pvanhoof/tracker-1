@@ -24,6 +24,8 @@
 #include <dbus/dbus-glib-bindings.h>
 
 #include "tracker-xesam-live-search.h"
+#include <libtracker-common/tracker-xesam-field.h>
+#include <libtracker-common/tracker-xesam-ontology.h>
 #include "tracker-xesam.h"
 #include "tracker-xesam-manager.h"
 #include "tracker-xesam-query.h"
@@ -270,6 +272,7 @@ tracker_xesam_live_search_emit_done (TrackerXesamLiveSearch *self)
 /* Created and Modified items */
 static void
 get_hits_added_modified (TrackerXesamLiveSearch  *self, 
+			 MatchWithEventsFlags     flags,
 			 TrackerDBInterface      *iface, 
 			 GArray                 **added, 
 			 GArray                 **modified) 
@@ -279,19 +282,23 @@ get_hits_added_modified (TrackerXesamLiveSearch  *self,
 	GArray             *m_modified = NULL;
 	TrackerDBResultSet *result_set;
 
+	/* Right now we are ignoring flags (both creates and updates are 
+	 * searched) */
+
 	result_set = tracker_db_live_search_get_new_ids (iface, 
 							 tracker_xesam_live_search_get_id (self),
 							 tracker_xesam_live_search_get_from_query (self),
 							 tracker_xesam_live_search_get_join_query (self),
 							 tracker_xesam_live_search_get_where_query (self)); /* Query */
 
-	if (!result_set)
+	if (!result_set) {
 		return;
+	}
 
 	while (ls_valid) {
-		GValue ls_value = { 0, };
-		GValue ev_type = { 0, };
-		gint ls_i_value;
+		GValue       ls_value = { 0, };
+		GValue       ev_type = { 0, };
+		gint         ls_i_value;
 		const gchar *str;
 
 		_tracker_db_result_set_get_value (result_set, 0, &ls_value);
@@ -303,7 +310,7 @@ get_hits_added_modified (TrackerXesamLiveSearch  *self,
 
 		if (!strcmp (str, "Update")) {
 			gboolean noadd = FALSE;
-			guint i;
+			guint    i;
 
 			if (m_modified == NULL) {
 				m_modified = g_array_new (FALSE, TRUE, sizeof (guint32));
@@ -376,6 +383,7 @@ get_all_hits (TrackerXesamLiveSearch  *self,
 	g_object_unref (result_set);
 }
 
+
 /**
  * tracker_xesam_live_search_match_with_events:
  * @self: A #TrackerXesamLiveSearch
@@ -386,14 +394,14 @@ get_all_hits (TrackerXesamLiveSearch  *self,
  * Find all items that match with the current events for @self.
  **/
 void
-tracker_xesam_live_search_match_with_events (TrackerXesamLiveSearch  *self, 
+tracker_xesam_live_search_match_with_events (TrackerXesamLiveSearch  *self,
+					     MatchWithEventsFlags     flags,
 					     GArray                 **added, 
 					     GArray                 **removed, 
 					     GArray                 **modified)
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
-	GObject            *xesam;
 
 	g_return_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self));
 	g_return_if_fail (added != NULL);
@@ -401,48 +409,52 @@ tracker_xesam_live_search_match_with_events (TrackerXesamLiveSearch  *self,
 	g_return_if_fail (modified != NULL);
 
 	iface = tracker_db_manager_get_db_interface (TRACKER_DB_XESAM);
-	xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
 
 	*added = NULL;
 	*removed = NULL;
 	*modified = NULL;
 
-	/* Deleted items */
-	result_set = tracker_db_live_search_get_deleted_ids (iface, 
-							     tracker_xesam_live_search_get_id (self));
+	if (flags & MATCH_WITH_EVENTS_DELETES) {
+		/* Deleted items */
+		result_set = tracker_db_live_search_get_deleted_ids (iface, 
+								     tracker_xesam_live_search_get_id (self));
 
-	if (result_set) {
-		gboolean valid;
+		if (result_set) {
+			gboolean valid;
 
-		valid = TRUE;
+			valid = TRUE;
 
-		while (valid) {
-			GValue ls_value = { 0, };
-			gint   ls_i_value;
+			while (valid) {
+				GValue ls_value = { 0, };
+				gint   ls_i_value;
 			
-			_tracker_db_result_set_get_value (result_set, 
-							  0, 
-							  &ls_value);
-			ls_i_value = g_value_get_int (&ls_value);
+				_tracker_db_result_set_get_value (result_set, 
+								  0, 
+								  &ls_value);
+				ls_i_value = g_value_get_int (&ls_value);
 			
-			if (*removed == NULL) {
-				*removed = g_array_new (FALSE, 
-							TRUE, 
-							sizeof (guint32));
+				if (*removed == NULL) {
+					*removed = g_array_new (FALSE, 
+								TRUE, 
+								sizeof (guint32));
+				}
+
+				g_array_append_val (*removed, ls_i_value);
+				g_value_unset (&ls_value);
+			
+				valid = tracker_db_result_set_iter_next (result_set);
 			}
-
-			g_array_append_val (*removed, ls_i_value);
-			g_value_unset (&ls_value);
-			
-			valid = tracker_db_result_set_iter_next (result_set);
+		
+			g_object_unref (result_set);
 		}
-
-		g_object_unref (result_set);
 	}
 
-	/* Created and Modified items */
-	get_hits_added_modified (self, iface, added, modified);
+	if (flags & MATCH_WITH_EVENTS_CREATES || flags & MATCH_WITH_EVENTS_MODIFIES) {
+		/* Created and Modified items */
+		get_hits_added_modified (self, flags, iface, added, modified);
+	}
 }
+
 
 /**
  * tracker_xesam_live_search_close:
@@ -468,10 +480,8 @@ tracker_xesam_live_search_close (TrackerXesamLiveSearch  *self,
 			     "Search was already closed");
 	} else {
 		TrackerDBInterface *iface;
-		GObject            *xesam;
 		
 		iface = tracker_db_manager_get_db_interface (TRACKER_DB_XESAM);
-		xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
 
 		tracker_db_live_search_stop (iface, 
 					     tracker_xesam_live_search_get_id (self));
@@ -513,10 +523,8 @@ tracker_xesam_live_search_get_hit_count (TrackerXesamLiveSearch  *self,
 		TrackerDBInterface *iface;
 		TrackerDBResultSet *result_set;
 		GValue              value = {0, };
-		GObject            *xesam;
 
 		iface = tracker_db_manager_get_db_interface (TRACKER_DB_XESAM);
-		xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
 
 		result_set = tracker_db_live_search_get_hit_count (iface, 
 								   tracker_xesam_live_search_get_id (self));
@@ -524,6 +532,64 @@ tracker_xesam_live_search_get_hit_count (TrackerXesamLiveSearch  *self,
 		*count = g_value_get_int (&value);
 		g_value_unset (&value);
 		g_object_unref (result_set);
+	}
+}
+
+
+typedef struct {
+	gint key;
+	gpointer value;
+} OneRow;
+
+static inline gpointer 
+rows_lookup (GPtrArray *rows, gint key)
+{
+	guint    i;
+	gpointer value = NULL;
+
+	for (i = 0; i < rows->len; i++) {
+		OneRow *row = g_ptr_array_index (rows, i);
+		if (row->key == key) {
+			value = row->value;
+			break;
+		}
+	}
+
+	return value;
+}
+
+static inline void
+rows_destroy (GPtrArray *rows)
+{
+	guint i;
+
+	for (i = 0; i < rows->len; i++) {
+		g_slice_free (OneRow, g_ptr_array_index (rows, i));
+	}
+
+	g_ptr_array_free (rows, TRUE);
+}
+
+static inline void
+rows_insert (GPtrArray *rows, gint key, gpointer value)
+{
+	OneRow *row = g_slice_new (OneRow);
+
+	row->key = key;
+	row->value = value;
+
+	g_ptr_array_add (rows, row);
+}
+
+static inline void 
+rows_migrate (GPtrArray *rows, GPtrArray *result)
+{
+	guint i;
+
+	for (i = 0; i < rows->len; i++) {
+		OneRow *one = g_ptr_array_index (rows, i);
+		GPtrArray *row = one->value;
+		g_ptr_array_add (result, row);
 	}
 }
 
@@ -552,49 +618,226 @@ tracker_xesam_live_search_get_hit_count (TrackerXesamLiveSearch  *self,
 static void
 get_hit_data (TrackerXesamLiveSearch  *self, 
 	      TrackerDBResultSet      *result_set,
-	      GPtrArray              **hit_data)
+	      GPtrArray              **hit_data,
+	      GStrv                    fields)
 {
-	GPtrArray *result;
-	gboolean   valid = TRUE;
-	gint       hitfields_columns = 0;
-	gint       column;
+	GPtrArray  *result = g_ptr_array_new ();
+	GPtrArray  *rows = g_ptr_array_new ();
+	gboolean    valid = TRUE;
+	guint       field_count;
 
-	result = g_ptr_array_new ();
+	field_count = g_strv_length (fields);
 
 	while (valid) {
-		GPtrArray *row;
+		guint                  column;
+		GPtrArray             *row;
+		GValue                 value_in = {0, };
+		gboolean               insert = FALSE;
+		gint                   key;
+		TrackerXesamFieldType  data_type;
+		TrackerXesamField     *field_def;
 
-		row = g_ptr_array_new ();
+		_tracker_db_result_set_get_value (result_set, 0, &value_in);
 
-		for (column = 0; column < hitfields_columns; column++) {
-			GValue *value;
-			GValue  value_in = {0, };
+		/* key must be the first column, as an int, unique per row that
+		 * must actually be returned. Example:
+		 * 
+		 * 1, a, b, c, 1
+		 * 1, a, b, c, 2
+		 * 1, a, b, c, 3
+		 * 1, a, b, c, 4
+		 * 2, a, b, c, 1
+		 * 3, a, b, c, 1
+		 * 4, a, b, c, 2
+		 * 5, a, b, c, 2
+		 * 
+		 * for:
+		 * 
+		 * [
+		 *    [a, b, c, [1, 2, 3, 4]]
+		 *    [a, b, c, [1]]
+		 *    [a, b, c, [1]]
+		 *    [a, b, c, [2]]
+		 *    [a, b, c, [2]]
+		 * ]
+		 **/
 
-			value = g_new0 (GValue, 1);
+		key = g_value_get_int (&value_in);
 
-			/* Question for ottela: how will we do list-values like
-			 * xesam:userKeywords? That's a column with comma's? or
-			 * how is this done? An extra result_set to loop? An
-			 * extra query? A union?
-			 */
+		/* Think before rewriting this using a GHashTable: A GHashTable
+		 * doesn't preserve the sort order. The sort order is indeed
+		 * significant for the Xesam spec. */
 
-			_tracker_db_result_set_get_value (result_set, column, &value_in);
+		row = rows_lookup (rows, key);
 
-			g_value_init (value, G_VALUE_TYPE (&value_in));
-			g_value_copy (&value_in, value);
-
-			g_value_unset (&value_in);
-
-			g_ptr_array_add (row, value);
+		if (!row) {
+			row = g_ptr_array_new ();
+			insert = TRUE;
 		}
 
-		g_ptr_array_add (result, row);
+		for (column = 1; column < field_count + 1; column++) {
+			GValue cur_value = {0, };
+
+			_tracker_db_result_set_get_value (result_set, 
+							  column, 
+							  &cur_value);
+
+			field_def = tracker_xesam_ontology_get_field_def (fields[column-1]);
+			data_type = tracker_xesam_field_get_data_type (field_def);
+
+			switch (data_type) {
+				case TRACKER_XESAM_FIELD_TYPE_LIST_OF_URLS:
+				case TRACKER_XESAM_FIELD_TYPE_LIST_OF_URIS:
+				case TRACKER_XESAM_FIELD_TYPE_LIST_OF_DATETIMES:
+				case TRACKER_XESAM_FIELD_TYPE_LIST_OF_STRINGS: {
+					GValue    *variant;
+					GPtrArray *my_array;
+
+					if (row->len <= (unsigned int) column) {
+						variant = g_new0 (GValue, 1);
+						g_value_init (variant, 
+							      dbus_g_type_get_collection ("GPtrArray", 
+										     G_TYPE_STRING));
+
+						my_array = g_ptr_array_new ();
+						g_value_set_boxed_take_ownership (variant, 
+										  my_array);
+
+						g_ptr_array_add (row, variant);
+
+					} else {
+						variant = g_ptr_array_index (row, column);
+						my_array = g_value_get_boxed (variant);
+					}
+
+					g_ptr_array_add  (my_array, 
+							       g_value_dup_string (&cur_value));
+
+				}
+				break;
+
+				case TRACKER_XESAM_FIELD_TYPE_LIST_OF_FLOATS: {
+					GValue   *variant;
+					GArray   *my_array;
+					gfloat    float_val;
+
+					if (row->len <= (unsigned int) column) {
+						variant = g_new0 (GValue, 1);
+						g_value_init (variant, 
+							      dbus_g_type_get_collection ("GArray", 
+										     G_TYPE_FLOAT));
+
+						my_array = g_array_new (FALSE, 
+									 TRUE, 
+									 sizeof (gfloat));
+						g_value_set_boxed_take_ownership (variant, my_array);
+
+						g_ptr_array_add (row, variant);
+					} else {
+						variant = g_ptr_array_index (row, column);
+						my_array = g_value_get_boxed (variant);
+					}
+
+					float_val = g_value_get_float (&cur_value);
+					g_array_append_val (my_array, float_val);
+				}
+				break;
+
+				case TRACKER_XESAM_FIELD_TYPE_LIST_OF_INTEGERS: {
+					GValue *variant;
+					GArray *my_array;
+					gint    int_val;
+
+					if (row->len <= (unsigned int) column) {
+						variant = g_new0 (GValue, 1);
+						g_value_init (variant, 
+							      dbus_g_type_get_collection ("GArray", 
+										     G_TYPE_INT));
+
+						my_array = g_array_new (FALSE, 
+									 TRUE, 
+									 sizeof (gint));
+						g_value_set_boxed_take_ownership (variant, my_array);
+
+						g_ptr_array_add (row, variant);
+					} else {
+						variant = g_ptr_array_index (row, column);
+						my_array = g_value_get_boxed (variant);
+					}
+
+					int_val = g_value_get_int (&cur_value);
+					g_array_append_val (my_array, int_val);
+				}
+				break;
+
+				case TRACKER_XESAM_FIELD_TYPE_LIST_OF_BOOLEANS: {
+					GValue  *variant;
+					GArray  *my_array;
+					gboolean bool_val;
+
+					if (row->len <= (unsigned int) column) {
+						variant = g_new0 (GValue, 1);
+						g_value_init (variant, 
+							      dbus_g_type_get_collection ("GArray", 
+										     G_TYPE_BOOLEAN));
+
+						my_array = g_array_new (FALSE, 
+									 TRUE, 
+									 sizeof (gboolean));
+						g_value_set_boxed_take_ownership (variant, my_array);
+
+						g_ptr_array_add (row, variant);
+					} else {
+						variant = g_ptr_array_index (row, column);
+						my_array = g_value_get_boxed (variant);
+					}
+
+					bool_val = g_value_get_boolean (&cur_value);
+					g_array_append_val (my_array, bool_val);
+				}
+				break;
+
+				case TRACKER_XESAM_FIELD_TYPE_STRING:
+				case TRACKER_XESAM_FIELD_TYPE_FLOAT:
+				case TRACKER_XESAM_FIELD_TYPE_INTEGER:
+				case TRACKER_XESAM_FIELD_TYPE_BOOLEAN:
+				case TRACKER_XESAM_FIELD_TYPE_DATE:
+				default: {
+					if (insert) {
+						GValue *value = g_new0 (GValue, 1);
+
+						g_value_init (value, 
+							      G_VALUE_TYPE (&cur_value));
+
+						g_value_copy (&cur_value, value);
+						g_ptr_array_add (row, value);
+					}
+
+					/* Else it's a redundant cell (a previous 
+					 * loop-cycle has added this item to the
+					 * final to-return result already, using
+					 * the top-row). */
+
+				}
+				break;
+			}
+			g_value_unset (&cur_value);
+		}
+
+
+		if (insert) {
+			rows_insert (rows, key, row);
+		}
 
 		valid = tracker_db_result_set_iter_next (result_set);
 	}
 
+	rows_migrate (rows, result);
+	rows_destroy (rows);
+
 	*hit_data = result;
 }
+
 
 /**
  * tracker_xesam_live_search_get_hits:
@@ -621,6 +864,8 @@ tracker_xesam_live_search_get_hits (TrackerXesamLiveSearch  *self,
 	g_return_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self));
 	g_return_if_fail (hits != NULL);
 
+	g_debug ("Get_hits called");
+
 	priv = self->priv;
 
 	if (!priv->active)
@@ -628,21 +873,51 @@ tracker_xesam_live_search_get_hits (TrackerXesamLiveSearch  *self,
 				TRACKER_XESAM_ERROR_SEARCH_NOT_ACTIVE,
 				"Search is not active");
 	else {
-		TrackerDBInterface *iface;
-		TrackerDBResultSet *result_set;
-		GObject            *xesam;
-		
-		iface = tracker_db_manager_get_db_interface (TRACKER_DB_XESAM);
-		xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
+		TrackerXesamSession *session;
+		GValue              *value;
+		GError              *tmp_error = NULL;
 
-		/* For ottela: fetch results for get_hits */
+		session = priv->session;
 
-		result_set = tracker_db_live_search_get_hit_data (iface,
-								  tracker_xesam_live_search_get_id (self));
+		tracker_xesam_session_get_property (session, 
+						    "hit.fields", 
+						    &value, 
+						    &tmp_error);
 
-		if (result_set) {
-			get_hit_data (self, result_set, hits);
-			g_object_unref (result_set);
+		if (tmp_error) {
+			g_propagate_error(error, tmp_error);
+			return;
+		}
+
+		if (value) {
+			TrackerDBInterface  *iface;
+			TrackerDBResultSet  *result_set;
+			GStrv                fields;
+
+			fields = g_value_get_boxed (value);
+
+			iface = tracker_db_manager_get_db_interface (TRACKER_DB_XESAM);
+
+			/* For ottela: fetch results for get_hits */
+
+			result_set = tracker_db_live_search_get_hit_data (iface,
+									  tracker_xesam_live_search_get_id (self),
+									  fields);
+
+			if (result_set) {
+
+				get_hit_data (self, 
+					      result_set, 
+					      hits,
+					      fields);
+
+				g_object_unref (result_set);
+			} else {
+				*hits =  g_ptr_array_new ();
+			}
+
+			g_value_unset (value);
+			g_free (value);
 		}
 	}
 }
@@ -667,21 +942,49 @@ tracker_xesam_live_search_get_range_hits (TrackerXesamLiveSearch  *self,
 			     TRACKER_XESAM_ERROR_SEARCH_NOT_ACTIVE,
 			     "Search is not active");
 	} else {
-		TrackerDBInterface *iface;
-		TrackerDBResultSet *result_set;
-		GObject            *xesam;
-		
+		TrackerXesamSession *session = priv->session;
+		TrackerDBInterface  *iface;
+		TrackerDBResultSet  *result_set;
+		GValue              *value;
+		GError              *tmp_error = NULL;
+
 		iface = tracker_db_manager_get_db_interface (TRACKER_DB_XESAM);
-		xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
 
-		/* For ottela: fetch results for get_hits */
+		g_debug ("live_search_get_range_hits");
 
-		result_set = tracker_db_live_search_get_hit_data (iface,
-								  tracker_xesam_live_search_get_id (self));
+		tracker_xesam_session_get_property (session, 
+						    "hit.fields", 
+						    &value, 
+						    &tmp_error);
 
-		if (result_set) {
-			get_hit_data (self, result_set, hits);
-			g_object_unref (result_set);
+		if (tmp_error) {
+			g_propagate_error(error, tmp_error);
+			return;
+		}
+
+		if (value) {
+			GStrv fields;
+
+			fields = g_value_get_boxed (value);
+
+			result_set = tracker_db_live_search_get_hit_data (iface,
+									  tracker_xesam_live_search_get_id (self),
+									  fields);
+					
+			if (result_set) {
+
+				get_hit_data (self, 
+					      result_set, 
+					      hits,
+					      fields);
+
+				g_object_unref (result_set);
+			} else {
+				*hits = g_ptr_array_new ();
+			}
+
+			g_value_unset (value);
+			g_free (value);
 		}
 	}
 }
@@ -736,19 +1039,23 @@ tracker_xesam_live_search_get_hit_data (TrackerXesamLiveSearch  *self,
 	} else {
 		TrackerDBInterface *iface;
 		TrackerDBResultSet *result_set;
-		GObject            *xesam;
-		
-		iface = tracker_db_manager_get_db_interface (TRACKER_DB_XESAM);
-		xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
 
-		/* For ottela: fetch results for get_hits */
+		iface = tracker_db_manager_get_db_interface (TRACKER_DB_XESAM);
 
 		result_set = tracker_db_live_search_get_hit_data (iface,
-								  tracker_xesam_live_search_get_id (self));
+								  tracker_xesam_live_search_get_id (self),
+								  fields);
 
 		if (result_set) {
-			get_hit_data (self, result_set, hit_data);
+
+			get_hit_data (self, 
+				      result_set, 
+				      hit_data,
+				      fields);
+
 			g_object_unref (result_set);
+		} else {
+			*hit_data = g_ptr_array_new ();
 		}
 	}
 }
@@ -777,19 +1084,23 @@ tracker_xesam_live_search_get_range_hit_data (TrackerXesamLiveSearch  *self,
 	} else {
 		TrackerDBInterface *iface;
 		TrackerDBResultSet *result_set;
-		GObject            *xesam;
 
 		iface = tracker_db_manager_get_db_interface (TRACKER_DB_XESAM);
-		xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
-		
-		/* For ottela: fetch results for get_hits */
 
 		result_set = tracker_db_live_search_get_hit_data (iface,
-								  tracker_xesam_live_search_get_id (self));
+								  tracker_xesam_live_search_get_id (self),
+								  fields);
 
 		if (result_set) {
-			get_hit_data (self, result_set, hit_data);
+
+			get_hit_data (self, 
+				      result_set, 
+				      hit_data,
+				      fields);
+
 			g_object_unref (result_set);
+		} else {
+			*hit_data = g_ptr_array_new ();
 		}
 	}
 }
@@ -834,11 +1145,11 @@ tracker_xesam_live_search_activate (TrackerXesamLiveSearch  *self,
 				"Search is closed");
 	else {
 		TrackerDBInterface *iface;
-		GObject            *xesam; 
 		GArray             *hits;
 
+		g_debug ("* * * Activate");
+
 		iface = tracker_db_manager_get_db_interface (TRACKER_DB_XESAM);
-		xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);;
 
 		tracker_db_live_search_start (iface,
 					      tracker_xesam_live_search_get_from_query (self),
@@ -856,6 +1167,12 @@ tracker_xesam_live_search_activate (TrackerXesamLiveSearch  *self,
 		if (hits) {
 			g_array_free (hits, TRUE);
 		}
+
+		g_timeout_add_full (G_PRIORITY_DEFAULT,
+				    100, 
+				    (GSourceFunc) tracker_xesam_live_search_emit_done, 
+				    g_object_ref (self),
+				    (GDestroyNotify) g_object_unref);
 	}
 
 	priv->active = TRUE;
@@ -997,8 +1314,9 @@ tracker_xesam_live_search_parse_query (TrackerXesamLiveSearch  *self,
 		g_free (orig_where);
 	}
 
-	g_message ("Parsed to '%s' and '%s'", 
-		   priv->from_sql, 
+	g_message ("Parsed to '%s', '%s' and '%s'", 
+		   priv->from_sql,
+		   priv->join_sql,
 		   priv->where_sql);
 
 	return TRUE;

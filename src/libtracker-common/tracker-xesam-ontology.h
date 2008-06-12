@@ -2,6 +2,7 @@
 /* 
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2008, Nokia (urho.konttori@nokia.com)
+ * Authors: Ottela Mikael (mikael.ottela@ixonos.com)
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -24,6 +25,7 @@
 
 #include <glib-object.h>
 
+#include <libtracker-common/tracker-xesam-field.h>
 #include <libtracker-common/tracker-field.h>
 #include <libtracker-common/tracker-service.h>
 
@@ -54,13 +56,13 @@ void            tracker_xesam_ontology_remove_dir_to_service_type   (const gchar
 gchar *         tracker_xesam_ontology_get_service_type_for_dir     (const gchar    *path);
 
 /* Field handling */
-void            tracker_xesam_ontology_add_field                    (TrackerField   *field);
-gchar *         tracker_xesam_ontology_get_field_column_in_services (TrackerField   *field,
+void            tracker_xesam_ontology_add_field                    (TrackerXesamField   *field);
+gchar *         tracker_xesam_ontology_get_field_column_in_services (TrackerXesamField   *field,
 								     const gchar    *service_type);
-gchar *         tracker_xesam_ontology_get_display_field            (TrackerField   *field);
+gchar *         tracker_xesam_ontology_get_display_field            (TrackerXesamField   *field);
 gboolean        tracker_xesam_ontology_field_is_child_of            (const gchar    *child,
 								     const gchar    *parent);
-TrackerField *  tracker_xesam_ontology_get_field_def                (const gchar    *name);
+TrackerXesamField *  tracker_xesam_ontology_get_field_def                (const gchar    *name);
 const gchar *   tracker_xesam_ontology_get_field_id                 (const gchar    *name);
 
 G_END_DECLS

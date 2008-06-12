@@ -1,6 +1,7 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2008, Nokia
+ * Authors: Ottela Mikael, (mikael.ottela@ixonos.com)
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -36,3 +37,4 @@ void tracker_xesam_query_to_sql (TrackerDBInterface  *iface,
 G_END_DECLS
 
 #endif /* __TRACKERD_XESAM_QUERY_H__ */
+

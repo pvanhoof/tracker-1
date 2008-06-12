@@ -95,8 +95,6 @@ trackerd_SOURCES =							\
 	tracker-utils.h							\
 	tracker-xesam.c							\
 	tracker-xesam.h							\
-	tracker-xesam-ontology.c					\
-	tracker-xesam-ontology.h					\
 	tracker-xesam-manager.c						\
 	tracker-xesam-manager.h						\
 	tracker-xesam-query.c						\

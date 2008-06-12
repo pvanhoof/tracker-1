@@ -30,11 +30,11 @@ GetEvents SELECT ID, ServiceID, EventType FROM Events WHERE BeingHandled = 1;
 SetEventsBeingHandled UPDATE Events SET BeingHandled = 1;
 
 GetLiveSearchAllIDs SELECT X.ServiceID FROM LiveSearches AS X WHERE X.SearchID = ?
-GetLiveSearchDeletedIDs SELECT E.ServiceID FROM Events as E, LiveSearches as X WHERE E.ServiceID = X.ServiceID AND X.SearchID = ? AND E.EventType IS 'Delete';
-DeleteLiveSearchDeletedIDs DELETE FROM LiveSearches AS Y WHERE Y.ServiceID IN SELECT ServiceID FROM Events as E, LiveSearches as X WHERE E.ServiceID = X.ServiceID AND X.SearchID = ? AND E.EventType IS 'Delete'
+GetLiveSearchDeletedIDs SELECT E.ServiceID FROM Events as E, LiveSearches as X WHERE E.ServiceID = X.ServiceID AND X.SearchID = ? AND E.EventType = 'Delete';
+DeleteLiveSearchDeletedIDs DELETE FROM LiveSearches AS Y WHERE Y.ServiceID IN SELECT ServiceID FROM Events as E, LiveSearches as X WHERE E.ServiceID = X.ServiceID AND X.SearchID = ? AND E.EventType = 'Delete'
 
 GetLiveSearchHitCount SELECT count(*) FROM LiveSearches WHERE SearchID = ?;
-LiveSearchStopSearch DELETE FROM LiveSearches as X WHERE E.SearchID = ?
+LiveSearchStopSearch DELETE FROM LiveSearches WHERE SearchID = ?
 
 GetNewEventID SELECT OptionValue FROM Options WHERE OptionKey = 'EventSequence';
 UpdateNewEventID UPDATE Options set OptionValue = ? WHERE OptionKey = 'EventSequence';
@@ -210,3 +210,5 @@ GetXesamMetaDataTypes SELECT MetaName, Parents FROM XesamMetaDataTypes;
 GetXesamMetaDataChildren SELECT Child FROM XesamMetaDataChildren WHERE Parent = ?;
 GetXesamMetaDataMappings SELECT MetaName FROM XesamMetaDataMapping WHERE XesamMetaName = ?;
 GetXesamMetaDataLookups SELECT DISTINCT MetaName FROM XesamMetaDataLookup WHERE XesamMetaName = ?;
+
+GetXesamMetadataTypes SELECT ID, MetaName, DataTypeID, Parents FROM XesamMetaDataTypes;

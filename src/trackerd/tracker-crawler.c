@@ -777,8 +777,8 @@ on_get_running (DBusGProxy *proxy, gboolean running, GError *error, gpointer use
 	} else {
 		g_message ("Couldn't process files, %s", 
 		   error ? error->message : "indexer not running");
+		g_object_unref (user_data);
 	}
-
 }
 
 static gboolean

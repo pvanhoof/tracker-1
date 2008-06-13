@@ -731,10 +731,16 @@ file_enumerate (TrackerCrawler *crawler,
 					 crawler);
 }
 
+typedef struct {
+	GStrv files;
+	TrackerCrawler *crawler;
+} SomeInfo;
+
 static void
 on_process_files_cb (DBusGProxy *proxy, GError *error, gpointer user_data)
 {
-	GStrv files = user_data;
+	SomeInfo *info = user_data;
+	GStrv files = info->files;
 
 	if (error) {
 		g_critical ("Could not send %d files to indexer to process, %s", 
@@ -746,32 +752,33 @@ on_process_files_cb (DBusGProxy *proxy, GError *error, gpointer user_data)
 	}
 
 	g_strfreev (files);
+	g_object_unref (info->crawler);
+	g_slice_free (SomeInfo, info);
 }
 
 static void
 on_get_running (DBusGProxy *proxy, gboolean running, GError *error, gpointer user_data)
 {
-	TrackerCrawler *crawler = user_data;
-	gchar **        files;
-
 	if (!error && running) {
+		SomeInfo *info = g_slice_new (SomeInfo);
+		info->crawler = user_data;
+
 		g_debug ("Processing file queue...");
-		files = tracker_dbus_async_queue_to_strv (crawler->priv->files,
+		info->files = tracker_dbus_async_queue_to_strv (info->crawler->priv->files,
 						  FILES_QUEUE_PROCESS_MAX);
 
-		g_debug ("Sending %d files to indexer to process", g_strv_length (files));
+		g_debug ("Sending %d files to indexer to process", g_strv_length (info->files));
 
 		org_freedesktop_Tracker_Indexer_process_files_async (proxy, 
-								     (const gchar **) files,
+								     (const gchar **) info->files,
 								     on_process_files_cb,
-								     files);
+								     info);
 
 	} else {
 		g_message ("Couldn't process files, %s", 
 		   error ? error->message : "indexer not running");
 	}
 
-	g_object_unref (crawler);
 }
 
 static gboolean

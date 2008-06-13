@@ -1,5 +1,19 @@
 2008-06-13  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-file-utils.[ch]:
+	* src/trackerd/tracker-crawler.c: Moved
+	tracker_path_list_filter_duplicates() to the file utils.
+	
+	* src/trackerd/tracker-monitor.[ch]:  Use GFile instead of strings
+	in the API and added work to print file changes to the console.
+
+	* src/trackerd/tracker-db.c: 
+	* src/trackerd/tracker-email-kmail.c:
+	* src/trackerd/tracker-process-files.c: Removed all
+	tracker_monitor_() calls, this shouldn't be done from here.
+
+2008-06-13  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-dbus.c:
 	(tracker_dbus_slist_to_strv), (tracker_dbus_async_queue_to_strv):
 	* src/libtracker-db/tracker-db-dbus.c:

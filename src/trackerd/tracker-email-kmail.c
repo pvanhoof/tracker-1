@@ -663,7 +663,7 @@ get_dirs_to_watch (TrackerDBInterface *iface, const gchar *dir_path, gboolean in
                     (( in_imap_dir && dir_name[0] == '.' && g_str_has_suffix (dir_name, ".directory")) ||
                       !in_imap_dir )
                     ) {
-                        if (!tracker_monitor_is_watched (dir_path)) {
+                        if (!tracker_monitor_is_watched_by_string (dir_path)) {
                                 /* if we are in a maildir directory, we will only index emails in directory "cur" */
                                 gchar *dir_cur = g_build_filename (dir_path, "cur", NULL);
 

@@ -24,20 +24,20 @@
 
 #include <glib.h>
 
-gint     tracker_file_open          (const gchar *uri,
-				     gboolean     readahead);
-void     tracker_file_close         (gint         fd,
-				     gboolean     no_longer_needed);
-gboolean tracker_file_unlink        (const gchar *uri);
-gboolean tracker_file_is_valid      (const gchar *uri);
-gboolean tracker_file_is_directory  (const gchar *uri);
-gboolean tracker_file_is_indexable  (const gchar *uri);
-guint32  tracker_file_get_size      (const gchar *uri);
-gint32   tracker_file_get_mtime     (const gchar *uri);
-gchar *  tracker_file_get_mime_type (const gchar *uri);
-gchar *  tracker_file_get_vfs_path  (const gchar *uri);
-gchar *  tracker_file_get_vfs_name  (const gchar *uri);
-
-void     tracker_path_remove        (const gchar *uri);
+gint     tracker_file_open                   (const gchar *uri,
+					      gboolean     readahead);
+void     tracker_file_close                  (gint         fd,
+					      gboolean     no_longer_needed);
+gboolean tracker_file_unlink                 (const gchar *uri);
+gboolean tracker_file_is_valid               (const gchar *uri);
+gboolean tracker_file_is_directory           (const gchar *uri);
+gboolean tracker_file_is_indexable           (const gchar *uri);
+guint32  tracker_file_get_size               (const gchar *uri);
+gint32   tracker_file_get_mtime              (const gchar *uri);
+gchar *  tracker_file_get_mime_type          (const gchar *uri);
+gchar *  tracker_file_get_vfs_path           (const gchar *uri);
+gchar *  tracker_file_get_vfs_name           (const gchar *uri);
+void     tracker_path_remove                 (const gchar *uri);
+GSList * tracker_path_list_filter_duplicates (GSList      *roots);
 
 #endif /* __LIBTRACKER_COMMON_FILE_UTILS_H__ */

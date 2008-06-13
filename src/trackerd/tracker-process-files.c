@@ -251,7 +251,10 @@ process_watch_directories (GSList             *dirs,
                                 continue;
                         }
                         
+#if 0
+                        /* Done in the crawler module now */
                         tracker_monitor_add (dir);
+#endif
 		}
 
                 for (l = list; l; l = l->next) {
@@ -398,7 +401,10 @@ process_index_delete_directory (TrackerDBFileInfo *info,
 
 	tracker_db_directory_delete (iface, info->file_id, info->uri);
 
+#if 0
+        /* Done in the crawler module now */
 	tracker_monitor_remove (info->uri, TRUE);
+#endif
 
 	g_message ("Deleting directory:'%s' and subdirs", info->uri);
 }
@@ -681,7 +687,10 @@ process_action (TrackerDBFileInfo *info,
                 break;
                 
         case TRACKER_DB_ACTION_DIRECTORY_MOVED_FROM:
-                tracker_db_directory_move (iface, info->uri, info->moved_to_uri);
+#if 0
+                /* We should be sending this crap to the indexer */
+                tracker_db_directory_move (iface, info->uri, info->moved_to_uri); 
+#endif
                 need_index = FALSE;
                 break;
                 

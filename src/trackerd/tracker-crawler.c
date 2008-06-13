@@ -24,12 +24,14 @@
 
 #include <gio/gio.h>
 
-#include <libtracker-common/tracker-utils.h>
 #include <libtracker-common/tracker-dbus.h>
+#include <libtracker-common/tracker-file-utils.h>
+#include <libtracker-common/tracker-utils.h>
 
 #include "tracker-crawler.h"
 #include "tracker-dbus.h"
 #include "tracker-indexer-client.h"
+#include "tracker-monitor.h"
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_CRAWLER, TrackerCrawlerPriv))
 
@@ -653,7 +655,7 @@ file_enumerate_cb (GObject      *file,
 	GFileEnumerator *enumerator;
 	GFileInfo       *info;
 	GFile           *parent, *child;
-	gchar           *relative_path;
+	gchar           *path;
 
 	crawler = TRACKER_CRAWLER (user_data);
 	parent = G_FILE (file);
@@ -670,30 +672,30 @@ file_enumerate_cb (GObject      *file,
 	     info && crawler->priv->running;
 	     info = g_file_enumerator_next_file (enumerator, NULL, NULL)) {
 		child = g_file_get_child (parent, g_file_info_get_name (info));
-		relative_path = g_file_get_path (child);
+		path = g_file_get_path (child);
 		
-		if (path_should_be_ignored (crawler, relative_path)) {
+		if (path_should_be_ignored (crawler, path)) {
 			crawler->priv->files_ignored++;
 #ifdef TESTING
 			g_debug ("Ignored:'%s' (%d)",  
-				 relative_path, 
+				 path, 
 				 crawler->priv->enumerations); 
 #endif /* TESTING */
-			g_free (relative_path);
+			g_free (path);
 		} else {
 			crawler->priv->files_found++;
 #ifdef TESTING
 			g_debug ("Found  :'%s' (%d)", 
-				 relative_path, 
+				 path, 
 				 crawler->priv->enumerations);
 #endif /* TESTING */
 
 			if (g_file_info_get_file_type (info) == G_FILE_TYPE_DIRECTORY) {
 				file_enumerate (crawler, child);
-				g_free (relative_path);
+				g_free (path);
 			} else {
 				g_async_queue_push (crawler->priv->files,
-						    relative_path);
+						    path);
 			}
 		}	
 
@@ -718,6 +720,8 @@ file_enumerate (TrackerCrawler *crawler,
 {
 	file_enumerators_increment (crawler);
 
+	tracker_monitor_add (file);
+
 	g_file_enumerate_children_async (file, 
 					 "*",
 					 G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
@@ -736,11 +740,6 @@ file_queue_handle_cb (gpointer user_data)
 	gchar **        files;
 	gboolean        running;
 	gint            length;
-#if 0
-	gint            items;
-	GPtrArray      *ptr_array;
-	gint            i;
-#endif
 
 	crawler = user_data;
 
@@ -787,76 +786,6 @@ file_queue_handle_cb (gpointer user_data)
 	return TRUE;
 }
 
-static GSList *
-check_roots_dont_coinside (TrackerCrawler *crawler,
-			   GSList         *roots)
-{
-	GSList *checked_roots = NULL;
-	GSList *l1, *l2;
-
-	/* ONLY HERE do we add separators on each location we check.
-	 * The reason for this is that these locations are user
-	 * entered in the configuration and we need to make sure we
-	 * don't include the same location more than once.
-	 */
-
-	for (l1 = roots; l1; l1 = l1->next) {
-		gchar    *path;
-		gboolean  should_add = TRUE;
-
-		if (!g_str_has_suffix (l1->data, G_DIR_SEPARATOR_S)) {
-			path = g_strconcat (l1->data, G_DIR_SEPARATOR_S, NULL);
-		} else {
-			path = g_strdup (l1->data);
-		}
-
-		l2 = checked_roots;
-
-		while (l2 && should_add) {
-			/* If the new path exists as a lower level
-			 * path or is the same as an existing checked
-			 * root we disgard it, it will be checked
-			 * anyway. 
-			 */
-			if (g_str_has_prefix (path, l2->data)) {
-				should_add = FALSE;
-			} 
-
-			/* If the new path exists as a higher level
-			 * path to one already in the checked roots,
-			 * we remove the checked roots version
-			 */
-			if (g_str_has_prefix (l2->data, path)) {
-				checked_roots = g_slist_remove_link (checked_roots, l2);
-				g_free (l2->data);
-				l2 = checked_roots;
-				continue;
-			}
-
-			l2 = l2->next;
-		}
-		
-		if (should_add) {
-			checked_roots = g_slist_prepend (checked_roots, path);
-			continue;
-		} 
-		
-		g_free (path);
-	}
-
-	checked_roots = g_slist_reverse (checked_roots);
-
-#ifdef TESTING
-	g_debug ("Using the following roots to crawl:");
-
-	for (l1 = checked_roots; l1; l1 = l1->next) {
-		g_debug ("  %s", (gchar*) l1->data);
-	}
-#endif /* TESTING */
-
-	return checked_roots;
-}
-
 void
 tracker_crawler_start (TrackerCrawler *crawler)
 {
@@ -886,7 +815,7 @@ tracker_crawler_start (TrackerCrawler *crawler)
         config_roots = tracker_config_get_crawl_directory_roots (priv->config);
 	if (config_roots) {
 		/* Make sure none of the roots co-inside each other */
-		roots = check_roots_dont_coinside (crawler, config_roots);
+		roots = tracker_path_list_filter_duplicates (config_roots);
 	}
 
 	if (!roots) {

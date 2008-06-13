@@ -467,3 +467,72 @@ tracker_path_remove (const gchar *uri)
 	g_slist_foreach (dirs_to_remove, (GFunc) g_free, NULL);
 	g_slist_free (dirs_to_remove);
 }
+
+GSList *
+tracker_path_list_filter_duplicates (GSList *roots)
+{
+	GSList *checked_roots = NULL;
+	GSList *l1, *l2;
+
+	/* ONLY HERE do we add separators on each location we check.
+	 * The reason for this is that these locations are user
+	 * entered in the configuration and we need to make sure we
+	 * don't include the same location more than once.
+	 */
+
+	for (l1 = roots; l1; l1 = l1->next) {
+		gchar    *path;
+		gboolean  should_add = TRUE;
+
+		if (!g_str_has_suffix (l1->data, G_DIR_SEPARATOR_S)) {
+			path = g_strconcat (l1->data, G_DIR_SEPARATOR_S, NULL);
+		} else {
+			path = g_strdup (l1->data);
+		}
+
+		l2 = checked_roots;
+
+		while (l2 && should_add) {
+			/* If the new path exists as a lower level
+			 * path or is the same as an existing checked
+			 * root we disgard it, it will be checked
+			 * anyway. 
+			 */
+			if (g_str_has_prefix (path, l2->data)) {
+				should_add = FALSE;
+			} 
+
+			/* If the new path exists as a higher level
+			 * path to one already in the checked roots,
+			 * we remove the checked roots version
+			 */
+			if (g_str_has_prefix (l2->data, path)) {
+				checked_roots = g_slist_remove_link (checked_roots, l2);
+				g_free (l2->data);
+				l2 = checked_roots;
+				continue;
+			}
+
+			l2 = l2->next;
+		}
+		
+		if (should_add) {
+			checked_roots = g_slist_prepend (checked_roots, path);
+			continue;
+		} 
+		
+		g_free (path);
+	}
+
+	checked_roots = g_slist_reverse (checked_roots);
+
+#ifdef TESTING
+	g_debug ("Using the following roots to crawl:");
+
+	for (l1 = checked_roots; l1; l1 = l1->next) {
+		g_debug ("  %s", (gchar*) l1->data);
+	}
+#endif /* TESTING */
+
+	return checked_roots;
+}

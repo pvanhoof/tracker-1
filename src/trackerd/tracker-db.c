@@ -555,13 +555,19 @@ directory_move (TrackerDBInterface *iface,
 		const gchar        *moved_from_uri, 
 		const gchar        *moved_to_uri)
 {
+	/* FIXME: the monitor updates should not be done here, -mr */
+
+#if 0
 	/* Stop watching old dir, start watching new dir */
 	tracker_monitor_remove (moved_from_uri, TRUE);
+#endif
 		
 	tracker_db_file_move (iface, moved_from_uri, moved_to_uri);
 	directory_move_files (iface, moved_from_uri, moved_to_uri);
 
+#if 0
 	tracker_monitor_add (moved_to_uri);
+#endif
 }
 
 static gint 

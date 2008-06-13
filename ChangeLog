@@ -1,3 +1,13 @@
+2008-06-13  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/libtracker-common/tracker-dbus.c:
+	Replaced g_warning with g_message. g_warning abort unit tests.
+	
+	* tests/libtracker-common/Makefile.am
+	* tests/libtracker-common/non-utf8.txt
+	* tests/libtracker-common/tracker-dbus-test.c: Unit tests to
+	tracker-dbus helper methods, using non-utf8 strings.
+
 2008-06-13  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-file-utils.[ch]:

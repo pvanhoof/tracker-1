@@ -53,11 +53,7 @@ libtracker_common_la_SOURCES = 			\
 	tracker-type-utils.c			\
 	tracker-type-utils.h			\
 	tracker-utils.c				\
-	tracker-utils.h				\
-	tracker-xesam-field.c			\
-	tracker-xesam-field.h			\
-	tracker-xesam-ontology.c		\
-	tracker-xesam-ontology.h
+	tracker-utils.h
 
 libtracker_common_la_LDFLAGS = -version-info 0:0:0
 libtracker_common_la_LIBADD = 			\

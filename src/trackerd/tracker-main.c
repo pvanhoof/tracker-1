@@ -826,7 +826,6 @@ main (gint argc, gchar *argv[])
 
 	tracker_nfs_lock_init (tracker_config_get_nfs_locking (tracker->config));
 	tracker_ontology_init ();
-	tracker_xesam_ontology_init ();
 	tracker_db_init ();
 	tracker_db_manager_init (TRUE, data_dir, user_data_dir, sys_tmp_dir); /* Using TRUE=broken */
 	tracker_xesam_manager_init ();

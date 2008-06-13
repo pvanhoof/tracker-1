@@ -26,10 +26,8 @@
 #include <zlib.h>
 
 #include <libtracker-common/tracker-field.h>
-#include <libtracker-common/tracker-xesam-field.h>
 #include <libtracker-common/tracker-nfs-lock.h>
 #include <libtracker-common/tracker-ontology.h>
-#include <libtracker-common/tracker-xesam-ontology.h>
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-utils.h>
 
@@ -700,11 +698,48 @@ load_service_file_xesam (TrackerDBInterface *iface,
 					data_id = tracker_string_in_string_list (value, (gchar **) data_types);
 					
 					if (data_id != -1) {
+						gint mapped_data_id;
+						gboolean list = FALSE;
+
+						/* We map these values to existing field types. 
+						   FIXME Eventually we should change the config file instead. */
+						
+						switch (data_id) {
+						case 0:
+							mapped_data_id = TRACKER_FIELD_TYPE_STRING;
+							break;
+						case 1:
+							mapped_data_id = TRACKER_FIELD_TYPE_DOUBLE;
+							break;
+						case 2:
+							mapped_data_id = TRACKER_FIELD_TYPE_INTEGER;
+							break;
+						case 3:
+							mapped_data_id = TRACKER_FIELD_TYPE_INTEGER;
+							break;
+						case 4:
+							mapped_data_id = TRACKER_FIELD_TYPE_DATE;
+							break;
+						case 5:
+						case 6:
+						case 7:
+							list = TRUE;
+							mapped_data_id = TRACKER_FIELD_TYPE_STRING;
+							break;
+						}
+
 						sql = g_strdup_printf ("update XesamMetadataTypes set DataTypeID = %d where ID = %s", 
-								       data_id, 
+								       mapped_data_id, 
 								       str_id);
 						db_exec_no_reply (iface, sql);
 						g_free (sql);
+						
+						if (list) {
+							sql = g_strdup_printf ("update XesamMetadataTypes set MultipleValues = 1 where ID = %s", 
+									       str_id);
+							db_exec_no_reply (iface, sql);
+							g_free (sql);
+						}
 					}
 				} else {
 					load_service_file_xesam_update (iface,
@@ -947,107 +982,6 @@ db_row_to_service (TrackerDBResultSet *result_set)
 	g_free (name);
 	g_free (parent);
 	g_free (content_metadata);
-
-        return service;
-}
-
-static TrackerXesamField *
-db_row_to_xesam_field_def (TrackerDBResultSet *result_set) 
-{
-        TrackerXesamField *field_def;
-	TrackerFieldType   field_type;
-	gchar             *id_str, *name;
-	gint               id;
-
-	field_def = tracker_xesam_field_new ();
-
-	tracker_db_result_set_get (result_set,
-				   0, &id,
-				   1, &name,
-				   2, &field_type,
-				   -1);
-
-	id_str = tracker_int_to_string (id);
-
-	tracker_xesam_field_set_id (field_def, id_str);
-	tracker_xesam_field_set_name (field_def, name);
-	tracker_xesam_field_set_data_type (field_def, field_type);
-
-	g_free (id_str);
-	g_free (name);
-
-	return field_def;
-}
-
-static TrackerService *
-db_row_to_xesam_service (TrackerDBResultSet *result_set)
-{
-        TrackerService *service;
-        GSList         *new_list = NULL;
-        gint            id, i;
-	gchar          *name, *parent, *content_metadata;
-	gboolean        enabled, embedded, has_metadata, has_fulltext;
-	gboolean        has_thumbs, show_service_files, show_service_directories;
-
-        service = tracker_service_new ();
-
-	tracker_db_result_set_get (result_set,
-				   0, &id,
-				   1, &name,
-				   2, &parent,
-				   3, &enabled,
-				   4, &embedded,
-				   5, &has_metadata,
-				   6, &has_fulltext,
-				   7, &has_thumbs,
-				   8, &content_metadata,
-				   10, &show_service_files,
-				   11, &show_service_directories,
-				   -1);
-
-        tracker_service_set_id (service, id);
-        tracker_service_set_name (service, name);
-        tracker_service_set_parent (service, parent);
-        tracker_service_set_enabled (service, enabled);
-        tracker_service_set_embedded (service, embedded);
-        tracker_service_set_has_metadata (service, has_metadata);
-        tracker_service_set_has_full_text (service, has_fulltext);
-        tracker_service_set_has_thumbs (service, has_thumbs);
-	tracker_service_set_content_metadata (service, content_metadata);
-
-        tracker_service_set_show_service_files (service, show_service_files);
-        tracker_service_set_show_service_directories (service, show_service_directories);
-
-        for (i = 12; i < 23; i++) {
-		gchar *metadata;
-
-		tracker_db_result_set_get (result_set, i, &metadata, -1);
-
-		if (metadata) {
-			new_list = g_slist_prepend (new_list, metadata);
-		}
-        }
-
-	/* FIXME: is this necessary? */
-#if 0
-        /* Hack to prevent db change late in the cycle, check the
-         * service name matches "Applications", then add some voodoo.
-         */
-        if (strcmp (name, "Applications") == 0) {
-                /* These strings should be definitions at the top of
-                 * this file somewhere really.
-                 */
-                new_list = g_slist_prepend (new_list, g_strdup ("App:DisplayName"));
-                new_list = g_slist_prepend (new_list, g_strdup ("App:Exec"));
-                new_list = g_slist_prepend (new_list, g_strdup ("App:Icon"));
-        }
-#endif
-
-        new_list = g_slist_reverse (new_list);
-
-        tracker_service_set_key_metadata (service, new_list);
-	g_slist_foreach (new_list, (GFunc) g_free, NULL);
-        g_slist_free (new_list);
 
         return service;
 }
@@ -1612,22 +1546,22 @@ db_get_static_xesam_data (TrackerDBInterface *iface)
 	/* Get static xesam metadata info */
 	result_set = tracker_db_interface_execute_procedure (iface, 
 							     NULL, 
-							     "GetXesamMetadataTypes", 
+							     "GetXesamMetaDataTypes", 
 							     NULL);
 
 	if (result_set) {
 		gboolean valid = TRUE;
 
 		while (valid) {
-			TrackerXesamField  *def;
+			TrackerField  *def;
 
-			def = db_row_to_xesam_field_def (result_set);
+			def = db_row_to_field_def (result_set);
 
 			g_message ("Loading xesam metadata def:'%s' with type:%d",
-				   tracker_xesam_field_get_name (def),
-				   tracker_xesam_field_get_data_type (def));
+				   tracker_field_get_name (def),
+				   tracker_field_get_data_type (def));
 
-			tracker_xesam_ontology_add_field (def);
+			tracker_ontology_add_field (def);
 
 			valid = tracker_db_result_set_iter_next (result_set);
 		}
@@ -1638,7 +1572,7 @@ db_get_static_xesam_data (TrackerDBInterface *iface)
 	/* Get static xesam service info */
 	result_set = tracker_db_interface_execute_procedure (iface,
 							     NULL, 
-							     "GetAllServices", 
+							     "GetXesamServiceTypes", 
 							     NULL);
 
 	if (result_set) {
@@ -1667,9 +1601,9 @@ db_get_static_xesam_data (TrackerDBInterface *iface)
 				   id,
 				   g_slist_length (mimes));
 
-                        tracker_xesam_ontology_add_service_type (service,
-								 mimes,
-								 mime_prefixes);
+                        tracker_ontology_add_service_type (service,
+							   mimes,
+							   mime_prefixes);
 
                         g_slist_free (mimes);
                         g_slist_free (mime_prefixes);
@@ -2011,7 +1945,7 @@ db_xesam_create_lookup (TrackerDBInterface *iface)
 	valid = TRUE;
 
 	result_set = db_exec_proc (iface, 
-				   "GetXesamServiceTypes", 
+				   "GetXesamServiceParents", 
 				   NULL);
 	
 	if (result_set) {
@@ -2046,7 +1980,7 @@ db_xesam_create_lookup (TrackerDBInterface *iface)
 	
 	valid = TRUE;
 	result_set = db_exec_proc (iface, 
-				   "GetXesamMetaDataTypes", 
+				   "GetXesamMetaDataParents", 
 				   NULL);
 	
 	if (result_set) {

@@ -201,14 +201,15 @@ InsertXesamServiceMapping INSERT INTO XesamServiceMapping (XesamTypeName, TypeNa
 InsertXesamServiceLookup REPLACE INTO XesamServiceLookup (XesamTypeName, TypeName) Values (?, ?);
 InsertXesamMetaDataLookup REPLACE INTO XesamMetaDataLookup (XesamMetaName, MetaName) Values (?, ?);
 
-GetXesamServiceTypes SELECT TypeName, Parents FROM XesamServiceTypes;
+GetXesamServiceParents SELECT TypeName, Parents FROM XesamServiceTypes;
 GetXesamServiceChildren SELECT Child FROM XesamServiceChildren WHERE Parent = ?;
 GetXesamServiceMappings SELECT TypeName FROM XesamServiceMapping WHERE XesamTypeName = ?;
 GetXesamServiceLookups SELECT DISTINCT TypeName FROM XesamServiceLookup WHERE XesamTypeName = ?;
 
-GetXesamMetaDataTypes SELECT MetaName, Parents FROM XesamMetaDataTypes;
+GetXesamMetaDataParents SELECT MetaName, Parents FROM XesamMetaDataTypes;
 GetXesamMetaDataChildren SELECT Child FROM XesamMetaDataChildren WHERE Parent = ?;
 GetXesamMetaDataMappings SELECT MetaName FROM XesamMetaDataMapping WHERE XesamMetaName = ?;
 GetXesamMetaDataLookups SELECT DISTINCT MetaName FROM XesamMetaDataLookup WHERE XesamMetaName = ?;
 
-GetXesamMetadataTypes SELECT ID, MetaName, DataTypeID, Parents FROM XesamMetaDataTypes;
+GetXesamMetaDataTypes SELECT ID, MetaName, DataTypeID, FieldName, Weight, Embedded, MultipleValues, Delimited, Filtered, Abstract FROM XesamMetaDataTypes;
+GetXesamServiceTypes SELECT TypeID, TypeName, Parents, Enabled, Embedded, HasMetadata, HasFullText, HasThumbs, ContentMetadata, Database, ShowServiceFiles, ShowServiceDirectories, KeyMetadata1, KeyMetadata2, KeyMetadata3, KeyMetadata4, KeyMetadata5, KeyMetadata6, KeyMetadata7, KeyMetadata8, KeyMetadata9, KeyMetadata10, KeyMetadata11  FROM XesamServiceTypes;

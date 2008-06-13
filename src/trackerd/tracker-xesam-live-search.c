@@ -24,8 +24,6 @@
 #include <dbus/dbus-glib-bindings.h>
 
 #include "tracker-xesam-live-search.h"
-#include <libtracker-common/tracker-xesam-field.h>
-#include <libtracker-common/tracker-xesam-ontology.h>
 #include "tracker-xesam.h"
 #include "tracker-xesam-manager.h"
 #include "tracker-xesam-query.h"
@@ -535,7 +533,6 @@ tracker_xesam_live_search_get_hit_count (TrackerXesamLiveSearch  *self,
 	}
 }
 
-
 typedef struct {
 	gint key;
 	gpointer value;
@@ -629,13 +626,14 @@ get_hit_data (TrackerXesamLiveSearch  *self,
 	field_count = g_strv_length (fields);
 
 	while (valid) {
+
 		guint                  column;
 		GPtrArray             *row;
 		GValue                 value_in = {0, };
 		gboolean               insert = FALSE;
 		gint                   key;
-		TrackerXesamFieldType  data_type;
-		TrackerXesamField     *field_def;
+		TrackerFieldType  data_type;
+		TrackerField     *field_def;
 
 		_tracker_db_result_set_get_value (result_set, 0, &value_in);
 
@@ -682,104 +680,78 @@ get_hit_data (TrackerXesamLiveSearch  *self,
 							  column, 
 							  &cur_value);
 
-			field_def = tracker_xesam_ontology_get_field_def (fields[column-1]);
-			data_type = tracker_xesam_field_get_data_type (field_def);
+			field_def = tracker_ontology_get_field_def (fields[column-1]);
+			data_type = tracker_field_get_data_type (field_def);
 
-			switch (data_type) {
-				case TRACKER_XESAM_FIELD_TYPE_LIST_OF_URLS:
-				case TRACKER_XESAM_FIELD_TYPE_LIST_OF_URIS:
-				case TRACKER_XESAM_FIELD_TYPE_LIST_OF_DATETIMES:
-				case TRACKER_XESAM_FIELD_TYPE_LIST_OF_STRINGS: {
+			if (tracker_field_get_multiple_values (field_def)) {
+
+				switch (data_type) {
+				case TRACKER_FIELD_TYPE_DATE:
+				case TRACKER_FIELD_TYPE_STRING: {
 					GValue    *variant;
 					GPtrArray *my_array;
-
+					
 					if (row->len <= (unsigned int) column) {
 						variant = g_new0 (GValue, 1);
 						g_value_init (variant, 
 							      dbus_g_type_get_collection ("GPtrArray", 
-										     G_TYPE_STRING));
-
+											  G_TYPE_STRING));
+						
 						my_array = g_ptr_array_new ();
 						g_value_set_boxed_take_ownership (variant, 
 										  my_array);
-
+						
 						g_ptr_array_add (row, variant);
+						
+					} else {
+						variant = g_ptr_array_index (row, column-1);
+						my_array = g_value_get_boxed (variant);
+					}
+					
+					g_ptr_array_add  (my_array, 
+							  g_value_dup_string (&cur_value));
+					
+					break;
+				}
 
+				case TRACKER_FIELD_TYPE_INTEGER: {
+					GValue *variant;
+					GArray *my_array;
+					gint    int_val;
+					
+					if (row->len <= (unsigned int) column) {
+						variant = g_new0 (GValue, 1);
+						g_value_init (variant, 
+							      dbus_g_type_get_collection ("GArray", 
+											  G_TYPE_INT));
+						
+						my_array = g_array_new (FALSE, 
+									 TRUE, 
+									 sizeof (gfloat));
+						g_value_set_boxed_take_ownership (variant, my_array);
+						
+						g_ptr_array_add (row, variant);
 					} else {
 						variant = g_ptr_array_index (row, column);
 						my_array = g_value_get_boxed (variant);
 					}
+					
+					int_val = g_value_get_int (&cur_value);
+					g_array_append_val (my_array, int_val);				
 
-					g_ptr_array_add  (my_array, 
-							       g_value_dup_string (&cur_value));
-
+					break;
 				}
-				break;
 
-				case TRACKER_XESAM_FIELD_TYPE_LIST_OF_FLOATS: {
+				case TRACKER_FIELD_TYPE_DOUBLE: {
 					GValue   *variant;
 					GArray   *my_array;
 					gfloat    float_val;
-
+					
 					if (row->len <= (unsigned int) column) {
 						variant = g_new0 (GValue, 1);
 						g_value_init (variant, 
 							      dbus_g_type_get_collection ("GArray", 
 										     G_TYPE_FLOAT));
-
-						my_array = g_array_new (FALSE, 
-									 TRUE, 
-									 sizeof (gfloat));
-						g_value_set_boxed_take_ownership (variant, my_array);
-
-						g_ptr_array_add (row, variant);
-					} else {
-						variant = g_ptr_array_index (row, column);
-						my_array = g_value_get_boxed (variant);
-					}
-
-					float_val = g_value_get_float (&cur_value);
-					g_array_append_val (my_array, float_val);
-				}
-				break;
-
-				case TRACKER_XESAM_FIELD_TYPE_LIST_OF_INTEGERS: {
-					GValue *variant;
-					GArray *my_array;
-					gint    int_val;
-
-					if (row->len <= (unsigned int) column) {
-						variant = g_new0 (GValue, 1);
-						g_value_init (variant, 
-							      dbus_g_type_get_collection ("GArray", 
-										     G_TYPE_INT));
-
-						my_array = g_array_new (FALSE, 
-									 TRUE, 
-									 sizeof (gint));
-						g_value_set_boxed_take_ownership (variant, my_array);
-
-						g_ptr_array_add (row, variant);
-					} else {
-						variant = g_ptr_array_index (row, column);
-						my_array = g_value_get_boxed (variant);
-					}
-
-					int_val = g_value_get_int (&cur_value);
-					g_array_append_val (my_array, int_val);
-				}
-				break;
-
-				case TRACKER_XESAM_FIELD_TYPE_LIST_OF_BOOLEANS: {
-					GValue  *variant;
-					GArray  *my_array;
-					gboolean bool_val;
-
-					if (row->len <= (unsigned int) column) {
-						variant = g_new0 (GValue, 1);
-						g_value_init (variant, 
-							      dbus_g_type_get_collection ("GArray", 
-										     G_TYPE_BOOLEAN));
 
 						my_array = g_array_new (FALSE, 
 									 TRUE, 
@@ -792,39 +764,35 @@ get_hit_data (TrackerXesamLiveSearch  *self,
 						my_array = g_value_get_boxed (variant);
 					}
 
-					bool_val = g_value_get_boolean (&cur_value);
-					g_array_append_val (my_array, bool_val);
+					float_val = g_value_get_float (&cur_value);
+					g_array_append_val (my_array, float_val);
 				}
 				break;
-
-				case TRACKER_XESAM_FIELD_TYPE_STRING:
-				case TRACKER_XESAM_FIELD_TYPE_FLOAT:
-				case TRACKER_XESAM_FIELD_TYPE_INTEGER:
-				case TRACKER_XESAM_FIELD_TYPE_BOOLEAN:
-				case TRACKER_XESAM_FIELD_TYPE_DATE:
-				default: {
-					if (insert) {
-						GValue *value = g_new0 (GValue, 1);
-
-						g_value_init (value, 
-							      G_VALUE_TYPE (&cur_value));
-
-						g_value_copy (&cur_value, value);
-						g_ptr_array_add (row, value);
-					}
-
-					/* Else it's a redundant cell (a previous 
-					 * loop-cycle has added this item to the
-					 * final to-return result already, using
-					 * the top-row). */
+				default:
+					g_warning ("Unknown type in get_hits: %d", data_type);
 
 				}
-				break;
+			} else {
+				if (insert) {
+					GValue *value = g_new0 (GValue, 1);
+					
+					g_value_init (value, 
+						      G_VALUE_TYPE (&cur_value));
+					
+					g_value_copy (&cur_value, value);
+					g_ptr_array_add (row, value);
+				}
+				
+				/* Else it's a redundant cell (a previous 
+				 * loop-cycle has added this item to the
+				 * final to-return result already, using
+				 * the top-row). */
+				
 			}
 			g_value_unset (&cur_value);
 		}
-
-
+		
+		
 		if (insert) {
 			rows_insert (rows, key, row);
 		}
@@ -863,8 +831,6 @@ tracker_xesam_live_search_get_hits (TrackerXesamLiveSearch  *self,
 
 	g_return_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self));
 	g_return_if_fail (hits != NULL);
-
-	g_debug ("Get_hits called");
 
 	priv = self->priv;
 
@@ -949,8 +915,6 @@ tracker_xesam_live_search_get_range_hits (TrackerXesamLiveSearch  *self,
 		GError              *tmp_error = NULL;
 
 		iface = tracker_db_manager_get_db_interface (TRACKER_DB_XESAM);
-
-		g_debug ("live_search_get_range_hits");
 
 		tracker_xesam_session_get_property (session, 
 						    "hit.fields", 
@@ -1146,8 +1110,6 @@ tracker_xesam_live_search_activate (TrackerXesamLiveSearch  *self,
 	else {
 		TrackerDBInterface *iface;
 		GArray             *hits;
-
-		g_debug ("* * * Activate");
 
 		iface = tracker_db_manager_get_db_interface (TRACKER_DB_XESAM);
 

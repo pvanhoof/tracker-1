@@ -216,6 +216,8 @@ IT_PROG_INTLTOOL([0.35.0])
 ####################################################################
 GLIB_WITH_UNIT_TESTING=2.15.0
 
+have_xesam_glib=no
+
 AC_ARG_ENABLE(unit_tests, 
 	AS_HELP_STRING([--enable-unit-tests=@<:@no/yes/auto@:>@],
 			[Enable unit tests (if available)]), , 
@@ -231,6 +233,8 @@ if test "x$enable_unit_tests" != "xno" ; then
       AC_PATH_PROG(GTESTER, [gtester], [no] )
       if test "x$GTESTER" = "xno" ; then
 	 AC_MSG_ERROR([*** Gtester is not in the path])
+      else
+	PKG_CHECK_MODULES(XESAM_GLIB, xesam-glib, [have_xesam_glib=yes], [have_xesam_glib=no])
       fi
    fi
 else
@@ -238,12 +242,9 @@ else
    glib_pkgconfig=
 fi
 
-have_xesam_glib=no
 if test "x$enable_unit_tests" = "xyes"; then
    if test "x$have_unit_tests" != "xyes"; then
       AC_MSG_ERROR([Couldn't find unit test compatible glib.])
-   else
-	PKG_CHECK_MODULES(XESAM_GLIB, xesam-glib, [have_xesam_glib=yes], [have_xesam_glib=no])
    fi
 fi
 
@@ -736,6 +737,7 @@ AC_CONFIG_FILES([
 	tests/Makefile
 	tests/libtracker-common/Makefile
 	tests/trackerd/Makefile
+	tests/trackerd/xesam/Makefile
 	src/xdgmime/Makefile
 	po/Makefile.in
 	python/Makefile

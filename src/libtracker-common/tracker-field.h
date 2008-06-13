@@ -38,7 +38,7 @@ typedef enum {
 	TRACKER_FIELD_TYPE_DATE,
 	TRACKER_FIELD_TYPE_BLOB,
 	TRACKER_FIELD_TYPE_STRUCT,
-	TRACKER_FIELD_TYPE_LINK
+	TRACKER_FIELD_TYPE_LINK,
 } TrackerFieldType;
 
 GType tracker_field_type_get_type (void) G_GNUC_CONST;

@@ -731,14 +731,54 @@ file_enumerate (TrackerCrawler *crawler,
 					 crawler);
 }
 
+static void
+on_process_files_cb (DBusGProxy *proxy, GError *error, gpointer user_data)
+{
+	GStrv files = user_data;
+
+	if (error) {
+		g_critical ("Could not send %d files to indexer to process, %s", 
+			    g_strv_length (files),
+			    error->message);
+		g_clear_error (&error);
+	} else {
+		g_debug ("Sent!");
+	}
+
+	g_strfreev (files);
+}
+
+static void
+on_get_running (DBusGProxy *proxy, gboolean running, GError *error, gpointer user_data)
+{
+	TrackerCrawler *crawler = user_data;
+	gchar **        files;
+
+	if (!error && running) {
+		g_debug ("Processing file queue...");
+		files = tracker_dbus_async_queue_to_strv (crawler->priv->files,
+						  FILES_QUEUE_PROCESS_MAX);
+
+		g_debug ("Sending %d files to indexer to process", g_strv_length (files));
+
+		org_freedesktop_Tracker_Indexer_process_files_async (proxy, 
+								     (const gchar **) files,
+								     on_process_files_cb,
+								     files);
+
+	} else {
+		g_message ("Couldn't process files, %s", 
+		   error ? error->message : "indexer not running");
+	}
+
+	g_object_unref (crawler);
+}
+
 static gboolean
 file_queue_handle_cb (gpointer user_data)
 {
 	TrackerCrawler *crawler;
 	DBusGProxy     *proxy;
-	GError         *error;
-	gchar **        files;
-	gboolean        running;
 	gint            length;
 
 	crawler = user_data;
@@ -751,37 +791,10 @@ file_queue_handle_cb (gpointer user_data)
 
 	/* Check we can actually talk to the indexer */
 	proxy = tracker_dbus_indexer_get_proxy ();
-	error = NULL;
 
-	org_freedesktop_Tracker_Indexer_get_running (proxy, 
-						     &running,
-						     &error);
-	if (error || !running) {
-		g_message ("Couldn't process files, %s", 
-			   error ? error->message : "indexer not running");
-		g_clear_error (&error);
-		return TRUE;
-	}
-
-	g_debug ("Processing file queue...");
-	files = tracker_dbus_async_queue_to_strv (crawler->priv->files,
-						  FILES_QUEUE_PROCESS_MAX);
-
-	g_debug ("Sending %d files to indexer to process", g_strv_length (files));
-	org_freedesktop_Tracker_Indexer_process_files (proxy, 
-						       (const gchar **) files,
-						       &error);
-	
-	if (error) {
-		g_critical ("Could not send %d files to indexer to process, %s", 
-			    g_strv_length (files),
-			    error->message);
-		g_clear_error (&error);
-	} else {
-		g_debug ("Sent!");
-	}
-
-	g_strfreev (files);
+	org_freedesktop_Tracker_Indexer_get_running_async (proxy, 
+						     on_get_running,
+						     g_object_ref (crawler));
 
 	return TRUE;
 }

@@ -1,3 +1,11 @@
+2008-06-13  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* svn merge -r 1656:1678 ../xesam-support
+
+2008-06-13  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-crawler.c: No more blocking of the mainloop
+
 2008-06-13  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/libtracker-common/tracker-dbus.c:
@@ -10,20 +18,6 @@
 
 2008-06-13  Martyn Russell  <martyn@imendio.com>
 
-	* src/libtracker-common/tracker-file-utils.[ch]:
-	* src/trackerd/tracker-crawler.c: Moved
-	tracker_path_list_filter_duplicates() to the file utils.
-	
-	* src/trackerd/tracker-monitor.[ch]:  Use GFile instead of strings
-	in the API and added work to print file changes to the console.
-
-	* src/trackerd/tracker-db.c: 
-	* src/trackerd/tracker-email-kmail.c:
-	* src/trackerd/tracker-process-files.c: Removed all
-	tracker_monitor_() calls, this shouldn't be done from here.
-
-2008-06-13  Martyn Russell  <martyn@imendio.com>
-
 	* src/libtracker-common/tracker-dbus.c:
 	(tracker_dbus_slist_to_strv), (tracker_dbus_async_queue_to_strv):
 	* src/libtracker-db/tracker-db-dbus.c:
@@ -33,6 +27,97 @@
 	strings in these functions since they are sent over DBus and we
 	don't want DBus calling _exit() for us if the string is invalid
 	UTF-8. 
+
+2008-06-13  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* tests/trackerd/tracker-xesam-test.c:
+	* tests/trackerd/tracker-xesam-session-test.c:
+	* tests/trackerd/tracker-xesam-hit-test.c:
+	* tests/trackerd/tracker-xesam-hits-test.c:
+	* tests/trackerd/tracker-xesam-test.h:
+
+	Making the Xesam unit tests work
+
+2008-06-13  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* tests/trackerd/tracker-xesam-test.c
+	* tests/trackerd/tracker-xesam-hit-test.c
+	* tests/trackerd/Makefile.am
+	* tests/trackerd/tracker-xesam-hits-test.c
+	* tests/trackerd/tracker-xesam-hit-test.h
+	* tests/trackerd/xesam/xesam-g-globals-private.h
+	* tests/trackerd/xesam/Makefile.am
+	* tests/trackerd/tracker-xesam-hits-test.h
+
+	Ported two more tests from xesam-glib's tests repository over. These
+	tests are not fully functional at the moment of writing (we need to
+	make them succeed in order to support Xesam, the tests themselves are
+	or should be ~ correct).
+
+2008-06-13  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* tests/trackerd/tracker-xesam-test.c:
+	* tests/trackerd/tracker-xesam-session-test.c:
+	* tests/trackerd/Makefile.am:
+	* tests/trackerd/tracker-xesam-session-test.h:
+	* tests/trackerd/xesam/xesam-g-testsearcher.h:
+	* tests/trackerd/xesam/xesam-g-debug-private.h:
+	* tests/trackerd/xesam/xesam-g-utils.h:
+	* tests/trackerd/xesam/xesam-g-test-query-builder.c:
+	* tests/trackerd/xesam/gtestextensions.c:
+	* tests/trackerd/xesam/Makefile.am:
+	* tests/trackerd/xesam/xesam-g-test-query-builder.h:
+	* tests/trackerd/xesam/gtestextensions.h:
+	* tests/trackerd/xesam/xesam-g-testsearcher.c:
+	* configure.ac:
+
+	Added infrastructure and first test example (ported from xesam-glib's 
+	tests repository) for testing Xesam
+
+2008-06-12  Mikael Ottela <mikael.ottela@ixonos.com>
+
+	* src/trackerd/tracker-main.c
+	* src/trackerd/tracker-crawler.c
+	* src/libtracker-db/tracker-db-manager.c
+	* src/libtracker-common/tracker-xesam-field.c
+	* src/libtracker-common/tracker-xesam-field.h
+	* src/libtracker-common/tracker-xesam-ontology.c
+	* src/libtracker-common/tracker-field.h
+	* src/libtracker-common/tracker-xesam-ontology.h
+	* src/libtracker-common/Makefile.am
+	* data/sqlite-stored-procs.sql
+	* data/sqlite-xesam.sql
+	
+	Switched xesam to use standard XesamField and XesamOntology.
+
+	* src/trackerd/tracker-xesam-live-search.c
+	
+	Bugs in handling of list-type return values fixed.
+	
+2008-06-13  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-file-utils.[ch]:
+	* src/trackerd/tracker-crawler.c: Moved
+	tracker_path_list_filter_duplicates() to the file utils.
+	
+	* src/trackerd/tracker-monitor.[ch]:  Use GFile instead of strings
+	in the API and added work to print file changes to the console.
+
+	* src/libtracker-common/tracker-dbus.[ch]: Added a new function to
+	convert 'n' items from a GAsyncQueue to a GStrv for sending files
+	to the indexer process.
+	
+	* src/trackerd/tracker-crawler.c: Use the new
+	tracker_dbus_async_queue_to_strv() API to generate the GStrv
+	instead of using a GPtrArray.
+	
+	* src/trackerd/tracker-monitor.c: Save the config variable on
+	initialisation. 
+
+	* src/trackerd/tracker-db.c: 
+	* src/trackerd/tracker-email-kmail.c:
+	* src/trackerd/tracker-process-files.c: Removed all
+	tracker_monitor_() calls, this shouldn't be done from here.
 
 2008-06-12  Martyn Russell  <martyn@imendio.com>
 
@@ -47,6 +132,10 @@
 	* src/trackerd/tracker-monitor.c: Save the config variable on
 	initialisation. 
 
+2008-06-12  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* svn merge -r 1538:1656 ../xesam-support
+ 
 2008-06-12  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer.c

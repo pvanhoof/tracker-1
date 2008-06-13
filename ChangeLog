@@ -1,3 +1,15 @@
+2008-06-13  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-dbus.c:
+	(tracker_dbus_slist_to_strv), (tracker_dbus_async_queue_to_strv):
+	* src/libtracker-db/tracker-db-dbus.c:
+	(tracker_dbus_query_result_to_strv),
+	(tracker_dbus_query_result_to_hash_table),
+	(tracker_dbus_query_result_to_ptr_array): Now we UTF-8 check ALL
+	strings in these functions since they are sent over DBus and we
+	don't want DBus calling _exit() for us if the string is invalid
+	UTF-8. 
+
 2008-06-12  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-dbus.[ch]: Added a new function to

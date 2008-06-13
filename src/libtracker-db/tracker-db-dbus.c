@@ -32,17 +32,27 @@ tracker_dbus_query_result_to_strv (TrackerDBResultSet *result_set,
         gint    rows = 0;
 
 	if (result_set) {
-		gboolean valid = TRUE;
-		gint     i = 0;
+		gchar    *str;
+		gboolean  valid = TRUE;
+		gint      i = 0;
 
                 rows = tracker_db_result_set_get_n_rows (result_set);
 		strv = g_new (gchar*, rows + 1);
 		
 		while (valid) {
-			tracker_db_result_set_get (result_set, column, &strv[i], -1);
+
+			tracker_db_result_set_get (result_set, column, &str, -1);
+
+			if (!g_utf8_validate (str, -1, NULL)) {
+				g_warning ("Could not add string:'%s' to GStrv, invalid UTF-8", str);
+				g_free (str);
+				str = g_strdup ("");
+			}
+
+			strv[i++] = str;
 			valid = tracker_db_result_set_iter_next (result_set);
-			i++;
 		}
+
 		strv[i] = NULL;
 	}
 
@@ -85,13 +95,19 @@ tracker_dbus_query_result_to_hash_table (TrackerDBResultSet *result_set)
 		values = tracker_dbus_g_value_slice_new (G_TYPE_STRV);
 
                 for (i = 1; i < field_count; i++) {
-			GValue       value;
-			const gchar *str;
+			GValue  value;
+			gchar  *str;
 
 			_tracker_db_result_set_get_value (result_set, i, &value);
 
 			if (g_value_transform (&value, &transform)) {
 				str = g_value_dup_string (&transform);
+
+				if (!g_utf8_validate (str, -1, NULL)) {
+					g_warning ("Could not add string:'%s' to GStrv, invalid UTF-8", str);
+					g_free (str);
+					str = g_strdup ("");
+				}
 			} else {
 				str = g_strdup ("");
 			}
@@ -135,13 +151,19 @@ tracker_dbus_query_result_to_ptr_array (TrackerDBResultSet *result_set)
 
 		/* Append fields to the array */
 		for (i = 0; i < columns; i++) {
-			GValue       value = { 0, };
-			const gchar *str;
+			GValue  value = { 0, };
+			gchar  *str;
 
 			_tracker_db_result_set_get_value (result_set, i, &value);
 			
 			if (g_value_transform (&value, &transform)) {
 				str = g_value_dup_string (&transform);
+
+				if (!g_utf8_validate (str, -1, NULL)) {
+					g_warning ("Could not add string:'%s' to GStrv, invalid UTF-8", str);
+					g_free (str);
+					str = g_strdup ("");
+				}
 			} else {
 				str = g_strdup ("");
 			}

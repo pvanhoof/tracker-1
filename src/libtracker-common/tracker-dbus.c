@@ -71,6 +71,12 @@ tracker_dbus_slist_to_strv (GSList *list)
 	strv = g_new0 (gchar*, g_slist_length (list) + 1);
 				
         for (l = list; l != NULL; l = l->next) {
+		if (!g_utf8_validate (l->data, -1, NULL)) {
+			g_warning ("Could not add string:'%s' to GStrv, invalid UTF-8", 
+				   (gchar*) l->data);
+			continue;
+		}
+
                 strv[i++] = g_strdup (l->data);
 	}
 
@@ -104,7 +110,14 @@ tracker_dbus_async_queue_to_strv (GAsyncQueue *queue,
 
 		/* Get next item and wait 0.1 seconds max per try */
 		str = g_async_queue_timed_pop (queue, &t);
+
 		if (str) {
+			if (!g_utf8_validate (str, -1, NULL)) {
+				g_warning ("Could not add string:'%s' to GStrv, invalid UTF-8", str);
+				g_free (str);
+				continue;
+			}
+
 			strv[i++] = str;
 		} else {
 			/* We don't expect this */

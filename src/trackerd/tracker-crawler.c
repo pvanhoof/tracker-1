@@ -850,7 +850,7 @@ indexer_process_files_cb (DBusGProxy *proxy,
 		g_debug ("Sent!");
 	}
 
-	g_strfreev (files);
+	//g_strfreev (files);
 }
 
 static void

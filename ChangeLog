@@ -1,3 +1,8 @@
+2008-06-16  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-crawler.c: Bugfix, no longer freeing up 
+	already freed GStrv
+
 2008-06-16  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-crawler.c: (crawler_finalize): Make sure we

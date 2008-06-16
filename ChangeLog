@@ -1,3 +1,14 @@
+2008-06-16  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-crawler.c: Make all calls to GIO
+	asynchronous. This has increased the speed of traversing the file
+	system. Also we now only get the name and type of every file we
+	traverse, this significantly improved performance. Debug
+	statements are turned off now by default to improve performance.
+	
+	* src/trackerd/tracker-monitor.c: Debug statements are turned off
+	now by default to improve performance.
+
 2008-06-16  Ivan Frade  <ivan.frade@nokia.com>
 
 	* configure.ac

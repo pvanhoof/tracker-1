@@ -24,6 +24,8 @@
 
 #include "tracker-monitor.h"
 
+/* #define TESTING */
+
 /* This is the default inotify limit - 500 to allow some monitors for
  * other applications. 
  *
@@ -183,10 +185,12 @@ tracker_monitor_add (GFile *file)
 			     g_object_ref (file), 
 			     monitor);
 
-	g_message ("Added monitor for:'%s', total monitors:%d", 
-		   path,
-		   g_hash_table_size (monitors));
-	
+#ifdef TESTING
+	g_debug ("Added monitor for:'%s', total monitors:%d", 
+		 path,
+		 g_hash_table_size (monitors));
+#endif /* TESTING */
+
 	g_free (path);
 	
 	return TRUE;
@@ -209,9 +213,13 @@ tracker_monitor_remove (GFile    *file,
 	g_hash_table_remove (monitors, file);
 
 	path = g_file_get_path (file);
-	g_message ("Removed monitor for:'%s', total monitors:%d", 
-		   path,
-		   g_hash_table_size (monitors));
+
+#ifdef TESTING
+	g_debug ("Removed monitor for:'%s', total monitors:%d", 
+		 path,
+		 g_hash_table_size (monitors));
+#endif /* TESTING */
+
 	g_free (path);
 
 	return TRUE;

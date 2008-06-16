@@ -1,5 +1,11 @@
 2008-06-16  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-crawler.c: (crawler_finalize): Make sure we
+	clean up the async queue if we finalise the crawler and that means
+	cleaning up the data on the queue too.
+
+2008-06-16  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-crawler.c: Make all calls to GIO
 	asynchronous. This has increased the speed of traversing the file
 	system. Also we now only get the name and type of every file we

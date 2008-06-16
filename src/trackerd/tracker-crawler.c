@@ -210,6 +210,7 @@ static void
 crawler_finalize (GObject *object)
 {
 	TrackerCrawlerPriv *priv;
+	gchar              *str;
 	gint                i;
 	
 	priv = GET_PRIV (object);
@@ -237,6 +238,12 @@ crawler_finalize (GObject *object)
 	if (priv->files_queue_handle_id) {
 		g_source_remove (priv->files_queue_handle_id);	
 		priv->files_queue_handle_id = 0;
+	}
+
+        for (str = g_async_queue_pop (priv->files);
+	     str;
+	     str = g_async_queue_pop (priv->files)) {
+		g_free (str);
 	}
 
 	g_async_queue_unref (priv->files);

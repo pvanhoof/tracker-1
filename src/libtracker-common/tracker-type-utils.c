@@ -552,10 +552,16 @@ tracker_string_to_uint (const gchar *s,
 			guint       *value)
 {
 	unsigned long int n;
+	char *end;
 
-	g_return_val_if_fail (s, FALSE);
+	g_return_val_if_fail (s != NULL && value != NULL, FALSE);
 
-	n = strtoul (s, NULL, 10);
+	n = (guint) strtoul (s, &end, 10);
+
+	if (end == s) {
+		*value = 0;
+		return FALSE;
+	}
 
 	if (n > G_MAXUINT) {
 		*value = 0;
@@ -574,6 +580,8 @@ tracker_string_in_string_list (const gchar  *str,
 	gchar **p;
 	gint    i = 0;
 
+	g_return_val_if_fail (str != NULL && strv != NULL, -1);
+
 	for (p = strv; *p; p++, i++) {
 		if (strcasecmp (*p, str) == 0) {
 			return i;
@@ -589,6 +597,8 @@ tracker_gslist_to_string_list (GSList *list)
 	GSList  *l;
 	gchar  **strv;
 	gint     i = 0;
+
+	g_return_val_if_fail (list != NULL, NULL);
 
 	strv = g_new0 (gchar*, g_slist_length (list) + 1);
 
@@ -613,6 +623,12 @@ tracker_string_list_to_string (gchar **strv,
 	GString *string;
 	gint     i;
 
+	g_return_val_if_fail (strv != NULL, NULL);
+
+	if (length == -1) {
+		length = g_strv_length (strv);
+	}
+
 	string = g_string_new ("");
 
 	for (i = 0; i < length; i++) {
@@ -633,6 +649,9 @@ tracker_string_list_to_string (gchar **strv,
 gchar *  
 tracker_boolean_as_text_to_number  (const gchar *value)
 {
+
+	g_return_val_if_fail (value != NULL, NULL);
+
 	if (strcasecmp (value, "true") == 0) {
 		return g_strdup ("1");
 

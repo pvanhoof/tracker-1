@@ -1,3 +1,20 @@
+2008-06-16  Ivan Frade  <ivan.frade@nokia.com>
+
+	* configure.ac
+	* tests/Makefile.am
+	* tests/common/Makefile.am
+	* tests/common/tracker-test-helpers.c
+	* tests/common/tracker-test-helpers.h: New library with common
+	code for all tests.
+	
+	* tests/libtracker-common/tracker-ontology-test.c
+	* tests/libtracker-common/Makefile.am
+	* tests/libtracker-common/tracker-type-utils-test.c: Added unit
+	tests to tracker-type-utils.
+
+	* src/libtracker-common/tracker-type-utils.c: Minor fixes to pass
+	the tests.
+	
 2008-06-13  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* svn merge -r 1656:1683 ../xesam-support

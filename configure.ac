@@ -735,6 +735,7 @@ AC_CONFIG_FILES([
 	src/tracker-preferences/tracker-preferences.desktop.in	
 	src/trackerd/Makefile
 	tests/Makefile
+	tests/common/Makefile
 	tests/libtracker-common/Makefile
 	tests/trackerd/Makefile
 	tests/trackerd/xesam/Makefile

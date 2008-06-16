@@ -3,22 +3,7 @@
 #include <libtracker-common/tracker-ontology.h>
 #include <glib.h>
 #include <glib/gtestutils.h>
-
-gboolean
-test_cmp_str_equal (const gchar *one, const gchar *two) 
-{
-	// Two NULL pointers are equals at the eyes of Godpiler
-	if ( one == two ) { 
-		return TRUE;
-	}
-
-	if ( one && two ) {
-		return g_utf8_collate (one, two);
-	} else {
-                g_warning ("\n Only one of the strings is NULL\n");
-		return FALSE;
-	}
-}
+#include <tracker-test-helpers.h>
 
 gboolean
 test_cmp_servicedef_equals (TrackerService *one, 
@@ -38,9 +23,9 @@ test_cmp_servicedef_equals (TrackerService *one,
 	}
 
 	return ( tracker_service_get_id (one) == tracker_service_get_id (two) 
-		 && test_cmp_str_equal ( tracker_service_get_name (one), 
-                                         tracker_service_get_name (two))
-                 && test_cmp_str_equal ( tracker_service_get_parent (one),
+		 && tracker_test_helpers_cmpstr_equal ( tracker_service_get_name (one), 
+                                               tracker_service_get_name (two))
+                 && tracker_test_helpers_cmpstr_equal ( tracker_service_get_parent (one),
                                          tracker_service_get_parent (two))
 		 && tracker_service_get_db_type (one) == tracker_service_get_db_type (two)
 		 && tracker_service_get_embedded (one) == tracker_service_get_embedded (two));

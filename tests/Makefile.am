@@ -1,4 +1,4 @@
 include $(top_srcdir)/Makefile.decl
 
-SUBDIRS = libtracker-common trackerd common
+SUBDIRS = common libtracker-common trackerd
 

@@ -27,7 +27,7 @@
 #include "tracker-dbus.h"
 #include "tracker-indexer-client.h"
 
-#define TESTING 
+/* #define TESTING  */
 
 /* This is the default inotify limit - 500 to allow some monitors for
  * other applications. 

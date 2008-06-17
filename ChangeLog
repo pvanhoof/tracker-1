@@ -1,5 +1,9 @@
 2008-06-17  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-monitor.c: Turned off debugging.
+
+2008-06-17  Martyn Russell  <martyn@imendio.com>
+
 	* data/dbus/tracker-indexer.xml:
 	* src/libtracker-common/tracker-dbus.c:
 	(tracker_dbus_async_queue_to_strv): Don't wait if there is no data

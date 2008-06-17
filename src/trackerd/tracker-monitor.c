@@ -20,11 +20,14 @@
 
 #include <string.h>
 
+#include <libtracker-common/tracker-dbus.h>
 #include <libtracker-common/tracker-file-utils.h>
 
 #include "tracker-monitor.h"
+#include "tracker-dbus.h"
+#include "tracker-indexer-client.h"
 
-/* #define TESTING */
+#define TESTING 
 
 /* This is the default inotify limit - 500 to allow some monitors for
  * other applications. 
@@ -33,10 +36,17 @@
  * /proc/sys/fs/inotify/max_user_watches when there is a possiblity
  * that we don't even use inotify?
  */
-#define MAX_MONITORS (guint) ((2 ^ 13) - 500)   
+#define MAX_MONITORS                 (guint) ((2 ^ 13) - 500)   
 
-static GHashTable    *monitors;
+#define FILES_QUEUE_PROCESS_INTERVAL 2000
+#define FILES_QUEUE_PROCESS_MAX      5000
+
 static TrackerConfig *config;
+static GHashTable    *monitors;
+static GAsyncQueue   *files_created;
+static GAsyncQueue   *files_updated;
+static GAsyncQueue   *files_deleted;
+static guint          files_queue_handlers_id;
 
 gboolean 
 tracker_monitor_init (TrackerConfig *_config) 
@@ -54,12 +64,55 @@ tracker_monitor_init (TrackerConfig *_config)
 						  (GDestroyNotify) g_file_monitor_cancel);
 	}
 
+	if (!files_created) {
+		files_created = g_async_queue_new ();
+	}
+
+	if (!files_updated) {
+		files_updated = g_async_queue_new ();
+	}
+
+	if (!files_deleted) {
+		files_deleted = g_async_queue_new ();
+	}
+
 	return TRUE;
 }
 
 void
 tracker_monitor_shutdown (void)
 {
+	gchar *str;
+
+	if (files_queue_handlers_id) {
+		g_source_remove (files_queue_handlers_id);
+		files_queue_handlers_id = 0;
+	}
+
+        for (str = g_async_queue_try_pop (files_deleted);
+	     str;
+	     str = g_async_queue_try_pop (files_deleted)) {
+		g_free (str);
+	}
+
+	g_async_queue_unref (files_deleted);
+
+        for (str = g_async_queue_try_pop (files_updated);
+	     str;
+	     str = g_async_queue_try_pop (files_updated)) {
+		g_free (str);
+	}
+
+	g_async_queue_unref (files_updated);
+
+        for (str = g_async_queue_try_pop (files_created);
+	     str;
+	     str = g_async_queue_try_pop (files_created)) {
+		g_free (str);
+	}
+
+	g_async_queue_unref (files_created);
+
 	if (monitors) {
 		g_hash_table_unref (monitors);
 		monitors = NULL;
@@ -69,6 +122,122 @@ tracker_monitor_shutdown (void)
 		g_object_unref (config);
 		config = NULL;
 	}
+}
+
+static void
+indexer_files_processed_cb (DBusGProxy *proxy, 
+			    GError     *error, 
+			    gpointer    user_data)
+{
+	GStrv files;
+	
+	files = (GStrv) user_data;
+
+	if (error) {
+		g_critical ("Could not send %d files to indexer, %s", 
+			    g_strv_length (files),
+			    error->message);
+		g_error_free (error);
+	} else {
+		g_debug ("Sent!");
+	}
+}
+
+static void
+indexer_get_running_cb (DBusGProxy *proxy, 
+			gboolean    running, 
+			GError     *error, 
+			gpointer    user_data)
+{
+	GStrv files;
+
+	if (error || !running) {
+		g_message ("%s", 
+			   error ? error->message : "Indexer exists but is not available yet, waiting...");
+
+		g_clear_error (&error);
+
+		return;
+	}
+
+	/* First do the deleted queue */
+	g_debug ("Files deleted queue being processed...");
+	files = tracker_dbus_async_queue_to_strv (files_deleted,
+						  FILES_QUEUE_PROCESS_MAX);
+	
+	if (g_strv_length (files) > 0) {
+		g_debug ("Files deleted queue processed, sending first %d to the indexer", 
+			 g_strv_length (files));
+		org_freedesktop_Tracker_Indexer_delete_files_async (proxy, 
+								    (const gchar **) files,
+								    indexer_files_processed_cb,
+								    files);
+	}
+
+	/* Second do the created queue */
+	g_debug ("Files created queue being processed...");
+	files = tracker_dbus_async_queue_to_strv (files_created,
+						  FILES_QUEUE_PROCESS_MAX);
+	if (g_strv_length (files) > 0) {
+		g_debug ("Files created queue processed, sending first %d to the indexer", 
+			 g_strv_length (files));
+		org_freedesktop_Tracker_Indexer_check_files_async (proxy, 
+								   (const gchar **) files,
+								   indexer_files_processed_cb,
+								   files);
+	}
+
+	/* Second do the created queue */
+	g_debug ("Files updated queue being processed...");
+	files = tracker_dbus_async_queue_to_strv (files_updated,
+						  FILES_QUEUE_PROCESS_MAX);
+	
+	if (g_strv_length (files) > 0) {
+		g_debug ("Files updated queue processed, sending first %d to the indexer", 
+			 g_strv_length (files));
+		org_freedesktop_Tracker_Indexer_update_files_async (proxy, 
+								    (const gchar **) files,
+								    indexer_files_processed_cb,
+								    files);
+	}
+}
+
+static gboolean
+file_queue_handlers_cb (gpointer user_data)
+{
+	DBusGProxy *proxy;
+	gint        items_to_process = 0;
+
+	items_to_process += g_async_queue_length (files_created);
+	items_to_process += g_async_queue_length (files_updated);
+	items_to_process += g_async_queue_length (files_deleted);
+
+	if (items_to_process < 1) {
+		g_debug ("All queues are empty... nothing to do");
+		files_queue_handlers_id = 0;
+		return FALSE;
+	}
+
+	/* Check we can actually talk to the indexer */
+	proxy = tracker_dbus_indexer_get_proxy ();
+	
+	org_freedesktop_Tracker_Indexer_get_running_async (proxy, 
+							   indexer_get_running_cb,
+							   NULL);
+
+	return TRUE;
+}
+
+static void
+file_queue_handlers_set_up (void)
+{
+	if (files_queue_handlers_id) {
+		return;
+	}
+
+	files_queue_handlers_id = g_timeout_add (FILES_QUEUE_PROCESS_INTERVAL, 
+						 file_queue_handlers_cb,
+						 NULL);
 }
 
 static const gchar *
@@ -118,7 +287,31 @@ monitor_event_cb (GFileMonitor     *monitor,
 		   str1,
 		   str2);
 		   
-	g_free (str1);
+	switch (event_type) {
+	case G_FILE_MONITOR_EVENT_CHANGED:
+	case G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT:
+	case G_FILE_MONITOR_EVENT_ATTRIBUTE_CHANGED:
+		g_async_queue_push (files_updated, str1);
+		file_queue_handlers_set_up ();
+		break;
+
+	case G_FILE_MONITOR_EVENT_DELETED:
+		g_async_queue_push (files_deleted, str1);
+		file_queue_handlers_set_up ();
+		break;
+
+	case G_FILE_MONITOR_EVENT_CREATED:
+		g_async_queue_push (files_created, str1);
+		file_queue_handlers_set_up ();
+		break;
+
+	case G_FILE_MONITOR_EVENT_PRE_UNMOUNT:
+	case G_FILE_MONITOR_EVENT_UNMOUNTED:
+		/* Do nothing */
+		g_free (str1);
+		break;
+	}
+
 	g_free (str2);
 }
 

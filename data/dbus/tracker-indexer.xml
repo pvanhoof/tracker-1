@@ -16,16 +16,21 @@
     <method name="SetRunning">
       <arg type="b" name="should_be_running" direction="in" />
     </method>
-
-    <method name="ProcessFiles">
+    <method name="CheckFiles">
+      <arg type="as" name="files" direction="in" />
+    </method>
+    <method name="UpdateFiles">
+      <arg type="as" name="files" direction="in" />
+    </method>
+    <method name="DeleteFiles">
       <arg type="as" name="files" direction="in" />
     </method>
     
     <!-- The old signal in the daemon used to send the time taken, we
 	 can add this later
       -->
-    <signal name="Finished"/>
     <signal name="IndexUpdated"/>
+    <signal name="Finished"/>
 
   </interface>
 </node>

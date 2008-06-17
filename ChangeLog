@@ -1,3 +1,19 @@
+2008-06-17  Martyn Russell  <martyn@imendio.com>
+
+	* data/dbus/tracker-indexer.xml:
+	* src/libtracker-common/tracker-dbus.c:
+	(tracker_dbus_async_queue_to_strv): Don't wait if there is no data
+	in the async queue with g_async_queue_timed_pop().
+	
+	* src/tracker-indexer/tracker-indexer.[ch]: Added functions to be
+	notified of created, deleted or updated files from the daemon.
+	
+	* src/trackerd/tracker-crawler.c: Don't block when shutting down
+	by calling g_async_queue_pop() on an empty queue.
+
+	* src/trackerd/tracker-monitor.c: Push all events to the indexer
+	after queueing them first.
+
 2008-06-17  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* tests/scripts/dummy_data_start.sh.in:

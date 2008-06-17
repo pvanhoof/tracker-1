@@ -37,7 +37,6 @@ gboolean tracker_monitor_is_watched           (GFile         *file);
 gboolean tracker_monitor_is_watched_by_string (const gchar   *path);
 gint     tracker_monitor_get_count            (void);
 
-
 G_END_DECLS
 
 #endif /* __TRACKERD_MONITOR_H__ */

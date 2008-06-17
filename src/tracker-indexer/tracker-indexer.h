@@ -52,16 +52,22 @@ struct TrackerIndexerClass {
 };
 
 GType           tracker_indexer_get_type      (void) G_GNUC_CONST;
-TrackerIndexer *tracker_indexer_new           (gboolean         reindex);
-gboolean        tracker_indexer_set_running   (TrackerIndexer  *indexer,
-					       gboolean         should_be_running,
-					       GError         **error);
-gboolean        tracker_indexer_get_running   (TrackerIndexer  *indexer,
-					       gboolean        *is_running,
-					       GError         **error);
-gboolean        tracker_indexer_process_files (TrackerIndexer  *indexer,
-					       GStrv            files,
-					       GError         **error);
+TrackerIndexer *tracker_indexer_new          (gboolean         reindex);
+gboolean        tracker_indexer_set_running  (TrackerIndexer  *indexer,
+					      gboolean         should_be_running,
+					      GError         **error);
+gboolean        tracker_indexer_get_running  (TrackerIndexer  *indexer,
+					      gboolean        *is_running,
+					      GError         **error);
+gboolean        tracker_indexer_check_files  (TrackerIndexer  *indexer,
+					      GStrv            files,
+					      GError         **error);
+gboolean        tracker_indexer_update_files (TrackerIndexer  *indexer,
+					      GStrv            files,
+					      GError         **error);
+gboolean        tracker_indexer_delete_files (TrackerIndexer  *indexer,
+					      GStrv            files,
+					      GError         **error);
 
 G_END_DECLS
 

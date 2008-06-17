@@ -83,27 +83,27 @@ typedef struct {
 	GFile          *parent;
 } EnumeratorData;
 
-static void crawler_finalize        (GObject         *object);
-static void crawler_set_property    (GObject         *object,
-				     guint            param_id,
-				     const GValue    *value,
-				     GParamSpec      *pspec);
-static void set_ignored_file_types  (TrackerCrawler  *crawler);
-
+static void crawler_finalize          (GObject         *object);
+static void crawler_set_property      (GObject         *object,
+				       guint            param_id,
+				       const GValue    *value,
+				       GParamSpec      *pspec);
+static void set_ignored_file_types    (TrackerCrawler  *crawler);
 
 #ifdef HAVE_HAL
-static void mount_point_added_cb    (TrackerHal      *hal,
-				     const gchar     *mount_point,
-				     gpointer         user_data);
-static void mount_point_removed_cb  (TrackerHal      *hal,
-				     const gchar     *mount_point,
-				     gpointer         user_data);
-
+static void mount_point_added_cb      (TrackerHal      *hal,
+				       const gchar     *mount_point,
+				       gpointer         user_data);
+static void mount_point_removed_cb    (TrackerHal      *hal,
+				       const gchar     *mount_point,
+				       gpointer         user_data);
 #endif /* HAVE_HAL */
-static void file_enumerate_next     (GFileEnumerator *enumerator,
-				     EnumeratorData  *ed);
-static void file_enumerate_children (TrackerCrawler  *crawler,
-				     GFile           *file);
+
+static void file_enumerate_next       (GFileEnumerator *enumerator,
+				       EnumeratorData  *ed);
+static void file_enumerate_children   (TrackerCrawler  *crawler,
+				       GFile           *file);
+static void file_queue_handler_set_up (TrackerCrawler  *crawler);
 
 G_DEFINE_TYPE(TrackerCrawler, tracker_crawler, G_TYPE_OBJECT)
 
@@ -240,9 +240,9 @@ crawler_finalize (GObject *object)
 		priv->files_queue_handle_id = 0;
 	}
 
-        for (str = g_async_queue_pop (priv->files);
+	for (str = g_async_queue_try_pop (priv->files);
 	     str;
-	     str = g_async_queue_pop (priv->files)) {
+	     str = g_async_queue_try_pop (priv->files)) {
 		g_free (str);
 	}
 
@@ -771,6 +771,7 @@ file_enumerate_next_cb (GObject      *object,
 			g_free (path);
 		} else {
 			g_async_queue_push (crawler->priv->files, path);
+			file_queue_handler_set_up (crawler);
 		}
 	}	
 
@@ -837,16 +838,16 @@ file_enumerate_children (TrackerCrawler *crawler,
 }
 
 static void
-indexer_process_files_cb (DBusGProxy *proxy, 
-			  GError     *error, 
-			  gpointer    user_data)
+indexer_check_files_cb (DBusGProxy *proxy, 
+			GError     *error, 
+			gpointer    user_data)
 {
 	GStrv files;
 	
 	files = (GStrv) user_data;
 
 	if (error) {
-		g_critical ("Could not send files to indexer to process, %s", 
+		g_critical ("Could not send files to indexer to check, %s", 
 			    error->message);
 		g_error_free (error);
 	} else {
@@ -875,23 +876,23 @@ indexer_get_running_cb (DBusGProxy *proxy,
 		return;
 	}
 
-	g_debug ("Processing file queue...");
+	g_debug ("File check queue being processed...");
 	files = tracker_dbus_async_queue_to_strv (crawler->priv->files,
 						  FILES_QUEUE_PROCESS_MAX);
 	
-	g_debug ("Sending %d files to indexer to process", 
+	g_debug ("File check queue processed, sending first %d to the indexer", 
 		 g_strv_length (files));
 	
-	org_freedesktop_Tracker_Indexer_process_files_async (proxy, 
-							     (const gchar **) files,
-							     indexer_process_files_cb,
-							     files);
+	org_freedesktop_Tracker_Indexer_check_files_async (proxy, 
+							   (const gchar **) files,
+							   indexer_check_files_cb,
+							   files);
 
 	g_object_unref (crawler);
 }
 
 static gboolean
-file_queue_handle_cb (gpointer user_data)
+file_queue_handler_cb (gpointer user_data)
 {
 	TrackerCrawler *crawler;
 	DBusGProxy     *proxy;
@@ -901,8 +902,9 @@ file_queue_handle_cb (gpointer user_data)
 
 	length = g_async_queue_length (crawler->priv->files);
 	if (length < 1) {
-		g_debug ("Processing file queue... nothing to do, queue empty");
-		return TRUE;
+		g_debug ("File check queue is empty... nothing to do");
+		crawler->priv->files_queue_handle_id = 0;
+		return FALSE;
 	}
 
 	/* Check we can actually talk to the indexer */
@@ -913,6 +915,19 @@ file_queue_handle_cb (gpointer user_data)
 							   g_object_ref (crawler));
 
 	return TRUE;
+}
+
+static void
+file_queue_handler_set_up (TrackerCrawler *crawler)
+{
+	if (crawler->priv->files_queue_handle_id != 0) {
+		return;
+	}
+
+	crawler->priv->files_queue_handle_id = 
+		g_timeout_add (FILES_QUEUE_PROCESS_INTERVAL, 
+			       file_queue_handler_cb,
+			       crawler);
 }
 
 void
@@ -928,15 +943,6 @@ tracker_crawler_start (TrackerCrawler *crawler)
 	g_return_if_fail (TRACKER_IS_CRAWLER (crawler));
 
 	priv = crawler->priv;
-
-	/* Set up queue handler */
-	if (priv->files_queue_handle_id) {
-		g_source_remove (priv->files_queue_handle_id);	
-	}
-
-	priv->files_queue_handle_id = g_timeout_add (FILES_QUEUE_PROCESS_INTERVAL, 
-						     file_queue_handle_cb,
-						     crawler);
 
 	/* Get locations to index from config, if none are set, we use
 	 * $HOME as the default.

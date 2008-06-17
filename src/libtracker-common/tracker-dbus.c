@@ -102,14 +102,9 @@ tracker_dbus_async_queue_to_strv (GAsyncQueue *queue,
 	strv = g_new0 (gchar*, length + 1);
 	
 	while (i <= length) {
-		GTimeVal  t;
-		gchar    *str;
+		gchar *str;
 		
-		g_get_current_time (&t);
-		g_time_val_add (&t, 100000);
-
-		/* Get next item and wait 0.1 seconds max per try */
-		str = g_async_queue_timed_pop (queue, &t);
+		str = g_async_queue_try_pop (queue);
 
 		if (str) {
 			if (!g_utf8_validate (str, -1, NULL)) {
@@ -120,7 +115,7 @@ tracker_dbus_async_queue_to_strv (GAsyncQueue *queue,
 
 			strv[i++] = str;
 		} else {
-			/* We don't expect this */
+			/* Queue is empty and we don't expect this */
 			break;
 		}
 	}

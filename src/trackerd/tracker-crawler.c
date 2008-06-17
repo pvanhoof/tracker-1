@@ -558,6 +558,11 @@ path_should_be_ignored (TrackerCrawler *crawler,
 	if (g_str_has_prefix (path, g_get_tmp_dir ())) {
 		return TRUE;
 	}
+	
+	if (!g_utf8_validate (path, -1, NULL)) {
+		g_message ("Ignoring path:'%s', not valid UTF-8", path);
+		return TRUE;
+	}
 
 	basename = g_path_get_basename (path);
 	ignore = TRUE;

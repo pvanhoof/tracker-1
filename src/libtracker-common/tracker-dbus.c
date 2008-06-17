@@ -90,10 +90,13 @@ tracker_dbus_async_queue_to_strv (GAsyncQueue *queue,
 				  gint         max)
 {
 	gchar **strv;
-	gint    i = 0;
+	gchar  *str;
+	gint    i, j;
 	gint    length;
 
-	length = g_async_queue_length (queue);
+	g_async_queue_lock (queue);
+
+	length = g_async_queue_length_unlocked (queue);
 		
 	if (max > 0) {
 		length = MIN (max, length);
@@ -101,26 +104,25 @@ tracker_dbus_async_queue_to_strv (GAsyncQueue *queue,
 
 	strv = g_new0 (gchar*, length + 1);
 	
-	while (i <= length) {
-		gchar *str;
-		
-		str = g_async_queue_try_pop (queue);
+	for (i = 0, j = 0; i < length; i++) {
+		str = g_async_queue_try_pop_unlocked (queue);
 
-		if (str) {
-			if (!g_utf8_validate (str, -1, NULL)) {
-				g_message ("Could not add string:'%s' to GStrv, invalid UTF-8", str);
-				g_free (str);
-				continue;
-			}
-
-			strv[i++] = str;
-		} else {
-			/* Queue is empty and we don't expect this */
+		if (!str) {
 			break;
 		}
+
+		if (!g_utf8_validate (str, -1, NULL)) {
+			g_message ("Could not add string:'%s' to GStrv, invalid UTF-8", str);
+			g_free (str);
+			continue;
+		}
+
+		strv[j++] = str;
 	}
 
-        strv[i] = NULL;
+        strv[j] = NULL;
+
+	g_async_queue_unlock (queue);
 
 	return strv;
 }

@@ -1,5 +1,11 @@
 2008-06-17  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-dbus.c: Improved the
+	tracker_dbus_async_queue_to_strv() function so it doesn't crash
+	when handling large numbers of files.
+
+2008-06-17  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-monitor.c: Turned off debugging.
 
 2008-06-17  Martyn Russell  <martyn@imendio.com>

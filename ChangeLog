@@ -1,3 +1,19 @@
+2008-06-17  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* tests/scripts/dummy_data_start.sh.in:
+	* tests/scripts/xdg_dirs.source:
+	* tests/scripts/xdg_dirs.unsource:
+	* tests/scripts/dummy_data_stop.sh.in:
+	* tests/scripts/data/email-contents.sql:
+	* tests/scripts/data/file-meta.sql:
+	* tests/scripts/data/common.sql:
+	* tests/scripts/data/file-contents.sql:
+	* tests/scripts/data/email-meta.sql:
+	* tests/scripts/data/xesam.sql:
+	* configure.ac:
+
+	Added dummy test data for the unit tests
+
 2008-06-17  Martyn Russell  <martyn@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer.c:

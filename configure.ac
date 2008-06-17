@@ -229,6 +229,12 @@ if test "x$enable_unit_tests" != "xno" ; then
 
    if test "x$have_unit_tests" = "xyes" ; then
       AC_DEFINE(HAVE_UNIT_TEST, 1, [Unit test framework available in glib])
+
+      AC_PATH_PROG(sqlite_exec, sqlite3)
+      if test -z $sqlite_exec; then
+          AC_MSG_ERROR([Could not find 'sqlite3'])
+      fi
+
       glib_pkgconfig=$glib_pkgconfig_tmp 
       AC_PATH_PROG(GTESTER, [gtester], [no] )
       if test "x$GTESTER" = "xno" ; then
@@ -739,6 +745,8 @@ AC_CONFIG_FILES([
 	tests/libtracker-common/Makefile
 	tests/trackerd/Makefile
 	tests/trackerd/xesam/Makefile
+	tests/scripts/dummy_data_start.sh
+	tests/scripts/dummy_data_stop.sh
 	src/xdgmime/Makefile
 	po/Makefile.in
 	python/Makefile

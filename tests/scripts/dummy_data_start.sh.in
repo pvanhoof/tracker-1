@@ -1,0 +1,20 @@
+#! /bin/sh
+
+SCRIPTS_DIR=@top_srcdir@/tests/common/scripts
+SQLITE_EXEC=@sqlite_exec@
+
+. $SCRIPTS_DIR/xdg_dirs.source
+
+mkdir -p $XDG_CACHE_HOME/tracker
+
+$SQLITE_EXEC $XDG_CACHE_HOME/tracker/file-meta.db < $SCRIPTS_DIR/data/file-meta.sql
+$SQLITE_EXEC $XDG_CACHE_HOME/tracker/file-contents.db < $SCRIPTS_DIR/data/file-contents.sql
+$SQLITE_EXEC $XDG_CACHE_HOME/tracker/email-meta.db < $SCRIPTS_DIR/data/email-meta.sql
+$SQLITE_EXEC $XDG_CACHE_HOME/tracker/email-contents.db < $SCRIPTS_DIR/data/email-contents.sql
+$SQLITE_EXEC $XDG_CACHE_HOME/tracker/xesam.db < $SCRIPTS_DIR/data/xesam.sql
+
+mkdir -p $XDG_DATA_HOME/tracker/data
+
+$SQLITE_EXEC $XDG_DATA_HOME/tracker/data/common.db < $SCRIPTS_DIR/data/common.sql
+
+

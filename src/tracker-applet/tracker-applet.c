@@ -1675,7 +1675,7 @@ setup_dbus_connection (TrayIcon * icon)
 	priv->tracker = tracker_connect (FALSE);
 
 	if (!priv->tracker) {
-		g_print ("Could not initialise Tracker\n");
+		g_print ("Could not initialize Tracker\n");
 		exit (1);
 	}
 

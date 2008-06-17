@@ -422,7 +422,7 @@ signal_handler (gint signo)
 }
 
 static void
-initialise_signal_handler (void)
+initialize_signal_handler (void)
 {
 #ifndef OS_WIN32
   	struct sigaction   act;
@@ -446,7 +446,7 @@ initialise_signal_handler (void)
 }
 
 static void
-initialise_locations (void)
+initialize_locations (void)
 {
 	gchar *filename;
 	
@@ -472,7 +472,7 @@ initialise_locations (void)
 }
 
 static void
-initialise_directories (gboolean *need_index)
+initialize_directories (gboolean *need_index)
 {
 	gchar *filename;
 
@@ -516,7 +516,7 @@ initialise_directories (gboolean *need_index)
 }
 
 static void
-initialise_databases (gboolean need_index)
+initialize_databases (gboolean need_index)
 {
 	Indexer  *index;
 	gchar    *final_index_name;
@@ -753,7 +753,7 @@ main (gint argc, gchar *argv[])
 	g_print ("\n" ABOUT "\n" LICENSE "\n");
 	g_print ("Initializing trackerd...\n");
 
-	initialise_signal_handler ();
+	initialize_signal_handler ();
 
 	/* Create struct */
 	tracker = g_new0 (Tracker, 1);
@@ -763,13 +763,13 @@ main (gint argc, gchar *argv[])
 	/* This makes sure we have all the locations like the data
 	 * dir, user data dir, etc all configured.
 	 * 
-	 * The initialise_directories() function makes sure everything
+	 * The initialize_directories() function makes sure everything
 	 * exists physically and/or is reset depending on various
 	 * options (like if we reindex, we remove the data dir).
 	 */
-	initialise_locations ();
+	initialize_locations ();
 
-        /* Initialise major subsystems */
+        /* Initialize major subsystems */
         tracker->config = tracker_config_new ();
         tracker->language = tracker_language_new (tracker->config);
 
@@ -808,7 +808,7 @@ main (gint argc, gchar *argv[])
 		tracker_config_set_verbosity (tracker->config, verbosity);
 	}
 
-	/* Initialise other subsystems */
+	/* Initialize other subsystems */
 	tracker_log_init (log_filename, tracker_config_get_verbosity (tracker->config));
 	g_print ("Starting log:\n  File:'%s'\n", log_filename);
 	
@@ -822,7 +822,7 @@ main (gint argc, gchar *argv[])
 
 	sanity_check_option_values ();
 
-	initialise_directories (&need_index);
+	initialize_directories (&need_index);
 
 	tracker_nfs_lock_init (tracker_config_get_nfs_locking (tracker->config));
 	tracker_ontology_init ();
@@ -844,7 +844,7 @@ main (gint argc, gchar *argv[])
 
 	tracker->readonly = check_multiple_instances ();
 
-	initialise_databases (need_index);
+	initialize_databases (need_index);
 
 	/* Set our status as running, if this is FALSE, threads stop
 	 * doing what they do and shutdown.

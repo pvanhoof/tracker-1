@@ -195,11 +195,11 @@ tracker_hal_init (TrackerHal *hal)
 
 	if (!libhal_ctx_init (priv->context, &error)) {
 		if (dbus_error_is_set (&error)) {
-                        g_critical ("Could not initialise the HAL context, %s",
+                        g_critical ("Could not initialize the HAL context, %s",
 				    error.message);
                         dbus_error_free (&error);
                 } else {
-                        g_critical ("Could not initialise the HAL context, "
+                        g_critical ("Could not initialize the HAL context, "
 				    "no error, is hald running?");
                 }
 

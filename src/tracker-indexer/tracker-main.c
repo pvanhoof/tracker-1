@@ -106,7 +106,7 @@ signal_handler (gint signo)
 }
 
 static void
-initialise_signal_handler (void)
+initialize_signal_handler (void)
 {
 #ifndef OS_WIN32
   	struct sigaction   act;
@@ -226,9 +226,9 @@ main (gint argc, gchar *argv[])
 	g_print ("\n" ABOUT "\n" LICENSE "\n");
 	g_print ("Initializing tracker-indexer...\n");
 
-	initialise_signal_handler ();
+	initialize_signal_handler ();
 
-        /* Initialise logging */
+        /* Initialize logging */
         config = tracker_config_new ();
 
 	if (verbosity > -1) {

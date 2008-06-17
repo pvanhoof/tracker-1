@@ -1,5 +1,19 @@
 2008-06-17  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-hal.c:
+	* src/libtracker-common/tracker-log.c:
+	* src/libtracker-common/tracker-nfs-lock.c:
+	* src/libtracker/tracker-files.c: 
+	* src/libtracker/tracker-get-meta-for-folder.c:
+	* src/libtracker/tracker-query.c:
+	* src/tracker-applet/tracker-applet.c: 
+	* src/tracker-indexer/tracker-main.c:
+	* src/trackerd/tracker-main.c: Changed all locations to use
+	"initialize" and "finalize" instead of the en_GB version for
+	consistency. 
+
+2008-06-17  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-crawler.c: (path_should_be_ignored): Do
 	UTF-8 validity check here instead of later on when we have wasted
 	more time processing files and folders.

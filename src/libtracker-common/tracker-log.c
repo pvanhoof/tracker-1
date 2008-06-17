@@ -146,6 +146,6 @@ tracker_log_shutdown (void)
 	g_free (log->filename);
 	g_free (log);
 
-	/* Reset the log pointer so we can re-initialise if we want */
+	/* Reset the log pointer so we can re-initialize if we want */
 	log = NULL;
 }

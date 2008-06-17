@@ -162,7 +162,7 @@ main (int argc, char **argv)
 	client =  tracker_connect (FALSE);
 
 	if (!client) {
-		g_print ("Could not initialise Tracker over dbus connection - exiting...\n");
+		g_print ("Could not initialize Tracker over dbus connection - exiting...\n");
 		return 1; 
 	}
 

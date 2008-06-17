@@ -47,7 +47,7 @@ main (int argc, char **argv)
 	client = tracker_connect (FALSE);
 
 	if (!client) {
-		g_print ("Could not initialise Tracker - exiting...\n");
+		g_print ("Could not initialize Tracker - exiting...\n");
 		return 1;
 	}
 

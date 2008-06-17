@@ -79,7 +79,7 @@ tracker_nfs_lock_obtain (void)
 	}
 
         if (!is_initialized()) {
-                g_critical ("Could not initialise NFS lock");
+                g_critical ("Could not initialize NFS lock");
                 return FALSE;
         }
  
@@ -135,7 +135,7 @@ tracker_nfs_lock_release (void)
 	}
  
         if (!is_initialized ()) {
-                g_critical ("Could not initialise NFS lock");
+                g_critical ("Could not initialize NFS lock");
                 return;
         }
  
@@ -172,7 +172,7 @@ tracker_nfs_lock_init (gboolean nfs)
 					    NULL);
         }
 
-        g_message ("NFS lock initialised %s", 
+        g_message ("NFS lock initialized %s", 
 		   use_nfs_safe_locking ? "" : "(safe locking not in use)");
 }
 
@@ -193,5 +193,5 @@ tracker_nfs_lock_shutdown (void)
 		tmp_dir = NULL;
         }
 
-        g_message ("NFS lock finalised");
+        g_message ("NFS lock finalized");
 }

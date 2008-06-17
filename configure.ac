@@ -747,6 +747,7 @@ AC_CONFIG_FILES([
 	tests/trackerd/xesam/Makefile
 	tests/scripts/dummy_data_start.sh
 	tests/scripts/dummy_data_stop.sh
+	tests/scripts/Makefile
 	src/xdgmime/Makefile
 	po/Makefile.in
 	python/Makefile

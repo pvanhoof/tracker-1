@@ -617,7 +617,6 @@ done:
 	return ignore;
 }
 
-
 static EnumeratorData *
 enumerator_data_new (TrackerCrawler *crawler,
 		     GFile          *parent)
@@ -786,7 +785,6 @@ static void
 file_enumerate_next (GFileEnumerator *enumerator,
 		     EnumeratorData  *ed)
 {
-
 	g_file_enumerator_next_files_async (enumerator, 
 					    1,
 					    G_PRIORITY_DEFAULT,
@@ -854,8 +852,6 @@ indexer_process_files_cb (DBusGProxy *proxy,
 	} else {
 		g_debug ("Sent!");
 	}
-
-	//g_strfreev (files);
 }
 
 static void

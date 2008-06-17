@@ -130,61 +130,64 @@ static gchar         *user_data_dir;
 static gchar         *sys_tmp_dir;
 
 /* Private command line parameters */
-static gchar        **no_watch_dirs;
-static gchar        **watch_dirs;
-static gchar        **crawl_dirs;
-static gchar         *language;
-static gboolean       disable_indexing;
-static gboolean       reindex;
-static gboolean       low_memory;
-static gint           throttle = -1;
 static gint           verbosity = -1;
 static gint           initial_sleep = -1;
+static gboolean       low_memory;
+static gchar        **monitors_to_exclude;
+static gchar        **monitors_to_include;
+static gchar        **crawl_dirs;
 
-static GOptionEntry   entries[] = {
-	{ "exclude-dir", 'e', 0, 
-	  G_OPTION_ARG_STRING_ARRAY, &no_watch_dirs, 
-	  N_("Directory to exclude from indexing"), 
-	  N_("/PATH/DIR") },
-	{ "include-dir", 'i', 0, 
-	  G_OPTION_ARG_STRING_ARRAY, &watch_dirs, 
-	  N_("Directory to include in indexing"), 
-	  N_("/PATH/DIR") },
-	{ "crawl-dir", 'c', 0, 
-	  G_OPTION_ARG_STRING_ARRAY, &crawl_dirs, 
-	  N_("Directory to crawl for indexing at start up only"), 
-	  N_("/PATH/DIR") },
-	{ "no-indexing", 'n', 0, 
-	  G_OPTION_ARG_NONE, &disable_indexing, 
-	  N_("Disable any indexing or watching taking place"), NULL },
+static gboolean       reindex;
+static gboolean       disable_indexing;
+static gint           throttle = -1;
+static gchar         *language;
+
+static GOptionEntry   entries_daemon[] = {
 	{ "verbosity", 'v', 0, 
 	  G_OPTION_ARG_INT, &verbosity, 
-	  N_("Value that controls the level of logging."
-	     "Valid values are: 0 (displays/logs only errors), "
-	     "1 (minimal), 2 (detailed), and 3 (debug)"), 
-	  N_("VALUE") },
-	{ "throttle", 't', 0, 
-	  G_OPTION_ARG_INT, &throttle, 
-	  N_("Value to use for throttling indexing. "
-	     "Value must be in range 0-99 (default 0) "
-	     "with lower values increasing indexing speed"), 
-	  N_("VALUE") },
+	  N_("Logging, 0 = errors only, "
+	     "1 = minimal, 2 = detailed and 3 = debug (default = 0)"), 
+	  NULL },
+	{ "initial-sleep", 's', 0, 
+	  G_OPTION_ARG_INT, &initial_sleep, 
+	  N_("Seconds to wait before starting any crawling or indexing (default = 45)"), 
+	  NULL },
 	{ "low-memory", 'm', 0, 
 	  G_OPTION_ARG_NONE, &low_memory, 
 	  N_("Minimizes the use of memory but may slow indexing down"), 
 	  NULL },
-	{ "language", 'l', 0, 
-	  G_OPTION_ARG_STRING, &language, 
-	  N_("Language to use for stemmer and stop words list "
-	     "(ISO 639-1 2 characters code)"), 
-	  N_("LANG")},
-	{ "reindex", 'R', 0, 
+	{ "monitors-exclude-dirs", 'e', 0, 
+	  G_OPTION_ARG_STRING_ARRAY, &monitors_to_exclude, 
+	  N_("Directories to exclude for file change monitoring (you can do -e <path> -e <path>)"), 
+	  NULL },
+	{ "monitors-include-dirs", 'i', 0, 
+	  G_OPTION_ARG_STRING_ARRAY, &monitors_to_include, 
+	  N_("Directories to include for file change monitoring (you can do -i <path> -i <path>)"), 
+	  NULL },
+	{ "crawler-include-dirs", 'c', 0, 
+	  G_OPTION_ARG_STRING_ARRAY, &crawl_dirs, 
+	  N_("Directories to crawl to index files (you can do -c <path> -c <path>)"), 
+	  NULL },
+	{ NULL }
+};
+
+static GOptionEntry   entries_indexer[] = {
+	{ "reindex", 'r', 0, 
 	  G_OPTION_ARG_NONE, &reindex, 
 	  N_("Force a re-index of all content"), 
 	  NULL },
-	{ "initial-sleep", 's', 0, 
-	  G_OPTION_ARG_INT, &initial_sleep, 
-	  N_("Time to wait before crawling the file system"), 
+	{ "disable-indexing", 'n', 0, 
+	  G_OPTION_ARG_NONE, &disable_indexing, 
+	  N_("Disable any indexing and monitoring"), NULL },
+	{ "throttle", 't', 0, 
+	  G_OPTION_ARG_INT, &throttle, 
+	  N_("Indexer throttling, 0-99 (default = 0), "
+	     "lower values increase speed"), 
+	  NULL },
+	{ "language", 'l', 0, 
+	  G_OPTION_ARG_STRING, &language, 
+	  N_("Language to use for stemmer and stop words "
+	     "(ISO 639-1 2 characters code)"), 
 	  NULL },
 	{ NULL }
 };
@@ -266,12 +269,12 @@ log_option_list (GSList      *list,
 {
 	GSList *l;
 
+	g_message ("%s:", str);
+
 	if (!list) {
-		g_message ("%s: NONE!", str);
+		g_message ("  DEFAULT");
 		return;
 	}
-
-	g_message ("%s:", str);
 
 	for (l = list; l; l = l->next) {
 		g_message ("  %s", (gchar*) l->data);
@@ -281,31 +284,22 @@ log_option_list (GSList      *list,
 static void
 sanity_check_option_values (void)
 {
-        GSList *watch_directory_roots;
-        GSList *crawl_directory_roots;
-        GSList *no_watch_directory_roots;
-        GSList *no_index_file_types;
-
-        watch_directory_roots = tracker_config_get_watch_directory_roots (tracker->config);
-        crawl_directory_roots = tracker_config_get_crawl_directory_roots (tracker->config);
-        no_watch_directory_roots = tracker_config_get_no_watch_directory_roots (tracker->config);
-
-        no_index_file_types = tracker_config_get_no_index_file_types (tracker->config);
-
 	g_message ("Tracker configuration options:");
+	g_message ("  Initial sleep  ........................  %d (seconds)", 
+		   tracker_config_get_initial_sleep (tracker->config));
 	g_message ("  Verbosity  ............................  %d", 
 		   tracker_config_get_verbosity (tracker->config));
  	g_message ("  Low memory mode  ......................  %s", 
 		   tracker_config_get_low_memory_mode (tracker->config) ? "yes" : "no");
  	g_message ("  Indexing enabled  .....................  %s", 
 		   tracker_config_get_enable_indexing (tracker->config) ? "yes" : "no");
- 	g_message ("  Watching enabled  .....................  %s", 
+ 	g_message ("  Monitoring enabled  ...................  %s", 
 		   tracker_config_get_enable_watches (tracker->config) ? "yes" : "no");
  	g_message ("  File content indexing enabled  ........  %s", 
 		   tracker_config_get_enable_content_indexing (tracker->config) ? "yes" : "no");
 	g_message ("  Thumbnailing enabled  .................  %s", 
 		   tracker_config_get_enable_thumbnails (tracker->config) ? "yes" : "no");
-	g_message ("  Email client to index .................  %s",
+	g_message ("  Email client to index  ................  %s",
 		   tracker_config_get_email_client (tracker->config));
 
 	g_message ("Tracker indexer parameters:");
@@ -315,14 +309,14 @@ sanity_check_option_values (void)
 		   tracker_config_get_enable_stemmer (tracker->config) ? "yes" : "no");
 	g_message ("  Fast merges enabled  ..................  %s", 
 		   tracker_config_get_fast_merges (tracker->config) ? "yes" : "no");
-	g_message ("  Disable indexing on battery............  %s (initially = %s)", 
+	g_message ("  Disable indexing on battery  ..........  %s (initially = %s)", 
 		   tracker_config_get_disable_indexing_on_battery (tracker->config) ? "yes" : "no",
 		   tracker_config_get_disable_indexing_on_battery_init (tracker->config) ? "yes" : "no");
 
 	if (tracker_config_get_low_disk_space_limit (tracker->config) == -1) { 
-		g_message ("  Low disk space limit ..................  Disabled");
+		g_message ("  Low disk space limit  .................  Disabled");
 	} else {
-		g_message ("  Low disk space limit ..................  %d%%",
+		g_message ("  Low disk space limit  .................  %d%%",
 			   tracker_config_get_low_disk_space_limit (tracker->config));
 	}
 
@@ -330,30 +324,33 @@ sanity_check_option_values (void)
 		   tracker_config_get_min_word_length (tracker->config));
 	g_message ("  Maximum index word length  ............  %d",
 		   tracker_config_get_max_word_length (tracker->config));
-	g_message ("  Maximum text to index .................  %d",
+	g_message ("  Maximum text to index  ................  %d",
 		   tracker_config_get_max_text_to_index (tracker->config));
-	g_message ("  Maximum words to index ................  %d",
+	g_message ("  Maximum words to index  ...............  %d",
 		   tracker_config_get_max_words_to_index (tracker->config));
-	g_message ("  Maximum bucket count ..................  %d",
+	g_message ("  Maximum bucket count  .................  %d",
 		   tracker_config_get_max_bucket_count (tracker->config));
-	g_message ("  Minimum bucket count ..................  %d",
+	g_message ("  Minimum bucket count  .................  %d",
 		   tracker_config_get_min_bucket_count (tracker->config));
-	g_message ("  Divisions .............................  %d",
+	g_message ("  Divisions  ............................  %d",
 		   tracker_config_get_divisions (tracker->config));
-	g_message ("  Padding ...............................  %d",
+	g_message ("  Padding  ..............................  %d",
 		   tracker_config_get_padding (tracker->config));
-	g_message ("  Optimization sweep count ..............  %d",
+	g_message ("  Optimization sweep count  .............  %d",
 		   tracker_config_get_optimization_sweep_count (tracker->config));
-	g_message ("  Thread stack size .....................  %d",
+	g_message ("  Thread stack size  ....................  %d",
 		   tracker_config_get_thread_stack_size (tracker->config));
-	g_message ("  Throttle level ........................  %d",
+	g_message ("  Throttle level  .......................  %d",
 		   tracker_config_get_throttle (tracker->config));
 
-	log_option_list (watch_directory_roots, "Watching directory roots");
-	log_option_list (crawl_directory_roots, "Crawling directory roots");
-	log_option_list (no_watch_directory_roots, "NOT watching directory roots");
-	log_option_list (no_index_file_types, "NOT indexing file types");
-
+	log_option_list (tracker_config_get_watch_directory_roots (tracker->config),
+			 "Monitor directories included");
+	log_option_list (tracker_config_get_no_watch_directory_roots (tracker->config),
+			 "Monitor directories excluded");
+	log_option_list (tracker_config_get_crawl_directory_roots (tracker->config),
+			 "Crawling directories");
+	log_option_list (tracker_config_get_no_index_file_types (tracker->config),
+			 "File types excluded from indexing");
 }
 
 static void
@@ -695,10 +692,9 @@ gint
 main (gint argc, gchar *argv[])
 {
 	GOptionContext *context = NULL;
+	GOptionGroup   *group;
 	GError         *error = NULL;
 	GSList         *l;
-	gchar          *example;
-	gchar          *summary;
 	gboolean        need_index;
 
         g_type_init ();
@@ -721,27 +717,27 @@ main (gint argc, gchar *argv[])
 	 * usage string - Usage: COMMAND <THIS_MESSAGE> 
 	 */
 	context = g_option_context_new (_("- start the tracker daemon"));
-        example = g_strconcat ("-i ", _("DIRECTORY"), 
-			       " -i ", _("DIRECTORY"),
-			       " -e ", _("DIRECTORY"), 
-			       " -e ", _("DIRECTORY"),
-			       NULL);
 
-        /* Translators: this message will appear after the usage string 
-         * and before the list of options, showing an usage example.   
-	 */
-	summary = g_strconcat (_("To include or exclude multiple directories "
-				 "at the same time, join multiple options like:"),
-			       "\n\n\t",
-			       example, 
-			       NULL);
+	/* Daemon group */
+	group = g_option_group_new ("daemon", 
+				    _("Daemon Options"),
+				    _("Show daemon options"), 
+				    NULL, 
+				    NULL);
+	g_option_group_add_entries (group, entries_daemon);
+	g_option_context_add_group (context, group);
 
-        g_option_context_set_summary (context, summary);
-	g_option_context_add_main_entries (context, entries, NULL);
+	/* Indexer group */
+	group = g_option_group_new ("indexer", 
+				    _("Indexer Options"),
+				    _("Show indexer options"), 
+				    NULL, 
+				    NULL);
+	g_option_group_add_entries (group, entries_indexer);
+	g_option_context_add_group (context, group);
+
 	g_option_context_parse (context, &argc, &argv, &error);
 	g_option_context_free (context);
-	g_free (summary);
-	g_free (example);
 
 	if (error) {
 		g_printerr ("Invalid arguments, %s\n", error->message);
@@ -773,39 +769,44 @@ main (gint argc, gchar *argv[])
         tracker->config = tracker_config_new ();
         tracker->language = tracker_language_new (tracker->config);
 
-	/* Deal with config options with defaults, config file and
-	 * option params.
-	 */
-	if (watch_dirs) {
-                tracker_config_add_watch_directory_roots (tracker->config, watch_dirs);
+	/* Daemon command line arguments */
+	if (verbosity > -1) {
+		tracker_config_set_verbosity (tracker->config, verbosity);
 	}
 
-	if (crawl_dirs) {
-                tracker_config_add_crawl_directory_roots (tracker->config, crawl_dirs);
-	}
-
-	if (no_watch_dirs) {
-                tracker_config_add_no_watch_directory_roots (tracker->config, no_watch_dirs);
-	}
-
-	if (language) {
-		tracker_config_set_language (tracker->config, language);
-	}
-
-	if (disable_indexing) {
-		tracker_config_set_enable_indexing (tracker->config, FALSE);
+	if (initial_sleep > -1) {
+		tracker_config_set_initial_sleep (tracker->config, initial_sleep);
 	}
 
 	if (low_memory) {
 		tracker_config_set_low_memory_mode (tracker->config, TRUE);
 	}
 
+	if (monitors_to_exclude) {
+                tracker_config_add_no_watch_directory_roots (tracker->config, 
+							     monitors_to_exclude);
+	}
+
+	if (monitors_to_include) {
+                tracker_config_add_watch_directory_roots (tracker->config, 
+							  monitors_to_include);
+	}
+
+	if (crawl_dirs) {
+                tracker_config_add_crawl_directory_roots (tracker->config, crawl_dirs);
+	}
+
+	/* Indexer command line arguments */
+	if (disable_indexing) {
+		tracker_config_set_enable_indexing (tracker->config, FALSE);
+	}
+
 	if (throttle != -1) {
 		tracker_config_set_throttle (tracker->config, throttle);
 	}
 
-	if (verbosity > -1) {
-		tracker_config_set_verbosity (tracker->config, verbosity);
+	if (language) {
+		tracker_config_set_language (tracker->config, language);
 	}
 
 	/* Initialize other subsystems */
@@ -860,10 +861,14 @@ main (gint argc, gchar *argv[])
 
 	if (!tracker->readonly && 
 	    tracker_config_get_enable_indexing (tracker->config)) {
-		if (initial_sleep > 0) {
+		gint seconds;
+		
+		seconds = tracker_config_get_initial_sleep (tracker->config);
+		
+		if (seconds > 0) {
 			g_message ("Waiting %d seconds before starting",
-				   initial_sleep);
-			g_timeout_add (initial_sleep * 1000, 
+				   seconds);
+			g_timeout_add (seconds * 1000, 
 				       start_cb,
 				       NULL);
 		} else {

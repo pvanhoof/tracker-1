@@ -259,42 +259,11 @@ tracker_indexer_class_init (TrackerIndexerClass *class)
 				  sizeof (TrackerIndexerPrivate));
 }
 
-static gboolean
-init_indexer (TrackerIndexer *indexer)
-{
-	TrackerIndexerPrivate *priv;
-	gchar *index_file;
-
-	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
-
-	if (priv->reindex || !g_file_test (priv->db_dir, G_FILE_TEST_IS_DIR)) {
-		tracker_path_remove (priv->db_dir);
-	}
-
-	if (!g_file_test (priv->db_dir, G_FILE_TEST_EXISTS)) {
-		g_mkdir_with_parents (priv->db_dir, 00755);
-	}
-
-	index_file = g_build_filename (priv->db_dir, "file-index.db", NULL);
-
-	priv->index = tracker_index_new (index_file,
-					 tracker_config_get_max_bucket_count (priv->config));
-
-	priv->common = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
-	priv->metadata = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
-	priv->contents = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_CONTENTS);
-
-	tracker_indexer_set_running (indexer, TRUE, NULL);
-
-	g_free (index_file);
-
-	return FALSE;
-}
-
 static void
 tracker_indexer_init (TrackerIndexer *indexer)
 {
 	TrackerIndexerPrivate *priv;
+	gchar *index_file;
 	gint initial_sleep;
 	GSList *m;
 
@@ -326,8 +295,28 @@ tracker_indexer_init (TrackerIndexer *indexer)
 		}
 	}
 
-	initial_sleep = tracker_config_get_initial_sleep (priv->config);
-	g_timeout_add (initial_sleep * 1000, (GSourceFunc) init_indexer, indexer);
+	if (priv->reindex || !g_file_test (priv->db_dir, G_FILE_TEST_IS_DIR)) {
+		tracker_path_remove (priv->db_dir);
+	}
+
+	if (!g_file_test (priv->db_dir, G_FILE_TEST_EXISTS)) {
+		g_mkdir_with_parents (priv->db_dir, 00755);
+	}
+
+	index_file = g_build_filename (priv->db_dir, "file-index.db", NULL);
+
+	priv->index = tracker_index_new (index_file,
+					 tracker_config_get_max_bucket_count (priv->config));
+
+	priv->common = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
+	priv->metadata = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
+	priv->contents = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_CONTENTS);
+
+	tracker_indexer_set_running (indexer, TRUE, NULL);
+
+	g_free (index_file);
+
+	return FALSE;
 }
 
 static void

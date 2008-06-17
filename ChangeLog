@@ -1,5 +1,13 @@
 2008-06-17  Martyn Russell  <martyn@imendio.com>
 
+	* src/tracker-indexer/tracker-indexer.c:
+	* src/trackerd/tracker-crawler.c:
+	* src/trackerd/tracker-main.c: Use the config initial_sleep
+	setting for the daemon only, not the indexer, this way we don't
+	wait for the indexer to be "running".
+
+2008-06-17  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-hal.c:
 	* src/libtracker-common/tracker-log.c:
 	* src/libtracker-common/tracker-nfs-lock.c:

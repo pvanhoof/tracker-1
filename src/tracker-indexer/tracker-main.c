@@ -54,21 +54,21 @@
         "\n"								\
 	"  http://www.gnu.org/licenses/gpl.txt\n" 
 
-static GMainLoop  *main_loop;
+static GMainLoop    *main_loop;
+ 
+static gint          verbosity = -1;
+static gboolean      reindex;
 
-static gboolean	   reindex;
-static gint	   verbosity = -1;
-
-static GOptionEntry entries[] = {
-	{ "reindex", 'R', 0, G_OPTION_ARG_NONE, &reindex, 
+static GOptionEntry  entries[] = {
+	{ "verbosity", 'v', 0, 
+	  G_OPTION_ARG_INT, &verbosity, 
+	  N_("Logging, 0 = errors only, "
+	     "1 = minimal, 2 = detailed and 3 = debug (default = 0)"), 
+	  NULL },
+	{ "reindex", 'r', 0, 
+          G_OPTION_ARG_NONE, &reindex, 
 	  N_("Force a re-index of all content"), 
-	  NULL 
-	},
-	{ "verbosity", 'v', 0, G_OPTION_ARG_INT, &verbosity, 
-	  N_("Value that controls the level of logging. Valid values "
-	     "are 0=errors, 1=minimal, 2=detailed, 3=debug"), 
-	  N_("VALUE")
-	},
+	  NULL },
 	{ NULL }
 };
 
@@ -157,6 +157,10 @@ initialize_indexer (void)
 
 	tracker_db_manager_init (FALSE, data_dir, user_data_dir, sys_tmp_dir);
 
+        if (reindex) {
+                tracker_db_manager_set_up_databases (TRUE);
+        }
+
 	g_free (data_dir);
 	g_free (user_data_dir);
 	g_free (sys_tmp_dir);
@@ -178,8 +182,6 @@ main (gint argc, gchar *argv[])
 	TrackerIndexer *indexer;
 	GOptionContext *context;
 	GError	       *error = NULL;
-	gchar	       *summary;
-	gchar	       *example;
         gchar          *filename;
 
 	g_type_init ();
@@ -199,29 +201,11 @@ main (gint argc, gchar *argv[])
 	/* Translators: this messagge will apper immediately after the
 	 * usage string - Usage: COMMAND <THIS_MESSAGE>
 	 */
-	context = g_option_context_new (_("- start the tracker daemon"));
-	example = g_strconcat ("-i ", _("DIRECTORY"), 
-			       "-i ", _("DIRECTORY"),
-			       "-e ", _("DIRECTORY"), 
-			       "-e ", _("DIRECTORY"),
-			       NULL);
+	context = g_option_context_new (_("- start the tracker indexer"));
 
-	/* Translators: this message will appear after the usage
-	 * string and before the list of options, showing an usage
-	 * example.
-	 */
-	summary = g_strdup_printf (_("To include or exclude multiple directories "
-				     "at the same time, join multiple options like:\n"
-				     "\n"
-				     "\t%s"),
-				   example);
-
-	g_option_context_set_summary (context, summary);
 	g_option_context_add_main_entries (context, entries, NULL);
 	g_option_context_parse (context, &argc, &argv, &error);
 	g_option_context_free (context);
-	g_free (summary);
-	g_free (example);
 
 	g_print ("\n" ABOUT "\n" LICENSE "\n");
 	g_print ("Initializing tracker-indexer...\n");
@@ -271,7 +255,7 @@ main (gint argc, gchar *argv[])
                            str ? str : "no error given");
         }
 
-	indexer = tracker_indexer_new (reindex);
+	indexer = tracker_indexer_new ();
 
 	/* Make Tracker available for introspection */
 	if (!tracker_dbus_register_object (G_OBJECT (indexer))) {

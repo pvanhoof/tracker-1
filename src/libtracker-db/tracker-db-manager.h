@@ -49,7 +49,9 @@ void         tracker_db_manager_init                        (gboolean           
 							     const gchar        *user_data_dir,
 							     const gchar        *sys_tmp_root_dir);
 void         tracker_db_manager_shutdown                    (void);
+gboolean     tracker_db_manager_need_reindex                (void);
 
+void         tracker_db_manager_set_up_databases            (gboolean            remove_all_first);
 const gchar *tracker_db_manager_get_file                    (TrackerDB           db);
 TrackerDBInterface *
              tracker_db_manager_get_db_interface            (TrackerDB           db);

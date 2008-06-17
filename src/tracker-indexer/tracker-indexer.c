@@ -109,7 +109,6 @@ struct MetadataForeachData {
 enum {
 	PROP_0,
 	PROP_RUNNING,
-	PROP_REINDEX
 };
 
 enum {
@@ -140,6 +139,24 @@ path_info_free (PathInfo *info)
 {
 	g_free (info->path);
 	g_slice_free (PathInfo, info);
+}
+
+static void
+reindex_database (TrackerIndexer *indexer)
+{
+	TrackerIndexerPrivate *priv;
+
+	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
+
+	priv->common = NULL;
+	priv->metadata = NULL;
+	priv->contents = NULL;
+	
+	tracker_db_manager_set_up_databases (TRUE);
+
+	priv->common = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
+	priv->metadata = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
+	priv->contents = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_CONTENTS);
 }
 
 static void
@@ -186,9 +203,6 @@ tracker_indexer_set_property (GObject      *object,
 		tracker_indexer_set_running (indexer, 
 					     g_value_get_boolean (value), 
 					     NULL);
-		break;
-	case PROP_REINDEX:
-		priv->reindex = g_value_get_boolean (value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -247,13 +261,6 @@ tracker_indexer_class_init (TrackerIndexerClass *class)
 							       "Whether the indexer is running",
 							       TRUE,
 							       G_PARAM_READWRITE));
-	g_object_class_install_property (object_class,
-					 PROP_REINDEX,
-					 g_param_spec_boolean ("reindex",
-							       "Reindex",
-							       "Whether to reindex contents",
-							       FALSE,
-							       G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
 	g_type_class_add_private (object_class,
 				  sizeof (TrackerIndexerPrivate));
@@ -274,7 +281,8 @@ tracker_indexer_init (TrackerIndexer *indexer)
 	priv->language = tracker_language_new (priv->config);
 
 	priv->db_dir = g_build_filename (g_get_user_cache_dir (),
-					 "tracker", NULL);
+					 "tracker", 
+					 NULL);
 
 	priv->module_names = tracker_config_get_index_modules (priv->config);
 
@@ -293,13 +301,9 @@ tracker_indexer_init (TrackerIndexer *indexer)
 					     m->data, module);
 		}
 	}
-
-	if (priv->reindex || !g_file_test (priv->db_dir, G_FILE_TEST_IS_DIR)) {
-		tracker_path_remove (priv->db_dir);
-	}
-
-	if (!g_file_test (priv->db_dir, G_FILE_TEST_EXISTS)) {
-		g_mkdir_with_parents (priv->db_dir, 00755);
+	
+	if (tracker_db_manager_need_reindex ()) {
+		reindex_database (indexer);
 	}
 
 	index_file = g_build_filename (priv->db_dir, "file-index.db", NULL);
@@ -519,15 +523,17 @@ process_module (TrackerIndexer *indexer,
 	gchar **dirs;
 	gint i;
 
-	g_message ("Starting module:'%s'", module_name);
-
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 	module = g_hash_table_lookup (priv->indexer_modules, module_name);
 
-	g_return_if_fail (module != NULL);
+	if (!module) {
+		g_message ("No module for:'%s'", module_name);
+		return;
+	}
+
+	g_message ("Starting module:'%s'", module_name);
 
 	dirs = tracker_indexer_module_get_directories (module);
-
 	g_return_if_fail (dirs != NULL);
 
 	for (i = 0; dirs[i]; i++) {
@@ -541,7 +547,6 @@ process_module (TrackerIndexer *indexer,
 
 	g_free (dirs);
 }
-
 
 static gboolean
 indexing_func (gpointer data)
@@ -584,11 +589,9 @@ indexing_func (gpointer data)
 }
 
 TrackerIndexer *
-tracker_indexer_new (gboolean reindex)
+tracker_indexer_new (void)
 {
-	return g_object_new (TRACKER_TYPE_INDEXER,
-			     "reindex", reindex,
-			     NULL);
+	return g_object_new (TRACKER_TYPE_INDEXER, NULL);
 }
 
 gboolean
@@ -777,6 +780,29 @@ tracker_indexer_delete_files (TrackerIndexer  *indexer,
 		tracker_indexer_add_file (indexer, info);
 	}
 
+	tracker_dbus_request_success (request_id);
+
+	return TRUE;
+}
+
+gboolean
+tracker_indexer_reindex (TrackerIndexer  *indexer,
+			 GError         **error)
+{
+	TrackerIndexerPrivate *priv;
+	guint                  request_id;
+
+	tracker_dbus_return_val_if_fail (TRACKER_IS_INDEXER (indexer), FALSE, error);
+
+	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_request_new (request_id,
+                                  "DBus request to reindex the database");
+
+
+	reindex_database (indexer);
+	
 	tracker_dbus_request_success (request_id);
 
 	return TRUE;

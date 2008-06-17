@@ -25,6 +25,7 @@
     <method name="DeleteFiles">
       <arg type="as" name="files" direction="in" />
     </method>
+    <method name="Reindex"/>
     
     <!-- The old signal in the daemon used to send the time taken, we
 	 can add this later

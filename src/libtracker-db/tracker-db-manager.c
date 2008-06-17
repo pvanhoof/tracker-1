@@ -26,6 +26,7 @@
 #include <zlib.h>
 
 #include <libtracker-common/tracker-field.h>
+#include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-nfs-lock.h>
 #include <libtracker-common/tracker-ontology.h>
 #include <libtracker-common/tracker-type-utils.h>
@@ -39,7 +40,7 @@
 typedef enum {
         TRACKER_DB_LOCATION_DATA_DIR,
         TRACKER_DB_LOCATION_USER_DATA_DIR,
-        TRACKER_DB_LOCATION_SYS_TMP_ROOT_DIR,
+        TRACKER_DB_LOCATION_SYS_TMP_DIR,
 } TrackerDBLocation;
 
 typedef struct {
@@ -65,7 +66,7 @@ static TrackerDBDefinition dbs[] = {
           TRACKER_DB_PAGE_SIZE_DEFAULT, 
           FALSE },
         { TRACKER_DB_CACHE, 
-          TRACKER_DB_LOCATION_SYS_TMP_ROOT_DIR,
+          TRACKER_DB_LOCATION_SYS_TMP_DIR,
 	  NULL,
           "cache.db",
           "cache",
@@ -126,36 +127,34 @@ static gboolean            db_exec_no_reply    (TrackerDBInterface *iface,
 static TrackerDBInterface *db_interface_create (TrackerDB           db,
 						gboolean            attach_all);
 
-static gboolean      initialized;
-static gboolean      attach_all;
-static GHashTable   *prepared_queries;
-static gchar        *services_dir;
-static gchar        *sql_dir;
-static gpointer      db_type_enum_class_pointer;
+static gboolean            initialized;
+static gboolean            attach_all;
+static GHashTable         *prepared_queries;
+static gchar              *db_services_dir;
+static gchar              *db_sql_dir;
+static gchar              *db_data_dir;
+static gchar              *db_user_data_dir;
+static gchar              *db_sys_tmp_dir;
+static gpointer            db_type_enum_class_pointer;
 static TrackerDBInterface *attach_interface = NULL;
 
 static const gchar * 
-location_to_directory (TrackerDBLocation  location,
-                       const gchar       *data_dir,
-                       const gchar       *user_data_dir,
-                       const gchar       *sys_tmp_root_dir)
+location_to_directory (TrackerDBLocation location)
 {
         switch (location) {
         case TRACKER_DB_LOCATION_DATA_DIR:
-                return data_dir;
+                return db_data_dir;
         case TRACKER_DB_LOCATION_USER_DATA_DIR:
-                return user_data_dir;
-        case TRACKER_DB_LOCATION_SYS_TMP_ROOT_DIR:
-                return sys_tmp_root_dir;
+                return db_user_data_dir;
+        case TRACKER_DB_LOCATION_SYS_TMP_DIR:
+                return db_sys_tmp_dir;
         };
 
 	return NULL;
 }
 
 void 
-set_up_databases (const gchar *data_dir,
-		  const gchar *user_data_dir,
-		  const gchar *sys_tmp_root_dir)
+set_up_databases (void)
 {
         const gchar *dir;
         guint        i;
@@ -164,12 +163,8 @@ set_up_databases (const gchar *data_dir,
 
         for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
                 /* Fill absolute path for the database */
-                dir = location_to_directory (dbs[i].location,
-                                             data_dir, 
-                                             user_data_dir, 
-                                             sys_tmp_root_dir);
-                
-                dbs[i].abs_filename = g_build_filename (dir, dbs[i].file, NULL);
+                dir = location_to_directory (dbs[i].location);
+		dbs[i].abs_filename = g_build_filename (dir, dbs[i].file, NULL);
         }
 
 	g_message ("Setting up all databases completed");
@@ -183,7 +178,7 @@ load_sql_file (TrackerDBInterface *iface,
 	gchar *path, *content, **queries;
 	gint i;
 
-	path = g_build_filename (sql_dir, file, NULL);
+	path = g_build_filename (db_sql_dir, file, NULL);
 
 	if (!delimiter) {
 		delimiter = ";";
@@ -219,7 +214,7 @@ load_metadata_file (TrackerDBInterface *iface,
 	gint           id, i, j;
 
 	key_file = g_key_file_new ();
-	service_file = g_build_filename (services_dir, filename, NULL);
+	service_file = g_build_filename (db_services_dir, filename, NULL);
 
 	if (!g_key_file_load_from_file (key_file, service_file, G_KEY_FILE_NONE, NULL)) {
 		g_free (service_file);
@@ -280,9 +275,11 @@ load_metadata_file (TrackerDBInterface *iface,
 				gchar *esc_value;
 
 				esc_value = tracker_escape_string (new_value);
+				
 				tracker_db_interface_execute_query (iface, NULL,
 								    "update MetaDataTypes set  %s = '%s' where ID = %d",
 								    keys[j], esc_value, id);
+
 				g_free (esc_value);
 			}
 
@@ -308,7 +305,7 @@ load_service_file (TrackerDBInterface *iface,
 	gchar          **groups, **keys;
 	gint             i, j, id;
 
-	service_file = g_build_filename (services_dir, filename, NULL);
+	service_file = g_build_filename (db_services_dir, filename, NULL);
 
 	key_file = g_key_file_new ();
 
@@ -440,6 +437,7 @@ load_service_file (TrackerDBInterface *iface,
 								    keys[j], 
 								    esc_value, 
 								    str_id);
+
 				g_free (esc_value);
 				g_free (value);
 				g_free (new_value);
@@ -602,7 +600,7 @@ load_service_file_xesam (TrackerDBInterface *iface,
 	};
 
 	key_file = g_key_file_new ();
-	service_file = g_build_filename (services_dir, filename, NULL);
+	service_file = g_build_filename (db_services_dir, filename, NULL);
 
 	if (!g_key_file_load_from_file (key_file, service_file, G_KEY_FILE_NONE, &error)) {
 		g_critical ("Couldn't load XESAM service file:'%s', %s",
@@ -659,7 +657,7 @@ load_service_file_xesam (TrackerDBInterface *iface,
 				      *group, 
 				      NULL);
 			id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (iface));
-		}
+ 		}
 		
 		/* Get inserted ID */
 		str_id = tracker_uint_to_string (id);
@@ -793,20 +791,20 @@ load_prepared_queries (void)
 	GError      *error = NULL;
 	GMappedFile *mapped_file;
 	GStrv        queries;
-	gchar       *sql_filename;
+	gchar       *filename;
 	gdouble      secs;
 
 	g_message ("Loading prepared queries...");
 
-	sql_filename = g_build_filename (sql_dir, "sqlite-stored-procs.sql", NULL);
+	filename = g_build_filename (db_sql_dir, "sqlite-stored-procs.sql", NULL);
 
 	t = g_timer_new ();
 
-	mapped_file = g_mapped_file_new (sql_filename, FALSE, &error);
+	mapped_file = g_mapped_file_new (filename, FALSE, &error);
 
 	if (error || !mapped_file) {
 		g_warning ("Could not get contents of SQL file:'%s', %s",
-			   sql_filename,
+			   filename,
 			   error ? error->message : "no error given");
 
 		if (mapped_file) {
@@ -814,17 +812,17 @@ load_prepared_queries (void)
 		}
 
 		g_timer_destroy (t);
-		g_free (sql_filename);
+		g_free (filename);
 
 		return FALSE;
 	}
 
 	g_message ("Loaded prepared queries file:'%s' size:%" G_GSIZE_FORMAT " bytes",
-		   sql_filename,
+		   filename,
 		   g_mapped_file_get_length (mapped_file));
 
 	queries = g_strsplit (g_mapped_file_get_contents (mapped_file), "\n", -1);
-	g_free (sql_filename);
+	g_free (filename);
 
 	if (queries) {
 		GStrv p;
@@ -996,6 +994,7 @@ db_mime_query (TrackerDBInterface *iface,
 	gchar              *service_id_str;
 
 	service_id_str = g_strdup_printf ("%d", service_id);
+
 	result_set = tracker_db_interface_execute_procedure (iface, 
                                                              NULL, 
                                                              stored_proc, 
@@ -1782,6 +1781,7 @@ db_interface_get_file_contents (gboolean attach_all)
 						     "compress",
 						     function_compress,
 						     1);
+
 	return iface;
 }
 
@@ -1826,6 +1826,7 @@ db_interface_get_email_contents (gboolean attach_all)
 						     "compress",
 						     function_compress,
 						     1);
+
 	return iface;
 }
 
@@ -2163,13 +2164,16 @@ tracker_db_manager_init (gboolean     attach_all_dbs,
 	db_type_enum_class_pointer = g_type_class_ref (etype);
 
 	/* Set up locations */
-	services_dir = g_build_filename (SHAREDIR, 
-					 "tracker", 
-					 "services", 
-					 NULL);
-	sql_dir = g_build_filename (SHAREDIR, 
-				    "tracker", 
-				    NULL);
+	db_services_dir = g_build_filename (SHAREDIR, 
+					    "tracker", 
+					    "services", 
+					    NULL);
+	db_sql_dir = g_build_filename (SHAREDIR, 
+				       "tracker", 
+				       NULL);
+	db_data_dir = g_strdup (data_dir);
+	db_user_data_dir = g_strdup (user_data_dir);
+	db_sys_tmp_dir = g_strdup (sys_tmp_dir);
 
 	/* Add prepared queries */
 	prepared_queries = g_hash_table_new_full (g_str_hash,
@@ -2180,10 +2184,7 @@ tracker_db_manager_init (gboolean     attach_all_dbs,
 	load_prepared_queries ();
 
 	/* Configure database locations and interfaces */
-	set_up_databases (data_dir, 
-			  user_data_dir, 
-			  sys_tmp_dir);
-
+	set_up_databases ();
 
 	initialized = TRUE;
 }
@@ -2212,8 +2213,11 @@ tracker_db_manager_shutdown (void)
 	g_hash_table_unref (prepared_queries);
 	prepared_queries = NULL;
 
-        g_free (services_dir);
-        g_free (sql_dir);
+	g_free (db_data_dir);
+	g_free (db_user_data_dir);
+	g_free (db_sys_tmp_dir);
+        g_free (db_services_dir);
+        g_free (db_sql_dir);
 
 	/* Since we don't reference this enum anywhere, we do
 	 * it here to make sure it exists when we call
@@ -2234,15 +2238,87 @@ tracker_db_manager_shutdown (void)
         initialized = FALSE;
 }
 
+gboolean
+tracker_db_manager_need_reindex (void) 
+{
+	g_return_val_if_fail (initialized != FALSE, FALSE);
+
+	if (!g_file_test (db_data_dir, G_FILE_TEST_EXISTS)) {
+		return TRUE;
+	}
+
+	if (!g_file_test (db_user_data_dir, G_FILE_TEST_EXISTS)) {
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+void
+tracker_db_manager_set_up_databases (gboolean remove_all_first) 
+{
+	gboolean current_attach_all;
+	guint    i;
+
+	g_return_if_fail (initialized != FALSE);
+
+	if (remove_all_first) {
+		g_message ("Removing directory:'%s'", db_data_dir);
+		tracker_path_remove (db_data_dir);
+
+		g_message ("Removing directory:'%s'", db_user_data_dir);
+		tracker_path_remove (db_user_data_dir);
+
+		g_message ("Removing directory:'%s'", db_sys_tmp_dir);
+		tracker_path_remove (db_sys_tmp_dir);
+	}
+
+	/* Don't check for these first, just do it */
+	g_message ("Creating directory:'%s'", db_data_dir);
+	g_mkdir_with_parents (db_data_dir, 00755);
+
+	g_message ("Creating directory:'%s'", db_user_data_dir);
+	g_mkdir_with_parents (db_user_data_dir, 00755);
+
+	g_message ("Creating directory:'%s'", db_sys_tmp_dir);
+	g_mkdir_with_parents (db_sys_tmp_dir, 00755);
+
+	/* Save the current attach setting */
+	current_attach_all = attach_all;
+
+	/* Don't attach while we do this... */
+	attach_all = FALSE;
+
+	/* Create all interfaces (and dbs as a result) and then unref
+	 * them to close the dbs.
+	 */
+        for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
+		tracker_db_manager_get_db_interface (i);
+		g_object_unref (dbs[i].iface);
+
+		/* Reset the interface value so we get a new object
+		 * next time it is needed.
+		 */
+		dbs[i].iface = NULL;
+        }
+
+	/* Set the attach setting back to what it was */
+	attach_all = current_attach_all;
+}
+
 const gchar *
 tracker_db_manager_get_file (TrackerDB db) 
 {
+	g_return_val_if_fail (initialized != FALSE, NULL);
+
         return dbs[db].abs_filename;
 }
 
 TrackerDBInterface *
 tracker_db_manager_get_db_interface (TrackerDB db)
 {
+	g_return_val_if_fail (initialized != FALSE, NULL);
+
 	if (!dbs[db].iface) {
 		dbs[db].iface = db_interface_create (db, attach_all);
 	}
@@ -2257,6 +2333,7 @@ tracker_db_manager_get_db_interface_by_service (const gchar *service,
 	TrackerDBType type;
 	TrackerDB     db;
 
+	g_return_val_if_fail (initialized != FALSE, NULL);
 	g_return_val_if_fail (service != NULL, NULL);
 
 	type = tracker_ontology_get_db_for_service_type (service);
@@ -2287,6 +2364,7 @@ tracker_db_manager_get_db_interface_content (TrackerDBInterface *iface)
 {
 	guint i;
 
+	g_return_val_if_fail (initialized != FALSE, NULL);
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
 
         for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
@@ -2303,3 +2381,4 @@ tracker_db_manager_get_db_interface_content (TrackerDBInterface *iface)
 
 	return NULL;
 }
+

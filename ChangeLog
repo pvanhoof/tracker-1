@@ -1,5 +1,16 @@
 2008-06-17  Martyn Russell  <martyn@imendio.com>
 
+	* data/dbus/tracker-indexer.xml:
+	* src/libtracker-db/tracker-db-manager.[ch]:
+	* src/tracker-indexer/tracker-indexer.[ch]:
+	* src/tracker-indexer/tracker-main.c: Initial work to make
+	reindexing the database done ONLY by the tracker-indexer, not by
+	the daemon. Needs a little more work. But command line -r works
+	nicely for the indexer so far, just need the dbus part to work
+	properly. 
+
+2008-06-17  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-dbus.c: Improved the
 	tracker_dbus_async_queue_to_strv() function so it doesn't crash
 	when handling large numbers of files.

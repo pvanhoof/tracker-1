@@ -1,6 +1,6 @@
 #! /bin/sh
 
-SCRIPTS_DIR=@top_srcdir@/tests/common/scripts
+SCRIPTS_DIR=@top_srcdir@/tests/scripts
 
 . $SCRIPTS_DIR/xdg_dirs.source
 

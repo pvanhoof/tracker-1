@@ -1,3 +1,35 @@
+2008-06-18  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-ontology.c: Make sure we finalize
+	properly by setting all lists and hash tables to NULL. Also, when
+	returning a TrackerService or any other GObject from the hash
+	tables, don't return it as a gpointer*, it is just a gpointer.
+	
+	* src/libtracker-db/tracker-db-interface-sqlite.c: Added some
+	messaging to know when the databases are opened and closed.
+	
+	* src/libtracker-db/tracker-db-manager.c: Initialise and shutdown
+	the ontology module in this module since we depend on it. We also
+	shut it down and reinitialise it when we reindex the database
+	because there is information we check against there when adding
+	new tables to the new databases.
+
+	* src/tracker-indexer/tracker-main.c:
+	* src/trackerd/tracker-main.c: Don't initialise and shutdown the
+	ontology module now the tracker-db-manager does it.
+
+	* src/tracker-indexer/modules/files.c: Fixed crasher where service
+	type is returned as NULL before using strcmp.
+	
+	* src/tracker-indexer/tracker-indexer.c: Added some sliff and
+	sloff :)
+	
+	* src/trackerd/tracker-db.[ch]:
+	* src/trackerd/tracker-email-evolution.c:
+	* src/trackerd/tracker-email-modest.c:
+	* src/trackerd/tracker-email-utils.c: Removed tracker_db_close()
+	and tracker_db_refresh_all() they are unused or do nothing.
+
 2008-06-17  Martyn Russell  <martyn@imendio.com>
 
 	* data/dbus/tracker-indexer.xml:

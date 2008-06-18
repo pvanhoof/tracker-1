@@ -344,8 +344,9 @@ tracker_module_get_file_text (const gchar *file)
 	service_type = tracker_ontology_get_service_type_for_mime (mimetype);
 
 	/* No need to filter text based files - index them directly */
-	if (strcmp (service_type, "Text") == 0 ||
-            strcmp (service_type, "Development") == 0) {
+	if (service_type && 
+            (strcmp (service_type, "Text") == 0 ||
+             strcmp (service_type, "Development") == 0)) {
 		GMappedFile *mapped_file;
 
 		mapped_file = g_mapped_file_new (file, FALSE, NULL);

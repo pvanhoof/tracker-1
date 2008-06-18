@@ -2149,6 +2149,9 @@ tracker_db_manager_init (gboolean     attach_all_dbs,
 		return;
 	}
 
+	/* Make sure we initialize all other modules we depend on */
+	tracker_ontology_init ();
+	
 	attach_all = attach_all_dbs;
 
 	/* Since we don't reference this enum anywhere, we do
@@ -2235,6 +2238,9 @@ tracker_db_manager_shutdown (void)
 		g_object_unref (attach_interface);
 	}
 
+	/* Make sure we shutdown all other modules we depend on */
+	tracker_ontology_shutdown ();
+
         initialized = FALSE;
 }
 
@@ -2262,6 +2268,23 @@ tracker_db_manager_set_up_databases (gboolean remove_all_first)
 
 	g_return_if_fail (initialized != FALSE);
 
+	/* Save the current attach setting */
+	current_attach_all = attach_all;
+
+	/* Don't attach while we do this... */
+	attach_all = FALSE;
+
+	/* Close all dbs first. */
+        for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
+		if (dbs[i].iface) {
+			g_object_unref (dbs[i].iface);
+			dbs[i].iface = NULL;
+		}
+        }
+
+	/* Clean up any ontology information we have */
+	tracker_ontology_shutdown ();
+	
 	if (remove_all_first) {
 		g_message ("Removing directory:'%s'", db_data_dir);
 		tracker_path_remove (db_data_dir);
@@ -2283,23 +2306,24 @@ tracker_db_manager_set_up_databases (gboolean remove_all_first)
 	g_message ("Creating directory:'%s'", db_sys_tmp_dir);
 	g_mkdir_with_parents (db_sys_tmp_dir, 00755);
 
-	/* Save the current attach setting */
-	current_attach_all = attach_all;
-
-	/* Don't attach while we do this... */
-	attach_all = FALSE;
+	/* Initialize ontology information */
+	tracker_ontology_init ();
 
 	/* Create all interfaces (and dbs as a result) and then unref
 	 * them to close the dbs.
 	 */
         for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
 		tracker_db_manager_get_db_interface (i);
-		g_object_unref (dbs[i].iface);
 
-		/* Reset the interface value so we get a new object
-		 * next time it is needed.
-		 */
-		dbs[i].iface = NULL;
+		if (dbs[i].iface) {
+			g_object_unref (dbs[i].iface);
+
+
+			/* Reset the interface value so we get a new
+			 * object next time it is needed.
+			 */
+			dbs[i].iface = NULL;
+		}
         }
 
 	/* Set the attach setting back to what it was */

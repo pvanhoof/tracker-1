@@ -199,7 +199,7 @@ email_parse_mail_file_and_save_new_emails (TrackerDBInterface *iface,
 
 			if (tracker->index_count % 2500 == 0) {
 				tracker_db_interface_end_transaction (iface);
-				tracker_db_refresh_all (iface);
+				/* tracker_db_refresh_all (iface); */
 				tracker_db_interface_start_transaction (iface);
 			}
 			

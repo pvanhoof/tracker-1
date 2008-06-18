@@ -148,12 +148,15 @@ reindex_database (TrackerIndexer *indexer)
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
+	/* These are unreffed for us by the TrackerDBManager */
 	priv->common = NULL;
 	priv->metadata = NULL;
 	priv->contents = NULL;
 	
+	/* Now create the new databases */
 	tracker_db_manager_set_up_databases (TRUE);
 
+	/* Now establish new connections */
 	priv->common = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
 	priv->metadata = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
 	priv->contents = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_CONTENTS);
@@ -237,22 +240,22 @@ tracker_indexer_class_init (TrackerIndexerClass *class)
 	object_class->set_property = tracker_indexer_set_property;
 	object_class->get_property = tracker_indexer_get_property;
 
-	signals [FINISHED] = g_signal_new ("finished",
-					   G_OBJECT_CLASS_TYPE (object_class),
-					   G_SIGNAL_RUN_LAST,
-					   G_STRUCT_OFFSET (TrackerIndexerClass, finished),
-					   NULL, NULL,
-					   g_cclosure_marshal_VOID__VOID,
-					   G_TYPE_NONE, 0);
-
-	
-	signals [INDEX_UPDATED] = g_signal_new ("index-updated",
-					   G_OBJECT_CLASS_TYPE (object_class),
-					   G_SIGNAL_RUN_LAST,
-					   G_STRUCT_OFFSET (TrackerIndexerClass, index_updated),
-					   NULL, NULL,
-					   g_cclosure_marshal_VOID__VOID,
-					   G_TYPE_NONE, 0);
+	signals [FINISHED] = 
+		g_signal_new ("finished",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (TrackerIndexerClass, finished),
+			      NULL, NULL,
+			      g_cclosure_marshal_VOID__VOID,
+			      G_TYPE_NONE, 0);
+	signals [INDEX_UPDATED] = 
+		g_signal_new ("index-updated",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (TrackerIndexerClass, index_updated),
+			      NULL, NULL,
+			      g_cclosure_marshal_VOID__VOID,
+			      G_TYPE_NONE, 0);
 
 	g_object_class_install_property (object_class,
 					 PROP_RUNNING,
@@ -262,8 +265,7 @@ tracker_indexer_class_init (TrackerIndexerClass *class)
 							       TRUE,
 							       G_PARAM_READWRITE));
 
-	g_type_class_add_private (object_class,
-				  sizeof (TrackerIndexerPrivate));
+	g_type_class_add_private (object_class, sizeof (TrackerIndexerPrivate));
 }
 
 static void

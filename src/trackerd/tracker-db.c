@@ -626,49 +626,6 @@ tracker_db_shutdown (void)
 	/* Nothing to do? */
 }
 
-void
-tracker_db_close (TrackerDBInterface *iface)
-{
-	if (iface) {
-		g_object_unref (iface);
-	}
-	
-	g_message ("Closed database");
-}
-
-void
-tracker_db_refresh_all (TrackerDBInterface *iface)
-{
-#if 0
-	gboolean cache_trans = FALSE;
-	DBConnection *cache = db_con->cache;
-	DBConnection *emails = db_con->emails;
-
-	if (cache && tracker_db_interface_end_transaction (cache->db)) {
-		cache_trans = TRUE;
-	}
-
-	/* close and reopen all databases */	
-	tracker_db_close (db_con->db);	
-	tracker_db_close (db_con->blob->db);
-
-	tracker_db_close (emails->blob->db);
-	tracker_db_close (emails->common->db);
-	tracker_db_close (emails->db);
-
-	db_con->db = open_db_interface (TRACKER_DB_FILE_METADATA);
-
-	emails->common->db = open_db_interface (TRACKER_DB_COMMON);
-
-	open_email_db (emails);
-		
-	if (cache_trans) {
-		tracker_db_interface_start_transaction (cache->db);
-	}
-
-#endif
-}
-
 gboolean
 tracker_db_exec_no_reply (TrackerDBInterface *iface, 
 			  const gchar        *query, 

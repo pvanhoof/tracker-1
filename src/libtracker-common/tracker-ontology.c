@@ -31,6 +31,8 @@ typedef struct {
 	gint   service;
 } ServiceMimePrefixes;
 
+static gboolean    initialized;
+
 /* Hash (gint service_type_id, TrackerService *service) */ 
 static GHashTable *service_id_table;   
 
@@ -54,9 +56,7 @@ static GSList	  *service_directory_list;
 static GHashTable *metadata_table;
 
 /* FieldType enum class */
-static gpointer field_type_enum_class;
-
-
+static gpointer    field_type_enum_class;
 
 static void
 ontology_mime_prefix_foreach (gpointer data, 
@@ -74,7 +74,7 @@ gpointer
 ontology_hash_lookup_by_str (GHashTable  *hash_table, 
 			     const gchar *str)
 {
-	gpointer *data;
+	gpointer  data;
 	gchar    *str_lower;
 
 	str_lower = g_utf8_collate_key (str, -1);
@@ -88,7 +88,7 @@ gpointer
 ontology_hash_lookup_by_id (GHashTable  *hash_table, 
 			    gint         id)
 {
-	gpointer *data;
+	gpointer  data;
 	gchar    *str;
 
 	str = g_strdup_printf ("%d", id);
@@ -101,10 +101,9 @@ ontology_hash_lookup_by_id (GHashTable  *hash_table,
 void
 tracker_ontology_init (void)
 {
-
-	g_return_if_fail (service_id_table == NULL 
-			  && service_table == NULL
-			  && mime_service == NULL);
+	if (initialized) {
+		return;
+	}
 
 	service_id_table = g_hash_table_new_full (g_str_hash, 
 						  g_str_equal, 
@@ -136,26 +135,44 @@ tracker_ontology_init (void)
 	 * created beforehand.
 	 */
 	field_type_enum_class = g_type_class_ref (TRACKER_TYPE_FIELD_TYPE);
+
+	initialized = TRUE;
 }
 
 void
 tracker_ontology_shutdown (void)
 {
+	if (!initialized) {
+		return;
+	}
+
 	g_hash_table_remove_all (service_directory_table);
+	service_directory_table = NULL;
+
 	g_hash_table_remove_all (service_id_table);
+	service_id_table = NULL;
+
 	g_hash_table_remove_all (service_table);
+	service_table = NULL;
+
 	g_hash_table_remove_all (mime_service);
+	mime_service = NULL;
+
 	g_hash_table_remove_all (metadata_table);
+	metadata_table = NULL;
 
 	if (mime_prefix_service) {
 		g_slist_foreach (mime_prefix_service, 
 				 ontology_mime_prefix_foreach, 
 				 NULL); 
 		g_slist_free (mime_prefix_service);
+		mime_prefix_service = NULL;
 	}
 
 	g_type_class_unref (field_type_enum_class);
 	field_type_enum_class = NULL;
+
+	initialized = FALSE;
 }
 
 void 
@@ -219,7 +236,7 @@ tracker_ontology_get_service_type_by_id (gint id)
 gchar *
 tracker_ontology_get_service_type_for_mime (const gchar *mime) 
 {
-	gpointer            *id;
+	gpointer             id;
 	ServiceMimePrefixes *item;
 	GSList              *prefix_service;
 

@@ -141,8 +141,6 @@ initialize_indexer (void)
 {
 	gchar *data_dir, *user_data_dir, *sys_tmp_dir, *filename;
 
-	tracker_ontology_init ();
-
 	data_dir = g_build_filename (g_get_user_cache_dir (), 
 				     "tracker", 
 				     NULL);
@@ -171,7 +169,6 @@ shutdown_indexer (void)
 {
 	g_message ("Shutting down...\n");
 
-	tracker_ontology_shutdown ();
 	tracker_db_manager_shutdown ();
 }
 

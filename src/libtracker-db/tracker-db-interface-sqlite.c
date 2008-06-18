@@ -69,8 +69,10 @@ tracker_db_interface_sqlite_constructor (GType                  type,
 	g_assert (priv->filename != NULL);
 
 	if (sqlite3_open (priv->filename, &priv->db) != SQLITE_OK) {
-		g_critical ("Can't open DB at: %s\n", priv->filename);
-	}
+		g_critical ("Could not open sqlite3 database:'%s'", priv->filename);
+	} else {
+                g_message ("Opened sqlite3 database:'%s'", priv->filename);
+        }
 
 	sqlite3_extended_result_codes (priv->db, 0);
 	sqlite3_busy_timeout (priv->db, 10000000);
@@ -129,8 +131,6 @@ tracker_db_interface_sqlite_finalize (GObject *object)
 
 	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (object);
 
-	g_free (priv->filename);
-
 	g_hash_table_destroy (priv->statements);
 
 	if (priv->procedures) {
@@ -141,6 +141,9 @@ tracker_db_interface_sqlite_finalize (GObject *object)
 	g_slist_free (priv->function_data);
 
 	sqlite3_close (priv->db);
+        g_message ("Closed sqlite3 database:'%s'", priv->filename);
+
+	g_free (priv->filename);
 
 	G_OBJECT_CLASS (tracker_db_interface_sqlite_parent_class)->finalize (object);
 }
@@ -215,7 +218,7 @@ add_row (TrackerDBResultSet *result_set,
 			/* just ignore NULLs */
 			break;
 		default:
-			g_critical ("Unknown database column type: %d\n", col_type);
+			g_critical ("Unknown sqlite3 database column type:%d", col_type);
 		}
 
 		if (G_VALUE_TYPE (&value) != G_TYPE_INVALID) {
@@ -269,7 +272,8 @@ internal_sqlite3_function (sqlite3_context *context,
 			break;
 		}
 		default:
-			g_critical ("Unknown database value type: %d\n", sqlite3_value_type (argv[i]));
+			g_critical ("Unknown sqlite3 database value type:%d", 
+                                    sqlite3_value_type (argv[i]));
 		}
 	}
 
@@ -294,7 +298,8 @@ internal_sqlite3_function (sqlite3_context *context,
 	} else if (G_VALUE_HOLDS (&result, G_TYPE_INVALID)) {
 		sqlite3_result_null (context);
 	} else {
-		g_critical ("Returned type not managed: %s\n", G_VALUE_TYPE_NAME (&result));
+		g_critical ("Sqlite3 returned type not managed:'%s'",
+                            G_VALUE_TYPE_NAME (&result));
 		sqlite3_result_null (context);
 	}
 
@@ -388,7 +393,8 @@ create_result_set_from_stmt (TrackerDBInterfaceSqlite  *interface,
 		g_hash_table_foreach (priv->statements, foreach_print_error, stmt);
 		
 		if (result == SQLITE_CORRUPT) {
-			g_critical ("Database %s is corrupt. Can't live without it", priv->filename);
+			g_critical ("Sqlite3 database:'%s' is corrupt, can not live without it",
+                                    priv->filename);
 			g_assert_not_reached ();
 		}
 
@@ -429,7 +435,8 @@ get_stored_stmt (TrackerDBInterfaceSqlite *db_interface,
 		procedure = g_hash_table_lookup (priv->procedures, procedure_name);
 
 		if (!procedure) {
-			g_critical ("Prepared query %s not found", procedure_name);
+			g_critical ("Sqlite3 prepared query:'%s' was not found", 
+                                    procedure_name);
 			return NULL;
 		}
 

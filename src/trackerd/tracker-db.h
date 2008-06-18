@@ -40,11 +40,8 @@ G_BEGIN_DECLS
 
 void                tracker_db_init                            (void);
 void                tracker_db_shutdown                        (void);
-void                tracker_db_refresh_all                     (TrackerDBInterface  *iface);
-
 
 /* Operations for TrackerDBInterface */
-void                tracker_db_close                           (TrackerDBInterface  *iface);
 TrackerDBResultSet *tracker_db_exec_proc                       (TrackerDBInterface  *iface,
 								const gchar         *procedure,
 								...);

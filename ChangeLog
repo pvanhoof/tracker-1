@@ -1,3 +1,12 @@
+2008-06-19  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/libtracker-db/tracker-db-manager.c (set_up_databases): Create
+	databases on DB manager initialization.
+	(tracker_db_manager_init): Ensure the tmp dir is created.
+	(tracker_db_manager_shutdown): And removed here.
+	(tracker_db_manager_get_db_interface): No need to create the database
+	lazily here.
+
 2008-06-18  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-ontology.c: Make sure we finalize

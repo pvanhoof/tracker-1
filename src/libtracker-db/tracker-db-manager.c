@@ -165,6 +165,7 @@ set_up_databases (void)
                 /* Fill absolute path for the database */
                 dir = location_to_directory (dbs[i].location);
 		dbs[i].abs_filename = g_build_filename (dir, dbs[i].file, NULL);
+		db_interface_create (i, attach_all);
         }
 
 	g_message ("Setting up all databases completed");
@@ -2178,6 +2179,10 @@ tracker_db_manager_init (gboolean     attach_all_dbs,
 	db_user_data_dir = g_strdup (user_data_dir);
 	db_sys_tmp_dir = g_strdup (sys_tmp_dir);
 
+	/* create directory in tmp */
+	g_message ("Creating directory:'%s'", db_sys_tmp_dir);
+	g_mkdir_with_parents (db_sys_tmp_dir, 00755);
+
 	/* Add prepared queries */
 	prepared_queries = g_hash_table_new_full (g_str_hash,
 						  g_str_equal,
@@ -2186,10 +2191,10 @@ tracker_db_manager_init (gboolean     attach_all_dbs,
 
 	load_prepared_queries ();
 
+	initialized = TRUE;
+
 	/* Configure database locations and interfaces */
 	set_up_databases ();
-
-	initialized = TRUE;
 }
 
 void
@@ -2215,6 +2220,10 @@ tracker_db_manager_shutdown (void)
 
 	g_hash_table_unref (prepared_queries);
 	prepared_queries = NULL;
+
+	/* Remove directory in tmp */
+	g_message ("Removing directory:'%s'", db_sys_tmp_dir);
+	tracker_path_remove (db_sys_tmp_dir);
 
 	g_free (db_data_dir);
 	g_free (db_user_data_dir);
@@ -2342,10 +2351,6 @@ TrackerDBInterface *
 tracker_db_manager_get_db_interface (TrackerDB db)
 {
 	g_return_val_if_fail (initialized != FALSE, NULL);
-
-	if (!dbs[db].iface) {
-		dbs[db].iface = db_interface_create (db, attach_all);
-	}
 
 	return dbs[db].iface;
 }

@@ -614,6 +614,29 @@ get_memory_usage (void)
 	return 0;
 }
 
+static GArray *
+db_create_array_of_services (void)
+{
+	GArray *array;
+	gint    services[8];
+	gint    count = 0;
+
+	/* FIXME: Shouldn't we add emails and GAIM conversaions? -mr */
+	services[count++] = tracker_ontology_get_id_for_service_type ("Folders");
+	services[count++] = tracker_ontology_get_id_for_service_type ("Documents");
+	services[count++] = tracker_ontology_get_id_for_service_type ("Images");
+	services[count++] = tracker_ontology_get_id_for_service_type ("Videos");
+	services[count++] = tracker_ontology_get_id_for_service_type ("Music");
+	services[count++] = tracker_ontology_get_id_for_service_type ("Text");
+	services[count++] = tracker_ontology_get_id_for_service_type ("Development");
+	services[count++] = tracker_ontology_get_id_for_service_type ("Other");
+
+	array = g_array_new (TRUE, TRUE, sizeof (gint));
+	g_array_append_vals (array, services, G_N_ELEMENTS (services));
+
+	return array;
+}
+
 void
 tracker_db_init (void)
 {
@@ -914,6 +937,301 @@ tracker_db_search_text (TrackerDBInterface *iface,
 	tracker_db_result_set_rewind (result);
 
 	return result;
+}
+
+TrackerDBResultSet *
+tracker_db_search_text_and_mime (TrackerDBInterface  *iface, 
+				 const gchar         *text, 
+				 gchar              **mime_array)
+{
+	TrackerQueryTree   *tree;
+	TrackerDBResultSet *result_set1;
+	GArray             *hits;
+	GArray             *services;
+	gint                count = 0;
+	guint               i; 
+
+	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
+	g_return_val_if_fail (text != NULL, NULL);
+	g_return_val_if_fail (mime_array != NULL, NULL);
+
+	result_set1 = NULL;
+	services = db_create_array_of_services ();
+
+	tree = tracker_query_tree_new (text, 
+				       tracker->file_index, 
+				       tracker->config,
+				       tracker->language,
+				       services);
+	hits = tracker_query_tree_get_hits (tree, 0, 0);
+
+	for (i = 0, count = 0; i < hits->len; i++) {
+		TrackerDBResultSet *result_set2;
+		TrackerSearchHit    hit;
+		gchar              *str_id, *mimetype;
+
+		hit = g_array_index (hits, TrackerSearchHit, i);
+
+		str_id = tracker_uint_to_string (hit.service_id);
+		result_set2 = tracker_db_exec_proc (iface, 
+						    "GetFileByID", 
+						    str_id, 
+						    NULL);
+		g_free (str_id);
+
+		if (result_set2) {
+			tracker_db_result_set_get (result_set2, 2, &mimetype, -1);
+
+			if (tracker_string_in_string_list (mimetype, mime_array) != -1) {
+				GValue value = { 0, };
+
+				if (G_UNLIKELY (!result_set1)) {
+					result_set1 = _tracker_db_result_set_new (2);
+				}
+
+				_tracker_db_result_set_append (result_set1);
+
+				/* copy value in column 0 */
+				_tracker_db_result_set_get_value (result_set2, 0, &value);
+				_tracker_db_result_set_set_value (result_set1, 0, &value);
+				g_value_unset (&value);
+
+				/* copy value in column 1 */
+				_tracker_db_result_set_get_value (result_set2, 1, &value);
+				_tracker_db_result_set_set_value (result_set1, 1, &value);
+				g_value_unset (&value);
+
+				count++;
+			}
+
+			g_free (mimetype);
+			g_object_unref (result_set2);
+		}
+
+		if (count > 2047) {
+			g_warning ("Count is > 2047? Breaking for loop in %s, why?", 
+				   __FUNCTION__);
+			break;
+		}
+	}
+
+	g_object_unref (tree);
+	g_array_free (hits, TRUE);
+	g_array_free (services, TRUE);
+
+	if (!result_set1) {
+		return NULL;
+	}
+
+	if (tracker_db_result_set_get_n_rows (result_set1) == 0) {
+		g_object_unref (result_set1);
+		return NULL;
+	}
+
+	tracker_db_result_set_rewind (result_set1);
+
+	return result_set1;
+}
+
+TrackerDBResultSet *
+tracker_db_search_text_and_location (TrackerDBInterface *iface,
+				     const gchar        *text, 
+				     const gchar        *location)
+{
+	TrackerDBResultSet *result_set1;
+	TrackerQueryTree   *tree;
+	GArray             *hits;
+	GArray             *services;
+	gchar	           *location_prefix;
+	gint 	            count;
+	guint               i;
+
+	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
+	g_return_val_if_fail (text != NULL, NULL);
+	g_return_val_if_fail (location != NULL, NULL);
+
+	result_set1 = NULL;
+	location_prefix = g_strconcat (location, G_DIR_SEPARATOR_S, NULL);
+	services = db_create_array_of_services ();
+
+	tree = tracker_query_tree_new (text, 
+				       tracker->file_index, 
+				       tracker->config,
+				       tracker->language,
+				       services);
+	hits = tracker_query_tree_get_hits (tree, 0, 0);
+
+	for (i = 0, count = 0; i < hits->len; i++) {
+		TrackerDBResultSet *result_set2;
+		TrackerSearchHit    hit;
+		gchar              *str_id, *path;
+
+		hit = g_array_index (hits, TrackerSearchHit, i);
+
+		str_id = tracker_uint_to_string (hit.service_id);
+		result_set2 = tracker_db_exec_proc (iface, 
+						   "GetFileByID", 
+						   str_id, 
+						   NULL);
+		g_free (str_id);
+
+		if (result_set2) {
+			tracker_db_result_set_get (result_set2, 0, &path, -1);
+
+			if (g_str_has_prefix (path, location_prefix) || 
+			    strcmp (path, location) == 0) {
+				GValue value = { 0, };
+
+				if (G_UNLIKELY (!result_set1)) {
+					result_set1 = _tracker_db_result_set_new (2);
+				}
+
+				_tracker_db_result_set_append (result_set1);
+
+				/* copy value in column 0 */
+				_tracker_db_result_set_get_value (result_set2, 0, &value);
+				_tracker_db_result_set_set_value (result_set1, 0, &value);
+				g_value_unset (&value);
+
+				/* copy value in column 1 */
+				_tracker_db_result_set_get_value (result_set2, 1, &value);
+				_tracker_db_result_set_set_value (result_set1, 1, &value);
+				g_value_unset (&value);
+
+				count++;
+			}
+
+			g_object_unref (result_set2);
+		}
+
+		if (count > 2047) {
+			g_warning ("Count is > 2047? Breaking for loop in %s, why?", 
+				   __FUNCTION__);
+			break;
+		}
+	}
+
+	g_free (location_prefix);
+	g_object_unref (tree);
+	g_array_free (hits, TRUE);
+	g_array_free (services, TRUE);
+
+	if (!result_set1) {
+		return NULL;
+	}
+
+	if (tracker_db_result_set_get_n_rows (result_set1) == 0) {
+		g_object_unref (result_set1);
+		return NULL;
+	}
+
+	tracker_db_result_set_rewind (result_set1);
+
+	return result_set1;
+}
+
+TrackerDBResultSet *
+tracker_db_search_text_and_mime_and_location (TrackerDBInterface  *iface,
+					      const gchar         *text, 
+					      gchar              **mime_array, 
+					      const gchar         *location)
+{
+	TrackerDBResultSet *result_set1;
+	TrackerQueryTree   *tree;
+	GArray             *hits;
+	GArray             *services;
+	gchar	           *location_prefix;
+	gint 	            count;
+	guint               i;
+
+	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
+	g_return_val_if_fail (text != NULL, NULL);
+	g_return_val_if_fail (location != NULL, NULL);
+
+	result_set1 = NULL;
+	location_prefix = g_strconcat (location, G_DIR_SEPARATOR_S, NULL);
+	services = db_create_array_of_services ();
+
+	tree = tracker_query_tree_new (text, 
+				       tracker->file_index, 
+				       tracker->config,
+				       tracker->language,
+				       services);
+	hits = tracker_query_tree_get_hits (tree, 0, 0);
+
+	for (i = 0, count = 0; i < hits->len; i++) {
+		TrackerDBResultSet *result_set2;
+		TrackerSearchHit    hit;
+		gchar              *str_id, *path, *mimetype;
+
+		hit = g_array_index (hits, TrackerSearchHit, i);
+
+		str_id = tracker_uint_to_string (hit.service_id);
+		result_set2 = tracker_db_exec_proc (iface, 
+						   "GetFileByID", 
+						   str_id, 
+						   NULL);
+		g_free (str_id);
+
+		if (result_set2) {
+			tracker_db_result_set_get (result_set2,
+						   0, &path,
+						   2, &mimetype,
+						   -1);
+
+			if ((g_str_has_prefix (path, location_prefix) || 
+			     strcmp (path, location) == 0) &&
+			    tracker_string_in_string_list (mimetype, mime_array) != -1) {
+				GValue value = { 0, };
+
+				if (G_UNLIKELY (!result_set1)) {
+					result_set1 = _tracker_db_result_set_new (2);
+				}
+
+				_tracker_db_result_set_append (result_set1);
+
+				/* copy value in column 0 */
+				_tracker_db_result_set_get_value (result_set2, 0, &value);
+				_tracker_db_result_set_set_value (result_set1, 0, &value);
+				g_value_unset (&value);
+
+				/* copy value in column 1 */
+				_tracker_db_result_set_get_value (result_set2, 1, &value);
+				_tracker_db_result_set_set_value (result_set1, 1, &value);
+				g_value_unset (&value);
+
+				count++;
+			}
+
+			g_free (path);
+			g_free (mimetype);
+			g_object_unref (result_set2);
+		}
+
+		if (count > 2047) {
+			g_warning ("Count is > 2047? Breaking for loop in %s, why?", 
+				   __FUNCTION__);
+			break;
+		}
+	}
+
+	g_free (location_prefix);
+	g_object_unref (tree);
+	g_array_free (hits, TRUE);
+	g_array_free (services, TRUE);
+
+	if (!result_set1) {
+		return NULL;
+	}
+
+	if (tracker_db_result_set_get_n_rows (result_set1) == 0) {
+		g_object_unref (result_set1);
+		return NULL;
+	}
+
+	tracker_db_result_set_rewind (result_set1);
+
+	return result_set1;
 }
 
 TrackerDBResultSet *

@@ -48,72 +48,88 @@ struct TrackerFilesClass {
 	GObjectClass parent;
 };
 
-GType    tracker_files_get_type                         (void);
+GType    tracker_files_get_type                             (void);
 
 TrackerFiles *
-         tracker_files_new                              (void);
-gboolean tracker_files_exist                            (TrackerFiles   *object,
-							 const gchar    *uri,
-							 gboolean        auto_create,
-							 gboolean       *value,
-							 GError        **error);
-gboolean tracker_files_create                           (TrackerFiles   *object,
-							 const gchar    *uri,
-							 gboolean        is_directory,
-							 const gchar    *mime,
-							 gint            size,
-							 gint            mtime,
-							 GError        **error);
-gboolean tracker_files_delete                           (TrackerFiles   *object,
-							 const gchar    *uri,
-							 GError        **error);
-gboolean tracker_files_get_service_type                 (TrackerFiles   *object,
-							 const gchar    *uri,
-							 gchar         **value,
-							 GError        **error);
-gboolean tracker_files_get_text_contents                (TrackerFiles   *object,
-							 const gchar    *uri,
-							 gint            offset,
-							 gint            max_length,
-							 gchar         **value,
-							 GError        **error);
-gboolean tracker_files_search_text_contents             (TrackerFiles   *object,
-							 const gchar    *uri,
-							 const gchar    *text,
-							 gint            max_length,
-							 gchar         **value,
-							 GError        **error);
-gboolean tracker_files_get_by_service_type              (TrackerFiles   *object,
-							 gint            live_query_id,
-							 const gchar    *service,
-							 gint            offset,
-							 gint            max_hits,
-							 gchar        ***values,
-							 GError        **error);
-gboolean tracker_files_get_by_mime_type                 (TrackerFiles   *object,
-							 gint            live_query_id,
-							 gchar         **mime_types,
-							 gint            offset,
-							 gint            max_hits,
-							 gchar        ***values,
-							 GError        **error);
-gboolean tracker_files_get_by_mime_type_vfs             (TrackerFiles   *object,
-							 gint            live_query_id,
-							 gchar         **mime_types,
-							 gint            offset,
-							 gint            max_hits,
-							 gchar        ***values,
-							 GError        **error);
-gboolean tracker_files_get_mtime                        (TrackerFiles   *object,
-							 const gchar    *uri,
-							 gint           *value,
-							 GError        **error);
-gboolean tracker_files_get_metadata_for_files_in_folder (TrackerFiles   *object,
-							 gint            live_query_id,
-							 const gchar    *uri,
-							 gchar         **fields,
-							 GPtrArray     **values,
-							 GError        **error);
+         tracker_files_new                                  (void);
+gboolean tracker_files_exist                                (TrackerFiles   *object,
+							     const gchar    *uri,
+							     gboolean        auto_create,
+							     gboolean       *value,
+							     GError        **error);
+gboolean tracker_files_create                               (TrackerFiles   *object,
+							     const gchar    *uri,
+							     gboolean        is_directory,
+							     const gchar    *mime,
+							     gint            size,
+							     gint            mtime,
+							     GError        **error);
+gboolean tracker_files_delete                               (TrackerFiles   *object,
+							     const gchar    *uri,
+							     GError        **error);
+gboolean tracker_files_get_service_type                     (TrackerFiles   *object,
+							     const gchar    *uri,
+							     gchar         **value,
+							     GError        **error);
+gboolean tracker_files_get_text_contents                    (TrackerFiles   *object,
+							     const gchar    *uri,
+							     gint            offset,
+							     gint            max_length,
+							     gchar         **value,
+							     GError        **error);
+gboolean tracker_files_search_text_contents                 (TrackerFiles   *object,
+							     const gchar    *uri,
+							     const gchar    *text,
+							     gint            max_length,
+							     gchar         **value,
+							     GError        **error);
+gboolean tracker_files_get_by_service_type                  (TrackerFiles   *object,
+							     gint            live_query_id,
+							     const gchar    *service,
+							     gint            offset,
+							     gint            max_hits,
+							     gchar        ***values,
+							     GError        **error);
+gboolean tracker_files_get_by_mime_type                     (TrackerFiles   *object,
+							     gint            live_query_id,
+							     gchar         **mime_types,
+							     gint            offset,
+							     gint            max_hits,
+							     gchar        ***values,
+							     GError        **error);
+gboolean tracker_files_get_by_mime_type_vfs                 (TrackerFiles   *object,
+							     gint            live_query_id,
+							     gchar         **mime_types,
+							     gint            offset,
+							     gint            max_hits,
+							     gchar        ***values,
+							     GError        **error);
+gboolean tracker_files_get_mtime                            (TrackerFiles   *object,
+							     const gchar    *uri,
+							     gint           *value,
+							     GError        **error);
+gboolean tracker_files_get_metadata_for_files_in_folder     (TrackerFiles   *object,
+							     gint            live_query_id,
+							     const gchar    *uri,
+							     gchar         **fields,
+							     GPtrArray     **values,
+							     GError        **error);
+gboolean tracker_files_search_by_text_and_mime              (TrackerFiles   *object,
+							     const gchar    *text,
+							     gchar         **mime_types,
+							     gchar        ***values,
+							     GError        **error);
+gboolean tracker_files_search_by_text_and_location          (TrackerFiles   *object,
+							     const gchar    *text,
+							     const gchar    *uri,
+							     gchar        ***values,
+							     GError        **error);
+gboolean tracker_files_search_by_text_and_mime_and_location (TrackerFiles   *object,
+							     const gchar    *text,
+							     gchar         **mime_types,
+							     const gchar    *uri,
+							     gchar        ***values,
+							     GError        **error);
 
 G_END_DECLS
 

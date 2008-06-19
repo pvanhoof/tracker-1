@@ -47,6 +47,7 @@
 	 returns an array of matching id values for the service.
       --> 
     <method name="Search">
+      <annotation name="org.freedesktop.DBus.Deprecated" value="true"/>
       <arg type="i" name="live_query_id" direction="in" />
       <arg type="s" name="service" direction="in" />
       <arg type="as" name="keywords" direction="in" />

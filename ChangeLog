@@ -1,3 +1,17 @@
+2008-06-19  Martyn Russell  <martyn@imendio.com>
+
+	* data/dbus/tracker-files.xml:
+	* data/dbus/tracker-keywords.xml:
+	* data/dbus/tracker-metadata.xml:
+	* data/dbus/tracker-search.xml: Re-added the Nautilus API we
+	commented out and set all API which is to be removed as deprecated.
+
+	* src/libtracker/tracker.c: 
+	* src/trackerd/tracker-db.[ch]: 
+	* src/trackerd/tracker-files.[ch]:
+	* src/trackerd/tracker-metadata.c: Readded and fixed APIs relating
+	to XML file changes.
+
 2008-06-19  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/libtracker-db/tracker-db-manager.c (set_up_databases): Fix typo.

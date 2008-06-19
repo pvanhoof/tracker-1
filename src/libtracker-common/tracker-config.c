@@ -160,7 +160,7 @@ struct _TrackerConfigPriv {
 	gint	  thread_stack_size;
 
 	/* Services*/
-	gboolean enable_xesam;
+	gboolean  enable_xesam;
 };
 
 static void config_finalize	(GObject      *object);

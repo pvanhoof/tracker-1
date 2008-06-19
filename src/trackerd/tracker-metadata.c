@@ -285,73 +285,6 @@ tracker_metadata_set (TrackerMetadata  *object,
 }
 
 gboolean
-tracker_metadata_register_type (TrackerMetadata  *object,
-				const gchar      *metadata,
-				const gchar      *type,
-				GError          **error)
-{
-	TrackerDBInterface *iface;
-	TrackerDBResultSet *result_set;
-	guint               request_id;
-	const gchar        *type_id;
-
-	request_id = tracker_dbus_get_next_request_id ();
-
-	tracker_dbus_return_val_if_fail (metadata != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (type != NULL, FALSE, error);
-	
-	tracker_dbus_request_new (request_id,
-				  "DBus request to register metadata type, "
-				  "type:'%s', name:'%s'",
-				  type,
-				  metadata);
-
-	if (!metadata || strlen (metadata) < 3 || strchr (metadata, ':') == NULL) {
-		tracker_dbus_request_failed (request_id,
-					     error, 
-					     "Metadata name '%s' is invalid, all names must be in "
-					     "the format 'class:name'", 
-					     metadata);
-		return FALSE;
-	}
-
-	if (strcmp (type, "index") == 0) {
-		type_id = "0";
-	} else if (strcmp (type, "string") == 0) {
-		type_id = "1";
-	} else if (strcmp (type, "numeric") == 0) {
-		type_id = "2";
-	} else if (strcmp (type, "date") == 0) {
-		type_id = "3";
-	} else {
-		tracker_dbus_request_failed (request_id, 
-					     error, 
-					     "Metadata type '%s' is invalid, types include 'index', "
-					     "'string', 'numeric' and 'date'", 
-					     metadata);
-		return FALSE;
-	}
-
-	iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
-
-	result_set = tracker_db_exec_proc (iface, 
-					   "InsertMetadataType", 
-					   4, 
-					   metadata, 
-					   type_id, 
-					   "0", 
-					   "1");
-
-	if (result_set) {
-		g_object_unref (result_set);
-	}
-
-	tracker_dbus_request_success (request_id);
-
-	return TRUE;
-}
-
-gboolean
 tracker_metadata_get_type_details (TrackerMetadata  *object,
 				   const gchar      *metadata,
 				   gchar           **type,
@@ -432,45 +365,6 @@ tracker_metadata_get_registered_types (TrackerMetadata   *object,
 		*values = tracker_dbus_query_result_to_strv (result_set, 1, NULL);
 		g_object_unref (result_set);
 	}
-
-	tracker_dbus_request_success (request_id);
-	
-	return TRUE;
-}
-
-gboolean
-tracker_metadata_get_writable_types (TrackerMetadata   *object,
-				     const gchar       *class,
-				     gchar           ***values,
-				     GError           **error)
-{
-	TrackerDBInterface *iface;
-	TrackerDBResultSet *result_set;
-	guint               request_id;
-	gchar              *class_formatted;
-
-	request_id = tracker_dbus_get_next_request_id ();
-
-	tracker_dbus_return_val_if_fail (class != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
-
-	tracker_dbus_request_new (request_id,
-				  "DBus request to get writable metadata types, "
-				  "class:'%s'",
-				  class);
-
-	iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
-
-	class_formatted = g_strconcat (class, ".*", NULL);
-	result_set = tracker_db_metadata_get_types (iface, 
-						    class_formatted, 
-						    TRUE);
-	if (result_set) {
-		*values = tracker_dbus_query_result_to_strv (result_set, 0, NULL);
-		g_object_unref (result_set);
-	}
-
-	g_free (class_formatted);
 
 	tracker_dbus_request_success (request_id);
 	

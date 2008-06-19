@@ -21,26 +21,7 @@
       <arg type="as" name="keys" direction="in" />
       <arg type="as" name="values" direction="in" />
     </method>
-    
-    <!--
-       Registers a new metadata type. The metadata name must be
-       namespaced with an appropriate class in the format
-       "class.name".
        
-       The datatype argument for RegisterType should be one of the
-       following: 
-       "index"   (a string which is stored in a full text index for searching)
-       "string"  (a non-indexable string which will not show up in searches)
-       "numeric" (a signed number which can be either an integer or a float)
-       "date"    (format should be "yyyy-mm-dd hh:mm:ss")
-       
-       Metadata defined here is considered non-embeddable and writable.
-      -->
-    <method name="RegisterType">
-      <arg type="s" name="name" direction="in" />
-      <arg type="s" name="datatype" direction="in" />
-    </method>
-    
     <!-- Gets all details of a named metadata type. -->		
     <method name="GetTypeDetails">
       <arg type="s" name="name" direction="in" />
@@ -57,16 +38,7 @@
       <arg type="s" name="metadata_class" direction="in" />
       <arg type="as" name="result" direction="out" />
     </method>
-    
-    <!-- Returns an array of all metadata types that are writeable and
-	 registered for a certain class. You can enter "*" as the class
-	 to get all metadat types for all classes that are writeable.
-      -->
-    <method name="GetWritableTypes">
-      <arg type="s" name="metadata_class" direction="in" />
-      <arg type="as" name="result" direction="out" />
-    </method>
-    
+       
     <!-- Returns an array of all metadata type classes that are
 	 registered.
       -->

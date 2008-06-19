@@ -455,10 +455,8 @@ tracker_metadata_set (TrackerClient *client, ServiceType service, const char *id
 void
 tracker_metadata_register_type	(TrackerClient *client, const char *name, MetadataTypes type, GError **error)
 {
-	char *meta_type = metadata_types[type];
-
-	org_freedesktop_Tracker_Metadata_register_type  (client->proxy_metadata, name, meta_type, &*error);
-
+        /* This does nothing now, this API has been removed */
+        g_warning ("%s no longer does anything", __FUNCTION__);
 }
 
 MetaDataTypeDetails *	
@@ -493,13 +491,10 @@ tracker_metadata_get_registered_types (TrackerClient *client, const char *class,
 char **		
 tracker_metadata_get_writeable_types (TrackerClient *client, const char *class, GError **error)
 {
-	char **array = NULL;
-
-	if (!org_freedesktop_Tracker_Metadata_get_writable_types  (client->proxy_metadata, class, &array, &*error)) {
-		return NULL;
-	}
-
-	return array;
+        /* This does nothing now, this API has been removed */
+        g_warning ("%s no longer does anything", __FUNCTION__);
+        
+        return NULL;
 }
 
 
@@ -839,10 +834,44 @@ tracker_search_metadata_by_text (TrackerClient *client, const char *query,  GErr
 
 
 
+char ** 	 
+tracker_search_metadata_by_text_and_mime (TrackerClient *client, const char *query, const char **mimes, GError **error) 	 
+{ 	 
+        char **strs; 	 
+	
+        if (!org_freedesktop_Tracker_Files_search_by_text_and_mime  (client->proxy_files, query,(const char **) mimes, &strs, &*error)) { 	 
+                return NULL; 	 
+        } 	 
+        return strs; 	 
+	
+} 	 
+
+
+char ** 	 
+tracker_search_metadata_by_text_and_mime_and_location (TrackerClient *client, const char *query, const char **mimes, const char *location, GError **error) 	 
+{ 	 
+        char **strs; 	 
+	
+        if (!org_freedesktop_Tracker_Files_search_by_text_and_mime_and_location (client->proxy_files, query, (const char **)mimes, location, &strs, &*error)) { 	 
+                return NULL; 	 
+        } 	 
+        return strs; 	 
+	
+} 	 
 
 
 
-
+char ** 	 
+tracker_search_metadata_by_text_and_location (TrackerClient *client, const char *query, const char *location, GError **error) 	 
+{ 	 
+        char **strs; 	 
+	
+        if (!org_freedesktop_Tracker_Files_search_by_text_and_location (client->proxy_files, query, location, &strs, &*error)) { 	 
+                return NULL; 	 
+        } 	 
+        return strs; 	 
+	
+}
 
 
 
@@ -1006,10 +1035,10 @@ tracker_metadata_register_type_async (TrackerClient *client, const char *name, M
 	callback_struct->callback = callback;
 	callback_struct->data = user_data;
 
-	char *meta_type = metadata_types[type];
+        /* This does nothing now, this API has been removed */
+        g_warning ("%s no longer does anything", __FUNCTION__);
 
-	client->last_pending_call = org_freedesktop_Tracker_Metadata_register_type_async  (client->proxy_metadata, name, meta_type, tracker_void_reply, callback_struct);
-
+        tracker_void_reply (client->proxy_metadata, NULL, callback_struct);
 }
 
 
@@ -1041,8 +1070,10 @@ tracker_metadata_get_writeable_types_async (TrackerClient *client, const char *c
 	callback_struct->data = user_data;
 
 
-	client->last_pending_call = org_freedesktop_Tracker_Metadata_get_writable_types_async  (client->proxy_metadata, class, tracker_array_reply, callback_struct);
+        /* This does nothing now, this API has been removed */
+        g_warning ("%s no longer does anything", __FUNCTION__);
 
+        tracker_void_reply (client->proxy_metadata, NULL, callback_struct);
 }
 
 

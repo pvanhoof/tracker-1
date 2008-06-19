@@ -889,3 +889,185 @@ tracker_files_get_metadata_for_files_in_folder (TrackerFiles  *object,
 
         return TRUE;
 }
+
+gboolean
+tracker_files_search_by_text_and_mime (TrackerFiles   *object,
+				       const gchar    *text,
+				       gchar         **mime_types,
+				       gchar        ***values,
+				       GError        **error)
+{
+	TrackerDBInterface  *iface;
+	TrackerDBResultSet  *result_set;
+	guint                request_id;
+
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_return_val_if_fail (text != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (mime_types != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (g_strv_length (mime_types) > 0, FALSE, error);
+	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
+
+	tracker_dbus_request_new (request_id,
+				  "DBus request to search files by text & mime types, "
+                                  "text:'%s', mime types:%d",
+                                  text,
+                                  g_strv_length (mime_types));
+
+	iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
+	result_set = tracker_db_search_text_and_mime (iface, text, mime_types);
+
+	if (result_set) {
+		gboolean  valid = TRUE;
+		gchar    *prefix, *name;
+		gint      row_count = 0;
+		gint      i = 0;
+
+		row_count = tracker_db_result_set_get_n_rows (result_set);
+		*values = g_new0 (gchar *, row_count);
+
+		while (valid) {
+			tracker_db_result_set_get (result_set,
+						   0, &prefix,
+						   1, &name,
+						   -1);
+
+			*values[i++] = g_build_filename (prefix, name, NULL);
+			valid = tracker_db_result_set_iter_next (result_set);
+
+			g_free (prefix);
+			g_free (name);
+		}
+
+		g_object_unref (result_set);
+	} else {
+		*values = g_new0 (gchar *, 1);
+		*values[0] = NULL;
+	}
+	
+        tracker_dbus_request_success (request_id);
+
+	return TRUE;
+}
+
+gboolean
+tracker_files_search_by_text_and_location (TrackerFiles   *object,
+					   const gchar    *text,
+					   const gchar    *uri,
+					   gchar        ***values,
+					   GError        **error)
+{
+	TrackerDBInterface *iface;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
+
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_return_val_if_fail (text != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (uri != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
+
+	tracker_dbus_request_new (request_id,
+				  "DBus request to search files by text & location, "
+                                  "text:'%s', uri:'%s'",
+                                  text,
+                                  uri);
+
+	iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
+	result_set = tracker_db_search_text_and_location (iface, text, uri);
+
+	if (result_set) {
+		gboolean  valid = TRUE;
+		gchar    *prefix, *name;
+		gint      row_count;
+		gint      i = 0;
+
+		row_count = tracker_db_result_set_get_n_rows (result_set);
+		*values = g_new0 (gchar *, row_count);
+
+		while (valid) {
+			tracker_db_result_set_get (result_set,
+						   0, &prefix,
+						   1, &name,
+						   -1);
+
+			*values[i++] = g_build_filename (prefix, name, NULL);
+			valid = tracker_db_result_set_iter_next (result_set);
+
+			g_free (prefix);
+			g_free (name);
+		}
+
+		g_object_unref (result_set);
+	} else {
+		*values = g_new0 (gchar *, 1);
+		*values[0] = NULL;
+	}
+
+        tracker_dbus_request_success (request_id);
+
+	return TRUE;
+}
+
+gboolean
+tracker_files_search_by_text_and_mime_and_location (TrackerFiles   *object,
+						    const gchar    *text,
+						    gchar         **mime_types,
+						    const gchar    *uri,
+						    gchar        ***values,
+						    GError        **error)
+{
+	TrackerDBInterface *iface;
+	TrackerDBResultSet *result_set;
+	guint               request_id;
+
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_return_val_if_fail (text != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (mime_types != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (g_strv_length (mime_types) > 0, FALSE, error);
+	tracker_dbus_return_val_if_fail (uri != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
+
+	tracker_dbus_request_new (request_id,
+				  "DBus request to search files by text & mime types & location, "
+                                  "text:'%s', mime types:%d, uri:'%s'",
+                                  text,
+				  g_strv_length (mime_types),
+                                  uri);
+
+	iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
+	result_set = tracker_db_search_text_and_mime_and_location (iface, text, mime_types, uri);
+
+	if (result_set) {
+		gboolean  valid = TRUE;
+		gchar    *prefix, *name;
+		gint      row_count;
+		gint      i = 0;
+
+		row_count = tracker_db_result_set_get_n_rows (result_set);
+		*values = g_new0 (gchar *, row_count);
+
+		while (valid) {
+			tracker_db_result_set_get (result_set,
+						   0, &prefix,
+						   1, &name,
+						   -1);
+
+			*values[i++] = g_build_filename (prefix, name, NULL);
+			valid = tracker_db_result_set_iter_next (result_set);
+
+			g_free (prefix);
+			g_free (name);
+		}
+
+		g_object_unref (result_set);
+	} else {
+		*values = g_new0 (gchar *, 1);
+		*values[0] = NULL;
+	}
+
+        tracker_dbus_request_success (request_id);
+
+	return TRUE;
+}

@@ -2179,7 +2179,13 @@ tracker_db_manager_init (gboolean     attach_all_dbs,
 	db_user_data_dir = g_strdup (user_data_dir);
 	db_sys_tmp_dir = g_strdup (sys_tmp_dir);
 
-	/* create directory in tmp */
+	/* Make sure we remove and recreate the cache directory in tmp
+	 * each time we start up, this is meant to be a per-instance
+	 * thing.
+	 */
+	g_message ("Removing directory:'%s'", db_sys_tmp_dir);
+	tracker_path_remove (db_sys_tmp_dir);
+
 	g_message ("Creating directory:'%s'", db_sys_tmp_dir);
 	g_mkdir_with_parents (db_sys_tmp_dir, 00755);
 
@@ -2191,6 +2197,9 @@ tracker_db_manager_init (gboolean     attach_all_dbs,
 
 	load_prepared_queries ();
 
+	/* Needs to be BEFORE the set_up_databases, since it uses
+	 * public API calls which check we are initialized.
+	 */
 	initialized = TRUE;
 
 	/* Configure database locations and interfaces */
@@ -2270,10 +2279,40 @@ tracker_db_manager_need_reindex (void)
 }
 
 void
-tracker_db_manager_set_up_databases (gboolean remove_all_first) 
+tracker_db_manager_close_all (void)
+{
+	guint i;
+
+	/* Close all dbs first. */
+        for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
+		if (dbs[i].iface) {
+			g_object_unref (dbs[i].iface);
+			dbs[i].iface = NULL;
+		}
+        }
+}
+
+void
+tracker_db_manager_delete_all (void)
+{
+	/* Make sure all DBs are closed first */
+	tracker_db_manager_close_all ();
+
+	/* Physically remove directories */
+	g_message ("Removing directory:'%s'", db_data_dir);
+	tracker_path_remove (db_data_dir);
+	
+	g_message ("Removing directory:'%s'", db_user_data_dir);
+	tracker_path_remove (db_user_data_dir);
+	
+	g_message ("Removing directory:'%s'", db_sys_tmp_dir);
+	tracker_path_remove (db_sys_tmp_dir);
+}
+
+void
+tracker_db_manager_create_all (gboolean remove_all_first) 
 {
 	gboolean current_attach_all;
-	guint    i;
 
 	g_return_if_fail (initialized != FALSE);
 
@@ -2283,26 +2322,11 @@ tracker_db_manager_set_up_databases (gboolean remove_all_first)
 	/* Don't attach while we do this... */
 	attach_all = FALSE;
 
-	/* Close all dbs first. */
-        for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
-		if (dbs[i].iface) {
-			g_object_unref (dbs[i].iface);
-			dbs[i].iface = NULL;
-		}
-        }
-
-	/* Clean up any ontology information we have */
-	tracker_ontology_shutdown ();
-	
+	/* Shut things down first */
 	if (remove_all_first) {
-		g_message ("Removing directory:'%s'", db_data_dir);
-		tracker_path_remove (db_data_dir);
-
-		g_message ("Removing directory:'%s'", db_user_data_dir);
-		tracker_path_remove (db_user_data_dir);
-
-		g_message ("Removing directory:'%s'", db_sys_tmp_dir);
-		tracker_path_remove (db_sys_tmp_dir);
+		tracker_db_manager_delete_all ();
+	} else {
+		tracker_db_manager_close_all ();
 	}
 
 	/* Don't check for these first, just do it */
@@ -2315,25 +2339,14 @@ tracker_db_manager_set_up_databases (gboolean remove_all_first)
 	g_message ("Creating directory:'%s'", db_sys_tmp_dir);
 	g_mkdir_with_parents (db_sys_tmp_dir, 00755);
 
-	/* Initialize ontology information */
+	/* Reinitialize ontology */
+	tracker_ontology_shutdown ();
 	tracker_ontology_init ();
 
-	/* Create all interfaces (and dbs as a result) and then unref
-	 * them to close the dbs.
+	/* Now we close these databases again and wait for the next
+	 * time they are needed.
 	 */
-        for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
-		tracker_db_manager_get_db_interface (i);
-
-		if (dbs[i].iface) {
-			g_object_unref (dbs[i].iface);
-
-
-			/* Reset the interface value so we get a new
-			 * object next time it is needed.
-			 */
-			dbs[i].iface = NULL;
-		}
-        }
+	tracker_db_manager_close_all ();
 
 	/* Set the attach setting back to what it was */
 	attach_all = current_attach_all;

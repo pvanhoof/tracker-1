@@ -883,7 +883,7 @@ indexer_get_running_cb (DBusGProxy *proxy,
 	g_debug ("File check queue processed, sending first %d to the indexer", 
 		 g_strv_length (files));
 	
-	org_freedesktop_Tracker_Indexer_check_files_async (proxy, 
+	org_freedesktop_Tracker_Indexer_files_check_async (proxy, 
 							   (const gchar **) files,
 							   indexer_check_files_cb,
 							   files);

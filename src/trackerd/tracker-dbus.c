@@ -311,39 +311,6 @@ tracker_dbus_get_object (GType type)
         return NULL;
 }
 
-void
-tracker_dbus_indexer_start (void)
-{
-	GError *error = NULL;
-
-	if (!connection) {
-		g_critical ("DBus support must be initialized before starting the indexer!");
-		return;
-	}
-
-	if (!proxy_for_indexer) {
-		/* Get proxy for Service / Path / Interface of the indexer */
-		proxy_for_indexer = dbus_g_proxy_new_for_name (connection,
-							       "org.freedesktop.Tracker.Indexer", 
- 							       "/org/freedesktop/Tracker/Indexer",
-							       "org.freedesktop.Tracker.Indexer");
-		
-		if (!proxy_for_indexer) {
-			g_critical ("Couldn't create a DBusGProxy to the indexer service");
-			return;
-		}
-	}
-
-	org_freedesktop_Tracker_Indexer_set_running (proxy_for_indexer, 
-						     TRUE, 
-						     &error);
-
-	if (error) {
-		g_warning ("Couldn't start indexer, %s",
-			   error->message);
-	}
-}
-
 DBusGProxy *
 tracker_dbus_indexer_get_proxy (void)
 {

@@ -88,7 +88,7 @@ struct TrackerIndexerPrivate {
 
 	guint idle_id;
 
-	guint reindex : 1;
+	gboolean reindexed_on_init;
 };
 
 struct PathInfo {
@@ -154,7 +154,7 @@ reindex_database (TrackerIndexer *indexer)
 	priv->contents = NULL;
 	
 	/* Now create the new databases */
-	tracker_db_manager_set_up_databases (TRUE);
+	tracker_db_manager_create_all (TRUE);
 
 	/* Now establish new connections */
 	priv->common = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
@@ -306,6 +306,12 @@ tracker_indexer_init (TrackerIndexer *indexer)
 	
 	if (tracker_db_manager_need_reindex ()) {
 		reindex_database (indexer);
+
+		/* We set this flag so we don't attempt to do it in
+		 * the database_check function which the daemon
+		 * calls.
+		 */
+		priv->reindexed_on_init = TRUE;
 	}
 
 	index_file = g_build_filename (priv->db_dir, "file-index.db", NULL);
@@ -597,6 +603,72 @@ tracker_indexer_new (void)
 }
 
 gboolean
+tracker_indexer_database_check (TrackerIndexer  *indexer,
+				gboolean         force_reindex,
+				gboolean        *first_time_index,
+				GError         **error)
+{
+	TrackerIndexerPrivate *priv;
+	guint                  request_id;
+
+	tracker_dbus_return_val_if_fail (TRACKER_IS_INDEXER (indexer), FALSE, error);
+
+	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_request_new (request_id,
+                                  "DBus request to check database health");
+
+	if (G_UNLIKELY (force_reindex)) {
+		*first_time_index = TRUE;
+
+		/* If we reindexed on initialization, don't do it
+		 * again here.
+		 */ 
+		if (!priv->reindexed_on_init) {
+			reindex_database (indexer);
+		}
+	} else {
+		/* Is this the first time? */
+		*first_time_index = tracker_db_manager_need_reindex ();
+		
+		if (*first_time_index) {
+			/* Create new databases */
+			tracker_dbus_request_comment (request_id, 
+						      "Creating databases...");
+			tracker_db_manager_create_all (FALSE);
+		}
+	}
+		
+	tracker_dbus_request_success (request_id);
+
+	return TRUE;
+}
+
+gboolean
+tracker_indexer_database_reindex (TrackerIndexer  *indexer,
+				  GError         **error)
+{
+	TrackerIndexerPrivate *priv;
+	guint                  request_id;
+
+	tracker_dbus_return_val_if_fail (TRACKER_IS_INDEXER (indexer), FALSE, error);
+
+	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_request_new (request_id,
+                                  "DBus request to reindex the database");
+
+
+	reindex_database (indexer);
+	
+	tracker_dbus_request_success (request_id);
+
+	return TRUE;
+}
+
+gboolean
 tracker_indexer_set_running (TrackerIndexer  *indexer,
 			     gboolean         should_be_running,
 			     GError         **error)
@@ -659,7 +731,7 @@ tracker_indexer_get_running (TrackerIndexer  *indexer,
 }
 
 gboolean
-tracker_indexer_check_files (TrackerIndexer  *indexer,
+tracker_indexer_files_check (TrackerIndexer  *indexer,
 			     GStrv            files,
 			     GError         **error)
 {
@@ -702,7 +774,7 @@ tracker_indexer_check_files (TrackerIndexer  *indexer,
 }
 
 gboolean
-tracker_indexer_update_files (TrackerIndexer  *indexer,
+tracker_indexer_files_update (TrackerIndexer  *indexer,
 			      GStrv            files,
 			      GError         **error)
 {
@@ -745,7 +817,7 @@ tracker_indexer_update_files (TrackerIndexer  *indexer,
 }
 
 gboolean
-tracker_indexer_delete_files (TrackerIndexer  *indexer,
+tracker_indexer_files_delete (TrackerIndexer  *indexer,
 			      GStrv            files,
 			      GError         **error)
 {
@@ -787,25 +859,3 @@ tracker_indexer_delete_files (TrackerIndexer  *indexer,
 	return TRUE;
 }
 
-gboolean
-tracker_indexer_reindex (TrackerIndexer  *indexer,
-			 GError         **error)
-{
-	TrackerIndexerPrivate *priv;
-	guint                  request_id;
-
-	tracker_dbus_return_val_if_fail (TRACKER_IS_INDEXER (indexer), FALSE, error);
-
-	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
-	request_id = tracker_dbus_get_next_request_id ();
-
-	tracker_dbus_request_new (request_id,
-                                  "DBus request to reindex the database");
-
-
-	reindex_database (indexer);
-	
-	tracker_dbus_request_success (request_id);
-
-	return TRUE;
-}

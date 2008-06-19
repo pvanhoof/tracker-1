@@ -51,25 +51,29 @@ struct TrackerIndexerClass {
 	void (*index_updated) (TrackerIndexer *indexer);
 };
 
-GType           tracker_indexer_get_type     (void) G_GNUC_CONST;
-TrackerIndexer *tracker_indexer_new          (void);
-gboolean        tracker_indexer_set_running  (TrackerIndexer  *indexer,
-					      gboolean         should_be_running,
-					      GError         **error);
-gboolean        tracker_indexer_get_running  (TrackerIndexer  *indexer,
-					      gboolean        *is_running,
-					      GError         **error);
-gboolean        tracker_indexer_check_files  (TrackerIndexer  *indexer,
-					      GStrv            files,
-					      GError         **error);
-gboolean        tracker_indexer_update_files (TrackerIndexer  *indexer,
-					      GStrv            files,
-					      GError         **error);
-gboolean        tracker_indexer_delete_files (TrackerIndexer  *indexer,
-					      GStrv            files,
-					      GError         **error);
-gboolean        tracker_indexer_reindex      (TrackerIndexer  *indexer,
-					      GError         **error);
+GType           tracker_indexer_get_type       (void) G_GNUC_CONST;
+TrackerIndexer *tracker_indexer_new              (void);
+gboolean        tracker_indexer_database_check   (TrackerIndexer  *indexer,
+						  gboolean         force_reindex,
+						  gboolean        *first_time_index,
+						  GError         **error);
+gboolean        tracker_indexer_database_reindex (TrackerIndexer  *indexer,
+						  GError         **error);
+gboolean        tracker_indexer_set_running      (TrackerIndexer  *indexer,
+						  gboolean         should_be_running,
+						  GError         **error);
+gboolean        tracker_indexer_get_running      (TrackerIndexer  *indexer,
+						  gboolean        *is_running,
+						  GError         **error);
+gboolean        tracker_indexer_files_check      (TrackerIndexer  *indexer,
+						  GStrv            files,
+						  GError         **error);
+gboolean        tracker_indexer_files_update     (TrackerIndexer  *indexer,
+						  GStrv            files,
+						  GError         **error);
+gboolean        tracker_indexer_files_delete     (TrackerIndexer  *indexer,
+						  GStrv            files,
+						  GError         **error);
 
 G_END_DECLS
 

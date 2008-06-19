@@ -80,7 +80,7 @@ tracker_metadata_get_text_file (const gchar *uri,
 		gchar *temp_filename;
 		gint   fd;
 
-                filename = g_strdup_printf ("Tracker-%s.%d", g_get_user_name (), getpid ());
+                filename = g_strdup_printf ("tracker-%s", g_get_user_name ());
                 sys_tmp_dir = g_build_filename (g_get_tmp_dir (), filename, NULL);
                 g_free (filename);
                 

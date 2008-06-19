@@ -149,14 +149,14 @@ initialize_indexer (void)
                                           "data", 
                                           NULL);
 
-	filename = g_strdup_printf ("Tracker-%s.%d", g_get_user_name (), getpid ());
+	filename = g_strdup_printf ("tracker-%s", g_get_user_name ());
 	sys_tmp_dir = g_build_filename (g_get_tmp_dir (), filename, NULL);
 	g_free (filename);
 
 	tracker_db_manager_init (FALSE, data_dir, user_data_dir, sys_tmp_dir);
 
         if (reindex) {
-                tracker_db_manager_set_up_databases (TRUE);
+                tracker_db_manager_create_all (TRUE);
         }
 
 	g_free (data_dir);

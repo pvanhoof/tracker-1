@@ -49,6 +49,7 @@
 #include "tracker-crawler.h"
 #include "tracker-dbus.h"
 #include "tracker-indexer.h"
+#include "tracker-indexer-client.h"
 #include "tracker-monitor.h"
 #include "tracker-process-files.h"
 #include "tracker-status.h"
@@ -353,27 +354,6 @@ sanity_check_option_values (void)
 			 "File types excluded from indexing");
 }
 
-static void
-create_index (gboolean need_data)
-{
-	TrackerDBInterface *iface;
-	
-	tracker->first_time_index = TRUE;
-
-	/* Reset stats for embedded services if they are being reindexed */
-	if (!need_data) {
-		iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
-
-		g_message ("*** DELETING STATS *** ");
-		tracker_db_exec_no_reply (iface, 
-					  "update ServiceTypes set TypeCount = 0 where Embedded = 1");
-	}
-
-	/* Create databases */
-
-	/* create file content, email content and email dbs */
-}
-
 static gboolean 
 shutdown_timeout_cb (gpointer user_data)
 {
@@ -457,7 +437,7 @@ initialize_locations (void)
 				     "tracker", 
 				     NULL);
 
-	filename = g_strdup_printf ("Tracker-%s.%d", g_get_user_name (), getpid ());
+	filename = g_strdup_printf ("tracker-%s", g_get_user_name ());
 	sys_tmp_dir = g_build_filename (g_get_tmp_dir (), filename, NULL);
 	g_free (filename);
 
@@ -469,11 +449,13 @@ initialize_locations (void)
 }
 
 static void
-initialize_directories (gboolean *need_index)
+initialize_directories (void)
 {
 	gchar *filename;
 
-	*need_index = FALSE;
+	/* NOTE: We don't create the database directories here, the
+	 * tracker-db-manager does that for us.
+	 */ 
 	
 	/* Remove an existing one */
 	if (g_file_test (sys_tmp_dir, G_FILE_TEST_EXISTS)) {
@@ -490,20 +472,6 @@ initialize_directories (gboolean *need_index)
 	g_free (filename);
 
 	/* Remove database if we are reindexing */
-	if (reindex) {
-		tracker_path_remove (data_dir);
-		*need_index = TRUE;
-	}
-
-        /* Create other directories we need */
-	if (!g_file_test (user_data_dir, G_FILE_TEST_EXISTS)) {
-		g_mkdir_with_parents (user_data_dir, 00755);
-	}
-
-	if (!g_file_test (data_dir, G_FILE_TEST_EXISTS)) {
-		g_mkdir_with_parents (data_dir, 00755);
-	}
-
         filename = g_build_filename (sys_tmp_dir, "Attachments", NULL);
 	g_mkdir_with_parents (filename, 00700);
 	g_free (filename);
@@ -512,22 +480,59 @@ initialize_directories (gboolean *need_index)
 	tracker_file_unlink (log_filename);
 }
 
-static void
-initialize_databases (gboolean need_index)
+static gboolean
+initialize_databases (void)
 {
-	Indexer  *index;
-	gchar    *final_index_name;
-	gboolean  need_data;
-	
-	if (!tracker->readonly && need_index) {
-		create_index (need_data);
-	} else {
-		tracker->first_time_index = FALSE;
+	DBusGProxy *proxy;
+	GError     *error = NULL;
+	Indexer    *index;
+	gchar      *final_index_name;
+	gboolean    success;
+
+	/* We use the blocking variant of this call here because
+	 * until we know the response, the daemon can't do anything
+	 * anyway.
+	 */
+	g_message ("Checking the database is ready, this may take a few moments, please wait..."); 
+
+	proxy = tracker_dbus_indexer_get_proxy ();
+	success = org_freedesktop_Tracker_Indexer_database_check (proxy, 
+								  reindex,
+								  &tracker->first_time_index, 
+								  &error);
+
+	if (!success || error) {
+		if (error) {
+			g_critical (error->message);
+			g_error_free (error);
+		}
+
+		g_critical ("Could not check the database status, "
+			    "can not start without the database!");
+
+		return FALSE;
+	}
+
+	/*
+	 * Create SQLite databases 
+	 */
+	if (!tracker->readonly && reindex) {
+		TrackerDBInterface *iface;
+		
+		tracker->first_time_index = TRUE;
+		
+		/* Reset stats for embedded services if they are being reindexed */
+		iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
+		
+		g_message ("*** DELETING STATS *** ");
+		tracker_db_exec_no_reply (iface, 
+					  "update ServiceTypes set TypeCount = 0 where Embedded = 1");
+		
 	}
 
 	/* Check db integrity if not previously shut down cleanly */
 	if (!tracker->readonly && 
-	    !need_index && 
+	    !tracker->first_time_index && 
 	    tracker_db_get_option_int ("IntegrityCheck") == 1) {
 		g_message ("Performing integrity check as the daemon was not shutdown cleanly");
 		/* FIXME: Finish */
@@ -541,8 +546,8 @@ initialize_databases (gboolean need_index)
 		tracker_db_set_option_int ("InitialIndex", 1);
 	}
 
-	/* Move final file to index file if present and no files left
-	 * to merge.
+	/*
+	 * Create index files
 	 */
 	final_index_name = g_build_filename (data_dir, "file-index-final", NULL);
 	
@@ -595,6 +600,8 @@ initialize_databases (gboolean need_index)
 	tracker->email_index = index;
 
 	/* db_con->word_index = tracker->file_index; */
+
+	return TRUE;
 }
 
 static gboolean
@@ -695,7 +702,6 @@ main (gint argc, gchar *argv[])
 	GOptionGroup   *group;
 	GError         *error = NULL;
 	GSList         *l;
-	gboolean        need_index;
 
         g_type_init ();
         
@@ -823,7 +829,7 @@ main (gint argc, gchar *argv[])
 
 	sanity_check_option_values ();
 
-	initialize_directories (&need_index);
+	initialize_directories ();
 
 	tracker_nfs_lock_init (tracker_config_get_nfs_locking (tracker->config));
 	tracker_db_init ();
@@ -844,7 +850,9 @@ main (gint argc, gchar *argv[])
 
 	tracker->readonly = check_multiple_instances ();
 
-	initialize_databases (need_index);
+	if (!initialize_databases ()) {
+		return EXIT_FAILURE;
+	}
 
 	/* Set our status as running, if this is FALSE, threads stop
 	 * doing what they do and shutdown.

@@ -1,5 +1,36 @@
 2008-06-19  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-db/tracker-db-manager.[ch]: Clean up the API a bit,
+	separate the functionality so we have an API to create the
+	databases, delete the databases and close them all.
+
+	* src/trackerd/tracker-dbus.[ch]: Removed
+	tracker_dbus_indexer_start(), it is unused now.
+	
+	* src/tracker-indexer/tracker-metadata.c:
+	* src/tracker-indexer/tracker-main.c: 
+	* src/trackerd/tracker-main.c: DON'T use PID, since it is shared
+	between the indexer and the daemon. 
+	
+	* src/trackerd/tracker-main.c: Added a call to the blocking
+	version of the DBus API to check the database state from the
+	indexer so we make sure the indexer ALWAYS creates the database if
+	it doesn't exist in the first place. Plus if we force a reindex on
+	start up, the indexer is the one that does it. Also, when creating
+	the system temporary directory, 
+
+	* src/trackerd/tracker-crawler.c: 
+	* src/trackerd/tracker-monitor.c: Updated to renamed API.
+	
+	* data/dbus/tracker-indexer.xml:
+	* src/tracker-indexer/tracker-indexer.[ch]: Renamed some API calls
+	and also added a call to check the database state and return if it
+	is the first time it will be indexed. Plus the user can force a
+	reindex while checking. This is meant to be called from the daemon
+	on start up to make sure the database is ready to use.
+
+2008-06-19  Martyn Russell  <martyn@imendio.com>
+
 	* data/dbus/tracker-files.xml:
 	* data/dbus/tracker-keywords.xml:
 	* data/dbus/tracker-metadata.xml:

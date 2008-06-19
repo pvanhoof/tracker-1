@@ -9,23 +9,6 @@ insert Into Options (OptionKey, OptionValue) values ('Sequence', '1');
 insert Into Options (OptionKey, OptionValue) values ('EventSequence', '1');
 insert Into Options (OptionKey, OptionValue) values ('UpdateCount', '0');
 
-/* This should become a TEMPORARY table */
-CREATE TABLE Events
-(
-	ID		Integer primary key not null,
-	ServiceID	Integer not null,
-	BeingHandled	Integer default 0,
-	EventType	Text
-);
-
-/* This should become a TEMPORARY table */
-CREATE TABLE LiveSearches
-(
-	ServiceID	Integer not null,
-	SearchID	Text,
-
-	Unique (ServiceID, SearchID)
-);
 
 /* store volume and HAL info here for files */
 CREATE TABLE  Volumes

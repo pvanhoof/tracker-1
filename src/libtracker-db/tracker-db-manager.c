@@ -165,7 +165,7 @@ set_up_databases (void)
                 /* Fill absolute path for the database */
                 dir = location_to_directory (dbs[i].location);
 		dbs[i].abs_filename = g_build_filename (dir, dbs[i].file, NULL);
-		db_interface_create (i, attach_all);
+		dbs[i].iface = db_interface_create (i, attach_all);
         }
 
 	g_message ("Setting up all databases completed");

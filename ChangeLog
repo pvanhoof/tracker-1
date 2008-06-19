@@ -1,5 +1,9 @@
 2008-06-19  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/libtracker-db/tracker-db-manager.c (set_up_databases): Fix typo.
+
+2008-06-19  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/libtracker-db/tracker-db-manager.c (set_up_databases): Create
 	databases on DB manager initialization.
 	(tracker_db_manager_init): Ensure the tmp dir is created.

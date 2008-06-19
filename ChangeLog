@@ -1,5 +1,14 @@
 2008-06-19  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-db/tracker-db-manager.c: 
+	* src/trackerd/tracker-main.c: Again, create the databases when
+	needed on demand and don't create them when we initialise the
+	database manager so the trackerd doesn't try to create the
+	databases. Also, make sure we create the directories we need for
+	the nfs locking before we do it.
+
+2008-06-19  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-db/tracker-db-manager.[ch]: Clean up the API a bit,
 	separate the functionality so we have an API to create the
 	databases, delete the databases and close them all.

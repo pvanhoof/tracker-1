@@ -456,7 +456,13 @@ initialize_directories (void)
 	/* NOTE: We don't create the database directories here, the
 	 * tracker-db-manager does that for us.
 	 */ 
-	
+
+	g_message ("Checking directory exists:'%s'", user_data_dir);
+	g_mkdir_with_parents (user_data_dir, 00755);
+
+	g_message ("Checking directory exists:'%s'", data_dir);
+	g_mkdir_with_parents (data_dir, 00755);
+
 	/* Remove an existing one */
 	if (g_file_test (sys_tmp_dir, G_FILE_TEST_EXISTS)) {
 		tracker_path_remove (sys_tmp_dir);
@@ -615,10 +621,9 @@ check_multiple_instances (void)
 
 	lock_file = get_lock_file ();
 
-	lfp = g_open (lock_file, O_RDWR|O_CREAT, 0640);
+	lfp = g_open (lock_file, O_RDWR | O_CREAT, 0640);
 
 	if (lfp < 0) {
-		g_free (lock_file);
                 g_error ("Cannot open or create lockfile:'%s'", lock_file);
 	}
 
@@ -815,6 +820,8 @@ main (gint argc, gchar *argv[])
 		tracker_config_set_language (tracker->config, language);
 	}
 
+	initialize_directories ();
+
 	/* Initialize other subsystems */
 	tracker_log_init (log_filename, tracker_config_get_verbosity (tracker->config));
 	g_print ("Starting log:\n  File:'%s'\n", log_filename);
@@ -828,8 +835,6 @@ main (gint argc, gchar *argv[])
 	} 
 
 	sanity_check_option_values ();
-
-	initialize_directories ();
 
 	tracker_nfs_lock_init (tracker_config_get_nfs_locking (tracker->config));
 	tracker_db_init ();

@@ -124,8 +124,7 @@ static TrackerDBDefinition dbs[] = {
 static gboolean            db_exec_no_reply    (TrackerDBInterface *iface,
 						const gchar        *query,
 						...);
-static TrackerDBInterface *db_interface_create (TrackerDB           db,
-						gboolean            attach_all);
+static TrackerDBInterface *db_interface_create (TrackerDB           db);
 
 static gboolean            initialized;
 static gboolean            attach_all;
@@ -165,7 +164,6 @@ set_up_databases (void)
                 /* Fill absolute path for the database */
                 dir = location_to_directory (dbs[i].location);
 		dbs[i].abs_filename = g_build_filename (dir, dbs[i].file, NULL);
-		dbs[i].iface = db_interface_create (i, attach_all);
         }
 
 	g_message ("Setting up all databases completed");
@@ -1636,7 +1634,6 @@ db_type_to_string (TrackerDB db)
 
 static TrackerDBInterface *
 db_interface_get (TrackerDB  type,
-		  gboolean   attach_all,
 		  gboolean  *create)
 {
 	TrackerDBInterface *iface;
@@ -1690,14 +1687,12 @@ db_interface_get (TrackerDB  type,
 }
 
 static TrackerDBInterface *
-db_interface_get_common (gboolean attach_all)
+db_interface_get_common (void)
 {
 	TrackerDBInterface *iface;
 	gboolean            create;
 
-	iface = db_interface_get (TRACKER_DB_COMMON, 
-				  attach_all, 
-				  &create);
+	iface = db_interface_get (TRACKER_DB_COMMON, &create);
 
 	if (create) {
 		/* Create tables */
@@ -1726,14 +1721,12 @@ db_interface_get_common (gboolean attach_all)
 }
 
 static TrackerDBInterface *
-db_interface_get_cache (gboolean attach_all)
+db_interface_get_cache (void)
 {
 	TrackerDBInterface *iface;
 	gboolean            create;
 
-	iface = db_interface_get (TRACKER_DB_CACHE, 
-				  attach_all, 
-				  &create);
+	iface = db_interface_get (TRACKER_DB_CACHE, &create);
 
 	if (create) {
 		load_sql_file (iface, "sqlite-cache.sql", NULL);
@@ -1743,14 +1736,12 @@ db_interface_get_cache (gboolean attach_all)
 }
 
 static TrackerDBInterface *
-db_interface_get_file_metadata (gboolean attach_all)
+db_interface_get_file_metadata (void)
 {
 	TrackerDBInterface *iface;
 	gboolean            create;
 
-	iface = db_interface_get (TRACKER_DB_FILE_METADATA, 
-				  attach_all, 
-				  &create);
+	iface = db_interface_get (TRACKER_DB_FILE_METADATA, &create);
 
 	if (create) {
 		load_sql_file (iface, "sqlite-service.sql", NULL);
@@ -1761,14 +1752,12 @@ db_interface_get_file_metadata (gboolean attach_all)
 }
 
 static TrackerDBInterface *
-db_interface_get_file_contents (gboolean attach_all)
+db_interface_get_file_contents (void)
 {
 	TrackerDBInterface *iface;
 	gboolean            create;
 
-	iface = db_interface_get (TRACKER_DB_FILE_CONTENTS, 
-				  attach_all, 
-				  &create);
+	iface = db_interface_get (TRACKER_DB_FILE_CONTENTS, &create);
 
 	if (create) {
 		load_sql_file (iface, "sqlite-contents.sql", NULL);
@@ -1787,14 +1776,12 @@ db_interface_get_file_contents (gboolean attach_all)
 }
 
 static TrackerDBInterface *
-db_interface_get_email_metadata (gboolean attach_all)
+db_interface_get_email_metadata (void)
 {
 	TrackerDBInterface *iface;
 	gboolean            create;
 
-	iface = db_interface_get (TRACKER_DB_EMAIL_METADATA, 
-				  attach_all, 
-				  &create);
+	iface = db_interface_get (TRACKER_DB_EMAIL_METADATA, &create);
 
 	if (create) {
 		load_sql_file (iface, "sqlite-service.sql", NULL);
@@ -1806,14 +1793,12 @@ db_interface_get_email_metadata (gboolean attach_all)
 }
 
 static TrackerDBInterface *
-db_interface_get_email_contents (gboolean attach_all)
+db_interface_get_email_contents (void)
 {
 	TrackerDBInterface *iface;
 	gboolean            create;
 
-	iface = db_interface_get (TRACKER_DB_EMAIL_CONTENTS, 
-				  attach_all, 
-				  &create);
+	iface = db_interface_get (TRACKER_DB_EMAIL_CONTENTS, &create);
 
 	if (create) {
 		load_sql_file (iface, "sqlite-contents.sql", NULL);
@@ -2018,14 +2003,12 @@ db_xesam_create_lookup (TrackerDBInterface *iface)
 }
 
 static TrackerDBInterface *
-db_interface_get_xesam (gboolean attach_all)
+db_interface_get_xesam (void)
 {
 	TrackerDBInterface *iface;
 	gboolean            create;
 
-	iface = db_interface_get (TRACKER_DB_XESAM, 
-				  attach_all, 
-				  &create);
+	iface = db_interface_get (TRACKER_DB_XESAM, &create);
 
 	if (create) {
 		load_sql_file (iface, "sqlite-xesam.sql", NULL);
@@ -2041,21 +2024,21 @@ db_interface_get_xesam (gboolean attach_all)
 		db_xesam_create_lookup (iface);
 	}
 
-	db_exec_no_reply (iface,
-			  "ATTACH '%s' as 'file-meta'",
-			  tracker_db_manager_get_file (TRACKER_DB_FILE_METADATA));
+	/* db_exec_no_reply (iface, */
+	/* 		  "ATTACH '%s' as 'file-meta'", */
+	/* 		  tracker_db_manager_get_file (TRACKER_DB_FILE_METADATA)); */
 
-	db_exec_no_reply (iface,
-			  "ATTACH '%s' as 'email-meta'",
-			  tracker_db_manager_get_file (TRACKER_DB_EMAIL_METADATA));
+	/* db_exec_no_reply (iface, */
+	/* 		  "ATTACH '%s' as 'email-meta'", */
+	/* 		  tracker_db_manager_get_file (TRACKER_DB_EMAIL_METADATA)); */
 
-	db_exec_no_reply (iface,
-			  "ATTACH '%s' as 'common'",
-			  tracker_db_manager_get_file (TRACKER_DB_COMMON));
+	/* db_exec_no_reply (iface, */
+	/* 		  "ATTACH '%s' as 'common'", */
+	/* 		  tracker_db_manager_get_file (TRACKER_DB_COMMON)); */
 
-	db_exec_no_reply (iface,
-			  "ATTACH '%s' as 'cache'",
-			  tracker_db_manager_get_file (TRACKER_DB_CACHE));
+	/* db_exec_no_reply (iface, */
+	/* 		  "ATTACH '%s' as 'cache'", */
+	/* 		  tracker_db_manager_get_file (TRACKER_DB_CACHE)); */
 
 	/* Load static xesam data */
 	db_get_static_xesam_data (iface);
@@ -2064,30 +2047,29 @@ db_interface_get_xesam (gboolean attach_all)
 }
 
 static TrackerDBInterface *
-db_interface_create (TrackerDB db,
-		     gboolean  attach_all)
+db_interface_create (TrackerDB db)
 {
 	switch (db) {
         case TRACKER_DB_COMMON:
-		return db_interface_get_common (attach_all);
+		return db_interface_get_common ();
 
         case TRACKER_DB_CACHE:
-		return db_interface_get_cache (attach_all);
+		return db_interface_get_cache ();
 
         case TRACKER_DB_FILE_METADATA:
-		return db_interface_get_file_metadata (attach_all);
+		return db_interface_get_file_metadata ();
 
         case TRACKER_DB_FILE_CONTENTS:
-		return db_interface_get_file_contents (attach_all);
+		return db_interface_get_file_contents ();
 
         case TRACKER_DB_EMAIL_METADATA:
-		return db_interface_get_email_metadata (attach_all);
+		return db_interface_get_email_metadata ();
 
         case TRACKER_DB_EMAIL_CONTENTS:
-		return db_interface_get_email_contents (attach_all);
+		return db_interface_get_email_contents ();
 
 	case TRACKER_DB_XESAM:
-		return db_interface_get_xesam (attach_all);
+		return db_interface_get_xesam ();
 	}
 
 	g_critical ("This TrackerDB type:%d->'%s' has no interface set up yet!!",
@@ -2188,6 +2170,9 @@ tracker_db_manager_init (gboolean     attach_all_dbs,
 
 	g_message ("Creating directory:'%s'", db_sys_tmp_dir);
 	g_mkdir_with_parents (db_sys_tmp_dir, 00755);
+
+	g_mkdir_with_parents (db_data_dir, 00755);
+	g_mkdir_with_parents (db_user_data_dir, 00755);
 
 	/* Add prepared queries */
 	prepared_queries = g_hash_table_new_full (g_str_hash,
@@ -2364,6 +2349,10 @@ TrackerDBInterface *
 tracker_db_manager_get_db_interface (TrackerDB db)
 {
 	g_return_val_if_fail (initialized != FALSE, NULL);
+
+	if (!dbs[db].iface) {
+		dbs[db].iface = db_interface_create (db);
+	}
 
 	return dbs[db].iface;
 }

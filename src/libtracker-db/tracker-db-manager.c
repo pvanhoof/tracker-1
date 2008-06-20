@@ -140,7 +140,7 @@ static gchar              *data_dir;
 static gchar              *user_data_dir;
 static gchar              *sys_tmp_dir;
 static gpointer            db_type_enum_class_pointer;
-static TrackerDBInterface *attach_interface = NULL;
+static TrackerDBInterface *attach_iface = NULL;
 
 static const gchar * 
 location_to_directory (TrackerDBLocation location)
@@ -1658,26 +1658,33 @@ db_interface_get (TrackerDB  type,
 		   db_type_to_string (type));
 
 	if (attach_all) {
-		if (!attach_interface) {
-			attach_interface = tracker_db_interface_sqlite_new (path);
-			tracker_db_interface_set_procedure_table (attach_interface, 
-								  prepared_queries);
-
-			/* We don't have separate interfaces for each db in
-			 * this situation. We just have one interface.
-			 * One analyze when we create interfaces.
-			 */
+		iface = tracker_db_interface_sqlite_new (path);
+		tracker_db_interface_set_procedure_table (iface, 
+							  prepared_queries);
+	
+		/* We don't have separate interfaces for each db in
+		 * this situation. We just have one interface.
+		 * One analyze when we create interfaces.
+		 */
+		if (*create) {
 			g_message ("  Analyzing...");
-			db_exec_no_reply (attach_interface, "ANALYZE");
+			db_exec_no_reply (iface, "ANALYZE");
 		}
 
-		g_message ("  Attaching");
-		db_exec_no_reply (attach_interface, 
-				  "ATTACH '%s' as %s",
-				  dbs[type].abs_filename,
-				  dbs[type].name);
-
-		iface = attach_interface;
+		/* The reason we do this is because we need to create
+		 * a new interface for EACH filename so the sql files
+		 * are loaded into the right file instead of the
+		 * first one we create.
+		 */
+		if (attach_iface) {
+			g_message ("  Attaching");
+			db_exec_no_reply (attach_iface, 
+					  "ATTACH '%s' as %s",
+					  dbs[type].abs_filename,
+					  dbs[type].name);
+		} else {
+			attach_iface = iface;
+		}
 	} else {
 		iface = tracker_db_interface_sqlite_new (path);
 		tracker_db_interface_set_procedure_table (iface, 
@@ -2020,22 +2027,31 @@ db_interface_get_xesam (void)
 
 	iface = db_interface_get (TRACKER_DB_XESAM, &create);
 
+	if (!attach_iface) {
+		g_critical ("XESAM database could not be set up because "
+			    "there is no TrackerDBInterface with all connections "
+			    "attached. The common database is needed to create "
+			    "the xesam database correctly!");
+		g_object_unref (iface);
+		return NULL;
+	}
+
 	if (create) {
-		load_sql_file (iface, "sqlite-xesam.sql", NULL);
+		load_sql_file (attach_iface, "sqlite-xesam.sql", NULL);
 		
-		load_service_file_xesam (iface, "xesam.metadata");
-		load_service_file_xesam (iface, "xesam-convenience.metadata");
-		load_service_file_xesam (iface, "xesam-virtual.metadata");
-		load_service_file_xesam (iface, "xesam.service");
-		load_service_file_xesam (iface, "xesam-convenience.service");
-		load_service_file_xesam (iface, "xesam-service.smapping");
-		load_service_file_xesam (iface, "xesam-metadata.mmapping");
+		load_service_file_xesam (attach_iface, "xesam.metadata");
+		load_service_file_xesam (attach_iface, "xesam-convenience.metadata");
+		load_service_file_xesam (attach_iface, "xesam-virtual.metadata");
+		load_service_file_xesam (attach_iface, "xesam.service");
+		load_service_file_xesam (attach_iface, "xesam-convenience.service");
+		load_service_file_xesam (attach_iface, "xesam-service.smapping");
+		load_service_file_xesam (attach_iface, "xesam-metadata.mmapping");
 		
-		db_xesam_create_lookup (iface);
+		db_xesam_create_lookup (attach_iface);
 	}
 
 	/* Load static xesam data */
-	db_get_static_xesam_data (iface);
+	db_get_static_xesam_data (attach_iface);
 
 	return iface;
 }
@@ -2242,23 +2258,19 @@ tracker_db_manager_init (gboolean  attach_all_dbs,
 		g_message ("Creating database files, this may take a few moments...");
 
 		for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
-			TrackerDBInterface *iface;
-			
-			iface = db_interface_create (i);
-			
-			if (!attach_all) {
-				dbs[i].iface = iface;
-			}
+			dbs[i].iface = db_interface_create (i);
 		}
 
-		/* When attaching all, we have 2 references per
-		 * interface, one for the dbs and one for the
-		 * singletone interface, we need to unref both and
-		 * set the attach interface to NULL to close all
-		 * databases.
+		/* We don't close the dbs in the same loop as before
+		 * becase some databases need other databases
+		 * attached to be created correctly.
 		 */
-		g_object_unref (attach_interface);
-		attach_interface = NULL;
+		for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
+			g_object_unref (dbs[i].iface);
+			dbs[i].iface = NULL;
+		}
+
+		attach_iface = NULL;
 	} else {
 		/* Make sure we remove and recreate the cache directory in tmp
 		 * each time we start up, this is meant to be a per-run
@@ -2278,13 +2290,7 @@ tracker_db_manager_init (gboolean  attach_all_dbs,
 	g_message ("Loading databases files...");
 
 	for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
-		TrackerDBInterface *iface;
-
-		iface = db_interface_create (i);
-
-		if (!attach_all) {
-			dbs[i].iface = iface;
-		}
+		dbs[i].iface = db_interface_create (i);
 	}
 
 	initialized = TRUE;
@@ -2336,9 +2342,7 @@ tracker_db_manager_shutdown (void)
 	g_type_class_unref (db_type_enum_class_pointer);
 	db_type_enum_class_pointer = NULL;
 
-	if (attach_interface) {
-		g_object_unref (attach_interface);
-	}
+	attach_iface = NULL;
 
 	/* Make sure we shutdown all other modules we depend on */
 	tracker_ontology_shutdown ();
@@ -2360,7 +2364,7 @@ tracker_db_manager_get_db_interface (TrackerDB db)
 	g_return_val_if_fail (initialized != FALSE, NULL);
 
 	if (attach_all) {
-		return attach_interface;
+		return attach_iface;
 	}
 
 	return dbs[db].iface;

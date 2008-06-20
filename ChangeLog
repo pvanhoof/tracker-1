@@ -1,5 +1,17 @@
 2008-06-20  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-db/tracker-db-manager.c: Keep a reference to
+	each TrackerDBInterface and set the attach_iface to be the first
+	one we create and use that to attach all new interfaces we create.
+	Also don't create the XESAM database unless we have an
+	attach_iface because that is needed. This all works except now the
+	Services and Events tables are no longer created so the indexer
+	spits out warnings. If we DON'T attach_all when creating the
+	databases, the Services table is created but the Events table
+	still is not. This needs fixing.
+
+2008-06-20  Martyn Russell  <martyn@imendio.com>
+
 	* data/dbus/tracker-indexer.xml: 
 	* src/tracker-indexer/tracker-indexer.[ch]: Removed
 	DatabaseReindex and DatabaseCheck, now the daemon ALWAYS makes

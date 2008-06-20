@@ -81,5 +81,3 @@ CREATE TABLE  VFolders
 	primary key (Path, Name)
 
 );
-
-ANALYZE;

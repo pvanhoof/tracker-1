@@ -53,12 +53,6 @@ struct TrackerIndexerClass {
 
 GType           tracker_indexer_get_type       (void) G_GNUC_CONST;
 TrackerIndexer *tracker_indexer_new              (void);
-gboolean        tracker_indexer_database_check   (TrackerIndexer  *indexer,
-						  gboolean         force_reindex,
-						  gboolean        *first_time_index,
-						  GError         **error);
-gboolean        tracker_indexer_database_reindex (TrackerIndexer  *indexer,
-						  GError         **error);
 gboolean        tracker_indexer_set_running      (TrackerIndexer  *indexer,
 						  gboolean         should_be_running,
 						  GError         **error);

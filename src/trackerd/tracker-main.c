@@ -489,35 +489,8 @@ initialize_directories (void)
 static gboolean
 initialize_databases (void)
 {
-	DBusGProxy *proxy;
-	GError     *error = NULL;
-	Indexer    *index;
-	gchar      *final_index_name;
-	gboolean    success;
-
-	/* We use the blocking variant of this call here because
-	 * until we know the response, the daemon can't do anything
-	 * anyway.
-	 */
-	g_message ("Checking the database is ready, this may take a few moments, please wait..."); 
-
-	proxy = tracker_dbus_indexer_get_proxy ();
-	success = org_freedesktop_Tracker_Indexer_database_check (proxy, 
-								  reindex,
-								  &tracker->first_time_index, 
-								  &error);
-
-	if (!success || error) {
-		if (error) {
-			g_critical (error->message);
-			g_error_free (error);
-		}
-
-		g_critical ("Could not check the database status, "
-			    "can not start without the database!");
-
-		return FALSE;
-	}
+	Indexer *index;
+	gchar   *final_index_name;
 
 	/*
 	 * Create SQLite databases 
@@ -837,8 +810,8 @@ main (gint argc, gchar *argv[])
 	sanity_check_option_values ();
 
 	tracker_nfs_lock_init (tracker_config_get_nfs_locking (tracker->config));
+	tracker_db_manager_init (TRUE, reindex, &tracker->first_time_index); 
 	tracker_db_init ();
-	tracker_db_manager_init (TRUE, data_dir, user_data_dir, sys_tmp_dir); /* Using TRUE=broken */
 	tracker_xesam_manager_init ();
 	tracker_email_start_email_watching (tracker_config_get_email_client (tracker->config));
 
@@ -918,8 +891,8 @@ main (gint argc, gchar *argv[])
 	tracker_email_end_email_watching ();
 	tracker_dbus_shutdown ();
 	tracker_xesam_manager_shutdown ();
-	tracker_db_shutdown ();
 	tracker_db_manager_shutdown ();
+	tracker_db_shutdown ();
 	tracker_monitor_shutdown ();
 	tracker_nfs_lock_shutdown ();
 	tracker_log_shutdown ();

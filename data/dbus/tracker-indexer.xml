@@ -10,13 +10,6 @@
 
 <node name="/">
   <interface name="org.freedesktop.Tracker.Indexer">  
-    <method name="DatabaseCheck">
-      <arg type="b" name="force_reindex" direction="in" />
-      <arg type="b" name="first_time_index" direction="out" />
-    </method>
-
-    <method name="DatabaseReindex"/>
-
     <method name="GetRunning">
       <arg type="b" name="is_running" direction="out" />
     </method>

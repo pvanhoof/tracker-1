@@ -25,9 +25,6 @@
 
 #include "tracker-db-interface.h"
 
-#define TRACKER_DB_PAGE_SIZE_DEFAULT  4096
-#define TRACKER_DB_PAGE_SIZE_DONT_SET -1
-
 G_BEGIN_DECLS
 
 #define TRACKER_TYPE_DB (tracker_db_get_type ())
@@ -45,15 +42,11 @@ typedef enum {
 GType        tracker_db_get_type                            (void) G_GNUC_CONST;
 
 void         tracker_db_manager_init                        (gboolean            attach_all_dbs,
-							     const gchar        *data_dir,
-							     const gchar        *user_data_dir,
-							     const gchar        *sys_tmp_root_dir);
+							     gboolean            force_reindex,
+							     gboolean           *first_time_index);
 void         tracker_db_manager_shutdown                    (void);
 
-gboolean     tracker_db_manager_need_reindex                (void);
 void         tracker_db_manager_close_all                   (void);
-void         tracker_db_manager_delete_all                  (void);
-void         tracker_db_manager_create_all                  (gboolean            remove_all_first);
 
 const gchar *tracker_db_manager_get_file                    (TrackerDB           db);
 TrackerDBInterface *

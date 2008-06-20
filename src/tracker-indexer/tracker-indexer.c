@@ -87,8 +87,6 @@ struct TrackerIndexerPrivate {
 	TrackerLanguage *language;
 
 	guint idle_id;
-
-	gboolean reindexed_on_init;
 };
 
 struct PathInfo {
@@ -139,27 +137,6 @@ path_info_free (PathInfo *info)
 {
 	g_free (info->path);
 	g_slice_free (PathInfo, info);
-}
-
-static void
-reindex_database (TrackerIndexer *indexer)
-{
-	TrackerIndexerPrivate *priv;
-
-	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
-
-	/* These are unreffed for us by the TrackerDBManager */
-	priv->common = NULL;
-	priv->metadata = NULL;
-	priv->contents = NULL;
-	
-	/* Now create the new databases */
-	tracker_db_manager_create_all (TRUE);
-
-	/* Now establish new connections */
-	priv->common = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
-	priv->metadata = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
-	priv->contents = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_CONTENTS);
 }
 
 static void
@@ -304,16 +281,6 @@ tracker_indexer_init (TrackerIndexer *indexer)
 		}
 	}
 	
-	if (tracker_db_manager_need_reindex ()) {
-		reindex_database (indexer);
-
-		/* We set this flag so we don't attempt to do it in
-		 * the database_check function which the daemon
-		 * calls.
-		 */
-		priv->reindexed_on_init = TRUE;
-	}
-
 	index_file = g_build_filename (priv->db_dir, "file-index.db", NULL);
 
 	priv->index = tracker_index_new (index_file,
@@ -600,72 +567,6 @@ TrackerIndexer *
 tracker_indexer_new (void)
 {
 	return g_object_new (TRACKER_TYPE_INDEXER, NULL);
-}
-
-gboolean
-tracker_indexer_database_check (TrackerIndexer  *indexer,
-				gboolean         force_reindex,
-				gboolean        *first_time_index,
-				GError         **error)
-{
-	TrackerIndexerPrivate *priv;
-	guint                  request_id;
-
-	tracker_dbus_return_val_if_fail (TRACKER_IS_INDEXER (indexer), FALSE, error);
-
-	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
-	request_id = tracker_dbus_get_next_request_id ();
-
-	tracker_dbus_request_new (request_id,
-                                  "DBus request to check database health");
-
-	if (G_UNLIKELY (force_reindex)) {
-		*first_time_index = TRUE;
-
-		/* If we reindexed on initialization, don't do it
-		 * again here.
-		 */ 
-		if (!priv->reindexed_on_init) {
-			reindex_database (indexer);
-		}
-	} else {
-		/* Is this the first time? */
-		*first_time_index = tracker_db_manager_need_reindex ();
-		
-		if (*first_time_index) {
-			/* Create new databases */
-			tracker_dbus_request_comment (request_id, 
-						      "Creating databases...");
-			tracker_db_manager_create_all (FALSE);
-		}
-	}
-		
-	tracker_dbus_request_success (request_id);
-
-	return TRUE;
-}
-
-gboolean
-tracker_indexer_database_reindex (TrackerIndexer  *indexer,
-				  GError         **error)
-{
-	TrackerIndexerPrivate *priv;
-	guint                  request_id;
-
-	tracker_dbus_return_val_if_fail (TRACKER_IS_INDEXER (indexer), FALSE, error);
-
-	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
-	request_id = tracker_dbus_get_next_request_id ();
-
-	tracker_dbus_request_new (request_id,
-                                  "DBus request to reindex the database");
-
-
-	reindex_database (indexer);
-	
-	tracker_dbus_request_success (request_id);
-
-	return TRUE;
 }
 
 gboolean

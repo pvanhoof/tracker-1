@@ -1,3 +1,29 @@
+2008-06-20  Martyn Russell  <martyn@imendio.com>
+
+	* data/dbus/tracker-indexer.xml: 
+	* src/tracker-indexer/tracker-indexer.[ch]: Removed
+	DatabaseReindex and DatabaseCheck, now the daemon ALWAYS makes
+	sure the database is ready instead of the indexer.
+
+	* data/sqlite-tracker.sql: Remove the ANALYZE statement after
+	creating the tables, this is what was causing the hang when
+	attaching ALL databases during creation.
+	
+	* src/libtracker-db/tracker-db-manager.[ch]: Reworked the way we
+	initialise so we create all databases on startup and check for
+	each database file too. If even one of them doesn't exist we
+	recreate all databases (with the exception of the cache). We also
+	don't remove directories now, just the database files when
+	cleaning up.
+	
+	* src/tracker-indexer/tracker-main.c: No need to check if a
+	reindex is required now and removed all reindex command line
+	options. 
+	
+	* src/trackerd/tracker-main.c: Don't call the indexer over dbus,
+	just rely on tracker_db_manager_init() to set up the databases
+	correctly and to check if they exist properly.
+
 2008-06-19  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-db/tracker-db-manager.c: 

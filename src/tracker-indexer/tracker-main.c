@@ -57,17 +57,12 @@
 static GMainLoop    *main_loop;
  
 static gint          verbosity = -1;
-static gboolean      reindex;
 
 static GOptionEntry  entries[] = {
 	{ "verbosity", 'v', 0, 
 	  G_OPTION_ARG_INT, &verbosity, 
 	  N_("Logging, 0 = errors only, "
 	     "1 = minimal, 2 = detailed and 3 = debug (default = 0)"), 
-	  NULL },
-	{ "reindex", 'r', 0, 
-          G_OPTION_ARG_NONE, &reindex, 
-	  N_("Force a re-index of all content"), 
 	  NULL },
 	{ NULL }
 };
@@ -153,11 +148,7 @@ initialize_indexer (void)
 	sys_tmp_dir = g_build_filename (g_get_tmp_dir (), filename, NULL);
 	g_free (filename);
 
-	tracker_db_manager_init (FALSE, data_dir, user_data_dir, sys_tmp_dir);
-
-        if (reindex) {
-                tracker_db_manager_create_all (TRUE);
-        }
+	tracker_db_manager_init (FALSE, FALSE, NULL);
 
 	g_free (data_dir);
 	g_free (user_data_dir);

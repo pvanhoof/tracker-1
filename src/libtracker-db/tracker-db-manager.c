@@ -2243,7 +2243,7 @@ tracker_db_manager_init (gboolean  attach_all_dbs,
 		}
 
 		/* Don't attach while we do this... */
-		attach_all = FALSE;
+		attach_all = TRUE;
 
 		/* In cases where we re-init this module, make sure
 		 * we have cleaned up the ontology before we load all

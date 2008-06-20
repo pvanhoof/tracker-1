@@ -463,11 +463,6 @@ initialize_directories (void)
 	g_message ("Checking directory exists:'%s'", data_dir);
 	g_mkdir_with_parents (data_dir, 00755);
 
-	/* Remove an existing one */
-	if (g_file_test (sys_tmp_dir, G_FILE_TEST_EXISTS)) {
-		tracker_path_remove (sys_tmp_dir);
-	}
-
 	/* Remove old tracker dirs */
         filename = g_build_filename (g_get_home_dir (), ".Tracker", NULL);
 
@@ -647,11 +642,6 @@ shutdown_directories (void)
 	if (tracker->reindex) {
 		tracker_path_remove (data_dir);
 		g_mkdir_with_parents (data_dir, 00755);
-	}
-
-	/* Remove sys tmp directory */
-	if (sys_tmp_dir) {
-		tracker_path_remove (sys_tmp_dir);
 	}
 }
 

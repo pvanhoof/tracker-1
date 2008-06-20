@@ -1,5 +1,13 @@
 2008-06-20  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-db/tracker-db-manager.c: Default to attach_all =
+	TRUE for database creation.
+	
+	* src/trackerd/tracker-main.c: Don't remove the cache directory on
+	startup and shutdown, let the database manager handle that.
+
+2008-06-20  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-db/tracker-db-manager.c: Keep a reference to
 	each TrackerDBInterface and set the attach_iface to be the first
 	one we create and use that to attach all new interfaces we create.

@@ -19,7 +19,8 @@
 	At Executive Summary: SQLite works best if you group multiple 
 	operations together into a single transaction.
 
-	
+	* svn merge -r 1683:1726 ../xesam-support
+
 2008-06-20  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-db/tracker-db-manager.c: Default to attach_all =

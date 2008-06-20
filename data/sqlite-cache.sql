@@ -68,6 +68,7 @@ CREATE TABLE  FileWatches
 	unique (URI)
 );
 
+
 CREATE TABLE Events
 (
 	ID		Integer primary key not null,

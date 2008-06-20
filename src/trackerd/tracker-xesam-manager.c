@@ -138,8 +138,9 @@ tracker_xesam_manager_create_session (TrackerXesam  *xesam,
 			     g_strdup (tracker_xesam_session_get_id (session)),
 			     g_object_ref (session));
 
-	if (session_id)
+	if (session_id) {
 		*session_id = g_strdup (tracker_xesam_session_get_id (session));
+	}
 
 	return session;
 }
@@ -149,13 +150,15 @@ tracker_xesam_manager_close_session (const gchar  *session_id,
 				     GError      **error)
 {
 	gpointer inst = g_hash_table_lookup (xesam_sessions, session_id);
-	if (!inst)
+
+	if (!inst) {
 		g_set_error (error, 
 			     TRACKER_XESAM_ERROR_DOMAIN, 
 			     TRACKER_XESAM_ERROR_SESSION_ID_NOT_REGISTERED,
 			     "Session ID is not registered");
-	else
+	} else {
 		g_hash_table_remove (xesam_sessions, session_id);
+	}
 }
 
 TrackerXesamSession *
@@ -163,13 +166,16 @@ tracker_xesam_manager_get_session (const gchar  *session_id,
 				   GError      **error)
 {
 	TrackerXesamSession *session = g_hash_table_lookup (xesam_sessions, session_id);
-	if (session)
+
+	if (session) {
 		g_object_ref (session);
-	else
+	} else {
 		g_set_error (error,
 			     TRACKER_XESAM_ERROR_DOMAIN, 
 			     TRACKER_XESAM_ERROR_SESSION_ID_NOT_REGISTERED,
 			     "Session ID is not registered");
+	}
+
 	return session;
 }
 
@@ -187,6 +193,7 @@ tracker_xesam_manager_get_session_for_search (const gchar             *search_id
 		TrackerXesamLiveSearch *search;
 
 		search = tracker_xesam_session_get_search (sessions->data, search_id, NULL);
+
 		if (search) {
 			/* Search got a reference added already */
 			if (search_in) {
@@ -204,11 +211,13 @@ tracker_xesam_manager_get_session_for_search (const gchar             *search_id
 
 	g_list_free (sessions);
 
-	if (!session) 
+	if (!session) {
 		g_set_error (error, 
 			     TRACKER_XESAM_ERROR_DOMAIN, 
 			     TRACKER_XESAM_ERROR_SEARCH_ID_NOT_REGISTERED,
 			     "Search ID is not registered");
+	}
+
 	return session;
 }
 
@@ -223,8 +232,9 @@ tracker_xesam_manager_get_live_search (const gchar  *search_id,
 
 	while (sessions) {
 		TrackerXesamLiveSearch *p;
-		
+
 		p = tracker_xesam_session_get_search (sessions->data, search_id, NULL);
+
 		if (p) {
 			/* Search got a reference added already */
 			search = p;
@@ -236,11 +246,12 @@ tracker_xesam_manager_get_live_search (const gchar  *search_id,
 
 	g_list_free (sessions);
 
-	if (!search) 
+	if (!search) {
 		g_set_error (error, 
 			     TRACKER_XESAM_ERROR_DOMAIN, 
 			     TRACKER_XESAM_ERROR_SEARCH_ID_NOT_REGISTERED,
 			     "Search ID is not registered");
+	}
 
 	return search;
 }

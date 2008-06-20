@@ -50,6 +50,7 @@
 #define ELEMENT_XESAM_QUERY 	        "query"
 #define ELEMENT_XESAM_USER_QUERY        "userQuery"
 #define ELEMENT_XESAM_FIELD 		"field"
+#define ELEMENT_XESAM_REQUEST 		"request"
 
 /* Operators */
 #define ELEMENT_XESAM_AND 		"and"
@@ -478,7 +479,7 @@ start_element_handler (GMarkupParseContext  *context,
 		}
 
 		g_string_append_printf (data->sql_where,
-					"\n WHERE (S.ServiceTypeID in (select TypeId from ServiceTypes where TypeName = '%s' or Parent = '%s')) AND ", 
+					" WHERE (S.ServiceTypeID in (select TypeId from ServiceTypes where TypeName = '%s' or Parent = '%s')) AND ", 
 					content, 
 					source);
 
@@ -843,6 +844,17 @@ start_element_handler (GMarkupParseContext  *context,
 			return;
 		}
 		push_stack (data, STATE_BOOLEAN);
+	} else if (ELEMENT_IS (ELEMENT_XESAM_REQUEST)) {
+		/* Ignore */
+	} else {
+		g_warning ("%s not supported", element_name);
+
+		if (set_error_on_fail (FALSE, 
+				       context, 
+				       "Unsupported query", 
+				       error)) {
+			return;
+		}
 	}
 }
 
@@ -935,10 +947,10 @@ build_sql (ParserData *data)
 				
 		if (data->statement_count > 1) {
 			if (data->current_logic_operator == LOP_AND) {
-				data->sql_where = g_string_append (data->sql_where, "\n AND ");
+				data->sql_where = g_string_append (data->sql_where, " AND ");
 			} else {
 				if (data->current_logic_operator == LOP_OR) {
-					data->sql_where = g_string_append (data->sql_where, "\n OR ");
+					data->sql_where = g_string_append (data->sql_where, " OR ");
 				}
 			}
 		}
@@ -1294,7 +1306,7 @@ tracker_xesam_query_to_sql (TrackerDBInterface  *iface,
 	table_name = "Services";
 
 	data.sql_from = g_string_new ("");
-	g_string_append_printf (data.sql_from, "\n FROM %s S ", table_name);
+	g_string_append_printf (data.sql_from, " FROM 'file-meta'.%s S ", table_name);
 	
 	data.sql_join = g_string_new ("");
 	data.sql_where = g_string_new ("");
@@ -1330,7 +1342,7 @@ tracker_xesam_query_to_sql (TrackerDBInterface  *iface,
 			if (!tracker_field_data_get_is_condition (l->data)) {
 				if (tracker_field_data_get_needs_join (l->data)) {
 					g_string_append_printf (data.sql_join, 
-								"\n LEFT OUTER JOIN %s %s ON (S.ID = %s.ServiceID and %s.MetaDataID = %s) ", 
+								" LEFT OUTER JOIN 'file-meta'.%s %s ON (S.ID = %s.ServiceID and %s.MetaDataID = %s) ", 
 								tracker_field_data_get_table_name (l->data),
 								tracker_field_data_get_alias (l->data),
 								tracker_field_data_get_alias (l->data),
@@ -1343,7 +1355,7 @@ tracker_xesam_query_to_sql (TrackerDBInterface  *iface,
 				related_metadata = tracker_db_metadata_get_related_names (iface, 
 											  tracker_field_data_get_field_name (l->data));
 				g_string_append_printf (data.sql_join, 
-							"\n INNER JOIN %s %s ON (S.ID = %s.ServiceID and %s.MetaDataID in (%s)) ",
+							" INNER JOIN 'file-meta'.%s %s ON (S.ID = %s.ServiceID and %s.MetaDataID in (%s)) ",
 							tracker_field_data_get_table_name (l->data),
 							tracker_field_data_get_alias (l->data),
 							tracker_field_data_get_alias (l->data),

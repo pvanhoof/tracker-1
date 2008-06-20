@@ -481,6 +481,9 @@ tracker_xesam_live_search_close (TrackerXesamLiveSearch  *self,
 		
 		iface = tracker_db_manager_get_db_interface (TRACKER_DB_XESAM);
 
+		g_message ("Closing search '%s'", 
+			   tracker_xesam_live_search_get_id (self));
+
 		tracker_db_live_search_stop (iface, 
 					     tracker_xesam_live_search_get_id (self));
 	}
@@ -1276,7 +1279,7 @@ tracker_xesam_live_search_parse_query (TrackerXesamLiveSearch  *self,
 		g_free (orig_where);
 	}
 
-	g_message ("Parsed to '%s', '%s' and '%s'", 
+	g_message ("Parsed to:\n\t%s\n\t%s\n\t%s", 
 		   priv->from_sql,
 		   priv->join_sql,
 		   priv->where_sql);

@@ -2359,8 +2359,14 @@ tracker_db_live_search_start (TrackerDBInterface *iface,
 	g_return_if_fail (where_query != NULL);
 	g_return_if_fail (search_id != NULL);
 
+	g_message ("INSERT INTO cache.LiveSearches SELECT S.ID, '%s' %s %s %s",
+				  search_id, 
+				  from_query, 
+				  join_query, 
+				  where_query);
+
 	tracker_db_exec_no_reply (iface,
-				  "INSERT INTO LiveSearches SELECT S.ID, '%s' %s %s %s",
+				  "INSERT INTO cache.LiveSearches SELECT S.ID, '%s' %s %s %s",
 				  search_id, 
 				  from_query, 
 				  join_query, 
@@ -2452,9 +2458,11 @@ tracker_db_live_search_get_new_ids (TrackerDBInterface *iface,
 	g_return_val_if_fail (query_joins != NULL, NULL);
 	g_return_val_if_fail (where_query != NULL, NULL);
 
+	// We need to add 'file-meta' and 'email-meta' here
+
 	result_set = tracker_db_exec (iface,
 				      "SELECT E.ServiceID, E.EventType "
-				      "%s%s LiveSearches as X, Events as E " /* FROM   A1 */
+				      "%s%s cache.LiveSearches as X, Events as E " /* FROM   A1 */
 				       "%s"                                  /* JOINS  A2 */
 				       "%s"                                  /* WHERE  A3 */
 				      "%sX.ServiceID = E.ServiceID "
@@ -2480,7 +2488,7 @@ tracker_db_live_search_get_new_ids (TrackerDBInterface *iface,
 				      where_query ? "AND " : "");            /*        B3 */ 
 	
 	tracker_db_exec_no_reply (iface,
-				  "INSERT INTO LiveSearches "
+				  "INSERT INTO cache.LiveSearches "
 				   "SELECT E.ServiceID, '%s' "               /*        B0 */
 				  "%s%s Events as E "                        /* FROM   B1 */ 
 				  "%s"                                       /* JOINS  B2 */ 
@@ -2655,7 +2663,7 @@ tracker_db_live_search_get_hit_data (TrackerDBInterface *iface,
 		field_name = tracker_db_metadata_get_related_names (iface, 
 								    tracker_field_data_get_field_name (l->data));
 		g_string_append_printf (sql_join, 
-					"INNER JOIN %s %s ON (X.ServiceID = %s.ServiceID AND %s.MetaDataID in (%s))\n ",
+					"INNER JOIN 'files-meta'.%s %s ON (X.ServiceID = %s.ServiceID AND %s.MetaDataID in (%s))\n ",
 					tracker_field_data_get_table_name (l->data),
 					tracker_field_data_get_alias (l->data),
 					tracker_field_data_get_alias (l->data),
@@ -2664,13 +2672,13 @@ tracker_db_live_search_get_hit_data (TrackerDBInterface *iface,
 		g_free (field_name);
 	}
 
-	g_debug("Query : SELECT %s FROM LiveSearches as X \n"
+	g_debug("Query : SELECT %s FROM cache.LiveSearches as X \n"
 		"%s"
 		"WHERE X.SearchID = '%s'", 
 		sql_select->str, sql_join->str, search_id); 
 
 	result = tracker_db_exec (iface, 
-				  "SELECT %s FROM LiveSearches as X \n"
+				  "SELECT %s FROM cache.LiveSearches as X \n"
 				  "%s"
 				  "WHERE X.SearchID = '%s'", 
 				  sql_select->str, sql_join->str, search_id);

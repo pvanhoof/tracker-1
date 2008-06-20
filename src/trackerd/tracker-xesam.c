@@ -409,14 +409,14 @@ tracker_xesam_new_search (TrackerXesam          *object,
 		if (error) {
 			dbus_g_method_return_error (context, error);
 			g_error_free (error);
-		} else 
+		} else {
+			g_debug ("Created new xesam search: %s  for session: %s",
+				search_id, session_id);
 			dbus_g_method_return (context, search_id);
+		}
 
 		if (search)
 			g_object_unref (search);
-
-		g_debug ("Created new xesam search: %s  for session: %s",
-			 search_id, session_id);
 
 		g_free (search_id);
 

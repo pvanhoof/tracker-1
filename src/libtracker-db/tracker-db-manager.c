@@ -2049,17 +2049,17 @@ db_interface_get_xesam (void)
 	}
 
 	if (create) {
-		load_sql_file (attach_iface, "sqlite-xesam.sql", NULL);
-		
-		load_service_file_xesam (attach_iface, "xesam.metadata");
-		load_service_file_xesam (attach_iface, "xesam-convenience.metadata");
-		load_service_file_xesam (attach_iface, "xesam-virtual.metadata");
-		load_service_file_xesam (attach_iface, "xesam.service");
-		load_service_file_xesam (attach_iface, "xesam-convenience.service");
-		load_service_file_xesam (attach_iface, "xesam-service.smapping");
-		load_service_file_xesam (attach_iface, "xesam-metadata.mmapping");
-		
-		db_xesam_create_lookup (attach_iface);
+		tracker_db_interface_start_transaction (iface);
+		load_sql_file (iface, "sqlite-xesam.sql", NULL);
+		load_service_file_xesam (iface, "xesam.metadata");
+		load_service_file_xesam (iface, "xesam-convenience.metadata");
+		load_service_file_xesam (iface, "xesam-virtual.metadata");
+		load_service_file_xesam (iface, "xesam.service");
+		load_service_file_xesam (iface, "xesam-convenience.service");
+		load_service_file_xesam (iface, "xesam-service.smapping");
+		load_service_file_xesam (iface, "xesam-metadata.mmapping");
+		db_xesam_create_lookup (iface);
+		tracker_db_interface_end_transaction (iface);
 	}
 
 	/* Load static xesam data */

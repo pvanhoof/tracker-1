@@ -1712,6 +1712,7 @@ db_interface_get_common (void)
 	iface = db_interface_get (TRACKER_DB_COMMON, &create);
 
 	if (create) {
+		tracker_db_interface_start_transaction (iface);
 		/* Create tables */
 		load_sql_file (iface, "sqlite-tracker.sql", NULL);
 		load_sql_file (iface, "sqlite-metadata.sql", NULL);
@@ -1729,6 +1730,7 @@ db_interface_get_common (void)
 		load_metadata_file (iface, "email.metadata");
 		load_metadata_file (iface, "image.metadata");
 		load_metadata_file (iface, "video.metadata");
+		tracker_db_interface_end_transaction (iface);
 	}
 
 	/* Load static data into tracker ontology */
@@ -1746,7 +1748,9 @@ db_interface_get_cache (void)
 	iface = db_interface_get (TRACKER_DB_CACHE, &create);
 
 	if (create) {
+		tracker_db_interface_start_transaction (iface);
 		load_sql_file (iface, "sqlite-cache.sql", NULL);
+		tracker_db_interface_end_transaction (iface);
 	}
 
 	return iface;
@@ -1761,8 +1765,10 @@ db_interface_get_file_metadata (void)
 	iface = db_interface_get (TRACKER_DB_FILE_METADATA, &create);
 
 	if (create) {
+		tracker_db_interface_start_transaction (iface);
 		load_sql_file (iface, "sqlite-service.sql", NULL);
 		load_sql_file (iface, "sqlite-service-triggers.sql", "!");
+		tracker_db_interface_end_transaction (iface);
 	}
 
 	return iface;
@@ -1777,7 +1783,9 @@ db_interface_get_file_contents (void)
 	iface = db_interface_get (TRACKER_DB_FILE_CONTENTS, &create);
 
 	if (create) {
+		tracker_db_interface_start_transaction (iface);
 		load_sql_file (iface, "sqlite-contents.sql", NULL);
+		tracker_db_interface_end_transaction (iface);
 	}
 
 	tracker_db_interface_sqlite_create_function (iface, 
@@ -1801,9 +1809,11 @@ db_interface_get_email_metadata (void)
 	iface = db_interface_get (TRACKER_DB_EMAIL_METADATA, &create);
 
 	if (create) {
+		tracker_db_interface_start_transaction (iface);
 		load_sql_file (iface, "sqlite-service.sql", NULL);
 		load_sql_file (iface, "sqlite-email.sql", NULL);
 		load_sql_file (iface, "sqlite-service-triggers.sql", "!");
+		tracker_db_interface_end_transaction (iface);
 	}
 
 	return iface;
@@ -1818,7 +1828,9 @@ db_interface_get_email_contents (void)
 	iface = db_interface_get (TRACKER_DB_EMAIL_CONTENTS, &create);
 
 	if (create) {
+		tracker_db_interface_start_transaction (iface);
 		load_sql_file (iface, "sqlite-contents.sql", NULL);
+		tracker_db_interface_end_transaction (iface);
 	}
 
 	tracker_db_interface_sqlite_create_function (iface, 

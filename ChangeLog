@@ -1,3 +1,25 @@
+2008-06-20  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/libtracker-db/tracker-db-manager.c:
+	* data/sqlite-service-triggers.sql:
+	* data/sqlite-tracker-triggers.sql:
+
+	Using a transaction around database initializations. This speeds up 
+	initialization, makes it more robust (what if we get killed while 
+	initializing) and it seems to avoid a call for fsync() when we have
+	PRAGMA synchronous = NORMAL (which we currently do have for all 
+	database connections).
+
+	Point of opinion about this commit: we should utilize transactions more
+	often in the code. It helps us avoid corruption and massively speeds up
+	INSERTs and UPDATEs:
+
+	http://www.sqlite.org/speed.html:
+
+	At Executive Summary: SQLite works best if you group multiple 
+	operations together into a single transaction.
+
+	
 2008-06-20  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-db/tracker-db-manager.c: Default to attach_all =

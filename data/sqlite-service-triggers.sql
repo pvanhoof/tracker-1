@@ -1,5 +1,3 @@
-BEGIN TRANSACTION;!
-
 CREATE TRIGGER delete_service BEFORE DELETE ON Services 
 BEGIN  
 	DELETE FROM ServiceMetaData WHERE ServiceID = old.ID;
@@ -9,5 +7,3 @@ BEGIN
 	DELETE FROM ChildServices WHERE (ChildID = old.ID);
 	
 END;!
-
-COMMIT TRANSACTION;!

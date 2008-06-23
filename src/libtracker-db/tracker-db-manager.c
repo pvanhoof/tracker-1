@@ -2055,7 +2055,6 @@ db_interface_get_xesam (void)
 {
 	TrackerDBInterface *iface;
 	gboolean            create;
-	guint               i;
 
 	iface = db_interface_get (TRACKER_DB_XESAM, &create);
 
@@ -2082,19 +2081,6 @@ db_interface_get_xesam (void)
 		tracker_db_interface_end_transaction (iface);
 	}
 
-	/* Xesam's DB connection depends on all interfaces being attached. 
-	 * The current initialization code does not guarantee that all are
-	 * at this point indeed already attached. */
-
-	for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
-		gboolean            dummy;
-		TrackerDBInterface *dependency_iface;
-
-		dependency_iface = db_interface_get (dbs[i].db, &dummy);
-		g_object_unref (dependency_iface);
-		/* If it was not yet created, we have a problem */
-		g_assert (!dummy);
-	}
 
 	/* Load static xesam data */
 	db_get_static_xesam_data (attach_iface);

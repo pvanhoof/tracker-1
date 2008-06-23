@@ -1,3 +1,11 @@
+2008-06-23  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/libtracker-db/tracker-db-manager.c: Fix for "database cache is
+	already in use" warning (removing a hack that is no longer needed,
+	this hack was put in place because before fixes that were done today
+	was tracker-indexer removing cache.db after some time. The hack caused
+	an unwanted warning, though)
+
 2008-06-23  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-db/tracker-db-interface-sqlite.c: Improve error

@@ -1,3 +1,16 @@
+2008-06-23  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* tests/scripts/dummy_data_start.sh.in
+	* tests/scripts/data/email-contents.sql
+	* tests/scripts/data/file-meta.sql
+	* tests/scripts/data/common.sql
+	* tests/scripts/data/file-contents.sql
+	* tests/scripts/data/email-meta.sql
+	* tests/scripts/data/xesam.sql:
+
+	Cleaned up the test data now that the databases are (more or less)
+	initialized correctly
+
 2008-06-20  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/libtracker-db/tracker-db-manager.c:

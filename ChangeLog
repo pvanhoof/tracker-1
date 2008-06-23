@@ -1,5 +1,10 @@
 2008-06-23  Philip Van Hoof  <pvanhoof@gnome.org>
 
+	* src/libtracker-db/tracker-db-manager.c: Putting a warning in case of
+	problems while loading a .sql file
+
+2008-06-23  Philip Van Hoof  <pvanhoof@gnome.org>
+
 	* tests/scripts/dummy_data_start.sh.in
 	* tests/scripts/data/email-contents.sql
 	* tests/scripts/data/file-meta.sql

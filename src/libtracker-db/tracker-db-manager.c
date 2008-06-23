@@ -197,7 +197,12 @@ load_sql_file (TrackerDBInterface *iface,
 	queries = g_strsplit (content, delimiter, -1);
 
 	for (i = 0; queries[i]; i++) {
-		tracker_db_interface_execute_query (iface, NULL, queries[i]);
+		GError *error = NULL;
+		tracker_db_interface_execute_query (iface, &error, queries[i]);
+		if (error) {
+			g_warning ("Error loading '%s:%d': '%s'", file, i, error->message);
+			g_error_free (error);
+		}
 	}
 
 	g_message ("  Loaded SQL file:'%s'", file);

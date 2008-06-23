@@ -1392,7 +1392,8 @@ static void
 db_set_params (TrackerDBInterface *iface,
 	       gint                cache_size,
 	       gint                page_size,
-	       gboolean            add_functions)
+	       gboolean            add_functions,
+	       gboolean            created)
 {
 	tracker_db_interface_execute_query (iface, NULL, "PRAGMA synchronous = NORMAL;");
 	tracker_db_interface_execute_query (iface, NULL, "PRAGMA count_changes = 0;");
@@ -1417,27 +1418,29 @@ db_set_params (TrackerDBInterface *iface,
 			g_critical ("Collation sequence failed");
 		}
 
-		/* Create user defined functions that can be used in sql */
-		tracker_db_interface_sqlite_create_function (iface, 
-							     "FormatDate", 
-							     function_date_to_str, 
-							     1);
-		tracker_db_interface_sqlite_create_function (iface, 
-							     "GetServiceName", 
-							     function_get_service_name, 
-							     1);
-		tracker_db_interface_sqlite_create_function (iface, 
-							     "GetServiceTypeID", 
-							     function_get_service_type, 
-							     1);
-		tracker_db_interface_sqlite_create_function (iface, 
-							     "GetMaxServiceTypeID", 
-							     function_get_max_service_type, 
-							     1);
-		tracker_db_interface_sqlite_create_function (iface, 
-							     "REGEXP",
-							     function_regexp,
-							     2);
+		if (created) {
+			/* Create user defined functions that can be used in sql */
+			tracker_db_interface_sqlite_create_function (iface, 
+								     "FormatDate", 
+								     function_date_to_str, 
+								     1);
+			tracker_db_interface_sqlite_create_function (iface, 
+								     "GetServiceName", 
+								     function_get_service_name, 
+								     1);
+			tracker_db_interface_sqlite_create_function (iface, 
+								     "GetServiceTypeID", 
+								     function_get_service_type, 
+								     1);
+			tracker_db_interface_sqlite_create_function (iface, 
+								     "GetMaxServiceTypeID", 
+								     function_get_max_service_type, 
+								     1);
+			tracker_db_interface_sqlite_create_function (iface, 
+								     "REGEXP",
+								     function_regexp,
+								     2);
+		}
 	}
 }
 
@@ -1694,16 +1697,13 @@ db_interface_get (TrackerDB  type,
 		iface = tracker_db_interface_sqlite_new (path);
 		tracker_db_interface_set_procedure_table (iface, 
 							  prepared_queries);
-
-		/* FIXME: Shouldn't we do this for common/cache dbs too? */
-		if (type != TRACKER_DB_COMMON &&
-		    type != TRACKER_DB_CACHE) {
-			db_set_params (iface,
-				       dbs[type].cache_size,
-				       dbs[type].page_size,
-				       dbs[type].add_functions);
-		}
 	}
+
+	db_set_params (iface,
+		       dbs[type].cache_size,
+		       dbs[type].page_size,
+		       dbs[type].add_functions,
+		       *create);
 
 	return iface;
 }

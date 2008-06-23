@@ -1306,7 +1306,7 @@ tracker_xesam_query_to_sql (TrackerDBInterface  *iface,
 	table_name = "Services";
 
 	data.sql_from = g_string_new ("");
-	g_string_append_printf (data.sql_from, " FROM 'file-meta'.%s S ", table_name);
+	g_string_append_printf (data.sql_from, " FROM %s S ", table_name);
 	
 	data.sql_join = g_string_new ("");
 	data.sql_where = g_string_new ("");
@@ -1342,7 +1342,7 @@ tracker_xesam_query_to_sql (TrackerDBInterface  *iface,
 			if (!tracker_field_data_get_is_condition (l->data)) {
 				if (tracker_field_data_get_needs_join (l->data)) {
 					g_string_append_printf (data.sql_join, 
-								" LEFT OUTER JOIN 'file-meta'.%s %s ON (S.ID = %s.ServiceID and %s.MetaDataID = %s) ", 
+								" LEFT OUTER JOIN %s %s ON (S.ID = %s.ServiceID and %s.MetaDataID = %s) ", 
 								tracker_field_data_get_table_name (l->data),
 								tracker_field_data_get_alias (l->data),
 								tracker_field_data_get_alias (l->data),
@@ -1355,7 +1355,7 @@ tracker_xesam_query_to_sql (TrackerDBInterface  *iface,
 				related_metadata = tracker_db_metadata_get_related_names (iface, 
 											  tracker_field_data_get_field_name (l->data));
 				g_string_append_printf (data.sql_join, 
-							" INNER JOIN 'file-meta'.%s %s ON (S.ID = %s.ServiceID and %s.MetaDataID in (%s)) ",
+							" INNER JOIN %s %s ON (S.ID = %s.ServiceID and %s.MetaDataID in (%s)) ",
 							tracker_field_data_get_table_name (l->data),
 							tracker_field_data_get_alias (l->data),
 							tracker_field_data_get_alias (l->data),

@@ -1,3 +1,11 @@
+2008-06-23  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-db/tracker-db-manager.[ch]: 
+	* src/tracker-indexer/tracker-main.c:
+	* src/trackerd/tracker-main.c: Make the force_reindex, remove
+	cache and attach all settings into a flag we pass when
+	initialising the database manager. 
+
 2008-06-23  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/libtracker-db/tracker-db-manager.c: Putting a warning in case of

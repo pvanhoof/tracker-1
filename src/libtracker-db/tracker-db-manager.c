@@ -2159,9 +2159,8 @@ tracker_db_get_type (void)
 }
 
 void
-tracker_db_manager_init (gboolean  attach_all_dbs,
-			 gboolean  force_reindex,
-			 gboolean *first_time_index)
+tracker_db_manager_init (TrackerDBManagerFlags  flags,
+			 gboolean              *first_time)
 {
 	GType        etype;
 	gchar       *filename;
@@ -2169,8 +2168,8 @@ tracker_db_manager_init (gboolean  attach_all_dbs,
 	gboolean     need_reindex;
 	guint        i;
 
-	if (first_time_index) {
-		*first_time_index = FALSE;
+	if (first_time) {
+		*first_time = FALSE;
 	}
 
         if (initialized) {
@@ -2261,9 +2260,9 @@ tracker_db_manager_init (gboolean  attach_all_dbs,
 	 * NOT the paths, note, that these paths are also used for
 	 * other things like the nfs lock file.
 	 */
-	if (force_reindex || need_reindex) {
-		if (first_time_index) {
-			*first_time_index = TRUE;
+	if (flags & TRACKER_DB_MANAGER_FORCE_REINDEX || need_reindex) {
+		if (first_time) {
+			*first_time = TRUE;
 		}
 
 		g_message ("Removing database files for reindex");
@@ -2308,15 +2307,17 @@ tracker_db_manager_init (gboolean  attach_all_dbs,
 		 * each time we start up, this is meant to be a per-run
 		 * thing.
 		 */
-		g_message ("Removing cache database:'%s'", 
-			   dbs[TRACKER_DB_CACHE].abs_filename);
-		g_unlink (dbs[TRACKER_DB_CACHE].abs_filename);
+		if (flags & TRACKER_DB_MANAGER_REMOVE_CACHE) {
+			g_message ("Removing cache database:'%s'", 
+				   dbs[TRACKER_DB_CACHE].abs_filename);
+			g_unlink (dbs[TRACKER_DB_CACHE].abs_filename);
+		}
 
 		/* Make sure we initialize all other modules we depend on */
 		tracker_ontology_init ();
 	}
 
-	attach_all = attach_all_dbs;
+	attach_all = flags & TRACKER_DB_MANAGER_ATTACH_ALL;
 
 	/* Load databases */
 	g_message ("Loading databases files...");

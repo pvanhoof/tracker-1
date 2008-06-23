@@ -666,10 +666,11 @@ start_cb (gpointer user_data)
 gint
 main (gint argc, gchar *argv[])
 {
-	GOptionContext *context = NULL;
-	GOptionGroup   *group;
-	GError         *error = NULL;
-	GSList         *l;
+	GOptionContext        *context = NULL;
+	GOptionGroup          *group;
+	GError                *error = NULL;
+	GSList                *l;
+	TrackerDBManagerFlags  flags;
 
         g_type_init ();
         
@@ -800,7 +801,15 @@ main (gint argc, gchar *argv[])
 	sanity_check_option_values ();
 
 	tracker_nfs_lock_init (tracker_config_get_nfs_locking (tracker->config));
-	tracker_db_manager_init (TRUE, reindex, &tracker->first_time_index); 
+
+	flags = TRACKER_DB_MANAGER_ATTACH_ALL |
+		TRACKER_DB_MANAGER_REMOVE_CACHE;
+
+	if (reindex) {
+		flags |= TRACKER_DB_MANAGER_FORCE_REINDEX;
+	}
+
+	tracker_db_manager_init (flags, &tracker->first_time_index);
 	tracker_db_init ();
 	tracker_xesam_manager_init ();
 	tracker_email_start_email_watching (tracker_config_get_email_client (tracker->config));

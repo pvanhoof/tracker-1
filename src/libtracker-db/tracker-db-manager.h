@@ -39,23 +39,28 @@ typedef enum {
 	TRACKER_DB_XESAM,
 } TrackerDB;
 
+typedef enum {
+	TRACKER_DB_MANAGER_ATTACH_ALL    = 1 << 0,
+	TRACKER_DB_MANAGER_FORCE_REINDEX = 1 << 1,
+	TRACKER_DB_MANAGER_REMOVE_CACHE  = 1 << 2,
+} TrackerDBManagerFlags;
+
 GType        tracker_db_get_type                            (void) G_GNUC_CONST;
 
-void         tracker_db_manager_init                        (gboolean            attach_all_dbs,
-							     gboolean            force_reindex,
-							     gboolean           *first_time_index);
+void         tracker_db_manager_init                        (TrackerDBManagerFlags  flags,
+							     gboolean              *first_time);
 void         tracker_db_manager_shutdown                    (void);
 
 void         tracker_db_manager_close_all                   (void);
 
-const gchar *tracker_db_manager_get_file                    (TrackerDB           db);
+const gchar *tracker_db_manager_get_file                    (TrackerDB              db);
 TrackerDBInterface *
-             tracker_db_manager_get_db_interface            (TrackerDB           db);
+             tracker_db_manager_get_db_interface            (TrackerDB              db);
 TrackerDBInterface *
-             tracker_db_manager_get_db_interface_by_service (const gchar        *service, 
-							     gboolean            content);
+             tracker_db_manager_get_db_interface_by_service (const gchar           *service, 
+							     gboolean               content);
 TrackerDBInterface *
-             tracker_db_manager_get_db_interface_content    (TrackerDBInterface *iface);
+             tracker_db_manager_get_db_interface_content    (TrackerDBInterface    *iface);
 
 G_END_DECLS
 

@@ -180,7 +180,8 @@ load_sql_file (TrackerDBInterface *iface,
 	       const gchar        *delimiter)
 {
 	gchar *path, *content, **queries;
-	gint i;
+	gint   count;
+	gint   i;
 
 	path = g_build_filename (sql_dir, file, NULL);
 
@@ -196,16 +197,29 @@ load_sql_file (TrackerDBInterface *iface,
 
 	queries = g_strsplit (content, delimiter, -1);
 
-	for (i = 0; queries[i]; i++) {
+	for (i = 0, count = 0; queries[i]; i++) {
 		GError *error = NULL;
-		tracker_db_interface_execute_query (iface, &error, queries[i]);
-		if (error) {
-			g_warning ("Error loading '%s:%d': '%s'", file, i, error->message);
-			g_error_free (error);
+		gchar  *sql;
+
+		/* Skip white space, including control characters */
+		for (sql = queries[i]; sql && g_ascii_isspace (sql[0]); sql++);
+		
+		if (!sql || sql[0] == '\0') {
+			continue;
 		}
+
+		tracker_db_interface_execute_query (iface, &error, sql);
+
+		if (error) {
+			g_warning ("Error loading query:'%s' #%d, %s", file, i, error->message);
+			g_error_free (error);
+			continue;
+		}
+
+		count++;
 	}
 
-	g_message ("  Loaded SQL file:'%s'", file);
+	g_message ("  Loaded SQL file:'%s' (%d queries)", file, count);
 
 	g_strfreev (queries);
 	g_free (content);

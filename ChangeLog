@@ -1,3 +1,14 @@
+2008-06-23  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-db/tracker-db-interface-sqlite.c: Improve error
+	reporting here so we say if the query used is foobar OR if it is a
+	geniune error.
+	
+	* src/libtracker-db/tracker-db-manager.c: Strip whitespace before
+	trying to load queries from SQL files. Also, present a count when
+	done so we know how many we loaded as a measure of testing it
+	worked properly.
+
 2008-06-23  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/libtracker-db/tracker-db-manager.c: Also setting DB parameters

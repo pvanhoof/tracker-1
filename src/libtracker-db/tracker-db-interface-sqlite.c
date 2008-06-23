@@ -516,18 +516,27 @@ tracker_db_interface_sqlite_execute_query (TrackerDBInterface  *db_interface,
 	TrackerDBInterfaceSqlitePrivate *priv;
 	TrackerDBResultSet *result_set;
 	sqlite3_stmt *stmt;
+        int retval;
 
 	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (db_interface);
 
-	sqlite3_prepare_v2 (priv->db, query, -1, &stmt, NULL);
+	retval = sqlite3_prepare_v2 (priv->db, query, -1, &stmt, NULL);
 
-	if (!stmt) {
+        if (retval != SQLITE_OK) {
 		g_set_error (error,
 			     TRACKER_DB_INTERFACE_ERROR,
 			     TRACKER_DB_QUERY_ERROR,
 			     sqlite3_errmsg (priv->db));
 		return NULL;
-	}
+	} else if (stmt == NULL) {
+		g_set_error (error,
+			     TRACKER_DB_INTERFACE_ERROR,
+			     TRACKER_DB_QUERY_ERROR,
+			     "Could not prepare SQL statement:'%s'",
+                             query);
+
+		return NULL;
+        }
 
 	result_set = create_result_set_from_stmt (TRACKER_DB_INTERFACE_SQLITE (db_interface), stmt, error);
 	sqlite3_finalize (stmt);

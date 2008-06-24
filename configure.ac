@@ -745,6 +745,7 @@ AC_CONFIG_FILES([
 	tests/libtracker-common/Makefile
 	tests/trackerd/Makefile
 	tests/trackerd/xesam/Makefile
+	tests/libtracker-db/Makefile
 	tests/scripts/dummy_data_start.sh
 	tests/scripts/dummy_data_stop.sh
 	tests/scripts/Makefile

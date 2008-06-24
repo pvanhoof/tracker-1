@@ -1,5 +1,10 @@
 2008-06-24  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/modules/dummy.c: Update API, also add more
+	thorough comments about what should be going on in each method.
+
+2008-06-24  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/modules/Makefile.am:
 	* src/tracker-indexer/modules/evolution.c: Module for Evolution,
 	initially it supports local and IMAP mailboxes. It's still missing

@@ -29,13 +29,68 @@ tracker_module_get_name (void)
 gchar **
 tracker_module_get_directories (void)
 {
-	/* Return directories/files to scan */
+	/* Return directories/files (a NULL-ended array of gchar*) to scan */
 	return NULL;
 }
 
-GHashTable *
-tracker_module_get_file_metadata (const gchar *file)
+gpointer
+tracker_module_file_get_data (const gchar *path)
 {
-	/* Return a hashtable filled with metadata for the file */
+        /* Implementing this function is optional.
+         *
+         * Return here private, module specific data for path.
+         * Given this data is attached to the file until it isn't
+         * needed anymore. This is usually used for files that
+         * contain sets of data that should be considered as separate
+         * entities (for example, mboxes), so the module can internally
+         * keep the state. Also see tracker_module_file_iter_contents().
+         */
+        return NULL;
+}
+
+void
+tracker_module_file_free_data (gpointer file_data)
+{
+        /* Implementing this function is optional
+         *
+         * Free the data created previously
+         * through tracker_module_file_get_data()
+         */
+}
+
+GHashTable *
+tracker_module_file_get_metadata (TrackerFile *file)
+{
+	/* Return a hashtable filled with metadata for file, given the
+         * current state. Also see tracker_module_file_iter_contents()
+         */
 	return NULL;
+}
+
+gchar *
+tracker_module_file_get_text (TrackerFile *file)
+{
+        /* Implementing this function is optional
+         *
+         * Return here full text for file, given the current state,
+         * also see tracker_module_file_iter_contents()
+         */
+        return NULL;
+}
+
+gboolean
+tracker_module_file_iter_contents (TrackerFile *file)
+{
+        /* Implementing this function is optional
+         *
+         * This function is meant to iterate the internal state,
+         * so it points to the next entity inside the file.
+         * In case there is such next entity, this function must
+         * return TRUE, else, returning FALSE will make the indexer
+         * think it is done with this file and move on to the next one.
+         *
+         * What an "entity" is considered is left to the module
+         * implementation.
+         */
+        return FALSE;
 }

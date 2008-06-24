@@ -1,5 +1,11 @@
 2008-06-24  Philip Van Hoof  <pvanhoof@gnome.org>
 
+	src/tracker-indexer/tracker-indexer.c: The table Events for
+	tracker_db_create_event only exists in cache.db, not in common.db,
+	therefore patched it to use a priv->cache instead of priv->common
+
+2008-06-24  Philip Van Hoof  <pvanhoof@gnome.org>
+
 	* src/libtracker-db/tracker-db-manager.c: Normalizing attachments (for
 	example cache.db was attached twice, which gave warnings).
 

@@ -82,6 +82,7 @@ struct TrackerIndexerPrivate {
 	TrackerDBInterface *metadata;
 	TrackerDBInterface *contents;
 	TrackerDBInterface *common;
+	TrackerDBInterface *cache;
 
 	TrackerConfig *config;
 	TrackerLanguage *language;
@@ -286,6 +287,7 @@ tracker_indexer_init (TrackerIndexer *indexer)
 	priv->index = tracker_index_new (index_file,
 					 tracker_config_get_max_bucket_count (priv->config));
 
+	priv->cache = tracker_db_manager_get_db_interface (TRACKER_DB_CACHE);
 	priv->common = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
 	priv->metadata = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
 	priv->contents = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_CONTENTS);
@@ -435,7 +437,7 @@ process_file (TrackerIndexer *indexer,
 
 			eid = tracker_db_get_new_event_id (priv->common);
 
-			tracker_db_create_event (priv->common, eid, id, "Create");
+			tracker_db_create_event (priv->cache, eid, id, "Create");
 
 			tracker_db_increment_stats (priv->common, service);
 

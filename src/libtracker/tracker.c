@@ -1488,5 +1488,45 @@ tracker_search_metadata_by_text_async (TrackerClient *client, const char *query,
 	}
 }
 
+void
+tracker_search_metadata_by_text_and_mime_async (TrackerClient *client, const char *query, const char **mimes, TrackerArrayReply callback, gpointer user_data)
+{
+	ArrayCallBackStruct *callback_struct;
 
+	callback_struct = g_new (ArrayCallBackStruct, 1);
+	callback_struct->callback = callback;
+	callback_struct->data = user_data;	
+
+	client->last_pending_call = org_freedesktop_Tracker_Files_search_by_text_and_mime_async  (client->proxy_files, query,(const char **) mimes,  tracker_array_reply, callback_struct);
+	
+}
+
+
+void
+tracker_search_metadata_by_text_and_mime_and_location_async (TrackerClient *client, const char *query, const char **mimes, const char *location, TrackerArrayReply callback, gpointer user_data)
+{
+	ArrayCallBackStruct *callback_struct;
+
+	callback_struct = g_new (ArrayCallBackStruct, 1);
+	callback_struct->callback = callback;
+	callback_struct->data = user_data;	
+
+	client->last_pending_call = org_freedesktop_Tracker_Files_search_by_text_and_mime_and_location_async (client->proxy_files, query, (const char **)mimes, location,  tracker_array_reply, callback_struct);
+	
+}
+
+
+
+void
+tracker_search_metadata_by_text_and_location_async (TrackerClient *client, const char *query, const char *location, TrackerArrayReply callback, gpointer user_data)
+{
+	ArrayCallBackStruct *callback_struct;
+
+	callback_struct = g_new (ArrayCallBackStruct, 1);
+	callback_struct->callback = callback;
+	callback_struct->data = user_data;	
+
+	client->last_pending_call = org_freedesktop_Tracker_Files_search_by_text_and_location_async (client->proxy_files, query, location,  tracker_array_reply, callback_struct);
+	
+}
 

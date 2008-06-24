@@ -1,5 +1,12 @@
 2008-06-24  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker/tracker.c:
+	(tracker_search_metadata_by_text_async): Re-added the async DBus
+	API we removed which breaks tracker being installed to /usr due to
+	applications depending on this API.
+
+2008-06-24  Martyn Russell  <martyn@imendio.com>
+
 	* src/tracker-indexer/tracker-index.[ch]:
 	* src/tracker-indexer/tracker-indexer.c: Added a timer and a count
 	so we know when we are finished how long it took and how many

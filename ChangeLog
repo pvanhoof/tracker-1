@@ -1,3 +1,11 @@
+2008-06-24  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-crawler.c:
+	* src/trackerd/tracker-monitor.[ch]: Now we detect the backend
+	used for monitoring and set the limits accordingly. We also now
+	provide the warning (if we reach the limit) only once and make the
+	number of monitors we couldn't add available by API.
+
 2008-06-24  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/trackerd/tracker-db.c:

@@ -673,12 +673,14 @@ file_enumerators_decrement (TrackerCrawler *crawler)
 	if (priv->enumerations == 0) {
 		g_timer_stop (priv->timer);
 
-		g_message ("%s crawling files in %4.4f seconds, %d found, %d ignored, %d monitors", 
+		g_message ("%s crawling files in %4.4f seconds, %d found, %d ignored, "
+			   "%d monitors, %d monitors ignored", 
 			   priv->running ? "Finished" : "Stopped",
 			   g_timer_elapsed (priv->timer, NULL),
 			   priv->files_found,
 			   priv->files_ignored,
-			   tracker_monitor_get_count ());
+			   tracker_monitor_get_count (),
+			   tracker_monitor_get_ignored ());
 
 		priv->running = FALSE;
 	}

@@ -35,7 +35,8 @@ gboolean tracker_monitor_remove               (GFile         *file,
 					       gboolean       delete_subdirs);
 gboolean tracker_monitor_is_watched           (GFile         *file);
 gboolean tracker_monitor_is_watched_by_string (const gchar   *path);
-gint     tracker_monitor_get_count            (void);
+guint    tracker_monitor_get_count            (void);
+guint    tracker_monitor_get_ignored          (void);
 
 G_END_DECLS
 

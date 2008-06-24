@@ -29,15 +29,6 @@
 
 /* #define TESTING  */
 
-/* This is the default inotify limit - 500 to allow some monitors for
- * other applications. 
- *
- * FIXME: Should we try reading
- * /proc/sys/fs/inotify/max_user_watches when there is a possiblity
- * that we don't even use inotify?
- */
-#define MAX_MONITORS                 (guint) ((2 ^ 13) - 500)   
-
 #define FILES_QUEUE_PROCESS_INTERVAL 2000
 #define FILES_QUEUE_PROCESS_MAX      5000
 
@@ -47,6 +38,39 @@ static GAsyncQueue   *files_created;
 static GAsyncQueue   *files_updated;
 static GAsyncQueue   *files_deleted;
 static guint          files_queue_handlers_id;
+static GType          monitor_backend; 
+static guint          monitor_limit;
+static gboolean       monitor_limit_warned;
+static guint          monitors_ignored;
+
+static guint
+monitor_get_inotify_limit (void)
+{
+	GError      *error = NULL;
+	const gchar *filename;
+	gchar       *contents = NULL;
+	guint        limit;
+	
+	filename = "/proc/sys/fs/inotify/max_user_watches";
+	
+	if (!g_file_get_contents (filename,
+				  &contents, 
+				  NULL, 
+				  &error)) {
+		g_warning ("Couldn't get INotify monitor limit from:'%s', %s", 
+			   filename,
+			   error ? error->message : "no error given");
+		g_clear_error (&error);
+		
+		/* Setting limit to an arbitary limit */
+		limit = 8192;
+	} else {
+		limit = atoi (contents);
+		g_free (contents);
+	}
+
+	return limit;
+}
 
 gboolean 
 tracker_monitor_init (TrackerConfig *_config) 
@@ -76,6 +100,91 @@ tracker_monitor_init (TrackerConfig *_config)
 		files_deleted = g_async_queue_new ();
 	}
 
+	/* For the first monitor we get the type and find out if we
+	 * are using inotify, FAM, polling, etc.
+	 */
+	if (monitor_backend == 0) {
+		GFile        *file;
+		GFileMonitor *monitor;
+		const gchar  *name;
+
+		file = g_file_new_for_path (g_get_home_dir ());
+		monitor = g_file_monitor_directory (file,
+						    G_FILE_MONITOR_WATCH_MOUNTS,
+						    NULL,
+						    NULL);
+
+		monitor_backend = G_OBJECT_TYPE (monitor);
+
+		/* We use the name because the type itself is actually
+		 * private and not available publically. Note this is
+		 * subject to change, but unlikely of course.
+		 */
+		name = g_type_name (monitor_backend);
+		if (name) {
+			/* Set limits based on backend... */
+			if (strcmp (name, "GInotifyDirectoryMonitor") == 0) {
+				/* Using inotify */
+				g_message ("Monitor backend is INotify");
+
+				/* Setting limit based on kernel
+				 * settings in /proc...
+				 */
+				monitor_limit = monitor_get_inotify_limit ();
+
+				/* We don't use 100% of the monitors, we allow other
+				 * applications to have at least 500 or so to use
+				 * between them selves. This only
+				 * applies to inotify because it is a
+				 * user shared resource.
+				 */
+				monitor_limit -= 500;
+
+				/* Make sure we don't end up with a
+				 * negative maximum.
+				 */
+				monitor_limit = MAX (monitor_limit, 0);
+			}
+			else if (strcmp (name, "GFamDirectoryMonitor") == 0) {
+				/* Using Fam */
+				g_message ("Monitor backend is Fam");
+
+				/* Setting limit to an arbitary limit
+				 * based on testing 
+				 */
+				monitor_limit = 400;
+			}
+			else if (strcmp (name, "GFenDirectoryMonitor") == 0) {
+				/* Using Fen, what is this? */
+				g_message ("Monitor backend is Fen");
+
+				/* Guessing limit... */
+				monitor_limit = 8192;
+			}
+			else if (strcmp (name, "GWin32DirectoryMonitor") == 0) {
+				/* Using Windows */
+				g_message ("Monitor backend is Windows");
+
+				/* Guessing limit... */
+				monitor_limit = 8192;
+			}
+			else {
+				/* Unknown */
+				g_warning ("Monitor backend:'%s' is unknown, we have no limits "
+					   "in place because we don't know what we are dealing with!", 
+					   name);
+
+				/* Guessing limit... */
+				monitor_limit = 100;
+			}
+		}
+
+		g_message ("Monitor limit is %d", monitor_limit);
+
+		g_file_monitor_cancel (monitor);
+		g_object_unref (file);
+	}
+
 	return TRUE;
 }
 
@@ -83,6 +192,11 @@ void
 tracker_monitor_shutdown (void)
 {
 	gchar *str;
+
+	monitors_ignored = 0;
+	monitor_limit_warned = FALSE;
+	monitor_limit = 0;
+	monitor_backend = 0;
 
 	if (files_queue_handlers_id) {
 		g_source_remove (files_queue_handlers_id);
@@ -331,10 +445,16 @@ tracker_monitor_add (GFile *file)
 	}
 
 	/* Cap the number of monitors */
-	if (g_hash_table_size (monitors) >= MAX_MONITORS) {
-		g_warning ("The maximum number of monitors to set (%d) "
-			   "has been reached, not adding any new ones",
-			   MAX_MONITORS);
+	if (g_hash_table_size (monitors) >= monitor_limit) {
+		monitors_ignored++;
+
+		if (!monitor_limit_warned) {
+			g_warning ("The maximum number of monitors to set (%d) "
+				   "has been reached, not adding any new ones",
+				   monitor_limit);
+			monitor_limit_warned = TRUE;
+		}
+
 		return FALSE;
 	}
 
@@ -361,6 +481,7 @@ tracker_monitor_add (GFile *file)
 					    NULL,
 					    &error);
 
+	
 	if (error) {
 		g_warning ("Could not add monitor for path:'%s', %s", 
 			   path, 
@@ -403,6 +524,9 @@ tracker_monitor_remove (GFile    *file,
 		return TRUE;
 	}
 
+	/* We reset this because now it is possible we have limit - 1 */
+	monitor_limit_warned = FALSE;
+
 	g_hash_table_remove (monitors, file);
 
 	path = g_file_get_path (file);
@@ -441,9 +565,14 @@ tracker_monitor_is_watched_by_string (const gchar *path)
 	return watched;
 }
 
-gint
+guint
 tracker_monitor_get_count (void)
 {
 	return g_hash_table_size (monitors);
 }
 
+guint
+tracker_monitor_get_ignored (void)
+{
+	return monitors_ignored;
+}

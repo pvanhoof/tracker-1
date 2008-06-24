@@ -23,11 +23,6 @@
 
 #include "tracker-indexer-module.h"
 
-typedef const gchar * (* TrackerIndexerModuleGetName) (void);
-typedef gchar **      (* TrackerIndexerModuleGetDirectories) (void);
-typedef GHashTable *  (* TrackerIndexerModuleGetData) (const gchar *path);
-typedef gchar *       (* TrackerIndexerModuleGetText) (const gchar *path);
-
 GModule *
 tracker_indexer_module_load (const gchar *module_name)
 {
@@ -56,7 +51,7 @@ tracker_indexer_module_load (const gchar *module_name)
 G_CONST_RETURN gchar *
 tracker_indexer_module_get_name (GModule *module)
 {
-	TrackerIndexerModuleGetName func;
+	TrackerModuleGetNameFunc func;
 
 	if (g_module_symbol (module, "tracker_module_get_name", (gpointer *) &func)) {
 		return (func) ();
@@ -68,7 +63,7 @@ tracker_indexer_module_get_name (GModule *module)
 gchar **
 tracker_indexer_module_get_directories (GModule *module)
 {
-	TrackerIndexerModuleGetDirectories func;
+	TrackerModuleGetDirectoriesFunc func;
 
 	if (g_module_symbol (module, "tracker_module_get_directories", (gpointer *) &func)) {
 		return (func) ();
@@ -80,7 +75,7 @@ tracker_indexer_module_get_directories (GModule *module)
 gchar **
 tracker_indexer_module_get_ignore_directories (GModule *module)
 {
-	TrackerIndexerModuleGetDirectories func;
+	TrackerModuleGetDirectoriesFunc func;
 
 	if (g_module_symbol (module, "tracker_module_get_ignore_directories", (gpointer *) &func)) {
 		return (func) ();
@@ -89,13 +84,45 @@ tracker_indexer_module_get_ignore_directories (GModule *module)
 	return NULL;
 }
 
-GHashTable *
-tracker_indexer_module_get_file_metadata (GModule     *module,
-					  const gchar *file)
+TrackerFile *
+tracker_indexer_module_file_new (GModule     *module,
+				 const gchar *path)
 {
-	TrackerIndexerModuleGetData func;
+	TrackerModuleFileGetDataFunc func;
+	TrackerFile *file = NULL;
 
-	if (g_module_symbol (module, "tracker_module_get_file_metadata", (gpointer *) &func)) {
+	file = g_slice_new0 (TrackerFile);
+	file->path = g_strdup (path);
+
+	if (g_module_symbol (module, "tracker_module_file_get_data", (gpointer *) &func)) {
+		file->data = (func) (path);
+	}
+
+	return file;
+}
+
+void
+tracker_indexer_module_file_free (GModule     *module,
+				  TrackerFile *file)
+{
+	TrackerModuleFileFreeDataFunc func;
+
+	if (file->data &&
+	    g_module_symbol (module, "tracker_module_file_free_data", (gpointer *) &func)) {
+		(func) (file->data);
+	}
+
+	g_free (file->path);
+	g_slice_free (TrackerFile, file);
+}
+
+GHashTable *
+tracker_indexer_module_file_get_metadata (GModule     *module,
+					  TrackerFile *file)
+{
+	TrackerModuleFileGetMetadataFunc func;
+
+	if (g_module_symbol (module, "tracker_module_file_get_metadata", (gpointer *) &func)) {
 		return (func) (file);
         }
 
@@ -103,14 +130,27 @@ tracker_indexer_module_get_file_metadata (GModule     *module,
 }
 
 gchar *
-tracker_indexer_module_get_text (GModule     *module,
-				 const gchar *file)
+tracker_indexer_module_file_get_text (GModule     *module,
+				      TrackerFile *file)
 {
-	TrackerIndexerModuleGetText func;
+	TrackerModuleFileGetText func;
 
-	if (g_module_symbol (module, "tracker_module_get_file_text", (gpointer *) &func)) {
+	if (g_module_symbol (module, "tracker_module_file_get_text", (gpointer *) &func)) {
 		return (func) (file);
         }
 
 	return NULL;
+}
+
+gboolean
+tracker_indexer_module_file_iter_contents (GModule     *module,
+					   TrackerFile *file)
+{
+	TrackerModuleFileIterContents func;
+
+	if (g_module_symbol (module, "tracker_module_file_iter_contents", (gpointer *) &func)) {
+		return (func) (file);
+	}
+
+	return FALSE;
 }

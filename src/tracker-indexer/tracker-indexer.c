@@ -61,6 +61,7 @@
 #include "tracker-indexer-module.h"
 #include "tracker-indexer-db.h"
 #include "tracker-index.h"
+#include "tracker-module.h"
 
 #define TRACKER_INDEXER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_INDEXER, TrackerIndexerPrivate))
 
@@ -99,7 +100,7 @@ struct TrackerIndexerPrivate {
 
 struct PathInfo {
 	GModule *module;
-	gchar *path;
+	TrackerFile *file;
 };
 
 struct MetadataForeachData {
@@ -135,7 +136,7 @@ path_info_new (GModule     *module,
 
 	info = g_slice_new (PathInfo);
 	info->module = module;
-	info->path = g_strdup (path);
+	info->file = tracker_indexer_module_file_new (module, path);
 
 	return info;
 }
@@ -143,7 +144,7 @@ path_info_new (GModule     *module,
 static void
 path_info_free (PathInfo *info)
 {
-	g_free (info->path);
+	tracker_indexer_module_file_free (info->module, info->file);
 	g_slice_free (PathInfo, info);
 }
 
@@ -382,7 +383,7 @@ tracker_indexer_add_directory (TrackerIndexer *indexer,
 
 	if (ignore_dirs) {
 		for (i = 0; ignore_dirs[i]; i++) {
-			if (strcmp (info->path, ignore_dirs[i]) == 0) {
+			if (strcmp (info->file->path, ignore_dirs[i]) == 0) {
 				ignore = TRUE;
 				break;
 			}
@@ -392,7 +393,7 @@ tracker_indexer_add_directory (TrackerIndexer *indexer,
 	if (!ignore) {
 		g_queue_push_tail (priv->dir_queue, info);
 	} else {
-		g_message ("Ignoring directory:'%s'", info->path);
+		g_message ("Ignoring directory:'%s'", info->file->path);
 		path_info_free (info);
 	}
 
@@ -465,15 +466,15 @@ index_metadata (TrackerIndexer *indexer,
 	}
 }
 
-static void
+static gboolean
 process_file (TrackerIndexer *indexer,
 	      PathInfo       *info)
 {
 	GHashTable *metadata;
 
-	g_message ("Processing file:'%s'", info->path);
+	g_message ("Processing file:'%s'", info->file->path);
 
-	metadata = tracker_indexer_module_get_file_metadata (info->module, info->path);
+	metadata = tracker_indexer_module_file_get_metadata (info->module, info->file);
 
 	if (metadata) {
 		TrackerService *service;
@@ -496,7 +497,7 @@ process_file (TrackerIndexer *indexer,
 
 		tracker_db_interface_start_transaction (priv->metadata);
 
-		if (tracker_db_create_service (priv->metadata, id, service, info->path, metadata)) {
+		if (tracker_db_create_service (priv->metadata, id, service, info->file->path, metadata)) {
 			gchar *text;
 			guint32 eid;
 
@@ -508,7 +509,7 @@ process_file (TrackerIndexer *indexer,
 
 			index_metadata (indexer, id, service, metadata);
 
-			text = tracker_indexer_module_get_text (info->module, info->path);
+			text = tracker_indexer_module_file_get_text (info->module, info->file);
 
 			if (text) {
 				tracker_db_set_text (priv->contents, id, text);
@@ -522,6 +523,8 @@ process_file (TrackerIndexer *indexer,
 
 		g_hash_table_destroy (metadata);
 	}
+
+	return !tracker_indexer_module_file_iter_contents (info->module, info->file);
 }
 
 static void
@@ -532,9 +535,9 @@ process_directory (TrackerIndexer *indexer,
 	const gchar *name;
 	GDir *dir;
 
-	g_message ("Processing directory:'%s'", info->path);
+	g_message ("Processing directory:'%s'", info->file->path);
 
-	dir = g_dir_open (info->path, 0, NULL);
+	dir = g_dir_open (info->file->path, 0, NULL);
 
 	if (!dir) {
 		return;
@@ -544,7 +547,7 @@ process_directory (TrackerIndexer *indexer,
 		PathInfo *new_info;
 		gchar *path;
 
-		path = g_build_filename (info->path, name, NULL);
+		path = g_build_filename (info->file->path, name, NULL);
 
 		new_info = path_info_new (info->module, path);
 		tracker_indexer_add_file (indexer, new_info);
@@ -604,10 +607,12 @@ indexing_func (gpointer data)
 	indexer = (TrackerIndexer *) data;
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
-	if ((path = g_queue_pop_head (priv->file_process_queue)) != NULL) {
+	if ((path = g_queue_peek_head (priv->file_process_queue)) != NULL) {
 		/* Process file */
-		process_file (indexer, path);
-		path_info_free (path);
+		if (process_file (indexer, path)) {
+			path = g_queue_pop_head (priv->file_process_queue);
+			path_info_free (path);
+		}
 	} else if ((path = g_queue_pop_head (priv->dir_queue)) != NULL) {
 		/* Process directory contents */
 		process_directory (indexer, path, TRUE);

@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 #include <glib.h>
+#include <tracker-indexer/tracker-module.h>
 
 #define GROUP_DESKTOP_ENTRY "Desktop Entry"
 #define KEY_TYPE            "Type"
@@ -112,20 +113,20 @@ insert_data_from_desktop_file (GHashTable  *metadata,
 }
 
 GHashTable *
-tracker_module_get_file_metadata (const gchar *file)
+tracker_module_file_get_metadata (TrackerFile *file)
 {
 	GHashTable *metadata;
 	GKeyFile *key_file;
 	gchar *type, *filename;
 
 	/* Check we're dealing with a desktop file */
-	if (!g_str_has_suffix (file, ".desktop")) {
+	if (!g_str_has_suffix (file->path, ".desktop")) {
 		return NULL;
 	}
 
 	key_file = g_key_file_new ();
 
-	if (!g_key_file_load_from_file (key_file, file, G_KEY_FILE_NONE, NULL)) {
+	if (!g_key_file_load_from_file (key_file, file->path, G_KEY_FILE_NONE, NULL)) {
 		g_key_file_free (key_file);
 		return NULL;
 	}
@@ -157,7 +158,7 @@ tracker_module_get_file_metadata (const gchar *file)
 
 	/* FIXME: mimetypes list and categories? */
 
-	filename = g_filename_display_basename (file);
+	filename = g_filename_display_basename (file->path);
 	g_hash_table_insert (metadata, METADATA_FILE_NAME, filename);
 
 	g_key_file_free (key_file);

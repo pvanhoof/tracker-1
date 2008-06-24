@@ -1,3 +1,38 @@
+2008-06-24  Carlos Garnacho  <carlos@imendio.com>
+
+	Extend/Change indexer modules API. From now on, modules will deal with
+	TrackerFile structs instead of paths. This struct, besides the path,
+	contains a pointer to private data that modules can attach/free
+	through tracker_module_file_get_data() and
+	tracker_module_file_free_data().
+
+	In order to deal with files that are potential containers for sets of
+	metadata, tracker_module_file_iter_contents() has been added, for
+	modules that implement this call, tracker-indexer will be able to
+	collect data through tracker_module_file_get_metadata(). If
+	iter_contents() returns FALSE, the indexer assumes no more data is
+	left in the file, moving on to the next one.
+
+	* src/tracker-indexer/tracker-module.h: New header, modules must
+	conform to the API described in it.
+
+	* src/tracker-indexer/tracker-indexer-module.[ch]: Use definitions
+	from tracker-module.h
+	(tracker_indexer_module_file_new) (tracker_indexer_module_file_free):
+	New functions to create/free TrackerFile structs.
+	(tracker_indexer_module_file_iter_contents): New function to iterate
+	through a file contents, the meaning of this will depend on the module
+	implementation.
+
+	* src/tracker-indexer/tracker-indexer.c: Deal with TrackerFile
+	structs.
+	(process_file): Iterate through file contents, once the file doesn't
+	have more elements to process, the file will be removed from the
+	queue.
+
+	* src/tracker-indexer/modules/applications.c:
+	* src/tracker-indexer/modules/files.c: Adapt to the new API.
+
 2008-06-24  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/tracker-indexer/tracker-indexer.c:

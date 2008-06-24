@@ -29,6 +29,7 @@
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-os-dependant.h>
 #include <libtracker-common/tracker-ontology.h>
+#include <tracker-indexer/tracker-module.h>
 
 #define METADATA_FILE_NAME_DELIMITED "File:NameDelimited"
 #define METADATA_FILE_EXT            "File:Ext"
@@ -243,39 +244,42 @@ check_exclude_file (const gchar *path)
 }
 
 GHashTable *
-tracker_module_get_file_metadata (const gchar *file)
+tracker_module_file_get_metadata (TrackerFile *file)
 {
+	const gchar *path;
 	GHashTable *metadata;
 	struct stat st;
 	const gchar *ext;
 	gchar *mimetype;
 
-	if (check_exclude_file (file)) {
+	path = file->path;
+
+	if (check_exclude_file (path)) {
 		return NULL;
 	}
 
-	g_lstat (file, &st);
+	g_lstat (path, &st);
 	metadata = g_hash_table_new_full (g_str_hash, g_str_equal,
 					  NULL,
 					  (GDestroyNotify) g_free);
-	ext = strrchr (file, '.');
+	ext = strrchr (path, '.');
 
 	if (ext) {
 		g_hash_table_insert (metadata, METADATA_FILE_EXT, g_strdup (ext + 1));
 	}
 
-	mimetype = tracker_file_get_mime_type (file);
+	mimetype = tracker_file_get_mime_type (path);
 
-	g_hash_table_insert (metadata, METADATA_FILE_NAME, g_filename_display_basename (file));
-	g_hash_table_insert (metadata, METADATA_FILE_PATH, g_path_get_dirname (file));
+	g_hash_table_insert (metadata, METADATA_FILE_NAME, g_filename_display_basename (path));
+	g_hash_table_insert (metadata, METADATA_FILE_PATH, g_path_get_dirname (path));
 	g_hash_table_insert (metadata, METADATA_FILE_NAME_DELIMITED,
-			     g_filename_to_utf8 (file, -1, NULL, NULL, NULL));
+			     g_filename_to_utf8 (path, -1, NULL, NULL, NULL));
 	g_hash_table_insert (metadata, METADATA_FILE_MIMETYPE, mimetype);
 
 	if (S_ISLNK (st.st_mode)) {
 		gchar *link_path;
 
-		link_path = g_file_read_link (file, NULL);
+		link_path = g_file_read_link (path, NULL);
 		g_hash_table_insert (metadata, METADATA_FILE_LINK,
 				     g_filename_to_utf8 (link_path, -1, NULL, NULL, NULL));
 		g_free (link_path);
@@ -289,12 +293,12 @@ tracker_module_get_file_metadata (const gchar *file)
 	g_hash_table_insert (metadata, METADATA_FILE_ACCESSED,
 			     tracker_uint_to_string (st.st_atime));
 
-	tracker_metadata_get_embedded (file, mimetype, metadata);
+	tracker_metadata_get_embedded (path, mimetype, metadata);
 
 	return metadata;
 }
 
-gchar *
+static gchar *
 tracker_metadata_call_text_filter (const gchar *path,
 				   const gchar *mime)
 {
@@ -335,12 +339,12 @@ tracker_metadata_call_text_filter (const gchar *path,
 }
 
 gchar *
-tracker_module_get_file_text (const gchar *file)
+tracker_module_file_get_text (TrackerFile *file)
 {
 	gchar *mimetype, *service_type;
 	gchar *text = NULL;
 
-	mimetype = tracker_file_get_mime_type (file);
+	mimetype = tracker_file_get_mime_type (file->path);
 	service_type = tracker_ontology_get_service_type_for_mime (mimetype);
 
 	/* No need to filter text based files - index them directly */
@@ -349,14 +353,14 @@ tracker_module_get_file_text (const gchar *file)
              strcmp (service_type, "Development") == 0)) {
 		GMappedFile *mapped_file;
 
-		mapped_file = g_mapped_file_new (file, FALSE, NULL);
+		mapped_file = g_mapped_file_new (file->path, FALSE, NULL);
 
 		if (mapped_file) {
 			text = g_strdup (g_mapped_file_get_contents (mapped_file));
 			g_mapped_file_free (mapped_file);
 		}
 	} else {
-		text = tracker_metadata_call_text_filter (file, mimetype);
+		text = tracker_metadata_call_text_filter (file->path, mimetype);
 	}
 
 	g_free (mimetype);

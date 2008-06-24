@@ -23,6 +23,7 @@
 #define __TRACKER_INDEXER_MODULE_H__
 
 #include <glib.h>
+#include "tracker-module.h"
 
 G_BEGIN_DECLS
 
@@ -32,10 +33,18 @@ G_CONST_RETURN gchar *  tracker_indexer_module_get_name               (GModule  
 gchar **                tracker_indexer_module_get_directories        (GModule     *module);
 gchar **                tracker_indexer_module_get_ignore_directories (GModule     *module);
 
-GHashTable *            tracker_indexer_module_get_file_metadata      (GModule     *module,
-								       const gchar *file);
-gchar *                 tracker_indexer_module_get_text               (GModule     *module,
-								       const gchar *file);
+TrackerFile *           tracker_indexer_module_file_new               (GModule     *module,
+								       const gchar *path);
+void                    tracker_indexer_module_file_free              (GModule     *module,
+								       TrackerFile *file);
+
+GHashTable *            tracker_indexer_module_file_get_metadata      (GModule     *module,
+								       TrackerFile *file);
+gchar *                 tracker_indexer_module_file_get_text          (GModule     *module,
+								       TrackerFile *file);
+
+gboolean                tracker_indexer_module_file_iter_contents     (GModule     *module,
+								       TrackerFile *file);
 
 G_END_DECLS
 

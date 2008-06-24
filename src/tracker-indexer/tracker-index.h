@@ -38,7 +38,7 @@ void           tracker_index_add_word (TrackerIndex *index,
 				       gint          service_type,
 				       gint          weight);
 
-void           tracker_index_flush    (TrackerIndex *index);
+guint          tracker_index_flush    (TrackerIndex *index);
 
 
 G_END_DECLS

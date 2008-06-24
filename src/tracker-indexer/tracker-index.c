@@ -155,10 +155,15 @@ cache_flush_foreach (gpointer key,
 	return TRUE;
 }
 
-void
+guint
 tracker_index_flush (TrackerIndex *index)
 {
-	g_message ("Flushing index");
+	guint size;
+
+	size = g_hash_table_size (index->cache);
+	g_message ("Flushing index with %d items", size);
 
 	g_hash_table_foreach_remove (index->cache, cache_flush_foreach, index->index);
+
+	return size;
 }

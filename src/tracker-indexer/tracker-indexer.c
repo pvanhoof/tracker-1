@@ -64,6 +64,9 @@
 
 #define TRACKER_INDEXER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_INDEXER, TrackerIndexerPrivate))
 
+/* Flush every 'x' seconds */
+#define FLUSH_FREQUENCY 10
+
 typedef struct TrackerIndexerPrivate TrackerIndexerPrivate;
 typedef struct PathInfo PathInfo;
 typedef struct MetadataForeachData MetadataForeachData;
@@ -87,7 +90,11 @@ struct TrackerIndexerPrivate {
 	TrackerConfig *config;
 	TrackerLanguage *language;
 
+	GTimer *timer;
+	guint   items_indexed;
+
 	guint idle_id;
+	guint flush_id;
 };
 
 struct PathInfo {
@@ -140,12 +147,58 @@ path_info_free (PathInfo *info)
 	g_slice_free (PathInfo, info);
 }
 
+static gboolean
+schedule_flush_cb (gpointer data)
+{
+	TrackerIndexer        *indexer;
+	TrackerIndexerPrivate *priv;
+
+	indexer = TRACKER_INDEXER (data);
+	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
+
+	priv->flush_id = 0;
+
+	priv->items_indexed += tracker_index_flush (priv->index);
+
+	return FALSE;
+}
+
+static void
+schedule_flush (TrackerIndexer *indexer,
+		gboolean        immediately)
+{
+	TrackerIndexerPrivate *priv;
+
+        priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
+
+	if (immediately) {
+		priv->items_indexed += tracker_index_flush (priv->index);
+		return;
+	}
+
+	priv->flush_id = g_timeout_add_seconds (FLUSH_FREQUENCY, 
+						schedule_flush_cb, 
+						indexer);
+}
+
 static void
 tracker_indexer_finalize (GObject *object)
 {
 	TrackerIndexerPrivate *priv;
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (object);
+
+	/* Important! Make sure we flush if we are scheduled to do so,
+	 * and do that first.
+	 */
+	if (priv->flush_id) {
+		g_source_remove (priv->flush_id);
+		schedule_flush (TRACKER_INDEXER (object), TRUE);
+	}	
+
+	if (priv->timer) {
+		g_timer_destroy (priv->timer);
+	}
 
 	g_free (priv->db_dir);
 
@@ -292,6 +345,8 @@ tracker_indexer_init (TrackerIndexer *indexer)
 	priv->metadata = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
 	priv->contents = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_CONTENTS);
 
+	priv->timer = g_timer_new ();
+
 	tracker_indexer_set_running (indexer, TRUE, NULL);
 
 	g_free (index_file);
@@ -405,8 +460,9 @@ index_metadata (TrackerIndexer *indexer,
 
 	g_hash_table_foreach (metadata, index_metadata_foreach, &data);
 
-	/* FIXME: flushing after adding each metadata set, not ideal */
-	tracker_index_flush (priv->index);
+	if (!priv->flush_id) {
+		schedule_flush (indexer, FALSE);
+	}
 }
 
 static void
@@ -552,7 +608,16 @@ indexing_func (gpointer data)
 		}
 
 		if (!priv->current_module) {
+			/* Flush remaining items */
+			schedule_flush (indexer, TRUE);
+
 			/* No more modules to query, we're done */
+			g_timer_stop (priv->timer);
+
+			g_message ("Indexer finished in %4.4f seconds, %d items indexed in total",
+				   g_timer_elapsed (priv->timer, NULL),
+				   priv->items_indexed);
+
 			g_signal_emit (indexer, signals[FINISHED], 0);
 			return FALSE;
 		}

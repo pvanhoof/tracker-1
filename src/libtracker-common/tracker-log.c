@@ -45,16 +45,18 @@ static TrackerLog *log = NULL;
 static guint log_handler_id;
 
 static inline void
-log_output (const char *message)
+log_output (const gchar    *domain,
+	    GLogLevelFlags  log_level,
+	    const gchar    *message)
 {
-	FILE		*fd;
-	time_t	  	 now;
-	gchar	 	 time_str[64];
-	gchar            usec_str[20];
-	gchar		*output;
-	struct tm	*local_time;
-	GTimeVal	 current_time;
-	static size_t    size = 0;
+	FILE          *fd;
+	time_t         now;
+	gchar          time_str[64];
+	gchar         *output;
+	struct tm     *local_time;
+	GTimeVal       current_time;
+	static size_t  size = 0;
+	const gchar   *log_level_str;
 
 	g_return_if_fail (log != NULL);
 	g_return_if_fail (message != NULL && message[0] != '\0');
@@ -81,11 +83,30 @@ log_output (const char *message)
 	now = time ((time_t *) NULL);
 	local_time = localtime (&now);
 	strftime (time_str, 64, "%d %b %Y, %H:%M:%S:", local_time);
-	g_sprintf (usec_str, "%03ld", current_time.tv_usec / 1000); 
 
-	output = g_strdup_printf ("%s%s - %s", 
+	switch (log_level) {
+	case G_LOG_LEVEL_WARNING:
+		log_level_str = "-Warning **";
+		break;
+
+	case G_LOG_LEVEL_CRITICAL:
+		log_level_str = "-Critical **";
+		break;
+
+	case G_LOG_LEVEL_ERROR:
+		log_level_str = "-Error **";
+		break;
+
+	default:
+		log_level_str = NULL;
+		break;
+	}
+
+	output = g_strdup_printf ("%s%s %s%s: %s", 
+				  log_level_str ? "\n" : "",
 				  time_str, 
-				  usec_str, 
+				  domain,
+				  log_level_str ? log_level_str : "",
 				  message);
 
 	size += g_fprintf (fd, "%s\n", output);
@@ -108,7 +129,7 @@ tracker_log_handler (const gchar    *domain,
 		return;
 	}
 
-	log_output (message);
+	log_output (domain, log_level, message);
 
 	/* now show the message through stdout/stderr as usual */
 	g_log_default_handler (domain, log_level, message, user_data);
@@ -121,7 +142,7 @@ tracker_log_init (const gchar *filename,
 	g_return_if_fail (filename != NULL);
 
 	if (log != NULL) {
-		g_warning ("Logger already initialized (%s)", log->filename);
+		g_warning ("Log already initialized");
 		return;
 	}
 
@@ -130,8 +151,12 @@ tracker_log_init (const gchar *filename,
 	log->mutex = g_mutex_new ();
 	log->verbosity = verbosity;
 
-	log_handler_id = g_log_set_handler (NULL, G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL,
-					    tracker_log_handler, log);
+	log_handler_id = g_log_set_handler (NULL, 
+					    G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL,
+					    tracker_log_handler, 
+					    log);
+
+	g_log_set_default_handler (tracker_log_handler, log);
 }
 
 void

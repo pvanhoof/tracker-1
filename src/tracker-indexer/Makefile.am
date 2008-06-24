@@ -5,7 +5,7 @@ INCLUDES =								\
 	-DLIBDIR=\""$(libdir)"\"					\
 	-DLOCALEDIR=\""$(localedir)"\" 					\
 	-DINDEXER_MODULES_DIR=\""$(libdir)"/tracker/indexer-modules\"	\
-	-DG_LOG_DOMAIN=\"Tracker-Indexer\"				\
+	-DG_LOG_DOMAIN=\"Tracker\"					\
 	-I$(top_srcdir)/src						\
 	$(DBUS_CFLAGS)							\
 	$(GMODULE_CFLAGS)						\

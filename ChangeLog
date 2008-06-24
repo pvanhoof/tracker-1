@@ -1,5 +1,12 @@
 2008-06-24  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/modules/Makefile.am:
+	* src/tracker-indexer/modules/evolution.c: Module for Evolution,
+	initially it supports local and IMAP mailboxes. It's still missing
+	message body and attachments retrieval.
+
+2008-06-24  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-indexer-module.c
 	(tracker_indexer_module_file_iter_contents): return FALSE if
 	file->data is NULL, since there is no possibility the module

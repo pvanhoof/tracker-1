@@ -1,3 +1,17 @@
+2008-06-24  Ivan Frade  <ivan.frade@nokia.com>
+
+	* tests/libtracker-db/Makefile.am
+	* tests/libtracker-db/run-test-in-tmp-dir.sh
+	* tests/libtracker-db/tracker-db-manager-common.c
+	* tests/libtracker-db/tracker-db-manager-common.h: Common
+	functions to -attach and -unattach tests
+	
+	* tests/libtracker-db/tracker-db-manager-test-unattach.c: new
+	test to tracker_db_manager with no attach_all
+
+	* tests/libtracker-db/tracker-db-manager-test.c: renamed to -attach.c
+	* tests/libtracker-db/tracker-db-manager-test-attach.c: 
+
 2008-06-24  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/modules/dummy.c: Update API, also add more

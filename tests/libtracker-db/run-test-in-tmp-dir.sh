@@ -6,7 +6,6 @@ GLIB_DIR=`pkg-config --variable=prefix glib-2.0`
 # Ensure we have gtester in PATH
 export PATH=$PATH:$GLIB_DIR/bin
 
-make test
-./tracker-db-manager
+make test 2> /dev/null
 
 . ../scripts/xdg_dirs.unsource

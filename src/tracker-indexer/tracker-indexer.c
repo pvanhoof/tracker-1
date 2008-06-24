@@ -342,7 +342,7 @@ tracker_indexer_init (TrackerIndexer *indexer)
 
 	priv->cache = tracker_db_manager_get_db_interface (TRACKER_DB_CACHE);
 	priv->common = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
-	priv->metadata = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
+	priv->metadata = tracker_db_manager_get_db_interfaces (3, TRACKER_DB_COMMON, TRACKER_DB_CACHE, TRACKER_DB_FILE_METADATA);
 	priv->contents = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_CONTENTS);
 
 	priv->timer = g_timer_new ();
@@ -487,15 +487,24 @@ process_file (TrackerIndexer *indexer,
 		service = tracker_ontology_get_service_type_by_name (service_type);
 		id = tracker_db_get_new_service_id (priv->common);
 
+		/* Begin of transaction point X */
+
+		/* If you ever need to remove this transaction, because it gets
+		 * wrapped into a larger one, that's fine IF you indeed have a
+		 * larger one in place that spans cache,common and the selected
+		 * metadata database file */
+
+		tracker_db_interface_start_transaction (priv->metadata);
+
 		if (tracker_db_create_service (priv->metadata, id, service, info->path, metadata)) {
 			gchar *text;
 			guint32 eid;
 
-			eid = tracker_db_get_new_event_id (priv->common);
+			eid = tracker_db_get_new_event_id (priv->metadata);
 
-			tracker_db_create_event (priv->cache, eid, id, "Create");
+			tracker_db_create_event (priv->metadata, eid, id, "Create");
 
-			tracker_db_increment_stats (priv->common, service);
+			tracker_db_increment_stats (priv->metadata, service);
 
 			index_metadata (indexer, id, service, metadata);
 
@@ -506,6 +515,10 @@ process_file (TrackerIndexer *indexer,
 				g_free (text);
 			}
 		}
+		
+		tracker_db_interface_end_transaction (priv->metadata); 
+		
+		/* End of transaction point X */
 
 		g_hash_table_destroy (metadata);
 	}

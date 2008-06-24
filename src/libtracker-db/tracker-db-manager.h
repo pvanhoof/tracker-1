@@ -57,6 +57,8 @@ const gchar *tracker_db_manager_get_file                    (TrackerDB          
 TrackerDBInterface *
              tracker_db_manager_get_db_interface            (TrackerDB              db);
 TrackerDBInterface *
+             tracker_db_manager_get_db_interfaces           (gint num, ...);
+TrackerDBInterface *
              tracker_db_manager_get_db_interface_by_service (const gchar           *service, 
 							     gboolean               content);
 TrackerDBInterface *

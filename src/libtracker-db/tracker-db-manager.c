@@ -2438,6 +2438,45 @@ tracker_db_manager_get_file (TrackerDB db)
 }
 
 TrackerDBInterface *
+tracker_db_manager_get_db_interfaces (gint num, ...)
+{
+	gint                n_args;
+	va_list             args;
+	TrackerDBInterface *connection = NULL;
+
+	va_start (args, num);
+	for (n_args = 1; n_args <= num; n_args++) {
+		TrackerDB db = va_arg (args, TrackerDB);
+
+		if (!connection) {
+			connection = tracker_db_interface_sqlite_new (dbs[db].abs_filename);
+			tracker_db_interface_set_procedure_table (connection, 
+								  prepared_queries);
+
+			/* You could set specific cache and page sizes for the
+			 * indexer's INSERT connection here. */
+
+			db_set_params (connection,
+				       dbs[db].cache_size,
+				       dbs[db].page_size,
+				       TRUE,
+				       FALSE);
+
+		} else {
+			db_exec_no_reply (connection, 
+					  "ATTACH '%s' as '%s'",
+					  dbs[db].abs_filename,
+					  dbs[db].name);
+		}
+
+	}
+	va_end (args);
+
+	return connection;
+}
+
+
+TrackerDBInterface *
 tracker_db_manager_get_db_interface (TrackerDB db)
 {
 	g_return_val_if_fail (initialized != FALSE, NULL);

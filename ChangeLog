@@ -1,3 +1,11 @@
+2008-06-24  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/tracker-indexer/tracker-indexer.c:
+	* src/libtracker-db/tracker-db-manager.c:
+	* src/libtracker-db/tracker-db-manager.h:
+
+	First piece of the puzzle for transactions in the indexer
+
 2008-06-24  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/Makefile.am:

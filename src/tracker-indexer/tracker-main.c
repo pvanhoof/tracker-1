@@ -160,7 +160,7 @@ shutdown_indexer (void)
 {
 	g_message ("Shutting down...\n");
 
-	tracker_db_manager_shutdown ();
+	tracker_db_manager_shutdown (FALSE);
 }
 
 gint

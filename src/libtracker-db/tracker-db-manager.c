@@ -2374,7 +2374,7 @@ tracker_db_manager_init (TrackerDBManagerFlags  flags,
 }
 
 void
-tracker_db_manager_shutdown (void) 
+tracker_db_manager_shutdown (gboolean remove_tmp) 
 {
         guint i;
 
@@ -2398,8 +2398,10 @@ tracker_db_manager_shutdown (void)
 	prepared_queries = NULL;
 
 	/* Remove directory in tmp */
-	g_message ("Removing directory:'%s'", sys_tmp_dir);
-	tracker_path_remove (sys_tmp_dir);
+	if (remove_tmp) {
+		g_message ("Removing directory:'%s'", sys_tmp_dir);
+		tracker_path_remove (sys_tmp_dir);
+	}
 
 	g_free (data_dir);
 	g_free (user_data_dir);

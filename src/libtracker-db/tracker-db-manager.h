@@ -49,7 +49,7 @@ GType        tracker_db_get_type                            (void) G_GNUC_CONST;
 
 void         tracker_db_manager_init                        (TrackerDBManagerFlags  flags,
 							     gboolean              *first_time);
-void         tracker_db_manager_shutdown                    (void);
+void         tracker_db_manager_shutdown                    (gboolean remove_tmp);
 
 void         tracker_db_manager_close_all                   (void);
 

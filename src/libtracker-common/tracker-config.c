@@ -26,6 +26,7 @@
 #include <stdlib.h>
 
 #include <glib.h>
+#include <gio/gio.h>
 
 #include "tracker-language.h"
 #include "tracker-config.h"
@@ -115,6 +116,9 @@
 typedef struct _TrackerConfigPriv TrackerConfigPriv;
 
 struct _TrackerConfigPriv {
+	GFile        *file;
+	GFileMonitor *monitor;
+
 	/* General */
 	gint	  verbosity;
 	gint	  initial_sleep;
@@ -172,8 +176,8 @@ static void config_set_property (GObject      *object,
 				 guint	       param_id,
 				 const GValue *value,
 				 GParamSpec   *pspec);
+static void config_load         (TrackerConfig *config);
 
-/* GObject properties */
 enum {
 	PROP_0,
 
@@ -576,6 +580,14 @@ config_finalize (GObject *object)
 
 	g_free (priv->language);
 	g_free (priv->email_client);
+
+	if (priv->monitor) {
+		g_object_unref (priv->monitor);
+	}
+
+	if (priv->file) {
+		g_object_unref (priv->file);
+	}
 
 	(G_OBJECT_CLASS (tracker_config_parent_class)->finalize) (object);
 }
@@ -1369,8 +1381,39 @@ config_load_string_list (TrackerConfig *config,
 }
 
 static void
+config_changed_cb (GFileMonitor     *monitor,
+		   GFile            *file,
+		   GFile            *other_file,
+		   GFileMonitorEvent event_type,
+		   gpointer          user_data)  
+{
+	TrackerConfig *config;
+	gchar         *filename;
+
+	config = TRACKER_CONFIG (user_data);
+
+	/* Do we recreate if the file is deleted? */
+
+	switch (event_type) {
+	case G_FILE_MONITOR_EVENT_CHANGED:
+	case G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT:
+		filename = g_file_get_path (file);
+		g_message ("Config file changed:'%s', reloading settings...", 
+			   filename); 
+		g_free (filename);
+
+		config_load (config);
+		break;
+
+	default:
+		break;
+	}
+}
+
+static void
 config_load (TrackerConfig *config)
 {
+	TrackerConfigPriv *priv;
 	GKeyFile *key_file;
 	GError	 *error = NULL;
 	gchar	 *filename;
@@ -1388,6 +1431,27 @@ config_load (TrackerConfig *config)
 
 	filename = g_build_filename (directory, "tracker.cfg", NULL);
 	g_free (directory);
+
+	priv = GET_PRIV (config);
+
+	/* Add file monitoring for changes */
+	if (!priv->file) {
+		priv->file = g_file_new_for_path (filename);
+	}
+
+	if (!priv->monitor) {
+		g_message ("Setting up monitor for changes to config file:'%s'", 
+			   filename);
+
+		priv->monitor = g_file_monitor_file (priv->file,
+						     G_FILE_MONITOR_NONE,
+						     NULL,
+						     NULL);
+		
+		g_signal_connect (priv->monitor, "changed",
+				  G_CALLBACK (config_changed_cb), 
+				  config);
+	}
 
 	/* Load options */
 	g_key_file_load_from_file (key_file, filename, G_KEY_FILE_NONE, &error);

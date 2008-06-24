@@ -9,6 +9,8 @@ INCLUDES =								\
 	-I$(top_srcdir)/src						\
 	$(DBUS_CFLAGS)							\
 	$(GMODULE_CFLAGS)						\
+	$(GTHREAD_LIBS)							\
+	$(GIO_LIBS)							\
 	$(GLIB2_CFLAGS)
 
 bin_PROGRAMS = tracker-indexer
@@ -39,6 +41,7 @@ tracker_indexer_LDADD =							\
 	$(DBUS_LIBS)							\
 	$(GMODULE_LIBS)							\
 	$(GTHREAD_LIBS)							\
+	$(GIO_LIBS)							\
 	$(GLIB2_LIBS)							\
 	-lz								\
 	-lm

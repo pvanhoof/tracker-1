@@ -8,6 +8,7 @@ INCLUDES =								\
 	-DINDEXER_MODULES_DIR=\"$(indexer_modulesdir)\"			\
 	-I$(top_srcdir)/src						\
 	$(GMODULE_CFLAGS)						\
+	$(GIO_LIBS)							\
 	$(GLIB2_CFLAGS)
 
 indexer_modules_LTLIBRARIES = 						\
@@ -20,6 +21,7 @@ libtracker_indexer_applications_la_SOURCES = applications.c
 libtracker_indexer_applications_la_LDFLAGS = $(module_flags)
 libtracker_indexer_applications_la_LIBADD = 				\
 	$(GMODULE_LIBS)							\
+	$(GIO_LIBS)							\
 	$(GLIB2_LIBS)
 
 # Files module
@@ -29,6 +31,7 @@ libtracker_indexer_files_la_LIBADD = 					\
 	$(top_builddir)/src/libtracker-db/libtracker-db.la		\
 	$(top_builddir)/src/xdgmime/libxdgmime.la			\
 	$(GMODULE_LIBS)							\
+	$(GIO_LIBS)							\
 	$(GLIB2_LIBS)
 
 # Instant messaging module
@@ -36,4 +39,5 @@ libtracker_indexer_gaim_conversations_la_SOURCES = gaim-conversations.c
 libtracker_indexer_gaim_conversations_la_LDFLAGS = $(module_flags)
 libtracker_indexer_gaim_conversations_la_LIBADD = 			\
 	$(GMODULE_LIBS)							\
+	$(GIO_LIBS)							\
 	$(GLIB2_LIBS)

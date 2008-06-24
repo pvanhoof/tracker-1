@@ -6,6 +6,7 @@ INCLUDES =					\
 	$(DBUS_CFLAGS)				\
 	$(UNAC_CFLAGS)				\
 	$(PANGO_CFLAGS)				\
+	$(GIO_CFLAGS)				\
 	$(GLIB2_CFLAGS)
 
 noinst_LTLIBRARIES = libtracker-common.la
@@ -61,5 +62,6 @@ libtracker_common_la_LIBADD = 			\
 	$(DBUS_LIBS)				\
 	$(UNAC_LIBS)				\
 	$(PANGO_LIBS)				\
+	$(GIO_LIBS)				\
 	$(GLIB2_LIBS)
 

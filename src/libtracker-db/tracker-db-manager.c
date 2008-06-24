@@ -58,6 +58,7 @@ typedef struct {
         gint                cache_size;
         gint                page_size;
         gboolean            add_functions;
+        gboolean            attached;
 } TrackerDBDefinition;
 
 static TrackerDBDefinition dbs[] = {
@@ -69,6 +70,7 @@ static TrackerDBDefinition dbs[] = {
           NULL,
           32, 
           TRACKER_DB_PAGE_SIZE_DEFAULT, 
+          FALSE,
           FALSE },
         { TRACKER_DB_CACHE, 
           TRACKER_DB_LOCATION_SYS_TMP_DIR,
@@ -78,6 +80,7 @@ static TrackerDBDefinition dbs[] = {
           NULL, 
           128,                          
           TRACKER_DB_PAGE_SIZE_DONT_SET, 
+          FALSE,
           FALSE },
         { TRACKER_DB_FILE_METADATA,
           TRACKER_DB_LOCATION_DATA_DIR,
@@ -87,7 +90,8 @@ static TrackerDBDefinition dbs[] = {
           NULL,
           512,                          
           TRACKER_DB_PAGE_SIZE_DEFAULT, 
-          TRUE },
+          TRUE,
+          FALSE },
         { TRACKER_DB_FILE_CONTENTS,
           TRACKER_DB_LOCATION_DATA_DIR,
 	  NULL,
@@ -96,6 +100,7 @@ static TrackerDBDefinition dbs[] = {
           NULL,
           1024,
           TRACKER_DB_PAGE_SIZE_DEFAULT,
+          FALSE,
           FALSE },
         { TRACKER_DB_EMAIL_METADATA,
           TRACKER_DB_LOCATION_DATA_DIR,
@@ -114,6 +119,7 @@ static TrackerDBDefinition dbs[] = {
           NULL,
           512,
           TRACKER_DB_PAGE_SIZE_DEFAULT,
+          FALSE,
           FALSE },
         { TRACKER_DB_XESAM,
           TRACKER_DB_LOCATION_DATA_DIR,
@@ -123,7 +129,8 @@ static TrackerDBDefinition dbs[] = {
           NULL,
           512,
           TRACKER_DB_PAGE_SIZE_DEFAULT,
-          TRUE },
+          TRUE,
+          FALSE },
 };
 
 static gboolean            db_exec_no_reply    (TrackerDBInterface *iface,
@@ -1698,13 +1705,25 @@ db_interface_get (TrackerDB  type,
 		 * are loaded into the right file instead of the
 		 * first one we create.
 		 */
-		if (attach_iface) {
-			g_message ("  Attaching");
+		if (attach_iface && dbs[type].attached) {
+			g_message ("  Already attached '%s' as '%s'", 
+				   dbs[type].abs_filename,
+				   dbs[type].name);
+		}
+
+		if (attach_iface && !dbs[type].attached) {
+
+			g_message ("  Attaching '%s' as '%s'", 
+				   dbs[type].abs_filename,
+				   dbs[type].name);
+
 			db_exec_no_reply (attach_iface, 
-					  "ATTACH '%s' as %s",
+					  "ATTACH '%s' as '%s'",
 					  dbs[type].abs_filename,
 					  dbs[type].name);
-		} else {
+
+			dbs[type].attached = TRUE;
+		} else if (!attach_iface) {
 			attach_iface = iface;
 		}
 	} else {
@@ -2162,11 +2181,11 @@ void
 tracker_db_manager_init (TrackerDBManagerFlags  flags,
 			 gboolean              *first_time)
 {
-	GType        etype;
-	gchar       *filename;
-	const gchar *dir;
-	gboolean     need_reindex;
-	guint        i;
+	GType               etype;
+	gchar              *filename;
+	const gchar        *dir;
+	gboolean            need_reindex;
+	guint               i;
 
 	if (first_time) {
 		*first_time = FALSE;
@@ -2324,6 +2343,31 @@ tracker_db_manager_init (TrackerDBManagerFlags  flags,
 
 	for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
 		dbs[i].iface = db_interface_create (i);
+	}
+
+	if (attach_all) {
+		TrackerDBInterface *dummy;
+
+		dummy = db_interface_get_common ();
+		g_object_unref (dummy);
+
+		dummy = db_interface_get_cache ();
+		g_object_unref (dummy);
+
+		dummy = db_interface_get_file_contents ();
+		g_object_unref (dummy);
+
+		dummy = db_interface_get_file_metadata ();
+		g_object_unref (dummy);
+
+		dummy = db_interface_get_email_metadata ();
+		g_object_unref (dummy);
+
+		dummy = db_interface_get_email_metadata ();
+		g_object_unref (dummy);
+
+		dummy = db_interface_get_xesam ();
+		g_object_unref (dummy);
 	}
 
 	initialized = TRUE;

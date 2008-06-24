@@ -2064,7 +2064,7 @@ db_xesam_create_lookup (TrackerDBInterface *iface)
 		}
 	}
 	
-	g_object_unref (result_set);	
+	g_object_unref (result_set);
 
 	return TRUE;
 }

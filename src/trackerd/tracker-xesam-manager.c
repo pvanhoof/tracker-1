@@ -264,6 +264,7 @@ live_search_handler (gpointer data)
 	gboolean            reason_to_live = FALSE;
 
 	iface = tracker_db_manager_get_db_interface (TRACKER_DB_XESAM);
+
 	g_return_val_if_fail (iface != NULL, FALSE);
 
 	sessions = g_hash_table_get_values (xesam_sessions);

@@ -2694,9 +2694,7 @@ tracker_db_xesam_delete_handled_events (TrackerDBInterface *iface)
 {
 	g_return_if_fail (TRACKER_IS_DB_INTERFACE (iface));
 
-	db_exec_proc_no_reply (iface, 
-			       "DeleteHandledEvents", 
-			       NULL);
+	tracker_db_exec (iface, "DELETE FROM Events WHERE BeingHandled = 1");
 }
 
 /* Deprecated */

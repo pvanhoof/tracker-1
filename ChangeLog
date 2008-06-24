@@ -1,5 +1,14 @@
 2008-06-24  Philip Van Hoof  <pvanhoof@gnome.org>
 
+	* src/trackerd/tracker-db.c:
+	* src/trackerd/tracker-xesam-manager.c:
+	* src/libtracker-db/tracker-db-manager.c:
+	* data/sqlite-stored-procs.sql:
+
+	Fix for a warning about table Events not existing
+
+2008-06-24  Philip Van Hoof  <pvanhoof@gnome.org>
+
 	* src/tracker-indexer/tracker-main.c:
 	* src/trackerd/tracker-main.c:
 	* src/libtracker-db/tracker-db-manager.c:

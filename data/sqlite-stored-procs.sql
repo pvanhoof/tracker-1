@@ -25,7 +25,6 @@ GetAllServices SELECT TypeID, TypeName, Parent, Enabled, Embedded, HasMetadata, 
 GetNewID SELECT OptionValue FROM Options WHERE OptionKey = 'Sequence';
 UpdateNewID UPDATE Options set OptionValue = ? WHERE OptionKey = 'Sequence';
 CreateEvent INSERT INTO Events (ID, ServiceID, EventType) VALUES (?,?,?); 
-DeleteHandledEvents DELETE FROM cache.Events WHERE BeingHandled = 1;
 GetEvents SELECT ID, ServiceID, EventType FROM Events WHERE BeingHandled = 1;
 SetEventsBeingHandled UPDATE Events SET BeingHandled = 1;
 

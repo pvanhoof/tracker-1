@@ -1,5 +1,13 @@
 2008-06-24  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-indexer-module.c
+	(tracker_indexer_module_file_iter_contents): return FALSE if
+	file->data is NULL, since there is no possibility the module
+	implements this function for such a file, since it has to keep state
+	internally.
+
+2008-06-24  Carlos Garnacho  <carlos@imendio.com>
+
 	Extend/Change indexer modules API. From now on, modules will deal with
 	TrackerFile structs instead of paths. This struct, besides the path,
 	contains a pointer to private data that modules can attach/free

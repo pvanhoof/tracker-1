@@ -148,7 +148,7 @@ tracker_indexer_module_file_iter_contents (GModule     *module,
 {
 	TrackerModuleFileIterContents func;
 
-	if (g_module_symbol (module, "tracker_module_file_iter_contents", (gpointer *) &func)) {
+	if (file->data && g_module_symbol (module, "tracker_module_file_iter_contents", (gpointer *) &func)) {
 		return (func) (file);
 	}
 

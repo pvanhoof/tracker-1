@@ -1,5 +1,10 @@
 2008-06-24  Martyn Russell  <martyn@imendio.com>
 
+	* src/tracker-indexer/modules/Makefile.am: Use "Tracker" as the
+	domain (not NULL) for modules.
+
+2008-06-24  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-log.c: (log_output),
 	(tracker_log_handler), (tracker_log_init): Actually make sure we
 	log to disk, we were just printing to screen.

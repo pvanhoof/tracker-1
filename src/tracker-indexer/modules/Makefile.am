@@ -6,6 +6,7 @@ INCLUDES =								\
 	-DLIBDIR=\""$(libdir)"\"					\
 	-DLOCALEDIR=\""$(localedir)"\" 					\
 	-DINDEXER_MODULES_DIR=\"$(indexer_modulesdir)\"			\
+	-DG_LOG_DOMAIN=\"Tracker\"					\
 	-D_GNU_SOURCE							\
 	-I$(top_srcdir)/src						\
 	$(GMODULE_CFLAGS)						\

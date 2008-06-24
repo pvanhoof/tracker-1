@@ -1,3 +1,5 @@
+include $(top_srcdir)/Makefile.decl
+
 noinst_LTLIBRARIES = libtracker-testcommon.la
 
 INCLUDES = $(GLIB2_CFLAGS)

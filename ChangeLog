@@ -1,3 +1,16 @@
+2008-06-24  Ivan Frade  <ivan.frade@nokia.com>
+
+	* tests/common/Makefile.am
+	* tests/scripts/Makefile.am
+	* tests/trackerd/xesam/Makefile.am: Including Makefile.decl to
+	allow "make test" to run smoothly.
+
+	* tests/Makefile.am
+	* tests/libtracker-db/Makefile.am
+	* tests/libtracker-db/run-test-in-tmp-dir.sh
+	* tests/libtracker-db/tracker-db-manager-test.c: Initial
+	tracker_db_manager test files.
+	
 2008-06-24  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker/tracker.c:

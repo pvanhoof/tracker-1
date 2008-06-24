@@ -1,3 +1,5 @@
+include $(top_srcdir)/Makefile.decl
+
 if HAVE_XESAM_GLIB
 
 noinst_LTLIBRARIES = libxesamhelper.la

@@ -1,3 +1,11 @@
+2008-06-25  Ivan Frade  <ivan.frade@nokia.com>
+
+	* tests/libtracker-db/Makefile.am
+	* tests/libtracker-db/tracker-db-manager-common.c
+	* tests/libtracker-db/tracker-db-manager-common.h
+	* tests/libtracker-db/tracker-db-manager-test-custom.c:
+	Added test creating "custom attach" connections
+
 2008-06-25  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/modules/Makefile.am: Do not put libs in

@@ -20,7 +20,8 @@ INCLUDES = 				\
 
 tracker_db_manager_attach_SOURCES = 		\
 	tracker-db-manager-test-attach.c 	\
-	tracker-db-manager-common.c
+	tracker-db-manager-common.c		\
+	tracker-db-manager-common.h
 
 tracker_db_manager_unattach_LDADD =					\
 	$(top_builddir)/src/libtracker-db/libtracker-db.la 		\
@@ -36,7 +37,8 @@ tracker_db_manager_unattach_LDADD =					\
 
 tracker_db_manager_unattach_SOURCES = 		\
 	tracker-db-manager-test-unattach.c 	\
-	tracker-db-manager-common.c
+	tracker-db-manager-common.c		\
+	tracker-db-manager-common.h
 
 tracker_db_manager_attach_LDADD =					\
 	$(top_builddir)/src/libtracker-db/libtracker-db.la 		\

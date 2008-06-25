@@ -21,6 +21,7 @@ INCLUDES += $(XESAM_GLIB_CFLAGS)
 
 tracker_xesam_SOURCES = \
 	tracker-xesam-test.c \
+	tracker-xesam-test.h \
 	tracker-xesam-session-test.c \
 	tracker-xesam-session-test.h \
 	tracker-xesam-hit-test.c \

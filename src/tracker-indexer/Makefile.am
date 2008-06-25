@@ -30,7 +30,8 @@ tracker_indexer_SOURCES =						\
 	tracker-indexer-module.h					\
 	tracker-main.c							\
 	tracker-metadata.c						\
-	tracker-metadata.h
+	tracker-metadata.h						\
+	tracker-module.h
 
 tracker_indexer_LDADD =							\
 	$(top_builddir)/src/libtracker-db/libtracker-db.la 		\

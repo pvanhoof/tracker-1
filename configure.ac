@@ -722,8 +722,6 @@ AC_CONFIG_FILES([
 	thumbnailers/image/Makefile
 	src/Makefile
 	src/qdbm/Makefile
-	src/text-filters/Makefile
-	src/text-filters/ooo_converter/Makefile
 	src/tracker-extract/Makefile
 	src/tracker-thumbnailer/Makefile
 	src/libstemmer/Makefile

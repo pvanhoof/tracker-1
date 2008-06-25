@@ -22,7 +22,6 @@ SUBDIRS = 					\
 	libstemmer				\
 	xdgmime					\
 	$(qdbm_dir)				\
-	text-filters				\
 	libtracker-common 			\
 	libtracker-db				\
 	trackerd				\

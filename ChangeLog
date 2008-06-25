@@ -5,6 +5,11 @@
 	http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=477311
 	* README: Add odt2txt to the list of recommended dpendencies.
 
+	* configure.ac
+	* src/Makefile.am
+	* src/text-filters/*:
+	Remove inlined sources of o3totxt. They are no longer used.
+
 2008-06-24  Martyn Russell  <martyn@imendio.com>
 
 	* src/tracker-indexer/modules/Makefile.am: Use "Tracker" as the

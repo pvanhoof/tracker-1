@@ -10,7 +10,7 @@ INCLUDES =								\
 	-D_GNU_SOURCE							\
 	-I$(top_srcdir)/src						\
 	$(GMODULE_CFLAGS)						\
-	$(GIO_LIBS)							\
+	$(GIO_CFLAGS)							\
 	$(GLIB2_CFLAGS)							\
 	$(GMIME_CFLAGS)
 

@@ -1,3 +1,8 @@
+2008-06-25  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/modules/Makefile.am: Do not put libs in
+	INCLUDES.
+
 2008-06-25  Michael Biebl  <mbiebl@gmail.com>
 
 	* filters/application/vnd.*: Use odt2txt instead of o3totxt. o3read

@@ -167,6 +167,7 @@ Table of Contents
   * w3m
   * wv 1.0.2
   * poppler (pdftotext)
+  * odt2txt 0.4 (indexing OpenOffice/ODF documents)
   * libvorbis
   * libpng
   * libexif

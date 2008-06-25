@@ -133,6 +133,8 @@ static TrackerDBDefinition dbs[] = {
           FALSE },
 };
 
+static gboolean db_manager_had_init = FALSE;
+
 static gboolean            db_exec_no_reply    (TrackerDBInterface *iface,
 						const gchar        *query,
 						...);
@@ -2443,6 +2445,8 @@ tracker_db_manager_get_db_interfaces (gint num, ...)
 	gint                n_args;
 	va_list             args;
 	TrackerDBInterface *connection = NULL;
+
+	g_return_val_if_fail (initialized != FALSE, NULL);
 
 	va_start (args, num);
 	for (n_args = 1; n_args <= num; n_args++) {

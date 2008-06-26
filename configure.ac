@@ -705,6 +705,7 @@ AC_CONFIG_FILES([
 	docs/Makefile
 	data/Makefile
 	data/dbus/Makefile
+	data/modules/Makefile
 	data/languages/Makefile
 	data/icons/Makefile
 	data/icons/16x16/Makefile

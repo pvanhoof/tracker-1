@@ -1,4 +1,4 @@
-SUBDIRS = dbus languages icons services
+SUBDIRS = dbus modules languages icons services
 
 configdir = $(datadir)/tracker
 

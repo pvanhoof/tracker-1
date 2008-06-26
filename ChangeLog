@@ -1,3 +1,26 @@
+2008-06-26  Martyn Russell  <martyn@imendio.com>
+
+	* configure.ac:
+	* data/Makefile.am:
+	* data/modules/Makefile.am:
+	* data/modules/applications.xml:
+	* data/modules/files.xml:
+	* data/modules/gaim-conversations.xml: Added these module files
+	which should get read on startup.
+	
+	* src/libtracker-common/Makefile.am:
+	* src/libtracker-common/tracker-module-config.[ch]: Added this
+	module to load the .xml files which get installed into
+	$prefix/share/tracker.
+	
+	* src/libtracker-common/tracker-type-utils.[ch]: Added
+	tracker_gslist_to_string_list().
+	
+	* src/trackerd/tracker-crawler.[ch]: 
+	* src/trackerd/tracker-main.c: 
+	* src/trackerd/tracker-process.[ch]: Use the new module config
+	code when initialising the process module.
+
 2008-06-26  Ivan Frade  <ivan.frade@nokia.com>
 	
 	* tests/libtracker-db/run-test-in-tmp-dir.sh

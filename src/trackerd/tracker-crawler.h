@@ -52,7 +52,7 @@ struct _TrackerCrawlerClass {
 };
 
 GType           tracker_crawler_get_type     (void);
-TrackerCrawler *tracker_crawler_new          (void);
+TrackerCrawler *tracker_crawler_new          (TrackerConfig  *config);
 void            tracker_crawler_set_config   (TrackerCrawler *object,
 					      TrackerConfig  *config);
 

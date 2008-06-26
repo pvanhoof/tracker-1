@@ -42,6 +42,8 @@ libtracker_common_la_SOURCES = 			\
 	tracker-language.h			\
 	tracker-log.c	 			\
 	tracker-log.h				\
+	tracker-module-config.c			\
+	tracker-module-config.h			\
 	tracker-nfs-lock.c			\
 	tracker-nfs-lock.h			\
 	tracker-ontology.c			\

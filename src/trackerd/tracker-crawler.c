@@ -302,9 +302,13 @@ crawler_set_property (GObject      *object,
 }
 
 TrackerCrawler *
-tracker_crawler_new (void)
+tracker_crawler_new (TrackerConfig *config)
 {
-	return g_object_new (TRACKER_TYPE_CRAWLER, NULL); 
+	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
+
+	return g_object_new (TRACKER_TYPE_CRAWLER, 
+			     "config", config,
+			     NULL); 
 }
 
 void

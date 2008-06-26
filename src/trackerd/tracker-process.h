@@ -22,9 +22,10 @@
 #ifndef __TRACKERD_PROCESS_H__
 #define __TRACKERD_PROCESS_H__
 
-
 G_BEGIN_DECLS
 
+void tracker_process_init     (void);
+void tracker_process_shutdown (void);
 
 G_END_DECLS
 

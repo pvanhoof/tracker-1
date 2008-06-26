@@ -1,5 +1,7 @@
-/* Tracker - indexer and metadata database engine
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/* 
  * Copyright (C) 2008, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2008, Nokia
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -19,3 +21,24 @@
 
 #include "config.h"
 
+#include <glib.h>
+
+#include <libtracker-common/tracker-module-config.h>
+
+void
+tracker_process_start (void)
+{
+        g_message ("Starting to process modules...");
+}
+
+void
+tracker_process_init (void)
+{
+        tracker_module_config_init ();
+}
+
+void
+tracker_process_shutdown (void)
+{
+        tracker_module_config_shutdown ();
+}

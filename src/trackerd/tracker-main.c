@@ -638,7 +638,7 @@ start_cb (gpointer user_data)
 	}
 
 	/* Get files first */
-	tracker_crawler_start (tracker->crawler);
+	tracker_process_start ();
 	
 	proxy = tracker_dbus_indexer_get_proxy ();
 	tracker_xesam_subscribe_index_updated (proxy);
@@ -794,15 +794,14 @@ main (gint argc, gchar *argv[])
 	tracker_db_manager_init (flags, &tracker->first_time_index);
 	tracker_db_init ();
 	tracker_xesam_manager_init ();
+	tracker_process_init ();
 
-	tracker->crawler = tracker_crawler_new ();
+	tracker->crawler = tracker_crawler_new (tracker->config);
 
 #ifdef HAVE_HAL
  	tracker->hal = tracker_hal_new ();
 	tracker_crawler_set_hal (tracker->crawler, tracker->hal);
 #endif /* HAVE_HAL */
-	
-	tracker_crawler_set_config (tracker->crawler, tracker->config);
 
 	umask (077);
 
@@ -860,7 +859,7 @@ main (gint argc, gchar *argv[])
 	tracker_status_set (TRACKER_STATUS_SHUTDOWN);
 
 	/* Set kill timeout */
-	g_timeout_add_full (G_PRIORITY_LOW, 10000, shutdown_timeout_cb, NULL, NULL);
+	g_timeout_add_full (G_PRIORITY_LOW, 5000, shutdown_timeout_cb, NULL, NULL);
 
 	shutdown_indexer ();
 	shutdown_databases ();
@@ -868,6 +867,7 @@ main (gint argc, gchar *argv[])
 
 	/* Shutdown major subsystems */
 	tracker_dbus_shutdown ();
+	tracker_process_shutdown ();
 	tracker_xesam_manager_shutdown ();
 	tracker_db_manager_shutdown (TRUE);
 	tracker_db_shutdown ();

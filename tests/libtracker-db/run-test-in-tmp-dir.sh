@@ -8,4 +8,8 @@ export PATH=$PATH:$GLIB_DIR/bin
 
 make test 2> /dev/null
 
+#./tracker-db-manager-unattach
+#./tracker-db-manager-attach
+#./tracker-db-manager-custom
+
 . ../scripts/xdg_dirs.unsource

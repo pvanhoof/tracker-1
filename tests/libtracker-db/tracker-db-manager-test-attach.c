@@ -1,9 +1,61 @@
 #include <glib.h>
 #include <glib/gtestutils.h>
 
-
 #include <libtracker-db/tracker-db-manager.h>
 #include "tracker-db-manager-common.h"
+
+
+typedef enum {
+        NO_INIT,
+        INIT_NO_REINDEX,
+        INIT_REINDEX
+} Status;
+
+static gboolean db_manager_status = NO_INIT;
+
+void 
+ensure_db_manager_is_reindex (gboolean must_reindex)
+{
+        gint first;
+
+        if (db_manager_status == NO_INIT) {
+                if (must_reindex) {
+                        tracker_db_manager_init (TRACKER_DB_MANAGER_ATTACH_ALL |TRACKER_DB_MANAGER_FORCE_REINDEX,
+                                                 &first);
+                        db_manager_status = INIT_REINDEX;
+                } else {
+                        tracker_db_manager_init (TRACKER_DB_MANAGER_ATTACH_ALL,
+                                                 &first);
+                        db_manager_status = INIT_NO_REINDEX;
+                }
+                return;
+        }
+
+        if (db_manager_status == INIT_NO_REINDEX && !must_reindex) {
+                // tracker_db_manager is already correctly initialised
+                return;
+        }
+
+        if (db_manager_status == INIT_REINDEX && must_reindex) {
+                // tracker_db_manager is already correctly initialised
+                return ;
+        }
+
+        tracker_db_manager_shutdown (must_reindex);
+        if (must_reindex) {
+                tracker_db_manager_init (TRACKER_DB_MANAGER_ATTACH_ALL |TRACKER_DB_MANAGER_FORCE_REINDEX,
+                                         &first);
+                db_manager_status = INIT_REINDEX;
+        } else {
+                tracker_db_manager_init (TRACKER_DB_MANAGER_ATTACH_ALL,
+                                         &first);
+                db_manager_status = INIT_NO_REINDEX;
+        }
+}
+
+
+
+
 
 void
 test_assert_tables_in_db (TrackerDB db, gchar *query) 
@@ -11,39 +63,92 @@ test_assert_tables_in_db (TrackerDB db, gchar *query)
         g_assert (test_assert_query_run (db, query));
 }
 
-static void
-test_creation_common_db () {
-/*
-  Options              Volumes           ServiceLinks      
-  BackupServices       BackupMetaData    KeywordImages
-  VFolders             MetaDataTypes     MetaDataChildren
-  MetaDataGroup        MetadataOptions   ServiceTypes
-  ServiceTileMetadata  ServiceTabular    Metadata ServiceTypeOptions
-  FileMimes            FileMimePrefixes
-*/
 
+static void
+test_always_same_iface_no_reindex () 
+{
+        TrackerDBInterface *common, *xesam;
+        
+        ensure_db_manager_is_reindex (FALSE);
+ 
+        common = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
+        xesam = tracker_db_manager_get_db_interface (TRACKER_DB_XESAM);
+
+        /* The pointer must be the same */
+        g_assert (common == xesam);
+        
+
+}
+
+static void
+test_always_same_iface_reindex () 
+{
+        TrackerDBInterface *common, *xesam;
+        
+        ensure_db_manager_is_reindex (TRUE);
+ 
+        common = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
+        xesam = tracker_db_manager_get_db_interface (TRACKER_DB_XESAM);
+
+        /* The pointer must be the same */
+        g_assert (common == xesam);
+        
+
+}
+
+static void
+test_creation_common_db_no_reindex () 
+{
+        ensure_db_manager_is_reindex (FALSE);
         test_assert_tables_in_db (TRACKER_DB_COMMON, "SELECT * FROM MetaDataTypes");
 }
 
 static void
-test_creation_xesam_db () 
+test_creation_common_db_reindex () 
 {
-/*
-   XesamMetaDataTypes   XesamServiceTypes      XesamServiceMapping   XesamMetaDataMapping
-   XesamServiceChildren XesamMetaDataChildren  XesamServiceLookup    XesamMetaDataLookup
-*/
-        test_assert_tables_in_db (TRACKER_DB_XESAM, "SELECT * FROM xesam.XesamServiceTypes");
+        ensure_db_manager_is_reindex (TRUE);
+        test_assert_tables_in_db (TRACKER_DB_COMMON, "SELECT * FROM MetaDataTypes");
 }
 
 static void
-test_creation_file_meta_db ()
+test_creation_xesam_db_no_reindex () 
 {
+        ensure_db_manager_is_reindex (FALSE);
+        test_assert_tables_in_db (TRACKER_DB_XESAM, "SELECT * FROM 'xesam'.XesamServiceTypes");
+}
+
+static void
+test_creation_xesam_db_reindex () 
+{
+        ensure_db_manager_is_reindex (TRUE);
+        test_assert_tables_in_db (TRACKER_DB_XESAM, "SELECT * FROM 'xesam'.XesamServiceTypes");
+}
+
+static void
+test_creation_file_meta_db_no_reindex ()
+{
+        ensure_db_manager_is_reindex (FALSE);
         test_assert_tables_in_db (TRACKER_DB_COMMON, "SELECT * FROM 'file-meta'.ServiceMetaData");
 }
 
 static void
-test_creation_file_contents_db ()
+test_creation_file_meta_db_reindex ()
 {
+        ensure_db_manager_is_reindex (TRUE);
+        test_assert_tables_in_db (TRACKER_DB_COMMON, "SELECT * FROM 'file-meta'.ServiceMetaData");
+}
+
+static void
+test_creation_file_contents_db_no_reindex ()
+{
+        ensure_db_manager_is_reindex (FALSE);
+        test_assert_tables_in_db (TRACKER_DB_FILE_CONTENTS, "SELECT * FROM 'file-contents'.ServiceContents");
+}
+
+static void
+test_creation_file_contents_db_reindex ()
+{
+        ensure_db_manager_is_reindex (TRUE);
         test_assert_tables_in_db (TRACKER_DB_FILE_CONTENTS, "SELECT * FROM 'file-contents'.ServiceContents");
 }
 
@@ -51,33 +156,47 @@ int
 main (int argc, char **argv) {
 
         int result;
-        gint first_time;
 
 	g_type_init ();
         g_thread_init (NULL);
 	g_test_init (&argc, &argv, NULL);
 
-        /* Init */
-        tracker_db_manager_init (TRACKER_DB_MANAGER_ATTACH_ALL | TRACKER_DB_MANAGER_FORCE_REINDEX, 
-                                 &first_time);
 
+        // Tests with attach and no-reindex
+        g_test_add_func ("/libtrakcer-db/tracker-db-manager/attach/no-reindex/equal_iface",
+                         test_always_same_iface_no_reindex);
 
-        g_test_add_func ("/libtracker-db/tracker-db-manager/attach/common_db_tables",
-                        test_creation_common_db);
+        g_test_add_func ("/libtracker-db/tracker-db-manager/attach/no-reindex/common_db_tables",
+                        test_creation_common_db_no_reindex);
 
-        g_test_add_func ("/libtracker-db/tracker-db-manager/attach/xesam_db_tables",
-                         test_creation_xesam_db);
+        g_test_add_func ("/libtracker-db/tracker-db-manager/attach/no-reindex/xesam_db_tables",
+                         test_creation_xesam_db_no_reindex);
 
-        g_test_add_func ("/libtracker-db/tracker-db-manager/attach/file_meta_db_tables",
-                         test_creation_file_meta_db);
+        g_test_add_func ("/libtracker-db/tracker-db-manager/attach/no-reindex/file_meta_db_tables",
+                         test_creation_file_meta_db_no_reindex);
 
-        g_test_add_func ("/libtracker-db/tracker-db-manager/attach/file_contents_db_tables",
-                         test_creation_file_contents_db);
+        g_test_add_func ("/libtracker-db/tracker-db-manager/attach/no-reindex/file_contents_db_tables",
+                         test_creation_file_contents_db_no_reindex);
+
+        // Tests with attach and reindex
+        g_test_add_func ("/libtrakcer-db/tracker-db-manager/attach/reindex/equal_iface",
+                         test_always_same_iface_reindex);
                
+        g_test_add_func ("/libtracker-db/tracker-db-manager/attach/reindex/common_db_tables",
+                        test_creation_common_db_reindex);
+
+        g_test_add_func ("/libtracker-db/tracker-db-manager/attach/reindex/xesam_db_tables",
+                         test_creation_xesam_db_reindex);
+
+        g_test_add_func ("/libtracker-db/tracker-db-manager/attach/reindex/file_meta_db_tables",
+                         test_creation_file_meta_db_reindex);
+
+        g_test_add_func ("/libtracker-db/tracker-db-manager/attach/reindex/file_contents_db_tables",
+                         test_creation_file_contents_db_reindex);
+
         result = g_test_run ();
         
         /* End */
-        tracker_db_manager_shutdown (TRUE);
 
         return result;
 }

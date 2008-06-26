@@ -24,6 +24,7 @@
 #include "config.h"
 
 #include <string.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <zlib.h>
 
@@ -908,14 +909,16 @@ tracker_db_search_text (TrackerDBInterface *iface,
 
 	/* Delete duds */
 	if (duds) {
-		GSList  *words, *w;
-		Indexer *indexer;
+		TrackerIndexer *indexer;
+		GSList         *words, *w;
 
 		words = tracker_query_tree_get_words (tree);
 		indexer = tracker_query_tree_get_indexer (tree);
 
 		for (w = words; w; w = w->next) {
-			tracker_remove_dud_hits (indexer, (const gchar *) w->data, duds);
+			tracker_indexer_remove_dud_hits (indexer, 
+							 (const gchar *) w->data, 
+							 duds);
 		}
 
 		g_slist_free (words);

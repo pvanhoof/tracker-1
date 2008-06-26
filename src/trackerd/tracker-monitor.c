@@ -19,6 +19,7 @@
  */
 
 #include <string.h>
+#include <stdlib.h>
 
 #include <libtracker-common/tracker-dbus.h>
 #include <libtracker-common/tracker-file-utils.h>

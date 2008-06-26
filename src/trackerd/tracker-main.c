@@ -25,9 +25,10 @@
 
 #include "config.h"
 
+#include <stdlib.h>
+#include <string.h>
 #include <signal.h>
 #include <locale.h>
-#include <string.h>
 #include <unistd.h> 
 #include <fcntl.h>
 
@@ -483,9 +484,6 @@ initialize_directories (void)
 static gboolean
 initialize_databases (void)
 {
-	Indexer *index;
-	gchar   *final_index_name;
-
 	/*
 	 * Create SQLite databases 
 	 */
@@ -519,13 +517,22 @@ initialize_databases (void)
 		tracker_db_set_option_int ("InitialIndex", 1);
 	}
 
+	return TRUE;
+}
+
+static gboolean
+initialize_indexers (TrackerConfig *config)
+{
+	TrackerIndexer *indexer;
+	gchar          *final_index_name;
+
 	/*
 	 * Create index files
 	 */
 	final_index_name = g_build_filename (data_dir, "file-index-final", NULL);
 	
 	if (g_file_test (final_index_name, G_FILE_TEST_EXISTS) && 
-	    !tracker_indexer_has_tmp_merge_files (INDEX_TYPE_FILES)) {
+	    !tracker_indexer_has_tmp_merge_files (TRACKER_INDEXER_TYPE_FILES)) {
 		gchar *file_index_name;
 
 		file_index_name = g_build_filename (data_dir, 
@@ -546,7 +553,7 @@ initialize_databases (void)
 					     NULL);
 	
 	if (g_file_test (final_index_name, G_FILE_TEST_EXISTS) && 
-	    !tracker_indexer_has_tmp_merge_files (INDEX_TYPE_EMAILS)) {
+	    !tracker_indexer_has_tmp_merge_files (TRACKER_INDEXER_TYPE_EMAILS)) {
 		gchar *file_index_name;
 
 		file_index_name = g_build_filename (data_dir, 
@@ -563,16 +570,26 @@ initialize_databases (void)
 	g_free (final_index_name);
 
 	/* Create indexers */
-	index = tracker_indexer_open (TRACKER_INDEXER_FILE_INDEX_DB_FILENAME, TRUE);
-	tracker->file_index = index;
+	indexer = tracker_indexer_new (TRACKER_INDEXER_TYPE_FILES, config);
+	if (!indexer) {
+		return FALSE;
+	}
 
-	index = tracker_indexer_open (TRACKER_INDEXER_FILE_UPDATE_INDEX_DB_FILENAME, FALSE);
-	tracker->file_update_index = index;
+	tracker->file_index = indexer;
 
-	index = tracker_indexer_open (TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME, TRUE);
-	tracker->email_index = index;
+	indexer = tracker_indexer_new (TRACKER_INDEXER_TYPE_FILES_UPDATE, config);
+	if (!indexer) {
+		return FALSE;
+	}
 
-	/* db_con->word_index = tracker->file_index; */
+	tracker->file_update_index = indexer;
+
+	indexer = tracker_indexer_new (TRACKER_INDEXER_TYPE_EMAILS, config);
+	if (!indexer) {
+		return FALSE;
+	}
+
+	tracker->email_index = indexer;
 
 	return TRUE;
 }
@@ -608,9 +625,17 @@ check_multiple_instances (void)
 static void
 shutdown_indexer (void)
 {
-	tracker_indexer_close (tracker->file_index);
-	tracker_indexer_close (tracker->file_update_index);
-	tracker_indexer_close (tracker->email_index);
+	if (tracker->file_index) {
+		g_object_unref (tracker->file_index);
+	}
+
+	if (tracker->file_update_index) {
+		g_object_unref (tracker->file_update_index);
+	}
+
+	if (tracker->email_index) {
+		g_object_unref (tracker->email_index);
+	}
 }
 
 static void
@@ -824,6 +849,10 @@ main (gint argc, gchar *argv[])
 	tracker->readonly = check_multiple_instances ();
 
 	if (!initialize_databases ()) {
+		return EXIT_FAILURE;
+	}
+
+	if (!initialize_indexers (tracker->config)) {
 		return EXIT_FAILURE;
 	}
 

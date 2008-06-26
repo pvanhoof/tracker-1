@@ -59,9 +59,9 @@ void           tracker_search_set_config        (TrackerSearch     *object,
 void           tracker_search_set_language      (TrackerSearch     *object,
 						 TrackerLanguage   *language);
 void           tracker_search_set_file_index    (TrackerSearch     *object,
-						 Indexer           *file_index);
+						 TrackerIndexer    *file_index);
 void           tracker_search_set_email_index   (TrackerSearch     *object,
-						 Indexer           *email_index);
+						 TrackerIndexer    *email_index);
 gboolean       tracker_search_get_hit_count     (TrackerSearch     *object,
 						 const gchar       *service,
 						 const gchar       *search_text,

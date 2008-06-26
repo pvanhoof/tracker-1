@@ -50,8 +50,8 @@ typedef struct {
 	DBusGProxy      *fd_proxy;
 	TrackerConfig   *config;
 	TrackerLanguage *language;
-        Indexer         *file_index;
-        Indexer         *email_index;
+        TrackerIndexer  *file_index;
+        TrackerIndexer  *email_index;
 } TrackerSearchPriv;
 
 enum {
@@ -217,8 +217,8 @@ tracker_search_set_language (TrackerSearch   *object,
 }
 
 void
-tracker_search_set_file_index (TrackerSearch *object,
-			       Indexer        *file_index)
+tracker_search_set_file_index (TrackerSearch  *object,
+			       TrackerIndexer *file_index)
 {
 	TrackerSearchPriv *priv;
 
@@ -233,8 +233,8 @@ tracker_search_set_file_index (TrackerSearch *object,
 }
 
 void
-tracker_search_set_email_index (TrackerSearch *object,
-				Indexer       *email_index)
+tracker_search_set_email_index (TrackerSearch  *object,
+				TrackerIndexer *email_index)
 {
 	TrackerSearchPriv *priv;
 

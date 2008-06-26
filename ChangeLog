@@ -1,3 +1,17 @@
+2008-06-26  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-daemon.c:
+	* src/trackerd/tracker-db.c: 
+	* src/trackerd/tracker-indexer.[ch]: 
+	* src/trackerd/tracker-main.[ch]: 
+	* src/trackerd/tracker-monitor.c:
+	* src/trackerd/tracker-query-tree.[ch]:
+	* src/trackerd/tracker-search.[ch]: Refactored the TrackerIndexer
+	code and API so we now use GObject and do proper type checking in
+	the query tree code. The indexer API has been cut down to cater
+	JUST the daemons needs here. All the indexing code is in the
+	indexer instead now.
+
 2008-06-26  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* svn merge -r 1726:1769 ../xesam-support

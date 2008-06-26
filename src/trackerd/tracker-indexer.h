@@ -1,7 +1,8 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
- *
+ * Copyright (C) 2008, Nokia
+
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation; either
@@ -21,11 +22,9 @@
 #ifndef __TRACKERD_INDEXER_H__
 #define __TRACKERD_INDEXER_H__
 
-#include <stdlib.h>
-
 #include <glib.h>
 
-#include <libtracker-db/tracker-db-interface.h>
+#include <libtracker-common/tracker-config.h>
 
 #define TRACKER_INDEXER_FILE_INDEX_DB_FILENAME         "file-index.db"
 #define TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME        "email-index.db"
@@ -33,74 +32,69 @@
 
 G_BEGIN_DECLS
 
-typedef struct {                         
-	guint32 	id;              /* Service ID number of the
-                                          * document */
-	int 		amalgamated;     /* amalgamation of
-                                          * service_type and score of
-                                          * the word in the document's
-                                          * metadata */
-} WordDetails;
+#define TRACKER_TYPE_INDEXER         (tracker_indexer_get_type())
+#define TRACKER_INDEXER(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_INDEXER, TrackerIndexer))
+#define TRACKER_INDEXER_CLASS(c)     (G_TYPE_CHECK_CLASS_CAST ((c),    TRACKER_TYPE_INDEXER, TrackerIndexerClass))
+#define TRACKER_IS_INDEXER(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), TRACKER_TYPE_INDEXER))
+#define TRACKER_IS_INDEXER_CLASS(c)  (G_TYPE_CHECK_CLASS_TYPE ((c),    TRACKER_TYPE_INDEXER))
+#define TRACKER_INDEXER_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o),  TRACKER_TYPE_INDEXER, TrackerIndexerClass))
+
+typedef struct TrackerIndexer TrackerIndexer;
+typedef struct TrackerIndexerClass TrackerIndexerClass;
+typedef struct TrackerIndexerWordDetails TrackerIndexerWordDetails;
+
+struct TrackerIndexer {
+	GObject parent;
+};
+
+struct TrackerIndexerClass {
+	GObjectClass parent_class;
+};
+
+struct TrackerIndexerWordDetails {                         
+	/* Service ID number of the document */
+	guint32 id;              
+
+	/* Amalgamation of service_type and score of the word in the
+	 * document's metadata.
+	 */
+	gint    amalgamated;     
+};
 
 typedef enum {
-	WordNormal,
-	WordWildCard,
-	WordExactPhrase
-} WordType;
+	TRACKER_INDEXER_TYPE_FILES,
+	TRACKER_INDEXER_TYPE_EMAILS,
+	TRACKER_INDEXER_TYPE_FILES_UPDATE
+} TrackerIndexerType;
 
-typedef struct {                        
-	gchar	 	*word;    
-	gint		hit_count;
-	gfloat		idf;
-	WordType	word_type;
-} SearchWord;
 
-typedef struct Indexer_ Indexer;
+GType           tracker_indexer_get_type                      (void);
 
-typedef enum {
-	INDEX_TYPE_FILES,
-	INDEX_TYPE_EMAILS,
-	INDEX_TYPE_FILE_UPDATE
-} IndexType;
+TrackerIndexer *tracker_indexer_new                           (TrackerIndexerType         type,
+							       TrackerConfig             *config);
+void            tracker_indexer_set_config                    (TrackerIndexer            *object,
+							       TrackerConfig             *config);
+guint32         tracker_indexer_get_size                      (TrackerIndexer            *indexer);
 
-guint32		tracker_indexer_calc_amalgamated 	(gint service, gint score);
+gboolean        tracker_indexer_are_databases_too_big         (void);
+gboolean        tracker_indexer_has_tmp_merge_files           (TrackerIndexerType         type);
+guint32         tracker_indexer_calc_amalgamated              (gint                       service,
+							       gint                       score);
 
-Indexer * 	tracker_indexer_open 			(const gchar *name, gboolean main_index);
-void		tracker_indexer_close 			(Indexer *indexer);
-gboolean	tracker_indexer_repair 			(const char *name);
-void		tracker_indexer_free 			(Indexer *indexer, gboolean remove_file);
-gboolean	tracker_indexer_has_merge_index 	(Indexer *indexer, gboolean update);
+guint8          tracker_indexer_word_details_get_service_type (TrackerIndexerWordDetails *details);
+gint16          tracker_indexer_word_details_get_score        (TrackerIndexerWordDetails *details);
 
-const gchar *   tracker_indexer_get_name                (Indexer *indexer);
-guint32		tracker_indexer_size 			(Indexer *indexer);
-gboolean	tracker_indexer_optimize		(Indexer *indexer);
-void		tracker_indexer_sync 			(Indexer *indexer);
+char *          tracker_indexer_get_suggestion                (TrackerIndexer            *indexer,
+							       const gchar               *term,
+							       gint                       maxdist);
+TrackerIndexerWordDetails *
+                tracker_indexer_get_word_hits                 (TrackerIndexer            *indexer,
+							       const gchar               *word,
+							       guint                     *count);
 
-void		tracker_indexer_apply_changes 		(Indexer *dest, Indexer *src,  gboolean update);
-void		tracker_indexer_merge_indexes 		(IndexType type);
-gboolean	tracker_indexer_has_merge_files 	(IndexType type);
-gboolean	tracker_indexer_has_tmp_merge_files 	(IndexType type);
-
-/* Indexing api */
-gboolean	tracker_indexer_append_word 		(Indexer *indexer, const gchar *word, guint32 id, gint service, gint score);
-gboolean	tracker_indexer_append_word_chunk 	(Indexer *indexer, const gchar *word, WordDetails *details, gint word_detail_count);
-gint		tracker_indexer_append_word_list 	(Indexer *indexer, const gchar *word, GSList *list);
-
-gboolean	tracker_indexer_update_word 		(Indexer *indexer, const gchar *word, guint32 id, gint service, gint score, gboolean remove_word);
-gboolean	tracker_indexer_update_word_chunk	(Indexer *indexer, const gchar *word, WordDetails *details, gint word_detail_count);
-gboolean	tracker_indexer_update_word_list 	(Indexer *indexer, const gchar *word, GSList *update_list);
-
-WordDetails *   tracker_indexer_get_word_hits           (Indexer *indexer, const gchar *word, guint *count);
-
-gboolean	tracker_remove_dud_hits 		(Indexer *indexer, const gchar *word, GSList *dud_list);
-
-char *          tracker_indexer_get_suggestion          (Indexer *indexer, const gchar *term, gint maxdist);
-
-gboolean        tracker_indexer_are_databases_too_big   (void);
-
-/* Word API */
-guint8          tracker_word_details_get_service_type   (WordDetails *details);
-gint16          tracker_word_details_get_score          (WordDetails *details);
+gboolean        tracker_indexer_remove_dud_hits               (TrackerIndexer            *indexer,
+							       const gchar               *word,
+							       GSList                    *dud_list);
 
 G_END_DECLS
 

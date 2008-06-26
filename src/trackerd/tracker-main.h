@@ -50,6 +50,9 @@ typedef struct {
         TrackerLanguage  *language;
 
 	TrackerCrawler   *crawler;
+        TrackerIndexer   *file_index;
+        TrackerIndexer   *file_update_index;
+        TrackerIndexer   *email_index;
 
  	gboolean          is_running; 
 	gboolean          readonly;
@@ -64,9 +67,6 @@ typedef struct {
 	gboolean          pause_io;
 
 	/* Indexing options */
-        Indexer          *file_index;
-        Indexer          *file_update_index;
-        Indexer          *email_index;
 
 	/* Table of stop words that are to be ignored by the parser */
 	gboolean          first_time_index; 

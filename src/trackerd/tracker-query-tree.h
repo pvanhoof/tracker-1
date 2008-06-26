@@ -65,16 +65,16 @@ struct TrackerHitCount {
 
 GType                 tracker_query_tree_get_type       (void);
 TrackerQueryTree *    tracker_query_tree_new            (const gchar      *query_str,
-                                                         Indexer          *indexer,
+                                                         TrackerIndexer   *indexer,
 							 TrackerConfig    *config,
 							 TrackerLanguage  *language,
                                                          GArray           *services);
 G_CONST_RETURN gchar *tracker_query_tree_get_query      (TrackerQueryTree *tree);
 void                  tracker_query_tree_set_query      (TrackerQueryTree *tree,
                                                          const gchar      *query_str);
-Indexer *             tracker_query_tree_get_indexer    (TrackerQueryTree *tree);
+TrackerIndexer *      tracker_query_tree_get_indexer    (TrackerQueryTree *tree);
 void                  tracker_query_tree_set_indexer    (TrackerQueryTree *tree,
-							 Indexer          *indexer);
+							 TrackerIndexer   *indexer);
 TrackerConfig *       tracker_query_tree_get_config     (TrackerQueryTree *tree);
 void                  tracker_query_tree_set_config     (TrackerQueryTree *tree,
                                                          TrackerConfig    *config);

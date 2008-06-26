@@ -1,5 +1,10 @@
 2008-06-26  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-module-config.c: Make sure we set
+	the separator as the right thing when building the path here.
+
+2008-06-26  Martyn Russell  <martyn@imendio.com>
+
 	* configure.ac:
 	* data/Makefile.am:
 	* data/modules/Makefile.am:

@@ -92,7 +92,7 @@ module_config_free (ModuleConfig *mc)
 static gchar *
 module_config_get_directory (void)
 {
-	return g_build_path (SHAREDIR, "tracker", "modules", NULL);
+	return g_build_path (G_DIR_SEPARATOR_S, SHAREDIR, "tracker", "modules", NULL);
 }
 
 gboolean

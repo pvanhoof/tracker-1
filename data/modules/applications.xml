@@ -1,6 +1,6 @@
 [General]
 Description=Applications
-Enabled=True
+Enabled=true
 
 [Monitors]
 Directories=

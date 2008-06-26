@@ -1,6 +1,6 @@
 [General]
 Description=Files
-Enabled=True
+Enabled=true
 
 [Monitors]
 Directories=

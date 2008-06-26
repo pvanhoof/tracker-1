@@ -1,6 +1,6 @@
 [General]
 Description=GAIM Conversations
-Enabled=True
+Enabled=true
 
 [Monitors]
 Directories=

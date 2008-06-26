@@ -1,5 +1,15 @@
 2008-06-26  Martyn Russell  <martyn@imendio.com>
 
+	* data/modules/applications.xml:
+	* data/modules/files.xml:
+	* data/modules/gaim-conversations.xml: Use "true" not "True",
+	breaks the GKeyFile.
+	
+	* src/libtracker-common/tracker-module-config.c: Don't set the
+	modules to NULL and set GError to NULL before using it.
+
+2008-06-26  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-module-config.c: Make sure we set
 	the separator as the right thing when building the path here.
 

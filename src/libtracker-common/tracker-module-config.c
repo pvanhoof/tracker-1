@@ -178,7 +178,7 @@ static ModuleConfig *
 module_config_load_file (const gchar *filename)
 {
 	GKeyFile     *key_file;
-	GError       *error;
+	GError       *error = NULL;
 	ModuleConfig *mc;
 
 	key_file = g_key_file_new ();
@@ -261,8 +261,6 @@ module_config_load (void)
 	gchar           *filename;
 	const gchar     *name;
 
-	g_message ("Loading module config..."); 
-
 	path = module_config_get_directory ();
 	file = g_file_new_for_path (path);
 
@@ -284,8 +282,6 @@ module_config_load (void)
 
 		return FALSE;
 	}
-
-	modules = NULL;
 
 	/* We should probably do this async */ 
 	for (info = g_file_enumerator_next_file (enumerator, NULL, &error);

@@ -74,8 +74,8 @@ trackerd_SOURCES =							\
 	tracker-keywords.h						\
 	tracker-indexer.c						\
 	tracker-indexer.h						\
-	tracker-process-files.c						\
-	tracker-process-files.h						\
+	tracker-process.c						\
+	tracker-process.h						\
 	tracker-main.c							\
 	tracker-main.h							\
 	tracker-marshal-main.c						\

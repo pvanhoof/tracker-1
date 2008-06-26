@@ -52,7 +52,7 @@
 #include "tracker-indexer.h"
 #include "tracker-dbus.h"
 #include "tracker-daemon.h"
-#include "tracker-process-files.h"
+#include "tracker-process.h"
 #include "tracker-query-tree.h"
 #include "tracker-main.h"
 #include "tracker-status.h"

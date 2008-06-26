@@ -1,3 +1,19 @@
+2008-06-26  Martyn Russell  <martyn@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer.c: Cleaned up some code.
+	
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-db.c:
+	* src/trackerd/tracker-email-kmail.c:
+	* src/trackerd/tracker-indexer.c:
+	* src/trackerd/tracker-main.c:
+	* src/trackerd/tracker-process-files.c:
+	* src/trackerd/tracker-process-files.h:
+	* src/trackerd/tracker-process.c:
+	* src/trackerd/tracker-utils.c: Renamed tracker-process-files.[ch]
+	to tracker-process.[ch] since this module will be stripped and
+	used to process all categories of data not just files.
+
 2008-06-25  Ivan Frade  <ivan.frade@nokia.com>
 
 	* tests/libtracker-db/Makefile.am

@@ -343,7 +343,10 @@ tracker_indexer_init (TrackerIndexer *indexer)
 
 	priv->cache = tracker_db_manager_get_db_interface (TRACKER_DB_CACHE);
 	priv->common = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
-	priv->metadata = tracker_db_manager_get_db_interfaces (3, TRACKER_DB_COMMON, TRACKER_DB_CACHE, TRACKER_DB_FILE_METADATA);
+	priv->metadata = tracker_db_manager_get_db_interfaces (3, 
+							       TRACKER_DB_COMMON,
+							       TRACKER_DB_CACHE, 
+							       TRACKER_DB_FILE_METADATA);
 	priv->contents = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_CONTENTS);
 
 	priv->timer = g_timer_new ();

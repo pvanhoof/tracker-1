@@ -50,7 +50,7 @@
 #include "tracker-indexer.h"
 #include "tracker-monitor.h"
 #include "tracker-status.h"
-#include "tracker-process-files.h"
+#include "tracker-process.h"
 
 static TrackerHal     *hal;
 static TrackerConfig  *config;

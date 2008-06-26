@@ -2136,15 +2136,6 @@ db_interface_get_xesam (void)
 
 	iface = db_interface_get (TRACKER_DB_XESAM, &create);
 
-	if (!attach_iface) {
-		g_critical ("XESAM database could not be set up because "
-			    "there is no TrackerDBInterface with all connections "
-			    "attached. The common database is needed to create "
-			    "the xesam database correctly!");
-		g_object_unref (iface);
-		return NULL;
-	}
-
 	if (create) {
 		tracker_db_interface_start_transaction (iface);
 		load_sql_file (iface, "sqlite-xesam.sql", NULL);

@@ -391,7 +391,7 @@ tracker_xesam_manager_generate_unique_key (void)
 	u = 0;
 #endif
 
-	r = rand ();
+	r = g_random_int ();
 	key = g_strdup_printf ("%ut%uut%uu%up%ur%uk%u",
 			       serial, t, ut, u, p, r,
 			       GPOINTER_TO_UINT (&key));

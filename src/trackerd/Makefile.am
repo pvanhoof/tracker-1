@@ -19,35 +19,6 @@ INCLUDES =								\
 
 
 #
-# Mail sources
-#
-mail_modulesdir = $(libdir)/tracker/mail-modules
-mail_modules_LTLIBRARIES = \
-	libemail-evolution.la \
-	libemail-thunderbird.la \
-	libemail-kmail.la \
-	libemail-modest.la
-
-module_flags = -module -avoid-version -no-undefined
-
-libemail_modest_la_SOURCES = tracker-email-modest.c tracker-email-modest.h
-libemail_modest_la_LDFLAGS = $(module_flags)
-libemail_modest_la_LIBADD = $(GLIB2_LIBS)
-
-libemail_evolution_la_SOURCES = tracker-email-evolution.c
-libemail_evolution_la_LDFLAGS = $(module_flags)
-libemail_evolution_la_LIBADD = $(GLIB2_LIBS)
-
-libemail_thunderbird_la_SOURCES = tracker-email-thunderbird.c
-libemail_thunderbird_la_LDFLAGS = $(module_flags)
-libemail_thunderbird_la_LIBADD = $(GLIB2_LIBS)
-
-libemail_kmail_la_SOURCES = tracker-email-kmail.c
-libemail_kmail_la_LDFLAGS = $(module_flags)
-libemail_kmail_la_LIBADD = $(GLIB2_LIBS)
-
-
-#
 # Daemon sources
 #
 bin_PROGRAMS = trackerd
@@ -59,15 +30,8 @@ trackerd_SOURCES =							\
 	tracker-daemon.h						\
 	tracker-db.c							\
 	tracker-db.h							\
-	tracker-db-email.c						\
-	tracker-db-email.h						\
 	tracker-dbus.c							\
 	tracker-dbus.h							\
-	tracker-email.c							\
-	tracker-email.h							\
-	tracker-email-utils.c						\
-	tracker-email-utils.h						\
-	tracker-email-plugin.h						\
 	tracker-files.c							\
 	tracker-files.h							\
 	tracker-keywords.c						\

@@ -46,7 +46,6 @@
 #include "tracker-db.h"
 #include "tracker-dbus.h"
 #include "tracker-daemon.h"
-#include "tracker-email.h"
 #include "tracker-indexer.h"
 #include "tracker-monitor.h"
 #include "tracker-status.h"

@@ -1,5 +1,24 @@
 2008-06-26  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-db-email.c:
+	* src/trackerd/tracker-db-email.h:
+	* src/trackerd/tracker-email-evolution.c:
+	* src/trackerd/tracker-email-kmail.c:
+	* src/trackerd/tracker-email-modest.c:
+	* src/trackerd/tracker-email-plugin.h:
+	* src/trackerd/tracker-email-thunderbird.c:
+	* src/trackerd/tracker-email-utils.c:
+	* src/trackerd/tracker-email-utils.h:
+	* src/trackerd/tracker-email.c:
+	* src/trackerd/tracker-email.h:
+	* src/trackerd/tracker-main.c: 
+	* src/trackerd/tracker-process.c: Remove all email modules here,
+	this code is all done in the indexer now or is in the process of
+	being moved over. It is redundant in the daemon.
+
+2008-06-26  Martyn Russell  <martyn@imendio.com>
+
 	* src/tracker-indexer/tracker-indexer.c: Cleaned up some code.
 	
 	* src/trackerd/Makefile.am:

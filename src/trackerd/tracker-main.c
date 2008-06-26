@@ -45,7 +45,6 @@
 
 #include <libtracker-db/tracker-db-manager.h>
 
-#include "tracker-email.h"
 #include "tracker-crawler.h"
 #include "tracker-dbus.h"
 #include "tracker-indexer.h"
@@ -612,8 +611,6 @@ shutdown_indexer (void)
 	tracker_indexer_close (tracker->file_index);
 	tracker_indexer_close (tracker->file_update_index);
 	tracker_indexer_close (tracker->email_index);
-
-	tracker_email_end_email_watching ();
 }
 
 static void
@@ -812,7 +809,6 @@ main (gint argc, gchar *argv[])
 	tracker_db_manager_init (flags, &tracker->first_time_index);
 	tracker_db_init ();
 	tracker_xesam_manager_init ();
-	tracker_email_start_email_watching (tracker_config_get_email_client (tracker->config));
 
 	tracker->crawler = tracker_crawler_new ();
 
@@ -887,7 +883,6 @@ main (gint argc, gchar *argv[])
 	shutdown_directories ();
 
 	/* Shutdown major subsystems */
-	tracker_email_end_email_watching ();
 	tracker_dbus_shutdown ();
 	tracker_xesam_manager_shutdown ();
 	tracker_db_manager_shutdown (TRUE);

@@ -231,12 +231,12 @@ TrackerDBResultSet *tracker_db_live_search_get_hit_count         (TrackerDBInter
 								  const gchar         *search_id);
 
 /* XESAM API */
-void                tracker_db_xesam_delete_handled_events       (TrackerDBInterface  *iface);
-TrackerDBResultSet *tracker_db_xesam_get_metadata_names          (TrackerDBInterface  *iface,
-								  const char          *name);
-TrackerDBResultSet *tracker_db_xesam_get_service_names           (TrackerDBInterface  *iface,
-								  const char          *name);
-
+void                tracker_db_xesam_delete_handled_events     (TrackerDBInterface  *iface);
+TrackerDBResultSet *tracker_db_xesam_get_metadata_names        (TrackerDBInterface  *iface,
+								const char          *name);
+TrackerDBResultSet *tracker_db_xesam_get_all_text_metadata_names (TrackerDBInterface  *iface);
+TrackerDBResultSet *tracker_db_xesam_get_service_names         (TrackerDBInterface  *iface,
+								const char          *name);
 G_END_DECLS
 
 #endif /* __TRACKERD_DB_H__ */

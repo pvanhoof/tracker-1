@@ -144,3 +144,23 @@ CREATE TABLE XesamMetaDataLookup
 
 	unique (XesamMetaName, MetaName)
 );
+
+CREATE TABLE  XesamFileMimes
+(
+	Mime			Text primary key not null,
+	ServiceTypeID		Integer default 0,
+	ThumbExec		Text default ' ',
+	MetadataExec		Text default ' ',
+	FullTextExec		Text default ' '
+
+);
+
+CREATE TABLE  XesamFileMimePrefixes
+(
+	MimePrefix		Text primary key not null,
+	ServiceTypeID		Integer default 0,
+	ThumbExec		Text default ' ',
+	MetadataExec		Text default ' ',
+	FullTextExec		Text default ' '
+
+);

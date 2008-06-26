@@ -1389,6 +1389,20 @@ tracker_db_xesam_get_metadata_names (TrackerDBInterface *iface,
 }
 
 TrackerDBResultSet *
+tracker_db_xesam_get_all_text_metadata_names (TrackerDBInterface *iface)
+{
+	TrackerDBResultSet *result_set;
+
+	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
+	
+	result_set = tracker_db_exec_proc (iface,
+					   "GetXesamMetaDataTextLookups", 
+					   NULL);
+
+	return result_set;
+}
+
+TrackerDBResultSet *
 tracker_db_xesam_get_service_names (TrackerDBInterface *iface, 
 				    const gchar        *name)
 {
@@ -2542,9 +2556,9 @@ tracker_db_live_search_get_deleted_ids (TrackerDBInterface *iface,
  * It is used by xesam_live_search parsing. */
 
 static GList *
-add_metadata_field (TrackerDBInterface *iface,
-		    GSList **fields, 
-		    const char *xesam_name)
+add_live_search_metadata_field (TrackerDBInterface *iface,
+				GSList **fields, 
+				const char *xesam_name)
 {
 	TrackerDBResultSet *result_set;
 	TrackerFieldData   *field_data;
@@ -2636,9 +2650,9 @@ tracker_db_live_search_get_hit_data (TrackerDBInterface *iface,
 	while (field_names[i]) {
 		GList *field_data_list = NULL;
 
-		field_data_list = add_metadata_field (iface, 
-						      &fields, 
-						      field_names[i]);
+		field_data_list = add_live_search_metadata_field (iface, 
+								  &fields, 
+								  field_names[i]);
 
 		if (!field_data_list) {
 			g_warning ("Asking for a non-mapped xesam field: %s", field_names[i]);

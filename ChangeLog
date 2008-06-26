@@ -1,3 +1,7 @@
+2008-06-26  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* svn merge -r 1726:1769 ../xesam-support
+
 2008-06-26  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/Makefile.am:

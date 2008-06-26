@@ -209,6 +209,13 @@ GetXesamMetaDataParents SELECT MetaName, Parents FROM XesamMetaDataTypes;
 GetXesamMetaDataChildren SELECT Child FROM XesamMetaDataChildren WHERE Parent = ?;
 GetXesamMetaDataMappings SELECT MetaName FROM XesamMetaDataMapping WHERE XesamMetaName = ?;
 GetXesamMetaDataLookups SELECT DISTINCT MetaName FROM XesamMetaDataLookup WHERE XesamMetaName = ?;
+GetXesamMetaDataTextLookups SELECT DISTINCT L.MetaName FROM XesamMetaDataLookup L INNER JOIN XesamMetaDataTypes T ON (T.MetaName = L.XesamMetaName) WHERE T.DataTypeID = 3;
 
 GetXesamMetaDataTypes SELECT ID, MetaName, DataTypeID, FieldName, Weight, Embedded, MultipleValues, Delimited, Filtered, Abstract FROM XesamMetaDataTypes;
 GetXesamServiceTypes SELECT TypeID, TypeName, Parents, Enabled, Embedded, HasMetadata, HasFullText, HasThumbs, ContentMetadata, Database, ShowServiceFiles, ShowServiceDirectories, KeyMetadata1, KeyMetadata2, KeyMetadata3, KeyMetadata4, KeyMetadata5, KeyMetadata6, KeyMetadata7, KeyMetadata8, KeyMetadata9, KeyMetadata10, KeyMetadata11  FROM XesamServiceTypes;
+
+InsertXesamMimes replace into XesamFileMimes (Mime) Values (?);
+InsertXesamMimePrefixes replace into XesamFileMimePrefixes (MimePrefix) Values (?);
+
+GetXesamMimeForServiceId select Mime from XesamFileMimes where ServiceTypeId = ?;
+GetXesamMimePrefixForServiceId select MimePrefix from XesamFileMimePrefixes where ServiceTypeId = ?;

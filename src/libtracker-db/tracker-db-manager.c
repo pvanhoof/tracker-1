@@ -610,14 +610,13 @@ load_service_file_xesam (TrackerDBInterface *iface,
 	GError               *error = NULL;
 	const gchar * const  *language_names;
 	gchar               **groups;
-	gchar               **group;
 	gchar 		     *service_file;
 	gchar                *sql;
 	gboolean              is_metadata;
 	gboolean              is_service;
 	gboolean              is_metadata_mapping;
 	gboolean              is_service_mapping;
-	gint                  id; 
+	gint                  i, j, id; 
 
 	const gchar          *data_types[] = {
 		"string", 
@@ -672,35 +671,34 @@ load_service_file_xesam (TrackerDBInterface *iface,
 		
 	groups = g_key_file_get_groups (key_file, NULL);
 	
-	for (group = groups; *group; group++) {
+	for (i = 0; groups[i]; i++) {
 		gchar  *str_id;
 		gchar **keys;
-		gchar **key;
 
 		if (is_metadata) {
 			db_exec_proc (iface, 
 				      "InsertXesamMetadataType", 
-				      *group, 
+				      groups[i], 
 				      NULL);
 			id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (iface));
 		} else if (is_service) {
 			db_exec_proc (iface, 
 				      "InsertXesamServiceType", 
-				      *group, 
+				      groups[i], 
 				      NULL);
 			id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (iface));
  		}
 		
 		/* Get inserted ID */
 		str_id = tracker_uint_to_string (id);
-		keys = g_key_file_get_keys (key_file, *group, NULL, NULL);
+		keys = g_key_file_get_keys (key_file, groups[i], NULL, NULL);
 		
-		for (key = keys; *key; key++) {
+		for (j = 0; keys[j]; j++) {
 			gchar *value;
 			
 			value = g_key_file_get_locale_string (key_file, 
-							      *group, 
-							      *key, 
+							      groups[i], 
+							      keys[j], 
 							      language_names[0],
 							      NULL);
 			
@@ -717,12 +715,12 @@ load_service_file_xesam (TrackerDBInterface *iface,
 			}
 			
 			if (is_metadata) {
-				if (strcasecmp (*key, "Parents") == 0) {
+				if (strcasecmp (keys[j], "Parents") == 0) {
 					load_service_file_xesam_insert (iface,
 									"INSERT INTO XesamMetadataChildren (Parent, Child) VALUES ('%s', '%s')",
 									value,
-									*group);
-				} else if (strcasecmp (*key, "ValueType") == 0) {
+									groups[i]);
+				} else if (strcasecmp (keys[j], "ValueType") == 0) {
 					gint data_id;
 					
 					data_id = tracker_string_in_string_list (value, (gchar **) data_types);
@@ -774,20 +772,67 @@ load_service_file_xesam (TrackerDBInterface *iface,
 				} else {
 					load_service_file_xesam_update (iface,
 									"update XesamMetadataTypes set  %s = '%s' where ID = %s",
-									*key, 
+									keys[j], 
 									value, 
 									str_id);
 				}
 			} else 	if (is_service) {
-				if (strcasecmp (*key, "Parents") == 0) {
+				if (strcasecmp (keys[j], "Parents") == 0) {
 					load_service_file_xesam_insert (iface,
 									"INSERT INTO XesamServiceChildren (Parent, Child) VALUES ('%s', '%s')",
 									value,
-									*group);
+									groups[i]);
+				} else if (strcasecmp (keys[j], "Mimes") == 0) {
+					gchar **tab_array;
+					gint    k;
+					
+					tab_array = g_key_file_get_string_list (key_file, 
+										groups[i], 
+										keys[j], 
+										NULL, 
+										NULL);
+					
+					for (k = 0; tab_array[k]; k++) {
+						tracker_db_interface_execute_procedure (iface, NULL,
+											"InsertXesamMimes",
+											tab_array[k], 
+											NULL);
+						tracker_db_interface_execute_query (iface, 
+										    NULL,
+										    "update XesamFileMimes set ServiceTypeID = %s where Mime = '%s'",
+										    str_id, 
+										    tab_array[k]);
+					}
+					
+					g_strfreev (tab_array);
+				} else if (strcasecmp (keys[j], "MimePrefixes") == 0) {
+					gchar **tab_array;
+					gint    k;
+					
+					tab_array = g_key_file_get_string_list (key_file, 
+										groups[i], 
+										keys[j], 
+										NULL, 
+										NULL);
+					
+					for (k = 0; tab_array[k]; k++) {
+						tracker_db_interface_execute_procedure (iface, 
+											NULL,
+											"InsertXesamMimePrefixes",
+											tab_array[k],
+											NULL);
+						tracker_db_interface_execute_query (iface, 
+										    NULL,
+										    "update XesamFileMimePrefixes set ServiceTypeID = %s where MimePrefix = '%s'",
+										    str_id, 
+										    tab_array[k]);
+					}
+					
+					g_strfreev (tab_array);
 				} else {
 					load_service_file_xesam_update (iface,
 									"update XesamServiceTypes set  %s = '%s' where typeID = %s",
-									*key, 
+									keys[j], 
 									value, 
 									str_id);
 				}
@@ -795,12 +840,12 @@ load_service_file_xesam (TrackerDBInterface *iface,
 				load_service_file_xesam_map (iface,
 							     "InsertXesamMetaDataMapping", 
 							     value, 
-							     *group);
+							     groups[i]);
 			} else {
 				load_service_file_xesam_map (iface,
 							     "InsertXesamServiceMapping", 
 							     value, 
-							     *group);
+							     groups[i]);
 			}
 			
 			g_free (value);
@@ -1062,6 +1107,20 @@ db_get_mime_prefixes_for_service_id (TrackerDBInterface *iface,
 				     gint                service_id)
 {
 	return db_mime_query (iface, "GetMimePrefixForServiceId", service_id);
+}
+
+static GSList *
+db_get_xesam_mimes_for_service_id (TrackerDBInterface *iface,
+				   gint                service_id)
+{
+	return db_mime_query (iface, "GetXesamMimeForServiceId", service_id);
+}
+
+static GSList *
+db_get_xesam_mime_prefixes_for_service_id (TrackerDBInterface *iface,
+					   gint                service_id)
+{
+	return db_mime_query (iface, "GetXesamMimePrefixForServiceId", service_id);
 }
 
 /* Sqlite utf-8 user defined collation sequence */
@@ -1627,8 +1686,8 @@ db_get_static_xesam_data (TrackerDBInterface *iface)
                         id = tracker_service_get_id (service);
                         name = tracker_service_get_name (service);
 
-                        mimes = db_get_mimes_for_service_id (iface, id);
-                        mime_prefixes = db_get_mime_prefixes_for_service_id (iface, id);
+                        mimes = db_get_xesam_mimes_for_service_id (iface, id);
+                        mime_prefixes = db_get_xesam_mime_prefixes_for_service_id (iface, id);
 
                         g_message ("Adding xesam service:'%s' with id:%d and mimes:%d",
 				   name,
@@ -2104,7 +2163,7 @@ db_interface_get_xesam (void)
 
 
 	/* Load static xesam data */
-	db_get_static_xesam_data (attach_iface);
+	db_get_static_xesam_data (iface);
 
 	return iface;
 }

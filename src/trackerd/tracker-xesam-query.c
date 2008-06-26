@@ -21,6 +21,25 @@
  * Boston, MA  02110-1301, USA.
  */
 
+/*
+ * TODO
+ * - Boost attribute support is missing completely
+ * - userQuery is missing completely
+ * - works only with the default db at the moment.
+ * - Missing checks for several field elements in one selector
+ *
+ *
+ *
+ *
+ * FIXME
+ * - The mappings
+ * - Multifield-elements work in a hackish way with a magic current_field name. An additional field is pushed to stack for fullText.
+ */
+
+
+#define FIELD_NAME_FULL_TEXT_FIELDS "fullTextFields"
+
+
 #include <string.h>
 
 #include <libtracker-common/tracker-log.h>
@@ -50,6 +69,7 @@
 #define ELEMENT_XESAM_QUERY 	        "query"
 #define ELEMENT_XESAM_USER_QUERY        "userQuery"
 #define ELEMENT_XESAM_FIELD 		"field"
+#define ELEMENT_XESAM_FULL_TEXT_FIELDS  "fullTextFields"
 #define ELEMENT_XESAM_REQUEST 		"request"
 
 /* Operators */
@@ -68,6 +88,7 @@
 #define ELEMENT_XESAM_REGEX        	"regex"
 #define ELEMENT_XESAM_STARTS_WITH 	"startsWith"
 #define ELEMENT_XESAM_IN_SET		"inSet"
+#define ELEMENT_XESAM_FULL_TEXT         "fullText"
 
 /* Types */
 #define ELEMENT_XESAM_INTEGER 		"integer"
@@ -112,6 +133,8 @@ typedef enum {
 	STATE_END_STARTS_WITH,
 	STATE_IN_SET,
 	STATE_END_IN_SET,
+	STATE_FULL_TEXT,
+	STATE_END_FULL_TEXT,
 	STATE_INTEGER,
 	STATE_END_INTEGER,
 	STATE_STRING,
@@ -135,6 +158,7 @@ typedef enum {
 	OP_CONTAINS,
 	OP_REGEX,
 	OP_SET,
+	OP_FULL_TEXT,
 	OP_STARTS
 } Operators;
 
@@ -194,6 +218,7 @@ is_operator (ParseState state)
 		state == STATE_LESS_THAN ||
 		state == STATE_CONTAINS || 
 		state == STATE_IN_SET || 
+		state == STATE_FULL_TEXT ||
 		state == STATE_LESS_OR_EQUAL ||
 		state == STATE_GREATER_OR_EQUAL || 
 		state == STATE_STARTS_WITH || 
@@ -209,7 +234,8 @@ is_end_operator (ParseState state)
 		state == STATE_END_GREATER_THAN || 
 		state == STATE_END_LESS_THAN ||
 		state == STATE_END_CONTAINS || 
-		state == STATE_END_IN_SET || 
+		state == STATE_END_IN_SET ||
+		state == STATE_END_FULL_TEXT ||
 		state == STATE_END_LESS_OR_EQUAL ||
 		state == STATE_END_GREATER_OR_EQUAL || 
 		state == STATE_END_STARTS_WITH || 
@@ -369,8 +395,12 @@ add_metadata_field (ParserData  *data,
 	valid = TRUE;
 
 	/* Do the xesam mapping */
-	
-	result_set = tracker_db_xesam_get_metadata_names (data->iface, xesam_name);
+	if (!strcmp(xesam_name,FIELD_NAME_FULL_TEXT_FIELDS)) {
+		result_set = tracker_db_xesam_get_all_text_metadata_names (data->iface);
+	} else {	
+		result_set = tracker_db_xesam_get_metadata_names (data->iface, xesam_name);
+	}
+
 	if (!result_set) {
 		return NULL;
 	}
@@ -390,16 +420,15 @@ add_metadata_field (ParserData  *data,
 				continue;
 			}
 				
-			if (strcasecmp (this_field_name, field_name) != 0) {
-				continue;
+			if (strcasecmp (this_field_name, field_name) == 0) {
+				field_data = l->data;
+				field_exists = TRUE;
+				
+				tracker_field_data_set_is_condition (l->data, is_condition);
+				tracker_field_data_set_is_select (l->data, is_select);
+				
+				break;
 			}
-
-			field_exists = TRUE;
-			
-			tracker_field_data_set_is_condition (l->data, is_condition);
-			tracker_field_data_set_is_select (l->data, is_select);
-			
-			break;
 		}
 		
 		if (!field_exists) {
@@ -414,7 +443,10 @@ add_metadata_field (ParserData  *data,
 			} 
 		} 
 		
-		reply = g_list_append (reply, field_data);
+		if (field_data) {
+			reply = g_list_append (reply, field_data);
+		}
+
 		valid = tracker_db_result_set_iter_next (result_set);
 		g_free (field_name);
 	}
@@ -516,6 +548,26 @@ start_element_handler (GMarkupParseContext  *context,
 			data->current_field = g_strdup (name);
 			push_stack (data, STATE_FIELD);
 		}
+	} else if (ELEMENT_IS (ELEMENT_XESAM_FULL_TEXT_FIELDS)) {
+
+		if (set_error_on_fail (is_operator (state), 
+				       context, 
+				       "Field element (fullTextFields) not expected here", 
+				       error)) {
+			return;
+		}
+		
+		if (data->current_operator == OP_NONE) {
+			set_error (error, 
+				   context, 
+				   PARSE_ERROR,
+				   "no operator found for fullTextFields");
+			return;
+		}
+		
+		data->current_field = g_strdup (FIELD_NAME_FULL_TEXT_FIELDS);
+		push_stack (data, STATE_FIELD); /* We don't need to differentiate */
+	
 	} else if (ELEMENT_IS (ELEMENT_XESAM_AND)) {
                 const gchar *negate;
 
@@ -800,8 +852,33 @@ start_element_handler (GMarkupParseContext  *context,
 
 		data->current_operator = OP_SET;
 		push_stack (data, STATE_IN_SET);
+	} else if (ELEMENT_IS (ELEMENT_XESAM_FULL_TEXT)) {
+                const gchar *negate;
+
+		if (set_error_on_fail (state == STATE_QUERY || 
+				       is_logic (state) ||
+				       ((data->current_logic_operator == LOP_AND || 
+					 data->current_logic_operator == LOP_OR) &&
+					is_end_operator (state)),
+				       context, 
+				       "fullText element not expected here", 
+				       error)) {
+			return;
+		}
+
+		negate = get_attribute_value ("negate", 
+					      attribute_names, 
+					      attribute_values);
+
+		if (negate && !strcmp(negate,"true")) {
+			data->sql_where = g_string_append (data->sql_where, " NOT "); 
+		}
+
+		data->current_operator = OP_FULL_TEXT;
+		data->current_field = g_strdup (FIELD_NAME_FULL_TEXT_FIELDS);
+		push_stack (data, STATE_FULL_TEXT);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_INTEGER)) {
-		if (set_error_on_fail (state == STATE_FIELD, 
+		if (set_error_on_fail (state == STATE_FIELD || state == STATE_FULL_TEXT, 
 				       context, 
 				       "INTEGER element not expected here", 
 				       error)) {
@@ -810,7 +887,7 @@ start_element_handler (GMarkupParseContext  *context,
 
 		push_stack (data, STATE_INTEGER);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_DATE)) {
-		if (set_error_on_fail (state == STATE_FIELD, 
+		if (set_error_on_fail (state == STATE_FIELD || state == STATE_FULL_TEXT, 
 				       context,
 				       "DATE element not expected here", 
 				       error)) {
@@ -819,7 +896,7 @@ start_element_handler (GMarkupParseContext  *context,
 
 		push_stack (data, STATE_DATE);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_STRING)) {
-		if (set_error_on_fail (state == STATE_FIELD, 
+		if (set_error_on_fail (state == STATE_FIELD || state == STATE_FULL_TEXT, 
 				       context,
 				       "STRING element not expected here", 
 				       error)) {
@@ -828,7 +905,7 @@ start_element_handler (GMarkupParseContext  *context,
 
 		push_stack (data, STATE_STRING);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_FLOAT)) {
-		if (set_error_on_fail (state == STATE_FIELD, 
+		if (set_error_on_fail (state == STATE_FIELD || state == STATE_FULL_TEXT, 
 				       context, 
 				       "FLOAT element not expected here", 
 				       error)) {
@@ -837,7 +914,7 @@ start_element_handler (GMarkupParseContext  *context,
 
 		push_stack (data, STATE_FLOAT);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_BOOLEAN)) {
-		if (set_error_on_fail (state == STATE_FIELD, 
+		if (set_error_on_fail (state == STATE_FIELD || state == STATE_FULL_TEXT, 
 				       context, 
 				       "BOOLEAN element not expected here", 
 				       error)) {
@@ -1061,6 +1138,21 @@ build_sql (ParserData *data)
 			}
 			break;
 
+		case OP_FULL_TEXT:
+
+			sub = strchr (data->current_value, '*');
+
+			if (sub) {
+				g_string_append_printf (str, " (%s like '%%%s%%') ", 
+							where_field, 
+							data->current_value);
+			} else {
+				g_string_append_printf (str, " (%s like '%%%s%%') ", 
+							where_field,
+							data->current_value);
+			}
+			break;
+
 		default:
 			break;
 		}
@@ -1209,6 +1301,14 @@ end_element_handler (GMarkupParseContext *context,
 
 		push_stack (data, STATE_END_IN_SET);
 
+	} else if (ELEMENT_IS (ELEMENT_XESAM_FULL_TEXT)) {
+
+		if (!build_sql (data)) {
+			set_error (error, context, 1, "parse error");
+			return;
+		}
+
+		push_stack (data, STATE_END_FULL_TEXT);
 
 	} else if (ELEMENT_IS (ELEMENT_XESAM_INTEGER)) {
 

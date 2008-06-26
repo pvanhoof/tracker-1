@@ -1,0 +1,19 @@
+[General]
+Description=Evolution
+Enabled=true
+
+[Monitors]
+Directories=
+RecurseDirectories=
+
+[Ignored]
+Directories=
+Files=
+
+[Index]
+Service=EvolutionEmails
+MimeTypes=
+Files=
+
+[Specific]
+# Options specific to this module

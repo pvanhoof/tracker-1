@@ -1,3 +1,9 @@
+2008-06-26  Carlos Garnacho  <carlos@imendio.com>
+
+	* data/modules/Makefile.am:
+	* data/modules/*.xml: rename to *.module.
+	* data/modules/evolution.module: Added.
+
 2008-06-26  Martyn Russell  <martyn@imendio.com>
 
 	* data/modules/applications.xml:

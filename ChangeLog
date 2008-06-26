@@ -1,5 +1,11 @@
 2008-06-26  Philip Van Hoof  <pvanhoof@gnome.org>
 
+	* src/trackerd/tracker-query-tree.c: Replaced a g_value_get_pointer
+	with a g_value_get_object. It seems that the indexer instance is
+	nowadays a GObject rather than a arbritary pointer.
+
+2008-06-26  Philip Van Hoof  <pvanhoof@gnome.org>
+
 	* src/libtracker-db/tracker-db-manager.c: Giving out correct ifaces
 	with correct attachments for service-specific database conenctions
 

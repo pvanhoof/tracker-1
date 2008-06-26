@@ -224,7 +224,7 @@ tracker_query_tree_set_property (GObject      *object,
 		break;
 	case PROP_INDEXER:
 		tracker_query_tree_set_indexer (TRACKER_QUERY_TREE (object),
-						g_value_get_pointer (value));
+						g_value_get_object (value));
 		break;
 	case PROP_CONFIG:
 		tracker_query_tree_set_config (TRACKER_QUERY_TREE (object),

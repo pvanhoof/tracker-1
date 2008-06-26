@@ -133,8 +133,6 @@ static TrackerDBDefinition dbs[] = {
           FALSE },
 };
 
-static gboolean db_manager_had_init = FALSE;
-
 static gboolean            db_exec_no_reply    (TrackerDBInterface *iface,
 						const gchar        *query,
 						...);
@@ -2555,8 +2553,10 @@ TrackerDBInterface *
 tracker_db_manager_get_db_interface_by_service (const gchar *service, 
 						gboolean     content)
 {
-	TrackerDBType type;
-	TrackerDB     db;
+	TrackerDBInterface        *iface;
+	TrackerDBType              type;
+	static TrackerDBInterface *file_iface = NULL;
+	static TrackerDBInterface *email_iface = NULL;
 
 	g_return_val_if_fail (initialized != FALSE, NULL);
 	g_return_val_if_fail (service != NULL, NULL);
@@ -2565,23 +2565,29 @@ tracker_db_manager_get_db_interface_by_service (const gchar *service,
 
 	switch (type) {
 	case TRACKER_DB_TYPE_EMAIL:
-		if (G_UNLIKELY (content)) {
-			db = TRACKER_DB_EMAIL_CONTENTS;
-		} else {
-			db = TRACKER_DB_EMAIL_METADATA;
+		if (!email_iface) {
+			email_iface = tracker_db_manager_get_db_interfaces (4,
+									      TRACKER_DB_COMMON,
+									      TRACKER_DB_EMAIL_CONTENTS,
+									      TRACKER_DB_EMAIL_METADATA,
+									      TRACKER_DB_CACHE);
 		}
+		iface = email_iface;
 		break;
 
 	default:
-		if (G_UNLIKELY (content)) {
-			db = TRACKER_DB_FILE_CONTENTS;
-		} else {
-			db = TRACKER_DB_FILE_METADATA;
+		if (!file_iface) {
+			file_iface = tracker_db_manager_get_db_interfaces (4,
+									      TRACKER_DB_COMMON,
+									      TRACKER_DB_FILE_CONTENTS,
+									      TRACKER_DB_FILE_METADATA,
+									      TRACKER_DB_CACHE);
 		}
+		iface = file_iface;
 		break;
 	}
 
-	return tracker_db_manager_get_db_interface (db);
+	return iface;
 }
 
 TrackerDBInterface *

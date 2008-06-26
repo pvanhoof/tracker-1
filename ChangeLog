@@ -1,3 +1,8 @@
+2008-06-26  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/libtracker-db/tracker-db-manager.c: Giving out correct ifaces
+	with correct attachments for service-specific database conenctions
+
 2008-06-26  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-daemon.c:

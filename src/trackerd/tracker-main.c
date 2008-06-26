@@ -226,45 +226,6 @@ get_lock_file (void)
 }
 
 static void
-reset_blacklist_file (gchar *uri)
-{
-	gchar *dirname;
-	gchar *dirname_parent;
-	gchar *basename;
-
-	dirname = g_path_get_dirname (uri);
-	if (!dirname) { 
-		return;
-	}
-
-	basename = g_path_get_basename (dirname);
-	if (!basename) {
-		return;
-	}
-
-	dirname_parent = g_path_get_dirname (dirname);
-	if (!dirname_parent) {
-		return;	
-	}
-
-	g_message ("Resetting black list file:'%s'", uri);
-
-	/* Reset mtime on parent folder of all outstanding black list
-	 * files so they get indexed when next restarted 
-	 */
-	tracker_db_exec_proc (tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA), 
-			      "UpdateFileMTime", 
-			      "0", 
-			      dirname_parent, 
-			      basename, 
-			      NULL);
-	
-	g_free (basename);
-	g_free (dirname_parent);
-	g_free (dirname);
-}
-
-static void
 log_option_list (GSList      *list,
 		 const gchar *str)
 {
@@ -691,7 +652,6 @@ main (gint argc, gchar *argv[])
 	GOptionContext        *context = NULL;
 	GOptionGroup          *group;
 	GError                *error = NULL;
-	GSList                *l;
 	TrackerDBManagerFlags  flags;
 
         g_type_init ();
@@ -898,11 +858,6 @@ main (gint argc, gchar *argv[])
 	 * Shutdown the daemon
 	 */
 	tracker_status_set (TRACKER_STATUS_SHUTDOWN);
-
-	/* Reset black list files */
-        l = tracker_process_files_get_temp_black_list ();
-	g_slist_foreach (l, (GFunc) reset_blacklist_file, NULL);
-	g_slist_free (l);
 
 	/* Set kill timeout */
 	g_timeout_add_full (G_PRIORITY_LOW, 10000, shutdown_timeout_cb, NULL, NULL);

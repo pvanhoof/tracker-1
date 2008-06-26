@@ -1,3 +1,13 @@
+2008-06-26  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-db.c:
+	* src/trackerd/tracker-indexer.c:
+	* src/trackerd/tracker-main.c:
+	* src/trackerd/tracker-process.c:
+	* src/trackerd/tracker-process.h: Remove all functions in
+	tracker-process and clean up any place that depends on functions
+	from there currently.
+
 2008-06-26  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/trackerd/tracker-query-tree.c: Replaced a g_value_get_pointer

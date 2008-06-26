@@ -41,6 +41,7 @@
 
 #include <glib.h>
 #include <glib/gstdio.h>
+#include <gio/gio.h>
 
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-config.h>
@@ -582,25 +583,66 @@ tracker_indexer_calc_amalgamated (gint service,
 gboolean
 tracker_indexer_has_tmp_merge_files (TrackerIndexerType type)
 {
-	GSList  *files = NULL;
-	gboolean result = FALSE;
+	GFile           *file;
+	GFileEnumerator *enumerator;
+	GFileInfo       *info;
+	GError          *error = NULL;
+	const gchar     *prefix;
+	const gchar     *data_dir;
+	gboolean         found;
 
+	data_dir = tracker_get_data_dir ();
+	file = g_file_new_for_path (data_dir);
+
+	enumerator = g_file_enumerate_children (file,
+						G_FILE_ATTRIBUTE_STANDARD_NAME ","
+						G_FILE_ATTRIBUTE_STANDARD_TYPE,
+						G_PRIORITY_DEFAULT,
+						NULL, 
+						&error);
+
+	if (error) {
+		g_warning ("Could not check for temporary indexer files in "
+			   "directory:'%s', %s",
+			   data_dir,
+			   error->message);
+		g_error_free (error);
+		g_object_unref (file);
+		return FALSE;
+	}
+
+	
 	if (type == TRACKER_INDEXER_TYPE_FILES) {
-		files = tracker_process_files_get_files_with_prefix (tracker_get_data_dir (),
-                                                                     "file-index.tmp.");
+		prefix = "file-index.tmp.";
 	} else {
-		files = tracker_process_files_get_files_with_prefix (tracker_get_data_dir (), 
-                                                                     "email-index.tmp.");
+		prefix = "email-index.tmp.";
 	}
 
-	result = files != NULL;
+	found = FALSE;
 
-	if (result) {
-		g_slist_foreach (files, (GFunc) g_free, NULL);
-		g_slist_free (files);
+	for (info = g_file_enumerator_next_file (enumerator, NULL, &error);
+	     info && !error && !found;
+	     info = g_file_enumerator_next_file (enumerator, NULL, &error)) {
+		/* Check each file has or hasn't got the prefix */
+		if (g_str_has_prefix (g_file_info_get_name (info), prefix)) {
+			found = TRUE;
+		}
+
+		g_object_unref (info);
 	}
 
-	return result;
+	if (error) {
+		g_warning ("Could not get file information for temporary "
+			   "indexer files in directory:'%s', %s",
+			   data_dir,
+			   error->message);
+		g_error_free (error);
+	}
+		
+	g_object_unref (enumerator);
+	g_object_unref (file);
+
+	return found;
 }
 
 guint8

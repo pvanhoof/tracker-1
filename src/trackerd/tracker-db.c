@@ -43,6 +43,7 @@
 #include "tracker-query-tree.h"
 #include "tracker-monitor.h"
 #include "tracker-xesam-manager.h"
+#include "tracker-main.h"
 
 #define ZLIBBUFSIZ            8192
 

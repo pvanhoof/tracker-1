@@ -19,45 +19,13 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKERD_PROCESS_FILES_H__
-#define __TRACKERD_PROCESS_FILES_H__
+#ifndef __TRACKERD_PROCESS_H__
+#define __TRACKERD_PROCESS_H__
 
-#include <libtracker-common/tracker-config.h>
-
-#include <libtracker-db/tracker-db-file-info.h>
-
-#include "tracker-utils.h"
-#include "tracker-main.h"
 
 G_BEGIN_DECLS
 
-gboolean tracker_process_files_init                    (Tracker            *tracker);
-void     tracker_process_files_shutdown                (void);
-
-gboolean tracker_process_files_should_be_watched       (TrackerConfig      *config,
-							const gchar        *uri);
-gboolean tracker_process_files_should_be_crawled       (const gchar        *uri);
-gboolean tracker_process_files_should_be_ignored       (const char         *uri);
-
-/* Black list API */
-GSList  *tracker_process_files_get_temp_black_list     (void);
-void     tracker_process_files_set_temp_black_list     (GSList             *black_list);
-void     tracker_process_files_append_temp_black_list  (const gchar        *str);
-
-/* File/Directory API */
-void     tracker_process_files_get_all_dirs            (const char         *dir,
-							GSList            **files);
-GSList * tracker_process_files_get_files_with_prefix   (const char         *dir,
-							const char         *prefix);
-
-/* Metadata Queue API */
-gint     tracker_process_files_metadata_queue_length   (void);
-void     tracker_process_files_metadata_queue_push     (TrackerDBFileInfo  *info);
-
-/* Files Queue API */
-gint     tracker_process_files_process_queue_length    (void);
-void     tracker_process_files_process_queue_push      (TrackerDBFileInfo *info);
 
 G_END_DECLS
 
-#endif /* __TRACKERD_PROCESS_FILES_H__ */
+#endif /* __TRACKERD_PROCESS_H__ */

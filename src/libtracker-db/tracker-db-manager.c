@@ -2567,10 +2567,10 @@ tracker_db_manager_get_db_interface_by_service (const gchar *service,
 	case TRACKER_DB_TYPE_EMAIL:
 		if (!email_iface) {
 			email_iface = tracker_db_manager_get_db_interfaces (4,
-									      TRACKER_DB_COMMON,
-									      TRACKER_DB_EMAIL_CONTENTS,
-									      TRACKER_DB_EMAIL_METADATA,
-									      TRACKER_DB_CACHE);
+									    TRACKER_DB_COMMON,
+									    TRACKER_DB_EMAIL_CONTENTS,
+									    TRACKER_DB_EMAIL_METADATA,
+									    TRACKER_DB_CACHE);
 		}
 		iface = email_iface;
 		break;
@@ -2578,10 +2578,10 @@ tracker_db_manager_get_db_interface_by_service (const gchar *service,
 	default:
 		if (!file_iface) {
 			file_iface = tracker_db_manager_get_db_interfaces (4,
-									      TRACKER_DB_COMMON,
-									      TRACKER_DB_FILE_CONTENTS,
-									      TRACKER_DB_FILE_METADATA,
-									      TRACKER_DB_CACHE);
+									   TRACKER_DB_COMMON,
+									   TRACKER_DB_FILE_CONTENTS,
+									   TRACKER_DB_FILE_METADATA,
+									   TRACKER_DB_CACHE);
 		}
 		iface = file_iface;
 		break;

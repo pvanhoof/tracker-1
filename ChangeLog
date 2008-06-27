@@ -1,3 +1,7 @@
+2008-06-27  Ivan Frade  <ivan.frade@nokia.com>
+
+	* tests/**: Added license in .c/.h files.
+	
 2008-06-27  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* svn merge -r 1769:1798 ../xesam-support

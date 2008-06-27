@@ -22,10 +22,15 @@
 #ifndef __TRACKERD_PROCESS_H__
 #define __TRACKERD_PROCESS_H__
 
+#include "tracker-crawler.h"
+
 G_BEGIN_DECLS
 
 void tracker_process_init     (void);
 void tracker_process_shutdown (void);
+
+void tracker_process_start (TrackerCrawler *crawler);
+void tracker_process_stop (void);
 
 G_END_DECLS
 

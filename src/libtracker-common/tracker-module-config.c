@@ -300,6 +300,8 @@ module_config_load (void)
 	gchar           *path;
 	gchar           *filename;
 	const gchar     *name;
+	const gchar     *extension;
+	glong            extension_len;
 
 	path = module_config_get_directory ();
 	file = g_file_new_for_path (path);
@@ -323,6 +325,9 @@ module_config_load (void)
 		return FALSE;
 	}
 
+	extension = ".module";
+	extension_len = g_utf8_strlen (extension, -1);
+
 	/* We should probably do this async */ 
 	for (info = g_file_enumerator_next_file (enumerator, NULL, &error);
 	     info && !error;
@@ -332,7 +337,7 @@ module_config_load (void)
 
 		name = g_file_info_get_name (info);
 
-		if (!g_str_has_suffix (name, ".module")) {
+		if (!g_str_has_suffix (name, extension)) {
 			g_object_unref (info);
 			continue;
 		}
@@ -344,7 +349,7 @@ module_config_load (void)
 		if (mc) {
 			gchar *name_stripped;
 
-			name_stripped = g_strndup (name, g_utf8_strlen (name, -1) - 4);
+			name_stripped = g_strndup (name, g_utf8_strlen (name, -1) - extension_len);
 
 			g_hash_table_insert (modules,
 					     name_stripped,
@@ -465,6 +470,12 @@ tracker_module_config_shutdown (void)
 	g_hash_table_unref (modules);
 
 	initiated = FALSE;
+}
+
+GList *
+tracker_module_config_get_modules (void)
+{
+	return g_hash_table_get_keys (modules);
 }
 
 const gchar *

@@ -638,7 +638,7 @@ start_cb (gpointer user_data)
 	}
 
 	/* Get files first */
-	tracker_process_start ();
+	tracker_process_start (user_data);
 	
 	proxy = tracker_dbus_indexer_get_proxy ();
 	tracker_xesam_subscribe_index_updated (proxy);
@@ -838,7 +838,7 @@ main (gint argc, gchar *argv[])
 				   seconds);
 			g_timeout_add (seconds * 1000, 
 				       start_cb,
-				       NULL);
+				       tracker->crawler);
 		} else {
 			g_idle_add (start_cb, tracker);
 		}
@@ -903,7 +903,7 @@ tracker_shutdown (void)
 	tracker->is_running = FALSE;
 
 	/* Stop any tight loop operations */
-	tracker_crawler_stop (tracker->crawler);
+	tracker_process_stop ();
 
 	g_main_loop_quit (main_loop);
 }

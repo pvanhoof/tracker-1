@@ -27,6 +27,9 @@ G_BEGIN_DECLS
 
 gboolean     tracker_module_config_init                            (void);
 void         tracker_module_config_shutdown                        (void);
+
+GList *      tracker_module_config_get_modules                     (void);
+
 const gchar *tracker_module_config_get_description                 (const gchar *name);
 gboolean     tracker_module_config_get_enabled                     (const gchar *name);
 GSList *     tracker_module_config_get_monitor_directories         (const gchar *name);

@@ -1,5 +1,16 @@
 2008-06-27  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-module-config.[ch]: Add API to get
+	all modules. Fixed the module naming now we don't use the .xml
+	extension. 
+	
+	* src/trackerd/tracker-main.c:
+	* src/trackerd/tracker-process.[ch]: Start by setting up monitors
+	and recursive monitors. The recursive monitors are still not
+	finished, this requires some work.
+
+2008-06-27  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-file-utils.[ch]:
 	* src/libtracker-common/tracker-config.c:
 	* src/libtracker-common/tracker-module-config.c: Added

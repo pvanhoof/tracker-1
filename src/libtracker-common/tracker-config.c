@@ -30,6 +30,7 @@
 
 #include "tracker-language.h"
 #include "tracker-config.h"
+#include "tracker-file-utils.h"
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_CONFIG, TrackerConfigPriv))
 
@@ -906,31 +907,6 @@ config_dir_ensure_exists_and_return (void)
 	return directory;
 }
 
-static gchar *
-config_dir_validate_name (const gchar *original_path)
-{
-	gchar resolved_path[PATH_MAX + 2];
-
-	if (!original_path || original_path[0] == '\0') {
-		return NULL;
-	}
-
-	if (original_path[0] == '~') {
-		const char *home = g_get_home_dir ();
-
-		if (!home || home[0] == '\0') {
-			return NULL;
-		}
-
-		return g_build_path (G_DIR_SEPARATOR_S,
-				     home,
-				     original_path + 1,
-				     NULL);
-	}
-
-	return g_strdup (realpath (original_path, resolved_path));
-}
-
 static gboolean
 config_dir_is_child_of (const char *dir,
 			const char *dir_to_test)
@@ -1255,7 +1231,7 @@ config_string_list_to_gslist (const gchar **value,
 		/* For directories we validate any special characters,
 		 * for example '~' and '../../'
 		 */
-		validated = config_dir_validate_name (str);
+		validated = tracker_path_evaluate_name (str);
 		if (validated) {
 			list = g_slist_prepend (list, validated);
 		}
@@ -2483,7 +2459,7 @@ tracker_config_add_watch_directory_roots (TrackerConfig	 *config,
 	priv = GET_PRIV (config);
 
 	for (p = roots; *p; p++) {
-		validated_root = config_dir_validate_name (*p);
+		validated_root = tracker_path_evaluate_name (*p);
 		if (!validated_root) {
 			g_print ("Root '%s' is not valid to add to watch directory list\n",
 				 validated_root);
@@ -2516,7 +2492,7 @@ tracker_config_add_crawl_directory_roots (TrackerConfig	 *config,
 	priv = GET_PRIV (config);
 
 	for (p = roots; *p; p++) {
-		validated_root = config_dir_validate_name (*p);
+		validated_root = tracker_path_evaluate_name (*p);
 		if (!validated_root) {
 			g_print ("Root '%s' is not valid to add to crawl directory list\n",
 				 validated_root);
@@ -2544,7 +2520,7 @@ tracker_config_add_no_watch_directory_roots (TrackerConfig  *config,
 	priv = GET_PRIV (config);
 
 	for (p = roots; *p; p++) {
-		validated_root = config_dir_validate_name (*p);
+		validated_root = tracker_path_evaluate_name (*p);
 		if (!validated_root) {
 			g_print ("Root '%s' is not valid to add to no_watch directory list\n",
 				 validated_root);

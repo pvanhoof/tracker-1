@@ -27,8 +27,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <limits.h>
 
 #include <glib.h>
+#include <gio/gio.h>
 
 #include <xdgmime/xdgmime.h>
 
@@ -535,4 +537,88 @@ tracker_path_list_filter_duplicates (GSList *roots)
 #endif /* TESTING */
 
 	return checked_roots;
+}
+
+gchar *
+tracker_path_evaluate_name (const gchar *uri)
+{
+	gchar        *final_path;
+	gchar       **tokens;
+	gchar       **token;
+	gchar        *start;
+	gchar        *end;
+	const gchar  *env;
+	gchar        *expanded;
+
+	if (!uri || uri[0] == '\0') {
+		return NULL;
+	}
+
+	/* First check the simple case of using tilder */
+	if (uri[0] == '~') {
+		const char *home = g_get_home_dir ();
+
+		if (!home || home[0] == '\0') {
+			return NULL;
+		}
+
+		return g_build_path (G_DIR_SEPARATOR_S,
+				     home,
+				     uri + 1,
+				     NULL);
+	}
+
+	/* Second try to find any environment variables and expand
+	 * them, like $HOME or ${FOO} 
+	 */
+	tokens = g_strsplit (uri, G_DIR_SEPARATOR_S, -1);
+
+	for (token = tokens; *token; token++) {
+		if (**token != '$') {
+			continue;
+		}
+
+		start = *token + 1;
+		
+		if (*start == '{') {
+			start++;
+			end = start + (strlen (start)) - 1;
+			*end='\0';
+		}
+		
+		env = g_getenv (start);
+		g_free (*token);
+
+		/* Don't do g_strdup (s?s1:s2) as that doesn't work
+		 * with certain gcc 2.96 versions.
+		 */
+		*token = env ? g_strdup (env) : g_strdup ("");
+	}
+
+	/* Third get the real path removing any "../" and other
+	 * symbolic links to other places, returning only the REAL
+	 * location. 
+	 */
+	if (tokens) {
+		expanded = g_strjoinv (G_DIR_SEPARATOR_S, tokens);
+		g_strfreev (tokens);
+	} else {
+		expanded = g_strdup (uri);
+	}
+
+	/* Only resolve relative paths if there is a directory
+	 * separator in the path, otherwise it is just a name.
+	 */
+	if (strchr (expanded, G_DIR_SEPARATOR)) {
+		GFile *file;
+		
+		file = g_file_new_for_commandline_arg (expanded);
+		final_path = g_file_get_path (file);
+		g_object_unref (file);
+		g_free (expanded);
+	} else {
+		final_path = expanded;
+	}
+
+	return final_path;
 }

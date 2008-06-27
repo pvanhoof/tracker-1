@@ -27,6 +27,7 @@
 #include <gio/gio.h>
 
 #include "tracker-module-config.h"
+#include "tracker-file-utils.h"
 #include "tracker-type-utils.h"
 
 #define GROUP_GENERAL  "General"
@@ -124,7 +125,8 @@ module_config_load_boolean (GKeyFile    *key_file,
 gchar *
 module_config_load_string (GKeyFile    *key_file,
 			   const gchar *group,
-			   const gchar *key)
+			   const gchar *key,
+			   gboolean     expand_string_as_path)
 {
 	GError *error = NULL;
 	gchar  *str;
@@ -144,16 +146,28 @@ module_config_load_string (GKeyFile    *key_file,
 		return NULL;
 	}
 
+	if (expand_string_as_path) {
+		gchar *real_path;
+
+		real_path = tracker_path_evaluate_name (str);
+		g_free (str);
+
+		return real_path;
+	}
+
 	return str;
 }
 
 GSList *
 module_config_load_string_list (GKeyFile    *key_file,
 				const gchar *group,
-				const gchar *key)
+				const gchar *key,
+				gboolean     expand_strings_as_paths)
 {
 	GError  *error = NULL;
+	GSList  *list;
 	gchar  **str;
+	gchar  **p;
 	gsize    size;
 
 	str = g_key_file_get_string_list (key_file, group, key, &size, &error);
@@ -171,7 +185,25 @@ module_config_load_string_list (GKeyFile    *key_file,
 		return NULL;
 	}
 
-	return tracker_string_list_to_gslist (str, size);
+	if (!expand_strings_as_paths) {
+		list = tracker_string_list_to_gslist (str, size);
+	} else {
+		list = NULL;
+		
+		for (p = str; *p; p++) {
+			gchar *real_path;
+			
+			real_path = tracker_path_evaluate_name (*p);
+			list = g_slist_prepend (list, real_path);
+			g_debug ("Got real path:'%s' for '%s'", real_path, *p);
+		}
+
+		list = g_slist_reverse (list);
+	}
+
+	g_strfreev (str);
+
+	return list;
 }
 
 static ModuleConfig *
@@ -203,7 +235,8 @@ module_config_load_file (const gchar *filename)
 	mc->description = 
 		module_config_load_string (key_file,
 					   GROUP_GENERAL,
-					   "Description");
+					   "Description", 
+					   FALSE);
 	mc->enabled = 
 		module_config_load_boolean (key_file,
 					    GROUP_GENERAL,
@@ -213,35 +246,42 @@ module_config_load_file (const gchar *filename)
 	mc->monitor_directories = 
 		module_config_load_string_list (key_file, 
 						GROUP_MONITORS, 
-						"Directories");
+						"Directories",
+						TRUE);
 	mc->monitor_recurse_directories = 
 		module_config_load_string_list (key_file, 
 						GROUP_MONITORS, 
-						"RecurseDirectories");
+						"RecurseDirectories",
+						TRUE);
 
 	/* Ignored */
 	mc->ignored_directories = 
 		module_config_load_string_list (key_file, 
 						GROUP_IGNORED, 
-						"Directories");
+						"Directories",
+						TRUE);
 	mc->ignored_files = 
 		module_config_load_string_list (key_file, 
 						GROUP_IGNORED, 
-						"Files");
+						"Files",
+						FALSE);
 
 	/* Index */
 	mc->service = 
 		module_config_load_string (key_file,
 					   GROUP_INDEX,
-					   "Service");
+					   "Service",
+					   FALSE);
 	mc->mime_types = 
 		module_config_load_string_list (key_file, 
 						GROUP_INDEX, 
-						"MimeTypes");
+						"MimeTypes",
+						FALSE);
 	mc->files = 
 		module_config_load_string_list (key_file, 
 						GROUP_INDEX, 
-						"Files");
+						"Files",
+						FALSE);
 			       
 	/* FIXME: Specific options */
 
@@ -292,7 +332,7 @@ module_config_load (void)
 
 		name = g_file_info_get_name (info);
 
-		if (!g_str_has_suffix (name, ".xml")) {
+		if (!g_str_has_suffix (name, ".module")) {
 			g_object_unref (info);
 			continue;
 		}

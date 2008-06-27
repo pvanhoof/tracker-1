@@ -39,5 +39,6 @@ gchar *  tracker_file_get_vfs_path           (const gchar *uri);
 gchar *  tracker_file_get_vfs_name           (const gchar *uri);
 void     tracker_path_remove                 (const gchar *uri);
 GSList * tracker_path_list_filter_duplicates (GSList      *roots);
+gchar *  tracker_path_evaluate_name          (const gchar *uri);
 
 #endif /* __LIBTRACKER_COMMON_FILE_UTILS_H__ */

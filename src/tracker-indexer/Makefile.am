@@ -8,7 +8,7 @@ INCLUDES =								\
 	-DG_LOG_DOMAIN=\"Tracker\"					\
 	-I$(top_srcdir)/src						\
 	$(DBUS_CFLAGS)							\
-	$(GMODULE_CFLAGS)						
+	$(GMODULE_CFLAGS)
 
 bin_PROGRAMS = tracker-indexer
 

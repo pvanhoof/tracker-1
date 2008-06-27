@@ -1,3 +1,11 @@
+2008-06-27  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer-db.c
+	(tracker_db_create_service): Allow modules to specify a custom dirname
+	and basename for the service.
+	* src/tracker-indexer/modules/evolution.c: And use it for local mail.
+	IMAP has yet to come.
+
 2008-06-27  Ivan Frade  <ivan.frade@nokia.com>
 
 	* test/libtracker-common/tracker-type-utils-test.c:

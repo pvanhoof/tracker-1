@@ -142,8 +142,17 @@ tracker_db_create_service (TrackerDBInterface *iface,
 	id_str = tracker_guint32_to_string (id);
 	service_type_id_str = tracker_int_to_string (tracker_service_get_id (service));
 
-	dirname = g_path_get_dirname (path);
-	basename = g_path_get_basename (path);
+	dirname = g_hash_table_lookup (metadata, "File:Path");
+	basename = g_hash_table_lookup (metadata, "File:Name");
+
+	if (dirname && basename) {
+		/* Keep a copy */
+		dirname = g_strdup (dirname);
+		basename = g_strdup (basename);
+	} else {
+		dirname = g_path_get_dirname (path);
+		basename = g_path_get_basename (path);
+	}
 
 	is_dir = g_file_test (path, G_FILE_TEST_IS_DIR);
 	is_symlink = g_file_test (path, G_FILE_TEST_IS_SYMLINK);

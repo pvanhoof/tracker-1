@@ -24,7 +24,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
+#include <stdlib.h>
 #include <tracker-indexer/tracker-module.h>
+#include <libtracker-common/tracker-utils.h>
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-type-utils.h>
 
@@ -74,6 +76,9 @@ enum SummaryDataType {
         SUMMARY_TYPE_TOKEN,
         SUMMARY_TYPE_TIME_T
 };
+
+static gchar *local_dir = NULL;
+static gchar *imap_dir = NULL;
 
 static gboolean
 read_summary (FILE *summary,
@@ -181,7 +186,7 @@ G_CONST_RETURN gchar *
 tracker_module_get_name (void)
 {
         /* Return module name here */
-        return "Evolution";
+        return "EvolutionEmails";
 }
 
 gchar **
@@ -191,9 +196,12 @@ tracker_module_get_directories (void)
 
         g_mime_init (0);
 
+        local_dir = g_build_filename (g_get_home_dir (), ".evolution", "mail", "local", G_DIR_SEPARATOR_S, NULL);
+        imap_dir = g_build_filename (g_get_home_dir (), ".evolution", "mail", "imap", G_DIR_SEPARATOR_S, NULL);
+
         dirs = g_new0 (gchar *, 3);
-        dirs[0] = g_build_filename (g_get_home_dir (), ".evolution", "mail", "local", NULL);
-        dirs[1] = g_build_filename (g_get_home_dir (), ".evolution", "mail", "imap", NULL);
+        dirs[0] = g_strdup (local_dir);
+        dirs[1] = g_strdup (imap_dir);
 
         return dirs;
 }
@@ -202,11 +210,9 @@ static MailStorageType
 get_mail_storage_type_from_path (const gchar *path)
 {
         MailStorageType type = MAIL_STORAGE_NONE;
-        gchar *basename, *local_dir, *imap_dir;
+        gchar *basename;
 
         basename = g_path_get_basename (path);
-        local_dir = g_build_filename (g_get_home_dir (), ".evolution", "mail", "local", NULL);
-        imap_dir = g_build_filename (g_get_home_dir (), ".evolution", "mail", "imap", NULL);
 
         if (g_str_has_prefix (path, local_dir) &&
             strchr (basename, '.') == NULL) {
@@ -225,8 +231,6 @@ get_mail_storage_type_from_path (const gchar *path)
                 type = MAIL_STORAGE_NONE;
         }
 
-        g_free (local_dir);
-        g_free (imap_dir);
         g_free (basename);
 
         return type;
@@ -378,12 +382,31 @@ tracker_module_file_free_data (gpointer file_data)
         g_slice_free (EvolutionFileData, data);
 }
 
+gint
+get_mbox_message_id (GMimeMessage *message)
+{
+        const gchar *header, *pos;
+        gchar *number;
+        gint id;
+
+        header = g_mime_message_get_header (message, "X-Evolution");
+        pos = strchr (header, '-');
+
+        number = g_strndup (header, pos - header);
+        id = strtoul (number, NULL, 16);
+
+        g_free (number);
+
+        return id;
+}
+
 GHashTable *
 get_metadata_for_mbox (TrackerFile *file)
 {
         EvolutionLocalData *data;
         GMimeMessage *message;
         GHashTable *metadata;
+        gchar *dir, *name;
         time_t date;
 
         data = file->data;
@@ -396,6 +419,12 @@ get_metadata_for_mbox (TrackerFile *file)
 	metadata = g_hash_table_new_full (g_str_hash, g_str_equal,
 					  NULL,
 					  (GDestroyNotify) g_free);
+
+        dir = tracker_string_replace (file->path, local_dir, NULL);
+        name = g_strdup_printf ("%s;uid=%d", dir, get_mbox_message_id (message));
+
+        g_hash_table_insert (metadata, METADATA_FILE_PATH, g_strdup ("email://local@local"));
+        g_hash_table_insert (metadata, METADATA_FILE_NAME, name);
 
         g_mime_message_get_date (message, &date, NULL);
 	g_hash_table_insert (metadata, METADATA_EMAIL_DATE,
@@ -415,6 +444,8 @@ get_metadata_for_mbox (TrackerFile *file)
          * Body
          * Attachments
          */
+
+        g_free (dir);
 
         return metadata;
 }

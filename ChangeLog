@@ -1,3 +1,7 @@
+2008-06-27  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* svn merge -r 1769:1798 ../xesam-support
+
 2008-06-27  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer-db.c

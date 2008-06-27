@@ -90,7 +90,7 @@ test_union_performance_xesam_union ()
 		"FROM 'email-meta'.Services S "
 		"INNER JOIN 'email-meta'.ServiceMetaData M0 ON (S.ID = M0.ServiceID and " 
 		"M0.MetaDataID in (82)) WHERE (S.ServiceTypeID in (select TypeId from " 
-		"ServiceTypes where TypeName = 'Files' or Parent = 'Files')) AND "
+		"ServiceTypes where TypeName = 'Email' or Parent = 'Email')) AND "
 		" (  (M0.MetaDataValue like '%%test%%')  ) ");
 
 	/* TODO:  Stop timer  */

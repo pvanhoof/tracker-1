@@ -117,10 +117,10 @@ main (int argc, char **argv)
 	tracker_db_manager_init (TRACKER_DB_MANAGER_FORCE_REINDEX, 
 							 &first_time);
 
-	g_test_add_func ("/libtracker-db/union-performance/xesam",
+	g_test_add_func ("/libtracker-db/union-performance/xesam/view",
 					 test_union_performance_xesam_view);
 
-	g_test_add_func ("/libtracker-db/union-performance/xesam",
+	g_test_add_func ("/libtracker-db/union-performance/xesam/union",
 					 test_union_performance_xesam_union);
 
 	result = g_test_run ();

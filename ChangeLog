@@ -1,5 +1,11 @@
 2008-06-27  Philip Van Hoof  <pvanhoof@gnome.org>
 
+	* tests/libtracker-db/union-performance.c: Added a performance test
+	for a UNION query structure vs. views that me and ottela want to 
+	start using for certain Xesam related queries
+
+2008-06-27  Philip Van Hoof  <pvanhoof@gnome.org>
+
 	* src/trackerd/tracker-xesam-query.c:
 	* src/trackerd/tracker-rdf-query.c:
 

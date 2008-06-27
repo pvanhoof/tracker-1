@@ -1,3 +1,11 @@
+2008-06-27  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-xesam-query.c:
+	* src/trackerd/tracker-rdf-query.c:
+
+	Incorrect queries (user input) should never crash the service
+	(critical assertions)
+
 2008-06-27  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-module-config.[ch]: Add API to get

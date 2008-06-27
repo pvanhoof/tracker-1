@@ -1099,7 +1099,7 @@ error_handler (GMarkupParseContext *context,
 	       GError		   *error,
 	       gpointer		   user_data)
 {
-	g_critical ("in rdf query parse: %s", error->message);
+	g_message ("in rdf query parse: %s", error->message);
 }
 
 

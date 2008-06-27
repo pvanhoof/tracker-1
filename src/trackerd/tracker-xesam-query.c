@@ -1372,7 +1372,7 @@ error_handler (GMarkupParseContext *context,
 	       GError		   *error,
 	       gpointer		   user_data)
 {
-	g_critical ("Failed to parse RDF query, %s", error->message);
+	g_message ("Failed to parse RDF query, %s", error->message);
 }
 
 void

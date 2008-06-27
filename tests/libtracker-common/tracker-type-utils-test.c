@@ -2,6 +2,7 @@
 #include <glib/gtestutils.h>
 
 #include <time.h>
+#include <string.h>
 
 #include <libtracker-common/tracker-type-utils.h>
 #include <tracker-test-helpers.h>
@@ -104,12 +105,8 @@ test_date_to_string ()
         input = mktime (original);
 
         result = tracker_date_to_string (input);
-        // Maybe this test fails in a different time zone!
-
-        // By pvanhoof: It does! In Belgium ;-)
-        // Please fix 
-
-        g_assert (tracker_test_helpers_cmpstr_equal (result, "2008-06-16T23:53:10+0300"));
+        g_print ("%s", result);
+        g_assert (result != NULL && strncmp (result, "2008-06-16T23:53:10", 19) == 0);
 }
 
 

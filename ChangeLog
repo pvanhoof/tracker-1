@@ -1,3 +1,9 @@
+2008-06-27  Ivan Frade  <ivan.frade@nokia.com>
+
+	* test/libtracker-common/tracker-type-utils-test.c:
+	(test_date_to_string): now it doesnt depend on the timezone of the 
+	tester.
+	
 2008-06-27  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* tests/libtracker-db/union-performance.c: Added a performance test

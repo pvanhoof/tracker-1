@@ -70,38 +70,36 @@ test_date_format ()
 static void
 test_string_to_date ()
 {
-        gchar *input = "2008-06-16T23:53:10+0300";
-        struct tm *original;
-        time_t     expected, result;
+	GDate     *expected;
+	GDate     *result;
+	time_t     result_time_t;
+        gchar     *input = "2008-06-16T11:10:10+0600";
 
-        original = g_new0 (struct tm, 1);
-        original->tm_sec = 10;
-        original->tm_min = 53;
-        original->tm_hour = 23;
-        original->tm_mday = 16;
-        original->tm_mon = 5;
-        original->tm_year = 108;
-        original->tm_isdst = 1;
-        
-        expected = mktime (original);
-        
-        result = tracker_string_to_date (input);
-        g_assert_cmpint (expected, ==, result);
+	expected = g_date_new_dmy (16, G_DATE_JUNE, 2008);
+	
+        result_time_t = tracker_string_to_date (input);
+
+	result = g_date_new ();
+	g_date_set_time_t (result, result_time_t);
+
+        g_assert_cmpint (g_date_get_year (expected), ==, g_date_get_year (result));
+        g_assert_cmpint (g_date_get_day (expected), ==, g_date_get_day (result));
+        g_assert_cmpint (g_date_get_month (expected), ==, g_date_get_month (result));
 
         if (g_test_trap_fork (0, G_TEST_TRAP_SILENCE_STDERR)) {
-                result = tracker_string_to_date (NULL);
+                result_time_t = tracker_string_to_date (NULL);
         }
         g_test_trap_assert_failed ();
 
-        result = tracker_string_to_date ("");
-        g_assert_cmpint (result, ==, -1);
+        result_time_t = tracker_string_to_date ("");
+        g_assert_cmpint (result_time_t, ==, -1);
 
-        result = tracker_string_to_date ("i am not a date");
-        g_assert_cmpint (result, ==, -1);
+        result_time_t = tracker_string_to_date ("i am not a date");
+        g_assert_cmpint (result_time_t, ==, -1);
         
         /* Fails! Check the code
-        result = tracker_string_to_date ("2008-06-32T04:23:10+0000");
-        g_assert_cmpint (result, ==, -1);
+        result_time_t = tracker_string_to_date ("2008-06-32T04:23:10+0000");
+        g_assert_cmpint (result_time_t, ==, -1);
         */
 }
 
@@ -124,7 +122,7 @@ test_date_to_string ()
         input = mktime (original);
 
         result = tracker_date_to_string (input);
-        g_print ("%s", result);
+
         g_assert (result != NULL && strncmp (result, "2008-06-16T23:53:10", 19) == 0);
 }
 

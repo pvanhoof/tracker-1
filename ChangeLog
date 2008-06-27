@@ -1,5 +1,11 @@
 2008-06-27  Ivan Frade  <ivan.frade@nokia.com>
 
+	* tests/libtracker-common/tracker-type-utils.c:
+	(string_to_date): Using GDate instead of time_t to compare the
+	result without timezone.
+	
+2008-06-27  Ivan Frade  <ivan.frade@nokia.com>
+
 	* tests/**: Added license in .c/.h files.
 	
 2008-06-27  Philip Van Hoof  <pvanhoof@gnome.org>

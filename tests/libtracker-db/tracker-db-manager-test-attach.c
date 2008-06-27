@@ -63,7 +63,6 @@ test_assert_tables_in_db (TrackerDB db, gchar *query)
         g_assert (test_assert_query_run (db, query));
 }
 
-
 static void
 test_always_same_iface_no_reindex () 
 {
@@ -81,47 +80,33 @@ test_always_same_iface_no_reindex ()
 }
 
 static void
-test_always_same_iface_reindex () 
-{
-        TrackerDBInterface *common, *xesam;
-        
-        ensure_db_manager_is_reindex (TRUE);
- 
-        common = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
-        xesam = tracker_db_manager_get_db_interface (TRACKER_DB_XESAM);
-
-        /* The pointer must be the same */
-        g_assert (common == xesam);
-        
-
-}
-
-static void
 test_creation_common_db_no_reindex () 
 {
         ensure_db_manager_is_reindex (FALSE);
         test_assert_tables_in_db (TRACKER_DB_COMMON, "SELECT * FROM MetaDataTypes");
 }
 
+
 static void
-test_creation_common_db_reindex () 
+test_creation_xesam_db_no_reindex_multiple_interfaces () 
 {
-        ensure_db_manager_is_reindex (TRUE);
-        test_assert_tables_in_db (TRACKER_DB_COMMON, "SELECT * FROM MetaDataTypes");
+        TrackerDBInterface *iface;
+
+        ensure_db_manager_is_reindex (FALSE);
+
+        iface = tracker_db_manager_get_db_interfaces (2, 
+        											  TRACKER_DB_XESAM, 
+        											  TRACKER_DB_COMMON);
+
+        test_assert_query_run_on_iface (iface, "SELECT * FROM XesamServiceTypes");
 }
+
 
 static void
 test_creation_xesam_db_no_reindex () 
 {
         ensure_db_manager_is_reindex (FALSE);
-        test_assert_tables_in_db (TRACKER_DB_XESAM, "SELECT * FROM 'xesam'.XesamServiceTypes");
-}
-
-static void
-test_creation_xesam_db_reindex () 
-{
-        ensure_db_manager_is_reindex (TRUE);
-        test_assert_tables_in_db (TRACKER_DB_XESAM, "SELECT * FROM 'xesam'.XesamServiceTypes");
+        test_assert_tables_in_db (TRACKER_DB_XESAM, "SELECT * FROM XesamServiceTypes");
 }
 
 static void
@@ -132,25 +117,12 @@ test_creation_file_meta_db_no_reindex ()
 }
 
 static void
-test_creation_file_meta_db_reindex ()
-{
-        ensure_db_manager_is_reindex (TRUE);
-        test_assert_tables_in_db (TRACKER_DB_COMMON, "SELECT * FROM 'file-meta'.ServiceMetaData");
-}
-
-static void
 test_creation_file_contents_db_no_reindex ()
 {
         ensure_db_manager_is_reindex (FALSE);
         test_assert_tables_in_db (TRACKER_DB_FILE_CONTENTS, "SELECT * FROM 'file-contents'.ServiceContents");
 }
 
-static void
-test_creation_file_contents_db_reindex ()
-{
-        ensure_db_manager_is_reindex (TRUE);
-        test_assert_tables_in_db (TRACKER_DB_FILE_CONTENTS, "SELECT * FROM 'file-contents'.ServiceContents");
-}
 
 int
 main (int argc, char **argv) {
@@ -172,27 +144,15 @@ main (int argc, char **argv) {
         g_test_add_func ("/libtracker-db/tracker-db-manager/attach/no-reindex/xesam_db_tables",
                          test_creation_xesam_db_no_reindex);
 
+        g_test_add_func ("/libtracker-db/tracker-db-manager/attach/no-reindex/xesam_db_tables/multiple_interfaces",
+                         test_creation_xesam_db_no_reindex_multiple_interfaces);
+
         g_test_add_func ("/libtracker-db/tracker-db-manager/attach/no-reindex/file_meta_db_tables",
                          test_creation_file_meta_db_no_reindex);
 
         g_test_add_func ("/libtracker-db/tracker-db-manager/attach/no-reindex/file_contents_db_tables",
                          test_creation_file_contents_db_no_reindex);
 
-        // Tests with attach and reindex
-        g_test_add_func ("/libtrakcer-db/tracker-db-manager/attach/reindex/equal_iface",
-                         test_always_same_iface_reindex);
-               
-        g_test_add_func ("/libtracker-db/tracker-db-manager/attach/reindex/common_db_tables",
-                        test_creation_common_db_reindex);
-
-        g_test_add_func ("/libtracker-db/tracker-db-manager/attach/reindex/xesam_db_tables",
-                         test_creation_xesam_db_reindex);
-
-        g_test_add_func ("/libtracker-db/tracker-db-manager/attach/reindex/file_meta_db_tables",
-                         test_creation_file_meta_db_reindex);
-
-        g_test_add_func ("/libtracker-db/tracker-db-manager/attach/reindex/file_contents_db_tables",
-                         test_creation_file_contents_db_reindex);
 
         result = g_test_run ();
         

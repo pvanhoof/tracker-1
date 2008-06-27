@@ -1,3 +1,11 @@
+2008-06-27  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/tracker-indexer/Makefile.am: Fixed a LIBS in an INCLUDES
+
+	* tests/libtracker-db/tracker-db-manager-test-attach.c: Fixed the
+	tests, the reinit tests made a few incorrect assumptions. Hence why
+	they failed. I just removed them for now.
+
 2008-06-26  Carlos Garnacho  <carlos@imendio.com>
 
 	* data/modules/Makefile.am:

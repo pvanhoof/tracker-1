@@ -283,7 +283,8 @@ indexer_get_running_cb (DBusGProxy *proxy,
 	if (g_strv_length (files) > 0) {
 		g_debug ("Files deleted queue processed, sending first %d to the indexer", 
 			 g_strv_length (files));
-		org_freedesktop_Tracker_Indexer_files_delete_async (proxy, 
+		org_freedesktop_Tracker_Indexer_files_delete_async (proxy,
+								    "files",
 								    (const gchar **) files,
 								    indexer_files_processed_cb,
 								    files);
@@ -296,7 +297,8 @@ indexer_get_running_cb (DBusGProxy *proxy,
 	if (g_strv_length (files) > 0) {
 		g_debug ("Files created queue processed, sending first %d to the indexer", 
 			 g_strv_length (files));
-		org_freedesktop_Tracker_Indexer_files_check_async (proxy, 
+		org_freedesktop_Tracker_Indexer_files_check_async (proxy,
+								   "files",
 								   (const gchar **) files,
 								   indexer_files_processed_cb,
 								   files);
@@ -310,7 +312,8 @@ indexer_get_running_cb (DBusGProxy *proxy,
 	if (g_strv_length (files) > 0) {
 		g_debug ("Files updated queue processed, sending first %d to the indexer", 
 			 g_strv_length (files));
-		org_freedesktop_Tracker_Indexer_files_update_async (proxy, 
+		org_freedesktop_Tracker_Indexer_files_update_async (proxy,
+								    "files",
 								    (const gchar **) files,
 								    indexer_files_processed_cb,
 								    files);

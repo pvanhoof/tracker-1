@@ -738,6 +738,7 @@ tracker_indexer_process_all (TrackerIndexer *indexer)
 
 gboolean
 tracker_indexer_files_check (TrackerIndexer  *indexer,
+			     const gchar     *module_name,
 			     GStrv            files,
 			     GError         **error)
 {
@@ -756,13 +757,12 @@ tracker_indexer_files_check (TrackerIndexer  *indexer,
                                   "DBus request to check %d files",
 				  g_strv_length (files));
 
-	/* Assume we're using always the files module, bail out if it's not available */
-	module = g_hash_table_lookup (priv->indexer_modules, "files");
+	module = g_hash_table_lookup (priv->indexer_modules, module_name);
 
 	if (!module) {
 		tracker_dbus_request_failed (request_id,
 					     error,
-					     "The files module is not loaded");
+					     "The module is not loaded");
 		return FALSE;
 	}
 
@@ -781,6 +781,7 @@ tracker_indexer_files_check (TrackerIndexer  *indexer,
 
 gboolean
 tracker_indexer_files_update (TrackerIndexer  *indexer,
+			      const gchar     *module_name,
 			      GStrv            files,
 			      GError         **error)
 {
@@ -799,13 +800,12 @@ tracker_indexer_files_update (TrackerIndexer  *indexer,
                                   "DBus request to update %d files",
 				  g_strv_length (files));
 
-	/* Assume we're using always the files module, bail out if it's not available */
-	module = g_hash_table_lookup (priv->indexer_modules, "files");
+	module = g_hash_table_lookup (priv->indexer_modules, module_name);
 
 	if (!module) {
 		tracker_dbus_request_failed (request_id,
 					     error,
-					     "The files module is not loaded");
+					     "The module is not loaded");
 		return FALSE;
 	}
 
@@ -824,6 +824,7 @@ tracker_indexer_files_update (TrackerIndexer  *indexer,
 
 gboolean
 tracker_indexer_files_delete (TrackerIndexer  *indexer,
+			      const gchar     *module_name,
 			      GStrv            files,
 			      GError         **error)
 {
@@ -842,13 +843,12 @@ tracker_indexer_files_delete (TrackerIndexer  *indexer,
                                   "DBus request to delete %d files",
 				  g_strv_length (files));
 
-	/* Assume we're using always the files module, bail out if it's not available */
-	module = g_hash_table_lookup (priv->indexer_modules, "files");
+	module = g_hash_table_lookup (priv->indexer_modules, module_name);
 
 	if (!module) {
 		tracker_dbus_request_failed (request_id,
 					     error,
-					     "The files module is not loaded");
+					     "The module is not loaded");
 		return FALSE;
 	}
 

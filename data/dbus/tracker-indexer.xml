@@ -18,12 +18,15 @@
     </method>
 
     <method name="FilesCheck">
+      <arg type="s" name="module" direction="in" />
       <arg type="as" name="files" direction="in" />
     </method>
     <method name="FilesUpdate">
+      <arg type="s" name="module" direction="in" />
       <arg type="as" name="files" direction="in" />
     </method>
     <method name="FilesDelete">
+      <arg type="s" name="module" direction="in" />
       <arg type="as" name="files" direction="in" />
     </method>
     

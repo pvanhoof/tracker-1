@@ -60,12 +60,15 @@ gboolean        tracker_indexer_get_running      (TrackerIndexer  *indexer,
 						  gboolean        *is_running,
 						  GError         **error);
 gboolean        tracker_indexer_files_check      (TrackerIndexer  *indexer,
+						  const gchar     *module,
 						  GStrv            files,
 						  GError         **error);
 gboolean        tracker_indexer_files_update     (TrackerIndexer  *indexer,
+						  const gchar     *module,
 						  GStrv            files,
 						  GError         **error);
 gboolean        tracker_indexer_files_delete     (TrackerIndexer  *indexer,
+						  const gchar     *module,
 						  GStrv            files,
 						  GError         **error);
 

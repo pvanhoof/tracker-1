@@ -1,5 +1,19 @@
 2008-06-30  Carlos Garnacho  <carlos@imendio.com>
 
+	Change tracker-indexer DBus methods, now they also take a string for
+	the module name to use when indexing a path.
+
+	* data/dbus/tracker-indexer.xml: Add new argument to functions.
+	* src/tracker-indexer/tracker-indexer.[ch]
+	(tracker_indexer_files_check) (tracker_indexer_files_update)
+	(tracker_indexer_files_delete): Lookup the passed module name instead
+	of just assuming the "files" module.
+	* /src/trackerd/tracker-crawler.c (indexer_get_running_cb):
+	* /src/trackerd/tracker-monitor.c (indexer_get_running_cb): Update
+	callers, at the moment it just assumes the "files" module.
+
+2008-06-30  Carlos Garnacho  <carlos@imendio.com>
+
 	Make tracker-indexer just process petitions through DBus by default,
 	add a --process-all parameter to allow standalone testing.
 

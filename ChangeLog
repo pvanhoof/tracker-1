@@ -1,3 +1,15 @@
+2008-06-30  Carlos Garnacho  <carlos@imendio.com>
+
+	Make tracker-indexer just process petitions through DBus by default,
+	add a --process-all parameter to allow standalone testing.
+
+	* src/tracker-indexer/tracker-indexer.c (tracker_indexer_process_all):
+	Added, queues all known modules in the modules list, so all data is 
+	processed.
+	* src/tracker-indexer/tracker-main.c: Add a --process-all commandline
+	argument, which triggers all modules processing without need of
+	DBus petitions.
+
 2008-06-30  Martyn Russell  <martyn@imendio.com>
 
 	* data/modules/applications.module: Changed the location to

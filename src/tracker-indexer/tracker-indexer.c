@@ -39,6 +39,9 @@
  * Once all queues are empty, all elements have been inspected, and the
  * indexer will emit the ::finished signal, this behavior can be observed
  * in the indexing_func() function.
+ *
+ * NOTE: Normally all indexing petitions will be sent over DBus, being
+ *       everything just pushed in the files queue.
  */
 
 #include <stdlib.h>
@@ -75,9 +78,9 @@ typedef struct MetadataForeachData MetadataForeachData;
 struct TrackerIndexerPrivate {
 	GQueue *dir_queue;
 	GQueue *file_process_queue;
+	GQueue *modules_queue;
 
 	GSList *module_names;
-	GSList *current_module;
 	GHashTable *indexer_modules;
 
 	gchar *db_dir;
@@ -209,6 +212,9 @@ tracker_indexer_finalize (GObject *object)
 	g_queue_foreach (priv->file_process_queue, (GFunc) path_info_free, NULL);
 	g_queue_free (priv->file_process_queue);
 
+	/* The queue doesn't own the module names */
+	g_queue_free (priv->modules_queue);
+
 	g_hash_table_destroy (priv->indexer_modules);
 
 	g_object_unref (priv->config);
@@ -311,6 +317,7 @@ tracker_indexer_init (TrackerIndexer *indexer)
 
 	priv->dir_queue = g_queue_new ();
 	priv->file_process_queue = g_queue_new ();
+	priv->modules_queue = g_queue_new ();
 	priv->config = tracker_config_new ();
 	priv->language = tracker_language_new (priv->config);
 
@@ -606,6 +613,7 @@ indexing_func (gpointer data)
 	TrackerIndexer *indexer;
 	TrackerIndexerPrivate *priv;
 	PathInfo *path;
+	gchar *module;
 
 	indexer = (TrackerIndexer *) data;
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
@@ -622,13 +630,9 @@ indexing_func (gpointer data)
 		path_info_free (path);
 	} else {
 		/* Dirs/files queues are empty, process the next module */
-		if (!priv->current_module) {
-			priv->current_module = priv->module_names;
-		} else {
-			priv->current_module = priv->current_module->next;
-		}
+		module = g_queue_pop_head (priv->modules_queue);
 
-		if (!priv->current_module) {
+		if (!module) {
 			/* Flush remaining items */
 			schedule_flush (indexer, TRUE);
 
@@ -643,7 +647,7 @@ indexing_func (gpointer data)
 			return FALSE;
 		}
 
-		process_module (indexer, priv->current_module->data);
+		process_module (indexer, module);
 
 		g_signal_emit (indexer, signals[INDEX_UPDATED], 0);
 	}
@@ -717,6 +721,19 @@ tracker_indexer_get_running (TrackerIndexer  *indexer,
 	tracker_dbus_request_success (request_id);
 
 	return TRUE;
+}
+
+void
+tracker_indexer_process_all (TrackerIndexer *indexer)
+{
+	TrackerIndexerPrivate *priv;
+	GSList *m;
+
+	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
+
+	for (m = priv->module_names; m; m = m->next) {
+		g_queue_push_tail (priv->modules_queue, m->data);
+	}
 }
 
 gboolean

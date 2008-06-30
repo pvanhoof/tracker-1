@@ -57,6 +57,7 @@
 static GMainLoop    *main_loop;
  
 static gint          verbosity = -1;
+static gboolean      process_all = FALSE;
 
 static GOptionEntry  entries[] = {
 	{ "verbosity", 'v', 0, 
@@ -64,6 +65,10 @@ static GOptionEntry  entries[] = {
 	  N_("Logging, 0 = errors only, "
 	     "1 = minimal, 2 = detailed and 3 = debug (default = 0)"), 
 	  NULL },
+        { "process-all", 'p', 0,
+          G_OPTION_ARG_NONE, &process_all,
+          N_("Whether to process data from all configured modules to be indexed"),
+          NULL },
 	{ NULL }
 };
 
@@ -254,6 +259,11 @@ main (gint argc, gchar *argv[])
 
 	g_signal_connect (indexer, "finished",
 			  G_CALLBACK (indexer_finished_cb), NULL);
+
+        if (process_all) {
+                /* Tell the indexer to process all configured modules */
+                tracker_indexer_process_all (indexer);
+        }
 
 	g_message ("Starting...");
 

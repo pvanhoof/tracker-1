@@ -40,6 +40,7 @@
 #include <libtracker-common/tracker-language.h>
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-hal.h>
+#include <libtracker-common/tracker-module-config.h>
 #include <libtracker-common/tracker-ontology.h>
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-nfs-lock.h>
@@ -638,7 +639,7 @@ start_cb (gpointer user_data)
 	}
 
 	/* Get files first */
-	tracker_process_start (user_data);
+	tracker_processor_start (user_data);
 	
 	proxy = tracker_dbus_indexer_get_proxy ();
 	tracker_xesam_subscribe_index_updated (proxy);
@@ -653,6 +654,7 @@ main (gint argc, gchar *argv[])
 	GOptionGroup          *group;
 	GError                *error = NULL;
 	TrackerDBManagerFlags  flags;
+	TrackerProcessor      *processor;
 
         g_type_init ();
         
@@ -794,14 +796,9 @@ main (gint argc, gchar *argv[])
 	tracker_db_manager_init (flags, &tracker->first_time_index);
 	tracker_db_init ();
 	tracker_xesam_manager_init ();
-	tracker_process_init ();
+        tracker_module_config_init ();
 
-	tracker->crawler = tracker_crawler_new (tracker->config);
-
-#ifdef HAVE_HAL
- 	tracker->hal = tracker_hal_new ();
-	tracker_crawler_set_hal (tracker->crawler, tracker->hal);
-#endif /* HAVE_HAL */
+	processor = tracker_processor_new (tracker->config);
 
 	umask (077);
 
@@ -838,7 +835,7 @@ main (gint argc, gchar *argv[])
 				   seconds);
 			g_timeout_add (seconds * 1000, 
 				       start_cb,
-				       tracker->crawler);
+				       processor);
 		} else {
 			g_idle_add (start_cb, tracker);
 		}
@@ -867,7 +864,6 @@ main (gint argc, gchar *argv[])
 
 	/* Shutdown major subsystems */
 	tracker_dbus_shutdown ();
-	tracker_process_shutdown ();
 	tracker_xesam_manager_shutdown ();
 	tracker_db_manager_shutdown (TRUE);
 	tracker_db_shutdown ();
@@ -875,13 +871,8 @@ main (gint argc, gchar *argv[])
 	tracker_nfs_lock_shutdown ();
 	tracker_log_shutdown ();
 
-#ifdef HAVE_HAL
-        if (tracker->hal) {
-                g_object_unref (tracker->hal);
-        }
-#endif
-	if (tracker->crawler) {
-		g_object_unref (tracker->crawler);
+	if (processor) {
+		g_object_unref (processor);
 	}
 
 	if (tracker->language) {
@@ -891,6 +882,8 @@ main (gint argc, gchar *argv[])
         if (tracker->config) {
                 g_object_unref (tracker->config);
         }
+
+        tracker_module_config_shutdown ();
 
 	shutdown_locations ();
 
@@ -903,7 +896,7 @@ tracker_shutdown (void)
 	tracker->is_running = FALSE;
 
 	/* Stop any tight loop operations */
-	tracker_process_stop ();
+/*	tracker_processor_stop ();*/
 
 	g_main_loop_quit (main_loop);
 }

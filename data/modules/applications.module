@@ -4,7 +4,7 @@ Enabled=true
 
 [Monitors]
 Directories=
-RecurseDirectories=/usr/share;
+RecurseDirectories=/usr/share/applications;
 
 [Ignored]
 Directories=

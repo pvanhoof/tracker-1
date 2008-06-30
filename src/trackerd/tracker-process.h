@@ -1,6 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /* 
- * Copyright (C) 2008, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2008, Nokia
  *
  * This library is free software; you can redistribute it and/or
@@ -19,19 +18,40 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKERD_PROCESS_H__
-#define __TRACKERD_PROCESS_H__
+#ifndef __TRACKERD_PROCESSOR_H__
+#define __TRACKERD_PROCESSOR_H__
 
-#include "tracker-crawler.h"
+#include <glib-object.h>
+
+#include <libtracker-common/tracker-config.h>
 
 G_BEGIN_DECLS
 
-void tracker_process_init     (void);
-void tracker_process_shutdown (void);
+#define TRACKER_TYPE_PROCESSOR         (tracker_processor_get_type())
+#define TRACKER_PROCESSOR(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_PROCESSOR, TrackerProcessor))
+#define TRACKER_PROCESSOR_CLASS(c)     (G_TYPE_CHECK_CLASS_CAST ((c),    TRACKER_TYPE_PROCESSOR, TrackerProcessorClass))
+#define TRACKER_IS_PROCESSOR(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), TRACKER_TYPE_PROCESSOR))
+#define TRACKER_IS_PROCESSOR_CLASS(c)  (G_TYPE_CHECK_CLASS_TYPE ((c),    TRACKER_TYPE_PROCESSOR))
+#define TRACKER_PROCESSOR_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o),  TRACKER_TYPE_PROCESSOR, TrackerProcessorClass))
 
-void tracker_process_start (TrackerCrawler *crawler);
-void tracker_process_stop (void);
+typedef struct TrackerProcessor      TrackerProcessor;
+typedef struct TrackerProcessorClass TrackerProcessorClass;
+
+struct TrackerProcessor {
+	GObject parent_instance;
+};
+
+struct TrackerProcessorClass {
+	GObjectClass parent_class;
+
+	void (*finished) (TrackerProcessor *processor);
+};
+
+GType             tracker_processor_get_type (void) G_GNUC_CONST;
+TrackerProcessor *tracker_processor_new      (TrackerConfig    *config);
+void              tracker_processor_start    (TrackerProcessor *processor);
+void              tracker_processor_stop     (TrackerProcessor *processor);
 
 G_END_DECLS
 
-#endif /* __TRACKERD_PROCESS_H__ */
+#endif /* __TRACKERD_PROCESSOR_H__ */

@@ -1,3 +1,19 @@
+2008-06-30  Martyn Russell  <martyn@imendio.com>
+
+	* data/modules/applications.module: Changed the location to
+	$prefix/share/applications for now, it was just $prefix/share,
+	there are too many files there and we need the appropriate ignore
+	patterns in place before we can really do this.
+	
+	* src/trackerd/tracker-main.[ch]: Removed the HAL and Crawler from
+	the Tracker struct. Now they are created and stored in the
+	TrackerProcessor object.
+	
+	* src/trackerd/tracker-process.[ch]: Added the initial workings
+	from the indexer code which Carlos wrote and copied over to the
+	daemon to start iterating all locations according to the module
+	config. 
+
 2008-06-27  Ivan Frade  <ivan.frade@nokia.com>
 
 	* tests/libtracker-common/tracker-type-utils.c:

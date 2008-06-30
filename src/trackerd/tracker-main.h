@@ -42,14 +42,9 @@
 G_BEGIN_DECLS
 
 typedef struct {
-#ifdef HAVE_HAL
-	TrackerHal       *hal;
-#endif
-
         TrackerConfig    *config;
         TrackerLanguage  *language;
 
-	TrackerCrawler   *crawler;
         TrackerIndexer   *file_index;
         TrackerIndexer   *file_update_index;
         TrackerIndexer   *email_index;

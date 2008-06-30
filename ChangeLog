@@ -1,5 +1,10 @@
 2008-06-30  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/libtracker-common/tracker-module-config.c (module_config_load):
+	Do not call g_file_info_get_name() twice.
+
+2008-06-30  Carlos Garnacho  <carlos@imendio.com>
+
 	Change tracker-indexer DBus methods, now they also take a string for
 	the module name to use when indexing a path.
 

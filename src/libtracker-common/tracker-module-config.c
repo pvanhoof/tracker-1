@@ -342,7 +342,7 @@ module_config_load (void)
 			continue;
 		}
 
-		child = g_file_get_child (file, g_file_info_get_name (info));
+		child = g_file_get_child (file, name);
 		filename = g_file_get_path (child);
 		mc = module_config_load_file (filename);
 

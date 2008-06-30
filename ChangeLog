@@ -1,3 +1,15 @@
+2008-06-30  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-db.c:
+	* src/trackerd/tracker-indexer.c:
+	* src/trackerd/tracker-main.c:
+	* src/trackerd/tracker-process.c:
+	* src/trackerd/tracker-process.h:
+	* src/trackerd/tracker-processor.c:
+	* src/trackerd/tracker-utils.c: Renamed tracker-process to
+	tracker-processor
+
 2008-06-30  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/libtracker-common/tracker-module-config.c (module_config_load):

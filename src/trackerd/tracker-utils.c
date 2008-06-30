@@ -28,7 +28,6 @@
 
 #include "tracker-utils.h"
 #include "tracker-main.h"
-#include "tracker-process.h"
 #include "tracker-xesam-manager.h"
 
 extern Tracker *tracker;

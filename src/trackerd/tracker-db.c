@@ -39,7 +39,6 @@
 #include <libtracker-db/tracker-db-manager.h>
 
 #include "tracker-db.h"
-#include "tracker-process.h"
 #include "tracker-query-tree.h"
 #include "tracker-monitor.h"
 #include "tracker-xesam-manager.h"

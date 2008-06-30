@@ -52,7 +52,7 @@
 #include "tracker-indexer.h"
 #include "tracker-indexer-client.h"
 #include "tracker-monitor.h"
-#include "tracker-process.h"
+#include "tracker-processor.h"
 #include "tracker-status.h"
 #include "tracker-xesam-manager.h"
 

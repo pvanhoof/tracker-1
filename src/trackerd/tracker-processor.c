@@ -28,7 +28,7 @@
 #include <libtracker-common/tracker-module-config.h>
 #include <libtracker-common/tracker-hal.h>
 
-#include "tracker-process.h"
+#include "tracker-processor.h"
 #include "tracker-crawler.h"
 #include "tracker-monitor.h"
 

@@ -1,3 +1,19 @@
+2008-07-01  Ivan Frade  <ivan.frade@nokia.com>
+
+	* tests/common/tracker-test-helpers.[ch]
+	* tests/libtracker-common/tracker-dbus-test.c:
+	(tracker_test_helpers_get_nonutf8) Moved to common helper
+	functions.
+	
+	* tests/libtracker-common/non-utf8.txt: Updated test string to
+	look like a file.
+	
+	* tests/libtracker-common/Makefile.am
+	* tests/libtracker-common/tracker-file-utils-test.c: Test for
+	(tracker_path_list_filter_duplicates) and 
+	(tracker_path_evaluate_name)
+	
+	
 2008-07-01  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-crawler.c: (crawler_finalize):

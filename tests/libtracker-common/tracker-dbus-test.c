@@ -20,21 +20,8 @@
 #include <glib.h>
 #include <glib/gtestutils.h>
 #include <libtracker-common/tracker-dbus.h>
+#include <tracker-test-helpers.h>
 
-gchar * nonutf8_str = NULL;
-
-static void
-load_nonutf8_string ()
-{
-        GMappedFile *file = NULL;
-
-        if (!nonutf8_str) {
-                file = g_mapped_file_new ("./non-utf8.txt", FALSE, NULL);
-                nonutf8_str = g_strdup (g_mapped_file_get_contents (file));
-                nonutf8_str [g_mapped_file_get_length (file) -1] = '\0';
-                g_mapped_file_free (file);
-        }
-}
 
 static void
 slist_to_strv (gboolean utf8) 
@@ -48,7 +35,7 @@ slist_to_strv (gboolean utf8)
                 if (utf8) {
                         input = g_slist_prepend (input, g_strdup_printf ("%d", i));
                 } else {
-                        input = g_slist_prepend (input, g_strdup (nonutf8_str));
+                        input = g_slist_prepend (input, g_strdup (tracker_test_helpers_get_nonutf8 ()));
                 }
         }
         g_assert_cmpint (g_slist_length (input), ==, strings);
@@ -89,7 +76,7 @@ async_queue_to_strv (gboolean utf8)
                 if (utf8) {
                         g_async_queue_push (queue, g_strdup_printf ("%d", i));
                 } else {
-                        g_async_queue_push (queue, g_strdup (nonutf8_str));
+                        g_async_queue_push (queue, g_strdup (tracker_test_helpers_get_nonutf8 ()));
                 }
         }
         g_assert_cmpint (g_async_queue_length (queue), ==, strings);
@@ -127,8 +114,6 @@ main (int argc, char **argv) {
         g_thread_init (NULL);
 	g_test_init (&argc, &argv, NULL);
 
-        load_nonutf8_string ();
-
         g_test_add_func ("/libtracker-common/tracker-dbus/slist_to_strv_ok", test_slist_to_strv);
         g_test_add_func ("/libtracker-common/tracker-dbus/slist_to_strv_nonutf8", test_slist_to_strv_nonutf8);
         g_test_add_func ("/libtracker-common/tracker-dbus/async_queue_to_strv_ok", test_async_queue_to_strv);
@@ -136,7 +121,7 @@ main (int argc, char **argv) {
 
         result = g_test_run ();
         
-        g_free (nonutf8_str);
+	tracker_test_helpers_free_nonutf8 ();
         
         return result;
 }

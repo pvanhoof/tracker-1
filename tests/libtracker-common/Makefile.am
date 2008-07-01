@@ -2,7 +2,7 @@ include $(top_srcdir)/Makefile.decl
 
 noinst_PROGRAMS = $(TEST_PROGS)
 
-TEST_PROGS += tracker-ontology tracker-dbus tracker-type-utils
+TEST_PROGS += tracker-ontology tracker-dbus tracker-type-utils tracker-file-utils
 
 INCLUDES = 				\
 	-g 				\
@@ -32,6 +32,7 @@ tracker_dbus_SOURCES = \
 
 tracker_dbus_LDADD =							\
 	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
+	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
 	$(DBUS_LIBS)							\
 	$(GMODULE_LIBS)							\
 	$(GTHREAD_LIBS)							\
@@ -43,6 +44,17 @@ tracker_type_utils_SOURCES = \
 tracker_type_utils_LDADD =						\
 	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
 	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
+	$(GMODULE_LIBS)							\
+	$(GTHREAD_LIBS)							\
+	$(GLIB2_LIBS)							
+
+tracker_file_utils_SOURCES = \
+	tracker-file-utils-test.c 
+
+tracker_file_utils_LDADD =						\
+	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
+	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
+	$(top_builddir)/src/xdgmime/libxdgmime.la 			\
 	$(GMODULE_LIBS)							\
 	$(GTHREAD_LIBS)							\
 	$(GLIB2_LIBS)							

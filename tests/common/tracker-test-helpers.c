@@ -40,3 +40,29 @@ tracker_test_helpers_cmpstr_equal (const gchar *obtained, const gchar *expected)
 		return FALSE;
 	}
 }
+
+static gchar *nonutf8_str = NULL;
+
+const gchar *  
+tracker_test_helpers_get_nonutf8 ()
+{
+        GMappedFile *file = NULL;
+
+        if (!nonutf8_str) {
+                file = g_mapped_file_new ("./non-utf8.txt", FALSE, NULL);
+                nonutf8_str = g_strdup (g_mapped_file_get_contents (file));
+                nonutf8_str [g_mapped_file_get_length (file) -1] = '\0';
+                g_mapped_file_free (file);
+        }
+
+	return nonutf8_str;
+}
+
+void
+tracker_test_helpers_free_nonutf8 ()
+{
+	if (nonutf8_str) {
+		g_free (nonutf8_str);
+		nonutf8_str = NULL;
+	}
+}

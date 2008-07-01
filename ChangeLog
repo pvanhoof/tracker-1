@@ -31,11 +31,11 @@
 
 	Makes the Xesam code always use get_db_interface_by_service
 
-	Makes some of the ﻿tracker_db_manager_get_db_interface users that
-	expected an attached connection use ﻿get_db_interface_by_service
+	Makes some of the tracker_db_manager_get_db_interface users that
+	expected an attached connection use get_db_interface_by_service
 	instead
 
-	Makes some of the ﻿﻿tracker_db_manager_get_db_interface users request
+	Makes some of the tracker_db_manager_get_db_interface users request
 	the right db file. Some of these requested FILE_META while the tables
 	that they influence or request from reside in common.
 

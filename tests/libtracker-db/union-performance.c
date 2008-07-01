@@ -33,12 +33,12 @@ test_union_performance_xesam_view ()
 	GError             *error = NULL;
 
 	iface = tracker_db_manager_get_db_interfaces (7, TRACKER_DB_COMMON,
-												  TRACKER_DB_XESAM,
-												  TRACKER_DB_FILE_METADATA,
-												  TRACKER_DB_FILE_CONTENTS,
-												  TRACKER_DB_EMAIL_CONTENTS,
-												  TRACKER_DB_EMAIL_METADATA,
-												  TRACKER_DB_CACHE);
+							  TRACKER_DB_XESAM,
+							  TRACKER_DB_FILE_METADATA,
+							  TRACKER_DB_FILE_CONTENTS,
+							  TRACKER_DB_EMAIL_CONTENTS,
+							  TRACKER_DB_EMAIL_METADATA,
+							  TRACKER_DB_CACHE);
 
 	g_assert (iface);
 
@@ -83,12 +83,12 @@ test_union_performance_xesam_union ()
 	GError             *error = NULL;
 
 	iface = tracker_db_manager_get_db_interfaces (7, TRACKER_DB_COMMON,
-												  TRACKER_DB_XESAM,
-												  TRACKER_DB_FILE_METADATA,
-												  TRACKER_DB_FILE_CONTENTS,
-												  TRACKER_DB_EMAIL_CONTENTS,
-												  TRACKER_DB_EMAIL_METADATA,
-												  TRACKER_DB_CACHE);
+							  TRACKER_DB_XESAM,
+							  TRACKER_DB_FILE_METADATA,
+							  TRACKER_DB_FILE_CONTENTS,
+							  TRACKER_DB_EMAIL_CONTENTS,
+							  TRACKER_DB_EMAIL_METADATA,
+							  TRACKER_DB_CACHE);
 
 	g_assert (iface);
 

@@ -476,6 +476,11 @@ tracker_path_list_filter_duplicates (GSList *roots)
 	GSList *checked_roots = NULL;
 	GSList *l1, *l2;
 
+	/* This function CREATES a new list and the data in the list
+	 * is new too! g_free() must be called on the list data and
+	 * g_slist_free() on the list too when done with. 
+	 */
+
 	/* ONLY HERE do we add separators on each location we check.
 	 * The reason for this is that these locations are user
 	 * entered in the configuration and we need to make sure we
@@ -511,6 +516,7 @@ tracker_path_list_filter_duplicates (GSList *roots)
 			if (g_str_has_prefix (l2->data, path)) {
 				checked_roots = g_slist_remove_link (checked_roots, l2);
 				g_free (l2->data);
+
 				l2 = checked_roots;
 				continue;
 			}

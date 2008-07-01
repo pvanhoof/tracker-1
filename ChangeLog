@@ -1,3 +1,32 @@
+2008-07-01  Martyn Russell  <martyn@imendio.com>
+
+	* data/modules/files.module: Added $HOME to the list of recursive
+	monitored directorys.
+
+	* src/libtracker-common/tracker-file-utils.c: Add comment to the
+	source so we know if memory is created or if a new list is the
+	only thing that is created from the
+	tracker_path_list_filter_duplicates() function.
+	
+	* src/libtracker-common/tracker-module-config.[ch]: Push all paths
+	returned from config into a hash table not a list, this way we can
+	have APIs to look up strings more quickly. Also added APIs to get
+	directory and file ignore patterns (these patterns are created by
+	the module config now).
+	
+	* src/trackerd/tracker-crawler.[ch]: Make the crawler crawl ALL
+	locations according to the module configuration details. The
+	ignore patterns for files and directories are now retrieved from
+	this config too. Also, stole the code from the indexer to handle
+	directory crawling breadth wise instead of depthwise. This means
+	all the top level files are monitored and indexed first since they
+	are usually the most important.
+	
+	* src/trackerd/tracker-processor.c: Added code to iterate all
+	modules and crawl each of them in turn. More work is needed here
+	to do other things like setting up monitors. This shouldn't be
+	done in the crawler on EVERY directory as it currently is.
+
 2008-06-30  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/Makefile.am:

@@ -43,30 +43,23 @@ struct TrackerProcessorPrivate {
 #endif  /* HAVE_HAL */
 	TrackerCrawler *crawler; 
 	
-	GQueue         *dir_queue;
-	GQueue         *file_queue;
 	GList          *modules; 
 	GList          *current_module; 
-
-	guint           idle_id;
 
 	GTimer         *timer;
 
 	gboolean        finished;
 };
 
-typedef struct {
-	gchar *module_name;
-	gchar *path;
-} ProcessInfo;
-
 enum {
 	FINISHED,
 	LAST_SIGNAL
 };
 
-static void tracker_processor_finalize (GObject     *object);
-static void info_free                  (ProcessInfo *info);
+static void tracker_processor_finalize (GObject          *object);
+static void process_next_module        (TrackerProcessor *processor);
+static void crawler_finished_cb        (TrackerCrawler   *crawler,
+					gpointer          user_data);
 
 static guint signals[LAST_SIGNAL] = { 0, };
 
@@ -98,9 +91,6 @@ tracker_processor_init (TrackerProcessor *processor)
 
 	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
 
-	priv->dir_queue = g_queue_new ();
-	priv->file_queue = g_queue_new ();
-
 	priv->modules = tracker_module_config_get_modules ();
 }
 
@@ -115,19 +105,11 @@ tracker_processor_finalize (GObject *object)
 		g_timer_destroy (priv->timer);
 	}
 
-	if (priv->idle_id) {
-		g_source_remove (priv->idle_id);
-		priv->idle_id = 0;
-	}
-
 	g_list_free (priv->modules);
 
-	g_queue_foreach (priv->file_queue, (GFunc) info_free, NULL);
-	g_queue_free (priv->file_queue);
-
-	g_queue_foreach (priv->dir_queue, (GFunc) info_free, NULL);
-	g_queue_free (priv->dir_queue);
-
+	g_signal_handlers_disconnect_by_func (priv->crawler,
+					      G_CALLBACK (crawler_finished_cb),
+					      object);
 	g_object_unref (priv->crawler);
 
 #ifdef HAVE_HAL
@@ -139,80 +121,11 @@ tracker_processor_finalize (GObject *object)
 	G_OBJECT_CLASS (tracker_processor_parent_class)->finalize (object);
 }
 
-static ProcessInfo *
-info_new (const gchar *module_name,
-	  const gchar *path)
-{
-	ProcessInfo *info;
-
-	info = g_slice_new (ProcessInfo);
-
-	info->module_name = g_strdup (module_name);
-	info->path = g_strdup (path);
-
-	return info;
-}
-
-static void
-info_free (ProcessInfo *info)
-{
-	g_free (info->module_name);
-	g_free (info->path);
-	g_slice_free (ProcessInfo, info);
-}
-
-static void
-add_file (TrackerProcessor *processor,
-	  ProcessInfo      *info)
-{
-	TrackerProcessorPrivate *priv;
-
-	g_return_if_fail (info != NULL);
-
-	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
-
-	g_queue_push_tail (priv->file_queue, info);
-}
-
-static void
-add_directory (TrackerProcessor *processor,
-	       ProcessInfo      *info)
-{
-	TrackerProcessorPrivate  *priv;
-	gboolean                  ignore = FALSE;
-	gchar                   **ignore_dirs = NULL;
-	gint                      i;
-
-	g_return_if_fail (info != NULL);
-
-	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
-
-	/* ignore_dirs = tracker_processor_module_get_ignore_directories (info->module_name); */
-
-	if (ignore_dirs) {
-		for (i = 0; ignore_dirs[i]; i++) {
-			if (strcmp (info->path, ignore_dirs[i]) == 0) {
-				ignore = TRUE;
-				break;
-			}
-		}
-	}
-
-	if (!ignore) {
-		g_queue_push_tail (priv->dir_queue, info);
-	} else {
-		g_message ("  Ignoring directory:'%s'", info->path);
-		info_free (info);
-	}
-
-	g_strfreev (ignore_dirs);
-}
-
 static void
 add_monitors (const gchar *name)
 {
-	GSList *monitors;
-	GSList *l;
+	GList *monitors;
+	GList *l;
 
 	monitors = tracker_module_config_get_monitor_directories (name);
 	
@@ -229,6 +142,8 @@ add_monitors (const gchar *name)
 		g_object_unref (file);
 	}
 
+	g_list_free (monitors);
+
 	if (!monitors) {
 		g_message ("  No specific monitors to set up");
 	}
@@ -237,8 +152,8 @@ add_monitors (const gchar *name)
 static void
 add_recurse_monitors (const gchar *name)
 {
-	GSList *monitors;
-	GSList *l;
+	GList *monitors;
+	GList *l;
 
 	monitors = tracker_module_config_get_monitor_recurse_directories (name);
 	
@@ -255,144 +170,165 @@ add_recurse_monitors (const gchar *name)
 		g_object_unref (file);
 	}
 
+	g_list_free (monitors);
+
 	if (!monitors) {
 		g_message ("  No recurse monitors to set up");
 	}
-}
-
-static gboolean
-process_file (TrackerProcessor *processor,
-	      ProcessInfo      *info)
-{
-	g_message ("  Processing file:'%s'", info->path);
-	return TRUE;
-}
-
-static void
-process_directory (TrackerProcessor *processor,
-		   ProcessInfo      *info,
-		   gboolean          recurse)
-{
-	GDir        *dir;
-	const gchar *name;
-
-	g_message ("  Processing directory:'%s'", info->path);
-
-	dir = g_dir_open (info->path, 0, NULL);
-
-	if (!dir) {
-		return;
-	}
-
-	while ((name = g_dir_read_name (dir)) != NULL) {
-		ProcessInfo *new_info;
-		gchar       *path;
-
-		path = g_build_filename (info->path, name, NULL);
-
-		new_info = info_new (info->module_name, path);
-		add_file (processor, new_info);
-
-		if (recurse && g_file_test (path, G_FILE_TEST_IS_DIR)) {
-			new_info = info_new (info->module_name, path);
-			add_directory (processor, new_info);
-		}
-
-		g_free (path);
-	}
-
-	g_dir_close (dir);
 }
 
 static void
 process_module (TrackerProcessor *processor,
 		const gchar      *module_name)
 {
-	TrackerProcessorPrivate  *priv;
-	GSList                   *dirs, *l;
+	TrackerProcessorPrivate *priv;
 
 	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
 
 	g_message ("Processing module:'%s'", module_name);
 
-	dirs = tracker_module_config_get_monitor_recurse_directories (module_name);
-	if (!dirs) {
-		g_message ("  No directories to iterate, doing nothing");
-		return;
-	}
+	/* Set up monitors */
 
-	for (l = dirs; l; l = l->next) {
-		ProcessInfo *info;
+	/* Set up recursive monitors */
 
-		info = info_new (module_name, l->data);
-		add_directory (processor, info);
+	/* Gets all files and directories */
+	if (!tracker_crawler_start (priv->crawler, module_name)) {
+		/* If there is nothing to crawl, we are done, process
+		 * the next module.
+		 */
+		process_next_module (processor);
 	}
 }
 
-static gboolean
-process_func (gpointer data)
+static void
+process_next_module (TrackerProcessor *processor)
 {
-	TrackerProcessor        *processor;
 	TrackerProcessorPrivate *priv;
-	ProcessInfo             *info;
 
-	processor = TRACKER_PROCESSOR (data);
 	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
 
-#if 0
-	/* Process monitors first */
-	for (l = modules; l; l = l->next) {
-		gchar *name;
-
-		name = l->data;
-		g_message ("Processoring module:'%s'", name);
-
-		add_monitors (name);
-		add_recurse_monitors (name);
-
-		/* FIXME: Finish, start crawling? */
-	}	
-#endif
-
-	/* Processor file */
-	info = g_queue_peek_head (priv->file_queue);
-
-	if (info) {
-		if (process_file (processor, info)) {
-			info = g_queue_pop_head (priv->file_queue);
-			info_free (info);
-		}
-
-		return TRUE;
-	}
-
-	/* Processor directory contents */
-	info = g_queue_pop_head (priv->dir_queue);
-	
-	if (info) {
-		process_directory (processor, info, TRUE);
-		info_free (info);
-		return TRUE;
-	}
-
-	/* Dirs/files queues are empty, processor the next module */
 	if (!priv->current_module) {
 		priv->current_module = priv->modules;
 	} else {
 		priv->current_module = priv->current_module->next;
 	}
-	
+
 	if (!priv->current_module) {
 		priv->finished = TRUE;
-
 		tracker_processor_stop (processor);
+		return;
+	}
 
+	process_module (processor, priv->current_module->data);
+}
+
+#if 0
+
+static void
+file_queue_handler_set_up (TrackerCrawler *crawler)
+{
+	if (crawler->priv->files_queue_handle_id != 0) {
+		return;
+	}
+
+	crawler->priv->files_queue_handle_id =
+		g_timeout_add (FILES_QUEUE_PROCESS_INTERVAL,
+			       file_queue_handler_cb,
+			       crawler);
+}
+
+static void
+indexer_check_files_cb (DBusGProxy *proxy,
+			GError     *error,
+			gpointer    user_data)
+{
+	GStrv files;
+
+	files = (GStrv) user_data;
+
+	if (error) {
+		g_critical ("Could not send files to indexer to check, %s",
+			    error->message);
+		g_error_free (error);
+	} else {
+		g_debug ("Sent!");
+	}
+}
+
+static void
+indexer_get_running_cb (DBusGProxy *proxy,
+			gboolean    running,
+			GError     *error,
+			gpointer    user_data)
+{
+	TrackerCrawler *crawler;
+	GStrv           files;
+
+	crawler = TRACKER_CRAWLER (user_data);
+
+	if (error || !running) {
+		g_message ("%s",
+			   error ? error->message : "Indexer exists but is not available yet, waiting...");
+
+		g_object_unref (crawler);
+		g_clear_error (&error);
+
+		return;
+	}
+
+	g_debug ("File check queue being processed...");
+	files = tracker_dbus_async_queue_to_strv (crawler->priv->files,
+						  FILES_QUEUE_PROCESS_MAX);
+
+	g_debug ("File check queue processed, sending first %d to the indexer",
+		 g_strv_length (files));
+
+	org_freedesktop_Tracker_Indexer_files_check_async (proxy,
+							   "files",
+							   (const gchar **) files,
+							   indexer_check_files_cb,
+							   files);
+
+	g_object_unref (crawler);
+}
+
+static gboolean
+file_queue_handler_cb (gpointer user_data)
+{
+	TrackerCrawler *crawler;
+	DBusGProxy     *proxy;
+	gint            length;
+
+	crawler = user_data;
+
+	length = g_async_queue_length (crawler->priv->files);
+	if (length < 1) {
+		g_debug ("File check queue is empty... nothing to do");
+		crawler->priv->files_queue_handle_id = 0;
 		return FALSE;
 	}
-	
-	process_module (processor, priv->current_module->data);
-	
+
+	/* Check we can actually talk to the indexer */
+	proxy = tracker_dbus_indexer_get_proxy ();
+
+	org_freedesktop_Tracker_Indexer_get_running_async (proxy,
+							   indexer_get_running_cb,
+							   g_object_ref (crawler));
+
 	return TRUE;
+}
+
+#endif
+
+static void
+crawler_finished_cb (TrackerCrawler *crawler,
+		     gpointer        user_data)
+{
+	TrackerProcessor *processor;
+	
+	processor = TRACKER_PROCESSOR (user_data);
+
+	process_next_module (processor);
 }
 
 TrackerProcessor *
@@ -415,6 +351,10 @@ tracker_processor_new (TrackerConfig *config)
 	tracker_crawler_set_hal (priv->crawler, priv->hal);
 #endif /* HAVE_HAL */
 
+	g_signal_connect (priv->crawler, "finished",
+			  G_CALLBACK (crawler_finished_cb),
+			  processor);
+
 	return processor;
 }
 
@@ -430,15 +370,15 @@ tracker_processor_start (TrackerProcessor *processor)
         g_message ("Starting to process %d modules...",
 		   g_list_length (priv->modules));
 
-	priv->finished = FALSE;
-
 	if (priv->timer) {
 		g_timer_destroy (priv->timer);
 	}
 
 	priv->timer = g_timer_new ();
 
-	priv->idle_id = g_idle_add (process_func, processor);
+	priv->finished = FALSE;
+
+	process_next_module (processor);
 }
 
 void
@@ -450,19 +390,13 @@ tracker_processor_stop (TrackerProcessor *processor)
 
 	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
 
-	if (priv->crawler) {
+	if (!priv->finished) {
 		tracker_crawler_stop (priv->crawler);
 	}
 
-	if (priv->idle_id) {
-		g_source_remove (priv->idle_id);
-		priv->idle_id = 0;
-	}
-	
-	/* No more modules to query, we're done */
 	g_timer_stop (priv->timer);
 	
-	g_message ("Processed %s %4.4f seconds",
+	g_message ("Process %s %4.4f seconds",
 		   priv->finished ? "finished in" : "stopped after",
 		   g_timer_elapsed (priv->timer, NULL));
 	

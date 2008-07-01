@@ -27,19 +27,21 @@ G_BEGIN_DECLS
 
 gboolean     tracker_module_config_init                            (void);
 void         tracker_module_config_shutdown                        (void);
-
 GList *      tracker_module_config_get_modules                     (void);
-
 const gchar *tracker_module_config_get_description                 (const gchar *name);
 gboolean     tracker_module_config_get_enabled                     (const gchar *name);
-GSList *     tracker_module_config_get_monitor_directories         (const gchar *name);
-GSList *     tracker_module_config_get_monitor_recurse_directories (const gchar *name);
-GSList *     tracker_module_config_get_ignored_directories         (const gchar *name);
-GSList *     tracker_module_config_get_ignored_files               (const gchar *name);
+GList *      tracker_module_config_get_monitor_directories         (const gchar *name);
+GList *      tracker_module_config_get_monitor_recurse_directories (const gchar *name);
+GList *      tracker_module_config_get_ignored_directories         (const gchar *name);
+GList *      tracker_module_config_get_ignored_files               (const gchar *name);
 const gchar *tracker_module_config_get_service                     (const gchar *name);
 const gchar *tracker_module_config_get_service                     (const gchar *name);
-GSList *     tracker_module_config_get_mime_types                  (const gchar *name);
-GSList *     tracker_module_config_get_files                       (const gchar *name);
+GList *      tracker_module_config_get_mime_types                  (const gchar *name);
+GList *      tracker_module_config_get_files                       (const gchar *name);
+
+/* Convenience functions */
+GList *      tracker_module_config_get_ignored_directory_patterns  (const gchar *name);
+GList *      tracker_module_config_get_ignored_file_patterns       (const gchar *name);
 
 G_END_DECLS
 

@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2008, Nokia
  *
  * This library is free software; you can redistribute it and/or
@@ -27,15 +27,16 @@
 #include <libtracker-common/tracker-dbus.h>
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-utils.h>
+#include <libtracker-common/tracker-module-config.h>
 
 #include "tracker-crawler.h"
 #include "tracker-dbus.h"
 #include "tracker-indexer-client.h"
 #include "tracker-monitor.h"
 
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_CRAWLER, TrackerCrawlerPriv))
+#define TRACKER_CRAWLER_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_CRAWLER, TrackerCrawlerPrivate))
 
-/*#define TESTING*/
+#define TESTING
 
 #define FILE_ATTRIBUTES				\
 	G_FILE_ATTRIBUTE_STANDARD_NAME ","	\
@@ -44,7 +45,7 @@
 #define FILES_QUEUE_PROCESS_INTERVAL 2000
 #define FILES_QUEUE_PROCESS_MAX      5000
 
-struct _TrackerCrawlerPriv {
+struct _TrackerCrawlerPrivate {
 	TrackerConfig  *config;
 #ifdef HAVE_HAL
 	TrackerHal     *hal;
@@ -52,30 +53,39 @@ struct _TrackerCrawlerPriv {
 
 	GTimer         *timer;
 
-	GAsyncQueue    *files;
+	GQueue         *directories;
+	GQueue         *files;
+
+	guint           idle_id;
 	guint           files_queue_handle_id;
 
-	GSList         *ignored_file_types;
+	/* Specific to each crawl ... */
+	GList          *ignored_directory_patterns;
+	GList          *ignored_file_patterns;
+	gchar          *current_module_name;
 
-	GHashTable     *ignored_names;
-	GHashTable     *temp_black_list;
-
-	gchar         **ignored_suffixes;
-	gchar         **ignored_prefixes;
-
+	/* Statistics */
 	guint           enumerations;
-	guint           files_found; 
-	guint           files_ignored; 
-	
+	guint           directories_found;
+	guint           directories_ignored;
+	guint           files_found;
+	guint           files_ignored;
+
 	gboolean        running;
+	gboolean        finished;
 };
 
 enum {
 	PROP_0,
 	PROP_CONFIG,
-#ifdef HAVE_HAL 
+#ifdef HAVE_HAL
 	PROP_HAL
 #endif
+};
+
+enum {
+	FINISHED,
+	LAST_SIGNAL
 };
 
 typedef struct {
@@ -88,7 +98,6 @@ static void crawler_set_property      (GObject         *object,
 				       guint            param_id,
 				       const GValue    *value,
 				       GParamSpec      *pspec);
-static void set_ignored_file_types    (TrackerCrawler  *crawler);
 
 #ifdef HAVE_HAL
 static void mount_point_added_cb      (TrackerHal      *hal,
@@ -103,7 +112,12 @@ static void file_enumerate_next       (GFileEnumerator *enumerator,
 				       EnumeratorData  *ed);
 static void file_enumerate_children   (TrackerCrawler  *crawler,
 				       GFile           *file);
+
+#if 0
 static void file_queue_handler_set_up (TrackerCrawler  *crawler);
+#endif
+
+static guint signals[LAST_SIGNAL] = { 0, };
 
 G_DEFINE_TYPE(TrackerCrawler, tracker_crawler, G_TYPE_OBJECT)
 
@@ -125,7 +139,7 @@ tracker_crawler_class_init (TrackerCrawlerClass *klass)
 							      tracker_config_get_type (),
 							      G_PARAM_WRITABLE));
 
-#ifdef HAVE_HAL 
+#ifdef HAVE_HAL
 	g_object_class_install_property (object_class,
 					 PROP_HAL,
 					 g_param_spec_object ("hal",
@@ -135,129 +149,59 @@ tracker_crawler_class_init (TrackerCrawlerClass *klass)
 							      G_PARAM_WRITABLE));
 #endif /* HAVE_HAL */
 
-	g_type_class_add_private (object_class, sizeof (TrackerCrawlerPriv));
+	signals[FINISHED] = 
+		g_signal_new ("finished",
+			      G_TYPE_FROM_CLASS (klass),
+			      G_SIGNAL_RUN_LAST,
+			      0,
+			      NULL, NULL,
+			      g_cclosure_marshal_VOID__VOID,
+			      G_TYPE_NONE, 
+			      0);
+
+	g_type_class_add_private (object_class, sizeof (TrackerCrawlerPrivate));
 }
 
 static void
 tracker_crawler_init (TrackerCrawler *object)
 {
-	TrackerCrawlerPriv *priv;
-	GPtrArray          *ptr_array;
+	TrackerCrawlerPrivate *priv;
 
-	object->priv = GET_PRIV (object);
+	object->private = TRACKER_CRAWLER_GET_PRIVATE (object);
 
-	priv = object->priv;
+	priv = object->private;
 
-	/* Create async queue for handling file pushes to the indexer */
-	priv->files = g_async_queue_new ();
-
-	/* Whole file names to ignore */
-	priv->ignored_names = g_hash_table_new (g_str_hash, g_str_equal);
-	g_hash_table_insert (priv->ignored_names, "po", NULL);
-	g_hash_table_insert (priv->ignored_names, "CVS", NULL);
-	g_hash_table_insert (priv->ignored_names, "Makefile", NULL);
-	g_hash_table_insert (priv->ignored_names, "SCCS", NULL);
-	g_hash_table_insert (priv->ignored_names, "ltmain.sh", NULL);
-	g_hash_table_insert (priv->ignored_names, "libtool", NULL);
-	g_hash_table_insert (priv->ignored_names, "config.status", NULL);
-	g_hash_table_insert (priv->ignored_names, "conftest", NULL);
-	g_hash_table_insert (priv->ignored_names, "confdefs.h", NULL);
-
-	/* Temporary black list */
-	priv->temp_black_list = g_hash_table_new_full (g_str_hash,
-						       g_str_equal,
-						       g_free, 
-						       NULL);
-
-	/* Suffixes to ignore */
-        ptr_array = g_ptr_array_new ();
-	g_ptr_array_add (ptr_array, g_strdup ("~"));
-	g_ptr_array_add (ptr_array, g_strdup (".o"));
-	g_ptr_array_add (ptr_array, g_strdup (".la"));
-	g_ptr_array_add (ptr_array, g_strdup (".lo"));
-	g_ptr_array_add (ptr_array, g_strdup (".loT"));
-	g_ptr_array_add (ptr_array, g_strdup (".in"));
-	g_ptr_array_add (ptr_array, g_strdup (".csproj"));
-	g_ptr_array_add (ptr_array, g_strdup (".m4"));
-	g_ptr_array_add (ptr_array, g_strdup (".rej"));
-	g_ptr_array_add (ptr_array, g_strdup (".gmo"));
-	g_ptr_array_add (ptr_array, g_strdup (".orig"));
-	g_ptr_array_add (ptr_array, g_strdup (".pc"));
-	g_ptr_array_add (ptr_array, g_strdup (".omf"));
-	g_ptr_array_add (ptr_array, g_strdup (".aux"));
-	g_ptr_array_add (ptr_array, g_strdup (".tmp"));
-	g_ptr_array_add (ptr_array, g_strdup (".po"));
-	g_ptr_array_add (ptr_array, g_strdup (".vmdk"));
-	g_ptr_array_add (ptr_array, g_strdup (".vmx"));
-	g_ptr_array_add (ptr_array, g_strdup (".vmxf"));
-	g_ptr_array_add (ptr_array, g_strdup (".vmsd"));
-	g_ptr_array_add (ptr_array, g_strdup (".nvram"));
-	g_ptr_array_add (ptr_array, g_strdup (".part"));
-        g_ptr_array_add (ptr_array, NULL);
-        priv->ignored_suffixes = (gchar **) g_ptr_array_free (ptr_array, FALSE);
-
-	/* Prefixes to ignore */
-        ptr_array = g_ptr_array_new ();
-	g_ptr_array_add (ptr_array, g_strdup ("autom4te"));
-	g_ptr_array_add (ptr_array, g_strdup ("conftest."));
-	g_ptr_array_add (ptr_array, g_strdup ("confstat"));
-	g_ptr_array_add (ptr_array, g_strdup ("config."));
-        g_ptr_array_add (ptr_array, NULL);
-        priv->ignored_prefixes = (gchar **) g_ptr_array_free (ptr_array, FALSE);
+	priv->directories = g_queue_new ();
+	priv->files = g_queue_new ();
 }
 
 static void
 crawler_finalize (GObject *object)
 {
-	TrackerCrawlerPriv *priv;
-	gchar              *str;
-	gint                i;
-	
-	priv = GET_PRIV (object);
+	TrackerCrawlerPrivate *priv;
 
-	for (i = 0; priv->ignored_prefixes[i] != NULL; i++) {
-		g_free (priv->ignored_prefixes[i]);
-	}
+	priv = TRACKER_CRAWLER_GET_PRIVATE (object);
 
-	g_free (priv->ignored_prefixes);
 
-	for (i = 0; priv->ignored_suffixes[i] != NULL; i++) {
-		g_free (priv->ignored_suffixes[i]);
-	}
-
-	g_free (priv->ignored_suffixes);
-
-	g_hash_table_unref (priv->temp_black_list); 
-	g_hash_table_unref (priv->ignored_names); 
-
-	g_slist_foreach (priv->ignored_file_types, 
-			 (GFunc) g_pattern_spec_free,
-			 NULL);
-	g_slist_free (priv->ignored_file_types);
+	tracker_crawler_stop (TRACKER_CRAWLER (object));
 
 	if (priv->files_queue_handle_id) {
-		g_source_remove (priv->files_queue_handle_id);	
+		g_source_remove (priv->files_queue_handle_id);
 		priv->files_queue_handle_id = 0;
 	}
 
-	for (str = g_async_queue_try_pop (priv->files);
-	     str;
-	     str = g_async_queue_try_pop (priv->files)) {
-		g_free (str);
-	}
+	g_queue_foreach (priv->files, (GFunc) g_free, NULL);
+	g_queue_free (priv->files);
 
-	g_async_queue_unref (priv->files);
+	g_queue_foreach (priv->directories, (GFunc) g_free, NULL);
+	g_queue_free (priv->directories);
 
-	if (priv->timer) {
-		g_timer_destroy (priv->timer);
-	}
-
-#ifdef HAVE_HAL 
+#ifdef HAVE_HAL
 	if (priv->hal) {
-		g_signal_handlers_disconnect_by_func (priv->hal, 
+		g_signal_handlers_disconnect_by_func (priv->hal,
 						      mount_point_added_cb,
 						      object);
-		g_signal_handlers_disconnect_by_func (priv->hal, 
+		g_signal_handlers_disconnect_by_func (priv->hal,
 						      mount_point_removed_cb,
 						      object);
 
@@ -278,9 +222,9 @@ crawler_set_property (GObject      *object,
 		      const GValue *value,
 		      GParamSpec   *pspec)
 {
-	TrackerCrawlerPriv *priv;
+	TrackerCrawlerPrivate *priv;
 
-	priv = GET_PRIV (object);
+	priv = TRACKER_CRAWLER_GET_PRIVATE (object);
 
 	switch (param_id) {
 	case PROP_CONFIG:
@@ -306,21 +250,21 @@ tracker_crawler_new (TrackerConfig *config)
 {
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 
-	return g_object_new (TRACKER_TYPE_CRAWLER, 
+	return g_object_new (TRACKER_TYPE_CRAWLER,
 			     "config", config,
-			     NULL); 
+			     NULL);
 }
 
 void
 tracker_crawler_set_config (TrackerCrawler *object,
 			    TrackerConfig  *config)
 {
-	TrackerCrawlerPriv *priv;
+	TrackerCrawlerPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CRAWLER (object));
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
-	priv = GET_PRIV (object);
+	priv = TRACKER_CRAWLER_GET_PRIVATE (object);
 
 	if (config) {
 		g_object_ref (config);
@@ -332,40 +276,37 @@ tracker_crawler_set_config (TrackerCrawler *object,
 
 	priv->config = config;
 
-	/* The ignored file types depend on the config */
-	set_ignored_file_types (object);
-
 	g_object_notify (G_OBJECT (object), "config");
 }
 
-#ifdef HAVE_HAL 
+#ifdef HAVE_HAL
 
 void
 tracker_crawler_set_hal (TrackerCrawler *object,
 			 TrackerHal     *hal)
 {
-	TrackerCrawlerPriv *priv;
+	TrackerCrawlerPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CRAWLER (object));
 	g_return_if_fail (TRACKER_IS_HAL (hal));
 
-	priv = GET_PRIV (object);
+	priv = TRACKER_CRAWLER_GET_PRIVATE (object);
 
 	if (hal) {
-		g_signal_connect (hal, "mount-point-added", 
+		g_signal_connect (hal, "mount-point-added",
 				  G_CALLBACK (mount_point_added_cb),
 				  object);
-		g_signal_connect (hal, "mount-point-removed", 
+		g_signal_connect (hal, "mount-point-removed",
 				  G_CALLBACK (mount_point_removed_cb),
 				  object);
 		g_object_ref (hal);
 	}
 
 	if (priv->hal) {
-		g_signal_handlers_disconnect_by_func (hal, 
+		g_signal_handlers_disconnect_by_func (hal,
 						      mount_point_added_cb,
 						      object);
-		g_signal_handlers_disconnect_by_func (hal, 
+		g_signal_handlers_disconnect_by_func (hal,
 						      mount_point_removed_cb,
 						      object);
 		g_object_unref (priv->hal);
@@ -381,36 +322,6 @@ tracker_crawler_set_hal (TrackerCrawler *object,
 /*
  * Functions
  */
-static void
-set_ignored_file_types (TrackerCrawler *crawler)
-{
-	TrackerCrawlerPriv *priv;
-	GPatternSpec       *spec;
-	GSList             *ignored_file_types;
-	GSList             *patterns = NULL;
-	GSList             *l;
-
-	priv = crawler->priv;
-
-	g_slist_foreach (priv->ignored_file_types, 
-			 (GFunc) g_pattern_spec_free,
-			 NULL);
-	g_slist_free (priv->ignored_file_types);
-
-	if (!priv->config) {
-		return;
-	}
-
-	/* File types as configured to ignore, using pattern matching */
-	ignored_file_types = tracker_config_get_no_index_file_types (priv->config);
-	
-	for (l = ignored_file_types; l; l = l->next) {
-		spec = g_pattern_spec_new (l->data);
-		patterns = g_slist_prepend (patterns, spec);
-	}
-        
-	priv->ignored_file_types = g_slist_reverse (patterns);
-}
 
 #ifdef HAVE_HAL
 
@@ -420,7 +331,7 @@ mount_point_added_cb (TrackerHal  *hal,
 		      gpointer     user_data)
 {
         g_message ("** TRAWLING THROUGH NEW MOUNT POINT:'%s'", mount_point);
-        
+
         /* list = g_slist_prepend (NULL, (gchar*) mount_point); */
         /* process_directory_list (list, TRUE, iface); */
         /* g_slist_free (list); */
@@ -432,7 +343,7 @@ mount_point_removed_cb (TrackerHal  *hal,
 			gpointer     user_data)
 {
         g_message ("** CLEANING UP OLD MOUNT POINT:'%s'", mount_point);
-        
+
         /* process_index_delete_directory_check (mount_point, iface);  */
 }
 
@@ -440,7 +351,7 @@ mount_point_removed_cb (TrackerHal  *hal,
 
 static void
 get_remote_roots (TrackerCrawler  *crawler,
-		  GSList         **mounted_directory_roots, 
+		  GSList         **mounted_directory_roots,
 		  GSList         **removable_device_roots)
 {
         GSList *l1 = NULL;
@@ -450,11 +361,11 @@ get_remote_roots (TrackerCrawler  *crawler,
 	 * so we make this process faster?
 	 */
 
-#ifdef HAVE_HAL        
-        l1 = tracker_hal_get_mounted_directory_roots (crawler->priv->hal);
-        l2 = tracker_hal_get_removable_device_roots (crawler->priv->hal);
+#ifdef HAVE_HAL
+        l1 = tracker_hal_get_mounted_directory_roots (crawler->private->hal);
+        l2 = tracker_hal_get_removable_device_roots (crawler->private->hal);
 #endif /* HAVE_HAL */
-        
+
         /* The options to index removable media and the index mounted
          * directories are both mutually exclusive even though
          * removable media is mounted on a directory.
@@ -465,12 +376,12 @@ get_remote_roots (TrackerCrawler  *crawler,
         if (l2) {
                 GSList *l;
                 GSList *list = NULL;
-                       
+
                 for (l = l1; l; l = l->next) {
                         if (g_slist_find_custom (l2, l->data, (GCompareFunc) strcmp)) {
                                 continue;
-                        } 
-                        
+                        }
+
                         list = g_slist_prepend (list, l->data);
                 }
 
@@ -495,14 +406,14 @@ path_should_be_ignored_for_media (TrackerCrawler *crawler,
         gboolean  ignore = FALSE;
 
         ignore_mounted_directories =
-		!tracker_config_get_index_mounted_directories (crawler->priv->config);
-        ignore_removable_devices = 
-		!tracker_config_get_index_removable_devices (crawler->priv->config);
+		!tracker_config_get_index_mounted_directories (crawler->private->config);
+        ignore_removable_devices =
+		!tracker_config_get_index_removable_devices (crawler->private->config);
 
         if (ignore_mounted_directories || ignore_removable_devices) {
-                get_remote_roots (crawler, 
-				  &mounted_directory_roots, 
-				  &removable_device_roots);        
+                get_remote_roots (crawler,
+				  &mounted_directory_roots,
+				  &removable_device_roots);
         }
 
         if (ignore_mounted_directories) {
@@ -523,7 +434,7 @@ path_should_be_ignored_for_media (TrackerCrawler *crawler,
 		}
 
 		/* FIXME: Should we add a DIR_SEPARATOR on the end of
-		 * these before comparing them? 
+		 * these before comparing them?
 		 */
 		if (g_str_has_prefix (path, l->data)) {
 			ignore = TRUE;
@@ -537,14 +448,19 @@ path_should_be_ignored_for_media (TrackerCrawler *crawler,
 
 static gboolean
 path_should_be_ignored (TrackerCrawler *crawler,
-			const gchar    *path)
+			const gchar    *path,
+			gboolean        is_directory)
 {
-	GSList    *l;
-	gchar     *basename;
-	gchar    **p;
-        gboolean   ignore;
+	GList    *l;
+	gchar    *basename;
+        gboolean  ignore;
 
 	if (tracker_is_empty_string (path)) {
+		return TRUE;
+	}
+
+	if (!g_utf8_validate (path, -1, NULL)) {
+		g_message ("Ignoring path:'%s', not valid UTF-8", path);
 		return TRUE;
 	}
 
@@ -554,17 +470,12 @@ path_should_be_ignored (TrackerCrawler *crawler,
 	    strcmp (path, "/lib") == 0 ||
 	    strcmp (path, "/proc") == 0 ||
 	    strcmp (path, "/sys") == 0 ||
-	    strcmp (path, "/tmp") == 0 || 
+	    strcmp (path, "/tmp") == 0 ||
 	    strcmp (path, "/var") == 0) {
 		return TRUE;
 	}
-	    
-	if (g_str_has_prefix (path, g_get_tmp_dir ())) {
-		return TRUE;
-	}
 	
-	if (!g_utf8_validate (path, -1, NULL)) {
-		g_message ("Ignoring path:'%s', not valid UTF-8", path);
+	if (g_str_has_prefix (path, g_get_tmp_dir ())) {
 		return TRUE;
 	}
 
@@ -575,34 +486,14 @@ path_should_be_ignored (TrackerCrawler *crawler,
 		goto done;
 	}
 
-	/* Test exact basenames */
-	if (g_hash_table_lookup (crawler->priv->ignored_names,
-				 basename)) {
-		goto done;
+	/* Test ignore types */
+	if (is_directory) {
+		l = crawler->private->ignored_directory_patterns;
+	} else {
+		l = crawler->private->ignored_file_patterns;
 	}
 	
-	/* Test temporary black list */
-	if (g_hash_table_lookup (crawler->priv->temp_black_list, 
-				 basename)) {
-		goto done;
-	}
-
-	/* Test suffixes */
-	for (p = crawler->priv->ignored_suffixes; *p; p++) {
-		if (g_str_has_suffix (basename, *p)) {
-                        goto done;
-		}
-	}
-
-	/* Test prefixes */
-	for (p = crawler->priv->ignored_prefixes; *p; p++) {
-		if (g_str_has_prefix (basename, *p)) {
-                        goto done;
-		}
-	}
-
-	/* Test ignore types */
-	for (l = crawler->priv->ignored_file_types; l; l = l->next) {
+	for (; l; l = l->next) {
 		if (g_pattern_match_string (l->data, basename)) {
 			goto done;
 		}
@@ -612,13 +503,138 @@ path_should_be_ignored (TrackerCrawler *crawler,
 	if (path_should_be_ignored_for_media (crawler, path)) {
 		goto done;
 	}
-	
+
         ignore = FALSE;
 
 done:
 	g_free (basename);
 
 	return ignore;
+}
+
+static void
+add_file (TrackerCrawler *crawler,
+	  GFile          *file)
+{
+	gchar *path;
+
+	g_return_if_fail (G_IS_FILE (file));
+
+	path = g_file_get_path (file);
+
+	if (path_should_be_ignored (crawler, path, FALSE)) {
+		crawler->private->files_ignored++;
+
+#ifdef TESTING
+		g_debug ("Ignored:'%s' (%d)",
+			 path,
+			 crawler->private->enumerations);
+#endif /* TESTING */
+	} else {
+		crawler->private->files_found++;
+
+#ifdef TESTING
+		g_debug ("Found  :'%s' (%d)",
+			 path,
+			 crawler->private->enumerations);
+#endif /* TESTING */
+
+		g_queue_push_tail (crawler->private->files, g_object_ref (file));
+	}
+}
+
+static void
+add_directory (TrackerCrawler *crawler,
+	       GFile          *file)
+{
+	gchar *path;
+
+	g_return_if_fail (G_IS_FILE (file));
+
+	path = g_file_get_path (file);
+
+	if (path_should_be_ignored (crawler, path, TRUE)) {
+		crawler->private->directories_ignored++;
+
+#ifdef TESTING
+		g_debug ("Ignored:'%s' (%d)",
+			 path,
+			 crawler->private->enumerations);
+#endif /* TESTING */
+	} else {
+		crawler->private->directories_found++;
+
+#ifdef TESTING
+		g_debug ("Found  :'%s' (%d)",
+			 path,
+			 crawler->private->enumerations);
+#endif /* TESTING */
+
+		g_queue_push_tail (crawler->private->directories, g_object_ref (file));
+	}
+}
+
+static gboolean
+process_file (TrackerCrawler *crawler,
+	      GFile          *file)
+{
+	/* I guess here we check the queue length and send files to
+	 * the indexer? 
+	 */ 
+	
+	return TRUE;
+}
+
+static void
+process_directory (TrackerCrawler *crawler,
+		   GFile          *file)
+{
+	file_enumerate_children (crawler, file);
+}
+
+static gboolean
+process_func (gpointer data)
+{
+	TrackerCrawler *crawler;
+	GFile          *file;
+
+	crawler = TRACKER_CRAWLER (data);
+
+	/* Crawler file */
+	file = g_queue_peek_head (crawler->private->files);
+
+	if (file) {
+		if (process_file (crawler, file)) {
+			file = g_queue_pop_head (crawler->private->files);
+			g_object_unref (file);
+		}
+
+		return TRUE;
+	}
+
+	/* Crawler directory contents */
+	file = g_queue_pop_head (crawler->private->directories);
+	
+	if (file) {
+		process_directory (crawler, file);
+		g_object_unref (file);
+
+		return TRUE;
+	}
+
+	/* If we still have some async operations in progress, wait
+	 * for them to finish, if not, we are truly done.
+	 */
+	if (crawler->private->enumerations > 0) {
+		return TRUE;
+	}
+
+	crawler->private->idle_id = 0;
+	crawler->private->finished = TRUE;
+
+	tracker_crawler_stop (crawler);
+	
+	return FALSE;
 }
 
 static EnumeratorData *
@@ -643,54 +659,6 @@ enumerator_data_free (EnumeratorData *ed)
 }
 
 static void
-file_enumerators_increment (TrackerCrawler *crawler)
-{
-	TrackerCrawlerPriv *priv;
-
-	priv = crawler->priv;
-
-	if (priv->enumerations == 0) {
-		g_message ("Starting to crawl file system...");
-
-		if (!priv->timer) {
-			priv->timer = g_timer_new ();
-		} else {
-			g_timer_reset (priv->timer);
-		}
-
-		priv->files_found = 0;
-		priv->files_ignored = 0;
-	}
-
-	priv->enumerations++;
-}
-
-static void
-file_enumerators_decrement (TrackerCrawler *crawler)
-{
-	TrackerCrawlerPriv *priv;
-
-	priv = crawler->priv;
-
-	priv->enumerations--;
-
-	if (priv->enumerations == 0) {
-		g_timer_stop (priv->timer);
-
-		g_message ("%s crawling files in %4.4f seconds, %d found, %d ignored, "
-			   "%d monitors, %d monitors ignored", 
-			   priv->running ? "Finished" : "Stopped",
-			   g_timer_elapsed (priv->timer, NULL),
-			   priv->files_found,
-			   priv->files_ignored,
-			   tracker_monitor_get_count (),
-			   tracker_monitor_get_ignored ());
-
-		priv->running = FALSE;
-	}
-}
-
-static void
 file_enumerator_close_cb (GObject      *enumerator,
 			  GAsyncResult *result,
 			  gpointer      user_data)
@@ -698,12 +666,12 @@ file_enumerator_close_cb (GObject      *enumerator,
 	TrackerCrawler *crawler;
 
 	crawler = TRACKER_CRAWLER (user_data);
-	file_enumerators_decrement (crawler);
+	crawler->private->enumerations--;
 
-	if (!g_file_enumerator_close_finish (G_FILE_ENUMERATOR (enumerator), 
-					     result, 
+	if (!g_file_enumerator_close_finish (G_FILE_ENUMERATOR (enumerator),
+					     result,
 					     NULL)) {
-		g_warning ("Couldn't close GFileEnumerator:%p", 
+		g_warning ("Couldn't close GFileEnumerator:%p",
 			   enumerator);
 	}
 }
@@ -719,8 +687,7 @@ file_enumerate_next_cb (GObject      *object,
 	GFile           *parent, *child;
 	GFileInfo       *info;
 	GList           *files;
-	gchar           *path;
-	
+
 	enumerator = G_FILE_ENUMERATOR (object);
 
 	ed = (EnumeratorData*) user_data;
@@ -731,16 +698,12 @@ file_enumerate_next_cb (GObject      *object,
 						     result,
 						     NULL);
 
-	if (!crawler->priv->running) {
-		return;
-	}
-
-	if (!files || !crawler->priv->running) {
+	if (!files || !crawler->private->running) {
 		/* No more files or we are stopping anyway, so clean
 		 * up and close all file enumerators.
 		 */
 		enumerator_data_free (ed);
-		g_file_enumerator_close_async (enumerator, 
+		g_file_enumerator_close_async (enumerator,
 					       G_PRIORITY_DEFAULT,
 					       NULL,
 					       file_enumerator_close_cb,
@@ -751,37 +714,14 @@ file_enumerate_next_cb (GObject      *object,
 	/* Files should only have 1 item in it */
 	info = files->data;
 	child = g_file_get_child (parent, g_file_info_get_name (info));
-	path = g_file_get_path (child);
-		
-	if (path_should_be_ignored (crawler, path)) {
-		crawler->priv->files_ignored++;
 
-#ifdef TESTING
-		g_debug ("Ignored:'%s' (%d)",  
-			 path, 
-			 crawler->priv->enumerations); 
-#endif /* TESTING */
-
-		g_free (path);
+	if (g_file_info_get_file_type (info) == G_FILE_TYPE_DIRECTORY) {
+		add_directory (crawler, child);
 	} else {
-		crawler->priv->files_found++;
+		add_file (crawler, child);
+	}
 
-#ifdef TESTING
-		g_debug ("Found  :'%s' (%d)", 
-			 path, 
-			 crawler->priv->enumerations);
-#endif /* TESTING */
-		
-		if (g_file_info_get_file_type (info) == G_FILE_TYPE_DIRECTORY) {
-			file_enumerate_children (crawler, child);
-			g_free (path);
-		} else {
-			g_async_queue_push (crawler->priv->files, path);
-			file_queue_handler_set_up (crawler);
-		}
-	}	
-
-	g_object_unref (child);
+	g_object_unref (child); 
 	g_list_free (files);
 
 	/* Get next file */
@@ -792,7 +732,7 @@ static void
 file_enumerate_next (GFileEnumerator *enumerator,
 		     EnumeratorData  *ed)
 {
-	g_file_enumerator_next_files_async (enumerator, 
+	g_file_enumerator_next_files_async (enumerator,
 					    1,
 					    G_PRIORITY_DEFAULT,
 					    NULL,
@@ -815,7 +755,7 @@ file_enumerate_children_cb (GObject      *file,
 	enumerator = g_file_enumerate_children_finish (parent, result, NULL);
 
 	if (!enumerator) {
-		file_enumerators_decrement (crawler);
+		crawler->private->enumerations--;
 		return;
 	}
 
@@ -830,178 +770,170 @@ static void
 file_enumerate_children (TrackerCrawler *crawler,
 			 GFile          *file)
 {
-	file_enumerators_increment (crawler);
+	crawler->private->enumerations++;
 
 	tracker_monitor_add (file);
 
-	g_file_enumerate_children_async (file, 
-					 FILE_ATTRIBUTES,					 
+	g_file_enumerate_children_async (file,
+					 FILE_ATTRIBUTES,
 					 G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
 					 G_PRIORITY_DEFAULT,
-					 NULL, 
+					 NULL,
 					 file_enumerate_children_cb,
 					 crawler);
 }
 
-static void
-indexer_check_files_cb (DBusGProxy *proxy, 
-			GError     *error, 
-			gpointer    user_data)
+gboolean
+tracker_crawler_start (TrackerCrawler *crawler,
+		       const gchar    *module_name)
 {
-	GStrv files;
-	
-	files = (GStrv) user_data;
+	TrackerCrawlerPrivate *priv;
+	GFile                 *file;
+	GSList                *paths = NULL;
+	GSList                *sl;
+	GList                 *directories;
+	GList                 *l;
+	gchar                 *path;
+	gboolean               exists;
 
-	if (error) {
-		g_critical ("Could not send files to indexer to check, %s", 
-			    error->message);
-		g_error_free (error);
-	} else {
-		g_debug ("Sent!");
-	}
-}
+	g_return_val_if_fail (TRACKER_IS_CRAWLER (crawler), FALSE);
+	g_return_val_if_fail (module_name != NULL, FALSE);
 
-static void
-indexer_get_running_cb (DBusGProxy *proxy, 
-			gboolean    running, 
-			GError     *error, 
-			gpointer    user_data)
-{
-	TrackerCrawler *crawler;
-	GStrv           files;
+	priv = crawler->private;
 
-	crawler = TRACKER_CRAWLER (user_data);
+	g_message ("Crawling directories for module:'%s'",
+		   module_name);
 
-	if (error || !running) {
-		g_message ("%s", 
-			   error ? error->message : "Indexer exists but is not available yet, waiting...");
-
-		g_object_unref (crawler);
-		g_clear_error (&error);
-
-		return;
-	}
-
-	g_debug ("File check queue being processed...");
-	files = tracker_dbus_async_queue_to_strv (crawler->priv->files,
-						  FILES_QUEUE_PROCESS_MAX);
-	
-	g_debug ("File check queue processed, sending first %d to the indexer", 
-		 g_strv_length (files));
-	
-	org_freedesktop_Tracker_Indexer_files_check_async (proxy,
-							   "files",
-							   (const gchar **) files,
-							   indexer_check_files_cb,
-							   files);
-
-	g_object_unref (crawler);
-}
-
-static gboolean
-file_queue_handler_cb (gpointer user_data)
-{
-	TrackerCrawler *crawler;
-	DBusGProxy     *proxy;
-	gint            length;
-
-	crawler = user_data;
-
-	length = g_async_queue_length (crawler->priv->files);
-	if (length < 1) {
-		g_debug ("File check queue is empty... nothing to do");
-		crawler->priv->files_queue_handle_id = 0;
+	directories = tracker_module_config_get_monitor_recurse_directories (module_name);
+	if (!directories) {
+		g_message ("  No directories to iterate, doing nothing");
 		return FALSE;
 	}
 
-	/* Check we can actually talk to the indexer */
-	proxy = tracker_dbus_indexer_get_proxy ();
-
-	org_freedesktop_Tracker_Indexer_get_running_async (proxy, 
-							   indexer_get_running_cb,
-							   g_object_ref (crawler));
-
-	return TRUE;
-}
-
-static void
-file_queue_handler_set_up (TrackerCrawler *crawler)
-{
-	if (crawler->priv->files_queue_handle_id != 0) {
-		return;
-	}
-
-	crawler->priv->files_queue_handle_id = 
-		g_timeout_add (FILES_QUEUE_PROCESS_INTERVAL, 
-			       file_queue_handler_cb,
-			       crawler);
-}
-
-void
-tracker_crawler_start (TrackerCrawler *crawler)
-{
-	TrackerCrawlerPriv *priv;
-	GFile              *file;
-	GSList             *config_roots;
-	GSList             *roots = NULL;
-	GSList             *l;
-	gboolean            exists;
-
-	g_return_if_fail (TRACKER_IS_CRAWLER (crawler));
-
-	priv = crawler->priv;
-
-	/* Get locations to index from config, if none are set, we use
-	 * $HOME as the default.
-	 */
-        config_roots = tracker_config_get_crawl_directory_roots (priv->config);
-	if (config_roots) {
-		/* Make sure none of the roots co-inside each other */
-		roots = tracker_path_list_filter_duplicates (config_roots);
-	}
-
-	if (!roots) {
-		const gchar *home;
-
-		home = g_get_home_dir ();
-		roots = g_slist_prepend (roots, g_strdup (home));
-
-		g_message ("No locations are configured to crawl, "
-			   "using default location (home directory)");
-	}
-
-	/* Set as running now */
-	priv->running = TRUE;
-
-	/* Start iterating roots */
-	for (l = roots; l; l = l->next) {
-		file = g_file_new_for_path (l->data);
+	for (l = directories; l; l = l->next) {
+		/* Check location exists before we do anything */
+		file = g_file_new_for_path (path);
 		exists = g_file_query_exists (file, NULL);
-		
-		if (exists) {
-			g_message ("Searching directory:'%s'",
-				   (gchar*) l->data);
-			file_enumerate_children (crawler, file);
-		} else {
-			g_message ("Searching directory:'%s' failed, does not exist", 
-				   (gchar*) l->data);
+
+		if (!exists) {
+			g_message ("  Directory:'%s' does not exist",
+				   path);
+			g_object_unref (file);
+			continue;
 		}
 
+		paths = g_slist_prepend (paths, g_strdup (l->data));
 		g_object_unref (file);
-		g_free (l->data);
 	}
 
-	g_slist_free (roots);
+	g_list_free (directories);
+
+	if (!paths) {
+		g_message ("  No directories that actually exist to iterate, doing nothing");
+		return FALSE;
+	}
+
+	paths = g_slist_reverse (paths);
+	sl = tracker_path_list_filter_duplicates (paths);
+	g_slist_foreach (paths, (GFunc) g_free, NULL);
+	g_slist_free (paths);
+	paths = sl;
+
+	/* Time the event */
+	if (priv->timer) {
+		g_timer_destroy (priv->timer);
+	}
+
+	priv->timer = g_timer_new ();
+
+	/* Set up all the important data to start this crawl */
+	if (priv->ignored_directory_patterns) {
+		g_list_free (priv->ignored_directory_patterns);
+	}
+
+	if (priv->ignored_file_patterns) {
+		g_list_free (priv->ignored_file_patterns);
+	}
+
+	priv->ignored_file_patterns = 
+		tracker_module_config_get_ignored_file_patterns (module_name);
+	priv->ignored_directory_patterns = 
+		tracker_module_config_get_ignored_directory_patterns (module_name);
+
+	priv->current_module_name = g_strdup (module_name);
+
+	/* Set idle handler to process directories and files found */
+	priv->idle_id = g_idle_add (process_func, crawler);
+		
+	/* Set as running now */
+	priv->running = TRUE;
+	priv->finished = FALSE;
+
+	/* Reset stats */
+	priv->directories_found = 0;
+	priv->directories_ignored = 0;
+	priv->files_found = 0;
+	priv->files_ignored = 0;
+
+	for (sl = paths; sl; sl = sl->next) {
+		file = g_file_new_for_path (sl->data);
+		g_message ("  Searching directory:'%s'", (gchar *) sl->data);
+
+		file_enumerate_children (crawler, file);
+		g_object_unref (file);
+		g_free (sl->data);
+	}
+
+	g_slist_free (paths);
+
+	return TRUE;
 }
 
 void
 tracker_crawler_stop (TrackerCrawler *crawler)
 {
-	TrackerCrawlerPriv *priv;
+	TrackerCrawlerPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CRAWLER (crawler));
 
-	priv = crawler->priv;
+	priv = crawler->private;
 
 	priv->running = FALSE;
+
+	if (priv->idle_id) {
+		g_source_remove (priv->idle_id);
+	}
+
+	g_free (priv->current_module_name);
+	priv->current_module_name = NULL;
+
+	if (priv->ignored_file_patterns) {
+		g_list_free (priv->ignored_file_patterns);
+		priv->ignored_file_patterns = NULL;
+	}
+
+	if (priv->ignored_directory_patterns) {
+		g_list_free (priv->ignored_directory_patterns);
+		priv->ignored_directory_patterns = NULL;
+	}
+
+	g_timer_stop (priv->timer);
+
+	g_message ("  %s crawling files in %4.4f seconds",
+		   priv->finished ? "Finished" : "Stopped",
+		   g_timer_elapsed (priv->timer, NULL));
+	g_message ("  Found %d directories, ignored %d directories",
+		   priv->directories_found,
+		   priv->directories_ignored);
+	g_message ("  Found %d files, ignored %d files",
+		   priv->files_found,
+		   priv->files_ignored);
+	g_message ("  Added %d monitors, ignored %d monitors",
+		   tracker_monitor_get_count (),
+		   tracker_monitor_get_ignored ());
+
+	g_timer_destroy (priv->timer);
+	priv->timer = NULL;
+
+	g_signal_emit (crawler, signals[FINISHED], 0);
 }

@@ -38,22 +38,25 @@
 
 typedef struct {
 	/* General */
-	gchar    *description;
-	gboolean  enabled;
-	
+	gchar      *description;
+	gboolean    enabled;
+
 	/* Monitors */
-	GSList   *monitor_directories;
-	GSList   *monitor_recurse_directories;
-	
+	GHashTable *monitor_directories;
+	GHashTable *monitor_recurse_directories;
+
 	/* Ignored */
-	GSList   *ignored_directories;
-	GSList   *ignored_files;
+	GHashTable *ignored_directories;
+	GHashTable *ignored_files;
+
+	GList      *ignored_directory_patterns;
+	GList      *ignored_file_patterns;
 
 	/* Index */
-	gchar    *service;
-	GSList   *mime_types;
-	GSList   *files;
-	
+	gchar      *service;
+	GHashTable *mime_types;
+	GHashTable *files;
+
 	/* Specific Options, FIXME: Finish */
 
 } ModuleConfig;
@@ -65,27 +68,27 @@ static GFileMonitor *monitor;
 static void
 module_config_free (ModuleConfig *mc)
 {
-	g_free (mc->description);
-	
-	g_slist_foreach (mc->monitor_directories, (GFunc) g_free, NULL);
-	g_slist_free (mc->monitor_directories);
-
-	g_slist_foreach (mc->monitor_recurse_directories, (GFunc) g_free, NULL);
-	g_slist_free (mc->monitor_recurse_directories);
-
-	g_slist_foreach (mc->ignored_directories, (GFunc) g_free, NULL);
-	g_slist_free (mc->ignored_directories);
-
- 	g_slist_foreach (mc->ignored_files, (GFunc) g_free, NULL);
-	g_slist_free (mc->ignored_files);
-
+	g_hash_table_unref (mc->files);
+	g_hash_table_unref (mc->mime_types);
 	g_free (mc->service);
 
-  	g_slist_foreach (mc->mime_types, (GFunc) g_free, NULL);
-	g_slist_free (mc->mime_types);
+	g_list_foreach (mc->ignored_file_patterns,
+			(GFunc) g_pattern_spec_free,
+			NULL);
+	g_list_free (mc->ignored_file_patterns);
 
-  	g_slist_foreach (mc->files, (GFunc) g_free, NULL);
-	g_slist_free (mc->files);
+	g_list_foreach (mc->ignored_directory_patterns,
+			(GFunc) g_pattern_spec_free,
+			 NULL);
+	g_list_free (mc->ignored_directory_patterns);
+
+ 	g_hash_table_unref (mc->ignored_files);
+ 	g_hash_table_unref (mc->ignored_directories);
+
+ 	g_hash_table_unref (mc->monitor_recurse_directories);
+ 	g_hash_table_unref (mc->monitor_directories);
+
+	g_free (mc->description);
 
 	g_slice_free (ModuleConfig, mc);
 }
@@ -96,7 +99,61 @@ module_config_get_directory (void)
 	return g_build_path (G_DIR_SEPARATOR_S, SHAREDIR, "tracker", "modules", NULL);
 }
 
-gboolean
+static void
+module_config_set_ignored_file_patterns (ModuleConfig *mc)
+{
+	GPatternSpec *spec;
+	GList        *ignored_files;
+	GList        *l;
+	GList        *patterns = NULL;
+
+	g_list_foreach (mc->ignored_file_patterns,
+			(GFunc) g_pattern_spec_free,
+			NULL);
+	g_list_free (mc->ignored_file_patterns);
+
+	ignored_files = g_hash_table_get_keys (mc->ignored_files);
+
+	for (l = ignored_files; l; l = l->next) {
+		g_message ("  Adding file ignore pattern:'%s'", 
+			   (gchar *) l->data);
+		spec = g_pattern_spec_new (l->data);
+		patterns = g_list_prepend (patterns, spec);
+	}
+
+	g_list_free (ignored_files);
+
+	mc->ignored_file_patterns = g_list_reverse (patterns);
+}
+
+static void
+module_config_set_ignored_directory_patterns (ModuleConfig *mc)
+{
+	GPatternSpec *spec;
+	GList        *ignored_directories;
+	GList        *l;
+	GList        *patterns = NULL;
+
+	g_list_foreach (mc->ignored_directory_patterns,
+			(GFunc) g_pattern_spec_free,
+			NULL);
+	g_list_free (mc->ignored_directory_patterns);
+
+	ignored_directories = g_hash_table_get_keys (mc->ignored_directories);
+
+	for (l = ignored_directories; l; l = l->next) {
+		g_message ("  Adding directory ignore pattern:'%s'", 
+			   (gchar *) l->data);
+		spec = g_pattern_spec_new (l->data);
+		patterns = g_list_prepend (patterns, spec);
+	}
+
+	g_list_free (ignored_directories);
+
+	mc->ignored_directory_patterns = g_list_reverse (patterns);
+}
+
+static gboolean
 module_config_load_boolean (GKeyFile    *key_file,
 			    const gchar *group,
 			    const gchar *key)
@@ -108,11 +165,11 @@ module_config_load_boolean (GKeyFile    *key_file,
 
 	if (error) {
 		g_message ("Couldn't load module config boolean in "
-			   "group:'%s' with key:'%s', %s", 
+			   "group:'%s' with key:'%s', %s",
 			   group,
-			   key, 
+			   key,
 			   error->message);
-		
+
 		g_error_free (error);
 		g_key_file_free (key_file);
 
@@ -122,7 +179,7 @@ module_config_load_boolean (GKeyFile    *key_file,
 	return boolean;
 }
 
-gchar *
+static gchar *
 module_config_load_string (GKeyFile    *key_file,
 			   const gchar *group,
 			   const gchar *key,
@@ -135,11 +192,11 @@ module_config_load_string (GKeyFile    *key_file,
 
 	if (error) {
 		g_message ("Couldn't load module config string in "
-			   "group:'%s' with key:'%s', %s", 
+			   "group:'%s' with key:'%s', %s",
 			   group,
-			   key, 
+			   key,
 			   error->message);
-		
+
 		g_error_free (error);
 		g_key_file_free (key_file);
 
@@ -158,52 +215,71 @@ module_config_load_string (GKeyFile    *key_file,
 	return str;
 }
 
-GSList *
+static GHashTable *
 module_config_load_string_list (GKeyFile    *key_file,
 				const gchar *group,
 				const gchar *key,
 				gboolean     expand_strings_as_paths)
 {
-	GError  *error = NULL;
-	GSList  *list;
-	gchar  **str;
-	gchar  **p;
-	gsize    size;
+	GError      *error = NULL;
+	GHashTable  *table;
+	gchar      **str;
+	gchar      **p;
+	gsize        size;
+
+	table = g_hash_table_new_full (g_str_hash,
+				       g_str_equal,
+				       g_free,
+				       NULL);
 
 	str = g_key_file_get_string_list (key_file, group, key, &size, &error);
 
 	if (error) {
 		g_message ("Couldn't load module config string list in "
-			   "group:'%s' with key:'%s', %s", 
+			   "group:'%s' with key:'%s', %s",
 			   group,
-			   key, 
+			   key,
 			   error->message);
-		
+
 		g_error_free (error);
 		g_key_file_free (key_file);
 
-		return NULL;
+		return table;
 	}
 
-	if (!expand_strings_as_paths) {
-		list = tracker_string_list_to_gslist (str, size);
-	} else {
-		list = NULL;
+	for (p = str; *p; p++) {
+		gchar *real_path;
 		
-		for (p = str; *p; p++) {
-			gchar *real_path;
-			
+		if (!expand_strings_as_paths) {
+			if (g_hash_table_lookup (table, *p)) {
+				continue;
+			}
+
+			g_hash_table_insert (table, 
+					     g_strdup (*p), 
+					     GINT_TO_POINTER (1));
+		} else {
+			if (g_hash_table_lookup (table, *p)) {
+				continue;
+			}
+
 			real_path = tracker_path_evaluate_name (*p);
-			list = g_slist_prepend (list, real_path);
+			if (g_hash_table_lookup (table, real_path)) {
+				g_free (real_path);
+				continue;
+			}
+
+			g_hash_table_insert (table, 
+					     real_path,
+					     GINT_TO_POINTER (1));
 			g_debug ("Got real path:'%s' for '%s'", real_path, *p);
 		}
 
-		list = g_slist_reverse (list);
 	}
 
 	g_strfreev (str);
 
-	return list;
+	return table;
 }
 
 static ModuleConfig *
@@ -214,79 +290,82 @@ module_config_load_file (const gchar *filename)
 	ModuleConfig *mc;
 
 	key_file = g_key_file_new ();
-	
+
 	/* Load options */
 	g_key_file_load_from_file (key_file, filename, G_KEY_FILE_NONE, &error);
 
 	if (error) {
-		g_message ("Couldn't load module config for '%s', %s", 
-			   filename, 
+		g_message ("Couldn't load module config for '%s', %s",
+			   filename,
 			   error->message);
-		
+
 		g_error_free (error);
 		g_key_file_free (key_file);
 
 		return NULL;
 	}
 
+	g_message ("Loading module config:'%s'", filename);
+
 	mc = g_slice_new0 (ModuleConfig);
 
 	/* General */
-	mc->description = 
+	mc->description =
 		module_config_load_string (key_file,
 					   GROUP_GENERAL,
-					   "Description", 
+					   "Description",
 					   FALSE);
-	mc->enabled = 
+	mc->enabled =
 		module_config_load_boolean (key_file,
 					    GROUP_GENERAL,
 					    "Enabled");
 
 	/* Monitors */
-	mc->monitor_directories = 
-		module_config_load_string_list (key_file, 
-						GROUP_MONITORS, 
+	mc->monitor_directories =
+		module_config_load_string_list (key_file,
+						GROUP_MONITORS,
 						"Directories",
 						TRUE);
-	mc->monitor_recurse_directories = 
-		module_config_load_string_list (key_file, 
-						GROUP_MONITORS, 
+	mc->monitor_recurse_directories =
+		module_config_load_string_list (key_file,
+						GROUP_MONITORS,
 						"RecurseDirectories",
 						TRUE);
 
 	/* Ignored */
-	mc->ignored_directories = 
-		module_config_load_string_list (key_file, 
-						GROUP_IGNORED, 
+	mc->ignored_directories =
+		module_config_load_string_list (key_file,
+						GROUP_IGNORED,
 						"Directories",
 						TRUE);
-	mc->ignored_files = 
-		module_config_load_string_list (key_file, 
-						GROUP_IGNORED, 
+	mc->ignored_files =
+		module_config_load_string_list (key_file,
+						GROUP_IGNORED,
 						"Files",
 						FALSE);
 
 	/* Index */
-	mc->service = 
+	mc->service =
 		module_config_load_string (key_file,
 					   GROUP_INDEX,
 					   "Service",
 					   FALSE);
-	mc->mime_types = 
-		module_config_load_string_list (key_file, 
-						GROUP_INDEX, 
+	mc->mime_types =
+		module_config_load_string_list (key_file,
+						GROUP_INDEX,
 						"MimeTypes",
 						FALSE);
-	mc->files = 
-		module_config_load_string_list (key_file, 
-						GROUP_INDEX, 
+	mc->files =
+		module_config_load_string_list (key_file,
+						GROUP_INDEX,
 						"Files",
 						FALSE);
-			       
+
 	/* FIXME: Specific options */
 
-	g_message ("Loaded module config:'%s'", filename); 
-	
+	module_config_set_ignored_file_patterns (mc);
+	module_config_set_ignored_directory_patterns (mc);
+
 	return mc;
 }
 
@@ -310,7 +389,7 @@ module_config_load (void)
 						G_FILE_ATTRIBUTE_STANDARD_NAME ","
 						G_FILE_ATTRIBUTE_STANDARD_TYPE,
 						G_PRIORITY_DEFAULT,
-						NULL, 
+						NULL,
 						&error);
 
 	if (error) {
@@ -328,7 +407,7 @@ module_config_load (void)
 	extension = ".module";
 	extension_len = g_utf8_strlen (extension, -1);
 
-	/* We should probably do this async */ 
+	/* We should probably do this async */
 	for (info = g_file_enumerator_next_file (enumerator, NULL, &error);
 	     info && !error;
 	     info = g_file_enumerator_next_file (enumerator, NULL, &error)) {
@@ -368,7 +447,7 @@ module_config_load (void)
 	}
 
 	g_message ("Loaded module config, %d found",
-		   g_hash_table_size (modules)); 
+		   g_hash_table_size (modules));
 
 	g_object_unref (enumerator);
 	g_object_unref (file);
@@ -382,7 +461,7 @@ module_config_changed_cb (GFileMonitor     *monitor,
 			  GFile            *file,
 			  GFile            *other_file,
 			  GFileMonitorEvent event_type,
-			  gpointer          user_data)  
+			  gpointer          user_data)
 {
 	gchar *filename;
 
@@ -392,8 +471,8 @@ module_config_changed_cb (GFileMonitor     *monitor,
 	case G_FILE_MONITOR_EVENT_CHANGED:
 	case G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT:
 		filename = g_file_get_path (file);
-		g_message ("Config file changed:'%s', reloading settings...", 
-			   filename); 
+		g_message ("Config file changed:'%s', reloading settings...",
+			   filename);
 		g_free (filename);
 
 		module_config_load ();
@@ -434,17 +513,17 @@ tracker_module_config_init (void)
 	}
 
 	/* Add file monitoring for changes */
-	g_message ("Setting up monitor for changes to modules directory:'%s'", 
+	g_message ("Setting up monitor for changes to modules directory:'%s'",
 		   path);
-	
+
 	file = g_file_new_for_path (path);
 	monitor = g_file_monitor_directory (file,
 					    G_FILE_MONITOR_NONE,
 					    NULL,
 					    NULL);
-	
+
 	g_signal_connect (monitor, "changed",
-			  G_CALLBACK (module_config_changed_cb), 
+			  G_CALLBACK (module_config_changed_cb),
 			  NULL);
 
 	g_object_unref (file);
@@ -454,17 +533,17 @@ tracker_module_config_init (void)
 	return TRUE;
 }
 
-void 
+void
 tracker_module_config_shutdown (void)
 {
 	if (!initiated) {
 		return;
 	}
-		
+
 	g_signal_handlers_disconnect_by_func (monitor,
 					      module_config_changed_cb,
 					      NULL);
-	
+
 	g_object_unref (monitor);
 
 	g_hash_table_unref (modules);
@@ -495,7 +574,7 @@ gboolean
 tracker_module_config_get_enabled (const gchar *name)
 {
 	ModuleConfig *mc;
-	
+
 	g_return_val_if_fail (name != NULL, FALSE);
 
 	mc = g_hash_table_lookup (modules, name);
@@ -504,56 +583,56 @@ tracker_module_config_get_enabled (const gchar *name)
 	return mc->enabled;
 }
 
-GSList *
+GList *
 tracker_module_config_get_monitor_directories (const gchar *name)
 {
 	ModuleConfig *mc;
-	
+
 	g_return_val_if_fail (name != NULL, FALSE);
 
 	mc = g_hash_table_lookup (modules, name);
 	g_return_val_if_fail (mc, NULL);
 
-	return mc->monitor_directories;
+	return g_hash_table_get_keys (mc->monitor_directories);
 }
 
-GSList *
+GList *
 tracker_module_config_get_monitor_recurse_directories (const gchar *name)
 {
 	ModuleConfig *mc;
-	
+
 	g_return_val_if_fail (name != NULL, FALSE);
 
 	mc = g_hash_table_lookup (modules, name);
 	g_return_val_if_fail (mc, NULL);
 
-	return mc->monitor_recurse_directories;
+	return g_hash_table_get_keys (mc->monitor_recurse_directories);
 }
 
-GSList *
+GList *
 tracker_module_config_get_ignored_directories (const gchar *name)
 {
 	ModuleConfig *mc;
-	
+
 	g_return_val_if_fail (name != NULL, FALSE);
 
 	mc = g_hash_table_lookup (modules, name);
 	g_return_val_if_fail (mc, NULL);
 
-	return mc->ignored_directories;
+	return g_hash_table_get_keys (mc->ignored_directories);
 }
 
-GSList *
+GList *
 tracker_module_config_get_ignored_files (const gchar *name)
 {
 	ModuleConfig *mc;
-	
+
 	g_return_val_if_fail (name != NULL, FALSE);
 
 	mc = g_hash_table_lookup (modules, name);
 	g_return_val_if_fail (mc, NULL);
 
-	return mc->ignored_files;
+	return g_hash_table_get_keys (mc->ignored_files);
 }
 
 const gchar *
@@ -569,28 +648,58 @@ tracker_module_config_get_service (const gchar *name)
 	return mc->service;
 }
 
-GSList *
+GList *
 tracker_module_config_get_mime_types (const gchar *name)
 {
 	ModuleConfig *mc;
-	
+
 	g_return_val_if_fail (name != NULL, FALSE);
 
 	mc = g_hash_table_lookup (modules, name);
 	g_return_val_if_fail (mc, NULL);
 
-	return mc->mime_types;
+	return g_hash_table_get_keys (mc->mime_types);
 }
 
-GSList *
+GList *
 tracker_module_config_get_files (const gchar *name)
 {
 	ModuleConfig *mc;
-	
+
 	g_return_val_if_fail (name != NULL, FALSE);
 
 	mc = g_hash_table_lookup (modules, name);
 	g_return_val_if_fail (mc, NULL);
 
-	return mc->files;
+	return g_hash_table_get_keys (mc->files);
+}
+
+/*
+ * Convenience functions
+ */
+
+GList *
+tracker_module_config_get_ignored_file_patterns (const gchar *name)
+{
+	ModuleConfig *mc;
+
+	g_return_val_if_fail (name != NULL, NULL);
+
+	mc = g_hash_table_lookup (modules, name);
+	g_return_val_if_fail (mc, NULL);
+
+	return g_list_copy (mc->ignored_file_patterns);
+}
+
+GList *
+tracker_module_config_get_ignored_directory_patterns (const gchar *name)
+{
+	ModuleConfig *mc;
+
+	g_return_val_if_fail (name != NULL, NULL);
+
+	mc = g_hash_table_lookup (modules, name);
+	g_return_val_if_fail (mc, NULL);
+
+	return g_list_copy (mc->ignored_directory_patterns);
 }

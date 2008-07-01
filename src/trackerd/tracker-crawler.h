@@ -38,17 +38,17 @@ G_BEGIN_DECLS
 #define TRACKER_IS_CRAWLER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), TRACKER_TYPE_CRAWLER))
 #define TRACKER_CRAWLER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), TRACKER_TYPE_CRAWLER, TrackerCrawlerClass))
 
-typedef struct _TrackerCrawler      TrackerCrawler;
-typedef struct _TrackerCrawlerClass TrackerCrawlerClass;
-typedef struct _TrackerCrawlerPriv  TrackerCrawlerPriv;
+typedef struct _TrackerCrawler         TrackerCrawler;
+typedef struct _TrackerCrawlerClass    TrackerCrawlerClass;
+typedef struct _TrackerCrawlerPrivate  TrackerCrawlerPrivate;
 
 struct _TrackerCrawler {
-	GObject             parent;
-	TrackerCrawlerPriv *priv;
+	GObject                parent;
+	TrackerCrawlerPrivate *private;
 };
 
 struct _TrackerCrawlerClass {
-	GObjectClass        parent;
+	GObjectClass           parent;
 };
 
 GType           tracker_crawler_get_type     (void);
@@ -61,7 +61,8 @@ void            tracker_crawler_set_hal      (TrackerCrawler *object,
 					      TrackerHal     *hal);
 #endif /* HAVE_HAL */
 
-void            tracker_crawler_start        (TrackerCrawler *crawler);
+gboolean        tracker_crawler_start        (TrackerCrawler *crawler,
+					      const gchar    *module_name);
 void            tracker_crawler_stop         (TrackerCrawler *crawler);
 
 G_END_DECLS

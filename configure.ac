@@ -83,6 +83,13 @@ PKG_CHECK_MODULES(LIBPNG, [ libpng >= 1.2 ])
 AC_SUBST(LIBPNG_CFLAGS)
 AC_SUBST(LIBPNG_LIBS)
 
+# Check for GConf
+PKG_CHECK_MODULES(GCONF, [ gconf-2.0 >= 2.2.0 ], have_gconf=yes, have_gconf=no)
+AC_SUBST(GCONF_CFLAGS)
+AC_SUBST(GCONF_LIBS)
+
+AM_CONDITIONAL(HAVE_GCONF, test "$have_gconf" = "yes")
+
 # Check we have the DBUS binding tool we need
 AC_PATH_PROG(DBUSBINDINGTOOL, dbus-binding-tool)
 if test -z $DBUSBINDINGTOOL; then

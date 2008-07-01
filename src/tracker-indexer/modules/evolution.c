@@ -25,6 +25,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <stdlib.h>
+#include <gconf/gconf-client.h>
 #include <tracker-indexer/tracker-module.h>
 #include <libtracker-common/tracker-utils.h>
 #include <libtracker-common/tracker-file-utils.h>
@@ -40,6 +41,7 @@
 typedef union EvolutionFileData EvolutionFileData;
 typedef struct EvolutionLocalData EvolutionLocalData;
 typedef struct EvolutionImapData EvolutionImapData;
+typedef struct EvolutionAccountContext EvolutionAccountContext;
 typedef enum MailStorageType MailStorageType;
 
 enum MailStorageType {
@@ -77,8 +79,14 @@ enum SummaryDataType {
         SUMMARY_TYPE_TIME_T
 };
 
+struct EvolutionAccountContext {
+        gchar *account;
+        gchar *uid;
+};
+
 static gchar *local_dir = NULL;
 static gchar *imap_dir = NULL;
+static GHashTable *accounts = NULL;
 
 static gboolean
 read_summary (FILE *summary,
@@ -189,12 +197,143 @@ tracker_module_get_name (void)
         return "EvolutionEmails";
 }
 
+static void
+account_start_element_handler (GMarkupParseContext *context,
+			       const gchar         *element_name,
+			       const gchar         **attr_names,
+			       const gchar         **attr_values,
+			       gpointer	           user_data,
+			       GError              **error)
+{
+        EvolutionAccountContext *account_context;
+        gint i = 0;
+
+        if (strcmp (element_name, "account") != 0) {
+                return;
+        }
+
+        account_context = (EvolutionAccountContext *) user_data;
+
+        while (attr_names[i]) {
+                if (strcmp (attr_names[i], "uid") == 0) {
+                        account_context->uid = g_strdup (attr_values[i]);
+                        return;
+                }
+
+                i++;
+        }
+}
+
+static gchar *
+get_account_name_from_imap_uri (const gchar *imap_uri)
+{
+	/* Assume url schema is:
+         * imap://foo@imap.free.fr/;etc
+         * or
+         * imap://foo;auth=DIGEST-MD5@imap.bar.com/;etc
+         *
+         * We try to get "foo@imap.free.fr".
+         */
+
+        /* check for embedded @ and then look for first colon after that */
+
+        const gchar *start = imap_uri + 7;
+        const gchar *at = strchr (start, '@');
+        const gchar *semic = strchr (start, ';');
+
+        gchar *user_name = NULL;
+        gchar *at_host_name = NULL;
+        gchar *account_name = NULL;
+
+        if ( strlen (imap_uri) < 7 || at == NULL ) {
+                return NULL;
+        }
+
+        if (semic < at) {
+                /* we have a ";auth=FOO@host" schema
+                   Set semic to the next semicolon, which ends the hostname. */
+                user_name = g_strndup (start, semic - start);
+                /* look for ';' at the end of the domain name */
+                semic = strchr (at, ';');
+        } else {
+                user_name = g_strndup (start, at - start);
+        }
+
+        at_host_name = g_strndup (at, (semic - 1) - at);
+
+        account_name = g_strconcat (user_name, at_host_name, NULL);
+
+        g_free (user_name);
+        g_free (at_host_name);
+
+        return account_name;
+}
+
+static void
+account_text_handler (GMarkupParseContext  *context,
+                      const gchar          *text,
+                      gsize                 text_len,
+                      gpointer              user_data,
+                      GError              **error)
+{
+        EvolutionAccountContext *account_context;
+        const gchar *element;
+        gchar *url;
+
+        element = g_markup_parse_context_get_element (context);
+
+        if (strcmp (element, "url") != 0) {
+                return;
+        }
+
+        account_context = (EvolutionAccountContext *) user_data;
+
+        url = g_strndup (text, text_len);
+        account_context->account = get_account_name_from_imap_uri (url);
+        g_free (url);
+}
+
+void
+get_imap_accounts (void)
+{
+        GConfClient *client;
+        GMarkupParser parser = { 0 };
+        GMarkupParseContext *parse_context;
+        GSList *list, *l;
+        EvolutionAccountContext account_context = { 0 };
+
+        client = gconf_client_get_default ();
+
+        list = gconf_client_get_list (client,
+                                      "/apps/evolution/mail/accounts",
+                                      GCONF_VALUE_STRING,
+                                      NULL);
+
+        parser.start_element = account_start_element_handler;
+        parser.text = account_text_handler;
+        parse_context = g_markup_parse_context_new (&parser, 0, &account_context, NULL);
+
+        accounts = g_hash_table_new (g_str_hash, g_str_equal);
+
+        for (l = list; l; l = l->next) {
+                g_markup_parse_context_parse (parse_context, (const gchar *) l->data, -1, NULL);
+
+                g_hash_table_insert (accounts,
+                                     account_context.account,
+                                     account_context.uid);
+        }
+
+        g_slist_foreach (list, (GFunc) g_free, NULL);
+        g_slist_free (list);
+}
+
 gchar **
 tracker_module_get_directories (void)
 {
         gchar **dirs;
 
         g_mime_init (0);
+        get_imap_accounts ();
 
         local_dir = g_build_filename (g_get_home_dir (), ".evolution", "mail", "local", G_DIR_SEPARATOR_S, NULL);
         imap_dir = g_build_filename (g_get_home_dir (), ".evolution", "mail", "imap", G_DIR_SEPARATOR_S, NULL);
@@ -488,11 +627,49 @@ skip_content_info (FILE *summary)
         }
 }
 
+void
+get_imap_uri (const gchar  *path,
+              gchar       **uri_base,
+              gchar       **basename)
+{
+        GList *keys, *k;
+        gchar *dir, *subdirs;
+
+        keys = g_hash_table_get_keys (accounts);
+        *uri_base = *basename = NULL;
+
+        for (k = keys; k; k = k->next) {
+                if (strstr (path, k->data)) {
+                        *uri_base = g_strdup_printf ("email://%s", (gchar *) g_hash_table_lookup (accounts, k->data));
+
+                        dir = g_build_filename (imap_dir, k->data, NULL);
+
+                        /* now remove all relevant info to create the email:// basename */
+                        subdirs = g_strdup (path);
+                        subdirs = tracker_string_remove (subdirs, dir);
+                        subdirs = tracker_string_remove (subdirs, "/folders");
+                        subdirs = tracker_string_remove (subdirs, "/subfolders");
+                        subdirs = tracker_string_remove (subdirs, "/summary");
+
+                        *basename = subdirs;
+
+                        g_free (dir);
+
+                        break;
+                }
+        }
+
+        g_list_free (keys);
+
+        return;
+}
+
 GHashTable *
 get_metadata_for_imap (TrackerFile *file)
 {
         EvolutionImapData *data;
         GHashTable *metadata;
+        gchar *dirname, *basename;
         gchar *uid, *subject, *from, *to;
         gint32 i, count;
         time_t date;
@@ -519,6 +696,12 @@ get_metadata_for_imap (TrackerFile *file)
 	metadata = g_hash_table_new_full (g_str_hash, g_str_equal,
 					  NULL,
 					  (GDestroyNotify) g_free);
+
+        get_imap_uri (file->path, &dirname, &basename);
+
+        g_hash_table_insert (metadata, METADATA_FILE_PATH, dirname);
+        g_hash_table_insert (metadata, METADATA_FILE_NAME, g_strdup_printf ("%s;uid=%s", basename, uid));
+        g_free (basename);
 
 	g_hash_table_insert (metadata, METADATA_EMAIL_DATE,
                              tracker_uint_to_string (date));

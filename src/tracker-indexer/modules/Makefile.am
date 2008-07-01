@@ -12,13 +12,13 @@ INCLUDES =								\
 	$(GMODULE_CFLAGS)						\
 	$(GIO_CFLAGS)							\
 	$(GLIB2_CFLAGS)							\
+	$(GCONF_CFLAGS)							\
 	$(GMIME_CFLAGS)
 
 indexer_modules_LTLIBRARIES = 						\
 	libtracker-indexer-applications.la				\
 	libtracker-indexer-files.la					\
-	libtracker-indexer-gaim-conversations.la			\
-	libtracker-indexer-evolution.la
+	libtracker-indexer-gaim-conversations.la
 
 # Applications module
 libtracker_indexer_applications_la_SOURCES = applications.c
@@ -46,10 +46,18 @@ libtracker_indexer_gaim_conversations_la_LIBADD = 			\
 	$(GIO_LIBS)							\
 	$(GLIB2_LIBS)
 
+if HAVE_GCONF
+
+indexer_modules_LTLIBRARIES += 						\
+	libtracker-indexer-evolution.la
+
 # Evolution
 libtracker_indexer_evolution_la_SOURCES = evolution.c
 libtracker_indexer_evolution_la_LDFLAGS = $(module_flags)
 libtracker_indexer_evolution_la_LIBADD = 				\
 	$(GMODULE_LIBS)							\
 	$(GLIB2_LIBS)							\
+	$(GCONF_LIBS)							\
 	$(GMIME_LIBS)
+
+endif

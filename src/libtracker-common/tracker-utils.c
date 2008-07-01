@@ -29,6 +29,44 @@ tracker_is_empty_string (const char *str)
 	return str == NULL || str[0] == '\0';
 }
 
+/* Removes a substring modifing haystack in place */
+gchar *
+tracker_string_remove (gchar       *haystack,
+		       const gchar *needle)
+{
+	gchar *current, *pos, *next, *end;
+	gint len;
+
+	len = strlen (needle);
+	end = haystack + strlen (haystack);
+	current = pos = strstr (haystack, needle);
+
+	if (!current) {
+		return haystack;
+	}
+
+	while (*current != '\0') {
+		pos = strstr (pos, needle) + len;
+		next = strstr (pos, needle);
+
+		if (!next) {
+			next = end;
+		}
+
+                while (pos < next) {
+			*current = *pos;
+                        current++;
+                        pos++;
+                }
+
+                if (*pos == '\0') {
+                        *current = *pos;
+                }
+	}
+
+	return haystack;
+}
+
 gchar *
 tracker_string_replace (const gchar *haystack, 
 			gchar       *needle, 

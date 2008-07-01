@@ -1,3 +1,16 @@
+2008-07-01  Carlos Garnacho  <carlos@imendio.com>
+
+	Generate email:// uris for IMAP in the Evolution module.
+
+	* src/libtracker-common/tracker-utils.[ch] (tracker_string_remove):
+	New function, removes a substring from a string in place.
+	* configure.ac:
+	* src/tracker-indexer/modules/Makefile.am: Add optional dependency on
+	GConf, compile the Evolution module if it's available.
+	* src/tracker-indexer/modules/evolution.c: Parse and find out correct
+	email:// uri for IMAP messages from the /apps/evolution/mail/accounts
+	GConf key.
+
 2008-07-01  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-module-config.[ch]: Added

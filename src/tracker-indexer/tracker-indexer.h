@@ -73,6 +73,7 @@ gboolean        tracker_indexer_files_delete (TrackerIndexer  *indexer,
 					      const gchar     *module,
 					      GStrv            files,
 					      GError         **error);
+void           tracker_indexer_process_all       (TrackerIndexer *indexer);
 
 G_END_DECLS
 

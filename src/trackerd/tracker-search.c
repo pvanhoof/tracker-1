@@ -766,7 +766,7 @@ tracker_search_text (TrackerSearch   *object,
 		return FALSE;
         }
 
-	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
+	iface = tracker_db_manager_get_db_interface_by_service (service);
 
 	result_set = tracker_db_search_text (iface, 
 					     service, 
@@ -864,7 +864,7 @@ tracker_search_text_detailed (TrackerSearch  *object,
 		return FALSE;
         }
 
-	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
+	iface = tracker_db_manager_get_db_interface_by_service (service);
 
 	result_set = tracker_db_search_text (iface, 
 					     service, 
@@ -931,7 +931,7 @@ tracker_search_get_snippet (TrackerSearch  *object,
 		return FALSE;
         }
 
-	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
+	iface = tracker_db_manager_get_db_interface_by_service (service);
 
 	service_id = tracker_db_file_get_id_as_string (iface, service, id);
         if (!service_id) {
@@ -942,7 +942,7 @@ tracker_search_get_snippet (TrackerSearch  *object,
                 return FALSE;
         }
 
-	iface = tracker_db_manager_get_db_interface_by_service (service, TRUE);
+	iface = tracker_db_manager_get_db_interface_by_service (service);
              
 	result_set = tracker_db_exec_proc (iface, 
 					   "GetAllContents", 
@@ -991,7 +991,7 @@ tracker_search_files_by_text (TrackerSearch  *object,
 			      GHashTable    **values,
 			      GError        **error)
 {
-	TrackerDBInterface *iface;
+	/* TrackerDBInterface *iface; */
 	TrackerDBResultSet *result_set;
 	guint               request_id;
 
@@ -1010,7 +1010,7 @@ tracker_search_files_by_text (TrackerSearch  *object,
                                   max_hits,
                                   group_results ? "yes" : "no");
 
-	iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
+	/* iface = tracker_db_manager_get_db_interface_by_service ("Files"); */
 
 	/* FIXME: This function no longer exists, it was returning
 	 * NULL in every case, this DBus function needs rewriting or
@@ -1076,7 +1076,7 @@ tracker_search_metadata (TrackerSearch   *object,
 		return FALSE;
 	}
 
-	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
+	iface = tracker_db_manager_get_db_interface_by_service (service);
 
 	/* FIXME: This function no longer exists, it was returning
 	 * NULL in every case, this DBus function needs rewriting or
@@ -1142,7 +1142,7 @@ tracker_search_matching_fields (TrackerSearch  *object,
 		return FALSE;
         }
 
-	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
+	iface = tracker_db_manager_get_db_interface_by_service (service);
 
 	/* FIXME: This function no longer exists, it was returning
 	 * NULL in every case, this DBus function needs rewriting or
@@ -1216,7 +1216,7 @@ tracker_search_query (TrackerSearch  *object,
 
 	result_set = NULL;
 
-	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
+	iface = tracker_db_manager_get_db_interface_by_service (service);
 
 	if (query_condition) {
 		GError *query_error = NULL;

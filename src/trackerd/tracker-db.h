@@ -51,9 +51,12 @@ gboolean            tracker_db_exec_no_reply                     (TrackerDBInter
 TrackerDBResultSet *tracker_db_exec                              (TrackerDBInterface  *iface,
 								  const char          *query,
 								  ...);
+/*
 gchar *             tracker_db_get_option_string                 (const gchar         *option);
+
 void                tracker_db_set_option_string                 (const gchar         *option,
 								  const gchar         *value);
+*/
 gint                tracker_db_get_option_int                    (const gchar         *option);
 void                tracker_db_set_option_int                    (const gchar         *option,
 								  gint                 value);
@@ -170,6 +173,7 @@ void                tracker_db_directory_delete                  (TrackerDBInter
 void                tracker_db_directory_move                    (TrackerDBInterface  *iface,
 								  const gchar         *moved_from_uri,
 								  const gchar         *moved_to_uri);
+/*
 void                tracker_db_uri_insert_pending                (const gchar         *id,
 								  const gchar         *action,
 								  const gchar         *counter,
@@ -181,10 +185,13 @@ void                tracker_db_uri_insert_pending                (const gchar   
 void                tracker_db_uri_update_pending                (const gchar         *counter,
 								  const gchar         *action,
 								  const gchar         *uri);
+*/
 TrackerDBResultSet *tracker_db_uri_get_subfolders                (TrackerDBInterface  *iface,
 								  const gchar         *uri);
+/*
 TrackerDBResultSet *tracker_db_uri_sub_watches_get               (const gchar         *dir);
 TrackerDBResultSet *tracker_db_uri_sub_watches_delete            (const gchar         *dir);
+*/
 
 /* Keywords API */
 TrackerDBResultSet *tracker_db_keywords_get_list                 (TrackerDBInterface  *iface,

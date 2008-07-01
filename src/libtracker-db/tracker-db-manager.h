@@ -40,10 +40,10 @@ typedef enum {
 } TrackerDB;
 
 typedef enum {
-	TRACKER_DB_MANAGER_ATTACH_ALL    = 1 << 0,
 	TRACKER_DB_MANAGER_FORCE_REINDEX = 1 << 1,
 	TRACKER_DB_MANAGER_REMOVE_CACHE  = 1 << 2,
 } TrackerDBManagerFlags;
+
 
 GType        tracker_db_get_type                            (void) G_GNUC_CONST;
 
@@ -59,8 +59,7 @@ TrackerDBInterface *
 TrackerDBInterface *
              tracker_db_manager_get_db_interfaces           (gint num, ...);
 TrackerDBInterface *
-             tracker_db_manager_get_db_interface_by_service (const gchar           *service, 
-							     gboolean               content);
+             tracker_db_manager_get_db_interface_by_service (const gchar           *service);
 TrackerDBInterface *
              tracker_db_manager_get_db_interface_content    (TrackerDBInterface    *iface);
 

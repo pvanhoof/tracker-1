@@ -263,7 +263,7 @@ live_search_handler (gpointer data)
 	GList              *sessions;
 	gboolean            reason_to_live = FALSE;
 
-	iface = tracker_db_manager_get_db_interface (TRACKER_DB_XESAM);
+	iface = tracker_db_manager_get_db_interface_by_service ("Xesam");
 
 	g_return_val_if_fail (iface != NULL, FALSE);
 
@@ -336,6 +336,7 @@ live_search_handler (gpointer data)
 	g_list_free (sessions);
 
 	tracker_db_xesam_delete_handled_events (iface);
+
 
 	return reason_to_live;
 }

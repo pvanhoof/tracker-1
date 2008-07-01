@@ -1,3 +1,49 @@
+2008-07-01  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/tracker-indexer/tracker-indexer.h: 
+	* src/trackerd/tracker-search.c: 
+	* src/trackerd/tracker-keywords.c: 
+	* src/trackerd/tracker-metadata.c: 
+	* src/trackerd/tracker-main.c: 
+	* src/trackerd/tracker-files.c: 
+	* src/trackerd/tracker-daemon.c: 
+	* src/trackerd/tracker-xesam-live-search.c: 
+	* src/trackerd/tracker-db.c: 
+	* src/trackerd/tracker-xesam-manager.c: 
+	* src/trackerd/tracker-db.h: 
+	* src/libtracker-db/tracker-db-manager.c: 
+	* src/libtracker-db/tracker-db-manager.h: 
+	* src/libtracker-common/tracker-service.h: 
+	* src/libtracker-common/tracker-ontology.c: 
+	* tests/libtracker-db/tracker-db-manager-test-attach.c: 
+	* data/sqlite-stored-procs.sql: 
+
+
+	Removes attach_iface and attach_all as this was broken by design
+
+	Adds "Xesam" as possible service for get_db_interface_by_service
+
+	Removes tracker_db_manager_get_db_interface_by_service's content
+	boolean since ALL users of it require the content db attached
+
+	Makes tracker_db_manager_get_db_interface always return just a
+	connection to just the requested file. Making it ideal for the indexer
+
+	Makes the Xesam code always use get_db_interface_by_service
+
+	Makes some of the ﻿tracker_db_manager_get_db_interface users that
+	expected an attached connection use ﻿get_db_interface_by_service
+	instead
+
+	Makes some of the ﻿﻿tracker_db_manager_get_db_interface users request
+	the right db file. Some of these requested FILE_META while the tables
+	that they influence or request from reside in common.
+
+	Prepares for preferred use of get_db_interface_by_service over
+	tracker_db_manager_get_db_interface
+
+	Commit reviewed and approved by Ivan Frade
+
 2008-07-01  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-dbus.[ch]: Added a function to

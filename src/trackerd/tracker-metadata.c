@@ -103,7 +103,7 @@ tracker_metadata_get (TrackerMetadata   *object,
 				  "service:'%s'",
 				  service);
 
-	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
+	iface = tracker_db_manager_get_db_interface_by_service (service);
 
 	service_id = tracker_db_file_get_id_as_string (iface, service, id);
         if (!service_id) {
@@ -239,7 +239,7 @@ tracker_metadata_set (TrackerMetadata  *object,
 		return FALSE;
 	}
 
-	iface = tracker_db_manager_get_db_interface_by_service (service, FALSE);
+	iface = tracker_db_manager_get_db_interface_by_service (service);
 
 	service_id = tracker_db_file_get_id_as_string (iface, service, id);
         if (!service_id) {
@@ -284,6 +284,7 @@ tracker_metadata_set (TrackerMetadata  *object,
 	return TRUE;
 }
 
+
 gboolean
 tracker_metadata_get_type_details (TrackerMetadata  *object,
 				   const gchar      *metadata,
@@ -304,8 +305,8 @@ tracker_metadata_get_type_details (TrackerMetadata  *object,
 	tracker_dbus_return_val_if_fail (is_embedded != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (is_writable != NULL, FALSE, error);
 
-	iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
-	
+	iface = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
+
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get metadata details, "
 				  "name:'%s'",
@@ -387,7 +388,7 @@ tracker_metadata_get_registered_classes (TrackerMetadata   *object,
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get registered classes");
 
-	iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
+	iface = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
 
 	result_set = tracker_db_exec_proc (iface, 
 					   "SelectMetadataClasses", 

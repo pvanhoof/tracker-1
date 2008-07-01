@@ -139,7 +139,6 @@ static gboolean            db_exec_no_reply    (TrackerDBInterface *iface,
 static TrackerDBInterface *db_interface_create (TrackerDB           db);
 
 static gboolean            initialized;
-static gboolean            attach_all;
 static GHashTable         *prepared_queries;
 static gchar              *services_dir;
 static gchar              *sql_dir;
@@ -147,7 +146,6 @@ static gchar              *data_dir;
 static gchar              *user_data_dir;
 static gchar              *sys_tmp_dir;
 static gpointer            db_type_enum_class_pointer;
-static TrackerDBInterface *attach_iface = NULL;
 
 static const gchar * 
 location_to_directory (TrackerDBLocation location)
@@ -1745,51 +1743,10 @@ db_interface_get (TrackerDB  type,
 		   path,
 		   db_type_to_string (type));
 
-	if (attach_all) {
-		iface = tracker_db_interface_sqlite_new (path);
-		tracker_db_interface_set_procedure_table (iface, 
-							  prepared_queries);
-	
-		/* We don't have separate interfaces for each db in
-		 * this situation. We just have one interface.
-		 * One analyze when we create interfaces.
-		 */
-		if (*create) {
-			g_message ("  Analyzing...");
-			db_exec_no_reply (iface, "ANALYZE");
-		}
+	iface = tracker_db_interface_sqlite_new (path);
 
-		/* The reason we do this is because we need to create
-		 * a new interface for EACH filename so the sql files
-		 * are loaded into the right file instead of the
-		 * first one we create.
-		 */
-		if (attach_iface && dbs[type].attached) {
-			g_message ("  Already attached '%s' as '%s'", 
-				   dbs[type].abs_filename,
-				   dbs[type].name);
-		}
-
-		if (attach_iface && !dbs[type].attached) {
-
-			g_message ("  Attaching '%s' as '%s'", 
-				   dbs[type].abs_filename,
-				   dbs[type].name);
-
-			db_exec_no_reply (attach_iface, 
-					  "ATTACH '%s' as '%s'",
-					  dbs[type].abs_filename,
-					  dbs[type].name);
-
-			dbs[type].attached = TRUE;
-		} else if (!attach_iface) {
-			attach_iface = iface;
-		}
-	} else {
-		iface = tracker_db_interface_sqlite_new (path);
-		tracker_db_interface_set_procedure_table (iface, 
-							  prepared_queries);
-	}
+	tracker_db_interface_set_procedure_table (iface, 
+						  prepared_queries);
 
 	db_set_params (iface,
 		       dbs[type].cache_size,
@@ -2342,9 +2299,6 @@ tracker_db_manager_init (TrackerDBManagerFlags  flags,
 			g_unlink (dbs[i].abs_filename);
 		}
 
-		/* Don't attach while we do this... */
-		attach_all = TRUE;
-
 		/* In cases where we re-init this module, make sure
 		 * we have cleaned up the ontology before we load all
 		 * new databases.
@@ -2370,7 +2324,6 @@ tracker_db_manager_init (TrackerDBManagerFlags  flags,
 			dbs[i].iface = NULL;
 		}
 
-		attach_iface = NULL;
 	} else {
 		/* Make sure we remove and recreate the cache directory in tmp
 		 * each time we start up, this is meant to be a per-run
@@ -2386,38 +2339,11 @@ tracker_db_manager_init (TrackerDBManagerFlags  flags,
 		tracker_ontology_init ();
 	}
 
-	attach_all = flags & TRACKER_DB_MANAGER_ATTACH_ALL;
-
 	/* Load databases */
 	g_message ("Loading databases files...");
 
 	for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
 		dbs[i].iface = db_interface_create (i);
-	}
-
-	if (attach_all) {
-		TrackerDBInterface *dummy;
-
-		dummy = db_interface_get_common ();
-		g_object_unref (dummy);
-
-		dummy = db_interface_get_cache ();
-		g_object_unref (dummy);
-
-		dummy = db_interface_get_file_contents ();
-		g_object_unref (dummy);
-
-		dummy = db_interface_get_file_metadata ();
-		g_object_unref (dummy);
-
-		dummy = db_interface_get_email_metadata ();
-		g_object_unref (dummy);
-
-		dummy = db_interface_get_email_metadata ();
-		g_object_unref (dummy);
-
-		dummy = db_interface_get_xesam ();
-		g_object_unref (dummy);
 	}
 
 	initialized = TRUE;
@@ -2471,8 +2397,6 @@ tracker_db_manager_shutdown (gboolean remove_tmp)
 	g_type_class_unref (db_type_enum_class_pointer);
 	db_type_enum_class_pointer = NULL;
 
-	attach_iface = NULL;
-
 	/* Make sure we shutdown all other modules we depend on */
 	tracker_ontology_shutdown ();
 
@@ -2487,6 +2411,18 @@ tracker_db_manager_get_file (TrackerDB db)
         return dbs[db].abs_filename;
 }
 
+/**
+ * tracker_db_manager_get_db_interfaces:
+ * @num: amount of TrackerDB files wanted
+ * @...: All the files that you want in the connection as TrackerDB items
+ *
+ * Request a database connection where the first requested file gets connected
+ * to and the subsequent requsted files get attached to the connection.
+ *
+ * The caller must g_object_unref the result when finished using it.
+ *
+ * returns: (caller-owns): a database connection
+ **/
 TrackerDBInterface *
 tracker_db_manager_get_db_interfaces (gint num, ...)
 {
@@ -2504,9 +2440,6 @@ tracker_db_manager_get_db_interfaces (gint num, ...)
 			connection = tracker_db_interface_sqlite_new (dbs[db].abs_filename);
 			tracker_db_interface_set_procedure_table (connection, 
 								  prepared_queries);
-
-			/* You could set specific cache and page sizes for the
-			 * indexer's INSERT connection here. */
 
 			db_set_params (connection,
 				       dbs[db].cache_size,
@@ -2528,26 +2461,45 @@ tracker_db_manager_get_db_interfaces (gint num, ...)
 }
 
 
+
+/**
+ * tracker_db_manager_get_db_interface:
+ * @db: the database file wanted
+ *
+ * Request a database connection to the database file @db.
+ *
+ * The caller must NOT g_object_unref the result
+ *
+ * returns: (callee-owns): a database connection
+ **/
 TrackerDBInterface *
 tracker_db_manager_get_db_interface (TrackerDB db)
 {
 	g_return_val_if_fail (initialized != FALSE, NULL);
 
-	if (attach_all) {
-		return attach_iface;
-	}
-
 	return dbs[db].iface;
 }
 
+/**
+ * tracker_db_manager_get_db_interface_by_service:
+ * @service: the server for which you'll use the database connection
+ *
+ * Request a database connection that can be used for @service. At this moment
+ * service can either be "Files", "Emails", "Attachments" or "Xesam".
+ *
+ * The caller must NOT g_object_unref the result
+ *
+ * returns: (callee-owns): a database connection
+ **/
 TrackerDBInterface *
-tracker_db_manager_get_db_interface_by_service (const gchar *service, 
-						gboolean     content)
+tracker_db_manager_get_db_interface_by_service (const gchar *service)
 {
 	TrackerDBInterface        *iface;
 	TrackerDBType              type;
+
 	static TrackerDBInterface *file_iface = NULL;
 	static TrackerDBInterface *email_iface = NULL;
+	static TrackerDBInterface *xesam_iface = NULL;
 
 	g_return_val_if_fail (initialized != FALSE, NULL);
 	g_return_val_if_fail (service != NULL, NULL);
@@ -2556,6 +2508,7 @@ tracker_db_manager_get_db_interface_by_service (const gchar *service,
 
 	switch (type) {
 	case TRACKER_DB_TYPE_EMAIL:
+
 		if (!email_iface) {
 			email_iface = tracker_db_manager_get_db_interfaces (4,
 									    TRACKER_DB_COMMON,
@@ -2563,9 +2516,26 @@ tracker_db_manager_get_db_interface_by_service (const gchar *service,
 									    TRACKER_DB_EMAIL_METADATA,
 									    TRACKER_DB_CACHE);
 		}
+
 		iface = email_iface;
 		break;
 
+	case TRACKER_DB_TYPE_XESAM:
+		if (!xesam_iface) {
+			xesam_iface = tracker_db_manager_get_db_interfaces (7, 
+									    TRACKER_DB_CACHE,
+									    TRACKER_DB_COMMON,
+									    TRACKER_DB_FILE_CONTENTS,
+									    TRACKER_DB_FILE_METADATA,
+									    TRACKER_DB_EMAIL_CONTENTS,
+									    TRACKER_DB_EMAIL_METADATA,
+									    TRACKER_DB_XESAM);
+		}
+
+		iface = xesam_iface;
+		break;
+
+	case TRACKER_DB_TYPE_FILES:
 	default:
 		if (!file_iface) {
 			file_iface = tracker_db_manager_get_db_interfaces (4,
@@ -2574,6 +2544,7 @@ tracker_db_manager_get_db_interface_by_service (const gchar *service,
 									   TRACKER_DB_FILE_METADATA,
 									   TRACKER_DB_CACHE);
 		}
+
 		iface = file_iface;
 		break;
 	}

@@ -39,12 +39,11 @@ ensure_db_manager_is_reindex (gboolean must_reindex)
 
         if (db_manager_status == NO_INIT) {
                 if (must_reindex) {
-                        tracker_db_manager_init (TRACKER_DB_MANAGER_ATTACH_ALL |TRACKER_DB_MANAGER_FORCE_REINDEX,
+                        tracker_db_manager_init (TRACKER_DB_MANAGER_FORCE_REINDEX,
                                                  &first);
                         db_manager_status = INIT_REINDEX;
                 } else {
-                        tracker_db_manager_init (TRACKER_DB_MANAGER_ATTACH_ALL,
-                                                 &first);
+                        tracker_db_manager_init (0, &first);
                         db_manager_status = INIT_NO_REINDEX;
                 }
                 return;
@@ -62,12 +61,11 @@ ensure_db_manager_is_reindex (gboolean must_reindex)
 
         tracker_db_manager_shutdown (must_reindex);
         if (must_reindex) {
-                tracker_db_manager_init (TRACKER_DB_MANAGER_ATTACH_ALL |TRACKER_DB_MANAGER_FORCE_REINDEX,
+                tracker_db_manager_init (TRACKER_DB_MANAGER_FORCE_REINDEX,
                                          &first);
                 db_manager_status = INIT_REINDEX;
         } else {
-                tracker_db_manager_init (TRACKER_DB_MANAGER_ATTACH_ALL,
-                                         &first);
+                tracker_db_manager_init (0, &first);
                 db_manager_status = INIT_NO_REINDEX;
         }
 }

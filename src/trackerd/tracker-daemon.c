@@ -322,7 +322,8 @@ tracker_daemon_get_services (TrackerDaemon  *object,
         tracker_dbus_request_new (request_id,
 				  "DBus request to get daemon services");
 
-	iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
+	iface = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
+
 	result_set = tracker_db_exec_proc (iface, "GetServices", 0);
 	*values = tracker_dbus_query_result_to_hash_table (result_set);
 
@@ -351,7 +352,7 @@ tracker_daemon_get_stats (TrackerDaemon  *object,
         tracker_dbus_request_new (request_id,
 				  "DBus request to get daemon service stats");
 
-	iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
+	iface = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
 
 	result_set = tracker_db_exec_proc (iface, "GetStats", 0);
         *values = tracker_dbus_query_result_to_ptr_array (result_set);

@@ -340,6 +340,10 @@ tracker_ontology_get_db_for_service_type (const gchar *service_str)
 	if (g_str_has_prefix (str, "emails") || 
 	    g_str_has_prefix (str, "attachments")) {
 		type = TRACKER_DB_TYPE_EMAIL;
+	} else if (g_str_has_prefix (str, "files")) {
+		type = TRACKER_DB_TYPE_FILES;
+	} else if (g_str_has_prefix (str, "xesam")) {
+		type = TRACKER_DB_TYPE_XESAM;
 	}
 
 	g_free (str);

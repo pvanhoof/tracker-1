@@ -322,7 +322,7 @@ backup_non_embedded_metadata (TrackerDBInterface *iface,
 	backup_id = get_backup_id (iface, id);
 
 	if (backup_id) {
-		tracker_db_exec_proc (tracker_db_manager_get_db_interface (TRACKER_DB_COMMON), 
+		tracker_db_exec_proc (iface, 
 				      "SetBackupMetadata", 
 				      backup_id, 
 				      key_id, 
@@ -343,7 +343,7 @@ backup_delete_non_embedded_metadata_value (TrackerDBInterface *iface,
 	backup_id = get_backup_id (iface, id);
 
 	if (backup_id) {
-		tracker_db_exec_proc (tracker_db_manager_get_db_interface (TRACKER_DB_COMMON), 
+		tracker_db_exec_proc (iface, 
 				      "DeleteBackupMetadataValue", 
 				      backup_id, 
 				      key_id, 
@@ -363,7 +363,7 @@ backup_delete_non_embedded_metadata (TrackerDBInterface *iface,
 	backup_id = get_backup_id (iface, id);
 
 	if (backup_id) {
-		tracker_db_exec_proc (tracker_db_manager_get_db_interface (TRACKER_DB_COMMON), 
+		tracker_db_exec_proc (iface, 
 				      "DeleteBackupMetadata", 
 				      backup_id, 
 				      key_id, 
@@ -479,9 +479,8 @@ delete_index_for_service (TrackerDBInterface *iface,
 }
 
 static void
-dec_stat (gint id)
+dec_stat (TrackerDBInterface *iface, gint id)
 {
-	TrackerDBInterface *iface;
 	gchar              *service;
 	gchar              *parent;
         
@@ -490,8 +489,6 @@ dec_stat (gint id)
 	if (!service) {
 		return;
 	}
-
-	iface = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
 
 	tracker_db_exec_proc (iface, "DecStat", service, NULL);
 	
@@ -3095,8 +3092,6 @@ tracker_db_file_delete (TrackerDBInterface *iface,
 	gchar              *path;
 	gint                id;
 
-	iface_common = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
-
 	g_return_if_fail (TRACKER_IS_DB_INTERFACE (iface));
 	g_return_if_fail (TRACKER_IS_DB_INTERFACE (iface_common));
 
@@ -3114,14 +3109,14 @@ tracker_db_file_delete (TrackerDBInterface *iface,
 					   -1);
 
 		if (name && path) {
-			dec_stat (id);
+			dec_stat (iface, id);
 
 			tracker_db_exec_proc (iface, "DeleteService1", str_file_id, NULL);
-			tracker_db_exec_proc (iface_common, "DeleteService6", path, name, NULL);
-			tracker_db_exec_proc (iface_common, "DeleteService7", path, name, NULL);
-			tracker_db_exec_proc (iface_common, "DeleteService9", path, name, NULL);
+			tracker_db_exec_proc (iface, "DeleteService6", path, name, NULL);
+			tracker_db_exec_proc (iface, "DeleteService7", path, name, NULL);
+			tracker_db_exec_proc (iface, "DeleteService9", path, name, NULL);
 
-			db_create_event (iface_common, str_file_id, "Delete");
+			db_create_event (iface, str_file_id, "Delete");
 
 			g_free (name);
 			g_free (path);
@@ -3177,6 +3172,7 @@ tracker_db_directory_delete (TrackerDBInterface *iface,
 	g_free (str_file_id);
 }
 
+/*
 void
 tracker_db_uri_insert_pending (const gchar *id, 
 			       const gchar *action, 
@@ -3238,6 +3234,9 @@ tracker_db_uri_insert_pending (const gchar *id,
 	g_free (time_str);
 }
 
+*/
+
+/*
 void
 tracker_db_uri_update_pending (const gchar *counter, 
 			       const gchar *action, 
@@ -3269,6 +3268,7 @@ tracker_db_uri_update_pending (const gchar *counter,
 
 	g_free (time_str);
 }
+*/
 
 gchar **
 tracker_db_files_get (TrackerDBInterface *iface, 
@@ -3420,6 +3420,7 @@ tracker_db_metadata_get_types (TrackerDBInterface *iface,
 	}
 }
 
+/*
 TrackerDBResultSet *
 tracker_db_uri_sub_watches_get (const gchar *dir)
 {
@@ -3440,7 +3441,9 @@ tracker_db_uri_sub_watches_get (const gchar *dir)
 
 	return result_set;
 }
+*/
 
+/*
 TrackerDBResultSet *
 tracker_db_uri_sub_watches_delete (const gchar *dir)
 {
@@ -3462,13 +3465,13 @@ tracker_db_uri_sub_watches_delete (const gchar *dir)
 
 	return result_set;
 }
+*/
 
 void
 tracker_db_file_move (TrackerDBInterface *iface, 
 		      const gchar        *moved_from_uri, 
 		      const gchar        *moved_to_uri)
 {
-	TrackerDBInterface *iface_common;
 	gchar              *str_file_id;
 	gchar              *name;
 	gchar              *path;
@@ -3509,8 +3512,7 @@ tracker_db_file_move (TrackerDBInterface *iface,
 			      str_file_id, 
 			      NULL);
 
-	iface_common = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
-	db_create_event (iface_common, str_file_id, "Update");
+	db_create_event (iface, str_file_id, "Update");
 
 	/* update File:Path and File:Filename metadata */
 	tracker_db_metadata_set_single (iface,
@@ -3532,7 +3534,7 @@ tracker_db_file_move (TrackerDBInterface *iface,
 	}
 
 	/* Update backup service if necessary */
-	tracker_db_exec_proc (iface_common, 
+	tracker_db_exec_proc (iface, 
 			      "UpdateBackupService", 
 			      path, 
 			      name, 
@@ -3796,6 +3798,7 @@ tracker_db_get_metadata_field (TrackerDBInterface *iface,
 	return field_data;
 }
 
+/*
 gchar *
 tracker_db_get_option_string (const gchar *option)
 {
@@ -3816,6 +3819,7 @@ tracker_db_get_option_string (const gchar *option)
 	return value;
 }
 
+
 void
 tracker_db_set_option_string (const gchar *option, 
 			      const gchar *value)
@@ -3833,6 +3837,7 @@ tracker_db_set_option_string (const gchar *option,
 		g_object_unref (result_set);
 	}
 }
+*/
 
 gint
 tracker_db_get_option_int (const gchar *option)

@@ -455,7 +455,7 @@ initialize_databases (void)
 		tracker->first_time_index = TRUE;
 		
 		/* Reset stats for embedded services if they are being reindexed */
-		iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
+		iface = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
 		
 		g_message ("*** DELETING STATS *** ");
 		tracker_db_exec_no_reply (iface, 
@@ -786,8 +786,7 @@ main (gint argc, gchar *argv[])
 
 	tracker_nfs_lock_init (tracker_config_get_nfs_locking (tracker->config));
 
-	flags = TRACKER_DB_MANAGER_ATTACH_ALL |
-		TRACKER_DB_MANAGER_REMOVE_CACHE;
+	flags = TRACKER_DB_MANAGER_REMOVE_CACHE;
 
 	if (reindex) {
 		flags |= TRACKER_DB_MANAGER_FORCE_REINDEX;

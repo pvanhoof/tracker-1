@@ -858,22 +858,23 @@ main (gint argc, gchar *argv[])
 	/* Set kill timeout */
 	g_timeout_add_full (G_PRIORITY_LOW, 5000, shutdown_timeout_cb, NULL, NULL);
 
+	if (processor) {
+		g_object_unref (processor);
+	}
+
 	shutdown_indexer ();
 	shutdown_databases ();
 	shutdown_directories ();
 
 	/* Shutdown major subsystems */
 	tracker_dbus_shutdown ();
+        tracker_module_config_shutdown ();
 	tracker_xesam_manager_shutdown ();
 	tracker_db_manager_shutdown (TRUE);
 	tracker_db_shutdown ();
 	tracker_monitor_shutdown ();
 	tracker_nfs_lock_shutdown ();
 	tracker_log_shutdown ();
-
-	if (processor) {
-		g_object_unref (processor);
-	}
 
 	if (tracker->language) {
 		g_object_unref (tracker->language);
@@ -882,8 +883,6 @@ main (gint argc, gchar *argv[])
         if (tracker->config) {
                 g_object_unref (tracker->config);
         }
-
-        tracker_module_config_shutdown ();
 
 	shutdown_locations ();
 

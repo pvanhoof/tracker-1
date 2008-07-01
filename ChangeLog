@@ -1,5 +1,11 @@
 2008-07-01  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-crawler.c: (crawler_finalize):
+	* src/trackerd/tracker-main.c: (main): Fixed some shutdown
+	warnings and turned off the debugging in the crawler.
+
+2008-07-01  Martyn Russell  <martyn@imendio.com>
+
 	* data/modules/files.module: Added $HOME to the list of recursive
 	monitored directorys.
 

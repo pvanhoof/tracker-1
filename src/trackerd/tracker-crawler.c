@@ -36,7 +36,7 @@
 
 #define TRACKER_CRAWLER_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_CRAWLER, TrackerCrawlerPrivate))
 
-#define TESTING
+/*#define TESTING*/
 
 #define FILE_ATTRIBUTES				\
 	G_FILE_ATTRIBUTE_STANDARD_NAME ","	\
@@ -182,8 +182,23 @@ crawler_finalize (GObject *object)
 
 	priv = TRACKER_CRAWLER_GET_PRIVATE (object);
 
+	if (priv->idle_id) {
+		g_source_remove (priv->idle_id);
+	}
 
-	tracker_crawler_stop (TRACKER_CRAWLER (object));
+	g_free (priv->current_module_name);
+
+	if (priv->ignored_file_patterns) {
+		g_list_free (priv->ignored_file_patterns);
+	}
+
+	if (priv->ignored_directory_patterns) {
+		g_list_free (priv->ignored_directory_patterns);
+	}
+
+	if (priv->timer) {
+		g_timer_destroy (priv->timer);
+	}
 
 	if (priv->files_queue_handle_id) {
 		g_source_remove (priv->files_queue_handle_id);

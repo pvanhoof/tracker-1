@@ -85,6 +85,8 @@ void             tracker_dbus_g_value_slice_free  (GValue          *value);
 gchar **         tracker_dbus_slist_to_strv       (GSList          *list);
 gchar **         tracker_dbus_async_queue_to_strv (GAsyncQueue     *queue, 
 						   gint             max);
+gchar **         tracker_dbus_gfile_queue_to_strv (GQueue          *queue, 
+						   gint             max);
 
 /* Requests */
 guint            tracker_dbus_get_next_request_id (void);

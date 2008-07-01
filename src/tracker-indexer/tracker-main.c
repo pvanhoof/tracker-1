@@ -54,8 +54,11 @@
         "\n"								\
 	"  http://www.gnu.org/licenses/gpl.txt\n" 
 
+#define QUIT_TIMEOUT 10 /* Seconds */
+
 static GMainLoop    *main_loop;
- 
+static guint         quit_timeout_id;
+
 static gint          verbosity = -1;
 static gboolean      process_all = FALSE;
 
@@ -129,11 +132,47 @@ initialize_signal_handler (void)
 #endif
 }
 
+static gboolean
+quit_timeout_cb (gpointer user_data)
+{
+        TrackerIndexer *indexer;
+        gboolean        running = FALSE;
+
+        indexer = TRACKER_INDEXER (user_data);
+
+        if (!tracker_indexer_get_running (indexer, &running, NULL) || !running) {
+                g_message ("Indexer is still not running after %d seconds, quitting...",
+                           QUIT_TIMEOUT);
+                g_main_loop_quit (main_loop);
+                quit_timeout_id = 0;
+        } else {
+                g_message ("Indexer is now running, staying alive until finished...");
+        }
+
+        g_object_unref (indexer);
+
+        return FALSE;
+}
+
 static void
 indexer_finished_cb (TrackerIndexer *indexer,
+                     guint           items_indexed,
 		     gpointer	     user_data)
 {
-	g_main_loop_quit (main_loop);
+        if (items_indexed > 0) {
+                g_main_loop_quit (main_loop);
+                return;
+        }
+
+        /* If we didn't index anything yet, wait for a minimum of 10
+         * seconds or so before quitting. 
+         */
+        g_message ("Nothing was indexed, waiting %d seconds before quitting...",
+                   QUIT_TIMEOUT);
+
+        quit_timeout_id = g_timeout_add_seconds (QUIT_TIMEOUT,
+                                                 quit_timeout_cb,
+                                                 g_object_ref (indexer));
 }
 
 static void
@@ -256,9 +295,9 @@ main (gint argc, gchar *argv[])
 	}
 
         /* Create the indexer and run the main loop */
-
-	g_signal_connect (indexer, "finished",
-			  G_CALLBACK (indexer_finished_cb), NULL);
+        g_signal_connect (indexer, "finished",
+			  G_CALLBACK (indexer_finished_cb), 
+                          NULL);
 
         if (process_all) {
                 /* Tell the indexer to process all configured modules */
@@ -269,6 +308,10 @@ main (gint argc, gchar *argv[])
 
 	main_loop = g_main_loop_new (NULL, FALSE);
 	g_main_loop_run (main_loop);
+
+        if (quit_timeout_id) {
+                g_source_remove (quit_timeout_id);
+        }
 
 	g_object_unref (indexer);
 	g_object_unref (config);

@@ -609,15 +609,98 @@ add_directory (TrackerCrawler *crawler,
 	}
 }
 
+static void
+indexer_check_files_cb (DBusGProxy *proxy,
+			GError     *error,
+			gpointer    user_data)
+{
+	if (error) {
+		g_critical ("Could not send files to indexer to check, %s",
+			    error->message);
+		g_error_free (error);
+	} else {
+		g_debug ("Sent!");
+	}
+}
+
+static void
+indexer_get_running_cb (DBusGProxy *proxy,
+			gboolean    running,
+			GError     *error,
+			gpointer    user_data)
+{
+	TrackerCrawler *crawler;
+	GStrv           files;
+	guint           total;
+
+	crawler = TRACKER_CRAWLER (user_data);
+
+	if (error || !running) {
+		g_message ("%s",
+			   error ? error->message : "Indexer exists but is not available yet, waiting...");
+
+		g_object_unref (crawler);
+		g_clear_error (&error);
+
+		return;
+	}
+
+	total = g_queue_get_length (crawler->private->files);
+	files = tracker_dbus_gfile_queue_to_strv (crawler->private->files,
+						  FILES_QUEUE_PROCESS_MAX);
+	
+	g_debug ("File check queue processed, sending first %d/%d to the indexer",
+		 g_strv_length (files), 
+		 total);
+
+	org_freedesktop_Tracker_Indexer_files_check_async (proxy,
+							   g_strdup (crawler->private->current_module_name),
+							   (const gchar **) files,
+							   indexer_check_files_cb,
+							   NULL);
+
+	g_object_unref (crawler);
+}
+
 static gboolean
+file_queue_handler_cb (gpointer user_data)
+{
+	TrackerCrawler *crawler;
+
+	crawler = TRACKER_CRAWLER (user_data);
+
+	if (g_queue_get_length (crawler->private->files) < 1) {
+		g_debug ("File check queue is empty... nothing to do");
+		crawler->private->files_queue_handle_id = 0;
+		return FALSE;
+	}
+
+	/* Check we can actually talk to the indexer */
+	org_freedesktop_Tracker_Indexer_get_running_async (tracker_dbus_indexer_get_proxy (),
+							   indexer_get_running_cb,
+							   g_object_ref (crawler));
+
+	return TRUE;
+}
+
+static void
+file_queue_handler_set_up (TrackerCrawler *crawler)
+{
+	if (crawler->private->files_queue_handle_id != 0) {
+		return;
+	}
+
+	crawler->private->files_queue_handle_id =
+		g_timeout_add (FILES_QUEUE_PROCESS_INTERVAL,
+			       file_queue_handler_cb,
+			       crawler);
+}
+
+static void
 process_file (TrackerCrawler *crawler,
 	      GFile          *file)
 {
-	/* I guess here we check the queue length and send files to
-	 * the indexer? 
-	 */ 
-	
-	return TRUE;
+	file_queue_handler_set_up (crawler); 
 }
 
 static void
@@ -639,12 +722,12 @@ process_func (gpointer data)
 	file = g_queue_peek_head (crawler->private->files);
 
 	if (file) {
-		if (process_file (crawler, file)) {
-			file = g_queue_pop_head (crawler->private->files);
-			g_object_unref (file);
-		}
-
-		return TRUE;
+		/* Only return here if we want to throttle the
+		 * directory crawling. I don't think we want to do
+		 * that. 
+		 */
+		process_file (crawler, file);
+		/* return TRUE; */
 	}
 
 	/* Crawler directory contents */

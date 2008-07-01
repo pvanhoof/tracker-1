@@ -21,6 +21,8 @@
 
 #include "tracker-dbus.h"
 
+#include <gio/gio.h>
+
 GValue *
 tracker_dbus_g_value_slice_new (GType type)
 {
@@ -123,6 +125,48 @@ tracker_dbus_async_queue_to_strv (GAsyncQueue *queue,
         strv[j] = NULL;
 
 	g_async_queue_unlock (queue);
+
+	return strv;
+}
+
+gchar **
+tracker_dbus_gfile_queue_to_strv (GQueue *queue, 
+				  gint    max)
+{
+	gchar **strv;
+	gchar  *str;
+	GFile  *file;
+	gint    i, j;
+	gint    length;
+
+	length = g_queue_get_length (queue);
+		
+	if (max > 0) {
+		length = MIN (max, length);
+	}
+
+	strv = g_new0 (gchar*, length + 1);
+	
+	for (i = 0, j = 0; i < length; i++) {
+		file = g_queue_pop_head (queue);
+
+		if (!file) {
+			break;
+		}
+
+		str = g_file_get_path (file);
+		g_object_unref (file);
+
+		if (!g_utf8_validate (str, -1, NULL)) {
+			g_message ("Could not add string:'%s' to GStrv, invalid UTF-8", str);
+			g_free (str);
+			continue;
+		}
+
+		strv[j++] = str;
+	}
+
+        strv[j] = NULL;
 
 	return strv;
 }

@@ -284,8 +284,10 @@ tracker_indexer_class_init (TrackerIndexerClass *class)
 			      G_SIGNAL_RUN_LAST,
 			      G_STRUCT_OFFSET (TrackerIndexerClass, finished),
 			      NULL, NULL,
-			      g_cclosure_marshal_VOID__VOID,
-			      G_TYPE_NONE, 0);
+			      g_cclosure_marshal_VOID__UINT,
+			      G_TYPE_NONE, 
+			      1,
+			      G_TYPE_UINT);
 	signals [INDEX_UPDATED] = 
 		g_signal_new ("index-updated",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -643,7 +645,7 @@ indexing_func (gpointer data)
 				   g_timer_elapsed (priv->timer, NULL),
 				   priv->items_indexed);
 
-			g_signal_emit (indexer, signals[FINISHED], 0);
+			g_signal_emit (indexer, signals[FINISHED], 0, priv->items_indexed);
 			return FALSE;
 		}
 

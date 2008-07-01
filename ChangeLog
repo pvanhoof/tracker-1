@@ -1,3 +1,20 @@
+2008-07-01  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-dbus.[ch]: Added a function to
+	convert n GQueue GFile items to a gchar**.
+	
+	* src/tracker-indexer/tracker-indexer.[ch]: Include the number of
+	items that were indexed in the finished signal.
+	
+	* src/tracker-indexer/tracker-main.c: Don't quit immediately, wait
+	10 seconds or so, otherwise if the daemon calls "are we running"
+	it replies and quits before the daemon can send the next message.
+	
+	* src/trackerd/tracker-crawler.c: Added back the code to handle
+	sending files to the indexer.
+	
+	* src/trackerd/tracker-processor.c: Removed commented out code.
+
 2008-07-01  Carlos Garnacho  <carlos@imendio.com>
 
 	Generate email:// uris for IMAP in the Evolution module.

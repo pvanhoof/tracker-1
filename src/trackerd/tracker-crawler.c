@@ -33,10 +33,11 @@
 #include "tracker-dbus.h"
 #include "tracker-indexer-client.h"
 #include "tracker-monitor.h"
+#include "tracker-marshal.h"
 
 #define TRACKER_CRAWLER_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_CRAWLER, TrackerCrawlerPrivate))
 
-/*#define TESTING*/
+/* #define TESTING */
 
 #define FILE_ATTRIBUTES				\
 	G_FILE_ATTRIBUTE_STANDARD_NAME ","	\
@@ -62,6 +63,7 @@ struct _TrackerCrawlerPrivate {
 	/* Specific to each crawl ... */
 	GList          *ignored_directory_patterns;
 	GList          *ignored_file_patterns;
+	GList          *index_file_patterns;
 	gchar          *current_module_name;
 
 	/* Statistics */
@@ -70,6 +72,8 @@ struct _TrackerCrawlerPrivate {
 	guint           directories_ignored;
 	guint           files_found;
 	guint           files_ignored;
+	guint           monitors_added;
+	guint           monitors_ignored;
 
 	gboolean        running;
 	gboolean        finished;
@@ -155,9 +159,13 @@ tracker_crawler_class_init (TrackerCrawlerClass *klass)
 			      G_SIGNAL_RUN_LAST,
 			      0,
 			      NULL, NULL,
-			      g_cclosure_marshal_VOID__VOID,
+			      tracker_marshal_VOID__UINT_UINT_UINT_UINT,
 			      G_TYPE_NONE, 
-			      0);
+			      4,
+			      G_TYPE_UINT,
+			      G_TYPE_UINT,
+			      G_TYPE_UINT,
+			      G_TYPE_UINT);
 
 	g_type_class_add_private (object_class, sizeof (TrackerCrawlerPrivate));
 }
@@ -187,6 +195,10 @@ crawler_finalize (GObject *object)
 	}
 
 	g_free (priv->current_module_name);
+
+	if (priv->index_file_patterns) {
+		g_list_free (priv->index_file_patterns);
+	}
 
 	if (priv->ignored_file_patterns) {
 		g_list_free (priv->ignored_file_patterns);
@@ -503,14 +515,22 @@ path_should_be_ignored (TrackerCrawler *crawler,
 
 	/* Test ignore types */
 	if (is_directory) {
-		l = crawler->private->ignored_directory_patterns;
+		for (l = crawler->private->ignored_directory_patterns; l; l = l->next) {
+			if (g_pattern_match_string (l->data, basename)) {
+				goto done;
+			}
+		}
 	} else {
-		l = crawler->private->ignored_file_patterns;
-	}
-	
-	for (; l; l = l->next) {
-		if (g_pattern_match_string (l->data, basename)) {
-			goto done;
+		for (l = crawler->private->ignored_file_patterns; l; l = l->next) {
+			if (g_pattern_match_string (l->data, basename)) {
+				goto done;
+			}
+		}
+
+		for (l = crawler->private->index_file_patterns; l; l = l->next) {
+			if (!g_pattern_match_string (l->data, basename)) {
+				goto done;
+			}
 		}
 	}
 
@@ -870,10 +890,16 @@ tracker_crawler_start (TrackerCrawler *crawler,
 		g_list_free (priv->ignored_file_patterns);
 	}
 
-	priv->ignored_file_patterns = 
-		tracker_module_config_get_ignored_file_patterns (module_name);
+	if (priv->index_file_patterns) {
+		g_list_free (priv->index_file_patterns);
+	}
+
 	priv->ignored_directory_patterns = 
 		tracker_module_config_get_ignored_directory_patterns (module_name);
+	priv->ignored_file_patterns = 
+		tracker_module_config_get_ignored_file_patterns (module_name);
+	priv->index_file_patterns = 
+		tracker_module_config_get_index_file_patterns (module_name);
 
 	priv->current_module_name = g_strdup (module_name);
 
@@ -889,6 +915,8 @@ tracker_crawler_start (TrackerCrawler *crawler,
 	priv->directories_ignored = 0;
 	priv->files_found = 0;
 	priv->files_ignored = 0;
+	priv->monitors_added = tracker_monitor_get_count ();
+	priv->monitors_ignored = tracker_monitor_get_ignored ();
 
 	for (sl = paths; sl; sl = sl->next) {
 		file = g_file_new_for_path (sl->data);
@@ -922,6 +950,11 @@ tracker_crawler_stop (TrackerCrawler *crawler)
 	g_free (priv->current_module_name);
 	priv->current_module_name = NULL;
 
+	if (priv->index_file_patterns) {
+		g_list_free (priv->index_file_patterns);
+		priv->index_file_patterns = NULL;
+	}
+
 	if (priv->ignored_file_patterns) {
 		g_list_free (priv->ignored_file_patterns);
 		priv->ignored_file_patterns = NULL;
@@ -944,11 +977,15 @@ tracker_crawler_stop (TrackerCrawler *crawler)
 		   priv->files_found,
 		   priv->files_ignored);
 	g_message ("  Added %d monitors, ignored %d monitors",
-		   tracker_monitor_get_count (),
-		   tracker_monitor_get_ignored ());
+		   tracker_monitor_get_count () - priv->monitors_added,
+		   tracker_monitor_get_ignored () - priv->monitors_ignored);
 
 	g_timer_destroy (priv->timer);
 	priv->timer = NULL;
 
-	g_signal_emit (crawler, signals[FINISHED], 0);
+	g_signal_emit (crawler, signals[FINISHED], 0,
+		       priv->directories_found,
+		       priv->directories_ignored,
+		       priv->files_found,
+		       priv->files_ignored);
 }

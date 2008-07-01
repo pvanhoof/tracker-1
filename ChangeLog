@@ -1,3 +1,18 @@
+2008-07-01  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-module-config.[ch]: Added
+	index_file_patterns to the API and generate the patterns for the
+	crawler to use for pattern matching files to index.
+
+	* src/trackerd/tracker-crawler.c: Make sure we check the
+	file_index_patterns now. Improve statistics.
+	
+	* src/trackerd/tracker-marshal.list: Added to extend finished
+	signal to include some statistics.
+	
+	* src/trackerd/tracker-processor.c: Make use of the enable/disable
+	flag in the module config.
+
 2008-07-01  Ivan Frade  <ivan.frade@nokia.com>
 
 	* tests/common/tracker-test-helpers.[ch]

@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2008, Nokia
  *
  * This library is free software; you can redistribute it and/or
@@ -37,18 +37,24 @@
 typedef struct TrackerProcessorPrivate TrackerProcessorPrivate;
 
 struct TrackerProcessorPrivate {
-	TrackerConfig  *config; 
+	TrackerConfig  *config;
 #ifdef HAVE_HAL
-	TrackerHal     *hal; 
+	TrackerHal     *hal;
 #endif  /* HAVE_HAL */
-	TrackerCrawler *crawler; 
-	
-	GList          *modules; 
-	GList          *current_module; 
+	TrackerCrawler *crawler;
+
+	GList          *modules;
+	GList          *current_module;
 
 	GTimer         *timer;
 
 	gboolean        finished;
+
+	/* Statistics */
+	guint           directories_found;
+	guint           directories_ignored;
+	guint           files_found;
+	guint           files_ignored;
 };
 
 enum {
@@ -59,6 +65,10 @@ enum {
 static void tracker_processor_finalize (GObject          *object);
 static void process_next_module        (TrackerProcessor *processor);
 static void crawler_finished_cb        (TrackerCrawler   *crawler,
+					guint             directories_found,
+					guint             directories_ignored,
+					guint             files_found,
+					guint             files_ignored,
 					gpointer          user_data);
 
 static guint signals[LAST_SIGNAL] = { 0, };
@@ -72,7 +82,7 @@ tracker_processor_class_init (TrackerProcessorClass *class)
 
 	object_class->finalize = tracker_processor_finalize;
 
-	signals [FINISHED] = 
+	signals [FINISHED] =
 		g_signal_new ("finished",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_LAST,
@@ -128,7 +138,7 @@ add_monitors (const gchar *name)
 	GList *l;
 
 	monitors = tracker_module_config_get_monitor_directories (name);
-	
+
 	for (l = monitors; l; l = l->next) {
 		GFile       *file;
 		const gchar *path;
@@ -156,7 +166,7 @@ add_recurse_monitors (const gchar *name)
 	GList *l;
 
 	monitors = tracker_module_config_get_monitor_recurse_directories (name);
-	
+
 	for (l = monitors; l; l = l->next) {
 		GFile       *file;
 		const gchar *path;
@@ -187,6 +197,12 @@ process_module (TrackerProcessor *processor,
 
 	g_message ("Processing module:'%s'", module_name);
 
+	/* Check it is enabled */
+	if (!tracker_module_config_get_enabled (module_name)) {
+		process_next_module (processor);
+		return;
+	}
+
 	/* Set up monitors */
 
 	/* Set up recursive monitors */
@@ -197,7 +213,10 @@ process_module (TrackerProcessor *processor,
 		 * the next module.
 		 */
 		process_next_module (processor);
+		return;
 	}
+
+	/* Do soemthing else? */
 }
 
 static void
@@ -322,11 +341,22 @@ file_queue_handler_cb (gpointer user_data)
 
 static void
 crawler_finished_cb (TrackerCrawler *crawler,
+		     guint           directories_found,
+		     guint           directories_ignored,
+		     guint           files_found,
+		     guint           files_ignored,
 		     gpointer        user_data)
 {
-	TrackerProcessor *processor;
-	
+	TrackerProcessor        *processor;
+	TrackerProcessorPrivate *priv;
+
 	processor = TRACKER_PROCESSOR (user_data);
+	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
+
+	priv->directories_found += directories_found;
+	priv->directories_ignored += directories_ignored;
+	priv->files_found += files_found;
+	priv->files_ignored += files_ignored;
 
 	process_next_module (processor);
 }
@@ -394,11 +424,21 @@ tracker_processor_stop (TrackerProcessor *processor)
 		tracker_crawler_stop (priv->crawler);
 	}
 
+	g_message ("Process %s\n",
+		   priv->finished ? "has finished" : "been stopped");
+
 	g_timer_stop (priv->timer);
-	
-	g_message ("Process %s %4.4f seconds",
-		   priv->finished ? "finished in" : "stopped after",
+
+	g_message ("Total time taken : %4.4f seconds",
 		   g_timer_elapsed (priv->timer, NULL));
-	
+	g_message ("Total directories: %d (%d ignored)", 
+		   priv->directories_found,
+		   priv->directories_ignored);
+	g_message ("Total files      : %d (%d ignored)",
+		   priv->files_found,
+		   priv->files_ignored);
+	g_message ("Total monitors   : %d\n",
+		   tracker_monitor_get_count ());
+
 	g_signal_emit (processor, signals[FINISHED], 0);
 }

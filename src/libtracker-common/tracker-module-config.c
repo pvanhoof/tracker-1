@@ -53,9 +53,10 @@ typedef struct {
 	GList      *ignored_file_patterns;
 
 	/* Index */
-	gchar      *service;
-	GHashTable *mime_types;
-	GHashTable *files;
+	gchar      *index_service;
+	GHashTable *index_mime_types;
+	GHashTable *index_files;
+	GList      *index_file_patterns;
 
 	/* Specific Options, FIXME: Finish */
 
@@ -68,9 +69,14 @@ static GFileMonitor *monitor;
 static void
 module_config_free (ModuleConfig *mc)
 {
-	g_hash_table_unref (mc->files);
-	g_hash_table_unref (mc->mime_types);
-	g_free (mc->service);
+	g_list_foreach (mc->index_file_patterns,
+			(GFunc) g_pattern_spec_free,
+			NULL);
+	g_list_free (mc->index_file_patterns);
+
+	g_hash_table_unref (mc->index_files);
+	g_hash_table_unref (mc->index_mime_types);
+	g_free (mc->index_service);
 
 	g_list_foreach (mc->ignored_file_patterns,
 			(GFunc) g_pattern_spec_free,
@@ -151,6 +157,33 @@ module_config_set_ignored_directory_patterns (ModuleConfig *mc)
 	g_list_free (ignored_directories);
 
 	mc->ignored_directory_patterns = g_list_reverse (patterns);
+}
+
+static void
+module_config_set_index_file_patterns (ModuleConfig *mc)
+{
+	GPatternSpec *spec;
+	GList        *index_files;
+	GList        *l;
+	GList        *patterns = NULL;
+
+	g_list_foreach (mc->index_file_patterns,
+			(GFunc) g_pattern_spec_free,
+			NULL);
+	g_list_free (mc->index_file_patterns);
+
+	index_files = g_hash_table_get_keys (mc->index_files);
+
+	for (l = index_files; l; l = l->next) {
+		g_message ("  Adding file index pattern:'%s'", 
+			   (gchar *) l->data);
+		spec = g_pattern_spec_new (l->data);
+		patterns = g_list_prepend (patterns, spec);
+	}
+
+	g_list_free (index_files);
+
+	mc->index_file_patterns = g_list_reverse (patterns);
 }
 
 static gboolean
@@ -345,17 +378,17 @@ module_config_load_file (const gchar *filename)
 						FALSE);
 
 	/* Index */
-	mc->service =
+	mc->index_service =
 		module_config_load_string (key_file,
 					   GROUP_INDEX,
 					   "Service",
 					   FALSE);
-	mc->mime_types =
+	mc->index_mime_types =
 		module_config_load_string_list (key_file,
 						GROUP_INDEX,
 						"MimeTypes",
 						FALSE);
-	mc->files =
+	mc->index_files =
 		module_config_load_string_list (key_file,
 						GROUP_INDEX,
 						"Files",
@@ -365,6 +398,7 @@ module_config_load_file (const gchar *filename)
 
 	module_config_set_ignored_file_patterns (mc);
 	module_config_set_ignored_directory_patterns (mc);
+	module_config_set_index_file_patterns (mc);
 
 	return mc;
 }
@@ -636,7 +670,7 @@ tracker_module_config_get_ignored_files (const gchar *name)
 }
 
 const gchar *
-tracker_module_config_get_service (const gchar *name)
+tracker_module_config_get_index_service (const gchar *name)
 {
 	ModuleConfig *mc;
 
@@ -645,11 +679,11 @@ tracker_module_config_get_service (const gchar *name)
 	mc = g_hash_table_lookup (modules, name);
 	g_return_val_if_fail (mc, NULL);
 
-	return mc->service;
+	return mc->index_service;
 }
 
 GList *
-tracker_module_config_get_mime_types (const gchar *name)
+tracker_module_config_get_index_mime_types (const gchar *name)
 {
 	ModuleConfig *mc;
 
@@ -658,11 +692,11 @@ tracker_module_config_get_mime_types (const gchar *name)
 	mc = g_hash_table_lookup (modules, name);
 	g_return_val_if_fail (mc, NULL);
 
-	return g_hash_table_get_keys (mc->mime_types);
+	return g_hash_table_get_keys (mc->index_mime_types);
 }
 
 GList *
-tracker_module_config_get_files (const gchar *name)
+tracker_module_config_get_index_files (const gchar *name)
 {
 	ModuleConfig *mc;
 
@@ -671,7 +705,7 @@ tracker_module_config_get_files (const gchar *name)
 	mc = g_hash_table_lookup (modules, name);
 	g_return_val_if_fail (mc, NULL);
 
-	return g_hash_table_get_keys (mc->files);
+	return g_hash_table_get_keys (mc->index_files);
 }
 
 /*
@@ -702,4 +736,17 @@ tracker_module_config_get_ignored_directory_patterns (const gchar *name)
 	g_return_val_if_fail (mc, NULL);
 
 	return g_list_copy (mc->ignored_directory_patterns);
+}
+
+GList *
+tracker_module_config_get_index_file_patterns (const gchar *name)
+{
+	ModuleConfig *mc;
+
+	g_return_val_if_fail (name != NULL, NULL);
+
+	mc = g_hash_table_lookup (modules, name);
+	g_return_val_if_fail (mc, NULL);
+
+	return g_list_copy (mc->index_file_patterns);
 }

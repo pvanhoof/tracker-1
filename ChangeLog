@@ -1,5 +1,10 @@
 2008-07-02  Carlos Garnacho  <carlos@imendio.com>
 
+	* data/modules/evolution.module: Add local and IMAP storage
+	directories.
+
+2008-07-02  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-module.h: Add tracker_module_init() and
 	tracker_module_shutdown() to modules API. This is needed since we now
 	don't have an entry point that will be called just once, as happened

@@ -1,5 +1,18 @@
 2008-07-02  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-module.h: Add tracker_module_init() and
+	tracker_module_shutdown() to modules API. This is needed since we now
+	don't have an entry point that will be called just once, as happened
+	with tracker_module_get_directories().
+	* src/tracker-indexer/tracker-indexer-module.[ch]: Updated.
+	* src/tracker-indexer/tracker-indexer.c (close_module)
+	(tracker_indexer_init): Ensure the initialization/shutdown methods are
+	called for the modules.
+	* src/tracker-indexer/modules/evolution.c: Use these functions to
+	manage persistent data.
+
+2008-07-02  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/libtracker-common/tracker-module-config.c
 	(module_config_load_file):
 	* src/libtracker-common/tracker-ontology.c

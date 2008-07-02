@@ -88,6 +88,10 @@ static gchar *local_dir = NULL;
 static gchar *imap_dir = NULL;
 static GHashTable *accounts = NULL;
 
+
+void   get_imap_accounts (void);
+
+
 static gboolean
 read_summary (FILE *summary,
               ...)
@@ -188,6 +192,26 @@ read_summary (FILE *summary,
         va_end (args);
 
         return TRUE;
+}
+
+void
+tracker_module_init (void)
+{
+        g_mime_init (0);
+        get_imap_accounts ();
+
+        local_dir = g_build_filename (g_get_home_dir (), ".evolution", "mail", "local", G_DIR_SEPARATOR_S, NULL);
+        imap_dir = g_build_filename (g_get_home_dir (), ".evolution", "mail", "imap", G_DIR_SEPARATOR_S, NULL);
+}
+
+void
+tracker_module_shutdown (void)
+{
+        g_mime_shutdown ();
+
+        g_hash_table_destroy (accounts);
+        g_free (local_dir);
+        g_free (imap_dir);
 }
 
 G_CONST_RETURN gchar *
@@ -331,12 +355,6 @@ gchar **
 tracker_module_get_directories (void)
 {
         gchar **dirs;
-
-        g_mime_init (0);
-        get_imap_accounts ();
-
-        local_dir = g_build_filename (g_get_home_dir (), ".evolution", "mail", "local", G_DIR_SEPARATOR_S, NULL);
-        imap_dir = g_build_filename (g_get_home_dir (), ".evolution", "mail", "imap", G_DIR_SEPARATOR_S, NULL);
 
         dirs = g_new0 (gchar *, 3);
         dirs[0] = g_strdup (local_dir);

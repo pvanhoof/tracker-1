@@ -48,6 +48,26 @@ tracker_indexer_module_load (const gchar *module_name)
 	return module;
 }
 
+void
+tracker_indexer_module_init (GModule *module)
+{
+	TrackerModuleInit func;
+
+	if (g_module_symbol (module, "tracker_module_init", (gpointer *) &func)) {
+		(func) ();
+	}
+}
+
+void
+tracker_indexer_module_shutdown (GModule *module)
+{
+	TrackerModuleShutdown func;
+
+	if (g_module_symbol (module, "tracker_module_shutdown", (gpointer *) &func)) {
+		(func) ();
+	}
+}
+
 G_CONST_RETURN gchar *
 tracker_indexer_module_get_name (GModule *module)
 {

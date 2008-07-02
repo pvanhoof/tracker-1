@@ -355,6 +355,13 @@ tracker_indexer_class_init (TrackerIndexerClass *class)
 }
 
 static void
+close_module (GModule *module)
+{
+	tracker_indexer_module_shutdown (module);
+	g_module_close (module);
+}
+
+static void
 tracker_indexer_init (TrackerIndexer *indexer)
 {
 	TrackerIndexerPrivate *priv;
@@ -380,7 +387,7 @@ tracker_indexer_init (TrackerIndexer *indexer)
 	priv->indexer_modules = g_hash_table_new_full (g_str_hash,
 						       g_str_equal,
 						       NULL,
-						       (GDestroyNotify) g_module_close);
+						       (GDestroyNotify) close_module);
 
 	for (m = priv->module_names; m; m = m->next) {
 		GModule *module;
@@ -392,6 +399,8 @@ tracker_indexer_init (TrackerIndexer *indexer)
 		module = tracker_indexer_module_load (m->data);
 
 		if (module) {
+			tracker_indexer_module_init (module);
+
 			g_hash_table_insert (priv->indexer_modules,
 					     m->data, module);
 		}
@@ -627,7 +636,6 @@ process_module (TrackerIndexer *indexer,
 	TrackerIndexerPrivate *priv;
 	GModule *module;
 	GList *dirs, *d;
-	gint i;
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 	module = g_hash_table_lookup (priv->indexer_modules, module_name);

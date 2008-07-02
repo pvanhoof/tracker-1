@@ -31,6 +31,8 @@ struct TrackerFile {
 	gpointer  data;
 };
 
+typedef void          (* TrackerModuleInit)               (void);
+typedef void          (* TrackerModuleShutdown)           (void);
 
 typedef const gchar * (* TrackerModuleGetNameFunc)        (void);
 typedef gchar **      (* TrackerModuleGetDirectoriesFunc) (void);
@@ -42,6 +44,9 @@ typedef GHashTable *  (* TrackerModuleFileGetMetadataFunc) (TrackerFile *file);
 typedef gchar *       (* TrackerModuleFileGetText)         (TrackerFile *path);
 typedef gboolean      (* TrackerModuleFileIterContents)    (TrackerFile *path);
 
+
+void                   tracker_module_init                   (void);
+void                   tracker_module_shutdown               (void);
 
 G_CONST_RETURN gchar * tracker_module_get_name               (void);
 gchar **               tracker_module_get_directories        (void);

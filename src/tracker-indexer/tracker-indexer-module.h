@@ -29,6 +29,9 @@ G_BEGIN_DECLS
 
 GModule *               tracker_indexer_module_load                   (const gchar *module_name);
 
+void                    tracker_indexer_module_init                   (GModule     *module);
+void                    tracker_indexer_module_shutdown               (GModule     *module);
+
 G_CONST_RETURN gchar *  tracker_indexer_module_get_name               (GModule     *module);
 gchar **                tracker_indexer_module_get_directories        (GModule     *module);
 gchar **                tracker_indexer_module_get_ignore_directories (GModule     *module);

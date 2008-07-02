@@ -1,5 +1,9 @@
 2008-07-02  Philip Van Hoof  <pvanhoof@gnome.org>
 
+	* src/libtracker-db/tracker-db-manager.c: Memory leak fix
+
+2008-07-02  Philip Van Hoof  <pvanhoof@gnome.org>
+
 	* src/trackerd/tracker-search.c:
 	* src/trackerd/tracker-files.c:
 	* src/trackerd/tracker-xesam-live-search.c:

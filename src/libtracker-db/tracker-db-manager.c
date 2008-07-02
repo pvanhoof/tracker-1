@@ -146,6 +146,9 @@ static gchar              *data_dir;
 static gchar              *user_data_dir;
 static gchar              *sys_tmp_dir;
 static gpointer            db_type_enum_class_pointer;
+static TrackerDBInterface *file_iface = NULL;
+static TrackerDBInterface *email_iface = NULL;
+static TrackerDBInterface *xesam_iface = NULL;
 
 static const gchar * 
 location_to_directory (TrackerDBLocation location)
@@ -2385,6 +2388,14 @@ tracker_db_manager_shutdown (gboolean remove_tmp)
         g_free (services_dir);
         g_free (sql_dir);
 
+	if (file_iface)
+		g_object_unref (file_iface);
+	if (email_iface)
+		g_object_unref (email_iface);
+	if (xesam_iface)
+		g_object_unref (xesam_iface);
+
+
 	/* Since we don't reference this enum anywhere, we do
 	 * it here to make sure it exists when we call
 	 * g_type_class_peek(). This wouldn't be necessary if
@@ -2496,10 +2507,6 @@ tracker_db_manager_get_db_interface_by_service (const gchar *service)
 {
 	TrackerDBInterface        *iface;
 	TrackerDBType              type;
-
-	static TrackerDBInterface *file_iface = NULL;
-	static TrackerDBInterface *email_iface = NULL;
-	static TrackerDBInterface *xesam_iface = NULL;
 
 	g_return_val_if_fail (initialized != FALSE, NULL);
 	g_return_val_if_fail (service != NULL, NULL);

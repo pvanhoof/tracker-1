@@ -35,9 +35,9 @@
 
 static TrackerConfig *config;
 static GHashTable    *monitors;
-static GAsyncQueue   *files_created;
-static GAsyncQueue   *files_updated;
-static GAsyncQueue   *files_deleted;
+static GQueue        *files_created;
+static GQueue        *files_updated;
+static GQueue        *files_deleted;
 static guint          files_queue_handlers_id;
 static GType          monitor_backend; 
 static guint          monitor_limit;
@@ -90,15 +90,15 @@ tracker_monitor_init (TrackerConfig *_config)
 	}
 
 	if (!files_created) {
-		files_created = g_async_queue_new ();
+		files_created = g_queue_new ();
 	}
 
 	if (!files_updated) {
-		files_updated = g_async_queue_new ();
+		files_updated = g_queue_new ();
 	}
 
 	if (!files_deleted) {
-		files_deleted = g_async_queue_new ();
+		files_deleted = g_queue_new ();
 	}
 
 	/* For the first monitor we get the type and find out if we
@@ -192,8 +192,6 @@ tracker_monitor_init (TrackerConfig *_config)
 void
 tracker_monitor_shutdown (void)
 {
-	gchar *str;
-
 	monitors_ignored = 0;
 	monitor_limit_warned = FALSE;
 	monitor_limit = 0;
@@ -204,29 +202,14 @@ tracker_monitor_shutdown (void)
 		files_queue_handlers_id = 0;
 	}
 
-        for (str = g_async_queue_try_pop (files_deleted);
-	     str;
-	     str = g_async_queue_try_pop (files_deleted)) {
-		g_free (str);
-	}
+	g_queue_foreach (files_deleted, (GFunc) g_free, NULL);
+	g_queue_free (files_deleted);
 
-	g_async_queue_unref (files_deleted);
+	g_queue_foreach (files_updated, (GFunc) g_free, NULL);
+	g_queue_free (files_updated);
 
-        for (str = g_async_queue_try_pop (files_updated);
-	     str;
-	     str = g_async_queue_try_pop (files_updated)) {
-		g_free (str);
-	}
-
-	g_async_queue_unref (files_updated);
-
-        for (str = g_async_queue_try_pop (files_created);
-	     str;
-	     str = g_async_queue_try_pop (files_created)) {
-		g_free (str);
-	}
-
-	g_async_queue_unref (files_created);
+	g_queue_foreach (files_created, (GFunc) g_free, NULL);
+	g_queue_free (files_created);
 
 	if (monitors) {
 		g_hash_table_unref (monitors);
@@ -278,8 +261,7 @@ indexer_get_running_cb (DBusGProxy *proxy,
 
 	/* First do the deleted queue */
 	g_debug ("Files deleted queue being processed...");
-	files = tracker_dbus_async_queue_to_strv (files_deleted,
-						  FILES_QUEUE_PROCESS_MAX);
+	files = tracker_dbus_queue_str_to_strv (files_deleted, FILES_QUEUE_PROCESS_MAX);
 	
 	if (g_strv_length (files) > 0) {
 		g_debug ("Files deleted queue processed, sending first %d to the indexer", 
@@ -293,8 +275,7 @@ indexer_get_running_cb (DBusGProxy *proxy,
 
 	/* Second do the created queue */
 	g_debug ("Files created queue being processed...");
-	files = tracker_dbus_async_queue_to_strv (files_created,
-						  FILES_QUEUE_PROCESS_MAX);
+	files = tracker_dbus_queue_str_to_strv (files_created, FILES_QUEUE_PROCESS_MAX);
 	if (g_strv_length (files) > 0) {
 		g_debug ("Files created queue processed, sending first %d to the indexer", 
 			 g_strv_length (files));
@@ -307,8 +288,7 @@ indexer_get_running_cb (DBusGProxy *proxy,
 
 	/* Second do the created queue */
 	g_debug ("Files updated queue being processed...");
-	files = tracker_dbus_async_queue_to_strv (files_updated,
-						  FILES_QUEUE_PROCESS_MAX);
+	files = tracker_dbus_queue_str_to_strv (files_updated, FILES_QUEUE_PROCESS_MAX);
 	
 	if (g_strv_length (files) > 0) {
 		g_debug ("Files updated queue processed, sending first %d to the indexer", 
@@ -327,9 +307,9 @@ file_queue_handlers_cb (gpointer user_data)
 	DBusGProxy *proxy;
 	gint        items_to_process = 0;
 
-	items_to_process += g_async_queue_length (files_created);
-	items_to_process += g_async_queue_length (files_updated);
-	items_to_process += g_async_queue_length (files_deleted);
+	items_to_process += g_queue_get_length (files_created);
+	items_to_process += g_queue_get_length (files_updated);
+	items_to_process += g_queue_get_length (files_deleted);
 
 	if (items_to_process < 1) {
 		g_debug ("All queues are empty... nothing to do");
@@ -410,17 +390,17 @@ monitor_event_cb (GFileMonitor     *monitor,
 	case G_FILE_MONITOR_EVENT_CHANGED:
 	case G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT:
 	case G_FILE_MONITOR_EVENT_ATTRIBUTE_CHANGED:
-		g_async_queue_push (files_updated, str1);
+		g_queue_push_tail (files_updated, str1);
 		file_queue_handlers_set_up ();
 		break;
 
 	case G_FILE_MONITOR_EVENT_DELETED:
-		g_async_queue_push (files_deleted, str1);
+		g_queue_push_tail (files_deleted, str1);
 		file_queue_handlers_set_up ();
 		break;
 
 	case G_FILE_MONITOR_EVENT_CREATED:
-		g_async_queue_push (files_created, str1);
+		g_queue_push_tail (files_created, str1);
 		file_queue_handlers_set_up ();
 		break;
 

@@ -73,7 +73,7 @@ tracker_dbus_query_result_to_hash_table (TrackerDBResultSet *result_set)
 	hash_table = g_hash_table_new_full (g_str_hash,
                                             g_str_equal,
                                             (GDestroyNotify) g_free,
-                                            (GDestroyNotify) tracker_dbus_g_value_slice_free);       
+                                            (GDestroyNotify) tracker_dbus_gvalue_slice_free);       
 
 	if (result_set) {
 		valid = TRUE;
@@ -92,7 +92,7 @@ tracker_dbus_query_result_to_hash_table (TrackerDBResultSet *result_set)
 		g_value_init (&transform, G_TYPE_STRING);
 
 		tracker_db_result_set_get (result_set, 0, &key, -1);
-		values = tracker_dbus_g_value_slice_new (G_TYPE_STRV);
+		values = tracker_dbus_gvalue_slice_new (G_TYPE_STRV);
 
                 for (i = 1; i < field_count; i++) {
 			GValue  value;

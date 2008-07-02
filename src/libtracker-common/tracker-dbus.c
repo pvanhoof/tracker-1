@@ -24,7 +24,7 @@
 #include <gio/gio.h>
 
 GValue *
-tracker_dbus_g_value_slice_new (GType type)
+tracker_dbus_gvalue_slice_new (GType type)
 {
 	GValue *value;
 
@@ -35,7 +35,7 @@ tracker_dbus_g_value_slice_new (GType type)
 }
 
 void
-tracker_dbus_g_value_slice_free (GValue *value)
+tracker_dbus_gvalue_slice_free (GValue *value)
 {
 	g_value_unset (value);
 	g_slice_free (GValue, value);
@@ -88,17 +88,15 @@ tracker_dbus_slist_to_strv (GSList *list)
 }
 
 gchar **
-tracker_dbus_async_queue_to_strv (GAsyncQueue *queue, 
-				  gint         max)
+tracker_dbus_queue_str_to_strv (GQueue *queue, 
+				gint    max)
 {
 	gchar **strv;
 	gchar  *str;
 	gint    i, j;
 	gint    length;
 
-	g_async_queue_lock (queue);
-
-	length = g_async_queue_length_unlocked (queue);
+	length = g_queue_get_length (queue);
 		
 	if (max > 0) {
 		length = MIN (max, length);
@@ -107,7 +105,7 @@ tracker_dbus_async_queue_to_strv (GAsyncQueue *queue,
 	strv = g_new0 (gchar*, length + 1);
 	
 	for (i = 0, j = 0; i < length; i++) {
-		str = g_async_queue_try_pop_unlocked (queue);
+		str = g_queue_pop_head (queue);
 
 		if (!str) {
 			break;
@@ -124,13 +122,11 @@ tracker_dbus_async_queue_to_strv (GAsyncQueue *queue,
 
         strv[j] = NULL;
 
-	g_async_queue_unlock (queue);
-
 	return strv;
 }
 
 gchar **
-tracker_dbus_gfile_queue_to_strv (GQueue *queue, 
+tracker_dbus_queue_gfile_to_strv (GQueue *queue, 
 				  gint    max)
 {
 	gchar **strv;

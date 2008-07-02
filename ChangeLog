@@ -1,3 +1,13 @@
+2008-07-02  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-dbus.[ch]:
+	* src/libtracker-db/tracker-db-dbus.c:
+	* src/trackerd/tracker-crawler.c:
+	* src/trackerd/tracker-monitor.c:
+	* tests/libtracker-common/tracker-dbus-test.c: Use a GQueue
+	instead of a GAsyncQueue. We don't have any threads so there is no
+	need for the extra locking overhead.
+
 2008-07-02  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/trackerd/tracker-db.c:

@@ -65,28 +65,28 @@ test_slist_to_strv_nonutf8 (void)
 static void
 async_queue_to_strv (gboolean utf8)
 {
-        GAsyncQueue *queue;
+        GQueue *queue;
         gint i;
         gchar **queue_as_strv;
         gint strings = 5;
 
-        queue = g_async_queue_new ();
+        queue = g_queue_new ();
 
         for (i = 0; i < strings; i++) {
                 if (utf8) {
-                        g_async_queue_push (queue, g_strdup_printf ("%d", i));
+                        g_queue_push_tail (queue, g_strdup_printf ("%d", i));
                 } else {
-                        g_async_queue_push (queue, g_strdup (tracker_test_helpers_get_nonutf8 ()));
+                        g_queue_push_tail (queue, g_strdup (tracker_test_helpers_get_nonutf8 ()));
                 }
         }
-        g_assert_cmpint (g_async_queue_length (queue), ==, strings);
+        g_assert_cmpint (g_queue_get_length (queue), ==, strings);
 
-        queue_as_strv = tracker_dbus_async_queue_to_strv (queue, g_async_queue_length (queue));
+        queue_as_strv = tracker_dbus_queue_str_to_strv (queue, g_queue_get_length (queue));
 
         g_assert_cmpint (g_strv_length (queue_as_strv), ==, (utf8 ? strings : 0));
 
         // Queue empty by tracker_dbus_async_queue_to_strv
-        g_async_queue_unref (queue);
+        g_queue_free (queue);
         g_strfreev (queue_as_strv);
 
 }

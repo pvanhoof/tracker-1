@@ -651,7 +651,7 @@ indexer_get_running_cb (DBusGProxy *proxy,
 	}
 
 	total = g_queue_get_length (crawler->private->files);
-	files = tracker_dbus_gfile_queue_to_strv (crawler->private->files,
+	files = tracker_dbus_queue_gfile_to_strv (crawler->private->files,
 						  FILES_QUEUE_PROCESS_MAX);
 	
 	g_debug ("File check queue processed, sending first %d/%d to the indexer",

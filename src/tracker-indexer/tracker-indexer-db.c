@@ -27,6 +27,17 @@
 
 #include "tracker-indexer-db.h"
 
+void
+tracker_db_inc_service_id (TrackerDBInterface *iface, guint32 id)
+{
+	gchar              *id_str;
+
+	id_str = tracker_int_to_string (id);
+
+	tracker_db_interface_execute_procedure (iface, NULL, "UpdateNewID", id_str, NULL);
+	g_free (id_str);
+}
+
 guint32
 tracker_db_get_new_service_id (TrackerDBInterface *iface)
 {
@@ -45,15 +56,21 @@ tracker_db_get_new_service_id (TrackerDBInterface *iface)
 	g_object_unref (result_set);
 
 	id = atoi (id_str);
-	g_free (id_str);
-
 	id++;
-	id_str = tracker_int_to_string (id);
-
-	tracker_db_interface_execute_procedure (iface, NULL, "UpdateNewID", id_str, NULL);
 	g_free (id_str);
 
 	return id;
+}
+
+void
+tracker_db_inc_event_id (TrackerDBInterface *iface, guint32 id)
+{
+	gchar              *id_str;
+
+	id_str = tracker_int_to_string (id);
+
+	tracker_db_interface_execute_procedure (iface, NULL, "UpdateNewEventID", id_str, NULL);
+	g_free (id_str);
 }
 
 guint32
@@ -74,12 +91,7 @@ tracker_db_get_new_event_id (TrackerDBInterface *iface)
 	g_object_unref (result_set);
 
 	id = atoi (id_str);
-	g_free (id_str);
-
 	id++;
-	id_str = tracker_int_to_string (id);
-
-	tracker_db_interface_execute_procedure (iface, NULL, "UpdateNewEventID", id_str, NULL);
 	g_free (id_str);
 
 	return id;

@@ -71,6 +71,9 @@
 /* Flush every 'x' seconds */
 #define FLUSH_FREQUENCY 10
 
+/* Transaction every 'x' items */
+#define TRANSACTION_MAX 50
+
 typedef struct TrackerIndexerPrivate TrackerIndexerPrivate;
 typedef struct PathInfo PathInfo;
 typedef struct MetadataForeachData MetadataForeachData;
@@ -86,6 +89,7 @@ struct TrackerIndexerPrivate {
 	gchar *db_dir;
 
 	TrackerIndex *index;
+
 	TrackerDBInterface *metadata;
 	TrackerDBInterface *contents;
 	TrackerDBInterface *common;
@@ -99,6 +103,8 @@ struct TrackerIndexerPrivate {
 
 	guint idle_id;
 	guint flush_id;
+	gint items_processed;
+	gboolean in_transaction;
 };
 
 struct PathInfo {
@@ -151,6 +157,40 @@ path_info_free (PathInfo *info)
 	g_slice_free (PathInfo, info);
 }
 
+
+static void 
+start_transaction (TrackerIndexer *indexer)
+{
+	TrackerIndexerPrivate *priv;
+	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
+
+	g_message ("Transaction start");
+	priv->in_transaction = TRUE;
+
+	tracker_db_interface_start_transaction (priv->cache);
+	tracker_db_interface_start_transaction (priv->contents);
+	tracker_db_interface_start_transaction (priv->metadata);
+	tracker_db_interface_start_transaction (priv->common);
+
+}
+
+static void 
+stop_transaction (TrackerIndexer *indexer)
+{
+	TrackerIndexerPrivate *priv;
+	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
+
+	tracker_db_interface_end_transaction (priv->common);
+	tracker_db_interface_end_transaction (priv->metadata);
+	tracker_db_interface_end_transaction (priv->contents);
+	tracker_db_interface_end_transaction (priv->cache);
+
+	priv->items_processed = 0;
+	priv->in_transaction = FALSE;
+
+	g_message ("Transaction commit");
+}
+
 static gboolean
 schedule_flush_cb (gpointer data)
 {
@@ -163,6 +203,10 @@ schedule_flush_cb (gpointer data)
 	priv->flush_id = 0;
 
 	priv->items_indexed += tracker_index_flush (priv->index);
+
+	if (priv->items_processed) {
+		stop_transaction (indexer);
+	}
 
 	return FALSE;
 }
@@ -317,6 +361,8 @@ tracker_indexer_init (TrackerIndexer *indexer)
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
+	priv->items_processed = 0;
+	priv->in_transaction = FALSE;
 	priv->dir_queue = g_queue_new ();
 	priv->file_process_queue = g_queue_new ();
 	priv->modules_queue = g_queue_new ();
@@ -352,10 +398,7 @@ tracker_indexer_init (TrackerIndexer *indexer)
 
 	priv->cache = tracker_db_manager_get_db_interface (TRACKER_DB_CACHE);
 	priv->common = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
-	priv->metadata = tracker_db_manager_get_db_interfaces (3, 
-							       TRACKER_DB_COMMON,
-							       TRACKER_DB_CACHE, 
-							       TRACKER_DB_FILE_METADATA);
+	priv->metadata = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
 	priv->contents = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_CONTENTS);
 
 	priv->timer = g_timer_new ();
@@ -478,6 +521,7 @@ index_metadata (TrackerIndexer *indexer,
 	}
 }
 
+
 static gboolean
 process_file (TrackerIndexer *indexer,
 	      PathInfo       *info)
@@ -500,24 +544,18 @@ process_file (TrackerIndexer *indexer,
 		service = tracker_ontology_get_service_type_by_name (service_type);
 		id = tracker_db_get_new_service_id (priv->common);
 
-		/* Begin of transaction point X */
-
-		/* If you ever need to remove this transaction, because it gets
-		 * wrapped into a larger one, that's fine IF you indeed have a
-		 * larger one in place that spans cache,common and the selected
-		 * metadata database file */
-
-		tracker_db_interface_start_transaction (priv->metadata);
-
 		if (tracker_db_create_service (priv->metadata, id, service, info->file->path, metadata)) {
 			gchar *text;
 			guint32 eid;
+			gboolean inc_events = FALSE;
 
-			eid = tracker_db_get_new_event_id (priv->metadata);
+			eid = tracker_db_get_new_event_id (priv->common);
 
-			tracker_db_create_event (priv->metadata, eid, id, "Create");
+			if (tracker_db_create_event (priv->cache, eid, id, "Create")) {
+				inc_events = TRUE;
+			}
 
-			tracker_db_increment_stats (priv->metadata, service);
+			tracker_db_increment_stats (priv->common, service);
 
 			index_metadata (indexer, id, service, metadata);
 
@@ -527,11 +565,12 @@ process_file (TrackerIndexer *indexer,
 				tracker_db_set_text (priv->contents, id, text);
 				g_free (text);
 			}
+
+			if (inc_events)
+				tracker_db_inc_event_id (priv->common, eid);
+
+			tracker_db_inc_service_id (priv->common, id);
 		}
-		
-		tracker_db_interface_end_transaction (priv->metadata); 
-		
-		/* End of transaction point X */
 
 		g_hash_table_destroy (metadata);
 	}
@@ -620,12 +659,19 @@ indexing_func (gpointer data)
 	indexer = (TrackerIndexer *) data;
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
+	priv->items_processed++;
+
+	if (!priv->in_transaction) {
+		start_transaction (indexer);
+	}
+
 	if ((path = g_queue_peek_head (priv->file_process_queue)) != NULL) {
 		/* Process file */
 		if (process_file (indexer, path)) {
 			path = g_queue_pop_head (priv->file_process_queue);
 			path_info_free (path);
 		}
+		priv->items_processed++;
 	} else if ((path = g_queue_pop_head (priv->dir_queue)) != NULL) {
 		/* Process directory contents */
 		process_directory (indexer, path, TRUE);
@@ -641,6 +687,10 @@ indexing_func (gpointer data)
 			/* No more modules to query, we're done */
 			g_timer_stop (priv->timer);
 
+			if (priv->in_transaction) {
+				stop_transaction (indexer);
+			}
+
 			g_message ("Indexer finished in %4.4f seconds, %d items indexed in total",
 				   g_timer_elapsed (priv->timer, NULL),
 				   priv->items_indexed);
@@ -652,6 +702,10 @@ indexing_func (gpointer data)
 		process_module (indexer, module);
 
 		g_signal_emit (indexer, signals[INDEX_UPDATED], 0);
+	}
+
+	if (priv->items_processed > TRANSACTION_MAX && priv->in_transaction) {
+		stop_transaction (indexer);
 	}
 
 	return TRUE;

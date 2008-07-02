@@ -48,6 +48,11 @@ gboolean tracker_db_create_event       (TrackerDBInterface *iface,
                                         guint32             id,
                                         guint32             service_id,
                                         const gchar        *type);
+void     tracker_db_inc_service_id      (TrackerDBInterface *iface, 
+					 guint32 id);
+void     tracker_db_inc_event_id        (TrackerDBInterface *iface, 
+					 guint32 id);
+
 
 G_END_DECLS
 

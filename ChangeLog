@@ -33,6 +33,12 @@
 
 2008-07-02  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/modules/files.c (tracker_metadata_get_embedded):
+	* src/tracker-indexer/modules/evolution.c (get_imap_accounts): Plug
+	some leaks.
+
+2008-07-02  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-module.h: Remove get_directories() and
 	get_ignore_directories() from modules API. The data specified in the
 	.module file will be used.

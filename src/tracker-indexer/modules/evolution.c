@@ -337,7 +337,9 @@ get_imap_accounts (void)
         parser.text = account_text_handler;
         parse_context = g_markup_parse_context_new (&parser, 0, &account_context, NULL);
 
-        accounts = g_hash_table_new (g_str_hash, g_str_equal);
+        accounts = g_hash_table_new_full (g_str_hash, g_str_equal,
+                                          (GDestroyNotify) g_free,
+                                          (GDestroyNotify) g_free);
 
         for (l = list; l; l = l->next) {
                 g_markup_parse_context_parse (parse_context, (const gchar *) l->data, -1, NULL);
@@ -346,6 +348,8 @@ get_imap_accounts (void)
                                      account_context.account,
                                      account_context.uid);
         }
+
+        g_markup_parse_context_free (parse_context);
 
         g_slist_foreach (list, (GFunc) g_free, NULL);
         g_slist_free (list);

@@ -50,7 +50,7 @@ tracker_module_get_name (void)
 	return "Files";
 }
 
-void
+static void
 tracker_metadata_get_embedded (const char *path,
 			       const char *mimetype,
 			       GHashTable *table)
@@ -69,6 +69,8 @@ tracker_metadata_get_embedded (const char *path,
 		g_free (service_type);
 		return;
 	}
+
+        g_free (service_type);
 
 	/* we extract metadata out of process using pipes */
 	argv = g_new0 (gchar *, 4);

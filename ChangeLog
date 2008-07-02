@@ -2,6 +2,8 @@
 
 	* src/trackerd/tracker-db.c:
 	* src/trackerd/tracker-db.h:
+	* src/libtracker-db/tracker-db-manager.c:
+	* src/libtracker-db/tracker-db-manager.h:
 
 	Commented out code that is simply never called
 

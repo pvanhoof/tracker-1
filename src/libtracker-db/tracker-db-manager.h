@@ -63,9 +63,10 @@ TrackerDBInterface *
              tracker_db_manager_get_db_interfaces           (gint num, ...);
 TrackerDBInterface *
              tracker_db_manager_get_db_interface_by_service (const gchar           *service);
+/*
 TrackerDBInterface *
              tracker_db_manager_get_db_interface_content    (TrackerDBInterface    *iface);
-
+*/
 G_END_DECLS
 
 #endif /* __TRACKER_DB_MANAGER_H__ */

@@ -1879,7 +1879,7 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 			/* FIXME: is the blog the metadata blob/email
 			 * blob or something else? 
 			 */
-			db_save_full_text (tracker_db_manager_get_db_interface_content (iface),
+			db_save_full_text (iface,
 					   id, 
 					   values[0], 
 					   strlen (values[0]));

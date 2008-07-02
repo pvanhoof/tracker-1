@@ -2559,6 +2559,7 @@ tracker_db_manager_get_db_interface_by_service (const gchar *service)
 	return iface;
 }
 
+/*
 TrackerDBInterface *
 tracker_db_manager_get_db_interface_content (TrackerDBInterface *iface)
 {
@@ -2581,4 +2582,4 @@ tracker_db_manager_get_db_interface_content (TrackerDBInterface *iface)
 
 	return NULL;
 }
-
+*/

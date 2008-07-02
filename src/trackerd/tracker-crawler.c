@@ -117,10 +117,6 @@ static void file_enumerate_next       (GFileEnumerator *enumerator,
 static void file_enumerate_children   (TrackerCrawler  *crawler,
 				       GFile           *file);
 
-#if 0
-static void file_queue_handler_set_up (TrackerCrawler  *crawler);
-#endif
-
 static guint signals[LAST_SIGNAL] = { 0, };
 
 G_DEFINE_TYPE(TrackerCrawler, tracker_crawler, G_TYPE_OBJECT)
@@ -217,10 +213,10 @@ crawler_finalize (GObject *object)
 		priv->files_queue_handle_id = 0;
 	}
 
-	g_queue_foreach (priv->files, (GFunc) g_free, NULL);
+	g_queue_foreach (priv->files, (GFunc) g_object_unref, NULL);
 	g_queue_free (priv->files);
 
-	g_queue_foreach (priv->directories, (GFunc) g_free, NULL);
+	g_queue_foreach (priv->directories, (GFunc) g_object_unref, NULL);
 	g_queue_free (priv->directories);
 
 #ifdef HAVE_HAL

@@ -1,3 +1,9 @@
+2008-07-02  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-crawler.c: (crawler_finalize): Don't use
+	g_free() to free a GFile. This is a hangover from when the files
+	and directories queues had strings in them, now they have GFiles.
+
 2008-07-02  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/trackerd/tracker-metadata.c:

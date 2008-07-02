@@ -400,6 +400,8 @@ module_config_load_file (const gchar *filename)
 	module_config_set_ignored_directory_patterns (mc);
 	module_config_set_index_file_patterns (mc);
 
+	g_key_file_free (key_file);
+
 	return mc;
 }
 

@@ -243,12 +243,13 @@ tracker_indexer_finalize (GObject *object)
 	if (priv->flush_id) {
 		g_source_remove (priv->flush_id);
 		schedule_flush (TRACKER_INDEXER (object), TRUE);
-	}	
+	}
 
 	if (priv->timer) {
 		g_timer_destroy (priv->timer);
 	}
 
+	g_list_free (priv->module_names);
 	g_free (priv->db_dir);
 
 	g_queue_foreach (priv->dir_queue, (GFunc) path_info_free, NULL);

@@ -1,5 +1,14 @@
 2008-07-02  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/libtracker-common/tracker-module-config.c
+	(module_config_load_file):
+	* src/libtracker-common/tracker-ontology.c
+	(tracker_ontology_shutdown):
+	* src/tracker-indexer/tracker-indexer.c (tracker_indexer_finalize):
+	Plug some leaks.
+
+2008-07-02  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-indexer.c:
 	* src/tracker-indexer/tracker-main.c: Get TrackerModuleConfig to get
 	available modules, directories to scan, etc...

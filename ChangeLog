@@ -1,3 +1,10 @@
+2008-07-02  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-db.c:
+	* src/trackerd/tracker-db.h:
+
+	Commented out code that is simply never called
+
 2008-07-02  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-crawler.c: (crawler_finalize): Don't use

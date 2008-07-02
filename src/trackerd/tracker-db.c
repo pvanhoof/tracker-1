@@ -461,7 +461,7 @@ db_create_event (TrackerDBInterface *iface,
 
 	return id;
 }
-
+/*
 static void
 delete_index_for_service (TrackerDBInterface *iface, 
 			  guint32             id)
@@ -477,7 +477,8 @@ delete_index_for_service (TrackerDBInterface *iface,
 
 	g_free (str_file_id);
 }
-
+*/
+/*
 static void
 dec_stat (TrackerDBInterface *iface, gint id)
 {
@@ -501,8 +502,11 @@ dec_stat (TrackerDBInterface *iface, gint id)
 	
 	g_free (service);
 }
+*/
 
 /* Update all non-dirs in a dir for a file move */
+
+/*
 static void
 directory_move_files (TrackerDBInterface *iface, 
 		      const gchar        *moved_from_uri, 
@@ -510,7 +514,7 @@ directory_move_files (TrackerDBInterface *iface,
 {
 	TrackerDBResultSet *result_set;
 
-	/* Get all sub files (excluding folders) that were moved and add watches */
+	* Get all sub files (excluding folders) that were moved and add watches *
 	result_set = tracker_db_exec_proc (iface,
 					   "SelectFileChildWithoutDirs", 
 					   moved_from_uri, 
@@ -553,10 +557,10 @@ directory_move (TrackerDBInterface *iface,
 		const gchar        *moved_from_uri, 
 		const gchar        *moved_to_uri)
 {
-	/* FIXME: the monitor updates should not be done here, -mr */
+	* FIXME: the monitor updates should not be done here, -mr *
 
 #if 0
-	/* Stop watching old dir, start watching new dir */
+	* Stop watching old dir, start watching new dir *
 	tracker_monitor_remove (moved_from_uri, TRUE);
 #endif
 		
@@ -567,6 +571,7 @@ directory_move (TrackerDBInterface *iface,
 	tracker_monitor_add (moved_to_uri);
 #endif
 }
+*/
 
 static gint 
 get_memory_usage (void)
@@ -1448,6 +1453,7 @@ tracker_db_metadata_get_table (TrackerFieldType type)
 /* Fast insert of embedded metadata. Table parameter is used to build
  * up a unique word list of indexable contents.
  */ 
+/*
 void
 tracker_db_metadata_insert_single_embedded (TrackerDBInterface *iface, 
 					    const gchar        *service, 
@@ -1584,7 +1590,7 @@ tracker_db_metadata_insert_embedded (TrackerDBInterface  *iface,
 								  tracker_field_get_delimited (def));
 			}
 			
-			db_save_full_text (tracker_db_manager_get_db_interface_content (iface), 
+			db_save_full_text (tracker_db_manager_get_db_interface_contentX (iface), 
 					   id, 
 					   values[i],
 					   strlen (values[i]));
@@ -1707,6 +1713,7 @@ tracker_db_metadata_insert_embedded (TrackerDBInterface  *iface,
 		}
 	}
 }
+*/
 
 void
 tracker_db_metadata_set_single (TrackerDBInterface *iface, 
@@ -2975,6 +2982,7 @@ tracker_db_file_get_id_as_string (TrackerDBInterface *iface,
 	return NULL;
 }
 
+/*
 TrackerDBFileInfo *
 tracker_db_file_get_info (TrackerDBInterface *iface, 
 			  TrackerDBFileInfo  *info)
@@ -3026,7 +3034,9 @@ tracker_db_file_get_info (TrackerDBInterface *iface,
 
 	return info;
 }
+*/
 
+/*
 gboolean
 tracker_db_file_is_up_to_date (TrackerDBInterface *iface, 
 			       const gchar        *uri, 
@@ -3077,7 +3087,9 @@ tracker_db_file_is_up_to_date (TrackerDBInterface *iface,
 
 	return TRUE;
 }
+*/
 
+/*
 void
 tracker_db_file_delete (TrackerDBInterface *iface,
 			guint32             file_id)
@@ -3124,7 +3136,9 @@ tracker_db_file_delete (TrackerDBInterface *iface,
 
 	g_free (str_file_id);
 }
+*/
 
+/*
 void
 tracker_db_directory_delete (TrackerDBInterface *iface,
 			     guint32             file_id, 
@@ -3141,7 +3155,7 @@ tracker_db_directory_delete (TrackerDBInterface *iface,
 	uri_prefix = g_strconcat (uri, G_DIR_SEPARATOR_S, "*", NULL);
 	delete_index_for_service (iface, file_id);
 
-	/* Get all file id's for all files recursively under directory amd delete them */
+	* Get all file id's for all files recursively under directory amd delete them *
 	result_set = tracker_db_exec_proc (iface, 
 					   "SelectSubFileIDs", 
 					   uri, 
@@ -3162,12 +3176,13 @@ tracker_db_directory_delete (TrackerDBInterface *iface,
 		g_object_unref (result_set);
 	}
 
-	/* Delete directory */
+	* Delete directory *
 	tracker_db_file_delete (iface, file_id);
 
 	g_free (uri_prefix);
 	g_free (str_file_id);
 }
+*/
 
 /*
 void
@@ -3463,7 +3478,7 @@ tracker_db_uri_sub_watches_delete (const gchar *dir)
 	return result_set;
 }
 */
-
+/*
 void
 tracker_db_file_move (TrackerDBInterface *iface, 
 		      const gchar        *moved_from_uri, 
@@ -3485,7 +3500,7 @@ tracker_db_file_move (TrackerDBInterface *iface,
 		   moved_from_uri, 
 		   moved_to_uri);
 
-	/* If orig file not in DB, treat it asa create action */
+	* If orig file not in DB, treat it asa create action *
 	id = tracker_db_file_get_id (iface, moved_from_uri);
 
 	if (id == 0) {
@@ -3501,7 +3516,7 @@ tracker_db_file_move (TrackerDBInterface *iface,
 	old_name = g_path_get_basename (moved_from_uri);
 	old_path = g_path_get_dirname (moved_from_uri);
 
-	/* Update db so that fileID reflects new uri */
+	* Update db so that fileID reflects new uri *
 	tracker_db_exec_proc (iface, 
 			      "UpdateFileMove", 
 			      path, 
@@ -3511,7 +3526,7 @@ tracker_db_file_move (TrackerDBInterface *iface,
 
 	db_create_event (iface, str_file_id, "Update");
 
-	/* update File:Path and File:Filename metadata */
+	* update File:Path and File:Filename metadata *
 	tracker_db_metadata_set_single (iface,
 					"Files", str_file_id, 
 					"File:Path", path,
@@ -3530,7 +3545,7 @@ tracker_db_file_move (TrackerDBInterface *iface,
 						FALSE);
 	}
 
-	/* Update backup service if necessary */
+	* Update backup service if necessary *
 	tracker_db_exec_proc (iface, 
 			      "UpdateBackupService", 
 			      path, 
@@ -3545,7 +3560,9 @@ tracker_db_file_move (TrackerDBInterface *iface,
 	g_free (old_name);
 	g_free (old_path);
 }
+*/
 
+/*
 void
 tracker_db_directory_move (TrackerDBInterface *iface, 
 			   const gchar        *moved_from_uri, 
@@ -3560,7 +3577,7 @@ tracker_db_directory_move (TrackerDBInterface *iface,
 
 	old_path = g_strconcat (moved_from_uri, G_DIR_SEPARATOR_S, NULL);
 
-	/* Get all sub folders that were moved and add watches */
+	* Get all sub folders that were moved and add watches *
 	result_set = tracker_db_uri_get_subfolders (iface, moved_from_uri);
 
 	if (result_set) {
@@ -3577,7 +3594,7 @@ tracker_db_directory_move (TrackerDBInterface *iface,
 
 			dir_name = g_build_filename (prefix, name, NULL);
 
-			/* Get string after prefix */
+			* Get string after prefix *
 			if (!old_path) {
 				sep = g_strdup (dir_name);
 			} else { 
@@ -3609,7 +3626,7 @@ tracker_db_directory_move (TrackerDBInterface *iface,
 
 			directory_move (iface, dir_name, new_path);
 
-			/* FIXME: Why? */
+			* FIXME: Why? *
 			g_usleep (1000);
 
 			g_free (prefix);
@@ -3627,7 +3644,8 @@ tracker_db_directory_move (TrackerDBInterface *iface,
 
 	g_free (old_path);
 }
-
+*/
+/*
 TrackerDBResultSet *
 tracker_db_uri_get_subfolders (TrackerDBInterface *iface, 
 			       const gchar        *uri)
@@ -3648,6 +3666,7 @@ tracker_db_uri_get_subfolders (TrackerDBInterface *iface,
 
 	return result_set;
 }
+*/
 
 TrackerDBResultSet *
 tracker_db_keywords_get_list (TrackerDBInterface *iface, 

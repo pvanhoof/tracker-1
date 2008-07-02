@@ -2719,7 +2719,6 @@ tracker_db_service_create (TrackerDBInterface *iface,
 {
 	TrackerDBResultSet *result_set;
 	TrackerDBResultSet *result_set_proc;
-	TrackerDBInterface *iface_common;
 	gint	            i;
 	guint32	            id = 0;
 	gchar	           *sid;
@@ -2748,10 +2747,8 @@ tracker_db_service_create (TrackerDBInterface *iface,
 		path = tracker_file_get_vfs_path (info->uri);
 	}
 
-	iface_common = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
-
 	/* Get a new unique ID for the service - use mutex to prevent race conditions */
-	result_set = tracker_db_exec_proc (iface_common, "GetNewID", NULL);
+	result_set = tracker_db_exec_proc (iface, "GetNewID", NULL);
 
 	if (!result_set) {
 		g_critical ("Could not create service, GetNewID failed");
@@ -2764,7 +2761,7 @@ tracker_db_service_create (TrackerDBInterface *iface,
 	i++;
 
 	sid = tracker_int_to_string (i);
-	result_set_proc = tracker_db_exec_proc (iface_common, "UpdateNewID", sid, NULL);
+	result_set_proc = tracker_db_exec_proc (iface, "UpdateNewID", sid, NULL);
 
 	if (result_set_proc) {
 		g_object_unref (result_set_proc);
@@ -2849,7 +2846,7 @@ tracker_db_service_create (TrackerDBInterface *iface,
 						  (int) id);
 		}
 
-		result_set_proc = tracker_db_exec_proc (iface_common,
+		result_set_proc = tracker_db_exec_proc (iface,
 							"IncStat", 
 							service, 
 							NULL);
@@ -2861,7 +2858,7 @@ tracker_db_service_create (TrackerDBInterface *iface,
                 parent = tracker_ontology_get_parent_service (service);
 		
 		if (parent) {
-			result_set_proc = tracker_db_exec_proc (iface_common, 
+			result_set_proc = tracker_db_exec_proc (iface, 
 								"IncStat", 
 								parent, 
 								NULL);
@@ -3196,7 +3193,7 @@ tracker_db_uri_insert_pending (const gchar *id,
 	g_return_if_fail (uri != NULL);
 	g_return_if_fail (mime != NULL);
 
-	iface = tracker_db_manager_get_db_interface (TRACKER_DB_CACHE);
+	iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_CACHE);
 
 	time (&time_now);
 
@@ -3251,7 +3248,7 @@ tracker_db_uri_update_pending (const gchar *counter,
 	g_return_if_fail (action != NULL);
 	g_return_if_fail (uri != NULL);
 
-	iface = tracker_db_manager_get_db_interface (TRACKER_DB_CACHE);
+	iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_CACHE);
 	
 	time (&time_now);
 
@@ -3430,7 +3427,7 @@ tracker_db_uri_sub_watches_get (const gchar *dir)
 
 	g_return_val_if_fail (dir != NULL, NULL);
 
-	iface = tracker_db_manager_get_db_interface (TRACKER_DB_CACHE);
+	iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_CACHE);
 
 	folder = g_build_filename (dir, "*", NULL);
 	result_set = tracker_db_exec_proc (iface, 
@@ -3453,7 +3450,7 @@ tracker_db_uri_sub_watches_delete (const gchar *dir)
 
 	g_return_val_if_fail (dir != NULL, NULL);
 
-	iface = tracker_db_manager_get_db_interface (TRACKER_DB_CACHE);
+	iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_CACHE);
 
 	folder = g_build_filename (dir, "*", NULL);
 	result_set = tracker_db_exec_proc (iface, 
@@ -3808,7 +3805,7 @@ tracker_db_get_option_string (const gchar *option)
 
 	g_return_val_if_fail (option != NULL, NULL);
 
-	iface = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
+	iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_COMMON);
 	result_set = tracker_db_exec_proc (iface, "GetOption", option, NULL);
 
 	if (result_set) {
@@ -3830,7 +3827,7 @@ tracker_db_set_option_string (const gchar *option,
 	g_return_if_fail (option != NULL);
 	g_return_if_fail (value != NULL);
 
-	iface = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
+	iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_COMMON);
 	result_set = tracker_db_exec_proc (iface, "SetOption", value, option, NULL);
 	
 	if (result_set) {
@@ -3849,7 +3846,15 @@ tracker_db_get_option_int (const gchar *option)
 
 	g_return_val_if_fail (option != NULL, 0);
 
-	iface = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
+	/* Here it doesn't matter which one we ask, as long as it has common.db
+	 * attached. The service ones are cached connections, so we can use
+	 * those instead of asking for an individual-file connection (like what
+	 * the original code had) */
+
+	/* iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_COMMON); */
+
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
+
 	result_set = tracker_db_exec_proc (iface, "GetOption", option, NULL);
 
 	if (result_set) {
@@ -3876,8 +3881,15 @@ tracker_db_set_option_int (const gchar *option,
 
 	g_return_if_fail (option != NULL);
 
-	iface = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
-	
+	/* Here it doesn't matter which one we ask, as long as it has common.db
+	 * attached. The service ones are cached connections, so we can use
+	 * those instead of asking for an individual-file connection (like what
+	 * the original code had) */
+
+	/* iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_COMMON); */
+
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
+
 	str = tracker_int_to_string (value);
 	result_set = tracker_db_exec_proc (iface, "SetOption", str, option, NULL);
 	g_free (str);

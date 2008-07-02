@@ -319,10 +319,17 @@ tracker_daemon_get_services (TrackerDaemon  *object,
 
 	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
 
-        tracker_dbus_request_new (request_id,
+	tracker_dbus_request_new (request_id,
 				  "DBus request to get daemon services");
 
-	iface = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
+	/* Here it doesn't matter which one we ask, as long as it has common.db
+	 * attached. The service ones are cached connections, so we can use
+	 * those instead of asking for an individual-file connection (like what
+	 * the original code had) */
+
+	/* iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_COMMON); */
+
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	result_set = tracker_db_exec_proc (iface, "GetServices", 0);
 	*values = tracker_dbus_query_result_to_hash_table (result_set);
@@ -349,13 +356,20 @@ tracker_daemon_get_stats (TrackerDaemon  *object,
 
 	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
 
-        tracker_dbus_request_new (request_id,
+	tracker_dbus_request_new (request_id,
 				  "DBus request to get daemon service stats");
 
-	iface = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
+	/* Here it doesn't matter which one we ask, as long as it has common.db
+	 * attached. The service ones are cached connections, so we can use
+	 * those instead of asking for an individual-file connection (like what
+	 * the original code had) */
+
+	/* iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_COMMON); */
+
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	result_set = tracker_db_exec_proc (iface, "GetStats", 0);
-        *values = tracker_dbus_query_result_to_ptr_array (result_set);
+	*values = tracker_dbus_query_result_to_ptr_array (result_set);
 
 	if (result_set) {
 		g_object_unref (result_set);

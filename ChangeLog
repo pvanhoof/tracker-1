@@ -1,3 +1,17 @@
+2008-07-02  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-metadata.c:
+	* src/trackerd/tracker-main.c:
+	* src/trackerd/tracker-daemon.c:
+	* src/trackerd/tracker-db.c:
+
+	Various database connection usage improvements
+
+	* src/libtracker-common/tracker-log.c:
+
+	Added a perror() to find out about a race condition while writing to
+	the log file
+
 2008-07-02  Ivan Frade  <ivan.frade@nokia.com>
 
 	* tests/Makefile.am

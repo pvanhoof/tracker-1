@@ -66,6 +66,7 @@ log_output (const gchar    *domain,
 
 	fd = g_fopen (log->filename, "a");
 	if (!fd) {
+		perror ("log");
 		g_warning ("Could not open log: '%s'", log->filename);
 		g_mutex_unlock (log->mutex);
 		return;

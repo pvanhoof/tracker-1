@@ -305,7 +305,14 @@ tracker_metadata_get_type_details (TrackerMetadata  *object,
 	tracker_dbus_return_val_if_fail (is_embedded != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (is_writable != NULL, FALSE, error);
 
-	iface = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
+	/* Here it doesn't matter which one we ask, as long as it has common.db
+	 * attached. The service ones are cached connections, so we can use
+	 * those instead of asking for an individual-file connection (like what
+	 * the original code had) */
+
+	/* iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_COMMON); */
+
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get metadata details, "
@@ -359,7 +366,14 @@ tracker_metadata_get_registered_types (TrackerMetadata   *object,
 				  "class:'%s'",
 				  class);
 
-	iface = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
+	/* Here it doesn't matter which one we ask, as long as it has common.db
+	 * attached. The service ones are cached connections, so we can use
+	 * those instead of asking for an individual-file connection (like what
+	 * the original code had) */
+
+	/* iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_COMMON); */
+
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	result_set = tracker_db_metadata_get_types (iface, class, FALSE);
 	if (result_set) {
@@ -388,7 +402,14 @@ tracker_metadata_get_registered_classes (TrackerMetadata   *object,
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get registered classes");
 
-	iface = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
+	/* Here it doesn't matter which one we ask, as long as it has common.db
+	 * attached. The service ones are cached connections, so we can use
+	 * those instead of asking for an individual-file connection (like what
+	 * the original code had) */
+
+	/* iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_COMMON); */
+
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	result_set = tracker_db_exec_proc (iface, 
 					   "SelectMetadataClasses", 

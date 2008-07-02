@@ -1,3 +1,10 @@
+2008-07-02  Ivan Frade  <ivan.frade@nokia.com>
+
+	* tests/Makefile.am
+	* tests/tracker-indexer/Makefile.am
+	* tests/tracker-indexer/tracker-index-test.c: Added tests to 
+	tracker-index.
+	
 2008-07-02  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-module-config.c:

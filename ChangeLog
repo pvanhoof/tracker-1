@@ -1,3 +1,8 @@
+2008-07-02  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-crawler.c: (tracker_crawler_start):
+	Actually set the path before checking if it exists or not, eek.
+
 2008-07-02  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/libtracker-db/tracker-db-manager.c: Memory leak fix

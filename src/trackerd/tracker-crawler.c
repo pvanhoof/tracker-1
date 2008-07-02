@@ -929,6 +929,8 @@ tracker_crawler_start (TrackerCrawler *crawler,
 	}
 
 	for (l = directories; l; l = l->next) {
+		path = l->data;
+
 		/* Check location exists before we do anything */
 		file = g_file_new_for_path (path);
 		exists = g_file_query_exists (file, NULL);

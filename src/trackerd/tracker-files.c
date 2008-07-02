@@ -81,7 +81,7 @@ tracker_files_exist (TrackerFiles  *object,
                                   "uri:'%s'",
 				  uri);
 	
-	iface = tracker_db_manager_get_db_interface_by_service ("Files");
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	file_id = tracker_db_file_get_id (iface, uri);
 	exists = file_id > 0;
@@ -148,7 +148,7 @@ tracker_files_create (TrackerFiles  *object,
                                   size,
                                   mtime);
 
-	iface = tracker_db_manager_get_db_interface_by_service ("Files");
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	/* Create structure */
 	info = tracker_db_file_info_new (uri, 1, 0, 0);
@@ -257,7 +257,7 @@ tracker_files_delete (TrackerFiles  *object,
                                   "uri:'%s'",
                                   uri);
 
-	iface = tracker_db_manager_get_db_interface_by_service ("Files");
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	file_id = tracker_db_file_get_id (iface, uri);
 	if (file_id == 0) {
@@ -336,7 +336,7 @@ tracker_files_get_service_type (TrackerFiles  *object,
                                   "uri:'%s'",
                                   uri);
 
-	iface = tracker_db_manager_get_db_interface_by_service ("Files");
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	file_id = tracker_db_file_get_id (iface, uri);
 
@@ -420,7 +420,7 @@ tracker_files_get_text_contents (TrackerFiles  *object,
                                   offset,
                                   max_length);
 
-	iface = tracker_db_manager_get_db_interface_by_service ("Files");
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	service_id = tracker_db_file_get_id_as_string (iface, "Files", uri);
 	if (!service_id) {
@@ -497,7 +497,7 @@ tracker_files_search_text_contents (TrackerFiles  *object,
                                   text,
                                   max_length);
 
-	iface = tracker_db_manager_get_db_interface_by_service ("Files");
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	if (uri[0] == G_DIR_SEPARATOR) {
 		name = g_path_get_basename (uri);
@@ -568,7 +568,7 @@ tracker_files_get_by_service_type (TrackerFiles   *object,
                                   offset,
                                   max_hits);
 
-	iface = tracker_db_manager_get_db_interface_by_service ("Files");
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	if (!tracker_ontology_is_valid_service_type (service)) {
 		tracker_dbus_request_failed (request_id,
@@ -623,7 +623,7 @@ tracker_files_get_by_mime_type (TrackerFiles   *object,
                                   offset,
                                   max_hits);
 
-	iface = tracker_db_manager_get_db_interface_by_service ("Files");
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	result_set = tracker_db_files_get_by_mime (iface,
 						   mime_types, 
@@ -672,7 +672,7 @@ tracker_files_get_by_mime_type_vfs (TrackerFiles   *object,
                                   offset,
                                   max_hits);
 
-	iface = tracker_db_manager_get_db_interface_by_service ("Files");
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	/* NOTE: The only difference between this function and the
 	 * non-VFS version is the boolean in this function call:
@@ -717,7 +717,7 @@ tracker_files_get_mtime (TrackerFiles  *object,
                                   "uri:'%s'",
                                   uri);
 
-	iface = tracker_db_manager_get_db_interface_by_service ("Files");
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	if (uri[0] == G_DIR_SEPARATOR) {
 		name = g_path_get_basename (uri);
@@ -784,7 +784,7 @@ tracker_files_get_metadata_for_files_in_folder (TrackerFiles  *object,
                                   uri,
                                   g_strv_length (fields));
 
-	iface = tracker_db_manager_get_db_interface_by_service ("Files");
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	/* Get fields for metadata list provided */
 	for (i = 0; i < g_strv_length (fields); i++) {
@@ -912,7 +912,7 @@ tracker_files_search_by_text_and_mime (TrackerFiles   *object,
                                   text,
                                   g_strv_length (mime_types));
 
-	iface = tracker_db_manager_get_db_interface_by_service ("Files");
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	result_set = tracker_db_search_text_and_mime (iface, text, mime_types);
 
@@ -972,7 +972,7 @@ tracker_files_search_by_text_and_location (TrackerFiles   *object,
                                   text,
                                   uri);
 
-	iface = tracker_db_manager_get_db_interface_by_service ("Files");
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	result_set = tracker_db_search_text_and_location (iface, text, uri);
 
@@ -1036,7 +1036,7 @@ tracker_files_search_by_text_and_mime_and_location (TrackerFiles   *object,
 				  g_strv_length (mime_types),
                                   uri);
 
-	iface = tracker_db_manager_get_db_interface_by_service ("Files");
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	result_set = tracker_db_search_text_and_mime_and_location (iface, text, mime_types, uri);
 

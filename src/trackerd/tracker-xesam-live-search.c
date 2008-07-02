@@ -406,7 +406,7 @@ tracker_xesam_live_search_match_with_events (TrackerXesamLiveSearch  *self,
 	g_return_if_fail (removed != NULL);
 	g_return_if_fail (modified != NULL);
 
-	iface = tracker_db_manager_get_db_interface_by_service ("Xesam");
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_XESAM_SERVICE);
 
 	*added = NULL;
 	*removed = NULL;
@@ -479,7 +479,7 @@ tracker_xesam_live_search_close (TrackerXesamLiveSearch  *self,
 	} else {
 		TrackerDBInterface *iface;
 
-		iface = tracker_db_manager_get_db_interface_by_service ("Xesam");
+		iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_XESAM_SERVICE);
 
 		g_message ("Closing search '%s'", 
 			   tracker_xesam_live_search_get_id (self));
@@ -525,7 +525,7 @@ tracker_xesam_live_search_get_hit_count (TrackerXesamLiveSearch  *self,
 		TrackerDBResultSet *result_set;
 		GValue              value = {0, };
 
-		iface = tracker_db_manager_get_db_interface_by_service ("Xesam");
+		iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_XESAM_SERVICE);
 
 		result_set = tracker_db_live_search_get_hit_count (iface, 
 								   tracker_xesam_live_search_get_id (self));
@@ -865,7 +865,7 @@ tracker_xesam_live_search_get_hits (TrackerXesamLiveSearch  *self,
 
 			fields = g_value_get_boxed (value);
 
-			iface = tracker_db_manager_get_db_interface_by_service ("Xesam");
+			iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_XESAM_SERVICE);
 
 			/* For ottela: fetch results for get_hits */
 
@@ -917,7 +917,7 @@ tracker_xesam_live_search_get_range_hits (TrackerXesamLiveSearch  *self,
 		GValue              *value;
 		GError              *tmp_error = NULL;
 
-		iface = tracker_db_manager_get_db_interface_by_service ("Xesam");
+		iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_XESAM_SERVICE);
 
 		tracker_xesam_session_get_property (session, 
 						    "hit.fields", 
@@ -1007,7 +1007,7 @@ tracker_xesam_live_search_get_hit_data (TrackerXesamLiveSearch  *self,
 		TrackerDBInterface *iface;
 		TrackerDBResultSet *result_set;
 
-		iface = tracker_db_manager_get_db_interface_by_service ("Xesam");
+		iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_XESAM_SERVICE);
 
 		result_set = tracker_db_live_search_get_hit_data (iface,
 								  tracker_xesam_live_search_get_id (self),
@@ -1052,7 +1052,7 @@ tracker_xesam_live_search_get_range_hit_data (TrackerXesamLiveSearch  *self,
 		TrackerDBInterface *iface;
 		TrackerDBResultSet *result_set;
 
-		iface = tracker_db_manager_get_db_interface_by_service ("Xesam");
+		iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_XESAM_SERVICE);
 
 		result_set = tracker_db_live_search_get_hit_data (iface,
 								  tracker_xesam_live_search_get_id (self),
@@ -1114,7 +1114,7 @@ tracker_xesam_live_search_activate (TrackerXesamLiveSearch  *self,
 		TrackerDBInterface *iface;
 		GArray             *hits;
 
-		iface = tracker_db_manager_get_db_interface_by_service ("Xesam");
+		iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_XESAM_SERVICE);
 
 		tracker_db_live_search_start (iface,
 					      tracker_xesam_live_search_get_from_query (self),
@@ -1234,7 +1234,7 @@ tracker_xesam_live_search_parse_query (TrackerXesamLiveSearch  *self,
 
 	priv = self->priv;
 
-	iface = tracker_db_manager_get_db_interface_by_service ("Xesam");
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_XESAM_SERVICE);
 
 	xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
 

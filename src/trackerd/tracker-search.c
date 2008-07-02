@@ -1010,7 +1010,7 @@ tracker_search_files_by_text (TrackerSearch  *object,
                                   max_hits,
                                   group_results ? "yes" : "no");
 
-	/* iface = tracker_db_manager_get_db_interface_by_service ("Files"); */
+	/* iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE); */
 
 	/* FIXME: This function no longer exists, it was returning
 	 * NULL in every case, this DBus function needs rewriting or

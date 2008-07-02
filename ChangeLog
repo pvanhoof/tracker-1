@@ -1,3 +1,10 @@
+2008-07-02  Ivan Frade  <ivan.frade@nokia.com>
+	
+	* src/tracker-indexer/tracker-index.c
+	* tests/tracker-indexer/tracker-index-test.c: Implemented the
+	addition of words to the index. Added unit tests to the new
+	functionality.
+	
 2008-07-02  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-main.c:

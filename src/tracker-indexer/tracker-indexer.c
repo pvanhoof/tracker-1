@@ -442,23 +442,12 @@ tracker_indexer_add_directory (TrackerIndexer *indexer,
 {
 	TrackerIndexerPrivate *priv;
 	gboolean ignore = FALSE;
-	gchar **ignore_dirs;
-	gint i;
 
 	g_return_if_fail (info != NULL);
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
-	ignore_dirs = tracker_indexer_module_get_ignore_directories (info->module);
-
-	if (ignore_dirs) {
-		for (i = 0; ignore_dirs[i]; i++) {
-			if (strcmp (info->file->path, ignore_dirs[i]) == 0) {
-				ignore = TRUE;
-				break;
-			}
-		}
-	}
+	/* FIXME: check ignored directories */
 
 	if (!ignore) {
 		g_queue_push_tail (priv->dir_queue, info);
@@ -466,8 +455,6 @@ tracker_indexer_add_directory (TrackerIndexer *indexer,
 		g_message ("Ignoring directory:'%s'", info->file->path);
 		path_info_free (info);
 	}
-
-	g_strfreev (ignore_dirs);
 }
 
 static void

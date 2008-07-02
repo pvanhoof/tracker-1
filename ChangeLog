@@ -33,6 +33,12 @@
 
 2008-07-02  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-indexer.c: Remove at the moment the code
+	to ignore directories. I must be replaced with TrackerModuleConfig and
+	would be used only if --process-all is specified.
+
+2008-07-02  Carlos Garnacho  <carlos@imendio.com>
+
 	* data/modules/evolution.module: Add local and IMAP storage
 	directories.
 

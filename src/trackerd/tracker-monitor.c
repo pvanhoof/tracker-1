@@ -246,8 +246,6 @@ indexer_files_processed_cb (DBusGProxy *proxy,
 {
 	GStrv files;
 	
-	files = (GStrv) user_data;
-
 	if (error) {
 		g_critical ("Could not send %d files to indexer, %s", 
 			    g_strv_length (files),
@@ -256,6 +254,9 @@ indexer_files_processed_cb (DBusGProxy *proxy,
 	} else {
 		g_debug ("Sent!");
 	}
+
+	files = (GStrv) user_data;
+	g_strfreev (files);
 }
 
 static void

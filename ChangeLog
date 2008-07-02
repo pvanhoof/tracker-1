@@ -1,5 +1,13 @@
 2008-07-02  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-module-config.c:
+	* src/trackerd/tracker-crawler.c:
+	* src/trackerd/tracker-monitor.c: Plugged leaks which took the
+	memory lost from 1.8Mb (33,498 blocks) to 36 bytes (1 block). Good
+	old valgrind!
+
+2008-07-02  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-crawler.c: (tracker_crawler_start):
 	Actually set the path before checking if it exists or not, eek.
 

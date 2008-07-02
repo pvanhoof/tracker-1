@@ -576,6 +576,8 @@ add_file (TrackerCrawler *crawler,
 
 		g_queue_push_tail (crawler->private->files, g_object_ref (file));
 	}
+
+	g_free (path);
 }
 
 static void
@@ -607,6 +609,8 @@ add_directory (TrackerCrawler *crawler,
 
 		g_queue_push_tail (crawler->private->directories, g_object_ref (file));
 	}
+
+	g_free (path);
 }
 
 static void
@@ -614,13 +618,18 @@ indexer_check_files_cb (DBusGProxy *proxy,
 			GError     *error,
 			gpointer    user_data)
 {
+	GStrv files;
+
 	if (error) {
-		g_critical ("Could not send files to indexer to check, %s",
-			    error->message);
+		g_message ("Files could not be checked by the indexer, %s",
+			   error->message);
 		g_error_free (error);
 	} else {
 		g_debug ("Sent!");
 	}
+
+	files = (GStrv) user_data;
+	g_strfreev (files);
 }
 
 static void
@@ -654,10 +663,10 @@ indexer_get_running_cb (DBusGProxy *proxy,
 		 total);
 
 	org_freedesktop_Tracker_Indexer_files_check_async (proxy,
-							   g_strdup (crawler->private->current_module_name),
+							   crawler->private->current_module_name,
 							   (const gchar **) files,
 							   indexer_check_files_cb,
-							   NULL);
+							   files);
 
 	g_object_unref (crawler);
 }

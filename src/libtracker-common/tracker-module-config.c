@@ -458,6 +458,7 @@ module_config_load (void)
 		child = g_file_get_child (file, name);
 		filename = g_file_get_path (child);
 		mc = module_config_load_file (filename);
+		g_free (filename);
 
 		if (mc) {
 			gchar *name_stripped;
@@ -543,6 +544,7 @@ tracker_module_config_init (void)
 	/* Get modules */
 	if (!module_config_load ()) {
 		g_hash_table_unref (modules);
+		g_free (path);
 		return FALSE;
 	}
 
@@ -561,6 +563,7 @@ tracker_module_config_init (void)
 			  NULL);
 
 	g_object_unref (file);
+	g_free (path);
 
 	initiated = TRUE;
 

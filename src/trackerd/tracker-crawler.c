@@ -37,8 +37,6 @@
 
 #define TRACKER_CRAWLER_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_CRAWLER, TrackerCrawlerPrivate))
 
-/* #define TESTING */
-
 #define FILE_ATTRIBUTES				\
 	G_FILE_ATTRIBUTE_STANDARD_NAME ","	\
 	G_FILE_ATTRIBUTE_STANDARD_TYPE
@@ -556,19 +554,15 @@ add_file (TrackerCrawler *crawler,
 	if (path_should_be_ignored (crawler, path, FALSE)) {
 		crawler->private->files_ignored++;
 
-#ifdef TESTING
 		g_debug ("Ignored:'%s' (%d)",
 			 path,
 			 crawler->private->enumerations);
-#endif /* TESTING */
 	} else {
 		crawler->private->files_found++;
 
-#ifdef TESTING
 		g_debug ("Found  :'%s' (%d)",
 			 path,
 			 crawler->private->enumerations);
-#endif /* TESTING */
 
 		g_queue_push_tail (crawler->private->files, g_object_ref (file));
 	}
@@ -589,19 +583,15 @@ add_directory (TrackerCrawler *crawler,
 	if (path_should_be_ignored (crawler, path, TRUE)) {
 		crawler->private->directories_ignored++;
 
-#ifdef TESTING
 		g_debug ("Ignored:'%s' (%d)",
 			 path,
 			 crawler->private->enumerations);
-#endif /* TESTING */
 	} else {
 		crawler->private->directories_found++;
 
-#ifdef TESTING
 		g_debug ("Found  :'%s' (%d)",
 			 path,
 			 crawler->private->enumerations);
-#endif /* TESTING */
 
 		g_queue_push_tail (crawler->private->directories, g_object_ref (file));
 	}
@@ -712,6 +702,8 @@ static void
 process_directory (TrackerCrawler *crawler,
 		   GFile          *file)
 {
+	tracker_monitor_add (file);
+
 	file_enumerate_children (crawler, file);
 }
 
@@ -894,8 +886,6 @@ file_enumerate_children (TrackerCrawler *crawler,
 			 GFile          *file)
 {
 	crawler->private->enumerations++;
-
-	tracker_monitor_add (file);
 
 	g_file_enumerate_children_async (file,
 					 FILE_ATTRIBUTES,

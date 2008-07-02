@@ -28,8 +28,6 @@
 #include "tracker-dbus.h"
 #include "tracker-indexer-client.h"
 
-/* #define TESTING  */
-
 #define FILES_QUEUE_PROCESS_INTERVAL 2000
 #define FILES_QUEUE_PROCESS_MAX      5000
 
@@ -424,6 +422,10 @@ tracker_monitor_add (GFile *file)
 	gchar        *path;
 
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
+	
+	if (!tracker_config_get_enable_watches (config)) {
+		return TRUE;
+	}
 
 	if (g_hash_table_lookup (monitors, file)) {
 		return TRUE;
@@ -446,6 +448,7 @@ tracker_monitor_add (GFile *file)
 	path = g_file_get_path (file);
 
 	ignored_roots = tracker_config_get_no_watch_directory_roots (config);
+
 	/* Check this location isn't excluded in the config */
 	for (l = ignored_roots; l; l = l->next) {
 		if (strcmp (path, l->data) == 0) {
@@ -484,11 +487,9 @@ tracker_monitor_add (GFile *file)
 			     g_object_ref (file), 
 			     monitor);
 
-#ifdef TESTING
 	g_debug ("Added monitor for:'%s', total monitors:%d", 
 		 path,
 		 g_hash_table_size (monitors));
-#endif /* TESTING */
 
 	g_free (path);
 	
@@ -504,6 +505,10 @@ tracker_monitor_remove (GFile    *file,
 
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
 
+	if (!tracker_config_get_enable_watches (config)) {
+		return TRUE;
+	}
+
 	monitor = g_hash_table_lookup (monitors, file);
 	if (!monitor) {
 		return TRUE;
@@ -516,11 +521,9 @@ tracker_monitor_remove (GFile    *file,
 
 	path = g_file_get_path (file);
 
-#ifdef TESTING
 	g_debug ("Removed monitor for:'%s', total monitors:%d", 
 		 path,
 		 g_hash_table_size (monitors));
-#endif /* TESTING */
 
 	g_free (path);
 

@@ -55,7 +55,7 @@ log_output (const gchar    *domain,
 	gchar         *output;
 	struct tm     *local_time;
 	GTimeVal       current_time;
-	static size_t  size = 0;
+	static gsize   size = 0;
 	const gchar   *log_level_str;
 
 	g_return_if_fail (log != NULL);
@@ -66,8 +66,7 @@ log_output (const gchar    *domain,
 
 	fd = g_fopen (log->filename, "a");
 	if (!fd) {
-		perror ("log");
-		g_warning ("Could not open log: '%s'", log->filename);
+		g_fprintf (stderr, "Could not open log: '%s'", log->filename);
 		g_mutex_unlock (log->mutex);
 		return;
 	}

@@ -262,8 +262,6 @@ sanity_check_option_values (void)
 		   tracker_config_get_enable_content_indexing (tracker->config) ? "yes" : "no");
 	g_message ("  Thumbnailing enabled  .................  %s", 
 		   tracker_config_get_enable_thumbnails (tracker->config) ? "yes" : "no");
-	g_message ("  Email client to index  ................  %s",
-		   tracker_config_get_email_client (tracker->config));
 
 	g_message ("Tracker indexer parameters:");
 	g_message ("  Indexer language code  ................  %s", 

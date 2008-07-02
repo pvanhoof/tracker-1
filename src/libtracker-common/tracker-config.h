@@ -73,9 +73,7 @@ gboolean       tracker_config_get_disable_indexing_on_battery      (TrackerConfi
 gboolean       tracker_config_get_disable_indexing_on_battery_init (TrackerConfig *config);
 gint           tracker_config_get_low_disk_space_limit             (TrackerConfig *config);
 gboolean       tracker_config_get_index_removable_devices          (TrackerConfig *config);
-GSList *       tracker_config_get_index_modules                    (TrackerConfig *config);
 gboolean       tracker_config_get_index_mounted_directories        (TrackerConfig *config);
-const gchar *  tracker_config_get_email_client                     (TrackerConfig *config);
 gint           tracker_config_get_max_text_to_index                (TrackerConfig *config);
 gint           tracker_config_get_max_words_to_index               (TrackerConfig *config);
 gint           tracker_config_get_optimization_sweep_count         (TrackerConfig *config);
@@ -125,8 +123,6 @@ void           tracker_config_set_index_removable_devices          (TrackerConfi
 								    gboolean       value);
 void           tracker_config_set_index_mounted_directories        (TrackerConfig *config,
 								    gboolean       value);
-void           tracker_config_set_email_client                     (TrackerConfig *config,
-								    const gchar   *value);
 void           tracker_config_set_max_text_to_index                (TrackerConfig *config,
 								    gint           value);
 void           tracker_config_set_max_words_to_index               (TrackerConfig *config,

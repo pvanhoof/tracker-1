@@ -1,3 +1,22 @@
+2008-07-02  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-main.c:
+	* src/libtracker-common/tracker-config.[ch]: Removed the email
+	client option, it is redundant now. Removed the index-modules
+	since that is now going to be changed to be ignore-modules.
+	
+	* src/libtracker-common/tracker-log.c: Use gsize for log size and
+	remove perror, instead use g_fprintf(stderr, ...) when we get an
+	error so we don't recurse.
+	
+	* src/trackerd/tracker-crawler.c: Only add monitors when we
+	process directories, so they are added breadth ways not depth
+	ways. Also, make the debugging ALWAYS available, this changes with
+	the -v option or the config setting.
+	
+	* src/trackerd/tracker-monitor.c: Don't add any monitors if it is
+	disabled in the config. Also, make the debugging ALWAYS available.
+	
 2008-07-02  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/tracker-indexer/tracker-main.c

@@ -49,49 +49,6 @@ tracker_module_get_name (void)
 	return "Applications";
 }
 
-gchar **
-tracker_module_get_directories (void)
-{
-	GPtrArray *dirs;
-	gchar *value, *dir;
-
-	dirs = g_ptr_array_new ();
-	value = getenv ("XDG_DATA_HOME");
-
-	if (value) {
-		dir = g_build_filename (value, "applications", NULL);
-	} else {
-		dir = g_build_filename (g_get_home_dir (), ".local/share/applications", NULL);
-	}
-
-	/* Add user defined applications path to service directory list */
-	g_ptr_array_add (dirs, dir);
-
-	/* Add system defined applications path to service directory list */
-	value = getenv ("XDG_DATA_DIRS");
-
-	if (value) {
-		gchar **dir_array;
-		gint i;
-
-		dir_array = g_strsplit (value, ":", 0);
-
-		for (i = 0; dir_array[i]; i++) {
-			dir = g_build_filename (dir_array[i], "applications", NULL);
-			g_ptr_array_add (dirs, dir);
-		}
-
-		g_strfreev (dir_array);
-	} else {
-		g_ptr_array_add (dirs, g_strdup ("/usr/share/applications"));
-		g_ptr_array_add (dirs, g_strdup ("/usr/local/share/applications"));
-	}
-
-	g_ptr_array_add (dirs, NULL);
-
-	return (gchar **) g_ptr_array_free (dirs, FALSE);
-}
-
 static void
 insert_data_from_desktop_file (GHashTable  *metadata,
 			       const gchar *metadata_key,

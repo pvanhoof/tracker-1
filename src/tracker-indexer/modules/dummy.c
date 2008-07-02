@@ -19,18 +19,29 @@
 
 #include <glib.h>
 
+void
+tracker_module_init (void)
+{
+        /* Implementing this function is optional.
+         *
+         * Allocate here all static resources for the module.
+         */
+}
+
+void
+tracker_module_shutdown (void)
+{
+        /* Implementing this function is optional.
+         *
+         * Free here all resources allocated in tracker_module_init()
+         */
+}
+
 G_CONST_RETURN gchar *
 tracker_module_get_name (void)
 {
 	/* Return module name here */
 	return "Dummy";
-}
-
-gchar **
-tracker_module_get_directories (void)
-{
-	/* Return directories/files (a NULL-ended array of gchar*) to scan */
-	return NULL;
 }
 
 gpointer

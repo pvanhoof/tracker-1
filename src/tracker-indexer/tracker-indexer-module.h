@@ -33,8 +33,6 @@ void                    tracker_indexer_module_init                   (GModule  
 void                    tracker_indexer_module_shutdown               (GModule     *module);
 
 G_CONST_RETURN gchar *  tracker_indexer_module_get_name               (GModule     *module);
-gchar **                tracker_indexer_module_get_directories        (GModule     *module);
-gchar **                tracker_indexer_module_get_ignore_directories (GModule     *module);
 
 TrackerFile *           tracker_indexer_module_file_new               (GModule     *module,
 								       const gchar *path);

@@ -33,6 +33,20 @@
 
 2008-07-02  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-module.h: Remove get_directories() and
+	get_ignore_directories() from modules API. The data specified in the
+	.module file will be used.
+	* src/tracker-indexer/tracker-indexer-module.[ch]: Remove internal
+	API for these as well.
+	* src/tracker-indexer/applications.c:
+	* src/tracker-indexer/dummy.c:
+	* src/tracker-indexer/evolution.c:
+	* src/tracker-indexer/files.c:
+	* src/tracker-indexer/gaim-conversations.c: Remove the corresponding
+	functions in modules.
+
+2008-07-02  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-indexer.c: Remove at the moment the code
 	to ignore directories. I must be replaced with TrackerModuleConfig and
 	would be used only if --process-all is specified.

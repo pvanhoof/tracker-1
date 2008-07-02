@@ -80,30 +80,6 @@ tracker_indexer_module_get_name (GModule *module)
 	return NULL;
 }
 
-gchar **
-tracker_indexer_module_get_directories (GModule *module)
-{
-	TrackerModuleGetDirectoriesFunc func;
-
-	if (g_module_symbol (module, "tracker_module_get_directories", (gpointer *) &func)) {
-		return (func) ();
-        }
-
-	return NULL;
-}
-
-gchar **
-tracker_indexer_module_get_ignore_directories (GModule *module)
-{
-	TrackerModuleGetDirectoriesFunc func;
-
-	if (g_module_symbol (module, "tracker_module_get_ignore_directories", (gpointer *) &func)) {
-		return (func) ();
-        }
-
-	return NULL;
-}
-
 TrackerFile *
 tracker_indexer_module_file_new (GModule     *module,
 				 const gchar *path)

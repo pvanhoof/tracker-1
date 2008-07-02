@@ -351,18 +351,6 @@ get_imap_accounts (void)
         g_slist_free (list);
 }
 
-gchar **
-tracker_module_get_directories (void)
-{
-        gchar **dirs;
-
-        dirs = g_new0 (gchar *, 3);
-        dirs[0] = g_strdup (local_dir);
-        dirs[1] = g_strdup (imap_dir);
-
-        return dirs;
-}
-
 static MailStorageType
 get_mail_storage_type_from_path (const gchar *path)
 {

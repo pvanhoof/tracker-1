@@ -49,8 +49,6 @@ void                   tracker_module_init                   (void);
 void                   tracker_module_shutdown               (void);
 
 G_CONST_RETURN gchar * tracker_module_get_name               (void);
-gchar **               tracker_module_get_directories        (void);
-gchar **               tracker_module_get_ignore_directories (void);
 
 gpointer               tracker_module_file_get_data  (const gchar *path);
 void                   tracker_module_file_free_data (gpointer     file_data);

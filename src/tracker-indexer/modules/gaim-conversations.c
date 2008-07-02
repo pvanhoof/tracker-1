@@ -26,18 +26,6 @@ tracker_module_get_name (void)
 	return "GaimConversations";
 }
 
-gchar **
-tracker_module_get_directories (void)
-{
-	gchar **log_directories;
-
-	log_directories = g_new0 (gchar*, 3);
-	log_directories[0] = g_build_filename (g_get_home_dir(), ".gaim", "logs", NULL);
-	log_directories[1] = g_build_filename (g_get_home_dir(), ".purple", "logs", NULL);
-
-	return log_directories;
-}
-
 GHashTable *
 tracker_module_get_file_metadata (const gchar *file)
 {

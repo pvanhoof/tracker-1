@@ -877,7 +877,7 @@ main (gint argc, gchar *argv[])
 	tracker_dbus_shutdown ();
         tracker_module_config_shutdown ();
 	tracker_xesam_manager_shutdown ();
-	tracker_db_manager_shutdown (TRUE);
+	tracker_db_manager_shutdown ();
 	tracker_db_shutdown ();
 	tracker_monitor_shutdown ();
 	tracker_nfs_lock_shutdown ();

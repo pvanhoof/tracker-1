@@ -104,7 +104,7 @@ main (int argc, char **argv) {
         result = g_test_run ();
         
         /* End */
-        tracker_db_manager_shutdown (TRUE);
+        tracker_db_manager_shutdown ();
 
         return result;
 }

@@ -1,3 +1,17 @@
+2008-07-02  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/tracker-indexer/tracker-main.c
+	* src/trackerd/tracker-main.c
+	* src/libtracker-db/tracker-db-manager.c
+	* src/libtracker-db/tracker-db-manager.h
+	* tests/libtracker-db/tracker-db-manager-test-attach.c
+	* tests/libtracker-db/union-performance.c
+	* tests/libtracker-db/tracker-db-manager-test-unattach.c
+	* tests/libtracker-db/tracker-db-manager-test-custom.c
+
+	Removing the dir in the temp dir must always happen at startup, never
+	at shutdown
+
 2008-07-02  Carlos Garnacho  <carlos@imendio.com>
 
 	* data/modules/evolution.module: Add local and IMAP storage

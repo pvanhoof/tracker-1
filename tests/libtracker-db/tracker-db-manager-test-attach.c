@@ -59,7 +59,7 @@ ensure_db_manager_is_reindex (gboolean must_reindex)
                 return ;
         }
 
-        tracker_db_manager_shutdown (must_reindex);
+        tracker_db_manager_shutdown ();
         if (must_reindex) {
                 tracker_db_manager_init (TRACKER_DB_MANAGER_FORCE_REINDEX,
                                          &first);

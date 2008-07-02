@@ -1,3 +1,9 @@
+2008-07-02  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer.c:
+	* src/tracker-indexer/tracker-main.c: Get TrackerModuleConfig to get
+	available modules, directories to scan, etc...
+
 2008-07-02  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-dbus.[ch]:

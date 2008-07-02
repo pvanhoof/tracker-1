@@ -33,6 +33,7 @@
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-ontology.h>
+#include <libtracker-common/tracker-module-config.h>
 #include <libtracker-db/tracker-db-manager.h>
 
 #include "tracker-dbus.h"
@@ -193,6 +194,7 @@ initialize_indexer (void)
 	g_free (filename);
 
 	tracker_db_manager_init (0, NULL);
+        tracker_module_config_init ();
 
 	g_free (data_dir);
 	g_free (user_data_dir);
@@ -205,6 +207,7 @@ shutdown_indexer (void)
 	g_message ("Shutting down...\n");
 
 	tracker_db_manager_shutdown (FALSE);
+        tracker_module_config_shutdown ();
 }
 
 gint

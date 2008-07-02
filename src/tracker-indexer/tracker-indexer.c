@@ -56,6 +56,7 @@
 #include <libtracker-common/tracker-language.h>
 #include <libtracker-common/tracker-parser.h>
 #include <libtracker-common/tracker-ontology.h>
+#include <libtracker-common/tracker-module-config.h>
 
 #include <libtracker-db/tracker-db-manager.h>
 #include <libtracker-db/tracker-db-interface-sqlite.h>
@@ -83,7 +84,7 @@ struct TrackerIndexerPrivate {
 	GQueue *file_process_queue;
 	GQueue *modules_queue;
 
-	GSList *module_names;
+	GList *module_names;
 	GHashTable *indexer_modules;
 
 	gchar *db_dir;
@@ -357,7 +358,7 @@ tracker_indexer_init (TrackerIndexer *indexer)
 {
 	TrackerIndexerPrivate *priv;
 	gchar *index_file;
-	GSList *m;
+	GList *m;
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
@@ -373,7 +374,7 @@ tracker_indexer_init (TrackerIndexer *indexer)
 					 "tracker", 
 					 NULL);
 
-	priv->module_names = tracker_config_get_index_modules (priv->config);
+	priv->module_names = tracker_module_config_get_modules ();
 
 	priv->indexer_modules = g_hash_table_new_full (g_str_hash,
 						       g_str_equal,
@@ -383,6 +384,10 @@ tracker_indexer_init (TrackerIndexer *indexer)
 	for (m = priv->module_names; m; m = m->next) {
 		GModule *module;
 
+		if (!tracker_module_config_get_enabled (m->data)) {
+			continue;
+		}
+
 		module = tracker_indexer_module_load (m->data);
 
 		if (module) {
@@ -390,7 +395,7 @@ tracker_indexer_init (TrackerIndexer *indexer)
 					     m->data, module);
 		}
 	}
-	
+
 	index_file = g_build_filename (priv->db_dir, "file-index.db", NULL);
 
 	priv->index = tracker_index_new (index_file,
@@ -620,7 +625,7 @@ process_module (TrackerIndexer *indexer,
 {
 	TrackerIndexerPrivate *priv;
 	GModule *module;
-	gchar **dirs;
+	GList *dirs, *d;
 	gint i;
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
@@ -633,19 +638,17 @@ process_module (TrackerIndexer *indexer,
 
 	g_message ("Starting module:'%s'", module_name);
 
-	dirs = tracker_indexer_module_get_directories (module);
+	dirs = tracker_module_config_get_monitor_recurse_directories (module_name);
 	g_return_if_fail (dirs != NULL);
 
-	for (i = 0; dirs[i]; i++) {
+	for (d = dirs; d; d = d->next) {
 		PathInfo *info;
 
-		info = path_info_new (module, dirs[i]);
+		info = path_info_new (module, d->data);
 		tracker_indexer_add_directory (indexer, info);
-
-		g_free (dirs[i]);
 	}
 
-	g_free (dirs);
+	g_list_free (dirs);
 }
 
 static gboolean
@@ -783,7 +786,7 @@ void
 tracker_indexer_process_all (TrackerIndexer *indexer)
 {
 	TrackerIndexerPrivate *priv;
-	GSList *m;
+	GList *m;
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 

@@ -83,9 +83,9 @@ tracker_nfs_lock_obtain (void)
                 return FALSE;
         }
  
-	filename = g_strdup_printf ("%s_%d.lock", 
+	filename = g_strdup_printf ("%s_%s.lock", 
                                     tmp_dir, 
-                                    (guint32) getpid ());
+                                    g_get_user_name ());
 
 	for (attempt = 0; attempt < 10000; ++attempt) {
 		/* Delete existing lock file if older than 5 mins */
@@ -139,9 +139,9 @@ tracker_nfs_lock_release (void)
                 return;
         }
  
-	filename = g_strdup_printf ("%s_%d.lock", 
+	filename = g_strdup_printf ("%s_%s.lock", 
 				    tmp_dir, 
-				    (guint32) getpid ());
+				    g_get_user_name ());
 	
 	g_unlink (filename);
 	g_unlink (lock_filename);

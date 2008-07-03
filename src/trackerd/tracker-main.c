@@ -194,6 +194,13 @@ static GOptionEntry   entries_indexer[] = {
 	{ NULL }
 };
 
+typedef enum {
+	TRACKER_RUNNING_NON_ALLOWED,
+	TRACKER_RUNNING_READ_ONLY,
+	TRACKER_RUNNING_MAIN_INSTANCE
+} TrackerRunningLevel;
+
+
 static gchar *
 get_lock_file (void) 
 {
@@ -202,25 +209,9 @@ get_lock_file (void)
 	
 	filename = g_strconcat (g_get_user_name (), "_tracker_lock", NULL);
 
-	/* check if setup for NFS usage (and enable atomic NFS safe locking) */
-	if (tracker_config_get_nfs_locking (tracker->config)) {
-		/* Place lock file in tmp dir to allow multiple 
-		 * sessions on NFS 
-		 */
-		lock_filename = g_build_filename (sys_tmp_dir, 
-						  filename, 
-						  NULL);
-	} else {
-		/* Place lock file in home dir to prevent multiple 
-		 * sessions on NFS (as standard locking might be 
-		 * broken on NFS) 
-		 */
-		lock_filename = g_build_filename (g_get_user_data_dir (), 
-						  "tracker", 
-						  filename, 
-						  NULL);
-	}
-
+	lock_filename = g_build_filename (sys_tmp_dir, 
+					  filename, 
+					  NULL);
 	g_free (filename);
 
 	return lock_filename;
@@ -520,14 +511,24 @@ initialize_indexers (TrackerConfig *config)
 	return TRUE;
 }
 
-static gboolean
-check_multiple_instances (void)
+static TrackerRunningLevel
+check_runtime_level (TrackerConfig *config)
 {
-	gchar    *lock_file;
-	gint      lfp;
-	gboolean  multiple = FALSE;
+	gchar               *lock_file;
+	gint                 lfp;
+	TrackerRunningLevel  runlevel = TRACKER_RUNNING_MAIN_INSTANCE;
+	gboolean             use_nfs;
 
-	g_message ("Checking instances running");
+
+	if (!tracker_config_get_enable_indexing (config)) {
+		g_message ("Read-only mode set in configuration options");
+		return TRACKER_RUNNING_READ_ONLY;
+	}
+
+
+	use_nfs = tracker_config_get_nfs_locking (config);
+
+	g_message ("Checking instances running %s", (use_nfs ? "(using NFS)" : ""));
 
 	lock_file = get_lock_file ();
 
@@ -535,16 +536,23 @@ check_multiple_instances (void)
 
 	if (lfp < 0) {
                 g_error ("Cannot open or create lockfile:'%s'", lock_file);
+		return TRACKER_RUNNING_NON_ALLOWED;
 	}
 
 	if (lockf (lfp, F_TLOCK, 0) < 0) {
+
 		g_warning ("Tracker daemon is already running - attempting to run in readonly mode");
-		multiple = TRUE;
+
+		if (use_nfs) {
+			runlevel = TRACKER_RUNNING_READ_ONLY;
+		} else {
+			runlevel = TRACKER_RUNNING_NON_ALLOWED;
+		}
 	}
 
 	g_free (lock_file);
 
-	return multiple;
+	return runlevel;
 }
 
 
@@ -769,7 +777,23 @@ main (gint argc, gchar *argv[])
 
 	umask (077);
 
-	tracker->readonly = check_multiple_instances ();
+	/*
+	 * Check instances running
+	 */
+	switch (check_runtime_level (tracker->config)) {
+
+	case TRACKER_RUNNING_NON_ALLOWED: 
+		return EXIT_FAILURE;
+
+	case TRACKER_RUNNING_READ_ONLY:     
+		tracker->readonly = TRUE;
+		break;
+
+	case TRACKER_RUNNING_MAIN_INSTANCE: 
+		tracker->readonly = FALSE;
+		break;
+	}
+
 
 	if (!initialize_databases ()) {
 		return EXIT_FAILURE;
@@ -791,8 +815,7 @@ main (gint argc, gchar *argv[])
 
 	g_message ("Waiting for DBus requests...");
 
-	if (!tracker->readonly && 
-	    tracker_config_get_enable_indexing (tracker->config)) {
+	if (!tracker->readonly) {
 		gint seconds;
 		
 		seconds = tracker_config_get_initial_sleep (tracker->config);

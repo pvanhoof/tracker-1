@@ -1,3 +1,11 @@
+2008-07-03  Ivan Frade  <ivan.frade@nokia.com>
+	
+	* src/libtracker-common/tracker-nfs-lock.c: using username instead
+	of PID to the nfs lock filename.
+	
+	* src/trackerd/tracker-main.c: Updated code to handle multiple 
+	instances.
+		
 2008-07-03  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-config.c: Don't set the

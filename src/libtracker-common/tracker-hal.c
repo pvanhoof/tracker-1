@@ -369,7 +369,10 @@ hal_setup_batteries (TrackerHal *hal)
                 libhal_free_string_array (devices);
 
 		priv->battery_in_use = FALSE;
+		g_object_notify (G_OBJECT (hal), "battery-in-use");
+
 		priv->battery_udi = NULL;
+		g_object_notify (G_OBJECT (hal), "battery-exists");
 
                 return TRUE;
         }
@@ -378,6 +381,8 @@ hal_setup_batteries (TrackerHal *hal)
                 if (!priv->battery_udi) {
                         /* For now just use the first one we find */
                         priv->battery_udi = g_strdup (*p);
+			g_object_notify (G_OBJECT (hal), "battery-exists");
+
                         g_message (" - Device '%s' (default)", *p);
                 } else {
                         g_message (" - Device '%s'", *p);
@@ -403,6 +408,7 @@ hal_setup_batteries (TrackerHal *hal)
                                                                  priv->battery_udi, 
                                                                  PROP_AC_ADAPTER_ON, 
                                                                  NULL);
+	g_object_notify (G_OBJECT (hal), "battery-in-use");
         
         g_message ("HAL reports system is currently powered by %s",
                      priv->battery_in_use ? "battery" : "AC adapter");
@@ -748,6 +754,7 @@ hal_device_property_modified_cb (LibHalContext *context,
                                                                          priv->battery_udi, 
                                                                          PROP_AC_ADAPTER_ON, 
                                                                          &error);
+		g_object_notify (G_OBJECT (hal), "battery-in-use");
 
                 if (dbus_error_is_set (&error)) {
                         g_critical ("Could not device property:'%s' for udi:'%s', %s",
@@ -758,13 +765,6 @@ hal_device_property_modified_cb (LibHalContext *context,
                 
                 g_message ("HAL reports system is now powered by %s",
 			   priv->battery_in_use ? "battery" : "AC adapter");
-
-#if 0
-                /* If we have come off battery power wakeup index thread */
-                if (current_state && !priv->battery_in_use) {
-                        tracker_notify_file_data_available ();
-                }
-#endif
         } else {
                 gboolean is_mounted;
                

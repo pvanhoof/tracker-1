@@ -1,5 +1,11 @@
 2008-07-03  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-hal.c: (hal_setup_batteries),
+	(hal_device_property_modified_cb): Make sure we call
+	g_object_notify() when properties change.
+
+2008-07-03  Martyn Russell  <martyn@imendio.com>
+
 	* src/tracker-indexer/tracker-indexer.c: Added throttling support.
 
 2008-07-03  Philip Van Hoof  <pvanhoof@gnome.org>

@@ -79,7 +79,7 @@
 /* Default values */
 #define DEFAULT_VERBOSITY			 0
 #define DEFAULT_INITIAL_SLEEP			 45	  /* 0->1000 */
-#define DEFAULT_LOW_MEMORY_MODE			 TRUE
+#define DEFAULT_LOW_MEMORY_MODE			 FALSE
 #define DEFAULT_NFS_LOCKING                      FALSE
 #define DEFAULT_ENABLE_WATCHES			 TRUE
 #define DEFAULT_THROTTLE			 0	  /* 0->20 */

@@ -1,5 +1,10 @@
 2008-07-03  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-config.c: Don't set the
+	LowMemoryMode to True by default!
+
+2008-07-03  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-config.[ch]: Removed
 	ThreadStackSize since it is no longer used.
 	

@@ -1,3 +1,7 @@
+2008-07-03  Martyn Russell  <martyn@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer.c: Added throttling support.
+
 2008-07-03  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/tracker-indexer/tracker-main.c:

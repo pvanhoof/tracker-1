@@ -44,6 +44,8 @@
  *       everything just pushed in the files queue.
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -53,6 +55,7 @@
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-dbus.h>
 #include <libtracker-common/tracker-file-utils.h>
+#include <libtracker-common/tracker-hal.h>
 #include <libtracker-common/tracker-language.h>
 #include <libtracker-common/tracker-parser.h>
 #include <libtracker-common/tracker-ontology.h>
@@ -70,10 +73,14 @@
 #define TRACKER_INDEXER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_INDEXER, TrackerIndexerPrivate))
 
 /* Flush every 'x' seconds */
-#define FLUSH_FREQUENCY 10
+#define FLUSH_FREQUENCY             10
 
 /* Transaction every 'x' items */
-#define TRANSACTION_MAX 50
+#define TRANSACTION_MAX             50
+
+/* Throttle defaults */
+#define THROTTLE_DEFAULT            0
+#define THROTTLE_DEFAULT_ON_BATTERY 5
 
 typedef struct TrackerIndexerPrivate TrackerIndexerPrivate;
 typedef struct PathInfo PathInfo;
@@ -99,8 +106,12 @@ struct TrackerIndexerPrivate {
 	TrackerConfig *config;
 	TrackerLanguage *language;
 
+#ifdef HAVE_HAL 
+	TrackerHal *hal;
+#endif /* HAVE_HAL */
+
 	GTimer *timer;
-	guint   items_indexed;
+	guint items_indexed;
 
 	guint idle_id;
 	guint flush_id;
@@ -231,6 +242,62 @@ schedule_flush (TrackerIndexer *indexer,
 }
 
 static void
+set_up_throttle (TrackerIndexer *indexer)
+{
+#ifdef HAVE_HAL
+	TrackerIndexerPrivate *priv;
+	gint throttle;
+
+	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
+
+	/* If on a laptop battery and the throttling is default (i.e.
+	 * 0), then set the throttle to be higher so we don't kill
+	 * the laptop battery.
+	 */
+	throttle = tracker_config_get_throttle (priv->config);
+
+	if (tracker_hal_get_battery_in_use (priv->hal)) {
+		g_message ("We are running on battery");
+		
+		if (throttle == THROTTLE_DEFAULT) {
+			tracker_config_set_throttle (priv->config, 
+						     THROTTLE_DEFAULT_ON_BATTERY);
+			g_message ("Setting throttle from %d to %d", 
+				   throttle, 
+				   THROTTLE_DEFAULT_ON_BATTERY);
+		} else {
+			g_message ("Not setting throttle, it is currently set to %d",
+				   throttle);
+		}
+	} else {
+		g_message ("We are not running on battery");
+
+		if (throttle == THROTTLE_DEFAULT_ON_BATTERY) {
+			tracker_config_set_throttle (priv->config, 
+						     THROTTLE_DEFAULT_ON_BATTERY);
+			g_message ("Setting throttle from %d to %d", 
+				   throttle, 
+				   THROTTLE_DEFAULT_ON_BATTERY);
+		} else {
+			g_message ("Not setting throttle, it is currently set to %d", 
+				   throttle);
+		}
+	}
+#else  /* HAVE_HAL */
+	g_message ("HAL is not available to know if we are using a battery or not.");
+	g_message ("Not setting the throttle");
+#endif /* HAVE_HAL */
+}
+
+static void
+notify_battery_in_use_cb (GObject *gobject,
+			  GParamSpec *arg1,
+			  gpointer user_data) 
+{
+	set_up_throttle (TRACKER_INDEXER (user_data));
+}
+
+static void
 tracker_indexer_finalize (GObject *object)
 {
 	TrackerIndexerPrivate *priv;
@@ -262,6 +329,14 @@ tracker_indexer_finalize (GObject *object)
 	g_queue_free (priv->modules_queue);
 
 	g_hash_table_destroy (priv->indexer_modules);
+
+#ifdef HAVE_HAL
+	g_signal_handlers_disconnect_by_func (priv->hal, 
+					      notify_battery_in_use_cb,
+					      TRACKER_INDEXER (object));
+	
+	g_object_unref (priv->hal);
+#endif /* HAVE_HAL */
 
 	g_object_unref (priv->config);
 	g_object_unref (priv->language);
@@ -376,6 +451,17 @@ tracker_indexer_init (TrackerIndexer *indexer)
 	priv->file_process_queue = g_queue_new ();
 	priv->modules_queue = g_queue_new ();
 	priv->config = tracker_config_new ();
+
+#ifdef HAVE_HAL 
+	priv->hal = tracker_hal_new ();
+
+	g_signal_connect (priv->hal, "notify::battery-in-use",
+			  G_CALLBACK (notify_battery_in_use_cb),
+			  indexer);
+
+	set_up_throttle (indexer);
+#endif /* HAVE_HAL */
+
 	priv->language = tracker_language_new (priv->config);
 
 	priv->db_dir = g_build_filename (g_get_user_cache_dir (),
@@ -458,6 +544,25 @@ tracker_indexer_add_directory (TrackerIndexer *indexer,
 }
 
 static void
+indexer_throttle (TrackerConfig *config,
+		  gint           multiplier)
+{
+        gint throttle;
+
+        throttle = tracker_config_get_throttle (config);
+
+        if (throttle < 1) {
+                return;
+        }
+
+        throttle *= multiplier;
+
+        if (throttle > 0) {
+                g_usleep (throttle);
+        }
+}
+
+static void
 index_metadata_foreach (gpointer key,
 			gpointer value,
 			gpointer user_data)
@@ -466,12 +571,20 @@ index_metadata_foreach (gpointer key,
 	MetadataForeachData *data;
 	gchar *parsed_value;
 	gchar **arr;
+	gint throttle;
 	gint i;
 
 	if (!value) {
 		return;
 	}
 
+	/* Throttle indexer, value 9 is from older code, why 9? */
+	throttle = tracker_config_get_throttle (data->config);
+	if (throttle > 9) {
+		indexer_throttle (data->config, throttle * 100);
+	}
+
+	/* Parse */
 	field = tracker_ontology_get_field_def ((gchar *) key);
 
 	data = (MetadataForeachData *) user_data;
@@ -523,24 +636,27 @@ index_metadata (TrackerIndexer *indexer,
 	}
 }
 
-
 static gboolean
 process_file (TrackerIndexer *indexer,
 	      PathInfo       *info)
 {
+	TrackerIndexerPrivate *priv;
 	GHashTable *metadata;
 
 	g_message ("Processing file:'%s'", info->file->path);
 
+	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
+
+	/* Sleep to throttle back indexing */
+	indexer_throttle (priv->config, 100);
+
+	/* Process file */
 	metadata = tracker_indexer_module_file_get_metadata (info->module, info->file);
 
 	if (metadata) {
 		TrackerService *service;
-		TrackerIndexerPrivate *priv;
 		const gchar *service_type;
 		guint32 id;
-
-		priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
 		service_type = tracker_indexer_module_get_name (info->module);
 		service = tracker_ontology_get_service_type_by_name (service_type);

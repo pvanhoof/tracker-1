@@ -1,6 +1,14 @@
 2008-07-03  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-hal.c: (hal_setup_batteries),
+	(hal_device_property_modified_cb): Fixed some debugging.
+	* src/tracker-indexer/tracker-indexer.c: (set_up_throttle): Make
+	sure we set to the right the default when we come off battery only
+	use.
+
+2008-07-03  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-hal.c: (hal_setup_batteries),
 	(hal_device_property_modified_cb): Make sure we call
 	g_object_notify() when properties change.
 

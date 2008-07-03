@@ -408,12 +408,13 @@ hal_setup_batteries (TrackerHal *hal)
                                                                  priv->battery_udi, 
                                                                  PROP_AC_ADAPTER_ON, 
                                                                  NULL);
-	g_object_notify (G_OBJECT (hal), "battery-in-use");
-        
-        g_message ("HAL reports system is currently powered by %s",
-                     priv->battery_in_use ? "battery" : "AC adapter");
+	
+	g_message ("HAL reports system is currently powered by %s",
+		   priv->battery_in_use ? "battery" : "AC adapter");
 
-        return TRUE;
+	g_object_notify (G_OBJECT (hal), "battery-in-use");
+	
+	return TRUE;
 }
 
 static void
@@ -754,17 +755,17 @@ hal_device_property_modified_cb (LibHalContext *context,
                                                                          priv->battery_udi, 
                                                                          PROP_AC_ADAPTER_ON, 
                                                                          &error);
+                g_message ("HAL reports system is now powered by %s",
+			   priv->battery_in_use ? "battery" : "AC adapter");
+
 		g_object_notify (G_OBJECT (hal), "battery-in-use");
 
                 if (dbus_error_is_set (&error)) {
-                        g_critical ("Could not device property:'%s' for udi:'%s', %s",
+                        g_critical ("Could not get device property:'%s' for udi:'%s', %s",
 				    udi, PROP_AC_ADAPTER_ON, error.message);
                         dbus_error_free (&error);
                         return;
                 }
-                
-                g_message ("HAL reports system is now powered by %s",
-			   priv->battery_in_use ? "battery" : "AC adapter");
         } else {
                 gboolean is_mounted;
                

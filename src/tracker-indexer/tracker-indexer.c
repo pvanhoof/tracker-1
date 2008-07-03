@@ -274,10 +274,10 @@ set_up_throttle (TrackerIndexer *indexer)
 
 		if (throttle == THROTTLE_DEFAULT_ON_BATTERY) {
 			tracker_config_set_throttle (priv->config, 
-						     THROTTLE_DEFAULT_ON_BATTERY);
+						     THROTTLE_DEFAULT);
 			g_message ("Setting throttle from %d to %d", 
 				   throttle, 
-				   THROTTLE_DEFAULT_ON_BATTERY);
+				   THROTTLE_DEFAULT);
 		} else {
 			g_message ("Not setting throttle, it is currently set to %d", 
 				   throttle);

@@ -82,7 +82,6 @@ gint           tracker_config_get_min_bucket_count                 (TrackerConfi
 gint           tracker_config_get_divisions                        (TrackerConfig *config);
 gint           tracker_config_get_bucket_ratio                     (TrackerConfig *config);
 gint           tracker_config_get_padding                          (TrackerConfig *config);
-gint           tracker_config_get_thread_stack_size                (TrackerConfig *config);
 void           tracker_config_set_verbosity                        (TrackerConfig *config,
 								    gint           value);
 void           tracker_config_set_initial_sleep                    (TrackerConfig *config,
@@ -138,8 +137,6 @@ void           tracker_config_set_divisions                        (TrackerConfi
 void           tracker_config_set_bucket_ratio                     (TrackerConfig *config,
 								    gint           value);
 void           tracker_config_set_padding                          (TrackerConfig *config,
-								    gint           value);
-void           tracker_config_set_thread_stack_size                (TrackerConfig *config,
 								    gint           value);
 
 /* Directory root APIs*/

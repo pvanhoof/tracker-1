@@ -1,5 +1,15 @@
 2008-07-03  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-config.[ch]: Removed
+	ThreadStackSize since it is no longer used.
+	
+	* src/tracker-indexer/tracker-main.c:
+	* src/trackerd/tracker-main.c: Improved startup option sanity
+	check output so we only show daemon or indexer options, not
+	everything. 
+
+2008-07-03  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-hal.c: (hal_setup_batteries),
 	(hal_device_property_modified_cb): Fixed some debugging.
 	* src/tracker-indexer/tracker-indexer.c: (set_up_throttle): Make

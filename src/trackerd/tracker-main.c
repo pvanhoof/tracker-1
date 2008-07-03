@@ -245,72 +245,30 @@ log_option_list (GSList      *list,
 }
 
 static void
-sanity_check_option_values (void)
+sanity_check_option_values (TrackerConfig *config)
 {
-	g_message ("Tracker configuration options:");
+	g_message ("General options:");
 	g_message ("  Initial sleep  ........................  %d (seconds)", 
-		   tracker_config_get_initial_sleep (tracker->config));
+		   tracker_config_get_initial_sleep (config));
 	g_message ("  Verbosity  ............................  %d", 
-		   tracker_config_get_verbosity (tracker->config));
+		   tracker_config_get_verbosity (config));
  	g_message ("  Low memory mode  ......................  %s", 
-		   tracker_config_get_low_memory_mode (tracker->config) ? "yes" : "no");
+		   tracker_config_get_low_memory_mode (config) ? "yes" : "no");
+
+	
+	g_message ("Daemon options:");
  	g_message ("  Indexing enabled  .....................  %s", 
-		   tracker_config_get_enable_indexing (tracker->config) ? "yes" : "no");
+		   tracker_config_get_enable_indexing (config) ? "yes" : "no");
  	g_message ("  Monitoring enabled  ...................  %s", 
-		   tracker_config_get_enable_watches (tracker->config) ? "yes" : "no");
- 	g_message ("  File content indexing enabled  ........  %s", 
-		   tracker_config_get_enable_content_indexing (tracker->config) ? "yes" : "no");
-	g_message ("  Thumbnailing enabled  .................  %s", 
-		   tracker_config_get_enable_thumbnails (tracker->config) ? "yes" : "no");
+		   tracker_config_get_enable_watches (config) ? "yes" : "no");
 
-	g_message ("Tracker indexer parameters:");
-	g_message ("  Indexer language code  ................  %s", 
-		   tracker_config_get_language (tracker->config));
-	g_message ("  Stemmer enabled  ......................  %s", 
-		   tracker_config_get_enable_stemmer (tracker->config) ? "yes" : "no");
-	g_message ("  Fast merges enabled  ..................  %s", 
-		   tracker_config_get_fast_merges (tracker->config) ? "yes" : "no");
-	g_message ("  Disable indexing on battery  ..........  %s (initially = %s)", 
-		   tracker_config_get_disable_indexing_on_battery (tracker->config) ? "yes" : "no",
-		   tracker_config_get_disable_indexing_on_battery_init (tracker->config) ? "yes" : "no");
-
-	if (tracker_config_get_low_disk_space_limit (tracker->config) == -1) { 
-		g_message ("  Low disk space limit  .................  Disabled");
-	} else {
-		g_message ("  Low disk space limit  .................  %d%%",
-			   tracker_config_get_low_disk_space_limit (tracker->config));
-	}
-
-	g_message ("  Minimum index word length  ............  %d",
-		   tracker_config_get_min_word_length (tracker->config));
-	g_message ("  Maximum index word length  ............  %d",
-		   tracker_config_get_max_word_length (tracker->config));
-	g_message ("  Maximum text to index  ................  %d",
-		   tracker_config_get_max_text_to_index (tracker->config));
-	g_message ("  Maximum words to index  ...............  %d",
-		   tracker_config_get_max_words_to_index (tracker->config));
-	g_message ("  Maximum bucket count  .................  %d",
-		   tracker_config_get_max_bucket_count (tracker->config));
-	g_message ("  Minimum bucket count  .................  %d",
-		   tracker_config_get_min_bucket_count (tracker->config));
-	g_message ("  Divisions  ............................  %d",
-		   tracker_config_get_divisions (tracker->config));
-	g_message ("  Padding  ..............................  %d",
-		   tracker_config_get_padding (tracker->config));
-	g_message ("  Optimization sweep count  .............  %d",
-		   tracker_config_get_optimization_sweep_count (tracker->config));
-	g_message ("  Thread stack size  ....................  %d",
-		   tracker_config_get_thread_stack_size (tracker->config));
-	g_message ("  Throttle level  .......................  %d",
-		   tracker_config_get_throttle (tracker->config));
-
-	log_option_list (tracker_config_get_watch_directory_roots (tracker->config),
+	log_option_list (tracker_config_get_watch_directory_roots (config),
 			 "Monitor directories included");
-	log_option_list (tracker_config_get_no_watch_directory_roots (tracker->config),
+	log_option_list (tracker_config_get_no_watch_directory_roots (config),
 			 "Monitor directories excluded");
-	log_option_list (tracker_config_get_crawl_directory_roots (tracker->config),
+	log_option_list (tracker_config_get_crawl_directory_roots (config),
 			 "Crawling directories");
-	log_option_list (tracker_config_get_no_index_file_types (tracker->config),
+	log_option_list (tracker_config_get_no_index_file_types (config),
 			 "File types excluded from indexing");
 }
 
@@ -788,7 +746,7 @@ main (gint argc, gchar *argv[])
 		return EXIT_FAILURE;
 	} 
 
-	sanity_check_option_values ();
+	sanity_check_option_values (tracker->config);
 
 	tracker_nfs_lock_init (tracker_config_get_nfs_locking (tracker->config));
 

@@ -72,7 +72,6 @@
 #define KEY_DIVISIONS				 "Divisions"
 #define KEY_BUCKET_RATIO			 "BucketRatio"
 #define KEY_PADDING				 "Padding"
-#define KEY_THREAD_STACK_SIZE			 "ThreadStackSize"
 
 #define GROUP_SERVICES				 "Services"
 #define KEY_ENABLE_XESAM			 "EnableXesam"
@@ -105,7 +104,6 @@
 #define DEFAULT_DIVISIONS			 4	  /* 1->64 */
 #define DEFAULT_BUCKET_RATIO			 1	  /* 0=50%, 1=100%, 2=200%, 3=300%, 4=400% */
 #define DEFAULT_PADDING				 2	  /* 1->8 */
-#define DEFAULT_THREAD_STACK_SIZE		 0	  /* 0 is the default for the platform */
 
 /*typedef struct _ConfigLanguages	  ConfigLanguages;*/
 typedef struct _TrackerConfigPriv TrackerConfigPriv;
@@ -152,7 +150,6 @@ struct _TrackerConfigPriv {
 	gint	  divisions;
 	gint	  bucket_ratio;
 	gint	  padding;
-	gint	  thread_stack_size;
 
 	/* Services*/
 	gboolean  enable_xesam;
@@ -210,7 +207,6 @@ enum {
 	PROP_DIVISIONS,
 	PROP_BUCKET_RATIO,
 	PROP_PADDING,
-	PROP_THREAD_STACK_SIZE,
 
 	/* Services*/
 	PROP_ENABLE_XESAM
@@ -501,16 +497,6 @@ tracker_config_class_init (TrackerConfigClass *klass)
 							   8,
 							   DEFAULT_PADDING,
 							   G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
-	g_object_class_install_property (object_class,
-					 PROP_THREAD_STACK_SIZE,
-					 g_param_spec_int ("thread-stack-size",
-							   "Thread stack size",
-							   "Thread stack size to use inside tracker. "
-							   "Use this carefully, as it may lead to misterious crashes. "
-							   "The default is 0, which uses the default for the platform.",
-							   0, G_MAXINT,
-							   DEFAULT_THREAD_STACK_SIZE,
-							   G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
 
 	/* Services */
 	g_object_class_install_property (object_class,
@@ -672,9 +658,6 @@ config_get_property (GObject	*object,
 	case PROP_PADDING:
 		g_value_set_int (value, priv->padding);
 		break;
-	case PROP_THREAD_STACK_SIZE:
-		g_value_set_int (value, priv->thread_stack_size);
-		break;
 
 	/* Services */
 	case PROP_ENABLE_XESAM:
@@ -818,10 +801,6 @@ config_set_property (GObject	  *object,
 	case PROP_PADDING:
 		tracker_config_set_padding (TRACKER_CONFIG (object),
 					    g_value_get_int (value));
-		break;
-	case PROP_THREAD_STACK_SIZE:
-		tracker_config_set_thread_stack_size (TRACKER_CONFIG (object),
-						      g_value_get_int (value));
 		break;
 
 	/* Services */
@@ -1110,12 +1089,6 @@ config_create_with_defaults (const gchar *filename,
 				" How much space is used to prevent index relocations.\n"
 				" Higher values improve indexing speed but waste more disk space.\n"
 				" Values should be between 1 and 8.",
-				NULL);
-	g_key_file_set_integer (key_file, GROUP_PERFORMANCE, KEY_THREAD_STACK_SIZE, DEFAULT_THREAD_STACK_SIZE);
-	g_key_file_set_comment (key_file, GROUP_PERFORMANCE, KEY_THREAD_STACK_SIZE,
-				" Stack size to use in threads inside Tracker.\n"
-				" Use this carefully, or expect misterious crashes.\n"
-				" 0 uses the default stack size for this platform",
 				NULL);
 
 	/* Services */
@@ -1409,7 +1382,6 @@ config_load (TrackerConfig *config)
 	config_load_int (config, "divisions", key_file, GROUP_PERFORMANCE, KEY_DIVISIONS);
 	config_load_int (config, "bucket-ratio", key_file, GROUP_PERFORMANCE, KEY_BUCKET_RATIO);
 	config_load_int (config, "padding", key_file, GROUP_PERFORMANCE, KEY_PADDING);
-	config_load_int (config, "thread-stack-size", key_file, GROUP_PERFORMANCE, KEY_THREAD_STACK_SIZE);
 
 	/* Services */
 	config_load_boolean (config, "enable-xesam", key_file, GROUP_SERVICES, KEY_ENABLE_XESAM);
@@ -1835,18 +1807,6 @@ tracker_config_get_padding (TrackerConfig *config)
 	priv = GET_PRIV (config);
 
 	return priv->padding;
-}
-
-gint
-tracker_config_get_thread_stack_size (TrackerConfig *config)
-{
-	TrackerConfigPriv *priv;
-
-	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_THREAD_STACK_SIZE);
-
-	priv = GET_PRIV (config);
-
-	return priv->thread_stack_size;
 }
 
 void
@@ -2309,24 +2269,6 @@ tracker_config_set_padding (TrackerConfig *config,
 
 	priv->padding = value;
 	g_object_notify (G_OBJECT (config), "padding");
-}
-
-void
-tracker_config_set_thread_stack_size (TrackerConfig *config,
-				      gint	     value)
-{
-	TrackerConfigPriv *priv;
-
-	g_return_if_fail (TRACKER_IS_CONFIG (config));
-
-	if (!config_int_validate (config, "thread-stack-size", value)) {
-		return;
-	}
-
-	priv = GET_PRIV (config);
-
-	priv->thread_stack_size = value;
-	g_object_notify (G_OBJECT (config), "thread-stack-size");
 }
 
 void

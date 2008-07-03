@@ -193,6 +193,9 @@ initialize_indexer (void)
 	sys_tmp_dir = g_build_filename (g_get_tmp_dir (), filename, NULL);
 	g_free (filename);
 
+	/* if you want low memory mode in the indexer, pass 
+		TRACKER_DB_MANAGER_LOW_MEMORY_MODE */
+
 	tracker_db_manager_init (0, NULL);
         tracker_module_config_init ();
 

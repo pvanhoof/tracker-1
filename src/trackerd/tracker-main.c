@@ -798,6 +798,10 @@ main (gint argc, gchar *argv[])
 		flags |= TRACKER_DB_MANAGER_FORCE_REINDEX;
 	}
 
+	if (tracker_config_get_low_memory_mode (tracker->config)) {
+		flags |= TRACKER_DB_MANAGER_LOW_MEMORY_MODE;
+	}
+
 	tracker_db_manager_init (flags, &tracker->first_time_index);
 	tracker_db_init ();
 	tracker_xesam_manager_init ();

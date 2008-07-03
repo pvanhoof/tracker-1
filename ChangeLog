@@ -1,5 +1,14 @@
 2008-07-03  Philip Van Hoof  <pvanhoof@gnome.org>
 
+	* src/tracker-indexer/tracker-main.c:
+	* src/trackerd/tracker-main.c:
+	* src/libtracker-db/tracker-db-manager.c:
+	* src/libtracker-db/tracker-db-manager.h:
+
+	LowMemoryMode for the new generation!
+
+2008-07-03  Philip Van Hoof  <pvanhoof@gnome.org>
+
 	* src/trackerd/tracker-files.c: Using the indexer to implement
 	deleting files from the index
 

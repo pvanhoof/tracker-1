@@ -2255,6 +2255,10 @@ tracker_db_manager_init (TrackerDBManagerFlags  flags,
                 dir = location_to_directory (dbs[i].location);
 		dbs[i].abs_filename = g_build_filename (dir, dbs[i].file, NULL);
 
+		if (flags & TRACKER_DB_MANAGER_LOW_MEMORY_MODE) {
+			dbs[i].cache_size /= 2;
+		}
+
 		/* Check we have each database in place, if one is
 		 * missing, we reindex, except the cache which we
 		 * expect to be replaced on each startup.

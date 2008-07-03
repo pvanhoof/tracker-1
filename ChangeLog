@@ -1,3 +1,9 @@
+2008-07-03  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer.c (tracker_indexer_files_check)
+	(tracker_indexer_files_update) (tracker_indexer_files_delete): Return
+	module name in case of error.
+
 2008-07-03  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-crawler.c: Make sure we have a queue PER

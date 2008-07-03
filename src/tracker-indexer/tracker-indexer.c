@@ -933,7 +933,8 @@ tracker_indexer_files_check (TrackerIndexer  *indexer,
 	if (!module) {
 		tracker_dbus_request_failed (request_id,
 					     error,
-					     "The module is not loaded");
+					     "The module '%s' is not loaded",
+					     module_name);
 		return FALSE;
 	}
 
@@ -976,7 +977,8 @@ tracker_indexer_files_update (TrackerIndexer  *indexer,
 	if (!module) {
 		tracker_dbus_request_failed (request_id,
 					     error,
-					     "The module is not loaded");
+					     "The module '%s' is not loaded",
+					     module_name);
 		return FALSE;
 	}
 
@@ -1019,7 +1021,8 @@ tracker_indexer_files_delete (TrackerIndexer  *indexer,
 	if (!module) {
 		tracker_dbus_request_failed (request_id,
 					     error,
-					     "The module is not loaded");
+					     "The module '%s' is not loaded",
+					     module_name);
 		return FALSE;
 	}
 

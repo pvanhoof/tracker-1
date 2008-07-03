@@ -52,8 +52,10 @@ struct _TrackerCrawlerPrivate {
 
 	GTimer         *timer;
 
-	GQueue         *directories;
-	GQueue         *files;
+	GHashTable     *directory_queues;
+	GHashTable     *file_queues;
+	GSList         *directory_queues_order;
+	GSList         *file_queues_order;
 
 	guint           idle_id;
 	guint           files_queue_handle_id;
@@ -100,6 +102,8 @@ static void crawler_set_property      (GObject         *object,
 				       guint            param_id,
 				       const GValue    *value,
 				       GParamSpec      *pspec);
+
+static void queue_free                (gpointer         data);
 
 #ifdef HAVE_HAL
 static void mount_point_added_cb      (TrackerHal      *hal,
@@ -173,8 +177,14 @@ tracker_crawler_init (TrackerCrawler *object)
 
 	priv = object->private;
 
-	priv->directories = g_queue_new ();
-	priv->files = g_queue_new ();
+	priv->directory_queues = g_hash_table_new_full (g_str_hash, 
+							g_str_equal,
+							g_free,
+							queue_free);
+	priv->file_queues = g_hash_table_new_full (g_str_hash, 
+						   g_str_equal,
+						   g_free,
+						   queue_free);
 }
 
 static void
@@ -211,11 +221,14 @@ crawler_finalize (GObject *object)
 		priv->files_queue_handle_id = 0;
 	}
 
-	g_queue_foreach (priv->files, (GFunc) g_object_unref, NULL);
-	g_queue_free (priv->files);
+	g_slist_foreach (priv->file_queues_order, (GFunc) g_free, NULL);
+	g_slist_free (priv->file_queues_order);
 
-	g_queue_foreach (priv->directories, (GFunc) g_object_unref, NULL);
-	g_queue_free (priv->directories);
+	g_slist_foreach (priv->directory_queues_order, (GFunc) g_free, NULL);
+	g_slist_free (priv->directory_queues_order);
+
+	g_hash_table_unref (priv->file_queues);
+	g_hash_table_unref (priv->directory_queues);
 
 #ifdef HAVE_HAL
 	if (priv->hal) {
@@ -343,6 +356,65 @@ tracker_crawler_set_hal (TrackerCrawler *object,
 /*
  * Functions
  */
+
+static void
+queue_free (gpointer data)
+{
+	GQueue *queue;
+
+	queue = (GQueue*) data;
+
+	g_queue_foreach (queue, (GFunc) g_object_unref, NULL); 
+	g_queue_free (queue); 
+}
+
+static GQueue *
+queue_get_next_for_directories_with_data (TrackerCrawler  *crawler, 
+					  gchar          **module_name_p)
+{
+	GSList *l;
+	GQueue *q;
+	gchar  *module_name;
+
+	for (l = crawler->private->directory_queues_order; l; l = l->next) {
+		module_name = l->data;
+		q = g_hash_table_lookup (crawler->private->directory_queues, module_name);
+
+		if (g_queue_get_length (q) > 0) {
+			if (module_name_p) {
+				*module_name_p = module_name;
+			}
+
+			return q;
+		}
+	}
+
+	return NULL;
+}
+
+static GQueue *
+queue_get_next_for_files_with_data (TrackerCrawler  *crawler,
+				    gchar          **module_name_p)
+{
+	GSList *l;
+	GQueue *q;
+	gchar  *module_name;
+
+	for (l = crawler->private->file_queues_order; l; l = l->next) {
+		module_name = l->data;
+		q = g_hash_table_lookup (crawler->private->file_queues, module_name);
+
+		if (g_queue_get_length (q) > 0) {
+			if (module_name_p) {
+				*module_name_p = module_name;
+			}
+
+			return q;
+		}
+	}
+
+	return NULL;
+}
 
 #ifdef HAVE_HAL
 
@@ -558,13 +630,17 @@ add_file (TrackerCrawler *crawler,
 			 path,
 			 crawler->private->enumerations);
 	} else {
+		GQueue *queue;
+
 		crawler->private->files_found++;
 
 		g_debug ("Found  :'%s' (%d)",
 			 path,
 			 crawler->private->enumerations);
-
-		g_queue_push_tail (crawler->private->files, g_object_ref (file));
+		
+		queue = g_hash_table_lookup (crawler->private->file_queues,
+					     crawler->private->current_module_name);
+		g_queue_push_tail (queue, g_object_ref (file));
 	}
 
 	g_free (path);
@@ -587,13 +663,17 @@ add_directory (TrackerCrawler *crawler,
 			 path,
 			 crawler->private->enumerations);
 	} else {
+		GQueue *queue;
+
 		crawler->private->directories_found++;
 
 		g_debug ("Found  :'%s' (%d)",
 			 path,
 			 crawler->private->enumerations);
 
-		g_queue_push_tail (crawler->private->directories, g_object_ref (file));
+		queue = g_hash_table_lookup (crawler->private->directory_queues,
+					     crawler->private->current_module_name);
+		g_queue_push_tail (queue, g_object_ref (file));
 	}
 
 	g_free (path);
@@ -625,7 +705,9 @@ indexer_get_running_cb (DBusGProxy *proxy,
 			gpointer    user_data)
 {
 	TrackerCrawler *crawler;
+	GQueue         *queue = NULL;
 	GStrv           files;
+	gchar          *module_name;
 	guint           total;
 
 	crawler = TRACKER_CRAWLER (user_data);
@@ -640,16 +722,18 @@ indexer_get_running_cb (DBusGProxy *proxy,
 		return;
 	}
 
-	total = g_queue_get_length (crawler->private->files);
-	files = tracker_dbus_queue_gfile_to_strv (crawler->private->files,
-						  FILES_QUEUE_PROCESS_MAX);
+	queue = queue_get_next_for_files_with_data (crawler, &module_name);
+	total = g_queue_get_length (queue);
+
+	files = tracker_dbus_queue_gfile_to_strv (queue, FILES_QUEUE_PROCESS_MAX);
 	
-	g_debug ("File check queue processed, sending first %d/%d to the indexer",
-		 g_strv_length (files), 
-		 total);
+	g_message ("File check queue processed, sending first %d/%d, for module:'%s' to the indexer",
+		   g_strv_length (files), 
+		   total,
+		   module_name);
 
 	org_freedesktop_Tracker_Indexer_files_check_async (proxy,
-							   crawler->private->current_module_name,
+							   module_name,
 							   (const gchar **) files,
 							   indexer_check_files_cb,
 							   files);
@@ -661,11 +745,14 @@ static gboolean
 file_queue_handler_cb (gpointer user_data)
 {
 	TrackerCrawler *crawler;
+	GQueue         *queue;
 
 	crawler = TRACKER_CRAWLER (user_data);
 
-	if (g_queue_get_length (crawler->private->files) < 1) {
-		g_debug ("File check queue is empty... nothing to do");
+	queue = queue_get_next_for_files_with_data (crawler, NULL);
+
+	if (!queue) {
+		g_message ("No file queues to process");
 		crawler->private->files_queue_handle_id = 0;
 		return FALSE;
 	}
@@ -711,30 +798,40 @@ static gboolean
 process_func (gpointer data)
 {
 	TrackerCrawler *crawler;
+	GQueue         *queue = NULL;
 	GFile          *file;
 
 	crawler = TRACKER_CRAWLER (data);
 
-	/* Crawler file */
-	file = g_queue_peek_head (crawler->private->files);
+	/* Get the first files queue with data and process it. */
+	queue = queue_get_next_for_files_with_data (crawler, NULL);
 
-	if (file) {
-		/* Only return here if we want to throttle the
-		 * directory crawling. I don't think we want to do
-		 * that. 
-		 */
-		process_file (crawler, file);
-		/* return TRUE; */
+	if (queue) {
+		/* Crawler file */
+		file = g_queue_peek_head (queue);
+		
+		if (file) {
+			/* Only return here if we want to throttle the
+			 * directory crawling. I don't think we want to do
+			 * that. 
+			 */
+			process_file (crawler, file);
+		}
 	}
 
-	/* Crawler directory contents */
-	file = g_queue_pop_head (crawler->private->directories);
-	
-	if (file) {
-		process_directory (crawler, file);
-		g_object_unref (file);
+	/* Get the first files queue with data and process it. */
+	queue = queue_get_next_for_directories_with_data (crawler, NULL);
 
-		return TRUE;
+	if (queue) {
+		/* Crawler directory contents */
+		file = g_queue_pop_head (queue);
+		
+		if (file) {
+			process_directory (crawler, file);
+			g_object_unref (file);
+			
+			return TRUE;
+		}
 	}
 
 	/* If we still have some async operations in progress, wait
@@ -901,6 +998,7 @@ tracker_crawler_start (TrackerCrawler *crawler,
 		       const gchar    *module_name)
 {
 	TrackerCrawlerPrivate *priv;
+	GQueue                *queue;
 	GFile                 *file;
 	GSList                *paths = NULL;
 	GSList                *sl;
@@ -960,6 +1058,55 @@ tracker_crawler_start (TrackerCrawler *crawler,
 	}
 
 	priv->timer = g_timer_new ();
+
+	/* Make sure we have queues for this module */
+	queue = g_hash_table_lookup (priv->directory_queues, module_name);
+
+	if (!queue) {
+		queue = g_queue_new ();
+		g_hash_table_insert (priv->directory_queues, g_strdup (module_name), queue);
+	}
+
+	queue = g_hash_table_lookup (priv->file_queues, module_name);
+
+	if (!queue) {
+		queue = g_queue_new ();
+		g_hash_table_insert (priv->file_queues, g_strdup (module_name), queue);
+	}
+
+	/* Make sure we add this module to the list of modules we
+	 * have queues for, that way we know what order to process
+	 * these queues in.
+	 */
+	sl = g_slist_find_custom (priv->directory_queues_order, 
+				  module_name,
+				  (GCompareFunc) strcmp);
+	if (sl) {
+		g_warning ("Found module name:'%s' already in directory queue list "
+			   "at position %d, it is not being appended to position:%d",
+			   module_name, 
+			   g_slist_position (priv->directory_queues_order, sl),
+			   g_slist_length (priv->directory_queues_order));
+	} else {
+		priv->directory_queues_order = 
+			g_slist_append (priv->directory_queues_order,
+					g_strdup (module_name));
+	}
+
+	sl = g_slist_find_custom (priv->file_queues_order, 
+				  module_name,
+				  (GCompareFunc) strcmp);
+	if (sl) {
+		g_warning ("Found module name:'%s' already in file queue list "
+			   "at position %d, it is not being appended to position:%d",
+			   module_name, 
+			   g_slist_position (priv->file_queues_order, sl),
+			   g_slist_length (priv->file_queues_order));
+	} else {
+		priv->file_queues_order = 
+			g_slist_append (priv->file_queues_order,
+					g_strdup (module_name));
+	}
 
 	/* Set up all the important data to start this crawl */
 	if (priv->ignored_directory_patterns) {

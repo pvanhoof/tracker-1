@@ -1,3 +1,11 @@
+2008-07-03  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-crawler.c: Make sure we have a queue PER
+	module name, this way we don't get the "module not loaded" error
+	when we stop crawling one module and start another (cause we were
+	freeing the priv->module_name and the queues are handled AFTER
+	crawling has stopped). 
+
 2008-07-03  Ivan Frade  <ivan.frade@nokia.com>
 	
 	* src/libtracker-common/tracker-nfs-lock.c: using username instead

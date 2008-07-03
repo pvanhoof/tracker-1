@@ -37,6 +37,7 @@
 #include "tracker-files.h"
 #include "tracker-db.h"
 #include "tracker-marshal.h"
+#include "tracker-indexer-client.h"
 
 G_DEFINE_TYPE(TrackerFiles, tracker_files, G_TYPE_OBJECT)
 
@@ -234,6 +235,13 @@ tracker_files_create (TrackerFiles  *object,
         return created;
 }
 
+static void
+on_indexer_deleted (DBusGProxy *proxy, GError *error, gpointer user_data)
+{
+	GStrv files = user_data;
+	g_strfreev (files);
+}
+
 gboolean
 tracker_files_delete (TrackerFiles  *object,
 		      const gchar   *uri,
@@ -243,19 +251,15 @@ tracker_files_delete (TrackerFiles  *object,
 	TrackerDBResultSet *result_set;
 	guint               request_id;
 	guint32             file_id;
-	gchar              *name;
+	gchar              *full;
 	gchar              *path;
+	gchar              *name;
 	gboolean            is_directory;
-	TrackerDBAction     action;
+	GStrv               files;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_return_val_if_fail (uri != NULL, FALSE, error);
-
-	tracker_dbus_request_new (request_id,
-				  "DBus request to delete file, "
-                                  "uri:'%s'",
-                                  uri);
 
 	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
@@ -264,6 +268,7 @@ tracker_files_delete (TrackerFiles  *object,
 		tracker_dbus_request_comment (request_id, 
 					      "File or directory was not in database to delete, uri:'%s'",
 					      uri);
+
 		tracker_dbus_request_success (request_id);
 		return TRUE;
 	}
@@ -271,46 +276,52 @@ tracker_files_delete (TrackerFiles  *object,
 	if (uri[0] == G_DIR_SEPARATOR) {
 		name = g_path_get_basename (uri);
 		path = g_path_get_dirname (uri);
+		full = g_strdup (uri);
 	} else {
 		name = tracker_file_get_vfs_name (uri);
 		path = tracker_file_get_vfs_path (uri);
+		full = g_build_filename (G_DIR_SEPARATOR_S, path, name, NULL);
 	}
 
 	is_directory = FALSE;
-	
+
 	result_set = tracker_db_exec_proc (iface, 
 					   "GetServiceID", 
 					   path, 
 					   name, 
 					   NULL);
+	g_free (name);
+	g_free (path);
+
 	if (result_set) {
 		tracker_db_result_set_get (result_set, 2, &is_directory, -1);
 		g_object_unref (result_set);
 	}
 
-	if (is_directory) {
-		action = TRACKER_DB_ACTION_DIRECTORY_DELETED;
-	} else {
-		action = TRACKER_DB_ACTION_FILE_DELETED;
-	}
-	
-	/* tracker_db_insert_pending_file (iface_cache, */
-	/* 				file_id,  */
-	/* 				uri,  */
-	/* 				NULL,   */
-	/* 				g_strdup ("unknown"),  */
-	/* 				0,  */
-	/* 				action, */
-	/* 				is_directory,  */
-	/* 				FALSE,  */
-	/* 				-1); */
+	files = (GStrv) g_malloc0 (sizeof (gchar*) * 1);
 
-	g_free (path);
-	g_free (name);
+	/* full is freed as part of the GStrv in the callback */
+	files[0] = full;
 
-        tracker_dbus_request_success (request_id);
+	tracker_dbus_request_new (request_id,
+				  "DBus request to delete file, "
+				  "uri:'%s'",
+				  uri);
 
-        return TRUE;
+	org_freedesktop_Tracker_Indexer_files_delete_async (tracker_dbus_indexer_get_proxy (),
+							    "files", 
+							    (const char **) files, 
+							    on_indexer_deleted, 
+							    files);
+
+	/* When we refactor to use async DBus api implementations, we can start
+	 * caring about errors that happen in on_indexer_deleted and only 
+	 * dbus_g_method_return_error or dbus_g_method_return in the callback 
+	 * on_indexer_deleted */
+
+	tracker_dbus_request_success (request_id);
+
+	return TRUE;
 }
 
 gboolean

@@ -1,3 +1,8 @@
+2008-07-03  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-files.c: Using the indexer to implement
+	deleting files from the index
+
 2008-07-02  Ivan Frade  <ivan.frade@nokia.com>
 	
 	* src/tracker-indexer/tracker-index.c

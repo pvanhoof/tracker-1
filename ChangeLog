@@ -1,3 +1,7 @@
+2008-07-04  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-daemon.c: Error handling for some DBus Apis
+
 2008-07-04  Ivan Frade  <ivan.frade@nokia.com>
 
 	* data/dbus/tracker-daemon.xml

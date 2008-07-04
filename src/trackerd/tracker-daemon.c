@@ -392,6 +392,7 @@ tracker_daemon_set_bool_option (TrackerDaemon         *object,
 	TrackerDaemonPriv *priv;
 	guint              request_id;
 	gboolean           signal_state_change = FALSE;
+	GError             *actual_error = NULL;
 
 	/* FIXME: Shouldn't we just make the TrackerConfig module a
 	 * DBus object instead so values can be tweaked in real time
@@ -450,6 +451,11 @@ tracker_daemon_set_bool_option (TrackerDaemon         *object,
 	} else if (strcasecmp (option, "BatteryIndexInitial") == 0) {
                 tracker_config_set_disable_indexing_on_battery_init (priv->config, !value);
 		g_message ("Disable initial index sweep on battery set to %d", !value);
+	} else {
+		g_set_error (&actual_error, 
+			     TRACKER_DBUS_ERROR, 
+			     0,
+			     "Option does not exist");
 	}
 
 	if (signal_state_change) {
@@ -465,7 +471,12 @@ tracker_daemon_set_bool_option (TrackerDaemon         *object,
 				       tracker_config_get_enable_indexing (priv->config));
 	}
 
-	dbus_g_method_return (context);
+	if (!actual_error) {
+		dbus_g_method_return (context);
+	} else {
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+	}
 
 	tracker_dbus_request_success (request_id);
 }
@@ -479,6 +490,7 @@ tracker_daemon_set_int_option (TrackerDaemon         *object,
 {
 	TrackerDaemonPriv *priv;
 	guint              request_id;
+	GError            *actual_error = NULL;
 
 	/* FIXME: Shouldn't we just make the TrackerConfig module a
 	 * DBus object instead so values can be tweaked in real time
@@ -506,9 +518,19 @@ tracker_daemon_set_int_option (TrackerDaemon         *object,
 	} else if (strcasecmp (option, "MaxWords") == 0) {
                 tracker_config_set_max_words_to_index (priv->config, value);
 		g_message ("Maxinum number of unique words set to %d", value);
-	} 
+	} else {
+		g_set_error (&actual_error, 
+			     TRACKER_DBUS_ERROR, 
+			     0,
+			     "Option does not exist");
+	}
 
-	dbus_g_method_return (context);
+	if (!actual_error) {
+		dbus_g_method_return (context);
+	} else {
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+	}
 
 	tracker_dbus_request_success (request_id);
 }

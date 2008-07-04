@@ -1,5 +1,15 @@
 2008-07-04  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-log.c: (log_output): Use
+	g_strerror() and errno when we can't open the log file so we know
+	why.
+	
+	* src/trackerd/tracker-main.c: Removed the throttle command line
+	option, it is only used by the indexer which loads the config file
+	separately. Also, plugged a leak in the check_runtime_level()
+	function which checks if we are already running.
+
+2008-07-04  Martyn Russell  <martyn@imendio.com>
 
 	* src/tracker-indexer/modules/files.c: Fixed warning.
 	

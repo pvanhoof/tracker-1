@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h> 
+#include <errno.h>
 
 #include <glib/gstdio.h> 
 
@@ -66,8 +67,15 @@ log_output (const gchar    *domain,
 
 	fd = g_fopen (log->filename, "a");
 	if (!fd) {
-		g_fprintf (stderr, "Could not open log: '%s'\n", log->filename);
+		const gchar *error_string;
+
+		error_string = g_strerror (errno);
+		g_fprintf (stderr,
+			   "Could not open log:'%s', %s\n", 
+			   log->filename,
+			   error_string);
 		g_mutex_unlock (log->mutex);
+
 		return;
 	}
 

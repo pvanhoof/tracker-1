@@ -1,3 +1,13 @@
+2008-07-04  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-log.c: If we can't open the log,
+	add a "\n" to the error so we don't get 2 messages on the same
+	line. 
+	
+	* src/trackerd/tracker-crawler.c: Make sure we set module_name to
+	NULL when getting the next queue with data and recheck the next
+	queue in the running callback in case things have changed.
+
 2008-07-03  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer.c (tracker_indexer_files_check)

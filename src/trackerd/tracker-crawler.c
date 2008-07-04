@@ -400,6 +400,10 @@ queue_get_next_for_files_with_data (TrackerCrawler  *crawler,
 	GQueue *q;
 	gchar  *module_name;
 
+	if (module_name_p) {
+		*module_name_p = NULL;
+	}
+
 	for (l = crawler->private->file_queues_order; l; l = l->next) {
 		module_name = l->data;
 		q = g_hash_table_lookup (crawler->private->file_queues, module_name);
@@ -723,8 +727,15 @@ indexer_get_running_cb (DBusGProxy *proxy,
 	}
 
 	queue = queue_get_next_for_files_with_data (crawler, &module_name);
-	total = g_queue_get_length (queue);
 
+	if (!queue || !module_name) {
+		g_message ("No file queues to process");
+		g_object_unref (crawler);
+
+		return;
+	}
+
+	total = g_queue_get_length (queue);
 	files = tracker_dbus_queue_gfile_to_strv (queue, FILES_QUEUE_PROCESS_MAX);
 	
 	g_message ("File check queue processed, sending first %d/%d, for module:'%s' to the indexer",

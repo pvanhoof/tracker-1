@@ -81,7 +81,7 @@ tracker_dbus_query_result_to_hash_table (TrackerDBResultSet *result_set)
         }
 
 	while (valid) {
-		GValue   transform;
+		GValue   transform = { 0, };
 		GValue  *values;
                 gchar  **p;
                 gint     field_count;
@@ -95,7 +95,7 @@ tracker_dbus_query_result_to_hash_table (TrackerDBResultSet *result_set)
 		values = tracker_dbus_gvalue_slice_new (G_TYPE_STRV);
 
                 for (i = 1; i < field_count; i++) {
-			GValue  value;
+			GValue  value = { 0, };
 			gchar  *str;
 
 			_tracker_db_result_set_get_value (result_set, i, &value);

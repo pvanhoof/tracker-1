@@ -55,6 +55,9 @@ struct _TrackerCrawlerPrivate {
 	GSList         *directory_queues_order;
 	GSList         *file_queues_order;
 
+	GStrv           files_sent;
+	gchar          *files_sent_module_name;
+
 	guint           idle_id;
 	guint           files_queue_handle_id;
 
@@ -238,6 +241,10 @@ queue_get_next_for_directories_with_data (TrackerCrawler  *crawler,
 	GSList *l;
 	GQueue *q;
 	gchar  *module_name;
+
+	if (module_name_p) {
+		*module_name_p = NULL;
+	}
 
 	for (l = crawler->private->directory_queues_order; l; l = l->next) {
 		module_name = l->data;
@@ -525,66 +532,38 @@ indexer_check_files_cb (DBusGProxy *proxy,
 			GError     *error,
 			gpointer    user_data)
 {
-	GStrv files;
+	TrackerCrawler *crawler;
+
+	crawler = TRACKER_CRAWLER (user_data);
 
 	if (error) {
+		GQueue  *queue;
+		gchar  **p;
+
 		g_message ("Files could not be checked by the indexer, %s",
 			   error->message);
 		g_error_free (error);
+
+		/* Put files back into queue */
+		queue = g_hash_table_lookup (crawler->private->file_queues,
+					     crawler->private->files_sent_module_name);
+		
+		if (queue) {
+			gint i;
+
+			for (p = crawler->private->files_sent, i = 0; *p; p++, i++) {
+				g_queue_push_nth (queue, g_file_new_for_path (*p), i);
+			}
+		}
 	} else {
 		g_debug ("Sent!");
 	}
 
-	files = (GStrv) user_data;
-	g_strfreev (files);
-}
+	g_strfreev (crawler->private->files_sent);
+	crawler->private->files_sent = NULL;
 
-static void
-indexer_get_running_cb (DBusGProxy *proxy,
-			gboolean    running,
-			GError     *error,
-			gpointer    user_data)
-{
-	TrackerCrawler *crawler;
-	GQueue         *queue = NULL;
-	GStrv           files;
-	gchar          *module_name;
-	guint           total;
-
-	crawler = TRACKER_CRAWLER (user_data);
-
-	if (error || !running) {
-		g_message ("%s",
-			   error ? error->message : "Indexer exists but is not available yet, waiting...");
-
-		g_object_unref (crawler);
-		g_clear_error (&error);
-
-		return;
-	}
-
-	queue = queue_get_next_for_files_with_data (crawler, &module_name);
-
-	if (!queue || !module_name) {
-		g_message ("No file queues to process");
-		g_object_unref (crawler);
-
-		return;
-	}
-
-	total = g_queue_get_length (queue);
-	files = tracker_dbus_queue_gfile_to_strv (queue, FILES_QUEUE_PROCESS_MAX);
-	
-	g_message ("File check queue processed, sending first %d/%d, for module:'%s' to the indexer",
-		   g_strv_length (files), 
-		   total,
-		   module_name);
-
-	org_freedesktop_Tracker_Indexer_files_check_async (proxy,
-							   module_name,
-							   (const gchar **) files,
-							   indexer_check_files_cb,
-							   files);
+	g_free (crawler->private->files_sent_module_name);
+	crawler->private->files_sent_module_name = NULL;
 
 	g_object_unref (crawler);
 }
@@ -594,20 +573,45 @@ file_queue_handler_cb (gpointer user_data)
 {
 	TrackerCrawler *crawler;
 	GQueue         *queue;
+	GStrv           files;
+	gchar          *module_name;
+	guint           total;
 
 	crawler = TRACKER_CRAWLER (user_data);
+	
+	/* This is here so we don't try to send something if we are
+	 * still waiting for a response from the last send.
+	 */
+	if (crawler->private->files_sent) {
+		g_message ("Still waiting for response from indexer, "
+			   "not sending more files yet");
+		return TRUE;
+	}
 
-	queue = queue_get_next_for_files_with_data (crawler, NULL);
+	queue = queue_get_next_for_files_with_data (crawler, &module_name);
 
-	if (!queue) {
+	if (!queue || !module_name) {
 		g_message ("No file queues to process");
 		crawler->private->files_queue_handle_id = 0;
 		return FALSE;
 	}
 
-	/* Check we can actually talk to the indexer */
-	org_freedesktop_Tracker_Indexer_get_running_async (tracker_dbus_indexer_get_proxy (),
-							   indexer_get_running_cb,
+	total = g_queue_get_length (queue);
+	files = tracker_dbus_queue_gfile_to_strv (queue, FILES_QUEUE_PROCESS_MAX);
+
+	/* Save the GStrv somewhere so we know we are sending still */
+	crawler->private->files_sent = files;
+	crawler->private->files_sent_module_name = g_strdup (module_name);
+
+	g_message ("Sending first %d/%d files, for module:'%s' to the indexer",
+		   g_strv_length (files), 
+		   total,
+		   module_name);
+
+	org_freedesktop_Tracker_Indexer_files_check_async (tracker_dbus_indexer_get_proxy (),
+							   crawler->private->files_sent_module_name,
+							   (const gchar**) crawler->private->files_sent,
+							   indexer_check_files_cb,
 							   g_object_ref (crawler));
 
 	return TRUE;

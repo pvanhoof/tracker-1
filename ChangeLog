@@ -1,3 +1,10 @@
+2008-07-04  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-crawler.c: Don't check if the indexer is
+	running first, just send files. Also, don't send the next batch
+	until the last patch was sent successfully. Make sure we add files
+	back onto the queue if they couldn't be sent.
+
 2008-07-04  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/libtracker-db/tracker-db-dbus.c: 

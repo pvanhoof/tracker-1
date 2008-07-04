@@ -1,5 +1,9 @@
 2008-07-04  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/modules/evolution.c: Fix typo.
+
+2008-07-04  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/modules/evolution.c
 	(get_account_name_from_imap_uri): Avoid potential invalid memory
 	reads.

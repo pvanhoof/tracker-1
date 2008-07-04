@@ -305,7 +305,7 @@ account_text_handler (GMarkupParseContext  *context,
                       GError              **error)
 {
         EvolutionAccountContext *account_context;
-        const GSList *uri_element, *account_element;
+        const GSList *uri_element, *source_element;
         gchar *url;
 
         uri_element = g_markup_parse_context_get_element_stack (context);

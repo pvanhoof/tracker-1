@@ -72,6 +72,7 @@
 	 1.45.23).
       -->
     <method name="GetVersion">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="i" name="version" direction="out" />
     </method>
     
@@ -80,6 +81,7 @@
 	 "Optimizing", "Idle", "Shutdown".
       --> 
     <method name="GetStatus">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="s" name="status" direction="out" />
     </method>
     
@@ -91,6 +93,7 @@
 	 Output is in dict format: (service -> description, parent).
     --> 
     <method name="GetServices">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="b" name="main_services_only" direction="in" />
       <arg type="a{sv}" name="result" direction="out" />
     </method>
@@ -99,6 +102,7 @@
 	 in string array format: [service, no of entities]  
       --> 
     <method name="GetStats">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="aas" name="service_stats" direction="out" />
     </method>
         
@@ -107,6 +111,7 @@
 	 "EnableEvolution".
       -->
     <method name="SetBoolOption">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="s" name="option" direction="in" />
       <arg type="b" name="value" direction="in" />
     </method>
@@ -115,17 +120,21 @@
 	 one of "Throttle", "IndexDelay".
       -->
     <method name="SetIntOption">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="s" name="option" direction="in" />
       <arg type="i" name="value" direction="in" />
     </method>
     
     <!-- Shutdown tracker service with optional reindex. -->
     <method name="Shutdown">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="b" name="reindex" direction="in" />
     </method>
         
     <!-- Prompts tracker to send progress/state signals -->
-    <method name="PromptIndexSignals"/>
+    <method name="PromptIndexSignals">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
+    </method>
     
     <!-- Signal change in index status - states are:
 	 "Initializing", "Watching", "Indexing", "Pending",

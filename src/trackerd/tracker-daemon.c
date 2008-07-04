@@ -250,20 +250,19 @@ tracker_daemon_set_tracker (TrackerDaemon *object,
 /*
  * Functions
  */
-gboolean
-tracker_daemon_get_version (TrackerDaemon  *object,
-			    gint           *version,
-			    GError        **error)
+void
+tracker_daemon_get_version (TrackerDaemon         *object,
+			    DBusGMethodInvocation *context,
+			    GError **error)
 {
 	guint  request_id;
 	gint   major = 0;
 	gint   minor = 0;
 	gint   revision = 0;
+	gint   version;
 	gchar *str;
 
  	request_id = tracker_dbus_get_next_request_id ();
-
-	tracker_dbus_return_val_if_fail (version != NULL, FALSE, error);
 
         tracker_dbus_request_new (request_id,
 				  "DBus request to get daemon version");
@@ -271,53 +270,52 @@ tracker_daemon_get_version (TrackerDaemon  *object,
 	
 	sscanf (VERSION, "%d.%d.%d", &major, &minor, &revision);
 	str = g_strdup_printf ("%d%d%d", major, minor, revision);
-	*version = atoi (str);
+	version = atoi (str);
 	g_free (str);
 
-	tracker_dbus_request_success (request_id);
+	dbus_g_method_return (context, version);
 
-	return TRUE;
+	tracker_dbus_request_success (request_id);
 }
 
-gboolean
-tracker_daemon_get_status (TrackerDaemon  *object,
-			   gchar         **status,
-			   GError        **error)
+void
+tracker_daemon_get_status (TrackerDaemon         *object,
+			   DBusGMethodInvocation *context, 
+			   GError **error)
 {
 	TrackerDaemonPriv *priv;
+	gchar             *status;
 	guint              request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
-
-	tracker_dbus_return_val_if_fail (status != NULL, FALSE, error);
 
 	priv = GET_PRIV (object);
 
         tracker_dbus_request_new (request_id,
 				  "DBus request to get daemon status");
 
-	*status = g_strdup (tracker_status_get_as_string ());
+	status = g_strdup (tracker_status_get_as_string ());
+
+	dbus_g_method_return (context, status);
+
+	g_free (status);
 
 	tracker_dbus_request_success (request_id);
-
-	return TRUE;
 }
 
-gboolean
-tracker_daemon_get_services (TrackerDaemon  *object,
-			     gboolean        main_services_only,
-			     GHashTable    **values,
-			     GError        **error)
+void
+tracker_daemon_get_services (TrackerDaemon         *object,
+			     gboolean               main_services_only,
+			     DBusGMethodInvocation *context,
+			     GError **error)
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
 	guint               request_id;
-
+	GHashTable         *values = NULL;
 	/* FIXME: Note, the main_services_only variable is redundant */
 
 	request_id = tracker_dbus_get_next_request_id ();
-
-	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get daemon services");
@@ -332,29 +330,30 @@ tracker_daemon_get_services (TrackerDaemon  *object,
 	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	result_set = tracker_db_exec_proc (iface, "GetServices", 0);
-	*values = tracker_dbus_query_result_to_hash_table (result_set);
+	values = tracker_dbus_query_result_to_hash_table (result_set);
 
 	if (result_set) {
 		g_object_unref (result_set);
 	}
 
-	tracker_dbus_request_success (request_id);
+	dbus_g_method_return (context, values);
 
-	return TRUE;
+	g_hash_table_destroy (values);
+
+	tracker_dbus_request_success (request_id);
 }
 
-gboolean
-tracker_daemon_get_stats (TrackerDaemon  *object,
-			  GPtrArray     **values,
-			  GError        **error)
+void
+tracker_daemon_get_stats (TrackerDaemon         *object,
+			  DBusGMethodInvocation *context,
+			  GError **error)
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
 	guint               request_id;
+	GPtrArray          *values = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
-
-	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get daemon service stats");
@@ -369,22 +368,26 @@ tracker_daemon_get_stats (TrackerDaemon  *object,
 	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	result_set = tracker_db_exec_proc (iface, "GetStats", 0);
-	*values = tracker_dbus_query_result_to_ptr_array (result_set);
+	values = tracker_dbus_query_result_to_ptr_array (result_set);
 
 	if (result_set) {
 		g_object_unref (result_set);
 	}
 
-	tracker_dbus_request_success (request_id);
+	dbus_g_method_return (context, values);
 
-	return TRUE;
+	g_ptr_array_foreach (values, (GFunc) g_strfreev, NULL);
+	g_ptr_array_free (values, TRUE);
+
+	tracker_dbus_request_success (request_id);
 }
 
-gboolean
-tracker_daemon_set_bool_option (TrackerDaemon  *object,
-				const gchar    *option,
-				gboolean        value,
-				GError        **error)
+void
+tracker_daemon_set_bool_option (TrackerDaemon         *object,
+				const gchar           *option,
+				gboolean               value,
+				DBusGMethodInvocation *context,
+				GError **error)
 {
 	TrackerDaemonPriv *priv;
 	guint              request_id;
@@ -397,7 +400,7 @@ tracker_daemon_set_bool_option (TrackerDaemon  *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_return_val_if_fail (option != NULL, FALSE, error);
+	tracker_dbus_async_return_if_fail (option != NULL, FALSE);
 
 	priv = GET_PRIV (object);
 
@@ -462,14 +465,17 @@ tracker_daemon_set_bool_option (TrackerDaemon  *object,
 				       tracker_config_get_enable_indexing (priv->config));
 	}
 
-	return TRUE;
+	dbus_g_method_return (context);
+
+	tracker_dbus_request_success (request_id);
 }
 
-gboolean
-tracker_daemon_set_int_option (TrackerDaemon  *object,
-			       const gchar    *option,
-			       gint            value,
-			       GError        **error)
+void
+tracker_daemon_set_int_option (TrackerDaemon         *object,
+			       const gchar           *option,
+			       gint                   value,
+			       DBusGMethodInvocation *context,
+			       GError **error)
 {
 	TrackerDaemonPriv *priv;
 	guint              request_id;
@@ -481,7 +487,7 @@ tracker_daemon_set_int_option (TrackerDaemon  *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_return_val_if_fail (option != NULL, FALSE, error);
+	tracker_dbus_async_return_if_fail (option != NULL, FALSE);
 
 	priv = GET_PRIV (object);
 
@@ -502,15 +508,16 @@ tracker_daemon_set_int_option (TrackerDaemon  *object,
 		g_message ("Maxinum number of unique words set to %d", value);
 	} 
 
-	tracker_dbus_request_success (request_id);
+	dbus_g_method_return (context);
 
-	return TRUE;
+	tracker_dbus_request_success (request_id);
 }
 
-gboolean
-tracker_daemon_shutdown (TrackerDaemon  *object,
-			 gboolean        reindex,
-			 GError        **error)
+void
+tracker_daemon_shutdown (TrackerDaemon         *object,
+			 gboolean               reindex,
+			 DBusGMethodInvocation *context,
+			 GError **error)
 {
 	TrackerDaemonPriv *priv;
 	guint              request_id;
@@ -530,14 +537,15 @@ tracker_daemon_shutdown (TrackerDaemon  *object,
 
 	g_timeout_add (500, (GSourceFunc) tracker_shutdown, NULL);
 
-	tracker_dbus_request_success (request_id);
+	dbus_g_method_return (context);
 
-	return TRUE;
+	tracker_dbus_request_success (request_id);
 }
 
-gboolean
-tracker_daemon_prompt_index_signals (TrackerDaemon  *object,
-				     GError        **error)
+void
+tracker_daemon_prompt_index_signals (TrackerDaemon         *object,
+				     DBusGMethodInvocation *context,
+				     GError **error)
 {
 	TrackerDaemonPriv *priv;
 	guint              request_id;
@@ -577,7 +585,7 @@ tracker_daemon_prompt_index_signals (TrackerDaemon  *object,
                                priv->tracker->mbox_processed, 
                                priv->tracker->mbox_count);    
 
-	tracker_dbus_request_success (request_id);
+	dbus_g_method_return (context);
 
-	return TRUE;
+	tracker_dbus_request_success (request_id);
 }

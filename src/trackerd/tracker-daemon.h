@@ -53,38 +53,43 @@ struct TrackerDaemonClass {
 };
 
 GType          tracker_daemon_get_type             (void);
-TrackerDaemon *tracker_daemon_new                  (TrackerConfig  *config,
-						    Tracker        *tracker);
-void           tracker_daemon_set_config           (TrackerDaemon  *object,
-						    TrackerConfig  *config);
-void           tracker_daemon_set_tracker          (TrackerDaemon  *object,
-						    Tracker        *tracker);
-gboolean       tracker_daemon_get_version          (TrackerDaemon  *object,
-						    gint           *version,
-						    GError        **error);
-gboolean       tracker_daemon_get_status           (TrackerDaemon  *object,
-						    gchar         **status,
-						    GError        **error);
-gboolean       tracker_daemon_get_services         (TrackerDaemon  *object,
-						    gboolean        main_services_only,
-						    GHashTable    **values,
-						    GError        **error);
-gboolean       tracker_daemon_get_stats            (TrackerDaemon  *object,
-						    GPtrArray     **values,
-						    GError        **error);
-gboolean       tracker_daemon_set_bool_option      (TrackerDaemon  *object,
-						    const gchar    *option,
-						    gboolean        value,
-						    GError        **error);
-gboolean       tracker_daemon_set_int_option       (TrackerDaemon  *object,
-						    const gchar    *option,
-						    gint            value,
-						    GError        **error);
-gboolean       tracker_daemon_shutdown             (TrackerDaemon  *object,
-						    gboolean        reindex,
-						    GError        **error);
-gboolean       tracker_daemon_prompt_index_signals (TrackerDaemon  *object,
-						    GError        **error);
+TrackerDaemon *tracker_daemon_new                  (TrackerConfig         *config,
+						    Tracker               *tracker);
+void           tracker_daemon_set_config           (TrackerDaemon         *object,
+						    TrackerConfig         *config);
+void           tracker_daemon_set_tracker          (TrackerDaemon         *object,
+						    Tracker               *tracker);
+void           tracker_daemon_get_version          (TrackerDaemon         *object,
+						    DBusGMethodInvocation *context,
+						    GError **error);
+void           tracker_daemon_get_status           (TrackerDaemon         *object,
+						    DBusGMethodInvocation *context,
+						    GError **error);
+void           tracker_daemon_get_services         (TrackerDaemon         *object,
+						    gboolean               main_services_only,
+						    DBusGMethodInvocation *context,
+						    GError **error);
+void           tracker_daemon_get_stats            (TrackerDaemon         *object,
+						    DBusGMethodInvocation *context,
+						    GError **error);
+void           tracker_daemon_set_bool_option      (TrackerDaemon         *object,
+						    const gchar           *option,
+						    gboolean               value,
+						    DBusGMethodInvocation *context,
+						    GError **error);
+void           tracker_daemon_set_int_option       (TrackerDaemon         *object,
+						    const gchar           *option,
+						    gint                   value,
+						    DBusGMethodInvocation *context,
+						    GError **error);
+void           tracker_daemon_shutdown             (TrackerDaemon         *object,
+						    gboolean               reindex,
+						    DBusGMethodInvocation *context,
+						    GError **error);
+void           tracker_daemon_prompt_index_signals (TrackerDaemon         *object,
+						    DBusGMethodInvocation *context,
+						    GError **error);
+
 
 G_END_DECLS
 

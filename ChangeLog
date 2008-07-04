@@ -1,3 +1,9 @@
+2008-07-04  Ivan Frade  <ivan.frade@nokia.com>
+
+	* data/dbus/tracker-daemon.xml
+	* src/trackerd/tracker-daemon.[ch]: Tracker daemon dbus API is now 
+	async.
+	
 2008-07-04  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-crawler.c: Don't check if the indexer is

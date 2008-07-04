@@ -1,5 +1,10 @@
 2008-07-04  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-main.c: (main): Make the message clearer as
+	to why we are not running the crawler/indexer when in read only mode.
+
+2008-07-04  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-hal.h: Define TrackerHal as a void
 	pointer if it is disabled and just don't use it anywhere, this is
 	so function signatures can include it but it will be NULL where it

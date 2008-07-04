@@ -861,7 +861,7 @@ main (gint argc, gchar *argv[])
 			g_idle_add (start_cb, tracker);
 		}
 	} else {
-		g_message ("Indexing disabled, not starting");
+		g_message ("Running in read-only mode, not starting crawler/indexing");
 	}
 
 	if (tracker->is_running) {

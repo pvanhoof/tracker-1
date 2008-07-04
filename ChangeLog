@@ -31,6 +31,11 @@
 
 2008-07-04  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-indexer.c (index_metadata_foreach):
+	Avoid a crash.
+
+2008-07-04  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/modules/evolution.c: Fix typo.
 
 2008-07-04  Carlos Garnacho  <carlos@imendio.com>

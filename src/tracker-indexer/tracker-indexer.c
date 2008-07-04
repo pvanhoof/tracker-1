@@ -578,6 +578,8 @@ index_metadata_foreach (gpointer key,
 		return;
 	}
 
+	data = (MetadataForeachData *) user_data;
+
 	/* Throttle indexer, value 9 is from older code, why 9? */
 	throttle = tracker_config_get_throttle (data->config);
 	if (throttle > 9) {
@@ -587,7 +589,6 @@ index_metadata_foreach (gpointer key,
 	/* Parse */
 	field = tracker_ontology_get_field_def ((gchar *) key);
 
-	data = (MetadataForeachData *) user_data;
 	parsed_value = tracker_parser_text_to_string ((gchar *) value,
 						      data->language,
 						      tracker_config_get_max_word_length (data->config),

@@ -1,3 +1,8 @@
+2008-07-04  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/tracker-indexer/modules/evolution.c: Avoid a crash in case the
+	url string of a Evolution account is empty.
+
 2008-07-04  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-log.c: If we can't open the log,

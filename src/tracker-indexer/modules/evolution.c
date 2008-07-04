@@ -270,7 +270,7 @@ get_account_name_from_imap_uri (const gchar *imap_uri)
         gchar *account_name = NULL;
 
         if ( strlen (imap_uri) < 7 || at == NULL ) {
-                return NULL;
+                return g_strdup ("Unknown");
         }
 
         if (semic < at) {
@@ -306,7 +306,7 @@ account_text_handler (GMarkupParseContext  *context,
 
         element = g_markup_parse_context_get_element (context);
 
-        if (strcmp (element, "url") != 0) {
+        if (text_len > 0 && strcmp (element, "url") != 0) {
                 return;
         }
 

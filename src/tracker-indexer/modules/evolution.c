@@ -251,7 +251,10 @@ account_start_element_handler (GMarkupParseContext *context,
 static gchar *
 get_account_name_from_imap_uri (const gchar *imap_uri)
 {
-	/* Assume url schema is:
+        const gchar *start, *at, *semic;
+        gchar *user_name, *at_host_name, *account_name;
+        
+        /* Assume url schema is:
          * imap://foo@imap.free.fr/;etc
          * or
          * imap://foo;auth=DIGEST-MD5@imap.bar.com/;etc
@@ -259,15 +262,16 @@ get_account_name_from_imap_uri (const gchar *imap_uri)
          * We try to get "foo@imap.free.fr".
          */
 
+        if (g_str_has_prefix (imap_uri, "imap://")) {
+                return NULL;
+        }
+
+        user_name = at_host_name = account_name = NULL;
+
         /* check for embedded @ and then look for first colon after that */
-
-        const gchar *start = imap_uri + 7;
-        const gchar *at = strchr (start, '@');
-        const gchar *semic = strchr (start, ';');
-
-        gchar *user_name = NULL;
-        gchar *at_host_name = NULL;
-        gchar *account_name = NULL;
+        start = imap_uri + 7;
+        at = strchr (start, '@');
+        semic = strchr (start, ';');
 
         if ( strlen (imap_uri) < 7 || at == NULL ) {
                 return g_strdup ("Unknown");
@@ -301,12 +305,15 @@ account_text_handler (GMarkupParseContext  *context,
                       GError              **error)
 {
         EvolutionAccountContext *account_context;
-        const gchar *element;
+        const GSList *uri_element, *account_element;
         gchar *url;
 
-        element = g_markup_parse_context_get_element (context);
+        uri_element = g_markup_parse_context_get_element_stack (context);
+        source_element = uri_element->next;
 
-        if (text_len <= 0 || strcmp (element, "url") != 0) {
+        if (strcmp ((gchar *) uri_element->data, "url") != 0 ||
+            !source_element ||
+            strcmp ((gchar *) source_element->data, "source") != 0) {
                 return;
         }
 
@@ -344,9 +351,15 @@ get_imap_accounts (void)
         for (l = list; l; l = l->next) {
                 g_markup_parse_context_parse (parse_context, (const gchar *) l->data, -1, NULL);
 
-                g_hash_table_insert (accounts,
-                                     account_context.account,
-                                     account_context.uid);
+                if (account_context.account &&
+                    account_context.uid) {
+                        g_hash_table_insert (accounts,
+                                             account_context.account,
+                                             account_context.uid);
+                } else {
+                        g_free (account_context.account);
+                        g_free (account_context.uid);
+                }
         }
 
         g_markup_parse_context_free (parse_context);

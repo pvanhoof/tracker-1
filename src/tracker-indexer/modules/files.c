@@ -41,8 +41,6 @@
 #define METADATA_FILE_MODIFIED       "File:Modified"
 #define METADATA_FILE_ACCESSED       "File:Accessed"
 
-static TrackerConfig *config = NULL;
-
 G_CONST_RETURN gchar *
 tracker_module_get_name (void)
 {

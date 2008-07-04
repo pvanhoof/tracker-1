@@ -76,12 +76,8 @@ gboolean       tracker_config_get_index_removable_devices          (TrackerConfi
 gboolean       tracker_config_get_index_mounted_directories        (TrackerConfig *config);
 gint           tracker_config_get_max_text_to_index                (TrackerConfig *config);
 gint           tracker_config_get_max_words_to_index               (TrackerConfig *config);
-gint           tracker_config_get_optimization_sweep_count         (TrackerConfig *config);
 gint           tracker_config_get_max_bucket_count                 (TrackerConfig *config);
 gint           tracker_config_get_min_bucket_count                 (TrackerConfig *config);
-gint           tracker_config_get_divisions                        (TrackerConfig *config);
-gint           tracker_config_get_bucket_ratio                     (TrackerConfig *config);
-gint           tracker_config_get_padding                          (TrackerConfig *config);
 void           tracker_config_set_verbosity                        (TrackerConfig *config,
 								    gint           value);
 void           tracker_config_set_initial_sleep                    (TrackerConfig *config,
@@ -126,17 +122,9 @@ void           tracker_config_set_max_text_to_index                (TrackerConfi
 								    gint           value);
 void           tracker_config_set_max_words_to_index               (TrackerConfig *config,
 								    gint           value);
-void           tracker_config_set_optimization_sweep_count         (TrackerConfig *config,
-								    gint           value);
 void           tracker_config_set_max_bucket_count                 (TrackerConfig *config,
 								    gint           value);
 void           tracker_config_set_min_bucket_count                 (TrackerConfig *config,
-								    gint           value);
-void           tracker_config_set_divisions                        (TrackerConfig *config,
-								    gint           value);
-void           tracker_config_set_bucket_ratio                     (TrackerConfig *config,
-								    gint           value);
-void           tracker_config_set_padding                          (TrackerConfig *config,
 								    gint           value);
 
 /* Directory root APIs*/

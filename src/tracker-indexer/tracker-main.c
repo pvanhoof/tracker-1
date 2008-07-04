@@ -121,12 +121,6 @@ sanity_check_option_values (TrackerConfig *config)
 		   tracker_config_get_max_bucket_count (config));
 	g_message ("  Minimum bucket count  .................  %d",
 		   tracker_config_get_min_bucket_count (config));
-	g_message ("  Divisions  ............................  %d",
-		   tracker_config_get_divisions (config));
-	g_message ("  Padding  ..............................  %d",
-		   tracker_config_get_padding (config));
-	g_message ("  Optimization sweep count  .............  %d",
-		   tracker_config_get_optimization_sweep_count (config));
 }
 
 static void

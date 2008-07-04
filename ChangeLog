@@ -1,3 +1,14 @@
+2008-07-04  Martyn Russell  <martyn@imendio.com>
+
+
+	* src/tracker-indexer/modules/files.c: Fixed warning.
+	
+	* src/libtracker-common/tracker-config.[ch]:
+	* src/tracker-indexer/tracker-main.c:
+	(sanity_check_option_values): Removed config options we now no
+	longer have, "OptimizationSweepCount", "Divisions",
+	"BucketRatio" and  "Padding".
+
 2008-07-04  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/tracker-indexer/modules/evolution.c: Avoid a crash in case the

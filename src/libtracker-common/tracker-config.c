@@ -66,12 +66,8 @@
 #define GROUP_PERFORMANCE			 "Performance"
 #define KEY_MAX_TEXT_TO_INDEX			 "MaxTextToIndex"
 #define KEY_MAX_WORDS_TO_INDEX			 "MaxWordsToIndex"
-#define KEY_OPTIMIZATION_SWEEP_COUNT		 "OptimizationSweepCount"
 #define KEY_MAX_BUCKET_COUNT			 "MaxBucketCount"
 #define KEY_MIN_BUCKET_COUNT			 "MinBucketCount"
-#define KEY_DIVISIONS				 "Divisions"
-#define KEY_BUCKET_RATIO			 "BucketRatio"
-#define KEY_PADDING				 "Padding"
 
 #define GROUP_SERVICES				 "Services"
 #define KEY_ENABLE_XESAM			 "EnableXesam"
@@ -98,12 +94,8 @@
 #define DEFAULT_LOW_DISK_SPACE_LIMIT		 1	  /* 0->100 / -1 */
 #define DEFAULT_MAX_TEXT_TO_INDEX		 1048576  /* Bytes */
 #define DEFAULT_MAX_WORDS_TO_INDEX		 10000
-#define DEFAULT_OPTIMIZATION_SWEEP_COUNT	 10000
 #define DEFAULT_MAX_BUCKET_COUNT		 524288
 #define DEFAULT_MIN_BUCKET_COUNT		 65536
-#define DEFAULT_DIVISIONS			 4	  /* 1->64 */
-#define DEFAULT_BUCKET_RATIO			 1	  /* 0=50%, 1=100%, 2=200%, 3=300%, 4=400% */
-#define DEFAULT_PADDING				 2	  /* 1->8 */
 
 /*typedef struct _ConfigLanguages	  ConfigLanguages;*/
 typedef struct _TrackerConfigPriv TrackerConfigPriv;
@@ -144,12 +136,8 @@ struct _TrackerConfigPriv {
 	/* Performance */
 	gint	  max_text_to_index;
 	gint	  max_words_to_index;
-	gint	  optimization_sweep_count;
 	gint	  max_bucket_count;
 	gint	  min_bucket_count;
-	gint	  divisions;
-	gint	  bucket_ratio;
-	gint	  padding;
 
 	/* Services*/
 	gboolean  enable_xesam;
@@ -201,12 +189,8 @@ enum {
 	/* Performance */
 	PROP_MAX_TEXT_TO_INDEX,
 	PROP_MAX_WORDS_TO_INDEX,
-	PROP_OPTIMIZATION_SWEEP_COUNT,
 	PROP_MAX_BUCKET_COUNT,
 	PROP_MIN_BUCKET_COUNT,
-	PROP_DIVISIONS,
-	PROP_BUCKET_RATIO,
-	PROP_PADDING,
 
 	/* Services*/
 	PROP_ENABLE_XESAM
@@ -438,17 +422,6 @@ tracker_config_class_init (TrackerConfigClass *klass)
 							   DEFAULT_MAX_WORDS_TO_INDEX,
 							   G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
 	g_object_class_install_property (object_class,
-					 PROP_OPTIMIZATION_SWEEP_COUNT,
-					 g_param_spec_int ("optimization-sweep-count",
-							   "Optimization Sweep Count",
-							   "Number of entities to index "
-							   "before deciding to try to optimize "
-							   "(1000->10000)",
-							   1000,
-							   G_MAXINT,
-							   DEFAULT_OPTIMIZATION_SWEEP_COUNT,
-							   G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
-	g_object_class_install_property (object_class,
 					 PROP_MAX_BUCKET_COUNT,
 					 g_param_spec_int ("max-bucket-count",
 							   "Maximum bucket count",
@@ -465,37 +438,6 @@ tracker_config_class_init (TrackerConfigClass *klass)
 							   1000,
 							   G_MAXINT,
 							   DEFAULT_MIN_BUCKET_COUNT,
-							   G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
-	g_object_class_install_property (object_class,
-					 PROP_DIVISIONS,
-					 g_param_spec_int ("divisions",
-							   "Divisions",
-							   "Number of divisions of the index file (1->64)",
-							   1,
-							   64,
-							   DEFAULT_DIVISIONS,
-							   G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
-	g_object_class_install_property (object_class,
-					 PROP_BUCKET_RATIO,
-					 g_param_spec_int ("bucket-ratio",
-							   "Bucket Ratio",
-							   "Number of used records to buckets ratio "
-							   "when optimizing the index "
-							   "(0=50%, 1=100%, 2=200%, 3=300%, 4=400%)",
-							   0,
-							   4,
-							   DEFAULT_BUCKET_RATIO,
-							   G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
-	g_object_class_install_property (object_class,
-					 PROP_PADDING,
-					 g_param_spec_int ("padding",
-							   "Padding",
-							   "How much space is used to prevent "
-							   "index relocations, higher values use "
-							   "more disk space (1->8)",
-							   1,
-							   8,
-							   DEFAULT_PADDING,
 							   G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
 
 	/* Services */
@@ -640,23 +582,11 @@ config_get_property (GObject	*object,
 	case PROP_MAX_WORDS_TO_INDEX:
 		g_value_set_int (value, priv->max_words_to_index);
 		break;
-	case PROP_OPTIMIZATION_SWEEP_COUNT:
-		g_value_set_int (value, priv->optimization_sweep_count);
-		break;
 	case PROP_MAX_BUCKET_COUNT:
 		g_value_set_int (value, priv->max_bucket_count);
 		break;
 	case PROP_MIN_BUCKET_COUNT:
 		g_value_set_int (value, priv->min_bucket_count);
-		break;
-	case PROP_DIVISIONS:
-		g_value_set_int (value, priv->divisions);
-		break;
-	case PROP_BUCKET_RATIO:
-		g_value_set_int (value, priv->bucket_ratio);
-		break;
-	case PROP_PADDING:
-		g_value_set_int (value, priv->padding);
 		break;
 
 	/* Services */
@@ -778,10 +708,6 @@ config_set_property (GObject	  *object,
 		tracker_config_set_max_words_to_index (TRACKER_CONFIG (object),
 						       g_value_get_int (value));
 		break;
-	case PROP_OPTIMIZATION_SWEEP_COUNT:
-		tracker_config_set_optimization_sweep_count (TRACKER_CONFIG (object),
-							     g_value_get_int (value));
-		break;
 	case PROP_MAX_BUCKET_COUNT:
 		tracker_config_set_max_bucket_count (TRACKER_CONFIG (object),
 						     g_value_get_int (value));
@@ -789,18 +715,6 @@ config_set_property (GObject	  *object,
 	case PROP_MIN_BUCKET_COUNT:
 		tracker_config_set_min_bucket_count (TRACKER_CONFIG (object),
 						     g_value_get_int (value));
-		break;
-	case PROP_DIVISIONS:
-		tracker_config_set_divisions (TRACKER_CONFIG (object),
-					      g_value_get_int (value));
-		break;
-	case PROP_BUCKET_RATIO:
-		tracker_config_set_bucket_ratio (TRACKER_CONFIG (object),
-						 g_value_get_int (value));
-		break;
-	case PROP_PADDING:
-		tracker_config_set_padding (TRACKER_CONFIG (object),
-					    g_value_get_int (value));
 		break;
 
 	/* Services */
@@ -1068,28 +982,8 @@ config_create_with_defaults (const gchar *filename,
 	g_key_file_set_comment (key_file, GROUP_PERFORMANCE, KEY_MAX_WORDS_TO_INDEX,
 				" Maximum unique words to index from a file's content",
 				NULL);
-	g_key_file_set_integer (key_file, GROUP_PERFORMANCE, KEY_OPTIMIZATION_SWEEP_COUNT, DEFAULT_OPTIMIZATION_SWEEP_COUNT);
-	g_key_file_set_comment (key_file, GROUP_PERFORMANCE, KEY_OPTIMIZATION_SWEEP_COUNT,
-				" Number of entities to index before deciding to trying to optimize"
-				" (1000->10000)",
-				NULL);
 	g_key_file_set_integer (key_file, GROUP_PERFORMANCE, KEY_MAX_BUCKET_COUNT, DEFAULT_MAX_BUCKET_COUNT);
 	g_key_file_set_integer (key_file, GROUP_PERFORMANCE, KEY_MIN_BUCKET_COUNT, DEFAULT_MIN_BUCKET_COUNT);
-	g_key_file_set_integer (key_file, GROUP_PERFORMANCE, KEY_DIVISIONS, DEFAULT_DIVISIONS);
-	g_key_file_set_comment (key_file, GROUP_PERFORMANCE, KEY_DIVISIONS,
-				" Number of divisions of the index file (1->64, default=4)",
-				NULL);
-	g_key_file_set_integer (key_file, GROUP_PERFORMANCE, KEY_BUCKET_RATIO, DEFAULT_BUCKET_RATIO);
-	g_key_file_set_comment (key_file, GROUP_PERFORMANCE, KEY_BUCKET_RATIO,
-				" Number of used records to buckets ratio when optimising the index.\n"
-				" (0=50%, 1=100%, 2=200%, 3=300%, 4=400%)",
-				NULL);
-	g_key_file_set_integer (key_file, GROUP_PERFORMANCE, KEY_PADDING, DEFAULT_PADDING);
-	g_key_file_set_comment (key_file, GROUP_PERFORMANCE, KEY_PADDING,
-				" How much space is used to prevent index relocations.\n"
-				" Higher values improve indexing speed but waste more disk space.\n"
-				" Values should be between 1 and 8.",
-				NULL);
 
 	/* Services */
 	g_key_file_set_boolean (key_file, GROUP_SERVICES, KEY_ENABLE_XESAM, DEFAULT_ENABLE_XESAM);
@@ -1376,12 +1270,8 @@ config_load (TrackerConfig *config)
 	/* Performance */
 	config_load_int (config, "max-text-to-index", key_file, GROUP_PERFORMANCE, KEY_MAX_TEXT_TO_INDEX);
 	config_load_int (config, "max-words-to-index", key_file, GROUP_PERFORMANCE, KEY_MAX_WORDS_TO_INDEX);
-	config_load_int (config, "optimization-sweep-count", key_file, GROUP_PERFORMANCE, KEY_OPTIMIZATION_SWEEP_COUNT);
 	config_load_int (config, "max-bucket-count", key_file, GROUP_PERFORMANCE, KEY_MAX_BUCKET_COUNT);
 	config_load_int (config, "min-bucket-count", key_file, GROUP_PERFORMANCE, KEY_MIN_BUCKET_COUNT);
-	config_load_int (config, "divisions", key_file, GROUP_PERFORMANCE, KEY_DIVISIONS);
-	config_load_int (config, "bucket-ratio", key_file, GROUP_PERFORMANCE, KEY_BUCKET_RATIO);
-	config_load_int (config, "padding", key_file, GROUP_PERFORMANCE, KEY_PADDING);
 
 	/* Services */
 	config_load_boolean (config, "enable-xesam", key_file, GROUP_SERVICES, KEY_ENABLE_XESAM);
@@ -1738,18 +1628,6 @@ tracker_config_get_max_words_to_index (TrackerConfig *config)
 }
 
 gint
-tracker_config_get_optimization_sweep_count (TrackerConfig *config)
-{
-	TrackerConfigPriv *priv;
-
-	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_OPTIMIZATION_SWEEP_COUNT);
-
-	priv = GET_PRIV (config);
-
-	return priv->optimization_sweep_count;
-}
-
-gint
 tracker_config_get_max_bucket_count (TrackerConfig *config)
 {
 	TrackerConfigPriv *priv;
@@ -1771,42 +1649,6 @@ tracker_config_get_min_bucket_count (TrackerConfig *config)
 	priv = GET_PRIV (config);
 
 	return priv->min_bucket_count;
-}
-
-gint
-tracker_config_get_divisions (TrackerConfig *config)
-{
-	TrackerConfigPriv *priv;
-
-	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_DIVISIONS);
-
-	priv = GET_PRIV (config);
-
-	return priv->divisions;
-}
-
-gint
-tracker_config_get_bucket_ratio (TrackerConfig *config)
-{
-	TrackerConfigPriv *priv;
-
-	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_BUCKET_RATIO);
-
-	priv = GET_PRIV (config);
-
-	return priv->bucket_ratio;
-}
-
-gint
-tracker_config_get_padding (TrackerConfig *config)
-{
-	TrackerConfigPriv *priv;
-
-	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_PADDING);
-
-	priv = GET_PRIV (config);
-
-	return priv->padding;
 }
 
 void
@@ -2164,24 +2006,6 @@ tracker_config_set_max_words_to_index (TrackerConfig *config,
 }
 
 void
-tracker_config_set_optimization_sweep_count (TrackerConfig *config,
-					     gint	    value)
-{
-	TrackerConfigPriv *priv;
-
-	g_return_if_fail (TRACKER_IS_CONFIG (config));
-
-	if (!config_int_validate (config, "optimization-sweep-count", value)) {
-		return;
-	}
-
-	priv = GET_PRIV (config);
-
-	priv->optimization_sweep_count = value;
-	g_object_notify (G_OBJECT (config), "optimization-sweep-count");
-}
-
-void
 tracker_config_set_max_bucket_count (TrackerConfig *config,
 				     gint	    value)
 {
@@ -2215,60 +2039,6 @@ tracker_config_set_min_bucket_count (TrackerConfig *config,
 
 	priv->min_bucket_count = value;
 	g_object_notify (G_OBJECT (config), "min-bucket-count");
-}
-
-void
-tracker_config_set_divisions (TrackerConfig *config,
-			      gint	     value)
-{
-	TrackerConfigPriv *priv;
-
-	g_return_if_fail (TRACKER_IS_CONFIG (config));
-
-	if (!config_int_validate (config, "divisions", value)) {
-		return;
-	}
-
-	priv = GET_PRIV (config);
-
-	priv->divisions = value;
-	g_object_notify (G_OBJECT (config), "divisions");
-}
-
-void
-tracker_config_set_bucket_ratio (TrackerConfig *config,
-				 gint		value)
-{
-	TrackerConfigPriv *priv;
-
-	g_return_if_fail (TRACKER_IS_CONFIG (config));
-
-	if (!config_int_validate (config, "bucket-ratio", value)) {
-		return;
-	}
-
-	priv = GET_PRIV (config);
-
-	priv->bucket_ratio = value;
-	g_object_notify (G_OBJECT (config), "bucket-ratio");
-}
-
-void
-tracker_config_set_padding (TrackerConfig *config,
-			    gint	   value)
-{
-	TrackerConfigPriv *priv;
-
-	g_return_if_fail (TRACKER_IS_CONFIG (config));
-
-	if (!config_int_validate (config, "padding", value)) {
-		return;
-	}
-
-	priv = GET_PRIV (config);
-
-	priv->padding = value;
-	g_object_notify (G_OBJECT (config), "padding");
 }
 
 void

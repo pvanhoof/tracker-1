@@ -259,29 +259,34 @@ check_runtime_level (TrackerConfig *config,
 		}
 	} else {
 		g_message ("This is the first/main instance");
+
+		runlevel = TRACKER_RUNNING_MAIN_INSTANCE;
 		
 #ifdef HAVE_HAL 
-		if (tracker_hal_get_battery_exists (hal) && 
-		    tracker_hal_get_battery_in_use (hal)) {
-			if (tracker_config_get_disable_indexing_on_battery (config)) {
-				g_message ("Battery in use");
-				g_message ("Config is set to not index on battery");
-				g_message ("Running in read only mode");
-				runlevel = TRACKER_RUNNING_READ_ONLY;
-			} else if (tracker_config_get_disable_indexing_on_battery_init (config) &&
-				   first_time_index) {
-				g_message ("Battery in use & reindex is needed");
-				g_message ("Config is set to not index on battery for initial index");
-				g_message ("Running in read only mode");
-				runlevel = TRACKER_RUNNING_READ_ONLY;
-			} else {
-				runlevel = TRACKER_RUNNING_MAIN_INSTANCE;
-			}
-		} else {
-			runlevel = TRACKER_RUNNING_MAIN_INSTANCE;
+		if (!tracker_hal_get_battery_exists (hal) ||
+		    !tracker_hal_get_battery_in_use (hal)) {
+			return TRACKER_RUNNING_MAIN_INSTANCE;
 		}
-#else  /* HAVE_HAL */
-		runlevel = TRACKER_RUNNING_MAIN_INSTANCE; 
+
+		if (!first_time_index && 
+		    tracker_config_get_disable_indexing_on_battery (config)) { 
+			g_message ("Battery in use");
+			g_message ("Config is set to not index on battery");
+			g_message ("Running in read only mode");
+			runlevel = TRACKER_RUNNING_READ_ONLY;
+		}
+
+		/* Special case first time situation which are
+		 * overwritten by the config option to disable or not
+		 * indexing on battery initially. 
+		 */
+		if (first_time_index &&
+		    tracker_config_get_disable_indexing_on_battery_init (config)) {
+			g_message ("Battery in use & reindex is needed");
+			g_message ("Config is set to not index on battery for initial index");
+			g_message ("Running in read only mode");
+			runlevel = TRACKER_RUNNING_READ_ONLY;
+		}
 #endif /* HAVE_HAL */
 	}
 

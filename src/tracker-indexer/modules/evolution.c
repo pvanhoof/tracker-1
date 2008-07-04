@@ -306,7 +306,7 @@ account_text_handler (GMarkupParseContext  *context,
 
         element = g_markup_parse_context_get_element (context);
 
-        if (text_len > 0 || strcmp (element, "url") != 0) {
+        if (text_len <= 0 || strcmp (element, "url") != 0) {
                 return;
         }
 

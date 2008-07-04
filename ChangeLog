@@ -1,3 +1,17 @@
+2008-07-04  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-hal.h: Define TrackerHal as a void
+	pointer if it is disabled and just don't use it anywhere, this is
+	so function signatures can include it but it will be NULL where it
+	is called. Can't think of a better way to do this really.
+	
+	* src/trackerd/tracker-crawler.[ch]:
+	* src/trackerd/tracker-main.[ch]: 
+	* src/trackerd/tracker-processor.[ch]: Create TrackerHal in main
+	again and pass it around the processor and crawler to use. It is
+	need in main now to detect if we are using the laptop battery or
+	not to put the daemon into readonly mode.
+
 2008-07-04  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/modules/evolution.c: Fix typo.

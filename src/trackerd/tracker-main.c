@@ -212,7 +212,9 @@ get_lock_file (void)
 }
 
 static TrackerRunningLevel
-check_runtime_level (TrackerConfig *config)
+check_runtime_level (TrackerConfig *config,
+		     TrackerHal    *hal,
+		     gboolean       first_time_index)
 {
 	TrackerRunningLevel  runlevel;
 	gchar               *lock_file;
@@ -231,33 +233,57 @@ check_runtime_level (TrackerConfig *config)
 	lock_file = get_lock_file ();
 	fd = g_open (lock_file, O_RDWR | O_CREAT, 0640);
 
-	if (fd > -1) {
-		if (lockf (fd, F_TLOCK, 0) < 0) {		
-			if (use_nfs) {
-				g_message ("Already running, running in "
-					   "read-only mode (with NFS)");
-				runlevel = TRACKER_RUNNING_READ_ONLY;
-			} else {
-				g_message ("Already running, not allowed "
-					   "multiple instances (without NFS)");
-				runlevel = TRACKER_RUNNING_NON_ALLOWED;
-			}
-		} else {
-			g_message ("This is the first/main instance");
-			runlevel = TRACKER_RUNNING_MAIN_INSTANCE;
-		}
-	} else {
+	if (fd == -1) {
 		const gchar *error_string;
 
 		error_string = g_strerror (errno);
-                g_critical ("Can not open or create lockfile:'%s', %s", 
+                g_critical ("Can not open or create lock file:'%s', %s", 
 			    lock_file,
 			    error_string);
+		g_free (lock_file);
 
-		runlevel = TRACKER_RUNNING_NON_ALLOWED;
+		return TRACKER_RUNNING_NON_ALLOWED;
 	}
 
 	g_free (lock_file);
+
+	if (lockf (fd, F_TLOCK, 0) < 0) {		
+		if (use_nfs) {
+			g_message ("Already running, running in "
+				   "read-only mode (with NFS)");
+			runlevel = TRACKER_RUNNING_READ_ONLY;
+		} else {
+			g_message ("Already running, not allowed "
+				   "multiple instances (without NFS)");
+			runlevel = TRACKER_RUNNING_NON_ALLOWED;
+		}
+	} else {
+		g_message ("This is the first/main instance");
+		
+#ifdef HAVE_HAL 
+		if (tracker_hal_get_battery_exists (hal) && 
+		    tracker_hal_get_battery_in_use (hal)) {
+			if (tracker_config_get_disable_indexing_on_battery (config)) {
+				g_message ("Battery in use");
+				g_message ("Config is set to not index on battery");
+				g_message ("Running in read only mode");
+				runlevel = TRACKER_RUNNING_READ_ONLY;
+			} else if (tracker_config_get_disable_indexing_on_battery_init (config) &&
+				   first_time_index) {
+				g_message ("Battery in use & reindex is needed");
+				g_message ("Config is set to not index on battery for initial index");
+				g_message ("Running in read only mode");
+				runlevel = TRACKER_RUNNING_READ_ONLY;
+			} else {
+				runlevel = TRACKER_RUNNING_MAIN_INSTANCE;
+			}
+		} else {
+			runlevel = TRACKER_RUNNING_MAIN_INSTANCE;
+		}
+#else  /* HAVE_HAL */
+		runlevel = TRACKER_RUNNING_MAIN_INSTANCE; 
+#endif /* HAVE_HAL */
+	}
 
 	return runlevel;
 }
@@ -625,6 +651,7 @@ main (gint argc, gchar *argv[])
 	GOptionContext        *context = NULL;
 	GOptionGroup          *group;
 	GError                *error = NULL;
+	TrackerRunningLevel    runtime_level;
 	TrackerDBManagerFlags  flags;
 	TrackerProcessor      *processor;
 
@@ -700,6 +727,10 @@ main (gint argc, gchar *argv[])
         tracker->config = tracker_config_new ();
         tracker->language = tracker_language_new (tracker->config);
 
+#ifdef HAVE_HAL
+        tracker->hal = tracker_hal_new ();
+#endif /* HAVE_HAL */
+
 	/* Daemon command line arguments */
 	if (verbosity > -1) {
 		tracker_config_set_verbosity (tracker->config, verbosity);
@@ -742,22 +773,6 @@ main (gint argc, gchar *argv[])
 	tracker_log_init (log_filename, tracker_config_get_verbosity (tracker->config));
 	g_print ("Starting log:\n  File:'%s'\n", log_filename);
 
-	/*
-	 * Check instances running
-	 */
-	switch (check_runtime_level (tracker->config)) {
-	case TRACKER_RUNNING_NON_ALLOWED: 
-		return EXIT_FAILURE;
-
-	case TRACKER_RUNNING_READ_ONLY:     
-		tracker->readonly = TRUE;
-		break;
-
-	case TRACKER_RUNNING_MAIN_INSTANCE: 
-		tracker->readonly = FALSE;
-		break;
-	}
-	
 	sanity_check_option_values (tracker->config);
 
 	tracker_nfs_lock_init (tracker_config_get_nfs_locking (tracker->config));
@@ -781,11 +796,33 @@ main (gint argc, gchar *argv[])
 	}
 
 	tracker_db_manager_init (flags, &tracker->first_time_index);
+
+	/*
+	 * Check instances running
+	 */
+	runtime_level = check_runtime_level (tracker->config, 
+					     tracker->hal, 
+					     tracker->first_time_index);
+
+	switch (runtime_level) {
+	case TRACKER_RUNNING_NON_ALLOWED: 
+		return EXIT_FAILURE;
+
+	case TRACKER_RUNNING_READ_ONLY:     
+		tracker->readonly = TRUE;
+		break;
+
+	case TRACKER_RUNNING_MAIN_INSTANCE: 
+		tracker->readonly = FALSE;
+		break;
+	}
+
 	tracker_db_init ();
 	tracker_xesam_manager_init ();
         tracker_module_config_init ();
 
-	processor = tracker_processor_new (tracker->config);
+	processor = tracker_processor_new (tracker->config, 
+					   tracker->hal);
 
 	umask (077);
 
@@ -859,6 +896,12 @@ main (gint argc, gchar *argv[])
 	tracker_monitor_shutdown ();
 	tracker_nfs_lock_shutdown ();
 	tracker_log_shutdown ();
+
+#ifdef HAVE_HAL
+	if (tracker->hal) {
+		g_object_unref (tracker->hal);
+	}
+#endif /* HAVE_HAL */
 
 	if (tracker->language) {
 		g_object_unref (tracker->language);

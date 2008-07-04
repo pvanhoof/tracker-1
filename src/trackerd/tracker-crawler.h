@@ -24,10 +24,7 @@
 #include <glib-object.h>
 
 #include <libtracker-common/tracker-config.h>
-
-#ifdef HAVE_HAL 
 #include <libtracker-common/tracker-hal.h>
-#endif /* HAVE_HAL */
 
 G_BEGIN_DECLS
 
@@ -52,15 +49,8 @@ struct _TrackerCrawlerClass {
 };
 
 GType           tracker_crawler_get_type     (void);
-TrackerCrawler *tracker_crawler_new          (TrackerConfig  *config);
-void            tracker_crawler_set_config   (TrackerCrawler *object,
-					      TrackerConfig  *config);
-
-#ifdef HAVE_HAL
-void            tracker_crawler_set_hal      (TrackerCrawler *object,
+TrackerCrawler *tracker_crawler_new          (TrackerConfig  *config,
 					      TrackerHal     *hal);
-#endif /* HAVE_HAL */
-
 gboolean        tracker_crawler_start        (TrackerCrawler *crawler,
 					      const gchar    *module_name);
 void            tracker_crawler_stop         (TrackerCrawler *crawler);

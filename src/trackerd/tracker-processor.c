@@ -38,9 +38,8 @@ typedef struct TrackerProcessorPrivate TrackerProcessorPrivate;
 
 struct TrackerProcessorPrivate {
 	TrackerConfig  *config;
-#ifdef HAVE_HAL
 	TrackerHal     *hal;
-#endif  /* HAVE_HAL */
+
 	TrackerCrawler *crawler;
 
 	GList          *modules;
@@ -70,6 +69,14 @@ static void crawler_finished_cb        (TrackerCrawler   *crawler,
 					guint             files_found,
 					guint             files_ignored,
 					gpointer          user_data);
+#ifdef HAVE_HAL
+static void mount_point_added_cb       (TrackerHal       *hal,
+					const gchar      *mount_point,
+					gpointer          user_data);
+static void mount_point_removed_cb     (TrackerHal       *hal,
+					const gchar      *mount_point,
+					gpointer          user_data);
+#endif /* HAVE_HAL */
 
 static guint signals[LAST_SIGNAL] = { 0, };
 
@@ -123,7 +130,16 @@ tracker_processor_finalize (GObject *object)
 	g_object_unref (priv->crawler);
 
 #ifdef HAVE_HAL
-	g_object_unref (priv->hal);
+	if (priv->hal) {
+		g_signal_handlers_disconnect_by_func (priv->hal,
+						      mount_point_added_cb,
+						      object);
+		g_signal_handlers_disconnect_by_func (priv->hal,
+						      mount_point_removed_cb,
+						      object);
+		
+		g_object_unref (priv->hal);
+	}
 #endif /* HAVE_HAL */
 
 	g_object_unref (priv->config);
@@ -263,25 +279,63 @@ crawler_finished_cb (TrackerCrawler *crawler,
 	process_next_module (processor);
 }
 
+#ifdef HAVE_HAL
+
+static void
+mount_point_added_cb (TrackerHal  *hal,
+		      const gchar *mount_point,
+		      gpointer     user_data)
+{
+        g_message ("** TRAWLING THROUGH NEW MOUNT POINT:'%s'", mount_point);
+
+        /* list = g_slist_prepend (NULL, (gchar*) mount_point); */
+        /* process_directory_list (list, TRUE, iface); */
+        /* g_slist_free (list); */
+}
+
+static void
+mount_point_removed_cb (TrackerHal  *hal,
+			const gchar *mount_point,
+			gpointer     user_data)
+{
+        g_message ("** CLEANING UP OLD MOUNT POINT:'%s'", mount_point);
+
+        /* process_index_delete_directory_check (mount_point, iface);  */
+}
+
+#endif /* HAVE_HAL */
+
 TrackerProcessor *
-tracker_processor_new (TrackerConfig *config)
+tracker_processor_new (TrackerConfig *config,
+		       TrackerHal    *hal)
 {
 	TrackerProcessor        *processor;
 	TrackerProcessorPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 
+#ifdef HAVE_HAL 
+	g_return_val_if_fail (TRACKER_IS_HAL (hal), NULL);
+#endif /* HAVE_HAL */
+
 	processor = g_object_new (TRACKER_TYPE_PROCESSOR, NULL);
 
 	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
 
 	priv->config = g_object_ref (config);
-	priv->crawler = tracker_crawler_new (config);
 
 #ifdef HAVE_HAL
- 	priv->hal = tracker_hal_new ();
-	tracker_crawler_set_hal (priv->crawler, priv->hal);
+ 	priv->hal = g_object_ref (hal);
+
+	g_signal_connect (priv->hal, "mount-point-added",
+			  G_CALLBACK (mount_point_added_cb),
+			  processor);
+	g_signal_connect (priv->hal, "mount-point-removed",
+			  G_CALLBACK (mount_point_removed_cb),
+			  processor);
 #endif /* HAVE_HAL */
+
+	priv->crawler = tracker_crawler_new (config, hal);
 
 	g_signal_connect (priv->crawler, "finished",
 			  G_CALLBACK (crawler_finished_cb),

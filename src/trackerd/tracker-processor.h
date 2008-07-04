@@ -48,7 +48,8 @@ struct TrackerProcessorClass {
 };
 
 GType             tracker_processor_get_type (void) G_GNUC_CONST;
-TrackerProcessor *tracker_processor_new      (TrackerConfig    *config);
+TrackerProcessor *tracker_processor_new      (TrackerConfig    *config,
+					      TrackerHal       *hal);
 void              tracker_processor_start    (TrackerProcessor *processor);
 void              tracker_processor_stop     (TrackerProcessor *processor);
 

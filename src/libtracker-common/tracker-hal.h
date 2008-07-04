@@ -22,11 +22,11 @@
 #ifndef __LIBTRACKER_HAL_H__
 #define __LIBTRACKER_HAL_H__
 
-#ifdef HAVE_HAL 
-
 #include <glib-object.h>
 
 G_BEGIN_DECLS
+
+#ifdef HAVE_HAL 
 
 #define TRACKER_TYPE_HAL         (tracker_hal_get_type ())
 #define TRACKER_HAL(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_HAL, TrackerHal))
@@ -54,8 +54,12 @@ gboolean    tracker_hal_get_battery_exists          (TrackerHal *hal);
 GSList *    tracker_hal_get_mounted_directory_roots (TrackerHal *hal);
 GSList *    tracker_hal_get_removable_device_roots  (TrackerHal *hal);
 
-G_END_DECLS
+#else  /* HAVE_HAL */
+
+typedef void TrackerHal;
 
 #endif /* HAVE_HAL */
+
+G_END_DECLS
 
 #endif /* __LIBTRACKER_HAL_H__ */

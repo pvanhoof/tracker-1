@@ -44,6 +44,7 @@ G_BEGIN_DECLS
 typedef struct {
         TrackerConfig    *config;
         TrackerLanguage  *language;
+        TrackerHal       *hal;
 
         TrackerIndexer   *file_index;
         TrackerIndexer   *file_update_index;

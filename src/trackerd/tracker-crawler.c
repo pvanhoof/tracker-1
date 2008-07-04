@@ -46,9 +46,7 @@
 
 struct _TrackerCrawlerPrivate {
 	TrackerConfig  *config;
-#ifdef HAVE_HAL
 	TrackerHal     *hal;
-#endif
 
 	GTimer         *timer;
 
@@ -80,14 +78,6 @@ struct _TrackerCrawlerPrivate {
 };
 
 enum {
-	PROP_0,
-	PROP_CONFIG,
-#ifdef HAVE_HAL
-	PROP_HAL
-#endif
-};
-
-enum {
 	FINISHED,
 	LAST_SIGNAL
 };
@@ -98,22 +88,7 @@ typedef struct {
 } EnumeratorData;
 
 static void crawler_finalize          (GObject         *object);
-static void crawler_set_property      (GObject         *object,
-				       guint            param_id,
-				       const GValue    *value,
-				       GParamSpec      *pspec);
-
 static void queue_free                (gpointer         data);
-
-#ifdef HAVE_HAL
-static void mount_point_added_cb      (TrackerHal      *hal,
-				       const gchar     *mount_point,
-				       gpointer         user_data);
-static void mount_point_removed_cb    (TrackerHal      *hal,
-				       const gchar     *mount_point,
-				       gpointer         user_data);
-#endif /* HAVE_HAL */
-
 static void file_enumerate_next       (GFileEnumerator *enumerator,
 				       EnumeratorData  *ed);
 static void file_enumerate_children   (TrackerCrawler  *crawler,
@@ -131,25 +106,6 @@ tracker_crawler_class_init (TrackerCrawlerClass *klass)
 	object_class = G_OBJECT_CLASS (klass);
 
 	object_class->finalize = crawler_finalize;
-	object_class->set_property = crawler_set_property;
-
-	g_object_class_install_property (object_class,
-					 PROP_CONFIG,
-					 g_param_spec_object ("config",
-							      "Config",
-							      "TrackerConfig object",
-							      tracker_config_get_type (),
-							      G_PARAM_WRITABLE));
-
-#ifdef HAVE_HAL
-	g_object_class_install_property (object_class,
-					 PROP_HAL,
-					 g_param_spec_object ("hal",
-							      "HAL",
-							      "HAL",
-							      tracker_hal_get_type (),
-							      G_PARAM_WRITABLE));
-#endif /* HAVE_HAL */
 
 	signals[FINISHED] = 
 		g_signal_new ("finished",
@@ -230,19 +186,6 @@ crawler_finalize (GObject *object)
 	g_hash_table_unref (priv->file_queues);
 	g_hash_table_unref (priv->directory_queues);
 
-#ifdef HAVE_HAL
-	if (priv->hal) {
-		g_signal_handlers_disconnect_by_func (priv->hal,
-						      mount_point_added_cb,
-						      object);
-		g_signal_handlers_disconnect_by_func (priv->hal,
-						      mount_point_removed_cb,
-						      object);
-
-		g_object_unref (priv->hal);
-	}
-#endif /* HAVE_HAL */
-
 	if (priv->config) {
 		g_object_unref (priv->config);
 	}
@@ -250,108 +193,28 @@ crawler_finalize (GObject *object)
 	G_OBJECT_CLASS (tracker_crawler_parent_class)->finalize (object);
 }
 
-static void
-crawler_set_property (GObject      *object,
-		      guint         param_id,
-		      const GValue *value,
-		      GParamSpec   *pspec)
-{
-	TrackerCrawlerPrivate *priv;
-
-	priv = TRACKER_CRAWLER_GET_PRIVATE (object);
-
-	switch (param_id) {
-	case PROP_CONFIG:
-		tracker_crawler_set_config (TRACKER_CRAWLER (object),
-					    g_value_get_object (value));
-		break;
-
-#ifdef HAVE_HAL
-	case PROP_HAL:
-		tracker_crawler_set_hal (TRACKER_CRAWLER (object),
-					 g_value_get_object (value));
-		break;
-#endif /* HAVE_HAL */
-
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
-		break;
-	};
-}
-
 TrackerCrawler *
-tracker_crawler_new (TrackerConfig *config)
+tracker_crawler_new (TrackerConfig *config, 
+		     TrackerHal    *hal)
 {
+	TrackerCrawler *crawler;
+
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 
-	return g_object_new (TRACKER_TYPE_CRAWLER,
-			     "config", config,
-			     NULL);
-}
+#ifdef HAVE_HAL
+	g_return_val_if_fail (TRACKER_IS_HAL (hal), NULL);
+#endif /* HAVE_HAL */
 
-void
-tracker_crawler_set_config (TrackerCrawler *object,
-			    TrackerConfig  *config)
-{
-	TrackerCrawlerPrivate *priv;
+	crawler = g_object_new (TRACKER_TYPE_CRAWLER, NULL);
 
-	g_return_if_fail (TRACKER_IS_CRAWLER (object));
-	g_return_if_fail (TRACKER_IS_CONFIG (config));
-
-	priv = TRACKER_CRAWLER_GET_PRIVATE (object);
-
-	if (config) {
-		g_object_ref (config);
-	}
-
-	if (priv->config) {
-		g_object_unref (priv->config);
-	}
-
-	priv->config = config;
-
-	g_object_notify (G_OBJECT (object), "config");
-}
+	crawler->private->config = g_object_ref (config);
 
 #ifdef HAVE_HAL
-
-void
-tracker_crawler_set_hal (TrackerCrawler *object,
-			 TrackerHal     *hal)
-{
-	TrackerCrawlerPrivate *priv;
-
-	g_return_if_fail (TRACKER_IS_CRAWLER (object));
-	g_return_if_fail (TRACKER_IS_HAL (hal));
-
-	priv = TRACKER_CRAWLER_GET_PRIVATE (object);
-
-	if (hal) {
-		g_signal_connect (hal, "mount-point-added",
-				  G_CALLBACK (mount_point_added_cb),
-				  object);
-		g_signal_connect (hal, "mount-point-removed",
-				  G_CALLBACK (mount_point_removed_cb),
-				  object);
-		g_object_ref (hal);
-	}
-
-	if (priv->hal) {
-		g_signal_handlers_disconnect_by_func (hal,
-						      mount_point_added_cb,
-						      object);
-		g_signal_handlers_disconnect_by_func (hal,
-						      mount_point_removed_cb,
-						      object);
-		g_object_unref (priv->hal);
-	}
-
-	priv->hal = hal;
-
-	g_object_notify (G_OBJECT (object), "hal");
-}
-
+	crawler->private->hal = g_object_ref (config);
 #endif /* HAVE_HAL */
+
+	return crawler;
+}
 
 /*
  * Functions
@@ -419,32 +282,6 @@ queue_get_next_for_files_with_data (TrackerCrawler  *crawler,
 
 	return NULL;
 }
-
-#ifdef HAVE_HAL
-
-static void
-mount_point_added_cb (TrackerHal  *hal,
-		      const gchar *mount_point,
-		      gpointer     user_data)
-{
-        g_message ("** TRAWLING THROUGH NEW MOUNT POINT:'%s'", mount_point);
-
-        /* list = g_slist_prepend (NULL, (gchar*) mount_point); */
-        /* process_directory_list (list, TRUE, iface); */
-        /* g_slist_free (list); */
-}
-
-static void
-mount_point_removed_cb (TrackerHal  *hal,
-			const gchar *mount_point,
-			gpointer     user_data)
-{
-        g_message ("** CLEANING UP OLD MOUNT POINT:'%s'", mount_point);
-
-        /* process_index_delete_directory_check (mount_point, iface);  */
-}
-
-#endif /* HAVE_HAL */
 
 static void
 get_remote_roots (TrackerCrawler  *crawler,

@@ -1,3 +1,10 @@
+2008-07-04  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/tracker-indexer/tracker-index.c
+	* tests/tracker-indexer/tracker-index-test.c: Added "remove"
+	functionality in the indexer including unit tests. Delete a word
+	from a document means to add the word with weight = -1.
+
 2008-07-04  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/trackerd/tracker-daemon.c: Error handling for some DBus Apis

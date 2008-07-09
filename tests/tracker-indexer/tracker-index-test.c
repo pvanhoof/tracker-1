@@ -216,6 +216,23 @@ test_add_word_multiple_occurrences ()
         
 }
 
+gint
+insert_in_index (TrackerIndex *index, const gchar *text) 
+{
+        gchar **pieces;
+        gint i;
+        static gint doc = 0;
+
+        doc += 1;
+
+        pieces = g_strsplit (text, " ", -1);
+        for (i = 0; pieces[i] != NULL; i++) {
+                tracker_index_add_word (index, pieces[i], doc, 1, 1);
+        }
+        g_strfreev (pieces);
+
+        return doc;
+}
 
 static void
 test_add_with_flushs () 
@@ -223,8 +240,6 @@ test_add_with_flushs ()
 
         TrackerIndex *index;
         const gchar *indexname = "test-add-with-flush.index";
-        gchar **pieces;
-        gint i;
 
         const gchar *text1 = "this is a text to try a kind of real use case of the indexer";
         const gchar *text2 = "this is another text with some common words";
@@ -233,19 +248,11 @@ test_add_with_flushs ()
         index = tracker_index_new (indexname, BUCKET_COUNT);
 
         /* Text 1 */
-        pieces = g_strsplit (text1, " ", -1);
-        for (i = 0; pieces[i] != NULL; i++) {
-                tracker_index_add_word (index, pieces[i], 1, 1, 1);
-        }
-        g_strfreev (pieces);
+        insert_in_index (index, text1);
         tracker_index_flush (index);
 
         /* Text 2 */
-        pieces = g_strsplit (text2, " ", -1);
-        for (i = 0; pieces[i] != NULL; i++) {
-                tracker_index_add_word (index, pieces[i], 2, 1, 1);
-        }
-        g_strfreev (pieces);
+        insert_in_index (index, text2);
         tracker_index_flush (index);
 
         tracker_index_free (index);
@@ -258,6 +265,61 @@ test_add_with_flushs ()
 
 }
 
+void
+remove_in_index (TrackerIndex *index, const gchar *text, gint docid) 
+{
+        gchar **pieces;
+        gint i;
+        static gint doc = 1;
+
+        pieces = g_strsplit (text, " ", -1);
+        for (i = 0; pieces[i] != NULL; i++) {
+                tracker_index_add_word (index, pieces[i], docid, 1, -1);
+        }
+        g_strfreev (pieces);
+
+        doc += 1;
+}
+
+
+static void
+test_remove_document ()
+{
+        TrackerIndex *index;
+        const gchar *indexname = "test-remove-document.index";
+        gint id1, id2;
+
+        const gchar *doc1 = "this is a text to try a kind of real use case of the indexer";
+        const gchar *doc2 = "this is another text with some common words";
+        
+        g_remove (indexname);
+
+        index = tracker_index_new (indexname, BUCKET_COUNT);
+
+        /* Doc 1 */
+        id1 = insert_in_index (index, doc1);
+        tracker_index_flush (index);
+
+        /* Doc 2 */
+        id2 = insert_in_index (index, doc2);
+        tracker_index_flush (index);
+
+        tracker_index_free (index);
+
+        g_assert_cmpint (get_number_words_in_index (indexname), ==, 18);
+
+        index = tracker_index_new (indexname, BUCKET_COUNT);
+        
+        /* Remove doc1 */
+        remove_in_index (index, doc1, id1);
+        tracker_index_flush (index);
+
+        tracker_index_free (index);
+
+        g_assert_cmpint (get_number_words_in_index (indexname), ==, 8);
+
+        g_remove (indexname);
+}
 
 
 int
@@ -282,6 +344,10 @@ main (int argc, char **argv) {
 
         g_test_add_func ("/tracker/tracker-indexer/tracker-index/add_with_flush",
                          test_add_with_flushs);
+
+        g_test_add_func ("/tracker/tracker-indexer/tracker-index/remove_document",
+                         test_remove_document);
+
         result = g_test_run ();
         
         return result;

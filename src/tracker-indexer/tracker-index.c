@@ -229,8 +229,6 @@ indexer_update_word (DEPOT        *index,
 				/* check for deletion */		
 				if (score < 1) {
 					
-					/* g_print ("Deleting word hit %s\n", word); */
-					
 					/* shift all subsequent records in array down one place */
 					for (k = i + 1; k < old_hit_count; k++) {
 						previous_hits[k - 1] = previous_hits[k];
@@ -255,16 +253,24 @@ indexer_update_word (DEPOT        *index,
 			}
 
 			g_array_append_val (pending_hits, *new_hit);
-			g_debug ("could not update word hit %s - appending", word);
+			/* g_debug ("could not update word hit %s - appending", word); */
 		}
 	}
 	
 	/* write back if we have modded anything */
 	if (write_back) {
-		dpput (index, 
-		       word, -1, 
-		       (char *) previous_hits, (old_hit_count * sizeof (TrackerIndexElement)), 
-		       DP_DOVER);
+		/* 
+		 * If the word has no hits, remove it! 
+		 * Otherwise overwrite the value with the new hits array
+		 */
+		if (old_hit_count < 1) {
+			dpout (index, word, -1);
+		} else {
+			dpput (index, 
+			       word, -1, 
+			       (char *) previous_hits, (old_hit_count * sizeof (TrackerIndexElement)), 
+			       DP_DOVER);
+		}
 	}
 	
 	/*  Append new occurences */
@@ -305,7 +311,7 @@ tracker_index_flush (TrackerIndex *index)
 	guint size;
 
 	size = g_hash_table_size (index->cache);
-	g_message ("Flushing index with %d items", size);
+	g_message ("Flushing index with %d items in cache", size);
 
 	g_hash_table_foreach_remove (index->cache, cache_flush_foreach, index->index);
 

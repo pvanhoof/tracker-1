@@ -25,65 +25,24 @@
 
 #include "config.h"
 
-#include <time.h>
-
-#include <glib.h>
-
-#include <libtracker-common/tracker-config.h>
-#include <libtracker-common/tracker-language.h>
-#include <libtracker-common/tracker-parser.h>
-#include <libtracker-common/tracker-hal.h>
-
-#include <libtracker-db/tracker-db-action.h>
-
-#include "tracker-crawler.h"
-#include "tracker-indexer.h"
-
 G_BEGIN_DECLS
 
-typedef struct {
-        TrackerConfig    *config;
-        TrackerLanguage  *language;
-        TrackerHal       *hal;
+void         tracker_shutdown                (void);
 
-        TrackerIndexer   *file_index;
-        TrackerIndexer   *file_update_index;
-        TrackerIndexer   *email_index;
+const gchar *tracker_get_data_dir            (void);
+const gchar *tracker_get_sys_tmp_dir         (void);
 
- 	gboolean          is_running; 
-	gboolean          readonly;
+gboolean     tracker_get_is_readonly         (void);
+void         tracker_set_is_readonly         (gboolean value);
 
-	gint              pid; 
+gboolean     tracker_get_is_first_time_index (void);
+gboolean     tracker_get_in_merge            (void);
 
-	gboolean          reindex;
-  
-	/* Pause/shutdown */
-	gboolean          pause_manual;
-	gboolean          pause_battery;
-	gboolean          pause_io;
+gboolean     tracker_get_is_paused_manually  (void);
+void         tracker_set_is_paused_manually  (gboolean value);
 
-	/* Indexing options */
-
-	/* Table of stop words that are to be ignored by the parser */
-	gboolean          first_time_index; 
-	
-	gint              folders_count;  
-	gint              folders_processed;
-	gint              mbox_count; 
-	gint              mbox_processed;
-
-	/* Progress info for merges */
-	gboolean          in_merge; 
-	
-	/* Application run time values */
-	gint              index_count; 
-} Tracker;
-
-void         tracker_shutdown        (void);
-
-const gchar *tracker_get_data_dir    (void);
-const gchar *tracker_get_sys_tmp_dir (void);
-
+void         tracker_set_reindex_on_shutdown (gboolean value);
+      
 G_END_DECLS
 
 #endif /* __TRACKERD_MAIN_H__ */

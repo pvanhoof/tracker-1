@@ -2150,6 +2150,20 @@ db_interface_create (TrackerDB db)
 	return NULL;
 }
 
+static void
+db_manager_remove_all (void)
+{
+	guint i;
+
+	g_message ("Removing all database files");
+
+	for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
+		g_message ("Removing database:'%s'", 
+			   dbs[i].abs_filename);
+		g_unlink (dbs[i].abs_filename);
+	}
+}
+
 GType
 tracker_db_get_type (void)
 {
@@ -2298,13 +2312,12 @@ tracker_db_manager_init (TrackerDBManagerFlags  flags,
 			*first_time = TRUE;
 		}
 
-		g_message ("Removing database files for reindex");
-
-		for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
-			g_message ("Removing database:'%s'", 
-				   dbs[i].abs_filename);
-			g_unlink (dbs[i].abs_filename);
-		}
+		/* We call an internal version of this function here
+		 * because at the time 'initialized' = FALSE and that
+		 * will cause errors and do nothing.
+		 */
+		g_message ("Cleaning up database files for reindex");
+		db_manager_remove_all ();
 
 		/* In cases where we re-init this module, make sure
 		 * we have cleaned up the ontology before we load all
@@ -2410,6 +2423,14 @@ tracker_db_manager_shutdown (void)
 	tracker_ontology_shutdown ();
 
         initialized = FALSE;
+}
+
+void
+tracker_db_manager_remove_all (void)
+{
+	g_return_if_fail (initialized != FALSE);
+
+	db_manager_remove_all ();
 }
 
 const gchar *
@@ -2556,28 +2577,3 @@ tracker_db_manager_get_db_interface_by_service (const gchar *service)
 
 	return iface;
 }
-
-/*
-TrackerDBInterface *
-tracker_db_manager_get_db_interface_content (TrackerDBInterface *iface)
-{
-	guint i;
-
-	g_return_val_if_fail (initialized != FALSE, NULL);
-	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
-
-        for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
-		if (dbs[i].iface != iface) {
-			continue;
-		}
-
-		if (i == TRACKER_DB_FILE_METADATA) { 
-			return tracker_db_manager_get_db_interface (TRACKER_DB_FILE_CONTENTS);
-		} else if (i == TRACKER_DB_EMAIL_METADATA) { 
-			return tracker_db_manager_get_db_interface (TRACKER_DB_EMAIL_CONTENTS);
-		}
-	}	
-
-	return NULL;
-}
-*/

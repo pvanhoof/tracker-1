@@ -53,15 +53,10 @@ struct TrackerSearchClass {
 };
 
 GType          tracker_search_get_type          (void);
-TrackerSearch *tracker_search_new               (void);
-void           tracker_search_set_config        (TrackerSearch     *object,
-						 TrackerConfig     *config);
-void           tracker_search_set_language      (TrackerSearch     *object,
-						 TrackerLanguage   *language);
-void           tracker_search_set_file_index    (TrackerSearch     *object,
-						 TrackerIndexer    *file_index);
-void           tracker_search_set_email_index   (TrackerSearch     *object,
-						 TrackerIndexer    *email_index);
+TrackerSearch *tracker_search_new               (TrackerConfig *config,
+						 TrackerLanguage *language,
+						 TrackerIndexer *file_index,
+						 TrackerIndexer *email_index);
 gboolean       tracker_search_get_hit_count     (TrackerSearch     *object,
 						 const gchar       *service,
 						 const gchar       *search_text,

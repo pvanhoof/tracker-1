@@ -48,25 +48,14 @@
 
 typedef struct {
 	DBusGProxy      *fd_proxy;
+
 	TrackerConfig   *config;
 	TrackerLanguage *language;
         TrackerIndexer  *file_index;
         TrackerIndexer  *email_index;
 } TrackerSearchPriv;
 
-enum {
-	PROP_0,
-	PROP_CONFIG,
-	PROP_LANGUAGE,
-	PROP_FILE_INDEX,
-	PROP_EMAIL_INDEX
-};
-
-static void search_finalize     (GObject      *object);
-static void search_set_property (GObject      *object,
-				 guint         param_id,
-				 const GValue *value,
-				 GParamSpec   *pspec);
+static void search_finalize (GObject *object);
 
 G_DEFINE_TYPE(TrackerSearch, tracker_search, G_TYPE_OBJECT)
 
@@ -78,34 +67,6 @@ tracker_search_class_init (TrackerSearchClass *klass)
 	object_class = G_OBJECT_CLASS (klass);
 
 	object_class->finalize = search_finalize;
-	object_class->set_property = search_set_property;
-
-	g_object_class_install_property (object_class,
-					 PROP_CONFIG,
-					 g_param_spec_object ("config",
-							      "Config",
-							      "TrackerConfig object",
-							      tracker_config_get_type (),
-							      G_PARAM_WRITABLE));
-	g_object_class_install_property (object_class,
-					 PROP_LANGUAGE,
-					 g_param_spec_object ("language",
-							      "Language",
-							      "Language",
-							      tracker_language_get_type (),
-							      G_PARAM_WRITABLE));
-	g_object_class_install_property (object_class,
-					 PROP_FILE_INDEX,
-					 g_param_spec_pointer ("file-index",
-							       "File index",
-							       "File index",
-							       G_PARAM_WRITABLE));
-	g_object_class_install_property (object_class,
-					 PROP_EMAIL_INDEX,
-					 g_param_spec_pointer ("email-index",
-							       "Email index",
-							       "Email index",
-							       G_PARAM_WRITABLE));
 
 	g_type_class_add_private (object_class, sizeof (TrackerSearchPriv));
 }
@@ -126,126 +87,38 @@ search_finalize (GObject *object)
 		g_object_unref (priv->fd_proxy);
 	}
 
+	g_object_unref (priv->email_index);
+	g_object_unref (priv->file_index);
+	g_object_unref (priv->language);
+	g_object_unref (priv->config);
+
 	G_OBJECT_CLASS (tracker_search_parent_class)->finalize (object);
 }
 
-static void
-search_set_property (GObject      *object,
-		     guint 	param_id,
-		     const GValue *value,
-		     GParamSpec   *pspec)
-{
-	TrackerSearchPriv *priv;
-
-	priv = GET_PRIV (object);
-
-	switch (param_id) {
-	case PROP_CONFIG:
-		tracker_search_set_config (TRACKER_SEARCH (object),
-					   g_value_get_object (value));
-		break;
-	case PROP_LANGUAGE:
-		tracker_search_set_language (TRACKER_SEARCH (object),
-					     g_value_get_object (value));
-		break;
-	case PROP_FILE_INDEX:
-		tracker_search_set_file_index (TRACKER_SEARCH (object),
-					       g_value_get_pointer (value));
-		break;
-	case PROP_EMAIL_INDEX:
-		tracker_search_set_email_index (TRACKER_SEARCH (object),
-						g_value_get_pointer (value));
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
-		break;
-	};
-}
-
 TrackerSearch *
-tracker_search_new (void)
+tracker_search_new (TrackerConfig   *config,
+		    TrackerLanguage *language,
+		    TrackerIndexer  *file_index,
+		    TrackerIndexer  *email_index)
 {
-	return g_object_new (TRACKER_TYPE_SEARCH, NULL); 
-}
-
-void
-tracker_search_set_config (TrackerSearch *object,
-			   TrackerConfig *config)
-{
+	TrackerSearch     *object;
 	TrackerSearchPriv *priv;
 
-	g_return_if_fail (TRACKER_IS_SEARCH (object));
-	g_return_if_fail (TRACKER_IS_CONFIG (config));
+	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
+	g_return_val_if_fail (TRACKER_IS_LANGUAGE (language), NULL);
+	g_return_val_if_fail (TRACKER_IS_INDEXER (file_index), NULL);
+	g_return_val_if_fail (TRACKER_IS_INDEXER (email_index), NULL);
+
+	object = g_object_new (TRACKER_TYPE_SEARCH, NULL); 
 
 	priv = GET_PRIV (object);
 
-	if (config) {
-		g_object_ref (config);
-	}
+	priv->config = g_object_ref (config);
+	priv->language = g_object_ref (language);
+	priv->file_index = g_object_ref (file_index);
+	priv->email_index = g_object_ref (email_index);
 
-	if (priv->config) {
-		g_object_unref (priv->config);
-	}
-
-	priv->config = config;
-
-	g_object_notify (G_OBJECT (object), "config");
-}
-
-void
-tracker_search_set_language (TrackerSearch   *object,
-			     TrackerLanguage *language)
-{
-	TrackerSearchPriv *priv;
-
-	g_return_if_fail (TRACKER_IS_SEARCH (object));
-	g_return_if_fail (language != NULL);
-
-	priv = GET_PRIV (object);
-
-	if (language) {
-		g_object_ref (language);
-	}
-
-	if (priv->language) {
-		g_object_unref (priv->language);
-	}
-
-	priv->language = language;
-	
-	g_object_notify (G_OBJECT (object), "language");
-}
-
-void
-tracker_search_set_file_index (TrackerSearch  *object,
-			       TrackerIndexer *file_index)
-{
-	TrackerSearchPriv *priv;
-
-	g_return_if_fail (TRACKER_IS_SEARCH (object));
-	g_return_if_fail (file_index != NULL);
-
-	priv = GET_PRIV (object);
-
-	priv->file_index = file_index;
-	
-	g_object_notify (G_OBJECT (object), "file-index");
-}
-
-void
-tracker_search_set_email_index (TrackerSearch  *object,
-				TrackerIndexer *email_index)
-{
-	TrackerSearchPriv *priv;
-
-	g_return_if_fail (TRACKER_IS_SEARCH (object));
-	g_return_if_fail (email_index != NULL);
-
-	priv = GET_PRIV (object);
-
-	priv->email_index = email_index;
-	
-	g_object_notify (G_OBJECT (object), "email-index");
+	return object;
 }
 
 /*
@@ -600,6 +473,8 @@ tracker_search_get_hit_count (TrackerSearch  *object,
 		return FALSE;
         }
 
+	priv = GET_PRIV (object);
+
 	services[count++] = tracker_ontology_get_id_for_service_type (service);
 
 	if (strcmp (service, "Files") == 0) {
@@ -656,8 +531,6 @@ tracker_search_get_hit_count_all (TrackerSearch  *object,
 	tracker_dbus_return_val_if_fail (search_text != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
 
-	priv = GET_PRIV (object);
-	
 	tracker_dbus_request_new (request_id,
                                   "DBus request to get search hit count for all, "
                                   "search text:'%s'",
@@ -669,6 +542,8 @@ tracker_search_get_hit_count_all (TrackerSearch  *object,
                                              "No search term was specified");
 		return FALSE;
         }
+
+	priv = GET_PRIV (object);
 
         tree = tracker_query_tree_new (search_text, 
 				       priv->file_index, 
@@ -893,7 +768,6 @@ tracker_search_get_snippet (TrackerSearch  *object,
 			    gchar         **values,
 			    GError        **error)
 {
-	TrackerSearchPriv  *priv;
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
 	guint               request_id;
@@ -906,8 +780,6 @@ tracker_search_get_snippet (TrackerSearch  *object,
 	tracker_dbus_return_val_if_fail (id != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (search_text != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
-
-	priv = GET_PRIV (object);
 
         tracker_dbus_request_new (request_id,
                                   "DBus request to get snippet, "
@@ -951,8 +823,11 @@ tracker_search_get_snippet (TrackerSearch  *object,
         g_free (service_id);
 
 	if (result_set) {
-		gchar **strv;
-		gchar  *text;
+		TrackerSearchPriv  *priv;
+		gchar             **strv;
+		gchar              *text;
+
+		priv = GET_PRIV (object);
 
 		tracker_db_result_set_get (result_set, 0, &text, -1);
 		strv = tracker_parser_text_into_array (text, 
@@ -1301,14 +1176,14 @@ tracker_search_suggest (TrackerSearch  *object,
 
 	tracker_dbus_return_val_if_fail (search_text != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (value != NULL, FALSE, error);
-
-	priv = GET_PRIV (object);
-        
+      
         tracker_dbus_request_new (request_id,
                                   "DBus request to for suggested words, "
 				  "term:'%s', max dist:%d",
 				  search_text,
 				  max_dist);
+
+	priv = GET_PRIV (object);
 
         *value = tracker_indexer_get_suggestion (priv->file_index, search_text, max_dist);
 

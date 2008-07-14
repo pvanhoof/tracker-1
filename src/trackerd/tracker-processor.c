@@ -31,6 +31,7 @@
 #include "tracker-processor.h"
 #include "tracker-crawler.h"
 #include "tracker-monitor.h"
+#include "tracker-status.h"
 
 #define TRACKER_PROCESSOR_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_PROCESSOR, TrackerProcessorPrivate))
 
@@ -63,6 +64,8 @@ enum {
 
 static void tracker_processor_finalize (GObject          *object);
 static void process_next_module        (TrackerProcessor *processor);
+static void crawler_all_sent_cb        (TrackerCrawler   *crawler,
+					gpointer          user_data);
 static void crawler_finished_cb        (TrackerCrawler   *crawler,
 					guint             directories_found,
 					guint             directories_ignored,
@@ -89,7 +92,7 @@ tracker_processor_class_init (TrackerProcessorClass *class)
 
 	object_class->finalize = tracker_processor_finalize;
 
-	signals [FINISHED] =
+	signals[FINISHED] =
 		g_signal_new ("finished",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_LAST,
@@ -124,6 +127,9 @@ tracker_processor_finalize (GObject *object)
 
 	g_list_free (priv->modules);
 
+	g_signal_handlers_disconnect_by_func (priv->crawler,
+					      G_CALLBACK (crawler_all_sent_cb),
+					      object);
 	g_signal_handlers_disconnect_by_func (priv->crawler,
 					      G_CALLBACK (crawler_finished_cb),
 					      object);
@@ -219,11 +225,12 @@ process_module (TrackerProcessor *processor,
 		return;
 	}
 
-	/* Set up monitors */
-
-	/* Set up recursive monitors */
+	/* Set up monitors && recursive monitors */
+	tracker_status_set_and_signal (TRACKER_STATUS_WATCHING);
 
 	/* Gets all files and directories */
+	tracker_status_set_and_signal (TRACKER_STATUS_PENDING);
+
 	if (!tracker_crawler_start (priv->crawler, module_name)) {
 		/* If there is nothing to crawl, we are done, process
 		 * the next module.
@@ -251,10 +258,22 @@ process_next_module (TrackerProcessor *processor)
 	if (!priv->current_module) {
 		priv->finished = TRUE;
 		tracker_processor_stop (processor);
+
 		return;
 	}
 
 	process_module (processor, priv->current_module->data);
+}
+
+static void
+crawler_all_sent_cb (TrackerCrawler *crawler,
+		     gpointer        user_data)
+{
+	/* Do we even need this step Optimizing ? */
+	tracker_status_set_and_signal (TRACKER_STATUS_OPTIMIZING);
+	
+	/* All done */
+	tracker_status_set_and_signal (TRACKER_STATUS_IDLE);
 }
 
 static void
@@ -318,6 +337,8 @@ tracker_processor_new (TrackerConfig *config,
 	g_return_val_if_fail (TRACKER_IS_HAL (hal), NULL);
 #endif /* HAVE_HAL */
 
+	tracker_status_set_and_signal (TRACKER_STATUS_INITIALIZING);
+
 	processor = g_object_new (TRACKER_TYPE_PROCESSOR, NULL);
 
 	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
@@ -337,6 +358,9 @@ tracker_processor_new (TrackerConfig *config,
 
 	priv->crawler = tracker_crawler_new (config, hal);
 
+	g_signal_connect (priv->crawler, "all-sent",
+			  G_CALLBACK (crawler_all_sent_cb),
+			  processor);
 	g_signal_connect (priv->crawler, "finished",
 			  G_CALLBACK (crawler_finished_cb),
 			  processor);
@@ -396,5 +420,91 @@ tracker_processor_stop (TrackerProcessor *processor)
 	g_message ("Total monitors   : %d\n",
 		   tracker_monitor_get_count ());
 
+	/* Here we set to IDLE when we were stopped, otherwise, we
+	 * we are currently in the process of sending files to the
+	 * indexer and we set the state to INDEXING
+	 */
+	if (!priv->finished) {
+		/* Do we even need this step Optimizing ? */
+		tracker_status_set_and_signal (TRACKER_STATUS_OPTIMIZING);
+
+		/* All done */
+		tracker_status_set_and_signal (TRACKER_STATUS_IDLE);
+	} else {
+		tracker_status_set_and_signal (TRACKER_STATUS_INDEXING);
+	}
+
 	g_signal_emit (processor, signals[FINISHED], 0);
+}
+
+guint 
+tracker_processor_get_directories_found (TrackerProcessor *processor)
+{
+	TrackerProcessorPrivate *priv;
+
+	g_return_val_if_fail (TRACKER_IS_PROCESSOR (processor), 0);
+	
+	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
+	
+	return priv->directories_found;
+}
+
+guint 
+tracker_processor_get_directories_ignored (TrackerProcessor *processor)
+{
+	TrackerProcessorPrivate *priv;
+
+	g_return_val_if_fail (TRACKER_IS_PROCESSOR (processor), 0);
+	
+	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
+	
+	return priv->directories_ignored;
+}
+
+guint 
+tracker_processor_get_directories_total (TrackerProcessor *processor)
+{
+	TrackerProcessorPrivate *priv;
+
+	g_return_val_if_fail (TRACKER_IS_PROCESSOR (processor), 0);
+	
+	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
+	
+	return priv->directories_found + priv->directories_ignored;
+}
+
+guint 
+tracker_processor_get_files_found (TrackerProcessor *processor)
+{
+	TrackerProcessorPrivate *priv;
+
+	g_return_val_if_fail (TRACKER_IS_PROCESSOR (processor), 0);
+	
+	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
+	
+	return priv->files_found;
+}
+
+guint 
+tracker_processor_get_files_ignored (TrackerProcessor *processor)
+{
+	TrackerProcessorPrivate *priv;
+
+	g_return_val_if_fail (TRACKER_IS_PROCESSOR (processor), 0);
+	
+	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
+	
+	return priv->files_ignored;
+}
+
+guint 
+tracker_processor_get_files_total (TrackerProcessor *processor)
+{
+	TrackerProcessorPrivate *priv;
+
+	g_return_val_if_fail (TRACKER_IS_PROCESSOR (processor), 0);
+	
+	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
+	
+	return priv->files_found + priv->files_ignored;
 }

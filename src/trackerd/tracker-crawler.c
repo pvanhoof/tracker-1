@@ -81,6 +81,7 @@ struct _TrackerCrawlerPrivate {
 };
 
 enum {
+	ALL_SENT,
 	FINISHED,
 	LAST_SIGNAL
 };
@@ -110,6 +111,15 @@ tracker_crawler_class_init (TrackerCrawlerClass *klass)
 
 	object_class->finalize = crawler_finalize;
 
+	signals[ALL_SENT] = 
+		g_signal_new ("all-sent",
+			      G_TYPE_FROM_CLASS (klass),
+			      G_SIGNAL_RUN_LAST,
+			      0,
+			      NULL, NULL,
+			      g_cclosure_marshal_VOID__VOID,
+			      G_TYPE_NONE, 
+			      0);
 	signals[FINISHED] = 
 		g_signal_new ("finished",
 			      G_TYPE_FROM_CLASS (klass),
@@ -592,7 +602,10 @@ file_queue_handler_cb (gpointer user_data)
 
 	if (!queue || !module_name) {
 		g_message ("No file queues to process");
+
+		g_signal_emit (crawler, signals[ALL_SENT], 0);
 		crawler->private->files_queue_handle_id = 0;
+
 		return FALSE;
 	}
 

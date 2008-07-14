@@ -24,6 +24,7 @@
 #include "tracker-status.h"
 #include "tracker-dbus.h"
 #include "tracker-daemon.h"
+#include "tracker-main.h"
 
 static TrackerStatus status = TRACKER_STATUS_INITIALIZING;
 
@@ -113,35 +114,53 @@ tracker_status_set (TrackerStatus new_status)
 }
 
 void
-tracker_status_set_and_signal (TrackerStatus new_status,
-                               gboolean      first_time_index,
-                               gboolean      in_merge,
-                               gboolean      pause_manual,
-                               gboolean      pause_on_battery,
-                               gboolean      pause_io,
-                               gboolean      enable_indexing)
+tracker_status_signal (void)
 {
-        GObject  *object;
-        gboolean  emit;
+        GObject *object;
+
+        object = tracker_dbus_get_object (TRACKER_TYPE_DAEMON);
+
+	/* Pause IO is basically here to know when we are crawling
+	 * instead of indexing the file system. The point being that
+	 * we tell the indexer to pause while we crawl new files
+	 * created. This is redundant now since we don't do both in
+	 * the daemon. Should this be added back?
+	 */
+
+	/* Pause on battery is a config option, not sure how to get
+	 * that from here or the point of passing it in the state
+	 * change either. This signal is going to change because we
+	 * shouldn't send all this crap just for a simple state
+	 * change. This is passed as FALSE for now.
+	 */
+	
+        g_signal_emit_by_name (object, 
+                               "index-state-change", 
+                               tracker_status_to_string (status),
+                               tracker_get_is_first_time_index (),
+                               tracker_get_in_merge (),
+                               tracker_get_is_paused_manually (),
+                               FALSE, /* Pause on battery */
+                               FALSE, /* Pause IO */
+			       !tracker_get_is_readonly ());
+}
+
+void
+tracker_status_set_and_signal (TrackerStatus new_status)
+{
+        gboolean emit;
 
         emit = new_status != status;
         
-        tracker_status_set (new_status);
-
         if (!emit) {
                 return;
         }
 
-        object = tracker_dbus_get_object (TRACKER_TYPE_DAEMON);
+	g_message ("State change from '%s' --> '%s'",
+		   tracker_status_to_string (status),
+		   tracker_status_to_string (new_status));
 
-        g_signal_emit_by_name (object, 
-                               "index-state-change", 
-                               tracker_status_to_string (status),
-                               first_time_index,
-                               in_merge,
-                               pause_manual,
-                               pause_on_battery,
-                               pause_io,
-                               enable_indexing);
+        tracker_status_set (new_status);
+	tracker_status_signal ();
 }
 

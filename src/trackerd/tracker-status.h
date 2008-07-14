@@ -44,13 +44,8 @@ const gchar * tracker_status_to_string      (TrackerStatus  status);
 TrackerStatus tracker_status_get            (void);
 const gchar * tracker_status_get_as_string  (void);
 void          tracker_status_set            (TrackerStatus  new_status);
-void          tracker_status_set_and_signal (TrackerStatus  new_status,
-                                             gboolean       first_time_index,
-                                             gboolean       in_merge,
-                                             gboolean       pause_manual,
-                                             gboolean       pause_on_battery,
-                                             gboolean       pause_io,
-                                             gboolean       enable_indexing);
+void          tracker_status_set_and_signal (TrackerStatus  new_status);
+void          tracker_status_signal         (void);
 
 G_END_DECLS
 

@@ -30,8 +30,6 @@
 #include "tracker-main.h"
 #include "tracker-xesam-manager.h"
 
-extern Tracker *tracker;
-
 gchar *
 tracker_get_radix_by_suffix (const gchar *str, 
 			     const gchar *suffix)
@@ -47,24 +45,6 @@ tracker_get_radix_by_suffix (const gchar *str,
 }
 
 void
-tracker_throttle (gint multiplier)
-{
-	gint throttle;
-
-	throttle = tracker_config_get_throttle (tracker->config);
-
-	if (throttle < 1) {
-		return;
-	}
-
- 	throttle *= multiplier;
-
-	if (throttle > 0) {
-  		g_usleep (throttle);
-	}
-}
-
-void
 tracker_add_metadata_to_table (GHashTable  *meta_table, 
 			       const gchar *key, 
 			       const gchar *value)
@@ -76,61 +56,3 @@ tracker_add_metadata_to_table (GHashTable  *meta_table,
 	g_hash_table_steal (meta_table, key);
 	g_hash_table_insert (meta_table, (gchar*) key, list);
 }
-
-gboolean
-tracker_is_low_diskspace (void)
-{
-	struct statvfs  st;
-	const gchar    *data_dir;
-        gint            low_disk_space_limit;
-
-        low_disk_space_limit = tracker_config_get_low_disk_space_limit (tracker->config);
-
-	if (low_disk_space_limit < 1) {
-		return FALSE;
-	}
-
-	data_dir = tracker_get_data_dir ();
-
-	if (statvfs (data_dir, &st) == -1) {
-		static gboolean reported = 0;
-
-		if (!reported) {
-			reported = 1;
-			g_critical ("Could not statvfs %s", data_dir);
-		}
-
-		return FALSE;
-	}
-
-	if (((long long) st.f_bavail * 100 / st.f_blocks) <= low_disk_space_limit) {
-		g_critical ("Disk space is low!");
-		return TRUE;
-	}
-
-	return FALSE;
-}
-
-gboolean
-tracker_should_pause (void)
-{
-	return  tracker->pause_manual || 
-		tracker_should_pause_on_battery () || 
-		tracker_is_low_diskspace () || 
-		tracker_indexer_are_databases_too_big ();
-}
-
-gboolean
-tracker_should_pause_on_battery (void)
-{
-        if (!tracker->pause_battery) {
-                return FALSE;
-        }
-
-	if (tracker->first_time_index) {
-		return tracker_config_get_disable_indexing_on_battery_init (tracker->config);
-	}
-
-        return tracker_config_get_disable_indexing_on_battery (tracker->config);
-}
-

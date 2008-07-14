@@ -32,6 +32,7 @@
 
 #include <libtracker-common/tracker-file-utils.h> 
 #include <libtracker-common/tracker-nfs-lock.h>
+#include <libtracker-common/tracker-parser.h>
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-utils.h>
 
@@ -44,9 +45,13 @@
 #include "tracker-xesam-manager.h"
 #include "tracker-main.h"
 
-#define ZLIBBUFSIZ            8192
+#define ZLIBBUFSIZ 8192
 
-extern Tracker *tracker;
+static gboolean         initialized;
+
+static TrackerConfig   *config;
+static TrackerLanguage *language;
+static TrackerIndexer  *file_index;
 
 static gchar *
 compress_string (const gchar *ptr, 
@@ -228,10 +233,10 @@ update_metadata_index (const gchar  *id,
 		old_table = tracker_parser_text (old_table, 
 						 old_value, 
 						 tracker_field_get_weight (def), 
-						 tracker->language, 
- 						 tracker_config_get_max_words_to_index (tracker->config),
- 						 tracker_config_get_max_word_length (tracker->config),
- 						 tracker_config_get_min_word_length (tracker->config),
+						 language, 
+ 						 tracker_config_get_max_words_to_index (config),
+ 						 tracker_config_get_max_word_length (config),
+ 						 tracker_config_get_min_word_length (config),
 						 tracker_field_get_filtered (def), 
 						 tracker_field_get_delimited (def));
 	}
@@ -241,10 +246,10 @@ update_metadata_index (const gchar  *id,
 		new_table = tracker_parser_text (new_table, 
 						 new_value, 
 						 tracker_field_get_weight (def), 
-						 tracker->language, 
- 						 tracker_config_get_max_words_to_index (tracker->config),
- 						 tracker_config_get_max_word_length (tracker->config),
- 						 tracker_config_get_min_word_length (tracker->config),
+						 language, 
+ 						 tracker_config_get_max_words_to_index (config),
+ 						 tracker_config_get_max_word_length (config),
+ 						 tracker_config_get_min_word_length (config),
 						 tracker_field_get_filtered (def), 
 						 tracker_field_get_delimited (def));
 	}
@@ -573,50 +578,6 @@ directory_move (TrackerDBInterface *iface,
 }
 */
 
-static gint 
-get_memory_usage (void)
-{
-#if defined(__linux__)
-	gint    fd, length, mem = 0;
-	gchar   buffer[8192];
-	gchar  *stat_file;
-	gchar **terms;
-
-	stat_file = g_strdup_printf ("/proc/%d/stat", tracker->pid);
-	fd = g_open (stat_file, O_RDONLY); 
-	g_free (stat_file);
-
-	if (fd ==-1) {
-		return 0;
-	}
-	
-	length = read (fd, buffer, 8192);
-	buffer[length] = 0;
-	close (fd);
-
-	terms = g_strsplit (buffer, " ", -1);
-
-	if (terms) {
-		gint i;
-
-		for (i = 0; i < 24; i++) {
-			if (!terms[i]) {
-				break;
-			}		
-
-			if (i == 23) {
-				mem = 4 * atoi (terms[23]);
-			}
-		}
-	}
-
-	g_strfreev (terms);
-
-	return mem;	
-#endif
-	return 0;
-}
-
 static GArray *
 db_create_array_of_services (void)
 {
@@ -641,15 +602,38 @@ db_create_array_of_services (void)
 }
 
 void
-tracker_db_init (void)
+tracker_db_init (TrackerConfig   *this_config,
+		 TrackerLanguage *this_language,
+		 TrackerIndexer  *this_file_index)
 {
-	/* Nothing to do? - maybe create connections? */
+	g_return_if_fail (TRACKER_IS_CONFIG (this_config));
+	g_return_if_fail (TRACKER_IS_LANGUAGE (this_language));
+	g_return_if_fail (TRACKER_IS_INDEXER (this_file_index));
+	
+	if (initialized) {
+		return;
+	}
+
+	config = g_object_ref (this_config);
+	language = g_object_ref (this_language);
+	file_index = g_object_ref (this_file_index);
 }
 
 void
 tracker_db_shutdown (void)
 {
-	/* Nothing to do? */
+	if (!initialized) {
+		return;
+	}
+
+	g_object_unref (file_index);
+	file_index = NULL;
+
+	g_object_unref (language);
+	language = NULL;
+
+	g_object_unref (config);
+	config = NULL;
 }
 
 gboolean
@@ -774,9 +758,9 @@ tracker_db_search_text (TrackerDBInterface *iface,
 	g_return_val_if_fail (offset >= 0, NULL);
 
 	array = tracker_parser_text_into_array (search_string,
-						tracker->language,
-						tracker_config_get_max_word_length (tracker->config),
-						tracker_config_get_min_word_length (tracker->config));
+						language,
+						tracker_config_get_max_word_length (config),
+						tracker_config_get_min_word_length (config));
 
 	result_set = tracker_db_exec_proc (iface, 
 					   "GetRelatedServiceIDs", 
@@ -803,9 +787,9 @@ tracker_db_search_text (TrackerDBInterface *iface,
 	}
 
 	tree = tracker_query_tree_new (search_string, 
-				       tracker->file_index, 
-				       tracker->config,
-				       tracker->language,
+				       file_index, 
+				       config,
+				       language,
 				       services);
 	hits = tracker_query_tree_get_hits (tree, offset, limit);
 	result = NULL;
@@ -964,9 +948,9 @@ tracker_db_search_text_and_mime (TrackerDBInterface  *iface,
 	services = db_create_array_of_services ();
 
 	tree = tracker_query_tree_new (text, 
-				       tracker->file_index, 
-				       tracker->config,
-				       tracker->language,
+				       file_index, 
+				       config,
+				       language,
 				       services);
 	hits = tracker_query_tree_get_hits (tree, 0, 0);
 
@@ -1060,9 +1044,9 @@ tracker_db_search_text_and_location (TrackerDBInterface *iface,
 	services = db_create_array_of_services ();
 
 	tree = tracker_query_tree_new (text, 
-				       tracker->file_index, 
-				       tracker->config,
-				       tracker->language,
+				       file_index, 
+				       config,
+				       language,
 				       services);
 	hits = tracker_query_tree_get_hits (tree, 0, 0);
 
@@ -1158,9 +1142,9 @@ tracker_db_search_text_and_mime_and_location (TrackerDBInterface  *iface,
 	services = db_create_array_of_services ();
 
 	tree = tracker_query_tree_new (text, 
-				       tracker->file_index, 
-				       tracker->config,
-				       tracker->language,
+				       file_index, 
+				       config,
+				       language,
 				       services);
 	hits = tracker_query_tree_get_hits (tree, 0, 0);
 
@@ -1517,9 +1501,9 @@ tracker_db_metadata_insert_embedded (TrackerDBInterface  *iface,
 				gchar *mvalue;
 				
 				mvalue = tracker_parser_text_to_string (values[i],
-									tracker->language,
-									tracker_config_get_max_word_length (tracker->config),
-									tracker_config_get_min_word_length (tracker->config),
+									language,
+									tracker_config_get_max_word_length (config),
+									tracker_config_get_min_word_length (config),
 									FALSE, 
 									FALSE, 
 									FALSE);
@@ -1549,9 +1533,9 @@ tracker_db_metadata_insert_embedded (TrackerDBInterface  *iface,
 			}
 			
 			mvalue = tracker_parser_text_to_string (values[i], 
-								tracker->language,
-								tracker_config_get_max_word_length (tracker->config),
-								tracker_config_get_min_word_length (tracker->config),
+								language,
+								tracker_config_get_max_word_length (config),
+								tracker_config_get_min_word_length (config),
 								tracker_field_get_filtered (def), 
 								tracker_field_get_filtered (def), 
 								tracker_field_get_delimited (def));
@@ -1582,10 +1566,10 @@ tracker_db_metadata_insert_embedded (TrackerDBInterface  *iface,
 				hash_table = tracker_parser_text (hash_table, 
 								  values[i], 
 								  tracker_field_get_weight (def), 
-								  tracker->language, 
-								  tracker_config_get_max_words_to_index (tracker->config),
-								  tracker_config_get_max_word_length (tracker->config),
-								  tracker_config_get_min_word_length (tracker->config),
+								  language, 
+								  tracker_config_get_max_words_to_index (config),
+								  tracker_config_get_max_word_length (config),
+								  tracker_config_get_min_word_length (config),
 								  tracker_field_get_filtered (def), 
 								  tracker_field_get_delimited (def));
 			}
@@ -1622,9 +1606,9 @@ tracker_db_metadata_insert_embedded (TrackerDBInterface  *iface,
 			}
 			
 			mvalue = tracker_parser_text_to_string (values[i], 
-								tracker->language,
-								tracker_config_get_max_word_length (tracker->config),
-								tracker_config_get_min_word_length (tracker->config),
+								language,
+								tracker_config_get_max_word_length (config),
+								tracker_config_get_min_word_length (config),
 								tracker_field_get_filtered (def),  
 								tracker_field_get_filtered (def), 
 								tracker_field_get_delimited (def));
@@ -1856,9 +1840,9 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 			}
 
 			mvalue = tracker_parser_text_to_string (values[i], 
-								tracker->language,
-								tracker_config_get_max_word_length (tracker->config),
-								tracker_config_get_min_word_length (tracker->config),
+								language,
+								tracker_config_get_max_word_length (config),
+								tracker_config_get_min_word_length (config),
 								tracker_field_get_filtered (def),  
 								tracker_field_get_filtered (def), 
 								tracker_field_get_delimited (def));
@@ -1906,9 +1890,9 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 			}
 
 			mvalue = tracker_parser_text_to_string (values[i], 
-								tracker->language,
-								tracker_config_get_max_word_length (tracker->config),
-								tracker_config_get_min_word_length (tracker->config),
+								language,
+								tracker_config_get_max_word_length (config),
+								tracker_config_get_min_word_length (config),
 								tracker_field_get_filtered (def),  
 								tracker_field_get_filtered (def), 
 								tracker_field_get_delimited (def));
@@ -2131,9 +2115,9 @@ tracker_db_metadata_delete_value (TrackerDBInterface *iface,
 	case TRACKER_FIELD_TYPE_INDEX:
 	case TRACKER_FIELD_TYPE_STRING:
 		mvalue = tracker_parser_text_to_string (value, 
-							tracker->language,
-							tracker_config_get_max_word_length (tracker->config),
-							tracker_config_get_min_word_length (tracker->config),
+							language,
+							tracker_config_get_max_word_length (config),
+							tracker_config_get_min_word_length (config),
 							tracker_field_get_filtered (def),  
 							tracker_field_get_filtered (def), 
 							tracker_field_get_delimited (def));
@@ -2876,7 +2860,7 @@ tracker_db_service_create (TrackerDBInterface *iface,
 			g_free (parent);
 		}
 
-		if (tracker_config_get_enable_xesam (tracker->config)) {
+		if (tracker_config_get_enable_xesam (config)) {
 			/* FIXME: Shouldn't this be the common interface? */
 			db_create_event (iface, sid, "Create");
 		}
@@ -3916,32 +3900,4 @@ tracker_db_set_option_int (const gchar *option,
 	if (result_set) {
 		g_object_unref (result_set);
 	}
-}
-
-gboolean
-tracker_db_regulate_transactions (TrackerDBInterface *iface, 
-				  gint                interval)
-{
-	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), FALSE);
-
-	tracker->index_count++;
-	
-	if ((tracker->index_count == 1 ||
-	     tracker->index_count == interval  || 
-	     (tracker->index_count >= interval && 
-	      tracker->index_count % interval == 0))) {
-		if (tracker->index_count > 1) {
-			tracker_db_interface_end_transaction (iface);
-			tracker_db_interface_start_transaction (iface);
-
-			g_message ("Current memory usage is %d, word count %d and hits %d", 
-				   get_memory_usage (), 
-				   0,  /* was tracker->word_count, */
-				   0); /* was tracker->word_detail_count */
-		}
-
-		return TRUE;
-	}
-
-	return FALSE;
 }

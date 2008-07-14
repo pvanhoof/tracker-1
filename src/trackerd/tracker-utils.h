@@ -29,15 +29,11 @@ G_BEGIN_DECLS
 
 gchar *  tracker_get_radix_by_suffix        (const gchar  *str,
                                              const gchar  *suffix);
-void     tracker_throttle                   (gint          multiplier);
 void     tracker_notify_file_data_available (void);
 void     tracker_add_metadata_to_table      (GHashTable   *meta_table,
                                              const char   *key,
                                              const char   *value);
 void     tracker_add_io_grace               (const char   *uri);
-gboolean tracker_is_diskspace_low           (void);
-gboolean tracker_should_pause               (void);
-gboolean tracker_should_pause_on_battery    (void);
 
 G_END_DECLS
 

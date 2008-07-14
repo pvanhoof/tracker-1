@@ -24,19 +24,24 @@
 
 #include <glib.h>
 
-#include <libtracker-common/tracker-config.h>
 #include <dbus/dbus-glib-bindings.h>
 
-#include <libtracker-db/tracker-db-interface.h>
+#include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-language.h>
 
-#include "tracker-main.h"
+#include "tracker-indexer.h"
+#include "tracker-processor.h"
 
 G_BEGIN_DECLS
 
-gboolean    tracker_dbus_init              (TrackerConfig *config);
+gboolean    tracker_dbus_init              (TrackerConfig    *config);
 void        tracker_dbus_shutdown          (void);
-gboolean    tracker_dbus_register_objects  (Tracker       *tracker);
-GObject    *tracker_dbus_get_object        (GType          type);
+gboolean    tracker_dbus_register_objects  (TrackerConfig    *config,
+					    TrackerLanguage  *language,
+					    TrackerIndexer   *file_index,
+					    TrackerIndexer   *email_index,
+					    TrackerProcessor *processor);
+GObject    *tracker_dbus_get_object        (GType             type);
 DBusGProxy *tracker_dbus_indexer_get_proxy (void);
 
 G_END_DECLS

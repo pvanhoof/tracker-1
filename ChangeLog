@@ -1,5 +1,48 @@
 2008-07-14  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-db/tracker-db-manager.[ch]: Make it possible to
+	remove all databases using a public API and use that when shutting
+	down and reindexing (instead of removing the WHOLE directory where
+	databases reside).
+
+	* src/trackerd/tracker-crawler.c: Added a signal to know when all
+	items have been sent to the indexer.
+	
+	* src/trackerd/tracker-daemon.[ch]: Use the new tracker-main API
+	instead of setting tracker-> members ourselves.
+	
+	* src/trackerd/tracker-db.[ch]: Write the init and shutdown
+	functions to require config, language and the file index which are
+	used in a lot of db functions.
+
+	* src/trackerd/tracker-dbus.[ch]: Use the _new() functions to
+	create objects we register here and pass all the object we need
+	instead of the Tracker pointer.
+	
+	* src/trackerd/tracker-main.[ch]: Completely remove the Tracker
+	structure. Now we have APIs for everything that is needed
+	externally and we make the rest private.
+
+	* src/trackerd/tracker-processor.[ch]: Added state signalling so
+	clients know if we are indexing, pending, etc. This needs a little
+	more work so the indexer itself tells us what it is doing.
+
+	* src/trackerd/tracker-search.[ch]: Fixed crasher where we didn't
+	get the private struct from the TrackerSearch before dereferencing
+	it for _get_count(). Also, removed _set_{config|language|...}
+	functions which are used only when the object is created. Instead
+	pass these to the _new() function. Fixed a memory leak here too,
+	where we didn't unref all objects we ref when the object is
+	created (in finalize).
+
+	* src/trackerd/tracker-status.[ch]: Make it possible to signal
+	state change without needing all the parameters that are sent in
+	the function signature.
+
+	* src/trackerd/tracker-utils.[ch]: Remove unused functions.
+
+2008-07-14  Martyn Russell  <martyn@imendio.com>
+
 	* data/dbus/tracker-indexer.xml:
 	* src/tracker-indexer/tracker-indexer.[ch]:
 	* src/tracker-indexer/tracker-main.c: Commit patch from Ivan to

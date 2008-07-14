@@ -32,6 +32,7 @@
 #include <unistd.h> 
 #include <fcntl.h>
 #include <errno.h>
+#include <time.h>
 
 #include <glib/gstdio.h>
 #include <glib/gi18n.h>
@@ -52,6 +53,7 @@
 #include "tracker-dbus.h"
 #include "tracker-indexer.h"
 #include "tracker-indexer-client.h"
+#include "tracker-main.h"
 #include "tracker-monitor.h"
 #include "tracker-processor.h"
 #include "tracker-status.h"
@@ -62,53 +64,6 @@
 #include <pthread.h>
 #include "mingw-compat.h"
 #endif
-
-/*
- *   The workflow to process files and notified file change events are
- *   as follows: 
- *
- *   1) File scan or file notification change (as reported by
- *   FAM/iNotify).  
-
- *   2) File Scheduler (we wait until a file's changes have stabilised
- *   (NB not neccesary with inotify)) 
-
- *   3) We process a file's basic metadata (stat) and determine what
- *   needs doing in a seperate thread. 
-
- *   4) We extract CPU intensive embedded metadata/text/thumbnail in
- *   another thread and save changes to the DB 
- *
- *
- *  Three threads are used to fully process a file event. Files or
- *  events to be processed are placed on asynchronous queues where
- *  another thread takes over the work. 
- *
- *  The main thread is very lightweight and no cpu intensive or heavy
- *  file I/O (or heavy DB access) is permitted here after
- *  initialisation of the daemon. This ensures the main thread can
- *  handle events and DBUS requests in a timely low latency manner. 
- *
- *  The File Process thread is for moderate CPU intensive load and I/O
- *  and involves calls to stat() and simple fast queries on the DB.
- *  The main thread queues files to be processed by this thread via
- *  the file_process async queue. As no heavily CPU intensive activity
- *  occurs here, we can quickly keep the DB representation of the
- *  watched file system up to date. Once a file has been processed
- *  here it is then placed on the file metadata queue which is handled
- *  by the File Metadata thread. 
- *
- *  The File Metadata thread is a low priority thread to handle the
- *  highly CPU intensive parts. During this phase, embedded metadata
- *  is extracted from files and if a text filter and/or thumbnailer is
- *  available for the mime type of the file then these will be spawned
- *  synchronously. Finally all metadata (including file's text
- *  contents and path to thumbnails) is saved to the DB. 
- *
- *  All responses including user initiated requests are queued by the
- *  main thread onto an asynchronous queue where potentially multiple
- *  threads are waiting to process them. 
- */
 
 #define ABOUT								  \
 	"Tracker " VERSION "\n"						  \
@@ -127,9 +82,6 @@ typedef enum {
 	TRACKER_RUNNING_MAIN_INSTANCE
 } TrackerRunningLevel;
 
-/* Public */
-Tracker	             *tracker;
-
 /* Private */
 static GMainLoop     *main_loop;
 static gchar         *log_filename;
@@ -137,6 +89,13 @@ static gchar         *log_filename;
 static gchar         *data_dir;
 static gchar         *user_data_dir;
 static gchar         *sys_tmp_dir;
+
+static gboolean       is_running; 
+static gboolean       is_readonly;
+static gboolean       is_first_time_index; 
+static gboolean       is_paused_manually;
+static gboolean       in_merge; 
+static gboolean       reindex_on_shutdown;
 
 /* Private command line parameters */
 static gint           verbosity = -1;
@@ -146,9 +105,9 @@ static gchar        **monitors_to_exclude;
 static gchar        **monitors_to_include;
 static gchar        **crawl_dirs;
 
-static gboolean       reindex;
+static gboolean       force_reindex;
 static gboolean       disable_indexing;
-static gchar         *language;
+static gchar         *language_code;
 
 static GOptionEntry   entries_daemon[] = {
 	{ "verbosity", 'v', 0, 
@@ -180,15 +139,15 @@ static GOptionEntry   entries_daemon[] = {
 };
 
 static GOptionEntry   entries_indexer[] = {
-	{ "reindex", 'r', 0, 
-	  G_OPTION_ARG_NONE, &reindex, 
+	{ "force-reindex", 'r', 0, 
+	  G_OPTION_ARG_NONE, &force_reindex, 
 	  N_("Force a re-index of all content"), 
 	  NULL },
 	{ "disable-indexing", 'n', 0, 
 	  G_OPTION_ARG_NONE, &disable_indexing, 
 	  N_("Disable any indexing and monitoring"), NULL },
 	{ "language", 'l', 0, 
-	  G_OPTION_ARG_STRING, &language, 
+	  G_OPTION_ARG_STRING, &language_code, 
 	  N_("Language to use for stemmer and stop words "
 	     "(ISO 639-1 2 characters code)"), 
 	  NULL },
@@ -213,8 +172,7 @@ get_lock_file (void)
 
 static TrackerRunningLevel
 check_runtime_level (TrackerConfig *config,
-		     TrackerHal    *hal,
-		     gboolean       first_time_index)
+		     TrackerHal    *hal)
 {
 	TrackerRunningLevel  runlevel;
 	gchar               *lock_file;
@@ -268,7 +226,7 @@ check_runtime_level (TrackerConfig *config,
 			return TRACKER_RUNNING_MAIN_INSTANCE;
 		}
 
-		if (!first_time_index && 
+		if (!is_first_time_index && 
 		    tracker_config_get_disable_indexing_on_battery (config)) { 
 			g_message ("Battery in use");
 			g_message ("Config is set to not index on battery");
@@ -280,7 +238,7 @@ check_runtime_level (TrackerConfig *config,
 		 * overwritten by the config option to disable or not
 		 * indexing on battery initially. 
 		 */
-		if (first_time_index &&
+		if (is_first_time_index &&
 		    tracker_config_get_disable_indexing_on_battery_init (config)) {
 			g_message ("Battery in use & reindex is needed");
 			g_message ("Config is set to not index on battery for initial index");
@@ -472,10 +430,10 @@ initialize_databases (void)
 	/*
 	 * Create SQLite databases 
 	 */
-	if (!tracker->readonly && reindex) {
+	if (!is_readonly && force_reindex) {
 		TrackerDBInterface *iface;
 		
-		tracker->first_time_index = TRUE;
+		is_first_time_index = TRUE;
 		
 		/* Reset stats for embedded services if they are being reindexed */
 
@@ -495,18 +453,18 @@ initialize_databases (void)
 	}
 
 	/* Check db integrity if not previously shut down cleanly */
-	if (!tracker->readonly && 
-	    !tracker->first_time_index && 
+	if (!is_readonly && 
+	    !is_first_time_index && 
 	    tracker_db_get_option_int ("IntegrityCheck") == 1) {
 		g_message ("Performing integrity check as the daemon was not shutdown cleanly");
 		/* FIXME: Finish */
 	} 
 
-	if (!tracker->readonly) {
+	if (!is_readonly) {
 		tracker_db_set_option_int ("IntegrityCheck", 1);
 	} 
 
-	if (tracker->first_time_index) {
+	if (is_first_time_index) {
 		tracker_db_set_option_int ("InitialIndex", 1);
 	}
 
@@ -516,12 +474,9 @@ initialize_databases (void)
 static gboolean
 initialize_indexers (TrackerConfig *config)
 {
-	TrackerIndexer *indexer;
-	gchar          *final_index_name;
+	gchar *final_index_name;
 
-	/*
-	 * Create index files
-	 */
+	/* Create index files */
 	final_index_name = g_build_filename (data_dir, "file-index-final", NULL);
 	
 	if (g_file_test (final_index_name, G_FILE_TEST_EXISTS) && 
@@ -562,45 +517,12 @@ initialize_indexers (TrackerConfig *config)
 	
 	g_free (final_index_name);
 
-	/* Create indexers */
-	indexer = tracker_indexer_new (TRACKER_INDEXER_TYPE_FILES, config);
-	if (!indexer) {
-		return FALSE;
-	}
-
-	tracker->file_index = indexer;
-
-	indexer = tracker_indexer_new (TRACKER_INDEXER_TYPE_FILES_UPDATE, config);
-	if (!indexer) {
-		return FALSE;
-	}
-
-	tracker->file_update_index = indexer;
-
-	indexer = tracker_indexer_new (TRACKER_INDEXER_TYPE_EMAILS, config);
-	if (!indexer) {
-		return FALSE;
-	}
-
-	tracker->email_index = indexer;
-
 	return TRUE;
 }
 
 static void
 shutdown_indexer (void)
 {
-	if (tracker->file_index) {
-		g_object_unref (tracker->file_index);
-	}
-
-	if (tracker->file_update_index) {
-		g_object_unref (tracker->file_update_index);
-	}
-
-	if (tracker->email_index) {
-		g_object_unref (tracker->email_index);
-	}
 }
 
 static void
@@ -626,9 +548,8 @@ static void
 shutdown_directories (void)
 {
 	/* If we are reindexing, just remove the databases */
-	if (tracker->reindex) {
-		tracker_path_remove (data_dir);
-		g_mkdir_with_parents (data_dir, 00755);
+	if (reindex_on_shutdown) {
+		tracker_db_manager_remove_all ();
 	}
 }
 
@@ -637,7 +558,7 @@ start_cb (gpointer user_data)
 {
 	DBusGProxy *proxy;
 
-	if (!tracker->is_running) {
+	if (!is_running) {
 		return FALSE;
 	}
 
@@ -656,9 +577,15 @@ main (gint argc, gchar *argv[])
 	GOptionContext        *context = NULL;
 	GOptionGroup          *group;
 	GError                *error = NULL;
+        TrackerConfig         *config;
+        TrackerLanguage       *language;
+        TrackerHal            *hal;
+	TrackerProcessor      *processor;
+        TrackerIndexer        *file_index;
+        TrackerIndexer        *file_update_index;
+        TrackerIndexer        *email_index;
 	TrackerRunningLevel    runtime_level;
 	TrackerDBManagerFlags  flags;
-	TrackerProcessor      *processor;
 
         g_type_init ();
         
@@ -714,11 +641,6 @@ main (gint argc, gchar *argv[])
 
 	initialize_signal_handler ();
 
-	/* Create struct */
-	tracker = g_new0 (Tracker, 1);
-
-	tracker->pid = getpid ();
-
 	/* This makes sure we have all the locations like the data
 	 * dir, user data dir, etc all configured.
 	 * 
@@ -729,132 +651,140 @@ main (gint argc, gchar *argv[])
 	initialize_locations ();
 
         /* Initialize major subsystems */
-        tracker->config = tracker_config_new ();
-        tracker->language = tracker_language_new (tracker->config);
+        config = tracker_config_new ();
+        language = tracker_language_new (config);
 
 #ifdef HAVE_HAL
-        tracker->hal = tracker_hal_new ();
+        hal = tracker_hal_new ();
 #endif /* HAVE_HAL */
 
 	/* Daemon command line arguments */
 	if (verbosity > -1) {
-		tracker_config_set_verbosity (tracker->config, verbosity);
+		tracker_config_set_verbosity (config, verbosity);
 	}
 
 	if (initial_sleep > -1) {
-		tracker_config_set_initial_sleep (tracker->config, initial_sleep);
+		tracker_config_set_initial_sleep (config, initial_sleep);
 	}
 
 	if (low_memory) {
-		tracker_config_set_low_memory_mode (tracker->config, TRUE);
+		tracker_config_set_low_memory_mode (config, TRUE);
 	}
 
 	if (monitors_to_exclude) {
-                tracker_config_add_no_watch_directory_roots (tracker->config, 
-							     monitors_to_exclude);
+                tracker_config_add_no_watch_directory_roots (config, monitors_to_exclude);
 	}
 
 	if (monitors_to_include) {
-                tracker_config_add_watch_directory_roots (tracker->config, 
-							  monitors_to_include);
+                tracker_config_add_watch_directory_roots (config, monitors_to_include);
 	}
 
 	if (crawl_dirs) {
-                tracker_config_add_crawl_directory_roots (tracker->config, crawl_dirs);
+                tracker_config_add_crawl_directory_roots (config, crawl_dirs);
 	}
 
 	/* Indexer command line arguments */
 	if (disable_indexing) {
-		tracker_config_set_enable_indexing (tracker->config, FALSE);
+		tracker_config_set_enable_indexing (config, FALSE);
 	}
 
-	if (language) {
-		tracker_config_set_language (tracker->config, language);
+	if (language_code) {
+		tracker_config_set_language (config, language_code);
 	}
 
 	initialize_directories ();
 
 	/* Initialize other subsystems */
-	tracker_log_init (log_filename, tracker_config_get_verbosity (tracker->config));
+	tracker_log_init (log_filename, tracker_config_get_verbosity (config));
 	g_print ("Starting log:\n  File:'%s'\n", log_filename);
 
-	sanity_check_option_values (tracker->config);
+	sanity_check_option_values (config);
 
-	tracker_nfs_lock_init (tracker_config_get_nfs_locking (tracker->config));
+	tracker_nfs_lock_init (tracker_config_get_nfs_locking (config));
 
-	if (!tracker_dbus_init (tracker->config)) {
+	if (!tracker_dbus_init (config)) {
 		return EXIT_FAILURE;
 	}
 
-	if (!tracker_monitor_init (tracker->config)) {
+	if (!tracker_monitor_init (config)) {
 		return EXIT_FAILURE;
 	} 
 
 	flags = TRACKER_DB_MANAGER_REMOVE_CACHE;
 
-	if (reindex) {
+	if (force_reindex) {
 		flags |= TRACKER_DB_MANAGER_FORCE_REINDEX;
 	}
 
-	if (tracker_config_get_low_memory_mode (tracker->config)) {
+	if (tracker_config_get_low_memory_mode (config)) {
 		flags |= TRACKER_DB_MANAGER_LOW_MEMORY_MODE;
 	}
 
-	tracker_db_manager_init (flags, &tracker->first_time_index);
+	tracker_db_manager_init (flags, &is_first_time_index);
 
 	/*
 	 * Check instances running
 	 */
-	runtime_level = check_runtime_level (tracker->config, 
-					     tracker->hal, 
-					     tracker->first_time_index);
+	runtime_level = check_runtime_level (config, hal);
 
 	switch (runtime_level) {
 	case TRACKER_RUNNING_NON_ALLOWED: 
 		return EXIT_FAILURE;
 
 	case TRACKER_RUNNING_READ_ONLY:     
-		tracker->readonly = TRUE;
+		is_readonly = TRUE;
 		break;
 
 	case TRACKER_RUNNING_MAIN_INSTANCE: 
-		tracker->readonly = FALSE;
+		is_readonly = FALSE;
 		break;
 	}
-
-	tracker_db_init ();
-	tracker_xesam_manager_init ();
-        tracker_module_config_init ();
-
-	processor = tracker_processor_new (tracker->config, 
-					   tracker->hal);
-
-	umask (077);
 
 	if (!initialize_databases ()) {
 		return EXIT_FAILURE;
 	}
 
-	if (!initialize_indexers (tracker->config)) {
+	if (!initialize_indexers (config)) {
 		return EXIT_FAILURE;
 	}
+
+	file_index = tracker_indexer_new (TRACKER_INDEXER_TYPE_FILES, config);
+	file_update_index = tracker_indexer_new (TRACKER_INDEXER_TYPE_FILES_UPDATE, config);
+	email_index = tracker_indexer_new (TRACKER_INDEXER_TYPE_EMAILS, config);
+
+	if (!TRACKER_IS_INDEXER (file_index) || 
+	    !TRACKER_IS_INDEXER (file_update_index) ||
+	    !TRACKER_IS_INDEXER (email_index)) {
+		g_critical ("Could not create indexer for all indexes (files, files-update, emails)");
+		return EXIT_FAILURE;
+	}
+
+	tracker_db_init (config, language, file_index);
+	tracker_xesam_manager_init ();
+        tracker_module_config_init ();
+
+	processor = tracker_processor_new (config, hal);
 
 	/* Set our status as running, if this is FALSE, threads stop
 	 * doing what they do and shutdown.
 	 */
-	tracker->is_running = TRUE;
+	is_running = TRUE;
 
 	/* Make Tracker available for introspection */
-	if (!tracker_dbus_register_objects (tracker)) {
+	if (!tracker_dbus_register_objects (config,
+					    language,
+					    file_index,
+					    email_index,
+					    processor)) {
 		return EXIT_FAILURE;
 	}
 
 	g_message ("Waiting for DBus requests...");
 
-	if (!tracker->readonly) {
+	if (!is_readonly) {
 		gint seconds;
 		
-		seconds = tracker_config_get_initial_sleep (tracker->config);
+		seconds = tracker_config_get_initial_sleep (config);
 		
 		if (seconds > 0) {
 			g_message ("Waiting %d seconds before starting",
@@ -863,13 +793,13 @@ main (gint argc, gchar *argv[])
 				       start_cb,
 				       processor);
 		} else {
-			g_idle_add (start_cb, tracker);
+			g_idle_add (start_cb, processor);
 		}
 	} else {
 		g_message ("Running in read-only mode, not starting crawler/indexing");
 	}
 
-	if (tracker->is_running) {
+	if (is_running) {
 		main_loop = g_main_loop_new (NULL, FALSE);
 		g_main_loop_run (main_loop);
 	}
@@ -884,9 +814,7 @@ main (gint argc, gchar *argv[])
 	/* Set kill timeout */
 	g_timeout_add_full (G_PRIORITY_LOW, 5000, shutdown_timeout_cb, NULL, NULL);
 
-	if (processor) {
-		g_object_unref (processor);
-	}
+	g_object_unref (processor);
 
 	shutdown_indexer ();
 	shutdown_databases ();
@@ -902,19 +830,17 @@ main (gint argc, gchar *argv[])
 	tracker_nfs_lock_shutdown ();
 	tracker_log_shutdown ();
 
+	/* Clean up object references */
+	g_object_unref (email_index);
+	g_object_unref (file_update_index);
+	g_object_unref (file_index);
+
 #ifdef HAVE_HAL
-	if (tracker->hal) {
-		g_object_unref (tracker->hal);
-	}
+	g_object_unref (hal);
 #endif /* HAVE_HAL */
 
-	if (tracker->language) {
-		g_object_unref (tracker->language);
-	}
-
-        if (tracker->config) {
-                g_object_unref (tracker->config);
-        }
+	g_object_unref (language);
+	g_object_unref (config);
 
 	shutdown_locations ();
 
@@ -924,7 +850,7 @@ main (gint argc, gchar *argv[])
 void
 tracker_shutdown (void)
 {
-	tracker->is_running = FALSE;
+	is_running = FALSE;
 
 	/* Stop any tight loop operations */
 /*	tracker_processor_stop ();*/
@@ -942,4 +868,76 @@ const gchar *
 tracker_get_sys_tmp_dir (void)
 {
 	return sys_tmp_dir;
+}
+
+gboolean
+tracker_get_is_readonly (void)
+{
+	return is_readonly;
+}
+
+void
+tracker_set_is_readonly (gboolean value)
+{
+	gboolean emit;
+
+	emit = is_readonly != value;
+
+	if (!emit) {
+		return;
+	}
+
+	/* Set value */
+	is_readonly = value;
+
+	/* Signal the status change */
+	tracker_status_signal ();
+}
+
+gboolean
+tracker_get_is_first_time_index (void)
+{
+	return is_first_time_index;
+}
+
+gboolean
+tracker_get_in_merge (void)
+{
+	return in_merge;
+}
+
+gboolean
+tracker_get_is_paused_manually (void)
+{
+	return is_paused_manually;
+}
+
+void
+tracker_set_is_paused_manually (gboolean value)
+{
+	gboolean emit;
+
+	emit = is_paused_manually != value;
+
+	if (!emit) {
+		return;
+	}
+	
+	if (value) {
+		g_message ("Tracker daemon has been paused by user");
+	} else {
+		g_message ("Tracker daemon has been resumed by user");
+	}
+
+	/* Set value */
+	is_paused_manually = value;
+
+	/* Signal the status change */
+	tracker_status_signal ();
+}
+
+void
+tracker_set_reindex_on_shutdown (gboolean value)
+{
+	reindex_on_shutdown = value;
 }

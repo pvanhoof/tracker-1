@@ -24,6 +24,7 @@
 #include <glib-object.h>
 
 #include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-hal.h>
 
 G_BEGIN_DECLS
 
@@ -47,11 +48,20 @@ struct TrackerProcessorClass {
 	void (*finished) (TrackerProcessor *processor);
 };
 
-GType             tracker_processor_get_type (void) G_GNUC_CONST;
-TrackerProcessor *tracker_processor_new      (TrackerConfig    *config,
-					      TrackerHal       *hal);
-void              tracker_processor_start    (TrackerProcessor *processor);
-void              tracker_processor_stop     (TrackerProcessor *processor);
+GType             tracker_processor_get_type                (void) G_GNUC_CONST;
+
+TrackerProcessor *tracker_processor_new                     (TrackerConfig    *config,
+							     TrackerHal       *hal);
+void              tracker_processor_start                   (TrackerProcessor *processor);
+void              tracker_processor_stop                    (TrackerProcessor *processor);
+
+guint             tracker_processor_get_directories_found   (TrackerProcessor *processor);
+guint             tracker_processor_get_directories_ignored (TrackerProcessor *processor);
+guint             tracker_processor_get_directories_total   (TrackerProcessor *processor);
+
+guint             tracker_processor_get_files_found         (TrackerProcessor *processor);
+guint             tracker_processor_get_files_ignored       (TrackerProcessor *processor);
+guint             tracker_processor_get_files_total         (TrackerProcessor *processor);
 
 G_END_DECLS
 

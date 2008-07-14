@@ -26,8 +26,10 @@
 
 #include <glib.h>
 
+#include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-field.h>
 #include <libtracker-common/tracker-field-data.h>
+#include <libtracker-common/tracker-language.h>
 #include <libtracker-common/tracker-ontology.h>
 
 #include <libtracker-db/tracker-db-interface.h>
@@ -38,7 +40,9 @@
 
 G_BEGIN_DECLS
 
-void                tracker_db_init                              (void);
+void                tracker_db_init                              (TrackerConfig       *this_config,
+								  TrackerLanguage     *this_language,
+								  TrackerIndexer      *this_file_index);
 void                tracker_db_shutdown                          (void);
 
 /* Operations for TrackerDBInterface */
@@ -60,10 +64,6 @@ void                tracker_db_set_option_string                 (const gchar   
 gint                tracker_db_get_option_int                    (const gchar         *option);
 void                tracker_db_set_option_int                    (const gchar         *option,
 								  gint                 value);
-
-/* High level transactions things */
-gboolean            tracker_db_regulate_transactions             (TrackerDBInterface  *iface,
-								  gint                 interval);
 
 /* Metadata API */
 gchar *             tracker_db_metadata_get_related_names        (TrackerDBInterface  *iface,

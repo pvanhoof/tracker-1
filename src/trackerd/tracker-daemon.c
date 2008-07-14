@@ -35,22 +35,18 @@
 #include "tracker-dbus.h"
 #include "tracker-daemon.h"
 #include "tracker-db.h"
+#include "tracker-main.h"
 #include "tracker-status.h"
 #include "tracker-marshal.h"
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DAEMON, TrackerDaemonPriv))
 
 typedef struct {
-	DBusGProxy    *fd_proxy;
-	TrackerConfig *config;
-	Tracker       *tracker;
-} TrackerDaemonPriv;
+	DBusGProxy       *fd_proxy;
 
-enum {
-	PROP_0,
-	PROP_CONFIG,
-	PROP_TRACKER
-};
+	TrackerConfig    *config;
+	TrackerProcessor *processor;
+} TrackerDaemonPriv;
 
 enum {
         DAEMON_INDEX_STATE_CHANGE,
@@ -59,11 +55,7 @@ enum {
         LAST_SIGNAL
 };
 
-static void daemon_finalize     (GObject      *object);
-static void daemon_set_property (GObject      *object,
-				 guint         param_id,
-				 const GValue *value,
-				 GParamSpec   *pspec);
+static void daemon_finalize (GObject *object);
 
 static guint signals[LAST_SIGNAL] = {0};
 
@@ -77,21 +69,6 @@ tracker_daemon_class_init (TrackerDaemonClass *klass)
 	object_class = G_OBJECT_CLASS (klass);
 
 	object_class->finalize = daemon_finalize;
-	object_class->set_property = daemon_set_property;
-
-	g_object_class_install_property (object_class,
-					 PROP_CONFIG,
-					 g_param_spec_object ("config",
-							      "Config",
-							      "TrackerConfig object",
-							      tracker_config_get_type (),
-							      G_PARAM_WRITABLE));
-	g_object_class_install_property (object_class,
-					 PROP_TRACKER,
-					 g_param_spec_pointer ("tracker",
-							       "Tracker",
-							       "Tracker object",
-							       G_PARAM_WRITABLE));
 
         signals[DAEMON_INDEX_STATE_CHANGE] =
                 g_signal_new ("index-state-change",
@@ -101,13 +78,13 @@ tracker_daemon_class_init (TrackerDaemonClass *klass)
                               NULL, NULL,
                               tracker_marshal_VOID__STRING_BOOLEAN_BOOLEAN_BOOLEAN_BOOLEAN_BOOLEAN_BOOLEAN,
                               G_TYPE_NONE,
-                              7, 
-			      G_TYPE_STRING, 
-			      G_TYPE_BOOLEAN, 
-			      G_TYPE_BOOLEAN, 
+                              7,
+			      G_TYPE_STRING,
 			      G_TYPE_BOOLEAN,
-			      G_TYPE_BOOLEAN, 
-			      G_TYPE_BOOLEAN, 
+			      G_TYPE_BOOLEAN,
+			      G_TYPE_BOOLEAN,
+			      G_TYPE_BOOLEAN,
+			      G_TYPE_BOOLEAN,
 			      G_TYPE_BOOLEAN);
         signals[DAEMON_INDEX_FINISHED] =
                 g_signal_new ("index-finished",
@@ -117,7 +94,7 @@ tracker_daemon_class_init (TrackerDaemonClass *klass)
                               NULL, NULL,
                               g_cclosure_marshal_VOID__INT,
                               G_TYPE_NONE,
-                              1, 
+                              1,
 			      G_TYPE_INT);
         signals[DAEMON_INDEX_PROGRESS] =
                 g_signal_new ("index-progress",
@@ -127,9 +104,9 @@ tracker_daemon_class_init (TrackerDaemonClass *klass)
                               NULL, NULL,
                               tracker_marshal_VOID__STRING_STRING_INT_INT_INT,
                               G_TYPE_NONE,
-                              5, 
-			      G_TYPE_STRING, 
-			      G_TYPE_STRING, 
+                              5,
+			      G_TYPE_STRING,
+			      G_TYPE_STRING,
 			      G_TYPE_INT,
 			      G_TYPE_INT,
 			      G_TYPE_INT);
@@ -146,114 +123,46 @@ static void
 daemon_finalize (GObject *object)
 {
 	TrackerDaemonPriv *priv;
-	
+
 	priv = GET_PRIV (object);
 
 	if (priv->fd_proxy) {
 		g_object_unref (priv->fd_proxy);
 	}
 
-	if (priv->config) {
-		g_object_unref (priv->config);
-	}
+	g_object_unref (priv->processor);
+	g_object_unref (priv->config);
 
 	G_OBJECT_CLASS (tracker_daemon_parent_class)->finalize (object);
 }
 
-static void
-daemon_set_property (GObject      *object,
-		     guint	   param_id,
-		     const GValue *value,
-		     GParamSpec   *pspec)
-{
-	TrackerDaemonPriv *priv;
-
-	priv = GET_PRIV (object);
-
-	switch (param_id) {
-	case PROP_CONFIG:
-		tracker_daemon_set_config (TRACKER_DAEMON (object),
-					   g_value_get_object (value));
-		break;
-	case PROP_TRACKER:
-		tracker_daemon_set_tracker (TRACKER_DAEMON (object),
-					    g_value_get_pointer (value));
-		break;
-
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
-		break;
-	};
-}
-
 TrackerDaemon *
-tracker_daemon_new (TrackerConfig *config,
-		    Tracker       *tracker)
+tracker_daemon_new (TrackerConfig    *config,
+		    TrackerProcessor *processor)
 {
-	TrackerDaemon *object;
+	TrackerDaemon     *object;
+	TrackerDaemonPriv *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
+	g_return_val_if_fail (TRACKER_IS_PROCESSOR (processor), NULL);
 
-	object = g_object_new (TRACKER_TYPE_DAEMON, 
-			       "config", config,
-			       "tracker", tracker,
-			       NULL);
-	
+	object = g_object_new (TRACKER_TYPE_DAEMON, NULL);
+
+	priv = GET_PRIV (object);
+
+	priv->config = g_object_ref (config);
+	priv->processor = g_object_ref (processor);
+
 	return object;
-}
-
-void
-tracker_daemon_set_config (TrackerDaemon *object,
-			   TrackerConfig *config)
-{
-	TrackerDaemonPriv *priv;
-
-	g_return_if_fail (TRACKER_IS_DAEMON (object));
-	g_return_if_fail (TRACKER_IS_CONFIG (config));
-
-	priv = GET_PRIV (object);
-
-	/* Ref now in case it is the same object we are about to
-	 * unref.
-	 */
-	g_object_ref (config);
-
-	if (priv->config) {
-		g_object_unref (priv->config);
-	}
-
-	if (config) {
-		priv->config = config;
-	} else {
-		priv->config = NULL;
-	}
-
-	g_object_notify (G_OBJECT (object), "config");
-}
-
-void
-tracker_daemon_set_tracker (TrackerDaemon *object,
-			    Tracker       *tracker)
-{
-	TrackerDaemonPriv *priv;
-
-	g_return_if_fail (TRACKER_IS_DAEMON (object));
-	g_return_if_fail (tracker != NULL);
-
-	priv = GET_PRIV (object);
-
-	priv->tracker = tracker;
-	
-	g_object_notify (G_OBJECT (object), "tracker");
 }
 
 /*
  * Functions
  */
 void
-tracker_daemon_get_version (TrackerDaemon         *object,
-			    DBusGMethodInvocation *context,
-			    GError **error)
+tracker_daemon_get_version (TrackerDaemon          *object,
+			    DBusGMethodInvocation  *context,
+			    GError                **error)
 {
 	guint  request_id;
 	gint   major = 0;
@@ -267,7 +176,7 @@ tracker_daemon_get_version (TrackerDaemon         *object,
         tracker_dbus_request_new (request_id,
 				  "DBus request to get daemon version");
 
-	
+
 	sscanf (VERSION, "%d.%d.%d", &major, &minor, &revision);
 	str = g_strdup_printf ("%d%d%d", major, minor, revision);
 	version = atoi (str);
@@ -279,9 +188,9 @@ tracker_daemon_get_version (TrackerDaemon         *object,
 }
 
 void
-tracker_daemon_get_status (TrackerDaemon         *object,
-			   DBusGMethodInvocation *context, 
-			   GError **error)
+tracker_daemon_get_status (TrackerDaemon          *object,
+			   DBusGMethodInvocation  *context,
+			   GError                **error)
 {
 	TrackerDaemonPriv *priv;
 	gchar             *status;
@@ -363,7 +272,7 @@ tracker_daemon_get_stats (TrackerDaemon          *object,
 	/* Here it doesn't matter which one we ask, as long as it has common.db
 	 * attached. The service ones are cached connections, so we can use
 	 * those instead of asking for an individual-file connection (like what
-	 * the original code had) 
+	 * the original code had)
 	 */
 
 	/* iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_COMMON); */
@@ -394,12 +303,11 @@ tracker_daemon_set_bool_option (TrackerDaemon          *object,
 {
 	TrackerDaemonPriv *priv;
 	guint              request_id;
-	gboolean           signal_state_change = FALSE;
-	GError             *actual_error = NULL;
+	GError            *actual_error = NULL;
 
 	/* FIXME: Shouldn't we just make the TrackerConfig module a
 	 * DBus object instead so values can be tweaked in real time
-	 * over the bus? 
+	 * over the bus?
 	 */
 
 	request_id = tracker_dbus_get_next_request_id ();
@@ -415,20 +323,19 @@ tracker_daemon_set_bool_option (TrackerDaemon          *object,
 				  value ? "true" : "false");
 
 	if (strcasecmp (option, "Pause") == 0) {
-		signal_state_change = TRUE;
-		priv->tracker->pause_manual = value;
-	
-		if (value) {
-			g_message ("Tracker daemon has been paused by user");
-		} else {
-			g_message ("Tracker daemon has been resumed by user");
-		}
+		tracker_set_is_paused_manually (value);
 	} else if (strcasecmp (option, "FastMerges") == 0) {
                 tracker_config_set_fast_merges (priv->config, value);
                 g_message ("Fast merges set to %d", value);
 	} else if (strcasecmp (option, "EnableIndexing") == 0) {
-		signal_state_change = TRUE;
+		/* FIXME: Ideally we should be picking up the
+		 * "nofify::enable-indexing" change on the
+		 * priv->config in the tracker-main.c module to do
+		 * the signal change and to set the daemon to
+		 * readonly mode.
+		 */
                 tracker_config_set_enable_indexing (priv->config, value);
+		tracker_set_is_readonly (value);
 		g_message ("Enable indexing set to %d", value);
 	} else if (strcasecmp (option, "EnableWatching") == 0) {
                 tracker_config_set_enable_watches (priv->config, value);
@@ -438,10 +345,10 @@ tracker_daemon_set_bool_option (TrackerDaemon          *object,
 		g_message ("Extra memory usage set to %d", !value);
 	} else if (strcasecmp (option, "IndexFileContents") == 0) {
                 tracker_config_set_enable_content_indexing (priv->config, value);
-		g_message ("Index file contents set to %d", value);	
+		g_message ("Index file contents set to %d", value);
 	} else if (strcasecmp (option, "GenerateThumbs") == 0) {
                 tracker_config_set_enable_thumbnails (priv->config, value);
-		g_message ("Generate thumbnails set to %d", value);	
+		g_message ("Generate thumbnails set to %d", value);
 	} else if (strcasecmp (option, "IndexMountedDirectories") == 0) {
                 tracker_config_set_index_mounted_directories (priv->config, value);
 		g_message ("Indexing mounted directories set to %d", value);
@@ -455,23 +362,10 @@ tracker_daemon_set_bool_option (TrackerDaemon          *object,
                 tracker_config_set_disable_indexing_on_battery_init (priv->config, !value);
 		g_message ("Disable initial index sweep on battery set to %d", !value);
 	} else {
-		g_set_error (&actual_error, 
-			     TRACKER_DBUS_ERROR, 
+		g_set_error (&actual_error,
+			     TRACKER_DBUS_ERROR,
 			     0,
 			     "Option does not exist");
-	}
-
-	if (signal_state_change) {
-		/* Signal state change */
-		g_signal_emit_by_name (object, 
-				       "index-state-change", 
-				       tracker_status_get_as_string (),
-				       priv->tracker->first_time_index,
-				       priv->tracker->in_merge,
-				       priv->tracker->pause_manual,
-				       tracker_should_pause_on_battery (),
-				       priv->tracker->pause_io,
-				       tracker_config_get_enable_indexing (priv->config));
 	}
 
 	if (!actual_error) {
@@ -497,7 +391,7 @@ tracker_daemon_set_int_option (TrackerDaemon          *object,
 
 	/* FIXME: Shouldn't we just make the TrackerConfig module a
 	 * DBus object instead so values can be tweaked in real time
-	 * over the bus? 
+	 * over the bus?
 	 */
 
 	request_id = tracker_dbus_get_next_request_id ();
@@ -522,8 +416,8 @@ tracker_daemon_set_int_option (TrackerDaemon          *object,
                 tracker_config_set_max_words_to_index (priv->config, value);
 		g_message ("Maxinum number of unique words set to %d", value);
 	} else {
-		g_set_error (&actual_error, 
-			     TRACKER_DBUS_ERROR, 
+		g_set_error (&actual_error,
+			     TRACKER_DBUS_ERROR,
 			     0,
 			     "Option does not exist");
 	}
@@ -558,7 +452,7 @@ tracker_daemon_shutdown (TrackerDaemon          *object,
 
 	g_message ("Tracker daemon attempting to shutdown");
 
-	priv->tracker->reindex = reindex;
+	tracker_set_reindex_on_shutdown (reindex);
 
 	g_timeout_add (500, (GSourceFunc) tracker_shutdown, NULL);
 
@@ -583,32 +477,29 @@ tracker_daemon_prompt_index_signals (TrackerDaemon          *object,
 	priv = GET_PRIV (object);
 
 	/* Signal state change */
-	g_signal_emit_by_name (object, 
-			       "index-state-change", 
-			       tracker_status_get_as_string (),
-			       priv->tracker->first_time_index,
-			       priv->tracker->in_merge,
-			       priv->tracker->pause_manual,
-			       tracker_should_pause_on_battery (),
-			       priv->tracker->pause_io,
-			       tracker_config_get_enable_indexing (priv->config));
+	tracker_status_signal ();
 
         /* Signal progress */
-        g_signal_emit_by_name (object, 
-			       "index-progress", 
-                               "Files",                     
-                               "",
-                               priv->tracker->index_count,        
-                               priv->tracker->folders_processed,  
-                               priv->tracker->folders_count);     
-
         g_signal_emit_by_name (object,
-			       "index-progress", 
-                               "Emails",                
+			       "index-progress",
+                               "Files",
                                "",
-                               priv->tracker->index_count,    
-                               priv->tracker->mbox_processed, 
-                               priv->tracker->mbox_count);    
+                               tracker_processor_get_files_total (priv->processor),
+                               tracker_processor_get_directories_found (priv->processor),
+                               tracker_processor_get_directories_total (priv->processor));
+
+#if 1
+	/* FIXME: We need a way of knowing WHAT service we have a
+	 * count for, i.e. emails, files, etc.
+	 */
+        g_signal_emit_by_name (object,
+			       "index-progress",
+                               "Emails",
+                               "",
+                               0,  /*priv->tracker->index_count,*/
+                               0,  /*priv->tracker->mbox_processed,*/
+                               0); /*priv->tracker->mbox_count);*/
+#endif
 
 	dbus_g_method_return (context);
 

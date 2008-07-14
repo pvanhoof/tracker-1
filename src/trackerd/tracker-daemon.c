@@ -304,15 +304,16 @@ tracker_daemon_get_status (TrackerDaemon         *object,
 }
 
 void
-tracker_daemon_get_services (TrackerDaemon         *object,
-			     gboolean               main_services_only,
-			     DBusGMethodInvocation *context,
-			     GError **error)
+tracker_daemon_get_services (TrackerDaemon          *object,
+			     gboolean                main_services_only,
+			     DBusGMethodInvocation  *context,
+			     GError                **error)
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
 	guint               request_id;
 	GHashTable         *values = NULL;
+
 	/* FIXME: Note, the main_services_only variable is redundant */
 
 	request_id = tracker_dbus_get_next_request_id ();
@@ -323,7 +324,8 @@ tracker_daemon_get_services (TrackerDaemon         *object,
 	/* Here it doesn't matter which one we ask, as long as it has common.db
 	 * attached. The service ones are cached connections, so we can use
 	 * those instead of asking for an individual-file connection (like what
-	 * the original code had) */
+	 * the original code had)
+	 */
 
 	/* iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_COMMON); */
 
@@ -344,9 +346,9 @@ tracker_daemon_get_services (TrackerDaemon         *object,
 }
 
 void
-tracker_daemon_get_stats (TrackerDaemon         *object,
-			  DBusGMethodInvocation *context,
-			  GError **error)
+tracker_daemon_get_stats (TrackerDaemon          *object,
+			  DBusGMethodInvocation  *context,
+			  GError                **error)
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
@@ -361,7 +363,8 @@ tracker_daemon_get_stats (TrackerDaemon         *object,
 	/* Here it doesn't matter which one we ask, as long as it has common.db
 	 * attached. The service ones are cached connections, so we can use
 	 * those instead of asking for an individual-file connection (like what
-	 * the original code had) */
+	 * the original code had) 
+	 */
 
 	/* iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_COMMON); */
 
@@ -383,11 +386,11 @@ tracker_daemon_get_stats (TrackerDaemon         *object,
 }
 
 void
-tracker_daemon_set_bool_option (TrackerDaemon         *object,
-				const gchar           *option,
-				gboolean               value,
-				DBusGMethodInvocation *context,
-				GError **error)
+tracker_daemon_set_bool_option (TrackerDaemon          *object,
+				const gchar            *option,
+				gboolean                value,
+				DBusGMethodInvocation  *context,
+				GError                **error)
 {
 	TrackerDaemonPriv *priv;
 	guint              request_id;
@@ -482,11 +485,11 @@ tracker_daemon_set_bool_option (TrackerDaemon         *object,
 }
 
 void
-tracker_daemon_set_int_option (TrackerDaemon         *object,
-			       const gchar           *option,
-			       gint                   value,
-			       DBusGMethodInvocation *context,
-			       GError **error)
+tracker_daemon_set_int_option (TrackerDaemon          *object,
+			       const gchar            *option,
+			       gint                    value,
+			       DBusGMethodInvocation  *context,
+			       GError                **error)
 {
 	TrackerDaemonPriv *priv;
 	guint              request_id;
@@ -536,10 +539,10 @@ tracker_daemon_set_int_option (TrackerDaemon         *object,
 }
 
 void
-tracker_daemon_shutdown (TrackerDaemon         *object,
-			 gboolean               reindex,
-			 DBusGMethodInvocation *context,
-			 GError **error)
+tracker_daemon_shutdown (TrackerDaemon          *object,
+			 gboolean                reindex,
+			 DBusGMethodInvocation  *context,
+			 GError                **error)
 {
 	TrackerDaemonPriv *priv;
 	guint              request_id;
@@ -565,9 +568,9 @@ tracker_daemon_shutdown (TrackerDaemon         *object,
 }
 
 void
-tracker_daemon_prompt_index_signals (TrackerDaemon         *object,
-				     DBusGMethodInvocation *context,
-				     GError **error)
+tracker_daemon_prompt_index_signals (TrackerDaemon          *object,
+				     DBusGMethodInvocation  *context,
+				     GError                **error)
 {
 	TrackerDaemonPriv *priv;
 	guint              request_id;

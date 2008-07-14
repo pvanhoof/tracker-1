@@ -111,11 +111,11 @@ struct TrackerIndexerPrivate {
 #endif /* HAVE_HAL */
 
 	GTimer *timer;
-	guint items_indexed;
 
 	guint idle_id;
 	guint flush_id;
-	gint items_processed;
+	guint items_processed;
+	guint items_indexed;
 	gboolean in_transaction;
 };
 
@@ -169,27 +169,76 @@ path_info_free (PathInfo *info)
 	g_slice_free (PathInfo, info);
 }
 
+static gchar *
+estimate_time_left (GTimer *timer,
+		    guint   items_indexed,
+		    guint   items_remaining)
+{
+	GString *s;
+	gdouble  elapsed;
+	gdouble  per_item;
+	gdouble  total;
+	gint     days, hrs, mins, secs;
+	
+	elapsed = g_timer_elapsed (timer, NULL);
+	per_item = elapsed / items_indexed;
+	total = per_item * items_remaining;
+
+	if (total <= 0) {
+		return g_strdup (" unknown time");
+	}
+
+	secs = (gint) total % 60;
+	total /= 60;
+	mins = (gint) total % 60;
+	total /= 60;
+	hrs  = (gint) total % 24;
+	days = (gint) total / 24;
+
+	s = g_string_new ("");
+
+	if (days) {
+		g_string_append_printf (s, " %d day%s", days, days == 1 ? "" : "s");
+	}
+	
+	if (hrs) {
+		g_string_append_printf (s, " %2.2d hour%s", hrs, hrs == 1 ? "" : "s");
+	}
+
+	if (mins) {
+		g_string_append_printf (s, " %2.2d minute%s", mins, mins == 1 ? "" : "s"); 
+	}
+
+	if (secs) {
+		g_string_append_printf (s, " %2.2d second%s", secs, secs == 1 ? "" : "s");
+	}
+
+	return g_string_free (s, FALSE);
+}
 
 static void 
 start_transaction (TrackerIndexer *indexer)
 {
 	TrackerIndexerPrivate *priv;
+
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
-	g_message ("Transaction start");
+	g_debug ("Transaction start");
 	priv->in_transaction = TRUE;
 
 	tracker_db_interface_start_transaction (priv->cache);
 	tracker_db_interface_start_transaction (priv->contents);
 	tracker_db_interface_start_transaction (priv->metadata);
 	tracker_db_interface_start_transaction (priv->common);
-
 }
 
 static void 
 stop_transaction (TrackerIndexer *indexer)
 {
 	TrackerIndexerPrivate *priv;
+	gchar                 *str;
+	guint                  length;
+
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
 	tracker_db_interface_end_transaction (priv->common);
@@ -197,10 +246,21 @@ stop_transaction (TrackerIndexer *indexer)
 	tracker_db_interface_end_transaction (priv->contents);
 	tracker_db_interface_end_transaction (priv->cache);
 
+	priv->items_indexed += priv->items_processed;
 	priv->items_processed = 0;
 	priv->in_transaction = FALSE;
 
-	g_message ("Transaction commit");
+	g_debug ("Transaction commit");
+
+	length = g_queue_get_length (priv->file_process_queue);
+	str = estimate_time_left (priv->timer, priv->items_indexed, length);
+
+	g_message ("Indexed %d, %d remaining, %s est. left (transaction limit)", 
+		   priv->items_indexed,
+		   length,
+		   str);
+
+	g_free (str);
 }
 
 static gboolean
@@ -232,7 +292,21 @@ schedule_flush (TrackerIndexer *indexer,
         priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
 	if (immediately) {
+		gchar *str;
+		guint  length;
+
 		priv->items_indexed += tracker_index_flush (priv->index);
+
+		length = g_queue_get_length (priv->file_process_queue);
+		str = estimate_time_left (priv->timer, priv->items_indexed, length);
+
+		g_message ("Indexed %d, %d remaining, %s est. left (timed flush)", 
+			   priv->items_indexed,
+			   length,
+			   str);
+
+		g_free (str);
+
 		return;
 	}
 
@@ -537,7 +611,7 @@ tracker_indexer_add_directory (TrackerIndexer *indexer,
 	if (!ignore) {
 		g_queue_push_tail (priv->dir_queue, info);
 	} else {
-		g_message ("Ignoring directory:'%s'", info->file->path);
+		g_debug ("Ignoring directory:'%s'", info->file->path);
 		path_info_free (info);
 	}
 }
@@ -643,7 +717,7 @@ process_file (TrackerIndexer *indexer,
 	TrackerIndexerPrivate *priv;
 	GHashTable *metadata;
 
-	g_message ("Processing file:'%s'", info->file->path);
+	g_debug ("Processing file:'%s'", info->file->path);
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
@@ -704,7 +778,7 @@ process_directory (TrackerIndexer *indexer,
 	const gchar *name;
 	GDir *dir;
 
-	g_message ("Processing directory:'%s'", info->file->path);
+	g_debug ("Processing directory:'%s'", info->file->path);
 
 	dir = g_dir_open (info->file->path, 0, NULL);
 

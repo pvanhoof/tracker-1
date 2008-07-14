@@ -1,5 +1,14 @@
 2008-07-14  Martyn Russell  <martyn@imendio.com>
 
+	* src/tracker-indexer/tracker-index.c: 
+	* src/tracker-indexer/tracker-indexer.c: Give better debugging and
+	messaging information and add some detail about how long is
+	estimated to be left before complete. Also, don't spam the console
+	with EVERY file we process, make that a debug message. Instead
+	update the console with every transaction flush.
+
+2008-07-14  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-db/tracker-db-manager.[ch]: Make it possible to
 	remove all databases using a public API and use that when shutting
 	down and reindexing (instead of removing the WHOLE directory where

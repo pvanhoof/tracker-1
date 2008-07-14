@@ -311,7 +311,7 @@ tracker_index_flush (TrackerIndex *index)
 	guint size;
 
 	size = g_hash_table_size (index->cache);
-	g_message ("Flushing index with %d items in cache", size);
+	g_debug ("Flushing index with %d items in cache", size);
 
 	g_hash_table_foreach_remove (index->cache, cache_flush_foreach, index->index);
 

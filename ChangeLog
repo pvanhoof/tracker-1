@@ -1,3 +1,9 @@
+2008-07-14  Laurent Aguerreche  <laurent.aguerreche@free.fr>
+
+	* src/trackerd/tracker-crawler.c:
+	(tracker_crawler_new): Fix crawler->private->hal that was initialized
+	with g_object_ref (config). Use g_object_ref (hal) instead.
+
 2008-07-14  Martyn Russell  <martyn@imendio.com>
 
 	* src/tracker-indexer/tracker-index.c: 

@@ -223,7 +223,7 @@ tracker_crawler_new (TrackerConfig *config,
 	crawler->private->config = g_object_ref (config);
 
 #ifdef HAVE_HAL
-	crawler->private->hal = g_object_ref (config);
+	crawler->private->hal = g_object_ref (hal);
 #endif /* HAVE_HAL */
 
 	return crawler;

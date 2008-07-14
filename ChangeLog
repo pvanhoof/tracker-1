@@ -1,5 +1,12 @@
 2008-07-14  Martyn Russell  <martyn@imendio.com>
 
+	* data/dbus/tracker-indexer.xml:
+	* src/tracker-indexer/tracker-indexer.[ch]:
+	* src/tracker-indexer/tracker-main.c: Commit patch from Ivan to
+	make the indexer DBus API completely asynchronous.
+
+2008-07-14  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-daemon.c: (tracker_daemon_get_services),
 	(tracker_daemon_get_stats): Small code clean ups.
 

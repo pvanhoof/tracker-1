@@ -184,11 +184,10 @@ static gboolean
 quit_timeout_cb (gpointer user_data)
 {
         TrackerIndexer *indexer;
-        gboolean        running = FALSE;
 
         indexer = TRACKER_INDEXER (user_data);
 
-        if (!tracker_indexer_get_running (indexer, &running, NULL) || !running) {
+        if (!tracker_indexer_get_is_running (indexer)) {
                 g_message ("Indexer is still not running after %d seconds, quitting...",
                            QUIT_TIMEOUT);
                 g_main_loop_quit (main_loop);

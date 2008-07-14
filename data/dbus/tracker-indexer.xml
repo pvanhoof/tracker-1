@@ -11,21 +11,26 @@
 <node name="/">
   <interface name="org.freedesktop.Tracker.Indexer">  
     <method name="GetRunning">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="b" name="is_running" direction="out" />
     </method>
     <method name="SetRunning">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="b" name="should_be_running" direction="in" />
     </method>
 
     <method name="FilesCheck">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="s" name="module" direction="in" />
       <arg type="as" name="files" direction="in" />
     </method>
     <method name="FilesUpdate">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="s" name="module" direction="in" />
       <arg type="as" name="files" direction="in" />
     </method>
     <method name="FilesDelete">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="s" name="module" direction="in" />
       <arg type="as" name="files" direction="in" />
     </method>

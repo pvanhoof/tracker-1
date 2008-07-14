@@ -362,9 +362,8 @@ tracker_indexer_set_property (GObject      *object,
 
 	switch (prop_id) {
 	case PROP_RUNNING:
-		tracker_indexer_set_running (indexer, 
-					     g_value_get_boolean (value), 
-					     NULL);
+		tracker_indexer_set_is_running (indexer, 
+						g_value_get_boolean (value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -504,7 +503,7 @@ tracker_indexer_init (TrackerIndexer *indexer)
 
 	priv->timer = g_timer_new ();
 
-	tracker_indexer_set_running (indexer, TRUE, NULL);
+	tracker_indexer_set_is_running (indexer, TRUE);
 
 	g_free (index_file);
 }
@@ -834,23 +833,27 @@ tracker_indexer_new (void)
 }
 
 gboolean
-tracker_indexer_set_running (TrackerIndexer  *indexer,
-			     gboolean         should_be_running,
-			     GError         **error)
+tracker_indexer_get_is_running (TrackerIndexer *indexer) 
 {
 	TrackerIndexerPrivate *priv;
-	guint                  request_id;
-	gboolean               changed = FALSE;
 
-	request_id = tracker_dbus_get_next_request_id ();
-
-	tracker_dbus_return_val_if_fail (TRACKER_IS_INDEXER (indexer), FALSE, error);
+	g_return_val_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
-        tracker_dbus_request_new (request_id,
-                                  "DBus request to %s indexer", 
-                                  should_be_running ? "start" : "stop");
+	return priv->idle_id != 0;
+}
+
+void
+tracker_indexer_set_is_running (TrackerIndexer *indexer,
+				gboolean        should_be_running)
+{
+	TrackerIndexerPrivate *priv;
+	gboolean               changed = FALSE;
+
+	g_return_if_fail (TRACKER_IS_INDEXER (indexer));
+
+	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
 	if (should_be_running && priv->idle_id == 0) {
 		priv->idle_id = g_idle_add ((GSourceFunc) indexing_func, indexer);
@@ -864,35 +867,56 @@ tracker_indexer_set_running (TrackerIndexer  *indexer,
 	if (changed) {
 		g_object_notify (G_OBJECT (indexer), "running");
 	}
-
-	tracker_dbus_request_success (request_id);
-
-	return TRUE;
 }
 
-gboolean
-tracker_indexer_get_running (TrackerIndexer  *indexer,
-			     gboolean        *is_running,
-			     GError         **error)
+void
+tracker_indexer_set_running (TrackerIndexer         *indexer,
+			     gboolean                should_be_running,
+			     DBusGMethodInvocation  *context,
+			     GError                **error)
 {
-	TrackerIndexerPrivate *priv;
-	guint                  request_id;
+
+	guint request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_return_val_if_fail (TRACKER_IS_INDEXER (indexer), FALSE, error);
-	tracker_dbus_return_val_if_fail (is_running != NULL, FALSE, error);
+	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
+
+        tracker_dbus_request_new (request_id,
+                                  "DBus request to %s indexer", 
+                                  should_be_running ? "start" : "stop");
+
+
+	tracker_indexer_set_is_running (indexer, should_be_running);
+
+	dbus_g_method_return (context);
+
+	tracker_dbus_request_success (request_id);
+}
+
+void
+tracker_indexer_get_running (TrackerIndexer         *indexer,
+			     DBusGMethodInvocation  *context,
+			     GError                **error)
+{
+	TrackerIndexerPrivate *priv;
+	guint                  request_id;
+	gboolean               is_running;
+
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
 	tracker_dbus_request_new (request_id,
                                   "DBus request to get running status");
 
-	*is_running = priv->idle_id != 0;
+	is_running = tracker_indexer_get_is_running (indexer); 
+
+	dbus_g_method_return (context, is_running);
 
 	tracker_dbus_request_success (request_id);
-
-	return TRUE;
 }
 
 void
@@ -908,19 +932,21 @@ tracker_indexer_process_all (TrackerIndexer *indexer)
 	}
 }
 
-gboolean
-tracker_indexer_files_check (TrackerIndexer  *indexer,
-			     const gchar     *module_name,
-			     GStrv            files,
-			     GError         **error)
+void
+tracker_indexer_files_check (TrackerIndexer          *indexer,
+			     const gchar             *module_name,
+			     GStrv                    files,
+			     DBusGMethodInvocation   *context,
+			     GError                 **error)
 {
 	TrackerIndexerPrivate *priv;
 	GModule               *module;
 	guint                  request_id;
 	gint                   i;
+	GError                *actual_error = NULL;
 
-	tracker_dbus_return_val_if_fail (TRACKER_IS_INDEXER (indexer), FALSE, error);
-	tracker_dbus_return_val_if_fail (files != NULL, FALSE, error);
+	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
+	tracker_dbus_async_return_if_fail (files != NULL, FALSE);
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 	request_id = tracker_dbus_get_next_request_id ();
@@ -931,40 +957,45 @@ tracker_indexer_files_check (TrackerIndexer  *indexer,
 
 	module = g_hash_table_lookup (priv->indexer_modules, module_name);
 
-	if (!module) {
+	if (module) {
+		/* Add files to the queue */
+		for (i = 0; files[i]; i++) {
+			PathInfo *info;
+
+			info = path_info_new (module, files[i]);
+			tracker_indexer_add_file (indexer, info);
+		}
+	} else {
 		tracker_dbus_request_failed (request_id,
-					     error,
+					     &actual_error,
 					     "The module '%s' is not loaded",
 					     module_name);
-		return FALSE;
 	}
 
-	/* Add files to the queue */
-	for (i = 0; files[i]; i++) {
-		PathInfo *info;
-
-		info = path_info_new (module, files[i]);
-		tracker_indexer_add_file (indexer, info);
+	if (!actual_error) {
+		dbus_g_method_return (context);
+		tracker_dbus_request_success (request_id);
+	} else {
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
 	}
-
-	tracker_dbus_request_success (request_id);
-
-	return TRUE;
 }
 
-gboolean
-tracker_indexer_files_update (TrackerIndexer  *indexer,
-			      const gchar     *module_name,
-			      GStrv            files,
-			      GError         **error)
+void
+tracker_indexer_files_update (TrackerIndexer         *indexer,
+			      const gchar            *module_name,
+			      GStrv                   files,
+			      DBusGMethodInvocation  *context,
+			      GError                **error)
 {
 	TrackerIndexerPrivate *priv;
 	GModule               *module;
 	guint                  request_id;
 	gint                   i;
+	GError                *actual_error = NULL;
 
-	tracker_dbus_return_val_if_fail (TRACKER_IS_INDEXER (indexer), FALSE, error);
-	tracker_dbus_return_val_if_fail (files != NULL, FALSE, error);
+	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
+	tracker_dbus_async_return_if_fail (files != NULL, FALSE);
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 	request_id = tracker_dbus_get_next_request_id ();
@@ -975,40 +1006,45 @@ tracker_indexer_files_update (TrackerIndexer  *indexer,
 
 	module = g_hash_table_lookup (priv->indexer_modules, module_name);
 
-	if (!module) {
+	if (module) {
+		/* Add files to the queue */
+		for (i = 0; files[i]; i++) {
+			PathInfo *info;
+
+			info = path_info_new (module, files[i]);
+			tracker_indexer_add_file (indexer, info);
+		}
+	} else {
 		tracker_dbus_request_failed (request_id,
-					     error,
+					     &actual_error,
 					     "The module '%s' is not loaded",
 					     module_name);
-		return FALSE;
 	}
 
-	/* Add files to the queue */
-	for (i = 0; files[i]; i++) {
-		PathInfo *info;
-
-		info = path_info_new (module, files[i]);
-		tracker_indexer_add_file (indexer, info);
+	if (!actual_error) {
+		dbus_g_method_return (context);
+		tracker_dbus_request_success (request_id);
+	} else {
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
 	}
-
-	tracker_dbus_request_success (request_id);
-
-	return TRUE;
 }
 
-gboolean
-tracker_indexer_files_delete (TrackerIndexer  *indexer,
-			      const gchar     *module_name,
-			      GStrv            files,
-			      GError         **error)
+void
+tracker_indexer_files_delete (TrackerIndexer         *indexer,
+			      const gchar            *module_name,
+			      GStrv                   files,
+			      DBusGMethodInvocation  *context,
+			      GError                **error)
 {
 	TrackerIndexerPrivate *priv;
 	GModule               *module;
 	guint                  request_id;
 	gint                   i;
+	GError                *actual_error = NULL;
 
-	tracker_dbus_return_val_if_fail (TRACKER_IS_INDEXER (indexer), FALSE, error);
-	tracker_dbus_return_val_if_fail (files != NULL, FALSE, error);
+	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
+	tracker_dbus_async_return_if_fail (files != NULL, FALSE);
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 	request_id = tracker_dbus_get_next_request_id ();
@@ -1019,24 +1055,28 @@ tracker_indexer_files_delete (TrackerIndexer  *indexer,
 
 	module = g_hash_table_lookup (priv->indexer_modules, module_name);
 
-	if (!module) {
+	if (module) {
+		/* Add files to the queue */
+		for (i = 0; files[i]; i++) {
+			PathInfo *info;
+
+			info = path_info_new (module, files[i]);
+			tracker_indexer_add_file (indexer, info);
+		}
+
+	} else {
 		tracker_dbus_request_failed (request_id,
-					     error,
+					     &actual_error,
 					     "The module '%s' is not loaded",
 					     module_name);
-		return FALSE;
 	}
 
-	/* Add files to the queue */
-	for (i = 0; files[i]; i++) {
-		PathInfo *info;
-
-		info = path_info_new (module, files[i]);
-		tracker_indexer_add_file (indexer, info);
+	if (!actual_error) {
+		dbus_g_method_return (context);
+		tracker_dbus_request_success (request_id);
+	} else {
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
 	}
-
-	tracker_dbus_request_success (request_id);
-
-	return TRUE;
 }
 

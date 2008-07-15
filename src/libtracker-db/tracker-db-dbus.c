@@ -30,11 +30,11 @@ tracker_dbus_query_result_to_strv (TrackerDBResultSet *result_set,
 {
 	gchar **strv = NULL;
         gint    rows = 0;
+	gint    i = 0;
 
 	if (result_set) {
 		gchar    *str;
 		gboolean  valid = TRUE;
-		gint      i = 0;
 
                 rows = tracker_db_result_set_get_n_rows (result_set);
 		strv = g_new (gchar*, rows + 1);
@@ -42,6 +42,12 @@ tracker_dbus_query_result_to_strv (TrackerDBResultSet *result_set,
 		while (valid) {
 
 			tracker_db_result_set_get (result_set, column, &str, -1);
+			
+			if (!str) {
+				valid = tracker_db_result_set_iter_next (result_set);
+				continue;
+			}
+			
 
 			if (!g_utf8_validate (str, -1, NULL)) {
 				g_warning ("Could not add string:'%s' to GStrv, invalid UTF-8", str);
@@ -57,7 +63,7 @@ tracker_dbus_query_result_to_strv (TrackerDBResultSet *result_set,
 	}
 
         if (count) {
-                *count = rows;
+                *count = i;
         }
 
 	return strv;

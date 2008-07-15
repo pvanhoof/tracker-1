@@ -543,6 +543,8 @@ tracker_db_result_set_get (TrackerDBResultSet *result_set,
 	g_return_if_fail (TRACKER_IS_DB_RESULT_SET (result_set));
 
 	priv = TRACKER_DB_RESULT_SET_GET_PRIVATE (result_set);
+	g_return_if_fail (priv->array != NULL);
+
 	row = g_ptr_array_index (priv->array, priv->current_row);
 	va_start (args, result_set);
 

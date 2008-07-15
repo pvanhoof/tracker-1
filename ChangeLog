@@ -1,3 +1,17 @@
+2008-07-15  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/libtracker-db/tracker-db-interface.c:
+	(tracker_db_result_set_get): Check that the result set was
+	initialized before getting results.
+
+	* src/libtracker-db/tracker-db-dbus.c:
+	(tracker_dbus_query_result_to_strv): Fixed crash when the result
+	set contains a NULL result.
+
+	* tests/libtracker-db/Makefile.am
+	* tests/libtracker-db/tracker-db-dbus-test.c: Added unit test to
+	tracker_dbus_query_result_to_strv.
+	
 2008-07-15  Martyn Russell  <martyn@imendio.com>
 
 	* data/dbus/tracker-indexer.xml: Removed GetRunning and SetRunning

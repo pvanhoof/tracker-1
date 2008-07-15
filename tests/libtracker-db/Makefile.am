@@ -5,6 +5,7 @@ noinst_PROGRAMS = $(TEST_PROGS)
 TEST_PROGS += tracker-db-manager-unattach \
 	tracker-db-manager-attach         \
 	tracker-db-manager-custom         \
+	tracker-db-dbus			\
 	union-performance
 
 INCLUDES = 				\
@@ -80,6 +81,19 @@ tracker_db_manager_custom_LDADD =					\
         $(top_builddir)/src/xdgmime/libxdgmime.la                       \
 	$(SQLITE3_LIBS)							\
 	$(QDBM_LIBS)							\
+	$(GMODULE_LIBS)							\
+	$(GTHREAD_LIBS)							\
+	$(GLIB2_LIBS)							\
+	-lz
+
+tracker_db_dbus_SOURCES = 	\
+	tracker-db-dbus-test.c 		
+
+tracker_db_dbus_LDADD =							\
+	$(top_builddir)/src/libtracker-db/libtracker-db.la 		\
+	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
+	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
+	$(SQLITE3_LIBS)							\
 	$(GMODULE_LIBS)							\
 	$(GTHREAD_LIBS)							\
 	$(GLIB2_LIBS)							\

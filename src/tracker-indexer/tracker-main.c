@@ -203,8 +203,8 @@ quit_timeout_cb (gpointer user_data)
 
 static void
 indexer_finished_cb (TrackerIndexer *indexer,
-                     guint           items_indexed,
-		     gpointer	     user_data)
+                     guint items_indexed,
+		     gpointer user_data)
 {
         if (items_indexed > 0) {
                 g_main_loop_quit (main_loop);
@@ -222,56 +222,21 @@ indexer_finished_cb (TrackerIndexer *indexer,
                                                  g_object_ref (indexer));
 }
 
-static void
-initialize_indexer (void)
-{
-	gchar *data_dir, *user_data_dir, *sys_tmp_dir, *filename;
-
-	data_dir = g_build_filename (g_get_user_cache_dir (), 
-				     "tracker", 
-				     NULL);
-	user_data_dir = g_build_filename (g_get_user_data_dir (), 
-                                          "tracker", 
-                                          "data", 
-                                          NULL);
-
-	filename = g_strdup_printf ("tracker-%s", g_get_user_name ());
-	sys_tmp_dir = g_build_filename (g_get_tmp_dir (), filename, NULL);
-	g_free (filename);
-
-	/* if you want low memory mode in the indexer, pass 
-		TRACKER_DB_MANAGER_LOW_MEMORY_MODE */
-
-	tracker_db_manager_init (0, NULL);
-        tracker_module_config_init ();
-
-	g_free (data_dir);
-	g_free (user_data_dir);
-	g_free (sys_tmp_dir);
-}
-
-static void
-shutdown_indexer (void)
-{
-	g_message ("Shutting down...\n");
-
-	tracker_db_manager_shutdown ();
-        tracker_module_config_shutdown ();
-}
-
 gint
 main (gint argc, gchar *argv[])
 {
-        TrackerConfig  *config;
+        TrackerConfig *config;
 	TrackerIndexer *indexer;
+        TrackerDBManagerFlags flags = 0;
 	GOptionContext *context;
-	GError	       *error = NULL;
-        gchar          *filename;
+	GError *error = NULL;
+        gchar *filename;
 
 	g_type_init ();
 	
-	if (!g_thread_supported ())
+	if (!g_thread_supported ()) {
 		g_thread_init (NULL);
+        }
 
 	setlocale (LC_ALL, "");
 
@@ -321,7 +286,13 @@ main (gint argc, gchar *argv[])
 
 	sanity_check_option_values (config);
 
-	initialize_indexer ();
+        /* Initialize database manager */
+        if (tracker_config_get_low_memory_mode (config)) {
+                flags |= TRACKER_DB_MANAGER_LOW_MEMORY_MODE;
+        }
+
+	tracker_db_manager_init (flags, NULL);
+        tracker_module_config_init ();
 
 #ifdef HAVE_IOPRIO
 	/* Set IO priority */
@@ -363,6 +334,8 @@ main (gint argc, gchar *argv[])
 	main_loop = g_main_loop_new (NULL, FALSE);
 	g_main_loop_run (main_loop);
 
+	g_message ("Shutting down...\n");
+
         if (quit_timeout_id) {
                 g_source_remove (quit_timeout_id);
         }
@@ -370,7 +343,8 @@ main (gint argc, gchar *argv[])
 	g_object_unref (indexer);
 	g_object_unref (config);
 
-	shutdown_indexer ();
+	tracker_db_manager_shutdown ();
+        tracker_module_config_shutdown ();
 
 	return EXIT_SUCCESS;
 }

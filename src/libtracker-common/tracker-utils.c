@@ -114,3 +114,53 @@ tracker_escape_string (const gchar *in)
 	return out;
 }
 
+gchar *
+tracker_estimate_time_left (GTimer *timer,
+			    guint   items_done,
+			    guint   items_remaining)
+{
+	GString *s;
+	gdouble  elapsed;
+	gdouble  per_item;
+	gdouble  total;
+	gint     days, hrs, mins, secs;
+	
+	if (items_done == 0) {
+		return g_strdup (" unknown time");
+	}
+
+	elapsed = g_timer_elapsed (timer, NULL);
+	per_item = elapsed / items_done;
+	total = per_item * items_remaining;
+
+	if (total <= 0) {
+		return g_strdup (" unknown time");
+	}
+
+	secs = (gint) total % 60;
+	total /= 60;
+	mins = (gint) total % 60;
+	total /= 60;
+	hrs  = (gint) total % 24;
+	days = (gint) total / 24;
+
+	s = g_string_new ("");
+
+	if (days) {
+		g_string_append_printf (s, " %d day%s", days, days == 1 ? "" : "s");
+	}
+	
+	if (hrs) {
+		g_string_append_printf (s, " %2.2d hour%s", hrs, hrs == 1 ? "" : "s");
+	}
+
+	if (mins) {
+		g_string_append_printf (s, " %2.2d minute%s", mins, mins == 1 ? "" : "s"); 
+	}
+
+	if (secs) {
+		g_string_append_printf (s, " %2.2d second%s", secs, secs == 1 ? "" : "s");
+	}
+
+	return g_string_free (s, FALSE);
+}

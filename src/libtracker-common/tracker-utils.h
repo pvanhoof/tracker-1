@@ -24,14 +24,15 @@
 
 #include <glib.h>
 
-gboolean tracker_is_empty_string (const char  *str);
-gchar *  tracker_string_replace  (const gchar *haystack,
-				  gchar       *needle,
-				  gchar       *replacement);
-gchar *  tracker_string_remove   (gchar       *haystack,
-				  const gchar *needle);
-
-gchar *  tracker_escape_string   (const gchar *in);
-
+gboolean tracker_is_empty_string    (const char  *str);
+gchar *  tracker_string_replace     (const gchar *haystack,
+				     gchar       *needle,
+				     gchar       *replacement);
+gchar *  tracker_string_remove      (gchar       *haystack,
+				     const gchar *needle);
+gchar *  tracker_escape_string      (const gchar *in);
+gchar *  tracker_estimate_time_left (GTimer      *timer,
+				     guint        items_done,
+				     guint        items_remaining);
 
 #endif /* __LIBTRACKER_COMMON_UTILS_H__ */

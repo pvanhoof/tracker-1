@@ -33,11 +33,19 @@
 
 static TrackerConfig *config;
 static GHashTable    *monitors;
+
 static GQueue        *files_created;
 static GQueue        *files_updated;
 static GQueue        *files_deleted;
+
+static gboolean       files_created_sent;
+static gboolean       files_updated_sent;
+static gboolean       files_deleted_sent;
+
 static guint          files_queue_handlers_id;
+
 static GType          monitor_backend; 
+
 static guint          monitor_limit;
 static gboolean       monitor_limit_warned;
 static guint          monitors_ignored;
@@ -221,89 +229,110 @@ tracker_monitor_shutdown (void)
 }
 
 static void
-indexer_files_processed_cb (DBusGProxy *proxy, 
-			    GError     *error, 
-			    gpointer    user_data)
+file_queue_readd_items (GQueue *queue, 
+			GStrv   strv)
 {
-	GStrv files;
-	
-	if (error) {
-		g_critical ("Could not send %d files to indexer, %s", 
-			    g_strv_length (files),
-			    error->message);
-		g_error_free (error);
-	} else {
-		g_debug ("Sent!");
+	if (queue) {
+		GStrv p;
+		gint  i;
+		
+		for (p = strv, i = 0; *p; p++, i++) {
+			g_queue_push_nth (queue, g_strdup (*p), i);
+		}
 	}
-
-	files = (GStrv) user_data;
-	g_strfreev (files);
 }
 
 static void
-indexer_get_running_cb (DBusGProxy *proxy, 
-			gboolean    running, 
-			GError     *error, 
-			gpointer    user_data)
+file_queue_processed_deleted_cb (DBusGProxy *proxy,
+				 GError     *error,
+				 gpointer    user_data)
 {
 	GStrv files;
-
-	if (error || !running) {
-		g_message ("%s", 
-			   error ? error->message : "Indexer exists but is not available yet, waiting...");
-
-		g_clear_error (&error);
-
-		return;
-	}
-
-	/* First do the deleted queue */
-	g_debug ("Files deleted queue being processed...");
-	files = tracker_dbus_queue_str_to_strv (files_deleted, FILES_QUEUE_PROCESS_MAX);
 	
-	if (g_strv_length (files) > 0) {
-		g_debug ("Files deleted queue processed, sending first %d to the indexer", 
-			 g_strv_length (files));
-		org_freedesktop_Tracker_Indexer_files_delete_async (proxy,
-								    "files",
-								    (const gchar **) files,
-								    indexer_files_processed_cb,
-								    files);
+	files = (GStrv) user_data;
+
+	if (error) {
+		g_message ("Files could not be deleted by the indexer, %s",
+			   error->message);
+		g_error_free (error);
+
+		/* Put files back into queue */
+		file_queue_readd_items (files_deleted, files);
+ 	} else {
+		g_debug ("Sent!");
 	}
 
-	/* Second do the created queue */
-	g_debug ("Files created queue being processed...");
-	files = tracker_dbus_queue_str_to_strv (files_created, FILES_QUEUE_PROCESS_MAX);
-	if (g_strv_length (files) > 0) {
-		g_debug ("Files created queue processed, sending first %d to the indexer", 
-			 g_strv_length (files));
-		org_freedesktop_Tracker_Indexer_files_check_async (proxy,
-								   "files",
-								   (const gchar **) files,
-								   indexer_files_processed_cb,
-								   files);
-	}
+	g_strfreev (files);
+	files_deleted_sent = FALSE;
+}
 
-	/* Second do the created queue */
-	g_debug ("Files updated queue being processed...");
-	files = tracker_dbus_queue_str_to_strv (files_updated, FILES_QUEUE_PROCESS_MAX);
+static void
+file_queue_processed_created_cb (DBusGProxy *proxy,
+				 GError     *error,
+				 gpointer    user_data)
+{
+	GStrv files;
 	
-	if (g_strv_length (files) > 0) {
-		g_debug ("Files updated queue processed, sending first %d to the indexer", 
-			 g_strv_length (files));
-		org_freedesktop_Tracker_Indexer_files_update_async (proxy,
-								    "files",
-								    (const gchar **) files,
-								    indexer_files_processed_cb,
-								    files);
+	files = (GStrv) user_data;
+
+	if (error) {
+		g_message ("Files could not be created by the indexer, %s",
+			   error->message);
+		g_error_free (error);
+
+		/* Put files back into queue */
+		file_queue_readd_items (files_created, files);
+ 	} else {
+		g_debug ("Sent!");
 	}
+
+	g_strfreev (files);
+	files_created_sent = FALSE;
+}
+
+static void
+file_queue_processed_updated_cb (DBusGProxy *proxy,
+				 GError     *error,
+				 gpointer    user_data)
+{
+	GStrv files;
+	
+	files = (GStrv) user_data;
+
+	if (error) {
+		g_message ("Files could not be updated by the indexer, %s",
+			   error->message);
+		g_error_free (error);
+
+		/* Put files back into queue */
+		file_queue_readd_items (files_updated, files);
+ 	} else {
+		g_debug ("Sent!");
+	}
+
+	g_strfreev (files);
+	files_updated_sent = FALSE;
 }
 
 static gboolean
 file_queue_handlers_cb (gpointer user_data)
 {
 	DBusGProxy *proxy;
+	GStrv       files;
 	gint        items_to_process = 0;
+
+	/* FIXME: We need to know what service these files belong to... */
+
+	/* This is here so we don't try to send something if we are
+	 * still waiting for a response from the last send.
+	 */
+	if (files_created_sent ||
+	    files_updated_sent ||
+	    files_deleted_sent) {
+		g_message ("Still waiting for response from indexer, "
+			   "not sending more files yet");
+		return TRUE;
+	}
 
 	items_to_process += g_queue_get_length (files_created);
 	items_to_process += g_queue_get_length (files_updated);
@@ -317,10 +346,54 @@ file_queue_handlers_cb (gpointer user_data)
 
 	/* Check we can actually talk to the indexer */
 	proxy = tracker_dbus_indexer_get_proxy ();
+
+	/* First do the deleted queue */
+	g_debug ("Files deleted queue being processed...");
+	files = tracker_dbus_queue_str_to_strv (files_deleted, FILES_QUEUE_PROCESS_MAX);
 	
-	org_freedesktop_Tracker_Indexer_get_running_async (proxy, 
-							   indexer_get_running_cb,
-							   NULL);
+	if (g_strv_length (files) > 0) {
+		g_debug ("Files deleted queue processed, sending first %d to the indexer", 
+			 g_strv_length (files));
+
+		files_deleted_sent = TRUE;
+		org_freedesktop_Tracker_Indexer_files_delete_async (proxy,
+								    "files",
+								    (const gchar **) files,
+								    file_queue_processed_deleted_cb,
+								    files);
+	}
+
+	/* Second do the created queue */
+	g_debug ("Files created queue being processed...");
+	files = tracker_dbus_queue_str_to_strv (files_created, FILES_QUEUE_PROCESS_MAX);
+
+	if (g_strv_length (files) > 0) {
+		g_debug ("Files created queue processed, sending first %d to the indexer", 
+			 g_strv_length (files));
+
+		files_created_sent = TRUE;
+		org_freedesktop_Tracker_Indexer_files_check_async (proxy,
+								   "files",
+								   (const gchar **) files,
+								   file_queue_processed_created_cb,
+								   files);
+	}
+
+	/* Second do the updated queue */
+	g_debug ("Files updated queue being processed...");
+	files = tracker_dbus_queue_str_to_strv (files_updated, FILES_QUEUE_PROCESS_MAX);
+	
+	if (g_strv_length (files) > 0) {
+		g_debug ("Files updated queue processed, sending first %d to the indexer", 
+			 g_strv_length (files));
+
+		files_updated_sent = TRUE;
+		org_freedesktop_Tracker_Indexer_files_update_async (proxy,
+								    "files",
+								    (const gchar **) files,
+								    file_queue_processed_updated_cb,
+								    files);
+	}
 
 	return TRUE;
 }

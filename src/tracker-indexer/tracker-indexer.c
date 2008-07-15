@@ -38,7 +38,7 @@
  *
  * Once all queues are empty, all elements have been inspected, and the
  * indexer will emit the ::finished signal, this behavior can be observed
- * in the indexing_func() function.
+ * in the process_func() function.
  *
  * NOTE: Normally all indexing petitions will be sent over DBus, being
  *       everything just pushed in the files queue.
@@ -49,8 +49,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <gmodule.h>
 #include <glib/gstdio.h>
+#include <gmodule.h>
 
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-dbus.h>
@@ -60,6 +60,7 @@
 #include <libtracker-common/tracker-parser.h>
 #include <libtracker-common/tracker-ontology.h>
 #include <libtracker-common/tracker-module-config.h>
+#include <libtracker-common/tracker-utils.h>
 
 #include <libtracker-db/tracker-db-manager.h>
 #include <libtracker-db/tracker-db-interface-sqlite.h>
@@ -69,6 +70,7 @@
 #include "tracker-indexer-db.h"
 #include "tracker-index.h"
 #include "tracker-module.h"
+#include "tracker-marshal.h"
 
 #define TRACKER_INDEXER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_INDEXER, TrackerIndexerPrivate))
 
@@ -82,16 +84,16 @@
 #define THROTTLE_DEFAULT            0
 #define THROTTLE_DEFAULT_ON_BATTERY 5
 
-typedef struct TrackerIndexerPrivate TrackerIndexerPrivate;
 typedef struct PathInfo PathInfo;
 typedef struct MetadataForeachData MetadataForeachData;
 
 struct TrackerIndexerPrivate {
 	GQueue *dir_queue;
-	GQueue *file_process_queue;
+	GQueue *file_queue;
 	GQueue *modules_queue;
 
 	GList *module_names;
+	gchar *current_module_name;
 	GHashTable *indexer_modules;
 
 	gchar *db_dir;
@@ -114,8 +116,10 @@ struct TrackerIndexerPrivate {
 
 	guint idle_id;
 	guint flush_id;
+
 	guint items_processed;
 	guint items_indexed;
+
 	gboolean in_transaction;
 };
 
@@ -140,17 +144,22 @@ enum {
 };
 
 enum {
+	STATUS,
+	STARTED,
 	FINISHED,
-	INDEX_UPDATED,
+	MODULE_STARTED,
+	MODULE_FINISHED,
 	LAST_SIGNAL
 };
+
+static gboolean process_func (gpointer data);
 
 static guint signals[LAST_SIGNAL] = { 0, };
 
 G_DEFINE_TYPE (TrackerIndexer, tracker_indexer, G_TYPE_OBJECT)
 
 static PathInfo *
-path_info_new (GModule     *module,
+path_info_new (GModule *module,
 	       const gchar *path)
 {
 	PathInfo *info;
@@ -169,116 +178,83 @@ path_info_free (PathInfo *info)
 	g_slice_free (PathInfo, info);
 }
 
-static gchar *
-estimate_time_left (GTimer *timer,
-		    guint   items_indexed,
-		    guint   items_remaining)
-{
-	GString *s;
-	gdouble  elapsed;
-	gdouble  per_item;
-	gdouble  total;
-	gint     days, hrs, mins, secs;
-	
-	elapsed = g_timer_elapsed (timer, NULL);
-	per_item = elapsed / items_indexed;
-	total = per_item * items_remaining;
-
-	if (total <= 0) {
-		return g_strdup (" unknown time");
-	}
-
-	secs = (gint) total % 60;
-	total /= 60;
-	mins = (gint) total % 60;
-	total /= 60;
-	hrs  = (gint) total % 24;
-	days = (gint) total / 24;
-
-	s = g_string_new ("");
-
-	if (days) {
-		g_string_append_printf (s, " %d day%s", days, days == 1 ? "" : "s");
-	}
-	
-	if (hrs) {
-		g_string_append_printf (s, " %2.2d hour%s", hrs, hrs == 1 ? "" : "s");
-	}
-
-	if (mins) {
-		g_string_append_printf (s, " %2.2d minute%s", mins, mins == 1 ? "" : "s"); 
-	}
-
-	if (secs) {
-		g_string_append_printf (s, " %2.2d second%s", secs, secs == 1 ? "" : "s");
-	}
-
-	return g_string_free (s, FALSE);
-}
-
 static void 
 start_transaction (TrackerIndexer *indexer)
 {
-	TrackerIndexerPrivate *priv;
-
-	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
-
 	g_debug ("Transaction start");
-	priv->in_transaction = TRUE;
 
-	tracker_db_interface_start_transaction (priv->cache);
-	tracker_db_interface_start_transaction (priv->contents);
-	tracker_db_interface_start_transaction (priv->metadata);
-	tracker_db_interface_start_transaction (priv->common);
+	indexer->private->in_transaction = TRUE;
+
+	tracker_db_interface_start_transaction (indexer->private->cache);
+	tracker_db_interface_start_transaction (indexer->private->contents);
+	tracker_db_interface_start_transaction (indexer->private->metadata);
+	tracker_db_interface_start_transaction (indexer->private->common);
 }
 
 static void 
 stop_transaction (TrackerIndexer *indexer)
 {
-	TrackerIndexerPrivate *priv;
-	gchar                 *str;
-	guint                  length;
+	tracker_db_interface_end_transaction (indexer->private->common);
+	tracker_db_interface_end_transaction (indexer->private->metadata);
+	tracker_db_interface_end_transaction (indexer->private->contents);
+	tracker_db_interface_end_transaction (indexer->private->cache);
 
-	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
-
-	tracker_db_interface_end_transaction (priv->common);
-	tracker_db_interface_end_transaction (priv->metadata);
-	tracker_db_interface_end_transaction (priv->contents);
-	tracker_db_interface_end_transaction (priv->cache);
-
-	priv->items_indexed += priv->items_processed;
-	priv->items_processed = 0;
-	priv->in_transaction = FALSE;
+	indexer->private->items_indexed += indexer->private->items_processed;
+	indexer->private->items_processed = 0;
+	indexer->private->in_transaction = FALSE;
 
 	g_debug ("Transaction commit");
+}
 
-	length = g_queue_get_length (priv->file_process_queue);
-	str = estimate_time_left (priv->timer, priv->items_indexed, length);
+static void
+signal_status (TrackerIndexer *indexer,
+	       const gchar    *why)
+{
+	guint length;
 
-	g_message ("Indexed %d, %d remaining, %s est. left (transaction limit)", 
-		   priv->items_indexed,
-		   length,
-		   str);
+	length = g_queue_get_length (indexer->private->file_queue);
 
-	g_free (str);
+	if (indexer->private->items_indexed > 0) {
+		gchar *str;
+
+		str = tracker_estimate_time_left (indexer->private->timer, 
+						  indexer->private->items_indexed, 
+						  length);
+		
+		g_message ("Indexed %d, %d remaining, %s est. left (%s)", 
+			   indexer->private->items_indexed,
+			   length,
+			   str,
+			   why);
+		g_free (str);
+	}
+	
+	g_signal_emit (indexer, signals[STATUS], 0, 
+		       g_timer_elapsed (indexer->private->timer, NULL),
+		       indexer->private->items_indexed,
+		       length);
 }
 
 static gboolean
 schedule_flush_cb (gpointer data)
 {
-	TrackerIndexer        *indexer;
-	TrackerIndexerPrivate *priv;
+	TrackerIndexer *indexer;
 
 	indexer = TRACKER_INDEXER (data);
-	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
-	priv->flush_id = 0;
+	indexer->private->flush_id = 0;
 
-	priv->items_indexed += tracker_index_flush (priv->index);
-
-	if (priv->items_processed) {
+	/* If we have transactions, we don't need to flush, we
+	 * just need to end the transactions on each
+	 * interface. This performs a commit for us. 
+	 */
+	if (indexer->private->in_transaction) {
 		stop_transaction (indexer);
+	} else {
+		indexer->private->items_indexed += tracker_index_flush (indexer->private->index);
 	}
+
+	signal_status (indexer, "timed flush");
 
 	return FALSE;
 }
@@ -287,54 +263,55 @@ static void
 schedule_flush (TrackerIndexer *indexer,
 		gboolean        immediately)
 {
-	TrackerIndexerPrivate *priv;
-
-        priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
-
 	if (immediately) {
-		gchar *str;
-		guint  length;
+		/* No need to wait for flush timeout */
+		if (indexer->private->flush_id) {
+			g_source_remove (indexer->private->flush_id);
+			indexer->private->flush_id = 0;
+		}
 
-		priv->items_indexed += tracker_index_flush (priv->index);
+		/* If we have transactions, we don't need to flush, we
+		 * just need to end the transactions on each
+		 * interface. This performs a commit for us. 
+		 */
+		if (indexer->private->in_transaction) {
+			stop_transaction (indexer);
+		} else {
+			indexer->private->items_indexed += tracker_index_flush (indexer->private->index);
+		}
 
-		length = g_queue_get_length (priv->file_process_queue);
-		str = estimate_time_left (priv->timer, priv->items_indexed, length);
-
-		g_message ("Indexed %d, %d remaining, %s est. left (timed flush)", 
-			   priv->items_indexed,
-			   length,
-			   str);
-
-		g_free (str);
+		signal_status (indexer, "immediate flush");
 
 		return;
 	}
 
-	priv->flush_id = g_timeout_add_seconds (FLUSH_FREQUENCY, 
-						schedule_flush_cb, 
-						indexer);
+	/* Don't schedule more than one at the same time */
+	if (indexer->private->flush_id != 0) {
+		return;
+	}
+
+	indexer->private->flush_id = g_timeout_add_seconds (FLUSH_FREQUENCY, 
+							    schedule_flush_cb, 
+							    indexer);
 }
 
 static void
 set_up_throttle (TrackerIndexer *indexer)
 {
 #ifdef HAVE_HAL
-	TrackerIndexerPrivate *priv;
 	gint throttle;
-
-	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
 	/* If on a laptop battery and the throttling is default (i.e.
 	 * 0), then set the throttle to be higher so we don't kill
 	 * the laptop battery.
 	 */
-	throttle = tracker_config_get_throttle (priv->config);
+	throttle = tracker_config_get_throttle (indexer->private->config);
 
-	if (tracker_hal_get_battery_in_use (priv->hal)) {
+	if (tracker_hal_get_battery_in_use (indexer->private->hal)) {
 		g_message ("We are running on battery");
 		
 		if (throttle == THROTTLE_DEFAULT) {
-			tracker_config_set_throttle (priv->config, 
+			tracker_config_set_throttle (indexer->private->config, 
 						     THROTTLE_DEFAULT_ON_BATTERY);
 			g_message ("Setting throttle from %d to %d", 
 				   throttle, 
@@ -347,7 +324,7 @@ set_up_throttle (TrackerIndexer *indexer)
 		g_message ("We are not running on battery");
 
 		if (throttle == THROTTLE_DEFAULT_ON_BATTERY) {
-			tracker_config_set_throttle (priv->config, 
+			tracker_config_set_throttle (indexer->private->config, 
 						     THROTTLE_DEFAULT);
 			g_message ("Setting throttle from %d to %d", 
 				   throttle, 
@@ -386,23 +363,13 @@ tracker_indexer_finalize (GObject *object)
 		schedule_flush (TRACKER_INDEXER (object), TRUE);
 	}
 
+	if (priv->idle_id) {
+		g_source_remove (priv->idle_id);
+	}
+
 	if (priv->timer) {
 		g_timer_destroy (priv->timer);
 	}
-
-	g_list_free (priv->module_names);
-	g_free (priv->db_dir);
-
-	g_queue_foreach (priv->dir_queue, (GFunc) path_info_free, NULL);
-	g_queue_free (priv->dir_queue);
-
-	g_queue_foreach (priv->file_process_queue, (GFunc) path_info_free, NULL);
-	g_queue_free (priv->file_process_queue);
-
-	/* The queue doesn't own the module names */
-	g_queue_free (priv->modules_queue);
-
-	g_hash_table_destroy (priv->indexer_modules);
 
 #ifdef HAVE_HAL
 	g_signal_handlers_disconnect_by_func (priv->hal, 
@@ -412,36 +379,32 @@ tracker_indexer_finalize (GObject *object)
 	g_object_unref (priv->hal);
 #endif /* HAVE_HAL */
 
-	g_object_unref (priv->config);
 	g_object_unref (priv->language);
+	g_object_unref (priv->config);
 
-	if (priv->index) {
-		tracker_index_free (priv->index);
-	}
+	/* Do we destroy interfaces? I can't remember */
+
+	tracker_index_free (priv->index);
+
+	g_free (priv->db_dir);
+
+	g_hash_table_unref (priv->indexer_modules);
+	g_free (priv->current_module_name);
+	g_list_free (priv->module_names);
+
+	g_queue_foreach (priv->modules_queue, (GFunc) g_free, NULL);
+	g_queue_free (priv->modules_queue);
+
+	g_queue_foreach (priv->dir_queue, (GFunc) path_info_free, NULL);
+	g_queue_free (priv->dir_queue);
+
+	g_queue_foreach (priv->file_queue, (GFunc) path_info_free, NULL);
+	g_queue_free (priv->file_queue);
+
+	/* The queue doesn't own the module names */
+	g_queue_free (priv->modules_queue);
 
 	G_OBJECT_CLASS (tracker_indexer_parent_class)->finalize (object);
-}
-
-static void
-tracker_indexer_set_property (GObject      *object,
-			      guint         prop_id,
-			      const GValue *value,
-			      GParamSpec   *pspec)
-{
-	TrackerIndexer *indexer;
-	TrackerIndexerPrivate *priv;
-
-	indexer = TRACKER_INDEXER (object);
-	priv = TRACKER_INDEXER_GET_PRIVATE (object);
-
-	switch (prop_id) {
-	case PROP_RUNNING:
-		tracker_indexer_set_is_running (indexer, 
-						g_value_get_boolean (value));
-		break;
-	default:
-		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-	}
 }
 
 static void
@@ -469,10 +432,30 @@ tracker_indexer_class_init (TrackerIndexerClass *class)
 	GObjectClass *object_class = G_OBJECT_CLASS (class);
 
 	object_class->finalize = tracker_indexer_finalize;
-	object_class->set_property = tracker_indexer_set_property;
 	object_class->get_property = tracker_indexer_get_property;
 
-	signals [FINISHED] = 
+	signals[STATUS] =
+		g_signal_new ("status",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (TrackerIndexerClass, status),
+			      NULL, NULL,
+			      tracker_marshal_VOID__UINT_UINT_UINT,
+			      G_TYPE_NONE,
+			      3,
+			      G_TYPE_UINT,
+			      G_TYPE_UINT,
+			      G_TYPE_UINT);
+	signals[STARTED] = 
+		g_signal_new ("started",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (TrackerIndexerClass, started),
+			      NULL, NULL,
+			      g_cclosure_marshal_VOID__VOID,
+			      G_TYPE_NONE, 
+			      0);
+	signals[FINISHED] = 
 		g_signal_new ("finished",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_LAST,
@@ -482,14 +465,26 @@ tracker_indexer_class_init (TrackerIndexerClass *class)
 			      G_TYPE_NONE, 
 			      1,
 			      G_TYPE_UINT);
-	signals [INDEX_UPDATED] = 
-		g_signal_new ("index-updated",
+	signals[MODULE_STARTED] =
+		g_signal_new ("module-started",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_LAST,
-			      G_STRUCT_OFFSET (TrackerIndexerClass, index_updated),
+			      G_STRUCT_OFFSET (TrackerIndexerClass, module_started),
 			      NULL, NULL,
-			      g_cclosure_marshal_VOID__VOID,
-			      G_TYPE_NONE, 0);
+			      g_cclosure_marshal_VOID__STRING,
+			      G_TYPE_NONE,
+			      1,
+			      G_TYPE_STRING);
+	signals[MODULE_FINISHED] =
+		g_signal_new ("module-finished",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (TrackerIndexerClass, module_finished),
+			      NULL, NULL,
+			      g_cclosure_marshal_VOID__STRING,
+			      G_TYPE_NONE,
+			      1,
+			      G_TYPE_STRING);
 
 	g_object_class_install_property (object_class,
 					 PROP_RUNNING,
@@ -497,7 +492,7 @@ tracker_indexer_class_init (TrackerIndexerClass *class)
 							       "Running",
 							       "Whether the indexer is running",
 							       TRUE,
-							       G_PARAM_READWRITE));
+							       G_PARAM_READABLE));
 
 	g_type_class_add_private (object_class, sizeof (TrackerIndexerPrivate));
 }
@@ -510,18 +505,53 @@ close_module (GModule *module)
 }
 
 static void
+check_started (TrackerIndexer *indexer)
+{
+	if (indexer->private->idle_id) {
+		return;
+	}
+
+	indexer->private->idle_id = g_idle_add (process_func, indexer);
+
+	g_signal_emit (indexer, signals[STARTED], 0);
+}
+
+static void
+check_stopped (TrackerIndexer *indexer)
+{
+	if (indexer->private->idle_id == 0) {
+		return;
+	}
+
+	/* Flush remaining items */
+	schedule_flush (indexer, TRUE);
+
+	/* No more modules to query, we're done */
+	g_timer_stop (indexer->private->timer);
+	
+	g_message ("Indexer finished in %4.4f seconds, %d items indexed in total",
+		   g_timer_elapsed (indexer->private->timer, NULL),
+		   indexer->private->items_indexed);
+
+	indexer->private->idle_id = 0;
+	
+	g_signal_emit (indexer, signals[FINISHED], 0, 
+		       indexer->private->items_indexed);
+}
+
+static void
 tracker_indexer_init (TrackerIndexer *indexer)
 {
 	TrackerIndexerPrivate *priv;
 	gchar *index_file;
-	GList *m;
+	GList *l;
 
-	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
+	priv = indexer->private = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
 	priv->items_processed = 0;
 	priv->in_transaction = FALSE;
 	priv->dir_queue = g_queue_new ();
-	priv->file_process_queue = g_queue_new ();
+	priv->file_queue = g_queue_new ();
 	priv->modules_queue = g_queue_new ();
 	priv->config = tracker_config_new ();
 
@@ -548,77 +578,65 @@ tracker_indexer_init (TrackerIndexer *indexer)
 						       NULL,
 						       (GDestroyNotify) close_module);
 
-	for (m = priv->module_names; m; m = m->next) {
+	for (l = priv->module_names; l; l = l->next) {
 		GModule *module;
-
-		if (!tracker_module_config_get_enabled (m->data)) {
+		
+		if (!tracker_module_config_get_enabled (l->data)) {
 			continue;
 		}
 
-		module = tracker_indexer_module_load (m->data);
+		module = tracker_indexer_module_load (l->data);
 
 		if (module) {
 			tracker_indexer_module_init (module);
 
 			g_hash_table_insert (priv->indexer_modules,
-					     m->data, module);
+					     l->data, module);
 		}
 	}
 
+	/* Set up indexer */
 	index_file = g_build_filename (priv->db_dir, "file-index.db", NULL);
-
 	priv->index = tracker_index_new (index_file,
 					 tracker_config_get_max_bucket_count (priv->config));
+	g_free (index_file);
 
+	/* Set up databases */
 	priv->cache = tracker_db_manager_get_db_interface (TRACKER_DB_CACHE);
 	priv->common = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
 	priv->metadata = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
 	priv->contents = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_CONTENTS);
 
+	/* Set up timer to know how long the process will take and took */
 	priv->timer = g_timer_new ();
 
-	tracker_indexer_set_is_running (indexer, TRUE);
-
-	g_free (index_file);
+	/* Set up idle handler to process files/directories */
+	check_started (indexer);
 }
 
 static void
-tracker_indexer_add_file (TrackerIndexer *indexer,
-			  PathInfo       *info)
+add_file (TrackerIndexer *indexer,
+	  PathInfo *info)
 {
-	TrackerIndexerPrivate *priv;
+	g_queue_push_tail (indexer->private->file_queue, info);
 
-	g_return_if_fail (info != NULL);
-
-	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
-
-	g_queue_push_tail (priv->file_process_queue, info);
+	/* Make sure we are still running */
+	check_started (indexer);
 }
 
 static void
-tracker_indexer_add_directory (TrackerIndexer *indexer,
-			       PathInfo       *info)
+add_directory (TrackerIndexer *indexer,
+	       PathInfo *info)
 {
-	TrackerIndexerPrivate *priv;
-	gboolean ignore = FALSE;
+	g_queue_push_tail (indexer->private->dir_queue, info);
 
-	g_return_if_fail (info != NULL);
-
-	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
-
-	/* FIXME: check ignored directories */
-
-	if (!ignore) {
-		g_queue_push_tail (priv->dir_queue, info);
-	} else {
-		g_debug ("Ignoring directory:'%s'", info->file->path);
-		path_info_free (info);
-	}
+	/* Make sure we are still running */
+	check_started (indexer);
 }
 
 static void
 indexer_throttle (TrackerConfig *config,
-		  gint           multiplier)
+		  gint multiplier)
 {
         gint throttle;
 
@@ -687,42 +705,34 @@ index_metadata_foreach (gpointer key,
 
 static void
 index_metadata (TrackerIndexer *indexer,
-		guint32         id,
+		guint32 id,
 		TrackerService *service,
-		GHashTable     *metadata)
+		GHashTable *metadata)
 {
-	TrackerIndexerPrivate *priv;
 	MetadataForeachData data;
 
-	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
-
-	data.index = priv->index;
-	data.db = priv->metadata;
-	data.language = priv->language;
-	data.config = priv->config;
+	data.index = indexer->private->index;
+	data.db = indexer->private->metadata;
+	data.language = indexer->private->language;
+	data.config = indexer->private->config;
 	data.service = service;
 	data.id = id;
 
 	g_hash_table_foreach (metadata, index_metadata_foreach, &data);
 
-	if (!priv->flush_id) {
-		schedule_flush (indexer, FALSE);
-	}
+	schedule_flush (indexer, FALSE);
 }
 
 static gboolean
 process_file (TrackerIndexer *indexer,
-	      PathInfo       *info)
+	      PathInfo *info)
 {
-	TrackerIndexerPrivate *priv;
 	GHashTable *metadata;
 
 	g_debug ("Processing file:'%s'", info->file->path);
 
-	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
-
 	/* Sleep to throttle back indexing */
-	indexer_throttle (priv->config, 100);
+	indexer_throttle (indexer->private->config, 100);
 
 	/* Process file */
 	metadata = tracker_indexer_module_file_get_metadata (info->module, info->file);
@@ -730,50 +740,64 @@ process_file (TrackerIndexer *indexer,
 	if (metadata) {
 		TrackerService *service;
 		const gchar *service_type;
+		gboolean created;
 		guint32 id;
 
 		service_type = tracker_indexer_module_get_name (info->module);
 		service = tracker_ontology_get_service_type_by_name (service_type);
-		id = tracker_db_get_new_service_id (priv->common);
+		id = tracker_db_get_new_service_id (indexer->private->common);
 
-		if (tracker_db_create_service (priv->metadata, id, service, info->file->path, metadata)) {
+		created = tracker_db_create_service (indexer->private->metadata, 
+						     id, 
+						     service, 
+						     info->file->path, 
+						     metadata);
+		
+		if (created) {
 			gchar *text;
 			guint32 eid;
 			gboolean inc_events = FALSE;
 
-			eid = tracker_db_get_new_event_id (priv->common);
+			eid = tracker_db_get_new_event_id (indexer->private->common);
 
-			if (tracker_db_create_event (priv->cache, eid, id, "Create")) {
+			created = tracker_db_create_event (indexer->private->cache, 
+							   eid, 
+							   id,
+							   "Create");
+			if (created) {
 				inc_events = TRUE;
 			}
 
-			tracker_db_increment_stats (priv->common, service);
+			tracker_db_increment_stats (indexer->private->common, service);
 
 			index_metadata (indexer, id, service, metadata);
 
 			text = tracker_indexer_module_file_get_text (info->module, info->file);
 
 			if (text) {
-				tracker_db_set_text (priv->contents, id, text);
+				tracker_db_set_text (indexer->private->contents, id, text);
 				g_free (text);
 			}
 
-			if (inc_events)
-				tracker_db_inc_event_id (priv->common, eid);
+			if (inc_events) {
+				tracker_db_inc_event_id (indexer->private->common, eid);
+			}
 
-			tracker_db_inc_service_id (priv->common, id);
+			tracker_db_inc_service_id (indexer->private->common, id);
 		}
 
 		g_hash_table_destroy (metadata);
 	}
+
+	indexer->private->items_processed++;
 
 	return !tracker_indexer_module_file_iter_contents (info->module, info->file);
 }
 
 static void
 process_directory (TrackerIndexer *indexer,
-		   PathInfo       *info,
-		   gboolean        recurse)
+		   PathInfo *info,
+		   gboolean recurse)
 {
 	const gchar *name;
 	GDir *dir;
@@ -793,11 +817,11 @@ process_directory (TrackerIndexer *indexer,
 		path = g_build_filename (info->file->path, name, NULL);
 
 		new_info = path_info_new (info->module, path);
-		tracker_indexer_add_file (indexer, new_info);
+		add_file (indexer, new_info);
 
 		if (recurse && g_file_test (path, G_FILE_TEST_IS_DIR)) {
 			new_info = path_info_new (info->module, path);
-			tracker_indexer_add_directory (indexer, new_info);
+			add_directory (indexer, new_info);
 		}
 
 		g_free (path);
@@ -807,23 +831,46 @@ process_directory (TrackerIndexer *indexer,
 }
 
 static void
-process_module (TrackerIndexer *indexer,
-		const gchar    *module_name)
+process_module_emit_signals (TrackerIndexer *indexer,
+			     const gchar *next_module_name)
 {
-	TrackerIndexerPrivate *priv;
+	/* Signal the last module as finished */
+	g_signal_emit (indexer, signals[MODULE_FINISHED], 0, 
+		       indexer->private->current_module_name);
+
+	/* Set current module */
+	g_free (indexer->private->current_module_name);
+	indexer->private->current_module_name = g_strdup (next_module_name);
+
+	/* Signal the next module as started */
+	if (next_module_name) {
+		g_signal_emit (indexer, signals[MODULE_STARTED], 0, 
+			       next_module_name);
+	}
+}
+
+static void
+process_module (TrackerIndexer *indexer,
+		const gchar *module_name)
+{
 	GModule *module;
 	GList *dirs, *d;
 
-	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
-	module = g_hash_table_lookup (priv->indexer_modules, module_name);
+	module = g_hash_table_lookup (indexer->private->indexer_modules, module_name);
+
+	/* Signal module start/stop */
+	process_module_emit_signals (indexer, module_name);
 
 	if (!module) {
+		/* No need to signal stopped here, we will get that
+		 * signal the next time this function is called.
+		 */
 		g_message ("No module for:'%s'", module_name);
 		return;
 	}
 
 	g_message ("Starting module:'%s'", module_name);
-
+	
 	dirs = tracker_module_config_get_monitor_recurse_directories (module_name);
 	g_return_if_fail (dirs != NULL);
 
@@ -831,70 +878,56 @@ process_module (TrackerIndexer *indexer,
 		PathInfo *info;
 
 		info = path_info_new (module, d->data);
-		tracker_indexer_add_directory (indexer, info);
+		add_directory (indexer, info);
 	}
 
 	g_list_free (dirs);
 }
 
 static gboolean
-indexing_func (gpointer data)
+process_func (gpointer data)
 {
 	TrackerIndexer *indexer;
-	TrackerIndexerPrivate *priv;
 	PathInfo *path;
-	gchar *module;
 
-	indexer = (TrackerIndexer *) data;
-	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
+	indexer = TRACKER_INDEXER (data);
 
-	priv->items_processed++;
-
-	if (!priv->in_transaction) {
+	if (!indexer->private->in_transaction) {
 		start_transaction (indexer);
 	}
 
-	if ((path = g_queue_peek_head (priv->file_process_queue)) != NULL) {
+	if ((path = g_queue_peek_head (indexer->private->file_queue)) != NULL) {
 		/* Process file */
 		if (process_file (indexer, path)) {
-			path = g_queue_pop_head (priv->file_process_queue);
+			path = g_queue_pop_head (indexer->private->file_queue);
 			path_info_free (path);
 		}
-		priv->items_processed++;
-	} else if ((path = g_queue_pop_head (priv->dir_queue)) != NULL) {
+	} else if ((path = g_queue_pop_head (indexer->private->dir_queue)) != NULL) {
 		/* Process directory contents */
 		process_directory (indexer, path, TRUE);
 		path_info_free (path);
 	} else {
+		gchar *module_name;
+
 		/* Dirs/files queues are empty, process the next module */
-		module = g_queue_pop_head (priv->modules_queue);
+		module_name = g_queue_pop_head (indexer->private->modules_queue);
 
-		if (!module) {
-			/* Flush remaining items */
-			schedule_flush (indexer, TRUE);
+		if (!module_name) {
+			/* Signal the last module as finished */
+			process_module_emit_signals (indexer, NULL);
+			
+			/* Signal stopped and clean up */
+			check_stopped (indexer);
 
-			/* No more modules to query, we're done */
-			g_timer_stop (priv->timer);
-
-			if (priv->in_transaction) {
-				stop_transaction (indexer);
-			}
-
-			g_message ("Indexer finished in %4.4f seconds, %d items indexed in total",
-				   g_timer_elapsed (priv->timer, NULL),
-				   priv->items_indexed);
-
-			g_signal_emit (indexer, signals[FINISHED], 0, priv->items_indexed);
 			return FALSE;
 		}
 
-		process_module (indexer, module);
-
-		g_signal_emit (indexer, signals[INDEX_UPDATED], 0);
+		process_module (indexer, module_name);
+		g_free (module_name);
 	}
 
-	if (priv->items_processed > TRANSACTION_MAX && priv->in_transaction) {
-		stop_transaction (indexer);
+	if (indexer->private->items_processed > TRANSACTION_MAX) {
+		schedule_flush (indexer, TRUE);
 	}
 
 	return TRUE;
@@ -909,127 +942,43 @@ tracker_indexer_new (void)
 gboolean
 tracker_indexer_get_is_running (TrackerIndexer *indexer) 
 {
-	TrackerIndexerPrivate *priv;
-
 	g_return_val_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
 
-	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
-
-	return priv->idle_id != 0;
-}
-
-void
-tracker_indexer_set_is_running (TrackerIndexer *indexer,
-				gboolean        should_be_running)
-{
-	TrackerIndexerPrivate *priv;
-	gboolean               changed = FALSE;
-
-	g_return_if_fail (TRACKER_IS_INDEXER (indexer));
-
-	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
-
-	if (should_be_running && priv->idle_id == 0) {
-		priv->idle_id = g_idle_add ((GSourceFunc) indexing_func, indexer);
-		changed = TRUE;
-	} else if (!should_be_running && priv->idle_id != 0) {
-		g_source_remove (priv->idle_id);
-		priv->idle_id = 0;
-		changed = TRUE;
-	}
-
-	if (changed) {
-		g_object_notify (G_OBJECT (indexer), "running");
-	}
-}
-
-void
-tracker_indexer_set_running (TrackerIndexer         *indexer,
-			     gboolean                should_be_running,
-			     DBusGMethodInvocation  *context,
-			     GError                **error)
-{
-
-	guint request_id;
-
-	request_id = tracker_dbus_get_next_request_id ();
-
-	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
-
-        tracker_dbus_request_new (request_id,
-                                  "DBus request to %s indexer", 
-                                  should_be_running ? "start" : "stop");
-
-
-	tracker_indexer_set_is_running (indexer, should_be_running);
-
-	dbus_g_method_return (context);
-
-	tracker_dbus_request_success (request_id);
-}
-
-void
-tracker_indexer_get_running (TrackerIndexer         *indexer,
-			     DBusGMethodInvocation  *context,
-			     GError                **error)
-{
-	TrackerIndexerPrivate *priv;
-	guint                  request_id;
-	gboolean               is_running;
-
-	request_id = tracker_dbus_get_next_request_id ();
-
-	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
-
-	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
-
-	tracker_dbus_request_new (request_id,
-                                  "DBus request to get running status");
-
-	is_running = tracker_indexer_get_is_running (indexer); 
-
-	dbus_g_method_return (context, is_running);
-
-	tracker_dbus_request_success (request_id);
+	return indexer->private->idle_id != 0;
 }
 
 void
 tracker_indexer_process_all (TrackerIndexer *indexer)
 {
-	TrackerIndexerPrivate *priv;
-	GList *m;
+	GList *l;
 
-	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
-
-	for (m = priv->module_names; m; m = m->next) {
-		g_queue_push_tail (priv->modules_queue, m->data);
+	for (l = indexer->private->module_names; l; l = l->next) {
+		g_queue_push_tail (indexer->private->modules_queue, g_strdup (l->data));
 	}
 }
 
 void
-tracker_indexer_files_check (TrackerIndexer          *indexer,
-			     const gchar             *module_name,
-			     GStrv                    files,
-			     DBusGMethodInvocation   *context,
-			     GError                 **error)
+tracker_indexer_files_check (TrackerIndexer *indexer,
+			     const gchar *module_name,
+			     GStrv files,
+			     DBusGMethodInvocation *context,
+			     GError **error)
 {
-	TrackerIndexerPrivate *priv;
-	GModule               *module;
-	guint                  request_id;
-	gint                   i;
-	GError                *actual_error = NULL;
+	GModule *module;
+	guint request_id;
+	gint i;
+	GError *actual_error = NULL;
 
 	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
 	tracker_dbus_async_return_if_fail (files != NULL, FALSE);
 
-	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_request_new (request_id,
                                   "DBus request to check %d files",
 				  g_strv_length (files));
 
-	module = g_hash_table_lookup (priv->indexer_modules, module_name);
+	module = g_hash_table_lookup (indexer->private->indexer_modules, module_name);
 
 	if (module) {
 		/* Add files to the queue */
@@ -1037,7 +986,7 @@ tracker_indexer_files_check (TrackerIndexer          *indexer,
 			PathInfo *info;
 
 			info = path_info_new (module, files[i]);
-			tracker_indexer_add_file (indexer, info);
+			add_file (indexer, info);
 		}
 	} else {
 		tracker_dbus_request_failed (request_id,
@@ -1056,29 +1005,27 @@ tracker_indexer_files_check (TrackerIndexer          *indexer,
 }
 
 void
-tracker_indexer_files_update (TrackerIndexer         *indexer,
-			      const gchar            *module_name,
-			      GStrv                   files,
-			      DBusGMethodInvocation  *context,
-			      GError                **error)
+tracker_indexer_files_update (TrackerIndexer *indexer,
+			      const gchar *module_name,
+			      GStrv files,
+			      DBusGMethodInvocation *context,
+			      GError **error)
 {
-	TrackerIndexerPrivate *priv;
-	GModule               *module;
-	guint                  request_id;
-	gint                   i;
-	GError                *actual_error = NULL;
+	GModule *module;
+	guint request_id;
+	gint i;
+	GError *actual_error = NULL;
 
 	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
 	tracker_dbus_async_return_if_fail (files != NULL, FALSE);
 
-	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_request_new (request_id,
                                   "DBus request to update %d files",
 				  g_strv_length (files));
 
-	module = g_hash_table_lookup (priv->indexer_modules, module_name);
+	module = g_hash_table_lookup (indexer->private->indexer_modules, module_name);
 
 	if (module) {
 		/* Add files to the queue */
@@ -1086,7 +1033,7 @@ tracker_indexer_files_update (TrackerIndexer         *indexer,
 			PathInfo *info;
 
 			info = path_info_new (module, files[i]);
-			tracker_indexer_add_file (indexer, info);
+			add_file (indexer, info);
 		}
 	} else {
 		tracker_dbus_request_failed (request_id,
@@ -1105,29 +1052,27 @@ tracker_indexer_files_update (TrackerIndexer         *indexer,
 }
 
 void
-tracker_indexer_files_delete (TrackerIndexer         *indexer,
-			      const gchar            *module_name,
-			      GStrv                   files,
-			      DBusGMethodInvocation  *context,
-			      GError                **error)
+tracker_indexer_files_delete (TrackerIndexer *indexer,
+			      const gchar *module_name,
+			      GStrv files,
+			      DBusGMethodInvocation *context,
+			      GError **error)
 {
-	TrackerIndexerPrivate *priv;
-	GModule               *module;
-	guint                  request_id;
-	gint                   i;
-	GError                *actual_error = NULL;
+	GModule *module;
+	guint request_id;
+	gint i;
+	GError *actual_error = NULL;
 
 	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
 	tracker_dbus_async_return_if_fail (files != NULL, FALSE);
 
-	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_request_new (request_id,
                                   "DBus request to delete %d files",
 				  g_strv_length (files));
 
-	module = g_hash_table_lookup (priv->indexer_modules, module_name);
+	module = g_hash_table_lookup (indexer->private->indexer_modules, module_name);
 
 	if (module) {
 		/* Add files to the queue */
@@ -1135,7 +1080,7 @@ tracker_indexer_files_delete (TrackerIndexer         *indexer,
 			PathInfo *info;
 
 			info = path_info_new (module, files[i]);
-			tracker_indexer_add_file (indexer, info);
+			add_file (indexer, info);
 		}
 
 	} else {

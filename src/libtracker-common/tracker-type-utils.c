@@ -620,12 +620,12 @@ tracker_string_list_to_gslist (gchar **strv,
 			       gsize   size)
 {
 	GSList *list;
-	gint    i;
-	gint    size_used;
+	gsize   i;
+	gsize   size_used;
 
 	g_return_val_if_fail (strv != NULL, NULL);
 
-	if (size == -1) {
+	if (size < 1) {
 		size_used = g_strv_length (strv);
 	} else {
 		size_used = size;
@@ -650,12 +650,12 @@ tracker_string_list_to_string (gchar **strv,
 			       gchar   sep)
 {
 	GString *string;
-	gint     i;
-	gint     size_used;
+	gsize    i;
+	gsize    size_used;
 
 	g_return_val_if_fail (strv != NULL, NULL);
 
-	if (size == -1) {
+	if (size < 1) {
 		size_used = g_strv_length (strv);
 	} else {
 		size_used = size;

@@ -1,3 +1,40 @@
+2008-07-15  Martyn Russell  <martyn@imendio.com>
+
+	* data/dbus/tracker-indexer.xml: Removed GetRunning and SetRunning
+	since these are quite pointless because DBus spawns the process if
+	it isn't running. Added signals for "status" and
+	"module-started"/"module-finished" to replace "index-updated".
+
+	* src/libtracker-common/tracker-type-utils.c: Use gsize instead of
+	gint to fix some compiler warnings.
+
+	* src/libtracker-common/tracker-utils.[ch]: Added function to
+	estimate time left in the indexer based on elapsed, items done and
+	items remaining. 
+	
+	* src/tracker-indexer/Makefile.am: 
+	* src/tracker-indexer/tracker-marshal-main.c: 
+	* src/tracker-indexer/tracker-marshal.list: Added marshalling for
+	unique function signatures in signal emissions.
+	
+	* src/tracker-indexer/tracker-indexer.[ch]: Added more signals to
+	know what is going on here. Also cleaned up the flusher so we do
+	it either on a timeout OR maximum items reached per transaction.
+	Also optimized the way we get TrackerIndexerPrivate, so the
+	object->private pointer is used (this avoids casting and type
+	checking internally to make things quicker).
+	
+	* src/tracker-indexer/tracker-main.c: Removed unused code in the
+	indexer_initialize() and moved that code to the main() function
+	since it was quite small. Implemented the "LowMemoryMode" by
+	checking the config and passing the flag to the database manager
+	when initializing that.
+	
+	* src/trackerd/tracker-monitor.c: Don't check if the indexer is
+	running, simply do what the crawler does, which is to readd items
+	to the queue if the indexer isn't running or couldn't be
+	contacted. 
+
 2008-07-14  Ivan Frade  <ivan.frade@nokia.com>
 
 	* data/dbus/tracker-keywords.xml

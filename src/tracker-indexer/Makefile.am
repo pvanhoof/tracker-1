@@ -26,6 +26,7 @@ tracker_indexer_SOURCES =						\
 	tracker-indexer-module.c					\
 	tracker-indexer-module.h					\
 	tracker-main.c							\
+	tracker-marshal-main.c						\
 	tracker-metadata.c						\
 	tracker-metadata.h						\
 	tracker-module.h
@@ -44,14 +45,30 @@ tracker_indexer_LDADD =							\
 	-lz								\
 	-lm
 
+tracker-marshal.h: tracker-marshal.list
+	$(GLIB_GENMARSHAL) $< --prefix=tracker_marshal --header > $@
+
+tracker-marshal.c: tracker-marshal.list
+	$(GLIB_GENMARSHAL) $< --prefix=tracker_marshal --body > $@
+
+tracker-marshal-main.c: tracker-marshal.c tracker-marshal.h
+
+marshal_sources =                                         		\
+        tracker-marshal.h                             			\
+        tracker-marshal.c
+
 dbus_sources = 								\
 	tracker-indexer-glue.h
 
 %-glue.h: $(top_srcdir)/data/dbus/%.xml
 	$(DBUSBINDINGTOOL) --mode=glib-server --output=$@ --prefix=$(subst -,_,$*) $^
 
-BUILT_SOURCES = $(dbus_sources)
+BUILT_SOURCES = 							\
+	$(dbus_sources)							\
+	$(marshal_sources)
 
 CLEANFILES = $(BUILT_SOURCES)
 
-EXTRA_DIST = $(BUILT_SOURCES)
+EXTRA_DIST = 								\
+	$(BUILT_SOURCES)						\
+	tracker-marshal.list

@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <!--
 <busconfig>
     <policy context="default">
@@ -10,15 +11,6 @@
 
 <node name="/">
   <interface name="org.freedesktop.Tracker.Indexer">  
-    <method name="GetRunning">
-      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
-      <arg type="b" name="is_running" direction="out" />
-    </method>
-    <method name="SetRunning">
-      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
-      <arg type="b" name="should_be_running" direction="in" />
-    </method>
-
     <method name="FilesCheck">
       <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="s" name="module" direction="in" />
@@ -38,8 +30,10 @@
     <!-- The old signal in the daemon used to send the time taken, we
 	 can add this later
       -->
-    <signal name="IndexUpdated"/>
+    <signal name="Status"/>
     <signal name="Finished"/>
+    <signal name="ModuleStarted"/>
+    <signal name="ModuleFinished"/>
 
   </interface>
 </node>

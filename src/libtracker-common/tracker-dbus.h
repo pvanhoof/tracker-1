@@ -74,33 +74,36 @@ typedef struct {
         gpointer data2;
 } TrackerDBusData;
 
-GQuark           tracker_dbus_error_quark         (void);
+GQuark           tracker_dbus_error_quark            (void);
+TrackerDBusData *tracker_dbus_data_new               (const gpointer   arg1,
+						      const gpointer   arg2);
 
-TrackerDBusData *tracker_dbus_data_new            (const gpointer   arg1,
-						   const gpointer   arg2);
 
 /* Utils */
-GValue *         tracker_dbus_gvalue_slice_new    (GType            type);
-void             tracker_dbus_gvalue_slice_free   (GValue          *value);
-gchar **         tracker_dbus_slist_to_strv       (GSList          *list);
-gchar **         tracker_dbus_queue_str_to_strv   (GQueue          *queue, 
-						   gint             max);
-gchar **         tracker_dbus_queue_gfile_to_strv (GQueue          *queue, 
-						   gint             max);
+GValue *         tracker_dbus_gvalue_slice_new       (GType            type);
+void             tracker_dbus_gvalue_slice_free      (GValue          *value);
+gchar **         tracker_dbus_slist_to_strv          (GSList          *list);
+gchar **         tracker_dbus_queue_str_to_strv      (GQueue          *queue,
+						      gint             max);
+gchar **         tracker_dbus_queue_gfile_to_strv    (GQueue          *queue,
+						      gint             max);
+void             tracker_dbus_results_ptr_array_free (GPtrArray      **ptr_array);
+
 
 /* Requests */
-guint            tracker_dbus_get_next_request_id (void);
-void             tracker_dbus_request_new         (gint             request_id,
-						   const gchar     *format,
-						   ...);
-void             tracker_dbus_request_success     (gint             request_id);
-void             tracker_dbus_request_failed      (gint             request_id,
-						   GError         **error,
-						   const gchar     *format,
-						   ...);
-void             tracker_dbus_request_comment     (gint             request_id,
-						   const gchar     *format,
-						   ...);
+guint            tracker_dbus_get_next_request_id    (void);
+void             tracker_dbus_request_new            (gint             request_id,
+						      const gchar     *format,
+						      ...);
+void             tracker_dbus_request_success        (gint             request_id);
+void             tracker_dbus_request_failed         (gint             request_id,
+						      GError         **error,
+						      const gchar     *format,
+						      ...);
+void             tracker_dbus_request_comment        (gint             request_id,
+						      const gchar     *format,
+						      ...);
+
 G_END_DECLS
 
 #endif /* __LIBTRACKER_DBUS_H__ */

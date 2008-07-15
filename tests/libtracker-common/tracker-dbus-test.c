@@ -104,6 +104,29 @@ test_async_queue_to_strv_nonutf8 (void)
         async_queue_to_strv (FALSE);
 }
 
+static void
+test_results_ptr_array_free (void)
+{
+	GPtrArray *array = NULL;
+
+	/* NULL */
+	tracker_dbus_results_ptr_array_free (&array);
+
+	/* Empty */
+	array = g_ptr_array_new ();
+	g_assert (array != NULL);
+
+	tracker_dbus_results_ptr_array_free (&array);
+	g_assert (array == NULL);
+
+	/* With contents */
+	array = g_ptr_array_new ();
+	g_ptr_array_add (array, g_strsplit ("one two three", " ", -1));
+
+	tracker_dbus_results_ptr_array_free (&array);
+	g_assert (array == NULL);
+}
+
 
 int
 main (int argc, char **argv) {
@@ -118,6 +141,7 @@ main (int argc, char **argv) {
         g_test_add_func ("/libtracker-common/tracker-dbus/slist_to_strv_nonutf8", test_slist_to_strv_nonutf8);
         g_test_add_func ("/libtracker-common/tracker-dbus/async_queue_to_strv_ok", test_async_queue_to_strv);
         g_test_add_func ("/libtracker-common/tracker-dbus/async_queue_to_strv_nonutf8", test_async_queue_to_strv_nonutf8);
+	g_test_add_func ("/libtracker-common/tracker-dbus/free_ptr_array", test_results_ptr_array_free);
 
         result = g_test_run ();
         

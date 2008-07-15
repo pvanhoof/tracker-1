@@ -1,3 +1,15 @@
+2008-07-14  Ivan Frade  <ivan.frade@nokia.com>
+
+	* data/dbus/tracker-keywords.xml
+	* src/trackerd/tracker-keywords.c
+	* src/trackerd/tracker-keywords.h: Keywords dbus interface async.
+
+	* src/libtracker-common/tracker-dbus.c
+	* src/libtracker-common/tracker-dbus.h
+	* tests/libtracker-common/tracker-dbus-test.c: 
+	(tracker_dbus_results_ptr_array_free): new function to free
+	GPtrArrays in the dbus API.
+	
 2008-07-14  Laurent Aguerreche  <laurent.aguerreche@free.fr>
 
 	* src/trackerd/tracker-crawler.c:

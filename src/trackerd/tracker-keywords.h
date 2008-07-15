@@ -48,39 +48,43 @@ struct TrackerKeywordsClass {
 	GObjectClass parent;
 };
 
-GType            tracker_keywords_get_type          (void);
-TrackerKeywords *tracker_keywords_new               (void);
-gboolean         tracker_keywords_get_list          (TrackerKeywords   *object,
-						     const gchar       *service,
-						     GPtrArray        **values,
-						     GError           **error);
-gboolean         tracker_keywords_get               (TrackerKeywords   *object,
-						     const gchar       *service,
-						     const gchar       *uri,
-						     gchar           ***values,
-						     GError           **error);
-gboolean         tracker_keywords_add               (TrackerKeywords   *object,
-						     const gchar       *service,
-						     const gchar       *uri,
-						     gchar            **values,
-						     GError           **error);
-gboolean         tracker_keywords_remove            (TrackerKeywords   *object,
-						     const gchar       *service,
-						     const gchar       *uri,
-						     gchar            **values,
-						     GError           **error);
-gboolean         tracker_keywords_remove_all        (TrackerKeywords   *object,
-						     const gchar       *service,
-						     const gchar       *uri,
-						     GError           **error);
-gboolean         tracker_keywords_search            (TrackerKeywords   *object,
-						     gint               live_query_id,
-						     const gchar       *service,
-						     const gchar      **keywords,
-						     gint               offset,
-						     gint               max_hits,
-						     gchar           ***result,
-						     GError           **error);
+GType            tracker_keywords_get_type   (void);
+TrackerKeywords *tracker_keywords_new        (void);
+void             tracker_keywords_get_list   (TrackerKeywords        *object,
+					      const gchar            *service_type,
+					      DBusGMethodInvocation  *context,
+					      GError                **error);
+void             tracker_keywords_get        (TrackerKeywords        *object,
+					      const gchar            *service_type,
+					      const gchar            *uri,
+					      DBusGMethodInvocation  *context,
+					      GError                **error);
+void             tracker_keywords_add        (TrackerKeywords        *object,
+					      const gchar            *service_type,
+					      const gchar            *uri,
+					      gchar                 **keywords,
+					      DBusGMethodInvocation  *context,
+					      GError                **error);
+void             tracker_keywords_remove     (TrackerKeywords        *object,
+					      const gchar            *service_type,
+					      const gchar            *uri,
+					      gchar                 **keywords,
+					      DBusGMethodInvocation  *context,
+					      GError                **error);
+void             tracker_keywords_remove_all (TrackerKeywords        *object,
+					      const gchar            *service_type,
+					      const gchar            *uri,
+					      DBusGMethodInvocation  *context,
+					      GError                **error);
+void             tracker_keywords_search     (TrackerKeywords        *object,
+					      gint                    live_query_id,
+					      const gchar            *service_type,
+					      const gchar           **keywords,
+					      gint                    offset,
+					      gint                    max_hits,
+					      DBusGMethodInvocation  *context,
+					      GError                **error);
+
 
 G_END_DECLS
 

@@ -110,302 +110,350 @@ tracker_keywords_new (void)
 /*
  * Functions
  */
-gboolean
+void
 tracker_keywords_get_list (TrackerKeywords  *object,
-			   const gchar      *service,
-			   GPtrArray       **values,
+			   const gchar      *service_type,
+			   DBusGMethodInvocation *context,
 			   GError          **error)
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
 	guint               request_id;
+	GError             *actual_error = NULL;
+	GPtrArray          *values;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
+	tracker_dbus_async_return_if_fail (service_type != NULL, FALSE);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get keywords list, "
-				  "service:'%s'",
-				  service);
+				  "service type:'%s'",
+				  service_type);
 
-	if (!tracker_ontology_is_valid_service_type (service)) {
+	if (!tracker_ontology_is_valid_service_type (service_type)) {
+
 		tracker_dbus_request_failed (request_id,
-					     error, 
-                                             "Service '%s' is invalid or has not been implemented yet", 
-                                             service);
-		return FALSE;
+					     &actual_error, 
+                                             "Service type '%s' is invalid or has not been implemented yet", 
+                                             service_type);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
 	}
 
- 	iface = tracker_db_manager_get_db_interface_by_service (service);
-	result_set = tracker_db_keywords_get_list (iface, service);
-        *values = tracker_dbus_query_result_to_ptr_array (result_set);
-
+	iface = tracker_db_manager_get_db_interface_by_service (service_type);
+	result_set = tracker_db_keywords_get_list (iface, service_type);
+	values = tracker_dbus_query_result_to_ptr_array (result_set);
+	
 	if (result_set) {
 		g_object_unref (result_set);
 	}
 
-	tracker_dbus_request_success (request_id);
+	dbus_g_method_return (context, values);
+	tracker_dbus_results_ptr_array_free (&values);
 
-	return TRUE;
+	tracker_dbus_request_success (request_id);
 }
 
-gboolean
-tracker_keywords_get (TrackerKeywords   *object,
-		      const gchar       *service,
-		      const gchar       *uri,
-		      gchar           ***values,
-		      GError           **error)
+void
+tracker_keywords_get (TrackerKeywords        *object,
+		      const gchar            *service_type,
+		      const gchar            *uri,
+		      DBusGMethodInvocation  *context,
+		      GError                **error)
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
 	guint               request_id;
 	gchar              *id;
+	GError             *actual_error = NULL;
+	gchar             **values;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
+	tracker_dbus_async_return_if_fail (service_type != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get keywords, "
-				  "service:'%s', uri:'%s'",
-				  service, 
+				  "service type:'%s', uri:'%s'",
+				  service_type, 
 				  uri);
 
-	if (!tracker_ontology_is_valid_service_type (service)) {
+	if (!tracker_ontology_is_valid_service_type (service_type)) {
 		tracker_dbus_request_failed (request_id,
-					     error, 
-                                             "Service '%s' is invalid or has not been implemented yet", 
-                                             service);
-		return FALSE;
+					     &actual_error, 
+                                             "Service type '%s' is invalid or has not been implemented yet", 
+                                             service_type);
 	}
 
-        if (tracker_is_empty_string (uri)) {
+        if (!actual_error && tracker_is_empty_string (uri)) {
 		tracker_dbus_request_failed (request_id,
-					     error, 
+					     &actual_error, 
                                              "URI is empty");
-		return FALSE;
         }
 
-	iface = tracker_db_manager_get_db_interface_by_service (service);
-	id = tracker_db_file_get_id_as_string (iface, service, uri);
+	if (actual_error) {
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
+
+	
+	iface = tracker_db_manager_get_db_interface_by_service (service_type);
+	id = tracker_db_file_get_id_as_string (iface, service_type, uri);
 	if (!id) {
 		tracker_dbus_request_failed (request_id,
-					     error,
+					     &actual_error,
 					     "Entity '%s' was not found", 
 					     uri);
-		return FALSE;
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
 	}
 
 	result_set = tracker_db_metadata_get (iface, 
 					      id, 
 					      "User:Keywords");
-	*values = tracker_dbus_query_result_to_strv (result_set, 0, NULL);
-
+	values = tracker_dbus_query_result_to_strv (result_set, 0, NULL);
+		
 	if (result_set) {
 		g_object_unref (result_set);
 	}
 
 	g_free (id);
 
-	tracker_dbus_request_success (request_id);
+	dbus_g_method_return (context, values);
 
-	return TRUE;
+	if (values) {
+		g_strfreev (values);
+	}
+
+	tracker_dbus_request_success (request_id);
 }
 
-gboolean
-tracker_keywords_add (TrackerKeywords  *object,
-		      const gchar      *service,
-		      const gchar      *uri,
-		      gchar           **values,
-		      GError          **error)
+void
+tracker_keywords_add (TrackerKeywords        *object,
+		      const gchar            *service_type,
+		      const gchar            *uri,
+		      gchar                 **keywords,
+		      DBusGMethodInvocation  *context,
+		      GError                 **error)
 {
 	TrackerDBInterface  *iface;
 	guint                request_id;
 	gchar               *id;
 	gchar              **p;
+	GError              *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (uri != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
+	tracker_dbus_async_return_if_fail (service_type != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (keywords != NULL && *keywords != NULL, FALSE);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to add keywords, "
-				  "service:'%s', uri:'%s'",
-				  service, 
+				  "service type:'%s', uri:'%s'",
+				  service_type, 
 				  uri);
 
-	if (!tracker_ontology_is_valid_service_type (service)) {
+	if (!tracker_ontology_is_valid_service_type (service_type)) {
 		tracker_dbus_request_failed (request_id,
-					     error, 
-                                             "Service '%s' is invalid or has not been implemented yet", 
-                                             service);
-		return FALSE;
+					     &actual_error, 
+                                             "Service type '%s' is invalid or has not been implemented yet", 
+                                             service_type);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
 	}
 
         if (tracker_is_empty_string (uri)) {
 		tracker_dbus_request_failed (request_id,
-					     error, 
+					     &actual_error, 
                                              "URI is empty");
-		return FALSE;
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
         }
 
-	iface = tracker_db_manager_get_db_interface_by_service (service);
-	id = tracker_db_file_get_id_as_string (iface, service, uri);
-	tracker_dbus_return_val_if_fail (id != NULL, FALSE, error);
-
-	tracker_db_metadata_set (iface, 
-				 service, 
-				 id, 
-				 "User:Keywords", 
-				 values, 
-				 TRUE);
-	g_free (id);
-
-	for (p = values; *p; p++) {
-		g_message ("Added keyword %s to %s with ID %s", *p, uri, id);
-		g_signal_emit (object, signals[KEYWORD_ADDED], 0, service, uri, *p);
+	iface = tracker_db_manager_get_db_interface_by_service (service_type);
+	id = tracker_db_file_get_id_as_string (iface, service_type, uri);
+	if (!id) {
+		tracker_dbus_request_failed (request_id,
+					     &actual_error,
+					     "Entity '%s' was not found", 
+					     uri);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
 	}
 
-	tracker_dbus_request_success (request_id);
+	tracker_db_metadata_set (iface, 
+				 service_type, 
+				 id, 
+				 "User:Keywords", 
+				 keywords, 
+				 TRUE);
+	for (p = keywords; *p; p++) {
+		g_message ("Added keyword %s to %s with ID %s", *p, uri, id);
+		g_signal_emit (object, signals[KEYWORD_ADDED], 0, service_type, uri, *p);
+	}
 
-	return TRUE;
+	g_free (id);
+
+	dbus_g_method_return (context);
+
+	tracker_dbus_request_success (request_id);
 }
 
-gboolean
-tracker_keywords_remove (TrackerKeywords  *object,
-			 const gchar      *service,
-			 const gchar      *uri,
-			 gchar           **values,
-			 GError          **error)
+void
+tracker_keywords_remove (TrackerKeywords        *object,
+			 const gchar            *service_type,
+			 const gchar            *uri,
+			 gchar                 **keywords,
+			 DBusGMethodInvocation  *context,
+			 GError                **error)
 {
 	TrackerDBInterface  *iface;
 	guint                request_id;
 	gchar               *id;
 	gchar              **p;
+	GError              *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (uri != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
+	tracker_dbus_async_return_if_fail (service_type != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (keywords != NULL && *keywords != NULL, FALSE);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to remove keywords, "
-				  "service:'%s', uri:'%s'",
-				  service, 
+				  "service type:'%s', uri:'%s'",
+				  service_type, 
 				  uri);
 
-	if (!tracker_ontology_is_valid_service_type (service)) {
+	if (!tracker_ontology_is_valid_service_type (service_type)) {
 		tracker_dbus_request_failed (request_id,
-					     error, 
-                                             "Service '%s' is invalid or has not been implemented yet", 
-                                             service);
-		return FALSE;
+					     &actual_error, 
+                                             "Service type '%s' is invalid or has not been implemented yet", 
+                                             service_type);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
 	}
 
         if (tracker_is_empty_string (uri)) {
 		tracker_dbus_request_failed (request_id,
-					     error, 
+					     &actual_error, 
                                              "URI is empty");
-		return FALSE;
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
         }
 
-	iface = tracker_db_manager_get_db_interface_by_service (service);
-	id = tracker_db_file_get_id_as_string (iface, service, uri);
+	iface = tracker_db_manager_get_db_interface_by_service (service_type);
+	id = tracker_db_file_get_id_as_string (iface, service_type, uri);
 	if (!id) {
 		tracker_dbus_request_failed (request_id,
-					     error,
+					     &actual_error,
 					     "Entity '%s' was not found", 
 					     uri);
-		return FALSE;
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
 	}
 
-	for (p = values; *p; p++) {
+	for (p = keywords; *p; p++) {
 		g_message ("Removed keyword %s from %s with ID %s", *p, uri, id);
-		tracker_db_metadata_delete_value (iface, service, id, "User:Keywords", *p);
+		tracker_db_metadata_delete_value (iface, service_type, id, "User:Keywords", *p);
 
-		g_signal_emit (object, signals[KEYWORD_REMOVED], 0, service, uri, *p);
+		g_signal_emit (object, signals[KEYWORD_REMOVED], 0, service_type, uri, *p);
 	}
 
 	g_free (id);
 
-	tracker_dbus_request_success (request_id);
+	dbus_g_method_return (context);
 
-	return TRUE;
+	tracker_dbus_request_success (request_id);
 }
 
-gboolean
-tracker_keywords_remove_all (TrackerKeywords  *object,
-			     const gchar      *service,
-			     const gchar      *uri,
-			     GError          **error)
+void
+tracker_keywords_remove_all (TrackerKeywords        *object,
+			     const gchar            *service_type,
+			     const gchar            *uri,
+			     DBusGMethodInvocation  *context,
+			     GError                **error)
 {
 	TrackerDBInterface *iface;
 	guint               request_id;
 	gchar              *id;
+	GError             *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (uri != NULL, FALSE, error);
+	tracker_dbus_async_return_if_fail (service_type != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to remove all keywords, "
-				  "service:'%s', uri:'%s'",
-				  service, 
+				  "service type:'%s', uri:'%s'",
+				  service_type, 
 				  uri);
 
-	if (!tracker_ontology_is_valid_service_type (service)) {
+	if (!tracker_ontology_is_valid_service_type (service_type)) {
 		tracker_dbus_request_failed (request_id,
-					     error, 
-                                             "Service '%s' is invalid or has not been implemented yet", 
-                                             service);
-		return FALSE;
+					     &actual_error, 
+                                             "Service type '%s' is invalid or has not been implemented yet", 
+                                             service_type);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
 	}
 
         if (tracker_is_empty_string (uri)) {
 		tracker_dbus_request_failed (request_id,
-					     error, 
+					     &actual_error, 
                                              "URI is empty");
-		return FALSE;
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
         }
 
-	iface = tracker_db_manager_get_db_interface_by_service (service);
-	id = tracker_db_file_get_id_as_string (iface, service, uri);
+	iface = tracker_db_manager_get_db_interface_by_service (service_type);
+	id = tracker_db_file_get_id_as_string (iface, service_type, uri);
 	if (!id) {
 		tracker_dbus_request_failed (request_id,
-					     error,
+					     &actual_error,
 					     "Entity '%s' was not found", 
 					     uri);
-		return FALSE;
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
 	}
 
 	tracker_db_metadata_delete (iface,
-				    service,
+				    service_type,
 				    id,
 				    "User:Keywords", 
 				    TRUE);
 	g_free (id);
 
-	tracker_dbus_request_success (request_id);
+	dbus_g_method_return (context);
 
-	return TRUE;
+	tracker_dbus_request_success (request_id);
 }
 
-gboolean
-tracker_keywords_search (TrackerKeywords  *object,
-			 gint              live_query_id,
-			 const gchar      *service,
-			 const gchar     **keywords,
-			 gint              offset,
-			 gint              max_hits,
-			 gchar          ***values,
-			 GError          **error)
+void
+tracker_keywords_search (TrackerKeywords        *object,
+			 gint                    live_query_id,
+			 const gchar            *service_type,
+			 const gchar           **keywords,
+			 gint                    offset,
+			 gint                    max_hits,
+			 DBusGMethodInvocation  *context,
+			 GError                **error)
 {
 	TrackerDBInterface  *iface;
 	TrackerDBResultSet  *result_set;
@@ -416,31 +464,35 @@ tracker_keywords_search (TrackerKeywords  *object,
 	GString             *where;
 	gchar               *related_metadata;
 	gchar               *query;
+	gchar              **values;
+	GError              *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (keywords != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
+	tracker_dbus_async_return_if_fail (service_type != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (keywords != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (values != NULL, FALSE);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to search keywords, "
-				  "query id:%d, service:'%s', offset:%d, "
+				  "query id:%d, service type:'%s', offset:%d, "
 				  "max hits:%d",
 				  live_query_id,
-				  service, 
+				  service_type, 
 				  offset,
 				  max_hits);
 
-	if (!tracker_ontology_is_valid_service_type (service)) {
+	if (!tracker_ontology_is_valid_service_type (service_type)) {
 		tracker_dbus_request_failed (request_id,
-					     error, 
-                                             "Service '%s' is invalid or has not been implemented yet", 
-                                             service);
-		return FALSE;
+					     &actual_error, 
+                                             "Service_Type '%s' is invalid or has not been implemented yet", 
+                                             service_type);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
 	}
 
-	iface = tracker_db_manager_get_db_interface_by_service (service);
+	iface = tracker_db_manager_get_db_interface_by_service (service_type);
 
 	/* Sanity check values */
 	offset = MAX (offset, 0);
@@ -478,8 +530,8 @@ tracker_keywords_search (TrackerKeywords  *object,
 
 	g_string_append_printf (where, 
 				"  and  (S.ServiceTypeID in (select TypeId from ServiceTypes where TypeName = '%s' or Parent = '%s')) ", 
-				service, 
-				service);
+				service_type, 
+				service_type);
 
 	/* Add offset and max_hits */
 	g_string_append_printf (where, 
@@ -495,7 +547,7 @@ tracker_keywords_search (TrackerKeywords  *object,
 	g_debug (query);
 
 	result_set = tracker_db_interface_execute_query (iface, NULL, query);
-	*values = tracker_dbus_query_result_to_strv (result_set, 0, NULL);
+	values = tracker_dbus_query_result_to_strv (result_set, 0, NULL);
 
 	if (result_set) {
 		g_object_unref (result_set);
@@ -503,7 +555,11 @@ tracker_keywords_search (TrackerKeywords  *object,
 
 	g_free (query);
 
-	tracker_dbus_request_success (request_id);
+	dbus_g_method_return (context, values);
 
-	return TRUE;
+	if (values) {
+		g_strfreev (values);
+	}
+
+	tracker_dbus_request_success (request_id);
 }

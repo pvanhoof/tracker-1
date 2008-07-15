@@ -10,37 +10,42 @@
 	 KeywordCount].
       -->
     <method name="GetList">
-      <arg type="s" name="service" direction="in" />
-      <arg type="aas" name="value" direction="out" />
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
+      <arg type="s" name="service_type" direction="in" />
+      <arg type="aas" name="keywords" direction="out" />
     </method>
 
     <!-- Gets all unique keywords/tags for specified service and id. -->
     <method name="Get">
-      <arg type="s" name="service" direction="in" />
-      <arg type="s" name="id" direction="in" />
-      <arg type="as" name="value" direction="out" />
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
+      <arg type="s" name="service_type" direction="in" />
+      <arg type="s" name="uri" direction="in" />
+      <arg type="as" name="keywords" direction="out" />
     </method>
 
     <!-- Adds new keywords/tags for specified service and id -->
     <method name="Add">
-      <arg type="s" name="service" direction="in" />
-      <arg type="s" name="id" direction="in" />
-      <arg type="as" name="values" direction="in" />
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
+      <arg type="s" name="service_type" direction="in" />
+      <arg type="s" name="uri" direction="in" />
+      <arg type="as" name="keywords" direction="in" />
     </method>
 
     <!-- Removes all specified keywords/tags for specified service and
 	 id.
       -->
     <method name="Remove">
-      <arg type="s" name="service" direction="in" />
-      <arg type="s" name="id" direction="in" />
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
+      <arg type="s" name="service_type" direction="in" />
+      <arg type="s" name="uri" direction="in" />
       <arg type="as" name="keywords" direction="in" />
     </method>
 
     <!-- Removes all keywords/tags for specified service and id. -->
     <method name="RemoveAll">
-      <arg type="s" name="service" direction="in" />
-      <arg type="s" name="id" direction="in" />
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
+      <arg type="s" name="service_type" direction="in" />
+      <arg type="s" name="uri" direction="in" />
     </method>
 
     <!-- Searches specified service for matching keyword/tag and
@@ -48,8 +53,9 @@
       --> 
     <method name="Search">
       <annotation name="org.freedesktop.DBus.Deprecated" value="true"/>
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="i" name="live_query_id" direction="in" />
-      <arg type="s" name="service" direction="in" />
+      <arg type="s" name="service_type" direction="in" />
       <arg type="as" name="keywords" direction="in" />
       <arg type="i" name="offset" direction="in" />
       <arg type="i" name="max_hits" direction="in" />

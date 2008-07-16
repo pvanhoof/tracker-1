@@ -1,5 +1,31 @@
 2008-07-16  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-utils.[ch]: Make it possible to
+	have a shortened version of the time string.
+	
+	* src/libtracker-db/tracker-db-manager.c: When setting up multiple
+	interfaces, don't assume we ALWAYS want to "add_functions",
+	instead use the array value for that database type (as we do
+	normally).
+	
+	* src/tracker-indexer/tracker-indexer.c: Don't print a status
+	message if there are 0 items remaining and change the transaction
+	limit to 200.
+	
+	* src/trackerd/tracker-dbus.c: Added signal prototypes for the
+	indexer for module-started, module-finished and started signals.
+	
+	* src/trackerd/tracker-processor.c: Use nicer debugging and
+	include the time elapsed now in the status update.
+	
+	* src/trackerd/tracker-xesam-manager.c: Disable live search event
+	updates during indexing. This causes havoc with the cache. The
+	cache is already being written to by the indexer so the daemon
+	becomes completely unresponsive. This is Enabled after indexing is
+	finished. 
+
+2008-07-16  Martyn Russell  <martyn@imendio.com>
+
 	* data/dbus/tracker-indexer.xml: Add argument information about signals.
 
 	* src/libtracker-common/tracker-utils.[ch]: Change the time

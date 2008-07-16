@@ -32,8 +32,10 @@ gchar *  tracker_string_remove              (gchar       *haystack,
 					     const gchar *needle);
 gchar *  tracker_escape_string              (const gchar *in);
 gchar *  tracker_seconds_estimate_to_string (gdouble      seconds_elapsed,
+					     gboolean     short_string,
 					     guint        items_done,
 					     guint        items_remaining);
-gchar *  tracker_seconds_to_string          (gdouble      seconds_elapsed);
+gchar *  tracker_seconds_to_string          (gdouble      seconds_elapsed,
+					     gboolean     short_string);
 
 #endif /* __LIBTRACKER_COMMON_UTILS_H__ */

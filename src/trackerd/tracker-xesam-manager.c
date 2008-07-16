@@ -33,9 +33,12 @@
 #include "tracker-dbus.h"
 #include "tracker-main.h"
 
-static GHashTable *xesam_sessions; 
-static gchar      *xesam_dir;
-static gboolean    live_search_handler_running = FALSE;
+static gboolean            initialized;
+static TrackerDBInterface *xesam_db_iface;
+static GHashTable         *xesam_sessions; 
+static gchar              *xesam_dir;
+static gboolean            indexing_finished;
+static guint               live_search_handler_id;
 
 static void
 indexer_status_cb (DBusGProxy  *proxy,
@@ -46,6 +49,30 @@ indexer_status_cb (DBusGProxy  *proxy,
 		   gpointer     user_data)
 {
 	tracker_xesam_manager_wakeup ();	
+}
+
+static void
+indexer_started_cb (DBusGProxy *proxy,
+		    gpointer    user_data)
+{
+	/* So now when we get status updates we DO NOT process live
+	 * events and update live searches. The indexer is using the cache.
+	 */
+	g_message ("Disabling live search event updates (indexer started)");
+	indexing_finished = FALSE;
+}
+
+static void
+indexer_finished_cb (DBusGProxy *proxy,
+		     gdouble     seconds_elapsed,
+		     guint       items_done,
+		     gpointer    user_data)
+{
+	/* So now when we get status updates we can process live
+	 * events and update live searches.
+	 */
+	g_message ("Enabling live search event updates (indexer finished)");
+	indexing_finished = TRUE;
 }
 
 GQuark
@@ -65,22 +92,47 @@ tracker_xesam_manager_init (void)
 {
 	DBusGProxy *proxy;
 
-	if (xesam_sessions) {
+	if (initialized) {
 		return;
 	}
 
+	/* Set up sessions hash table */
 	xesam_sessions = g_hash_table_new_full (g_str_hash, 
 						g_str_equal, 
 						(GDestroyNotify) g_free, 
 						(GDestroyNotify) g_object_unref);
 
+	/* Set up locations */
 	xesam_dir = g_build_filename (g_get_home_dir (), ".xesam", NULL);
 
+	/* Set up DBus proxy to the indexer process */
 	proxy = tracker_dbus_indexer_get_proxy ();
+	g_object_ref (proxy);
+
 	dbus_g_proxy_connect_signal (proxy, "Status",
 				     G_CALLBACK (indexer_status_cb),
-				     g_object_ref (proxy),
-				     (GClosureNotify) g_object_unref);
+				     NULL,
+				     NULL);
+	dbus_g_proxy_connect_signal (proxy, "Started",
+				     G_CALLBACK (indexer_started_cb),
+				     NULL,
+				     NULL);
+	dbus_g_proxy_connect_signal (proxy, "Finished",
+				     G_CALLBACK (indexer_finished_cb),
+				     NULL,
+				     NULL);
+
+	/* Set the indexing finished state back to unfinished */
+	indexing_finished = FALSE;
+
+	/* Get the DB interface now instead of later when the database
+	 * is potentially being hammered with new information by the
+	 * indexer. Before, if we just got it in the live update from
+	 * the indexer, we couldn't create the interface quickly
+	 * because the database is being used heavily by the indexer
+	 * already. It is best to do this initially to avoid that.
+	 */ 
+	xesam_db_iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_XESAM_SERVICE);
 }
 
 void
@@ -88,14 +140,31 @@ tracker_xesam_manager_shutdown (void)
 {
 	DBusGProxy *proxy;
 
-	if (!xesam_sessions) {
+	if (!initialized) {
 		return;
 	}
+
+	g_object_unref (xesam_db_iface);
+	xesam_db_iface = NULL;
 
 	proxy = tracker_dbus_indexer_get_proxy ();
 	dbus_g_proxy_disconnect_signal (proxy, "Status",
 					G_CALLBACK (indexer_status_cb),
 					NULL);
+	dbus_g_proxy_disconnect_signal (proxy, "Started",
+					G_CALLBACK (indexer_started_cb),
+					NULL);
+	dbus_g_proxy_disconnect_signal (proxy, "Finished",
+					G_CALLBACK (indexer_finished_cb),
+					NULL);
+	g_object_unref (proxy);
+
+	indexing_finished = FALSE;
+
+	if (live_search_handler_id != 0) {
+		g_source_remove (live_search_handler_id);
+		live_search_handler_id = 0;
+	}
 
 	g_free (xesam_dir);
 	xesam_dir = NULL;
@@ -239,13 +308,8 @@ tracker_xesam_manager_get_live_search (const gchar  *search_id,
 static gboolean 
 live_search_handler (gpointer data)
 {
-	TrackerDBInterface *iface;
-	GList              *sessions;
-	gboolean            reason_to_live = FALSE;
-
-	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_XESAM_SERVICE);
-
-	g_return_val_if_fail (iface != NULL, FALSE);
+	GList    *sessions;
+	gboolean  reason_to_live = FALSE;
 
 	sessions = g_hash_table_get_values (xesam_sessions);
 
@@ -315,8 +379,7 @@ live_search_handler (gpointer data)
 
 	g_list_free (sessions);
 
-	tracker_db_xesam_delete_handled_events (iface);
-
+	tracker_db_xesam_delete_handled_events (xesam_db_iface);
 
 	return reason_to_live;
 }
@@ -324,29 +387,42 @@ live_search_handler (gpointer data)
 static void 
 live_search_handler_destroy (gpointer data)
 {
-	live_search_handler_running = FALSE;
+	live_search_handler_id = 0;
 }
 
 void 
 tracker_xesam_manager_wakeup (void)
 {
-	/* This happens each time a new event is created */
-
-	/* We could do this in a thread too, in case blocking the GMainLoop is
-	 * not ideal (it's not, because during these blocks of code, no DBus
-	 * request handler can run). 
+	/* This happens each time a new event is created:
+	 *
+	 * We could do this in a thread too, in case blocking the
+	 * GMainLoop is not ideal (it's not, because during these
+	 * blocks of code, no DBus request handler can run).  
 	 * 
-	 * In case of a thread we could use usleep() and stop the thread if
-	 * we didn't get a wakeup-call nor we had items to process this loop
+	 * In case of a thread we could use usleep() and stop the
+	 * thread if we didn't get a wakeup-call nor we had items to
+	 * process this loop 
+	 *
+	 * There are problems with this. Right now we WAIT until
+	 * after indexing has completed otherwise we are in a
+	 * situation where a "status" signal from the indexer makes us
+	 * delete events from the Events table. This requires the
+	 * cache db and means we end up waiting for the indexer to
+	 * finish doing what it is doing first. The daemon then stops
+	 * pretty much and blocks. This is bad. So we wait for the
+	 * indexing to be finished before doing this.
 	 */
+	if (!indexing_finished) {
+		return;
+	}
 
-	if (!live_search_handler_running) {
-		live_search_handler_running = TRUE;
-		g_timeout_add_full (G_PRIORITY_DEFAULT_IDLE,
-				    2000, /* 2 seconds */
-				    live_search_handler,
-				    NULL,
-				    live_search_handler_destroy);
+	if (live_search_handler_id == 0) {
+		live_search_handler_id = 
+			g_timeout_add_full (G_PRIORITY_DEFAULT_IDLE,
+					    2000, /* 2 seconds */
+					    live_search_handler,
+					    NULL,
+					    live_search_handler_destroy);
 	}
 }
 

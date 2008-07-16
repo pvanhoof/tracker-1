@@ -78,7 +78,7 @@
 #define FLUSH_FREQUENCY             5
 
 /* Transaction every 'x' items */
-#define TRANSACTION_MAX             100
+#define TRANSACTION_MAX             200
 
 /* Throttle defaults */
 #define THROTTLE_DEFAULT            0
@@ -217,20 +217,27 @@ signal_status (TrackerIndexer *indexer,
 	items_remaining = g_queue_get_length (indexer->private->file_queue);
 	seconds_elapsed = g_timer_elapsed (indexer->private->timer, NULL);
 
-	if (indexer->private->items_indexed > 0) {
-		gchar *str;
+	if (indexer->private->items_indexed > 0 && 
+	    items_remaining > 0) {
+		gchar *str1;
+		gchar *str2;
 
-		str = tracker_seconds_estimate_to_string (seconds_elapsed, 
-							  indexer->private->items_indexed, 
-							  items_remaining);
+		str1 = tracker_seconds_estimate_to_string (seconds_elapsed, 
+							   TRUE,
+							   indexer->private->items_indexed, 
+							   items_remaining);
+		str2 = tracker_seconds_to_string (seconds_elapsed, TRUE);
 		
-		g_message ("Indexed %d, %d remaining, current module:'%s', %s est. left (%s)", 
+		g_message ("Indexed %d/%d, module:'%s', %s left, %s elapsed (%s)", 
 			   indexer->private->items_indexed,
-			   items_remaining,
+			   indexer->private->items_indexed + items_remaining,
 			   indexer->private->current_module_name,
-			   str,
+			   str1,
+			   str2,
 			   why);
-		g_free (str);
+
+		g_free (str2);
+		g_free (str1);
 	}
 	
 	g_signal_emit (indexer, signals[STATUS], 0, 
@@ -547,7 +554,7 @@ check_stopped (TrackerIndexer *indexer)
 	indexer->private->idle_id = 0;
 	
 	/* Print out how long it took us */
-	str = tracker_seconds_to_string (seconds_elapsed);
+	str = tracker_seconds_to_string (seconds_elapsed, FALSE);
 
 	g_message ("Indexer finished in %s, %d items indexed in total",
 		   str,

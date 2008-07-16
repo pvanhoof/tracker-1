@@ -298,18 +298,28 @@ indexer_status_cb (DBusGProxy  *proxy,
 		   guint        items_remaining,
 		   gpointer     user_data)
 {
-	gchar *str;
+	gchar *str1;
+	gchar *str2;
 
-	str = tracker_seconds_estimate_to_string (seconds_elapsed, 
-						  items_done, 
-						  items_remaining);
+	if (items_remaining < 1) {
+		return;
+	}
 
-	g_message ("Indexed %d, %d remaining, current module:'%s', %s est. left", 
+	str1 = tracker_seconds_estimate_to_string (seconds_elapsed, 
+						   TRUE,
+						   items_done, 
+						   items_remaining);
+	str2 = tracker_seconds_to_string (seconds_elapsed, TRUE);
+	
+	g_message ("Indexed %d/%d, module:'%s', %s left, %s elapsed", 
 		   items_done,
-		   items_remaining,
+		   items_done + items_remaining,
 		   current_module_name,
-		   str);
-	g_free (str);
+		   str1,
+		   str2);
+	
+	g_free (str2);
+	g_free (str1);
 }
 
 static void
@@ -321,7 +331,7 @@ indexer_finished_cb (DBusGProxy  *proxy,
 	TrackerProcessor *processor;
 	gchar            *str;
 
-	str = tracker_seconds_to_string (seconds_elapsed);
+	str = tracker_seconds_to_string (seconds_elapsed, FALSE);
 
 	g_message ("Indexer finished in %s, %d items indexed in total",
 		   str,

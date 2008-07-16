@@ -367,9 +367,20 @@ tracker_dbus_indexer_get_proxy (void)
 					 G_TYPE_UINT,
 					 G_TYPE_INVALID);
 		dbus_g_proxy_add_signal (proxy_for_indexer,
+					 "Started",
+					 G_TYPE_INVALID);
+		dbus_g_proxy_add_signal (proxy_for_indexer,
 					 "Finished",
 					 G_TYPE_DOUBLE,
 					 G_TYPE_UINT,
+					 G_TYPE_INVALID);
+		dbus_g_proxy_add_signal (proxy_for_indexer,
+					 "ModuleStarted",
+					 G_TYPE_STRING,
+					 G_TYPE_INVALID);
+		dbus_g_proxy_add_signal (proxy_for_indexer,
+					 "ModuleFinished",
+					 G_TYPE_STRING,
 					 G_TYPE_INVALID);
 	}
 

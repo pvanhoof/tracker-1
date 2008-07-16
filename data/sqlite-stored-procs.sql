@@ -120,7 +120,7 @@ InsertMetaDataChildren INSERT INTO  MetaDataChildren (ChildID,MetadataID) VALUES
 GetMetadataAliases SELECT distinct M.MetaName, M.ID from MetaDataTypes M, MetaDataChildren C where M.ID = C.ChildID and C.MetaDataID = ?; 
 GetMetadataAliasesForName SELECT distinct M.MetaName, M.ID from MetaDataTypes M, MetaDataChildren C where M.ID = C.ChildID and C.MetaDataID = (select ID from MetaDataTypes where MetaName = ?) union select M.MetaName, M.ID from MetaDataTypes M where M.MetaName = ?; 
 
-SelectMetadataClasses SELECT DISTINCT MetaName FROM MetaDataTypes;
+SelectRegisteredClasses SELECT DISTINCT TypeName FROM ServiceTypes;
 
 InsertMetadataType INSERT INTO MetaDataTypes (MetaName) Values (?);
 

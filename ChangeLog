@@ -1,3 +1,24 @@
+2008-07-16  Ivan Frade  <ivan.frade@nokia.com>
+	
+	* src/libtracker-common/tracker-field.[ch]:
+	(tracker_field_type_as_string): Added method to translate field types
+	in readable format.
+	
+	* data/sqlite-stored-procs.sql: Removed SelectMetadataClasses and
+	added SelectRegisteredClasses.
+	
+	* src/trackerd/tracker-db.c:
+	(tracker_db_service_get_by_entity): Reimplemented using an easier
+	DB query and tracker_ontology to translate the result to string.
+	(tracker_db_metadata_set_single): Added NULL at the end of the
+	array.
+	Renamed service -> service_type and id -> service_id
+	
+	* src/trackerd/tracker-metadata.c: 
+	(tracker_metadata_get_type_details): Implemented using
+	tracker_ontology instead accessing to the DB.
+	Fixed things here and there. Now the metadata API actually works.
+	
 2008-07-16  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-utils.[ch]: Make it possible to

@@ -1701,29 +1701,30 @@ tracker_db_metadata_insert_embedded (TrackerDBInterface  *iface,
 
 void
 tracker_db_metadata_set_single (TrackerDBInterface *iface, 
-				const gchar        *service, 
-				const gchar        *id, 
+				const gchar        *service_type, 
+				const gchar        *service_id, 
 				const gchar        *key, 
 				const gchar        *value, 
 				gboolean            do_backup)
 {
-	gchar *array[1];
+	gchar *array[2];
 
 	g_return_if_fail (TRACKER_IS_DB_INTERFACE (iface));
-	g_return_if_fail (service != NULL);
-	g_return_if_fail (id != NULL);
+	g_return_if_fail (service_type != NULL);
+	g_return_if_fail (service_id != NULL);
 	g_return_if_fail (key != NULL);
 	g_return_if_fail (value != NULL);
 
 	array[0] = (gchar*) value;
+	array[1] = NULL;
 
-	tracker_db_metadata_set (iface, service, id, key, array, do_backup);
+	tracker_db_metadata_set (iface, service_type, service_id, key, array, do_backup);
 }
 
 gchar *
 tracker_db_metadata_set (TrackerDBInterface  *iface, 
-			 const gchar         *service, 
-			 const gchar         *id, 
+			 const gchar         *service_type, 
+			 const gchar         *service_id, 
 			 const gchar         *key, 
 			 gchar              **values, 
 			 gboolean             do_backup)
@@ -1739,12 +1740,12 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 	GString      *str = NULL;
 	
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
-	g_return_val_if_fail (service != NULL, NULL);
-	g_return_val_if_fail (id != NULL, NULL);
+	g_return_val_if_fail (service_type != NULL, NULL);
+	g_return_val_if_fail (service_id != NULL, NULL);
 	g_return_val_if_fail (key != NULL, NULL);
 	g_return_val_if_fail (values != NULL, NULL);
 
-	if (strcmp (id, "0") == 0) {
+	if (strcmp (service_id, "0") == 0) {
 		return NULL;
 	}
 
@@ -1755,10 +1756,10 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 		return NULL;
 	}
 	
-	res_service = tracker_db_service_get_by_entity (iface, id);
+	res_service = tracker_db_service_get_by_entity (iface, service_id);
 
 	if (!res_service) {
-		g_warning ("Service not found for id:'%s'", id);
+		g_warning ("Service not found for service_id:'%s'", service_id);
 		return NULL;
 	}
 	
@@ -1776,12 +1777,12 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 		tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_FULLTEXT;
 
 	if (update_index) {
-		old_value = tracker_db_metadata_get_delimited (iface, id, key);
+		old_value = tracker_db_metadata_get_delimited (iface, service_id, key);
 	}
 
 	/* delete old value if metadata does not support multiple values */
 	if (!tracker_field_get_multiple_values (def)) {
-		tracker_db_metadata_delete (iface, service, id, key, FALSE);
+		tracker_db_metadata_delete (iface, service_type, service_id, key, FALSE);
 	}
 
 	switch (tracker_field_get_data_type (def)) {
@@ -1793,7 +1794,7 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 			
 			tracker_db_exec_proc (iface, 
 					      "SetMetadataKeyword", 
-					      id, 
+					      service_id, 
 					      tracker_field_get_id (def), 
 					      values[i], 
 					      NULL);
@@ -1801,9 +1802,9 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 			/* Backup non-embedded data for embedded services */
 			if (do_backup && 
 			    !tracker_field_get_embedded (def) && 
-			    tracker_ontology_service_type_has_embedded (service)) {
+			    tracker_ontology_service_type_has_embedded (service_type)) {
 				backup_non_embedded_metadata (iface, 
-							      id, 
+							      service_id, 
 							      tracker_field_get_id (def), 
 							      values[i]);
 			}
@@ -1835,8 +1836,8 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 			/* Backup non-embedded data for embedded services */
 			if (do_backup &&
 			    !tracker_field_get_embedded (def) && 
-			    tracker_ontology_service_type_has_embedded (service)) {
-				backup_non_embedded_metadata (iface, id, tracker_field_get_id (def), values[i]);
+			    tracker_ontology_service_type_has_embedded (service_type)) {
+				backup_non_embedded_metadata (iface, service_id, tracker_field_get_id (def), values[i]);
 			}
 
 			mvalue = tracker_parser_text_to_string (values[i], 
@@ -1848,7 +1849,7 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 								tracker_field_get_delimited (def));
 			tracker_db_exec_proc (iface, 
 					      "SetMetadata", 
-					      id, 
+					      service_id, 
 					      tracker_field_get_id (def), 
 					      mvalue, 
 					      values[i], 
@@ -1864,7 +1865,7 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 			 * blob or something else? 
 			 */
 			db_save_full_text (iface,
-					   id, 
+					   service_id, 
 					   values[0], 
 					   strlen (values[0]));
 			new_value = values[0];
@@ -1882,9 +1883,9 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 			/* Backup non-embedded data for embedded services */
 			if (do_backup && 
 			    !tracker_field_get_embedded (def) && 
-			    tracker_ontology_service_type_has_embedded (service)) {
+			    tracker_ontology_service_type_has_embedded (service_type)) {
 				backup_non_embedded_metadata (iface, 
-							      id, 
+							      service_id, 
 							      tracker_field_get_id (def), 
 							      values[i]);
 			}
@@ -1898,7 +1899,7 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 								tracker_field_get_delimited (def));
 			tracker_db_exec_proc (iface, 
 					      "SetMetadata", 
-					      id, 
+					      service_id, 
 					      tracker_field_get_id (def), 
 					      mvalue, 
 					      values[i], 
@@ -1916,16 +1917,16 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 			/* Backup non-embedded data for embedded services */
 			if (do_backup && 
 			    !tracker_field_get_embedded (def) && 
-			    tracker_ontology_service_type_has_embedded (service)) {
+			    tracker_ontology_service_type_has_embedded (service_type)) {
 				backup_non_embedded_metadata (iface, 
-							      id, 
+							      service_id, 
 							      tracker_field_get_id (def), 
 							      values[i]);
 			}
 
 			tracker_db_exec_proc (iface,
 					      "SetMetadata", 
-					      id, 
+					      service_id, 
 					      tracker_field_get_id (def), 
 					      " ", 
 					      values[i], 
@@ -1942,16 +1943,16 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 			/* Backup non-embedded data for embedded services */
 			if (do_backup && 
 			    !tracker_field_get_embedded (def) && 
-			    tracker_ontology_service_type_has_embedded (service)) {
+			    tracker_ontology_service_type_has_embedded (service_type)) {
 				backup_non_embedded_metadata (iface, 
-							      id, 
+							      service_id, 
 							      tracker_field_get_id (def), 
 							      values[i]);
 			}
 
 			tracker_db_exec_proc (iface,
 					      "SetMetadataNumeric", 
-					      id, 
+					      service_id, 
 					      tracker_field_get_id (def), 
 					      values[i], 
 					      NULL);
@@ -1975,7 +1976,7 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 
 			tracker_db_exec_proc (iface, 
 					      "SetMetadataNumeric", 
-					      id, 
+					      service_id, 
 					      tracker_field_get_id (def), 
 					      mvalue, 
 					      NULL);
@@ -1983,9 +1984,9 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 			/* backup non-embedded data for embedded services */
 			if (do_backup && 
 			    !tracker_field_get_embedded (def) && 
-			    tracker_ontology_service_type_has_embedded (service)) {
+			    tracker_ontology_service_type_has_embedded (service_type)) {
 				backup_non_embedded_metadata (iface,
-							      id, 
+							      service_id, 
 							      tracker_field_get_id (def), 
 							      mvalue);
 			}
@@ -2025,7 +2026,7 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 						  "update Services set KeyMetadata%d = '%s' where id = %s",
 						  key_field, 
 						  esc_value, 
-						  id);
+						  service_id);
 
 			g_free (esc_value);
 		}
@@ -2037,10 +2038,10 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 	 */
 	if (update_index) {
 		if (str) {
-			update_metadata_index (id, res_service, def, old_value, str->str);
+			update_metadata_index (service_id, res_service, def, old_value, str->str);
 			g_string_free (str, TRUE);
 		} else {
-			update_metadata_index (id, res_service, def, old_value, new_value);	
+			update_metadata_index (service_id, res_service, def, old_value, new_value);	
 		}
 	}
 
@@ -2878,24 +2879,30 @@ tracker_db_service_create (TrackerDBInterface *iface,
 	return id;
 }
 
+/*
+ * Obtain the concrete service type name for the file id. 
+ */
 gchar *
 tracker_db_service_get_by_entity (TrackerDBInterface *iface, 
 				  const gchar        *id)
 {
 	TrackerDBResultSet *result_set;
+	gint                service_type_id;
 	gchar              *result = NULL;
-	
+
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
 	g_return_val_if_fail (id != NULL, NULL);
 
 	result_set = tracker_db_exec_proc (iface,
-					   "GetFileByID2", 
+					   "GetFileByID",
 					   id,
 					   NULL);
 
 	if (result_set) {
-		tracker_db_result_set_get (result_set, 1, &result, -1);
+		tracker_db_result_set_get (result_set, 3, &service_type_id, -1);
 		g_object_unref (result_set);
+
+		result = tracker_ontology_get_service_type_by_id (service_type_id);
 	}
 
 	return result;

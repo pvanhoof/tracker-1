@@ -36,14 +36,6 @@
 #include "tracker-db.h"
 #include "tracker-marshal.h"
 
-static const gchar *types[] = {
-	"index", 
-	"string", 
-	"numeric", 
-	"date", 
-	NULL
-};
-
 G_DEFINE_TYPE(TrackerMetadata, tracker_metadata, G_TYPE_OBJECT)
 
 static void
@@ -67,8 +59,8 @@ tracker_metadata_new (void)
  */
 gboolean
 tracker_metadata_get (TrackerMetadata   *object,
-		      const gchar       *service,
-		      const gchar       *id,
+		      const gchar       *service_type,
+		      const gchar       *uri,
 		      gchar            **keys,
 		      gchar           ***values,
 		      GError           **error)
@@ -85,32 +77,32 @@ tracker_metadata_get (TrackerMetadata   *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
+	tracker_dbus_return_val_if_fail (service_type != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (keys != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (g_strv_length (keys) > 0, FALSE, error);
 	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
 
-	if (!tracker_ontology_is_valid_service_type (service)) {
+	if (!tracker_ontology_is_valid_service_type (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     error, 
                                              "Service '%s' is invalid or has not been implemented yet", 
-                                             service);
+                                             service_type);
 		return FALSE;
 	}
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get metadata values, "
-				  "service:'%s'",
-				  service);
+				  "service type:'%s'",
+				  service_type);
 
-	iface = tracker_db_manager_get_db_interface_by_service (service);
+	iface = tracker_db_manager_get_db_interface_by_service (service_type);
 
-	service_id = tracker_db_file_get_id_as_string (iface, service, id);
+	service_id = tracker_db_file_get_id_as_string (iface, service_type, uri);
         if (!service_id) {
 		tracker_dbus_request_failed (request_id,
 					     error,
 					     "Service URI '%s' not found", 
-					     id);
+					     uri);
                 return FALSE;
         }
 
@@ -120,7 +112,7 @@ tracker_metadata_get (TrackerMetadata   *object,
 		tracker_dbus_request_failed (request_id,
 					     error, 
 					     "Service information can not be found for entity '%s'", 
-					     id);
+					     uri);
                 return FALSE;
 	}
 
@@ -177,7 +169,7 @@ tracker_metadata_get (TrackerMetadata   *object,
 	g_free (service_result);
 
 	/* Build SQL where clause */
-	g_string_append_printf (sql, " WHERE S.ID = %s", id);
+	g_string_append_printf (sql, " WHERE S.ID = %s", service_id);
 	g_free (service_id);
 
 	query = g_string_free (sql, FALSE);
@@ -224,7 +216,7 @@ tracker_metadata_set (TrackerMetadata  *object,
 	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (g_strv_length (keys) > 0, FALSE, error);
 	tracker_dbus_return_val_if_fail (g_strv_length (values) > 0, FALSE, error);
-	tracker_dbus_return_val_if_fail (g_strv_length (keys) != g_strv_length (values), FALSE, error);
+	tracker_dbus_return_val_if_fail (g_strv_length (keys) == g_strv_length (values), FALSE, error);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to set metadata keys, "
@@ -293,10 +285,9 @@ tracker_metadata_get_type_details (TrackerMetadata  *object,
 				   gboolean         *is_writable,
 				   GError          **error)
 {
-	TrackerDBInterface *iface;
-	TrackerDBResultSet *result_set;
 	guint               request_id;
-	gint                i;
+	TrackerField       *def = NULL;
+	TrackerFieldType    field_type;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -305,26 +296,13 @@ tracker_metadata_get_type_details (TrackerMetadata  *object,
 	tracker_dbus_return_val_if_fail (is_embedded != NULL, FALSE, error);
 	tracker_dbus_return_val_if_fail (is_writable != NULL, FALSE, error);
 
-	/* Here it doesn't matter which one we ask, as long as it has common.db
-	 * attached. The service ones are cached connections, so we can use
-	 * those instead of asking for an individual-file connection (like what
-	 * the original code had) */
-
-	/* iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_COMMON); */
-
-	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
-
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get metadata details, "
-				  "name:'%s'",
+				  "metadata type:'%s'",
 				  metadata);
 
-	result_set = tracker_db_exec_proc (iface, 
-					   "GetMetadataTypeInfo",
-					   metadata, 
-					   NULL);
-
-	if (!result_set) {
+	def = tracker_ontology_get_field_def (metadata);
+	if (!def) {
 		tracker_dbus_request_failed (request_id,
 					     error, 
 					     "Metadata name '%s' is invalid or unrecognized",
@@ -332,14 +310,11 @@ tracker_metadata_get_type_details (TrackerMetadata  *object,
 		return FALSE;
 	}
 
-	tracker_db_result_set_get (result_set,
-				   1, &i,
-				   2, is_embedded,
-				   3, is_writable,
-				   -1);
+	field_type = tracker_field_get_data_type (def);
 
-	*type = g_strdup (types[i]);
-	g_object_unref (result_set);
+	*type = g_strdup (tracker_field_type_to_string (field_type));
+	*is_embedded = tracker_field_get_embedded (def);
+	*is_writable = !tracker_field_get_embedded (def);
 
 	tracker_dbus_request_success (request_id);
 	
@@ -412,7 +387,7 @@ tracker_metadata_get_registered_classes (TrackerMetadata   *object,
 	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	result_set = tracker_db_exec_proc (iface, 
-					   "SelectMetadataClasses", 
+					   "SelectRegisteredClasses", 
 					   NULL);
 	
 	if (result_set) {

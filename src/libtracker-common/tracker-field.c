@@ -119,6 +119,24 @@ tracker_field_type_get_type (void)
 
 G_DEFINE_TYPE (TrackerField, tracker_field, G_TYPE_OBJECT);
 
+const gchar *
+tracker_field_type_to_string (TrackerFieldType fieldtype)
+{
+        GType       type;
+        GEnumClass *enum_class;
+        GEnumValue *enum_value;
+
+        type = tracker_field_type_get_type ();
+        enum_class = G_ENUM_CLASS (g_type_class_peek (type));
+        enum_value = g_enum_get_value (enum_class, fieldtype);
+        
+        if (!enum_value) {
+		return NULL;
+        }
+
+        return enum_value->value_nick;
+}
+
 static void
 tracker_field_class_init (TrackerFieldClass *klass)
 {

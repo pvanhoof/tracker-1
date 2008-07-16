@@ -27,13 +27,23 @@
       <arg type="as" name="files" direction="in" />
     </method>
     
-    <!-- The old signal in the daemon used to send the time taken, we
-	 can add this later
-      -->
-    <signal name="Status"/>
-    <signal name="Finished"/>
-    <signal name="ModuleStarted"/>
-    <signal name="ModuleFinished"/>
-
+    <!-- Signals --> 
+    <signal name="Status">
+      <arg type="d" name="elapsed_time" />
+      <arg type="s" name="current_module_name" />
+      <arg type="u" name="items_done" />
+      <arg type="u" name="items_remaining" />
+    </signal>
+    <signal name="Started" />
+    <signal name="Finished">
+      <arg type="d" name="elapsed_time" />
+      <arg type="u" name="items_done" />
+    </signal>
+    <signal name="ModuleStarted">
+      <arg type="s" name="module_name" />
+    </signal>
+    <signal name="ModuleFinished">
+      <arg type="s" name="module_name" />
+    </signal>
   </interface>
 </node>

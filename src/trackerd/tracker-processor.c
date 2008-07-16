@@ -27,9 +27,11 @@
 
 #include <libtracker-common/tracker-module-config.h>
 #include <libtracker-common/tracker-hal.h>
+#include <libtracker-common/tracker-utils.h>
 
 #include "tracker-processor.h"
 #include "tracker-crawler.h"
+#include "tracker-dbus.h"
 #include "tracker-monitor.h"
 #include "tracker-status.h"
 
@@ -42,6 +44,8 @@ struct TrackerProcessorPrivate {
 	TrackerHal     *hal;
 
 	TrackerCrawler *crawler;
+
+	DBusGProxy     *indexer_proxy;
 
 	GList          *modules;
 	GList          *current_module;
@@ -64,6 +68,16 @@ enum {
 
 static void tracker_processor_finalize (GObject          *object);
 static void process_next_module        (TrackerProcessor *processor);
+static void indexer_status_cb          (DBusGProxy       *proxy,
+					gdouble           seconds_elapsed,
+					const gchar      *current_module_name,
+					guint             items_done,
+					guint             items_remaining,
+					gpointer          user_data);
+static void indexer_finished_cb        (DBusGProxy       *proxy,
+					gdouble           seconds_elapsed,
+					guint             items_done,
+					gpointer          user_data);
 static void crawler_all_sent_cb        (TrackerCrawler   *crawler,
 					gpointer          user_data);
 static void crawler_finished_cb        (TrackerCrawler   *crawler,
@@ -72,6 +86,7 @@ static void crawler_finished_cb        (TrackerCrawler   *crawler,
 					guint             files_found,
 					guint             files_ignored,
 					gpointer          user_data);
+
 #ifdef HAVE_HAL
 static void mount_point_added_cb       (TrackerHal       *hal,
 					const gchar      *mount_point,
@@ -117,9 +132,11 @@ tracker_processor_init (TrackerProcessor *processor)
 static void
 tracker_processor_finalize (GObject *object)
 {
+	TrackerProcessor        *processor;
 	TrackerProcessorPrivate *priv;
 
-	priv = TRACKER_PROCESSOR_GET_PRIVATE (object);
+	processor = TRACKER_PROCESSOR (object);
+	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
 
 	if (priv->timer) {
 		g_timer_destroy (priv->timer);
@@ -127,6 +144,14 @@ tracker_processor_finalize (GObject *object)
 
 	g_list_free (priv->modules);
 
+	dbus_g_proxy_disconnect_signal (priv->indexer_proxy, "Finished",
+					G_CALLBACK (indexer_finished_cb),
+					processor);
+	dbus_g_proxy_disconnect_signal (priv->indexer_proxy, "Status",
+					G_CALLBACK (indexer_status_cb),
+					processor);
+	g_object_unref (priv->indexer_proxy);
+	
 	g_signal_handlers_disconnect_by_func (priv->crawler,
 					      G_CALLBACK (crawler_all_sent_cb),
 					      object);
@@ -266,14 +291,60 @@ process_next_module (TrackerProcessor *processor)
 }
 
 static void
+indexer_status_cb (DBusGProxy  *proxy,
+		   gdouble      seconds_elapsed,
+		   const gchar *current_module_name,
+		   guint        items_done,
+		   guint        items_remaining,
+		   gpointer     user_data)
+{
+	gchar *str;
+
+	str = tracker_seconds_estimate_to_string (seconds_elapsed, 
+						  items_done, 
+						  items_remaining);
+
+	g_message ("Indexed %d, %d remaining, current module:'%s', %s est. left", 
+		   items_done,
+		   items_remaining,
+		   current_module_name,
+		   str);
+	g_free (str);
+}
+
+static void
+indexer_finished_cb (DBusGProxy  *proxy,
+		     gdouble      seconds_elapsed,
+		     guint        items_done,
+		     gpointer     user_data)
+{
+	TrackerProcessor *processor;
+	gchar            *str;
+
+	str = tracker_seconds_to_string (seconds_elapsed);
+
+	g_message ("Indexer finished in %s, %d items indexed in total",
+		   str,
+		   items_done);
+	g_free (str);
+
+	/* Do we even need this step Optimizing ? */
+	tracker_status_set_and_signal (TRACKER_STATUS_OPTIMIZING);
+
+	/* Now the indexer is done, we can signal our status as IDLE */ 
+	tracker_status_set_and_signal (TRACKER_STATUS_IDLE);
+
+	/* Signal the processor is now finished */
+	processor = TRACKER_PROCESSOR (user_data);
+	g_signal_emit (processor, signals[FINISHED], 0);
+}
+
+static void
 crawler_all_sent_cb (TrackerCrawler *crawler,
 		     gpointer        user_data)
 {
-	/* Do we even need this step Optimizing ? */
-	tracker_status_set_and_signal (TRACKER_STATUS_OPTIMIZING);
-	
-	/* All done */
-	tracker_status_set_and_signal (TRACKER_STATUS_IDLE);
+	g_message ("All items have been sent to the indexer to process, "
+		   "waiting for indexer to finished");
 }
 
 static void
@@ -330,6 +401,7 @@ tracker_processor_new (TrackerConfig *config,
 {
 	TrackerProcessor        *processor;
 	TrackerProcessorPrivate *priv;
+	DBusGProxy              *proxy;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 
@@ -364,6 +436,21 @@ tracker_processor_new (TrackerConfig *config,
 	g_signal_connect (priv->crawler, "finished",
 			  G_CALLBACK (crawler_finished_cb),
 			  processor);
+
+	/* Set up the indexer proxy and signalling to know when we are
+	 * finished.
+	 */
+	proxy = tracker_dbus_indexer_get_proxy ();
+	priv->indexer_proxy = g_object_ref (proxy);
+	
+	dbus_g_proxy_connect_signal (proxy, "Status",
+				     G_CALLBACK (indexer_status_cb),
+				     g_object_ref (processor),
+				     (GClosureNotify) g_object_unref);
+	dbus_g_proxy_connect_signal (proxy, "Finished",
+				     G_CALLBACK (indexer_finished_cb),
+				     g_object_ref (processor),
+				     (GClosureNotify) g_object_unref);
 
 	return processor;
 }
@@ -430,11 +517,11 @@ tracker_processor_stop (TrackerProcessor *processor)
 
 		/* All done */
 		tracker_status_set_and_signal (TRACKER_STATUS_IDLE);
+
+		g_signal_emit (processor, signals[FINISHED], 0);
 	} else {
 		tracker_status_set_and_signal (TRACKER_STATUS_INDEXING);
 	}
-
-	g_signal_emit (processor, signals[FINISHED], 0);
 }
 
 guint 

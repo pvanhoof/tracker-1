@@ -41,6 +41,7 @@
 #include "tracker-xesam-glue.h"
 #include "tracker-indexer-client.h"
 #include "tracker-utils.h"
+#include "tracker-marshal.h"
 
 static DBusGConnection *connection;
 static DBusGProxy      *proxy;
@@ -326,8 +327,6 @@ tracker_dbus_get_object (GType type)
 DBusGProxy *
 tracker_dbus_indexer_get_proxy (void)
 {
-	GError *error = NULL;
-
 	if (!connection) {
 		g_critical ("DBus support must be initialized before starting the indexer!");
 		return NULL;
@@ -344,12 +343,35 @@ tracker_dbus_indexer_get_proxy (void)
 			g_critical ("Couldn't create a DBusGProxy to the indexer service");
 			return NULL;
 		}
+			 
+		/* Add marshallers */
+		dbus_g_object_register_marshaller (tracker_marshal_VOID__DOUBLE_STRING_UINT_UINT,
+						   G_TYPE_NONE,
+						   G_TYPE_DOUBLE,
+						   G_TYPE_STRING,
+						   G_TYPE_UINT,
+						   G_TYPE_UINT,
+						   G_TYPE_INVALID);
+		dbus_g_object_register_marshaller (tracker_marshal_VOID__DOUBLE_UINT,
+						   G_TYPE_NONE,
+						   G_TYPE_DOUBLE,
+						   G_TYPE_UINT,
+						   G_TYPE_INVALID);
+
+		/* Add signals, why can't we use introspection for this? */
+		dbus_g_proxy_add_signal (proxy_for_indexer,
+					 "Status",
+					 G_TYPE_DOUBLE,
+					 G_TYPE_STRING,
+					 G_TYPE_UINT,
+					 G_TYPE_UINT,
+					 G_TYPE_INVALID);
+		dbus_g_proxy_add_signal (proxy_for_indexer,
+					 "Finished",
+					 G_TYPE_DOUBLE,
+					 G_TYPE_UINT,
+					 G_TYPE_INVALID);
 	}
 
-	if (error) {
-		g_warning ("Couldn't start indexer, %s",
-			   error->message);
-	}
-	
 	return proxy_for_indexer;
 }

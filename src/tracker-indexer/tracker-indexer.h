@@ -53,11 +53,13 @@ struct TrackerIndexerClass {
 	GObjectClass parent_class;
 
 	void (*status)          (TrackerIndexer *indexer,
-				 guint           seconds_elapsed,
+				 gdouble         seconds_elapsed,
+				 const gchar    *current_module_name,
 				 guint           items_indexed,
 				 guint           items_remaining);
 	void (*started)         (TrackerIndexer *indexer);
 	void (*finished)        (TrackerIndexer *indexer,
+				 gdouble         seconds_elapsed,
 				 guint           items_indexed);
 	void (*module_started)  (TrackerIndexer *indexer,
 				 const gchar    *module_name);

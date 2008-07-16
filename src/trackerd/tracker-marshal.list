@@ -3,12 +3,12 @@ VOID:STRING,STRING,INT,INT,INT
 VOID:STRING,STRING,STRING
 VOID:STRING,BOOLEAN,BOOLEAN,BOOLEAN,BOOLEAN,BOOLEAN,BOOLEAN
 
-# HitsRemoved, HitsModified DBus signals
+# XESAM signals -- HitsRemoved, HitsModified
 VOID:STRING,BOXED
 
-# HitsAdded DBus signal
+# XESAM signals -- HitsAdded
 VOID:STRING,UINT
 
-#hits-added, hits-modified, hits-removed GObject signals
-VOID:OBJECT
-
+# Indexer signals
+VOID:DOUBLE,UINT
+VOID:DOUBLE,STRING,UINT,UINT

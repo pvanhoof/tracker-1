@@ -22,6 +22,9 @@
 #include <string.h>
 
 #include <glib.h>
+#include <glib/gi18n.h>
+
+#include "tracker-utils.h"
 
 inline gboolean
 tracker_is_empty_string (const char *str)
@@ -115,51 +118,79 @@ tracker_escape_string (const gchar *in)
 }
 
 gchar *
-tracker_estimate_time_left (GTimer *timer,
-			    guint   items_done,
-			    guint   items_remaining)
+tracker_seconds_estimate_to_string (gdouble seconds_elapsed,
+				    guint   items_done,
+				    guint   items_remaining)
 {
-	GString *s;
-	gdouble  elapsed;
-	gdouble  per_item;
-	gdouble  total;
-	gint     days, hrs, mins, secs;
+	gdouble per_item;
+	gdouble total;
+
+	g_return_val_if_fail (seconds_elapsed >= 0.0, g_strdup (_("unknown time")));
 	
-	if (items_done == 0) {
-		return g_strdup (" unknown time");
+	/* We don't want division by 0 or if total is 0 because items
+	 * remaining is 0 then, equally pointless.
+	 */
+	if (items_done < 1 || 
+	    items_remaining < 1) {
+		return g_strdup (_("unknown time"));
 	}
 
-	elapsed = g_timer_elapsed (timer, NULL);
-	per_item = elapsed / items_done;
+	per_item = seconds_elapsed / items_done;
 	total = per_item * items_remaining;
 
-	if (total <= 0) {
-		return g_strdup (" unknown time");
-	}
+	return tracker_seconds_to_string (total);
+}
 
-	secs = (gint) total % 60;
-	total /= 60;
-	mins = (gint) total % 60;
-	total /= 60;
-	hrs  = (gint) total % 24;
-	days = (gint) total / 24;
+gchar *
+tracker_seconds_to_string (gdouble seconds_elapsed)
+{
+	GString *s;
+	gdouble  total;
+	gint     days, hours, minutes, seconds;
+
+	g_return_val_if_fail (seconds_elapsed >= 0.0, g_strdup (_("unknown time")));
+
+	total    = seconds_elapsed;
+
+	seconds  = (gint) total % 60;
+	total   /= 60;
+	minutes  = (gint) total % 60;
+	total   /= 60;
+	hours    = (gint) total % 24;
+	days     = (gint) total / 24;
 
 	s = g_string_new ("");
 
 	if (days) {
-		g_string_append_printf (s, " %d day%s", days, days == 1 ? "" : "s");
+		g_string_append_printf (s, "%s%d day%s", 
+					s->len > 0 ? " " : "",
+					days, 
+					days == 1 ? "" : "s");
 	}
 	
-	if (hrs) {
-		g_string_append_printf (s, " %2.2d hour%s", hrs, hrs == 1 ? "" : "s");
+	if (hours) {
+		g_string_append_printf (s, "%s%2.2d hour%s", 
+					s->len > 0 ? " " : "",
+					hours, 
+					hours == 1 ? "" : "s");
 	}
 
-	if (mins) {
-		g_string_append_printf (s, " %2.2d minute%s", mins, mins == 1 ? "" : "s"); 
+	if (minutes) {
+		g_string_append_printf (s, "%s%2.2d minute%s", 
+					s->len > 0 ? " " : "",
+					minutes, 
+					minutes == 1 ? "" : "s"); 
 	}
 
-	if (secs) {
-		g_string_append_printf (s, " %2.2d second%s", secs, secs == 1 ? "" : "s");
+	if (seconds) {
+		g_string_append_printf (s, "%s%2.2d second%s", 
+					s->len > 0 ? " " : "",
+					seconds, 
+					seconds == 1 ? "" : "s");
+	}
+
+	if (s->len < 1) {
+		g_string_append_printf (s, _("unknown time"));
 	}
 
 	return g_string_free (s, FALSE);

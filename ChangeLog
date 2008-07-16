@@ -1,3 +1,47 @@
+2008-07-16  Martyn Russell  <martyn@imendio.com>
+
+	* data/dbus/tracker-indexer.xml: Add argument information about signals.
+
+	* src/libtracker-common/tracker-utils.[ch]: Change the time
+	estimation function and added a function to convert seconds into a
+	readable string format.
+	
+	* src/tracker-indexer/tracker-indexer-module.[ch]: 
+	* src/tracker-indexer/tracker-module.h: Added module_name to the
+	PathInfo->file type. This isn't so great, it means a lot of string
+	duplication. For now this is probably best, but ultimately we
+	should have separate queues in indexer like we do in the daemon so
+	we know by queue which module_name we are processing and we can do
+	them in the order they are sorted by (which is unsorted right now
+	but a potential future design). 
+	
+	* src/tracker-indexer/tracker-indexer.[ch]: 
+	* src/tracker-indexer/tracker-main.c: Changed the flush time
+	to 5 seconds from 10 and the transaction limit to 100 from 50.
+	Also make sure we reset the timer when restarting an index so the
+	estimated time is correct. Added elapsed time to the "Finished"
+	and "Status" signals. Plus the current module name is in the
+	"Status" signal too.
+	
+
+	* src/trackerd/tracker-dbus.c: Add signal signatures for the
+	indexer proxy and remove som unused code.
+	
+	* src/trackerd/tracker-db.c: 
+	* src/trackerd/tracker-main.c: 
+	* src/trackerd/tracker-xesam-manager.[ch]: Don't initialize the
+	indexer signal set up for XESAM here, do it in
+	tracker-xesam-manager's init function. Also, only disconnect the
+	signal on shutdown and make sure that is done BEFORE we shutdown
+	the dbus module to avoid warnings.
+	
+	* src/trackerd/tracker-marshal.list: Added Indexer signal marshals.
+	
+	* src/trackerd/tracker-processor.c: Set up signal handlers to know
+	when the indexer is finished and to get status updates. This way
+	we can now effectively signal the daemon status as IDLE when we
+	have finished indexing, not before as we did do.
+
 2008-07-15  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/libtracker-db/tracker-db-interface.c:

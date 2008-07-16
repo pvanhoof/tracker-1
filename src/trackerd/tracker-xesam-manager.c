@@ -25,6 +25,7 @@
 #include <unistd.h>
 
 #include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-utils.h>
 
 #include <libtracker-db/tracker-db-manager.h>
 
@@ -35,6 +36,17 @@
 static GHashTable *xesam_sessions; 
 static gchar      *xesam_dir;
 static gboolean    live_search_handler_running = FALSE;
+
+static void
+indexer_status_cb (DBusGProxy  *proxy,
+		   gdouble      seconds_elapsed,
+		   const gchar *current_module_name,
+		   guint        items_done,
+		   guint        items_remaining,
+		   gpointer     user_data)
+{
+	tracker_xesam_manager_wakeup ();	
+}
 
 GQuark
 tracker_xesam_manager_error_quark (void)
@@ -51,6 +63,8 @@ tracker_xesam_manager_error_quark (void)
 void 
 tracker_xesam_manager_init (void)
 {
+	DBusGProxy *proxy;
+
 	if (xesam_sessions) {
 		return;
 	}
@@ -62,60 +76,26 @@ tracker_xesam_manager_init (void)
 
 	xesam_dir = g_build_filename (g_get_home_dir (), ".xesam", NULL);
 
-}
-
-static void 
-tracker_xesam_manager_finished (DBusGProxy *proxy)
-{
-	dbus_g_proxy_disconnect_signal (proxy, 
-			"IndexUpdated",
-			G_CALLBACK (tracker_xesam_manager_wakeup),
-			NULL);
-
-	dbus_g_proxy_disconnect_signal (proxy, 
-			"Finished",
-			G_CALLBACK (tracker_xesam_manager_finished),
-			NULL);
-}
-
-void 
-tracker_xesam_subscribe_index_updated (DBusGProxy *proxy) 
-{
-	dbus_g_proxy_add_signal (proxy, "Finished",
-			   G_TYPE_INVALID,
-			   G_SIGNAL_RUN_LAST,
-			   NULL,
-			   NULL, NULL,
-			   g_cclosure_marshal_VOID__VOID,
-			   G_TYPE_NONE, 0);
-
-	dbus_g_proxy_add_signal (proxy, "IndexUpdated",
-			   G_TYPE_INVALID,
-			   G_SIGNAL_RUN_LAST,
-			   NULL,
-			   NULL, NULL,
-			   g_cclosure_marshal_VOID__VOID,
-			   G_TYPE_NONE, 0);
-
-	dbus_g_proxy_connect_signal (proxy, 
-			"Finished",
-			G_CALLBACK (tracker_xesam_manager_finished),
-			g_object_ref (proxy),
-			(GClosureNotify) g_object_unref);
-
-	dbus_g_proxy_connect_signal (proxy, 
-			"IndexUpdated",
-			G_CALLBACK (tracker_xesam_manager_wakeup),
-			g_object_ref (proxy),
-			(GClosureNotify) g_object_unref);
+	proxy = tracker_dbus_indexer_get_proxy ();
+	dbus_g_proxy_connect_signal (proxy, "Status",
+				     G_CALLBACK (indexer_status_cb),
+				     g_object_ref (proxy),
+				     (GClosureNotify) g_object_unref);
 }
 
 void
 tracker_xesam_manager_shutdown (void)
 {
+	DBusGProxy *proxy;
+
 	if (!xesam_sessions) {
 		return;
 	}
+
+	proxy = tracker_dbus_indexer_get_proxy ();
+	dbus_g_proxy_disconnect_signal (proxy, "Status",
+					G_CALLBACK (indexer_status_cb),
+					NULL);
 
 	g_free (xesam_dir);
 	xesam_dir = NULL;
@@ -348,7 +328,7 @@ live_search_handler_destroy (gpointer data)
 }
 
 void 
-tracker_xesam_manager_wakeup (gpointer user_data)
+tracker_xesam_manager_wakeup (void)
 {
 	/* This happens each time a new event is created */
 
@@ -359,7 +339,6 @@ tracker_xesam_manager_wakeup (gpointer user_data)
 	 * In case of a thread we could use usleep() and stop the thread if
 	 * we didn't get a wakeup-call nor we had items to process this loop
 	 */
-
 
 	if (!live_search_handler_running) {
 		live_search_handler_running = TRUE;

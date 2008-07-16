@@ -203,6 +203,7 @@ quit_timeout_cb (gpointer user_data)
 
 static void
 indexer_finished_cb (TrackerIndexer *indexer,
+                     gdouble seconds_elapsed,
                      guint items_indexed,
 		     gpointer user_data)
 {

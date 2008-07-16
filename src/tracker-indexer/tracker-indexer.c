@@ -75,10 +75,10 @@
 #define TRACKER_INDEXER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_INDEXER, TrackerIndexerPrivate))
 
 /* Flush every 'x' seconds */
-#define FLUSH_FREQUENCY             10
+#define FLUSH_FREQUENCY             5
 
 /* Transaction every 'x' items */
-#define TRANSACTION_MAX             50
+#define TRANSACTION_MAX             100
 
 /* Throttle defaults */
 #define THROTTLE_DEFAULT            0
@@ -160,13 +160,14 @@ G_DEFINE_TYPE (TrackerIndexer, tracker_indexer, G_TYPE_OBJECT)
 
 static PathInfo *
 path_info_new (GModule *module,
+	       const gchar *module_name,
 	       const gchar *path)
 {
 	PathInfo *info;
 
 	info = g_slice_new (PathInfo);
 	info->module = module;
-	info->file = tracker_indexer_module_file_new (module, path);
+	info->file = tracker_indexer_module_file_new (module, module_name, path);
 
 	return info;
 }
@@ -210,29 +211,33 @@ static void
 signal_status (TrackerIndexer *indexer,
 	       const gchar    *why)
 {
-	guint length;
+	gdouble seconds_elapsed;
+	guint   items_remaining;
 
-	length = g_queue_get_length (indexer->private->file_queue);
+	items_remaining = g_queue_get_length (indexer->private->file_queue);
+	seconds_elapsed = g_timer_elapsed (indexer->private->timer, NULL);
 
 	if (indexer->private->items_indexed > 0) {
 		gchar *str;
 
-		str = tracker_estimate_time_left (indexer->private->timer, 
-						  indexer->private->items_indexed, 
-						  length);
+		str = tracker_seconds_estimate_to_string (seconds_elapsed, 
+							  indexer->private->items_indexed, 
+							  items_remaining);
 		
-		g_message ("Indexed %d, %d remaining, %s est. left (%s)", 
+		g_message ("Indexed %d, %d remaining, current module:'%s', %s est. left (%s)", 
 			   indexer->private->items_indexed,
-			   length,
+			   items_remaining,
+			   indexer->private->current_module_name,
 			   str,
 			   why);
 		g_free (str);
 	}
 	
 	g_signal_emit (indexer, signals[STATUS], 0, 
-		       g_timer_elapsed (indexer->private->timer, NULL),
+		       seconds_elapsed,
+		       indexer->private->current_module_name,
 		       indexer->private->items_indexed,
-		       length);
+		       items_remaining);
 }
 
 static gboolean
@@ -440,10 +445,11 @@ tracker_indexer_class_init (TrackerIndexerClass *class)
 			      G_SIGNAL_RUN_LAST,
 			      G_STRUCT_OFFSET (TrackerIndexerClass, status),
 			      NULL, NULL,
-			      tracker_marshal_VOID__UINT_UINT_UINT,
+			      tracker_marshal_VOID__DOUBLE_STRING_UINT_UINT,
 			      G_TYPE_NONE,
-			      3,
-			      G_TYPE_UINT,
+			      4,
+			      G_TYPE_DOUBLE,
+			      G_TYPE_STRING,
 			      G_TYPE_UINT,
 			      G_TYPE_UINT);
 	signals[STARTED] = 
@@ -461,9 +467,10 @@ tracker_indexer_class_init (TrackerIndexerClass *class)
 			      G_SIGNAL_RUN_LAST,
 			      G_STRUCT_OFFSET (TrackerIndexerClass, finished),
 			      NULL, NULL,
-			      g_cclosure_marshal_VOID__UINT,
+			      tracker_marshal_VOID__DOUBLE_UINT,
 			      G_TYPE_NONE, 
-			      1,
+			      2,
+			      G_TYPE_DOUBLE,
 			      G_TYPE_UINT);
 	signals[MODULE_STARTED] =
 		g_signal_new ("module-started",
@@ -512,6 +519,9 @@ check_started (TrackerIndexer *indexer)
 	}
 
 	indexer->private->idle_id = g_idle_add (process_func, indexer);
+	
+	g_timer_destroy (indexer->private->timer);
+	indexer->private->timer = g_timer_new ();
 
 	g_signal_emit (indexer, signals[STARTED], 0);
 }
@@ -519,6 +529,9 @@ check_started (TrackerIndexer *indexer)
 static void
 check_stopped (TrackerIndexer *indexer)
 {
+	gchar   *str;
+	gdouble  seconds_elapsed;
+
 	if (indexer->private->idle_id == 0) {
 		return;
 	}
@@ -528,14 +541,22 @@ check_stopped (TrackerIndexer *indexer)
 
 	/* No more modules to query, we're done */
 	g_timer_stop (indexer->private->timer);
-	
-	g_message ("Indexer finished in %4.4f seconds, %d items indexed in total",
-		   g_timer_elapsed (indexer->private->timer, NULL),
-		   indexer->private->items_indexed);
+	seconds_elapsed = g_timer_elapsed (indexer->private->timer, NULL);
 
+	/* Clean up source ID */
 	indexer->private->idle_id = 0;
 	
+	/* Print out how long it took us */
+	str = tracker_seconds_to_string (seconds_elapsed);
+
+	g_message ("Indexer finished in %s, %d items indexed in total",
+		   str,
+		   indexer->private->items_indexed);
+	g_free (str);
+
+	/* Finally signal done */
 	g_signal_emit (indexer, signals[FINISHED], 0, 
+		       seconds_elapsed,
 		       indexer->private->items_indexed);
 }
 
@@ -731,6 +752,10 @@ process_file (TrackerIndexer *indexer,
 
 	g_debug ("Processing file:'%s'", info->file->path);
 
+	/* Set the current module */
+	g_free (indexer->private->current_module_name);
+	indexer->private->current_module_name = g_strdup (info->file->module_name);
+	
 	/* Sleep to throttle back indexing */
 	indexer_throttle (indexer->private->config, 100);
 
@@ -816,11 +841,11 @@ process_directory (TrackerIndexer *indexer,
 
 		path = g_build_filename (info->file->path, name, NULL);
 
-		new_info = path_info_new (info->module, path);
+		new_info = path_info_new (info->module, info->file->module_name, path);
 		add_file (indexer, new_info);
 
 		if (recurse && g_file_test (path, G_FILE_TEST_IS_DIR)) {
-			new_info = path_info_new (info->module, path);
+			new_info = path_info_new (info->module, info->file->module_name, path);
 			add_directory (indexer, new_info);
 		}
 
@@ -877,7 +902,7 @@ process_module (TrackerIndexer *indexer,
 	for (d = dirs; d; d = d->next) {
 		PathInfo *info;
 
-		info = path_info_new (module, d->data);
+		info = path_info_new (module, module_name, d->data);
 		add_directory (indexer, info);
 	}
 
@@ -985,7 +1010,7 @@ tracker_indexer_files_check (TrackerIndexer *indexer,
 		for (i = 0; files[i]; i++) {
 			PathInfo *info;
 
-			info = path_info_new (module, files[i]);
+			info = path_info_new (module, module_name, files[i]);
 			add_file (indexer, info);
 		}
 	} else {
@@ -1032,7 +1057,7 @@ tracker_indexer_files_update (TrackerIndexer *indexer,
 		for (i = 0; files[i]; i++) {
 			PathInfo *info;
 
-			info = path_info_new (module, files[i]);
+			info = path_info_new (module, module_name, files[i]);
 			add_file (indexer, info);
 		}
 	} else {
@@ -1079,7 +1104,7 @@ tracker_indexer_files_delete (TrackerIndexer *indexer,
 		for (i = 0; files[i]; i++) {
 			PathInfo *info;
 
-			info = path_info_new (module, files[i]);
+			info = path_info_new (module, module_name, files[i]);
 			add_file (indexer, info);
 		}
 

@@ -556,18 +556,12 @@ shutdown_directories (void)
 static gboolean
 start_cb (gpointer user_data)
 {
-	DBusGProxy *proxy;
-
 	if (!is_running) {
 		return FALSE;
 	}
 
-	/* Get files first */
 	tracker_processor_start (user_data);
 	
-	proxy = tracker_dbus_indexer_get_proxy ();
-	tracker_xesam_subscribe_index_updated (proxy);
-
 	return FALSE;
 }
 
@@ -821,9 +815,9 @@ main (gint argc, gchar *argv[])
 	shutdown_directories ();
 
 	/* Shutdown major subsystems */
-	tracker_dbus_shutdown ();
         tracker_module_config_shutdown ();
 	tracker_xesam_manager_shutdown ();
+	tracker_dbus_shutdown ();
 	tracker_db_manager_shutdown ();
 	tracker_db_shutdown ();
 	tracker_monitor_shutdown ();

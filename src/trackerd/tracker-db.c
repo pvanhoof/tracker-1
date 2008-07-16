@@ -462,7 +462,7 @@ db_create_event (TrackerDBInterface *iface,
 
 	g_free (eid);
 
-	tracker_xesam_manager_wakeup (NULL);
+	tracker_xesam_manager_wakeup ();
 
 	return id;
 }

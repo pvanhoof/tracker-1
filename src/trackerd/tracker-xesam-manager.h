@@ -29,7 +29,7 @@
 
 G_BEGIN_DECLS
 
-#define TRACKER_XESAM_ERROR_DOMAIN tracker_xesam_manager_error_quark()
+#define TRACKER_XESAM_ERROR_DOMAIN tracker_xesam_manager_error_quark ()
 
 typedef enum {
 	TRACKER_XESAM_ERROR_SEARCH_ID_NOT_REGISTERED = 1,
@@ -63,8 +63,7 @@ TrackerXesamLiveSearch*
 						       GError                 **error);
 gchar *  tracker_xesam_manager_generate_unique_key    (void);
 gboolean tracker_xesam_manager_is_uri_in_xesam_dir    (const gchar             *uri);
-void     tracker_xesam_subscribe_index_updated        (DBusGProxy *proxy);
-void     tracker_xesam_manager_wakeup                 (gpointer user_data);
+void     tracker_xesam_manager_wakeup                 (void);
 
 G_END_DECLS
 

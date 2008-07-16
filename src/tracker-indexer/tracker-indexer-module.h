@@ -35,6 +35,7 @@ void                    tracker_indexer_module_shutdown               (GModule  
 G_CONST_RETURN gchar *  tracker_indexer_module_get_name               (GModule     *module);
 
 TrackerFile *           tracker_indexer_module_file_new               (GModule     *module,
+								       const gchar *module_name,
 								       const gchar *path);
 void                    tracker_indexer_module_file_free              (GModule     *module,
 								       TrackerFile *file);

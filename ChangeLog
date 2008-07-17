@@ -1,3 +1,12 @@
+2008-07-17  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-log.[ch]: Cleaned up the code here
+	a bit and only open the file descriptor on init and close on
+	shutdown, instead of once per write. This should fix the error we
+	get when we can't open the file because too many files are already
+	open. It should also be marginally quicker. If we can't open the
+	file, we print everything to stderr too now.
+
 2008-07-17  Ivan Frade  <ivan.frade@nokia.com>
 	
 	* data/dbus/tracker-metadata.xml

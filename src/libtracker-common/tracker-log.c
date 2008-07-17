@@ -35,52 +35,33 @@
 
 #include "tracker-log.h"
 
-typedef struct {
-	GMutex   *mutex;
-	gchar    *filename;
-	gint      verbosity;
-	gboolean  abort_on_error;
-} TrackerLog;
-
-static TrackerLog *log = NULL;
-static guint log_handler_id;
+static gboolean  initialized;
+static GMutex   *mutex;
+static FILE     *fd;
+static gint      verbosity;
+static guint     log_handler_id;
 
 static inline void
 log_output (const gchar    *domain,
 	    GLogLevelFlags  log_level,
 	    const gchar    *message)
 {
-	FILE          *fd;
-	time_t         now;
-	gchar          time_str[64];
-	gchar         *output;
-	struct tm     *local_time;
-	GTimeVal       current_time;
-	static gsize   size = 0;
-	const gchar   *log_level_str;
+	time_t        now;
+	gchar         time_str[64];
+	gchar        *output;
+	struct tm    *local_time;
+	GTimeVal      current_time;
+	const gchar  *log_level_str;
+	static gsize  size = 0;
 
-	g_return_if_fail (log != NULL);
+	g_return_if_fail (initialized == TRUE);
 	g_return_if_fail (message != NULL && message[0] != '\0');
 
 	/* Ensure file logging is thread safe */
-	g_mutex_lock (log->mutex);
-
-	fd = g_fopen (log->filename, "a");
-	if (!fd) {
-		const gchar *error_string;
-
-		error_string = g_strerror (errno);
-		g_fprintf (stderr,
-			   "Could not open log:'%s', %s\n", 
-			   log->filename,
-			   error_string);
-		g_mutex_unlock (log->mutex);
-
-		return;
-	}
+	g_mutex_lock (mutex);
 
 	/* Check log size, 10MiB limit */
-	if (size > (10 << 20)) {
+	if (size > (10 << 20) && fd) {
 		rewind (fd);
 		ftruncate (fileno (fd), 0);
 		size = 0;
@@ -117,12 +98,17 @@ log_output (const gchar    *domain,
 				  log_level_str ? log_level_str : "",
 				  message);
 
-	size += g_fprintf (fd, "%s\n", output);
+	if (G_UNLIKELY (fd == NULL)) {
+		g_fprintf (stderr, "%s\n", output);
+		fflush (stderr);
+	} else {
+		size += g_fprintf (fd, "%s\n", output);
+		fflush (fd);
+	}
+
 	g_free (output);
 
-	fclose (fd);
-
-	g_mutex_unlock (log->mutex);
+	g_mutex_unlock (mutex);
 }
 
 static void
@@ -131,54 +117,73 @@ tracker_log_handler (const gchar    *domain,
 		     const gchar    *message,
 		     gpointer        user_data)
 {
-	if (((log_level & G_LOG_LEVEL_DEBUG) && log->verbosity < 3) ||
-	    ((log_level & G_LOG_LEVEL_INFO) && log->verbosity < 2) ||
-	    ((log_level & G_LOG_LEVEL_MESSAGE) && log->verbosity < 1)) {
+	if (((log_level & G_LOG_LEVEL_DEBUG) && verbosity < 3) ||
+	    ((log_level & G_LOG_LEVEL_INFO) && verbosity < 2) ||
+	    ((log_level & G_LOG_LEVEL_MESSAGE) && verbosity < 1)) {
 		return;
 	}
 
 	log_output (domain, log_level, message);
 
-	/* now show the message through stdout/stderr as usual */
+	/* Now show the message through stdout/stderr as usual */
 	g_log_default_handler (domain, log_level, message, user_data);
 }
 
-void
+gboolean
 tracker_log_init (const gchar *filename,
-		  gint         verbosity)
+		  gint         this_verbosity)
 {
-	g_return_if_fail (filename != NULL);
+	g_return_val_if_fail (filename != NULL, FALSE);
 
-	if (log != NULL) {
-		g_warning ("Log already initialized");
-		return;
+	if (initialized) {
+		return TRUE;
 	}
 
-	log = g_new0 (TrackerLog, 1);
-	log->filename = g_strdup (filename);
-	log->mutex = g_mutex_new ();
-	log->verbosity = verbosity;
+	/* Open file */
+	fd = g_fopen (filename, "a");
+	if (!fd) {
+		const gchar *error_string;
 
+		error_string = g_strerror (errno);
+		g_fprintf (stderr,
+			   "Could not open log:'%s', %s\n", 
+			   filename,
+			   error_string);
+		g_fprintf (stderr,
+			   "All logging will go to stderr\n");
+	}
+
+	verbosity = this_verbosity;
+	mutex = g_mutex_new ();
+
+	/* Add log handler function */
 	log_handler_id = g_log_set_handler (NULL, 
 					    G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL,
 					    tracker_log_handler, 
-					    log);
+					    NULL);
 
-	g_log_set_default_handler (tracker_log_handler, log);
+	g_log_set_default_handler (tracker_log_handler, NULL);
+
+	initialized = TRUE;
+
+	return TRUE;
 }
 
 void
 tracker_log_shutdown (void) 
 {
-	g_return_if_fail (log != NULL);
+	if (!initialized) {
+		return;
+	}
+
+	if (fd) {
+		fclose (fd);
+	}
 
 	g_log_remove_handler (NULL, log_handler_id);
 	log_handler_id = 0;
 
-	g_mutex_free (log->mutex);
-	g_free (log->filename);
-	g_free (log);
+	g_mutex_free (mutex);
 
-	/* Reset the log pointer so we can re-initialize if we want */
-	log = NULL;
+	initialized = FALSE;
 }

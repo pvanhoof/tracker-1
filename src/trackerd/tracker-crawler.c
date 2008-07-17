@@ -652,9 +652,10 @@ process_file (TrackerCrawler *crawler,
 
 static void
 process_directory (TrackerCrawler *crawler,
-		   GFile          *file)
+		   GFile          *file,
+		   const gchar    *module_name)
 {
-	tracker_monitor_add (file);
+	tracker_monitor_add (file, module_name);
 
 	file_enumerate_children (crawler, file);
 }
@@ -665,6 +666,7 @@ process_func (gpointer data)
 	TrackerCrawler *crawler;
 	GQueue         *queue = NULL;
 	GFile          *file;
+	gchar          *module_name;
 
 	crawler = TRACKER_CRAWLER (data);
 
@@ -685,14 +687,14 @@ process_func (gpointer data)
 	}
 
 	/* Get the first files queue with data and process it. */
-	queue = queue_get_next_for_directories_with_data (crawler, NULL);
+	queue = queue_get_next_for_directories_with_data (crawler, &module_name);
 
 	if (queue) {
 		/* Crawler directory contents */
 		file = g_queue_pop_head (queue);
 		
 		if (file) {
-			process_directory (crawler, file);
+			process_directory (crawler, file, module_name);
 			g_object_unref (file);
 			
 			return TRUE;
@@ -1007,7 +1009,7 @@ tracker_crawler_start (TrackerCrawler *crawler,
 	priv->directories_ignored = 0;
 	priv->files_found = 0;
 	priv->files_ignored = 0;
-	priv->monitors_added = tracker_monitor_get_count ();
+	priv->monitors_added = tracker_monitor_get_count (module_name);
 	priv->monitors_ignored = tracker_monitor_get_ignored ();
 
 	for (sl = paths; sl; sl = sl->next) {
@@ -1033,6 +1035,19 @@ tracker_crawler_stop (TrackerCrawler *crawler)
 
 	priv = crawler->private;
 
+	g_message ("  %s crawling files in %4.4f seconds",
+		   priv->finished ? "Finished" : "Stopped",
+		   g_timer_elapsed (priv->timer, NULL));
+	g_message ("  Found %d directories, ignored %d directories",
+		   priv->directories_found,
+		   priv->directories_ignored);
+	g_message ("  Found %d files, ignored %d files",
+		   priv->files_found,
+		   priv->files_ignored);
+	g_message ("  Added %d monitors, ignored %d monitors",
+		   tracker_monitor_get_count (priv->current_module_name),
+		   tracker_monitor_get_ignored () - priv->monitors_ignored);
+
 	priv->running = FALSE;
 
 	if (priv->idle_id) {
@@ -1056,21 +1071,6 @@ tracker_crawler_stop (TrackerCrawler *crawler)
 		g_list_free (priv->ignored_directory_patterns);
 		priv->ignored_directory_patterns = NULL;
 	}
-
-	g_timer_stop (priv->timer);
-
-	g_message ("  %s crawling files in %4.4f seconds",
-		   priv->finished ? "Finished" : "Stopped",
-		   g_timer_elapsed (priv->timer, NULL));
-	g_message ("  Found %d directories, ignored %d directories",
-		   priv->directories_found,
-		   priv->directories_ignored);
-	g_message ("  Found %d files, ignored %d files",
-		   priv->files_found,
-		   priv->files_ignored);
-	g_message ("  Added %d monitors, ignored %d monitors",
-		   tracker_monitor_get_count () - priv->monitors_added,
-		   tracker_monitor_get_ignored () - priv->monitors_ignored);
 
 	g_timer_destroy (priv->timer);
 	priv->timer = NULL;

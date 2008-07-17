@@ -1,3 +1,17 @@
+2008-07-17  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-crawler.c:
+	* src/trackerd/tracker-processor.c:
+	* src/trackerd/tracker-main.c: Initialize module config before
+	initializing the monitor module. The monitor module uses the
+	module config to set up queues and hash tables.
+	
+	* src/trackerd/tracker-monitor.[ch]: Make all API calls require a
+	module name. This is because now we have separate queues for each
+	module and 3 queues for each type of event (created, updated,
+	deleted). This means we now don't just send "Files" as the service
+	type when telling the indexer about monitor events.
+
 2008-07-17  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/trackerd/tracker-search.c:

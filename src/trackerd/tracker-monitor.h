@@ -30,12 +30,15 @@ G_BEGIN_DECLS
 
 gboolean tracker_monitor_init                 (TrackerConfig *config);
 void     tracker_monitor_shutdown             (void);
-gboolean tracker_monitor_add                  (GFile         *file);
+gboolean tracker_monitor_add                  (GFile         *file,
+					       const gchar   *module_name);
 gboolean tracker_monitor_remove               (GFile         *file,
-					       gboolean       delete_subdirs);
-gboolean tracker_monitor_is_watched           (GFile         *file);
-gboolean tracker_monitor_is_watched_by_string (const gchar   *path);
-guint    tracker_monitor_get_count            (void);
+					       const gchar   *module_name);
+gboolean tracker_monitor_is_watched           (GFile         *file,
+					       const gchar   *module_name);
+gboolean tracker_monitor_is_watched_by_string (const gchar   *path,
+					       const gchar   *module_name);
+guint    tracker_monitor_get_count            (const gchar   *module_name);
 guint    tracker_monitor_get_ignored          (void);
 
 G_END_DECLS

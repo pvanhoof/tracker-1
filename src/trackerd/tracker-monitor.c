@@ -23,6 +23,7 @@
 
 #include <libtracker-common/tracker-dbus.h>
 #include <libtracker-common/tracker-file-utils.h>
+#include <libtracker-common/tracker-module-config.h>
 
 #include "tracker-monitor.h"
 #include "tracker-dbus.h"
@@ -31,16 +32,29 @@
 #define FILES_QUEUE_PROCESS_INTERVAL 2000
 #define FILES_QUEUE_PROCESS_MAX      5000
 
+typedef enum {
+	SENT_DATA_TYPE_CREATED,
+	SENT_DATA_TYPE_UPDATED,
+	SENT_DATA_TYPE_DELETED
+} SentDataType;
+
+typedef struct {
+ 	SentDataType  type;
+	GQueue       *queue;
+	GStrv         files;
+	const gchar  *module_name;
+} SentData;
+
+static gboolean       initialized;
+
 static TrackerConfig *config;
-static GHashTable    *monitors;
 
-static GQueue        *files_created;
-static GQueue        *files_updated;
-static GQueue        *files_deleted;
+static GHashTable    *modules;
+static GHashTable    *files_created_queues;
+static GHashTable    *files_updated_queues;
+static GHashTable    *files_deleted_queues;
 
-static gboolean       files_created_sent;
-static gboolean       files_updated_sent;
-static gboolean       files_deleted_sent;
+static gboolean       sent_data[3];
 
 static guint          files_queue_handlers_id;
 
@@ -51,7 +65,7 @@ static gboolean       monitor_limit_warned;
 static guint          monitors_ignored;
 
 static guint
-monitor_get_inotify_limit (void)
+get_inotify_limit (void)
 {
 	GError      *error = NULL;
 	const gchar *filename;
@@ -79,118 +93,184 @@ monitor_get_inotify_limit (void)
 	return limit;
 }
 
-gboolean 
-tracker_monitor_init (TrackerConfig *_config) 
+static const gchar *
+get_queue_from_gfile (GFile *file)
 {
-	g_return_val_if_fail (TRACKER_IS_CONFIG (_config), FALSE);
-	
-	if (!config) {
-		config = g_object_ref (_config);
+	GHashTable  *hash_table;
+	GList       *all_modules, *l;
+	const gchar *module_name = NULL;
+
+	all_modules = g_hash_table_get_keys (modules);
+
+	for (l = all_modules; l && !module_name; l = l->next) {
+		hash_table = g_hash_table_lookup (modules, l->data);
+		if (g_hash_table_lookup (hash_table, file)) {
+			module_name = l->data;
+		}
 	}
+
+	g_list_free (all_modules);
+
+	return module_name;
+}
+
+static void
+files_queue_destroy_notify (gpointer data)
+{
+	GQueue *queue;
+
+	queue = (GQueue *) data;
+
+	g_queue_foreach (queue, (GFunc) g_free, NULL);
+	g_queue_free (queue);
+}
+
+gboolean 
+tracker_monitor_init (TrackerConfig *this_config) 
+{
+	GFile        *file;
+	GFileMonitor *monitor;
+	GList        *all_modules, *l;
+	const gchar  *name;
+
+	g_return_val_if_fail (TRACKER_IS_CONFIG (this_config), FALSE);
 	
-	if (!monitors) {
+	if (initialized) {
+		return TRUE;
+	}
+
+	config = g_object_ref (this_config);
+	
+	/* For each module we create a hash table for monitors */
+	modules = 
+		g_hash_table_new_full (g_str_hash,
+				       g_str_equal,
+				       g_free,
+				       (GDestroyNotify) g_hash_table_unref);
+
+	files_created_queues = 
+		g_hash_table_new_full (g_str_hash,
+				       g_str_equal,
+				       g_free,
+				       files_queue_destroy_notify);
+	files_updated_queues = 
+		g_hash_table_new_full (g_str_hash,
+				       g_str_equal,
+				       g_free,
+				       files_queue_destroy_notify);
+	files_deleted_queues = 
+		g_hash_table_new_full (g_str_hash,
+				       g_str_equal,
+				       g_free,
+				       files_queue_destroy_notify);
+
+	all_modules = tracker_module_config_get_modules ();
+
+	for (l = all_modules; l; l = l->next) {
+		GHashTable *monitors;
+
+		/* Create monitors table for this module */
 		monitors = g_hash_table_new_full (g_file_hash,
 						  (GEqualFunc) g_file_equal,
 						  (GDestroyNotify) g_object_unref,
 						  (GDestroyNotify) g_file_monitor_cancel);
+		
+		g_hash_table_insert (modules, g_strdup (l->data), monitors);
+
+		/* Create queues for this module */
+		g_hash_table_insert (files_created_queues, 
+				     g_strdup (l->data), 
+				     g_queue_new ());
+		g_hash_table_insert (files_updated_queues, 
+				     g_strdup (l->data), 
+				     g_queue_new ());
+		g_hash_table_insert (files_deleted_queues, 
+				     g_strdup (l->data), 
+				     g_queue_new ());
 	}
 
-	if (!files_created) {
-		files_created = g_queue_new ();
-	}
-
-	if (!files_updated) {
-		files_updated = g_queue_new ();
-	}
-
-	if (!files_deleted) {
-		files_deleted = g_queue_new ();
-	}
+	g_list_free (all_modules);
 
 	/* For the first monitor we get the type and find out if we
 	 * are using inotify, FAM, polling, etc.
 	 */
-	if (monitor_backend == 0) {
-		GFile        *file;
-		GFileMonitor *monitor;
-		const gchar  *name;
-
-		file = g_file_new_for_path (g_get_home_dir ());
-		monitor = g_file_monitor_directory (file,
-						    G_FILE_MONITOR_WATCH_MOUNTS,
-						    NULL,
-						    NULL);
-
-		monitor_backend = G_OBJECT_TYPE (monitor);
-
-		/* We use the name because the type itself is actually
-		 * private and not available publically. Note this is
-		 * subject to change, but unlikely of course.
-		 */
-		name = g_type_name (monitor_backend);
-		if (name) {
-			/* Set limits based on backend... */
-			if (strcmp (name, "GInotifyDirectoryMonitor") == 0) {
-				/* Using inotify */
-				g_message ("Monitor backend is INotify");
-
-				/* Setting limit based on kernel
-				 * settings in /proc...
-				 */
-				monitor_limit = monitor_get_inotify_limit ();
-
-				/* We don't use 100% of the monitors, we allow other
-				 * applications to have at least 500 or so to use
-				 * between them selves. This only
-				 * applies to inotify because it is a
-				 * user shared resource.
-				 */
-				monitor_limit -= 500;
-
-				/* Make sure we don't end up with a
-				 * negative maximum.
-				 */
-				monitor_limit = MAX (monitor_limit, 0);
-			}
-			else if (strcmp (name, "GFamDirectoryMonitor") == 0) {
-				/* Using Fam */
-				g_message ("Monitor backend is Fam");
-
-				/* Setting limit to an arbitary limit
-				 * based on testing 
-				 */
-				monitor_limit = 400;
-			}
-			else if (strcmp (name, "GFenDirectoryMonitor") == 0) {
-				/* Using Fen, what is this? */
-				g_message ("Monitor backend is Fen");
-
-				/* Guessing limit... */
-				monitor_limit = 8192;
-			}
-			else if (strcmp (name, "GWin32DirectoryMonitor") == 0) {
-				/* Using Windows */
-				g_message ("Monitor backend is Windows");
-
-				/* Guessing limit... */
-				monitor_limit = 8192;
-			}
-			else {
-				/* Unknown */
-				g_warning ("Monitor backend:'%s' is unknown, we have no limits "
-					   "in place because we don't know what we are dealing with!", 
-					   name);
-
-				/* Guessing limit... */
-				monitor_limit = 100;
-			}
+	file = g_file_new_for_path (g_get_home_dir ());
+	monitor = g_file_monitor_directory (file,
+					    G_FILE_MONITOR_WATCH_MOUNTS,
+					    NULL,
+					    NULL);
+	
+	monitor_backend = G_OBJECT_TYPE (monitor);
+	
+	/* We use the name because the type itself is actually
+	 * private and not available publically. Note this is
+	 * subject to change, but unlikely of course.
+	 */
+	name = g_type_name (monitor_backend);
+	if (name) {
+		/* Set limits based on backend... */
+		if (strcmp (name, "GInotifyDirectoryMonitor") == 0) {
+			/* Using inotify */
+			g_message ("Monitor backend is INotify");
+			
+			/* Setting limit based on kernel
+			 * settings in /proc...
+			 */
+			monitor_limit = get_inotify_limit ();
+			
+			/* We don't use 100% of the monitors, we allow other
+			 * applications to have at least 500 or so to use
+			 * between them selves. This only
+			 * applies to inotify because it is a
+			 * user shared resource.
+			 */
+			monitor_limit -= 500;
+			
+			/* Make sure we don't end up with a
+			 * negative maximum.
+			 */
+			monitor_limit = MAX (monitor_limit, 0);
 		}
-
-		g_message ("Monitor limit is %d", monitor_limit);
-
-		g_file_monitor_cancel (monitor);
-		g_object_unref (file);
+		else if (strcmp (name, "GFamDirectoryMonitor") == 0) {
+			/* Using Fam */
+			g_message ("Monitor backend is Fam");
+			
+			/* Setting limit to an arbitary limit
+			 * based on testing 
+			 */
+			monitor_limit = 400;
+		}
+		else if (strcmp (name, "GFenDirectoryMonitor") == 0) {
+			/* Using Fen, what is this? */
+			g_message ("Monitor backend is Fen");
+			
+			/* Guessing limit... */
+			monitor_limit = 8192;
+		}
+		else if (strcmp (name, "GWin32DirectoryMonitor") == 0) {
+			/* Using Windows */
+			g_message ("Monitor backend is Windows");
+			
+			/* Guessing limit... */
+			monitor_limit = 8192;
+		}
+		else {
+			/* Unknown */
+			g_warning ("Monitor backend:'%s' is unknown, we have no limits "
+				   "in place because we don't know what we are dealing with!", 
+				   name);
+			
+			/* Guessing limit... */
+			monitor_limit = 100;
+		}
 	}
+	
+	g_message ("Monitor limit is %d", monitor_limit);
+	
+	g_file_monitor_cancel (monitor);
+	g_object_unref (file);
+
+	initialized = TRUE;
 
 	return TRUE;
 }
@@ -198,6 +278,10 @@ tracker_monitor_init (TrackerConfig *_config)
 void
 tracker_monitor_shutdown (void)
 {
+	if (!initialized) {
+		return;
+	}
+
 	monitors_ignored = 0;
 	monitor_limit_warned = FALSE;
 	monitor_limit = 0;
@@ -208,24 +292,90 @@ tracker_monitor_shutdown (void)
 		files_queue_handlers_id = 0;
 	}
 
-	g_queue_foreach (files_deleted, (GFunc) g_free, NULL);
-	g_queue_free (files_deleted);
+	if (files_deleted_queues) {
+		g_hash_table_unref (files_deleted_queues);
+		files_deleted_queues = NULL;
+	}
 
-	g_queue_foreach (files_updated, (GFunc) g_free, NULL);
-	g_queue_free (files_updated);
+	if (files_updated_queues) {
+		g_hash_table_unref (files_updated_queues);
+		files_updated_queues = NULL;
+	}
 
-	g_queue_foreach (files_created, (GFunc) g_free, NULL);
-	g_queue_free (files_created);
+	if (files_created_queues) {
+		g_hash_table_unref (files_created_queues);
+		files_created_queues = NULL;
+	}
 
-	if (monitors) {
-		g_hash_table_unref (monitors);
-		monitors = NULL;
+	if (modules) {
+		g_hash_table_unref (modules);
+		modules = NULL;
 	}
 	
 	if (config) {
 		g_object_unref (config);
 		config = NULL;
 	}
+
+	initialized = FALSE;
+}
+
+static SentData *
+sent_data_new (SentDataType  type,
+	       GQueue       *queue,
+	       GStrv         files,
+	       const gchar  *module_name)
+{
+	SentData *sd;
+	
+	sd = g_slice_new0 (SentData);
+	sd->type = type;
+	sd->queue = queue;
+	sd->files = files;
+	sd->module_name = module_name;
+
+	return sd;
+}
+
+static void
+sent_data_free (SentData *sd)
+{
+	g_strfreev (sd->files);
+	g_slice_free (SentData, sd);
+}
+
+static GQueue *
+get_next_queue_with_data (GHashTable  *hash_table,
+			  gchar      **module_name_p)
+{
+	GQueue *queue;
+	GList  *all_modules, *l;
+	gchar  *module_name;
+
+	if (module_name_p) {
+		*module_name_p = NULL;
+	}
+
+	all_modules = g_hash_table_get_keys (hash_table);
+	
+	for (l = all_modules, queue = NULL; l && !queue; l = l->next) {
+		module_name = l->data;
+		queue = g_hash_table_lookup (hash_table, module_name);
+
+		if (g_queue_get_length (queue) > 0) {
+			if (module_name_p) {
+				*module_name_p = module_name;
+			}
+
+			continue;
+		}
+
+		queue = NULL;
+	}
+	
+	g_list_free (all_modules);
+
+	return queue;
 }
 
 static void
@@ -243,159 +393,128 @@ file_queue_readd_items (GQueue *queue,
 }
 
 static void
-file_queue_processed_deleted_cb (DBusGProxy *proxy,
-				 GError     *error,
-				 gpointer    user_data)
+file_queue_processed_cb (DBusGProxy *proxy,
+			 GError     *error,
+			 gpointer    user_data)
 {
-	GStrv files;
+	SentData *sd;
 	
-	files = (GStrv) user_data;
+	sd = (SentData*) user_data;
 
 	if (error) {
-		g_message ("Files could not be deleted by the indexer, %s",
+		g_message ("Monitor events could not be processed by the indexer, %s",
 			   error->message);
 		g_error_free (error);
 
 		/* Put files back into queue */
-		file_queue_readd_items (files_deleted, files);
+		file_queue_readd_items (sd->queue, sd->files);
  	} else {
 		g_debug ("Sent!");
 	}
 
-	g_strfreev (files);
-	files_deleted_sent = FALSE;
-}
+	/* Set status so we know we can send more files */
+	sent_data[sd->type] = FALSE;
 
-static void
-file_queue_processed_created_cb (DBusGProxy *proxy,
-				 GError     *error,
-				 gpointer    user_data)
-{
-	GStrv files;
-	
-	files = (GStrv) user_data;
-
-	if (error) {
-		g_message ("Files could not be created by the indexer, %s",
-			   error->message);
-		g_error_free (error);
-
-		/* Put files back into queue */
-		file_queue_readd_items (files_created, files);
- 	} else {
-		g_debug ("Sent!");
-	}
-
-	g_strfreev (files);
-	files_created_sent = FALSE;
-}
-
-static void
-file_queue_processed_updated_cb (DBusGProxy *proxy,
-				 GError     *error,
-				 gpointer    user_data)
-{
-	GStrv files;
-	
-	files = (GStrv) user_data;
-
-	if (error) {
-		g_message ("Files could not be updated by the indexer, %s",
-			   error->message);
-		g_error_free (error);
-
-		/* Put files back into queue */
-		file_queue_readd_items (files_updated, files);
- 	} else {
-		g_debug ("Sent!");
-	}
-
-	g_strfreev (files);
-	files_updated_sent = FALSE;
+	sent_data_free (sd);
 }
 
 static gboolean
 file_queue_handlers_cb (gpointer user_data)
 {
-	DBusGProxy *proxy;
-	GStrv       files;
-	gint        items_to_process = 0;
-
-	/* FIXME: We need to know what service these files belong to... */
+	DBusGProxy   *proxy;
+	GQueue       *queue;
+	GStrv         files; 
+	gchar        *module_name;
+	SentData     *sd;
+	SentDataType  type;
 
 	/* This is here so we don't try to send something if we are
 	 * still waiting for a response from the last send.
-	 */
-	if (files_created_sent ||
-	    files_updated_sent ||
-	    files_deleted_sent) {
+	 */ 
+	if (sent_data[SENT_DATA_TYPE_CREATED] ||
+	    sent_data[SENT_DATA_TYPE_DELETED] ||
+	    sent_data[SENT_DATA_TYPE_UPDATED]) {
 		g_message ("Still waiting for response from indexer, "
 			   "not sending more files yet");
 		return TRUE;
 	}
 
-	items_to_process += g_queue_get_length (files_created);
-	items_to_process += g_queue_get_length (files_updated);
-	items_to_process += g_queue_get_length (files_deleted);
-
-	if (items_to_process < 1) {
-		g_debug ("All queues are empty... nothing to do");
-		files_queue_handlers_id = 0;
-		return FALSE;
-	}
-
 	/* Check we can actually talk to the indexer */
 	proxy = tracker_dbus_indexer_get_proxy ();
-
-	/* First do the deleted queue */
-	g_debug ("Files deleted queue being processed...");
-	files = tracker_dbus_queue_str_to_strv (files_deleted, FILES_QUEUE_PROCESS_MAX);
 	
-	if (g_strv_length (files) > 0) {
-		g_debug ("Files deleted queue processed, sending first %d to the indexer", 
-			 g_strv_length (files));
+	/* Process the deleted items first */
+	queue = get_next_queue_with_data (files_deleted_queues, &module_name);
 
-		files_deleted_sent = TRUE;
+	if (queue && g_queue_get_length (queue) > 0) {
+		/* First do the deleted queue */
+		files = tracker_dbus_queue_str_to_strv (queue, FILES_QUEUE_PROCESS_MAX);
+		
+		g_message ("Monitor events queue for deleted items processed, sending first %d to the indexer", 
+			   g_strv_length (files));
+
+		type = SENT_DATA_TYPE_DELETED;
+		sent_data[type] = TRUE;
+		sd = sent_data_new (type, queue, files, module_name);
+
 		org_freedesktop_Tracker_Indexer_files_delete_async (proxy,
-								    "files",
+								    module_name,
 								    (const gchar **) files,
-								    file_queue_processed_deleted_cb,
-								    files);
+								    file_queue_processed_cb,
+								    sd);
+		
+		return TRUE;
 	}
 
-	/* Second do the created queue */
-	g_debug ("Files created queue being processed...");
-	files = tracker_dbus_queue_str_to_strv (files_created, FILES_QUEUE_PROCESS_MAX);
+	/* Process the deleted items first */
+	queue = get_next_queue_with_data (files_created_queues, &module_name);
 
-	if (g_strv_length (files) > 0) {
-		g_debug ("Files created queue processed, sending first %d to the indexer", 
-			 g_strv_length (files));
+	if (queue && g_queue_get_length (queue) > 0) {
+		/* First do the deleted queue */
+		files = tracker_dbus_queue_str_to_strv (queue, FILES_QUEUE_PROCESS_MAX);
+		
+		g_message ("Monitor events queue for created items processed, sending first %d to the indexer", 
+			   g_strv_length (files));
 
-		files_created_sent = TRUE;
-		org_freedesktop_Tracker_Indexer_files_check_async (proxy,
-								   "files",
-								   (const gchar **) files,
-								   file_queue_processed_created_cb,
-								   files);
-	}
+		type = SENT_DATA_TYPE_CREATED;
+		sent_data[type] = TRUE;
+		sd = sent_data_new (type, queue, files, module_name);
 
-	/* Second do the updated queue */
-	g_debug ("Files updated queue being processed...");
-	files = tracker_dbus_queue_str_to_strv (files_updated, FILES_QUEUE_PROCESS_MAX);
-	
-	if (g_strv_length (files) > 0) {
-		g_debug ("Files updated queue processed, sending first %d to the indexer", 
-			 g_strv_length (files));
-
-		files_updated_sent = TRUE;
-		org_freedesktop_Tracker_Indexer_files_update_async (proxy,
-								    "files",
+		org_freedesktop_Tracker_Indexer_files_delete_async (proxy,
+								    module_name,
 								    (const gchar **) files,
-								    file_queue_processed_updated_cb,
-								    files);
+								    file_queue_processed_cb,
+								    sd);
+		
+		return TRUE;
 	}
 
-	return TRUE;
+	/* Process the deleted items first */
+	queue = get_next_queue_with_data (files_updated_queues, &module_name);
+
+	if (queue && g_queue_get_length (queue) > 0) {
+		/* First do the deleted queue */
+		files = tracker_dbus_queue_str_to_strv (queue, FILES_QUEUE_PROCESS_MAX);
+		
+		g_message ("Monitor events queue for updated items processed, sending first %d to the indexer", 
+			   g_strv_length (files));
+
+		type = SENT_DATA_TYPE_UPDATED;
+		sent_data[type] = TRUE;
+		sd = sent_data_new (type, queue, files, module_name);
+
+		org_freedesktop_Tracker_Indexer_files_delete_async (proxy,
+								    module_name,
+								    (const gchar **) files,
+								    file_queue_processed_cb,
+								    sd);
+		
+		return TRUE;
+	}
+
+	g_message ("No monitor events to process, doing nothing");
+	files_queue_handlers_id = 0;
+
+	return FALSE;
 }
 
 static void
@@ -440,11 +559,39 @@ monitor_event_cb (GFileMonitor     *monitor,
 		  GFileMonitorEvent event_type,
 		  gpointer          user_data)  
 {
-	gchar *str1;
-	gchar *str2;
+	GQueue      *queue;
+	const gchar *module_name;
+	gchar       *str1;
+	gchar       *str2;
 
 	str1 = g_file_get_path (file);
-	
+
+	/* First try to get the module name from the file, this will
+	 * only work if the event we received is for a directory.
+	 */
+	module_name = get_queue_from_gfile (file);
+	if (!module_name) {
+		GFile *parent;
+
+		/* Second we try to get the module name from the base
+		 * name of the file. 
+		 */
+		parent = g_file_get_parent (file);
+		module_name = get_queue_from_gfile (parent);
+
+		if (!module_name) {
+			gchar *path;
+			
+			path = g_file_get_path (parent); 
+			g_warning ("Could not get module name from GFile (path:'%s' or parent:'%s')",
+				   str1, path);
+			g_free (path);
+			g_free (str1);
+			
+			return;
+		}
+	}
+
 	if (other_file) {
 		str2 = g_file_get_path (other_file);
 	} else {
@@ -459,19 +606,22 @@ monitor_event_cb (GFileMonitor     *monitor,
 		   
 	switch (event_type) {
 	case G_FILE_MONITOR_EVENT_CHANGED:
-	case G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT:
+	case G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT: 
 	case G_FILE_MONITOR_EVENT_ATTRIBUTE_CHANGED:
-		g_queue_push_tail (files_updated, str1);
+		queue = g_hash_table_lookup (files_updated_queues, module_name);
+		g_queue_push_tail (queue, str1);
 		file_queue_handlers_set_up ();
 		break;
 
 	case G_FILE_MONITOR_EVENT_DELETED:
-		g_queue_push_tail (files_deleted, str1);
+		queue = g_hash_table_lookup (files_deleted_queues, module_name);
+		g_queue_push_tail (queue, str1); 
 		file_queue_handlers_set_up ();
 		break;
 
 	case G_FILE_MONITOR_EVENT_CREATED:
-		g_queue_push_tail (files_created, str1);
+		queue = g_hash_table_lookup (files_created_queues, module_name);
+		g_queue_push_tail (queue, str1);
 		file_queue_handlers_set_up ();
 		break;
 
@@ -486,18 +636,28 @@ monitor_event_cb (GFileMonitor     *monitor,
 }
 
 gboolean
-tracker_monitor_add (GFile *file)
+tracker_monitor_add (GFile       *file,
+		     const gchar *module_name)
 {
 	GFileMonitor *monitor;
+	GHashTable   *monitors;
 	GSList       *ignored_roots;
 	GSList       *l;
 	GError       *error = NULL;
 	gchar        *path;
 
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
+	g_return_val_if_fail (module_name != NULL, FALSE);
 	
 	if (!tracker_config_get_enable_watches (config)) {
 		return TRUE;
+	}
+
+	monitors = g_hash_table_lookup (modules, module_name);
+	if (!monitors) {
+		g_warning ("No monitor hash table for module:'%s'", 
+			   module_name);
+		return FALSE;
 	}
 
 	if (g_hash_table_lookup (monitors, file)) {
@@ -554,13 +714,14 @@ tracker_monitor_add (GFile *file)
 
 	g_signal_connect (monitor, "changed",
 			  G_CALLBACK (monitor_event_cb),
-			  NULL);
+			  monitors);
 
-	g_hash_table_insert (monitors, 
+	g_hash_table_insert (monitors,
 			     g_object_ref (file), 
 			     monitor);
 
-	g_debug ("Added monitor for:'%s', total monitors:%d", 
+	g_debug ("Added monitor for module:'%s', path:'%s', total monitors:%d", 
+		 module_name,
 		 path,
 		 g_hash_table_size (monitors));
 
@@ -570,16 +731,25 @@ tracker_monitor_add (GFile *file)
 }
 
 gboolean
-tracker_monitor_remove (GFile    *file,
-			gboolean  delete_subdirs)
+tracker_monitor_remove (GFile       *file,
+			const gchar *module_name)
 {
 	GFileMonitor *monitor;
+	GHashTable   *monitors;
 	gchar        *path;
 
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
+	g_return_val_if_fail (module_name != NULL, FALSE);
 
 	if (!tracker_config_get_enable_watches (config)) {
 		return TRUE;
+	}
+
+	monitors = g_hash_table_lookup (modules, module_name);
+	if (!monitors) {
+		g_warning ("No monitor hash table for module:'%s'", 
+			   module_name);
+		return FALSE;
 	}
 
 	monitor = g_hash_table_lookup (monitors, file);
@@ -594,7 +764,8 @@ tracker_monitor_remove (GFile    *file,
 
 	path = g_file_get_path (file);
 
-	g_debug ("Removed monitor for:'%s', total monitors:%d", 
+	g_debug ("Removed monitor for module:'%s', path:'%s', total monitors:%d", 
+		 module_name,
 		 path,
 		 g_hash_table_size (monitors));
 
@@ -604,20 +775,41 @@ tracker_monitor_remove (GFile    *file,
 }
 
 gboolean
-tracker_monitor_is_watched (GFile *file)
+tracker_monitor_is_watched (GFile       *file,
+			    const gchar *module_name)
 {
+	GHashTable *monitors;
+
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
+	g_return_val_if_fail (module_name != NULL, FALSE);
+
+	monitors = g_hash_table_lookup (modules, module_name);
+	if (!monitors) {
+		g_warning ("No monitor hash table for module:'%s'", 
+			   module_name);
+		return FALSE;
+	}
 
 	return g_hash_table_lookup (monitors, file) != NULL;
 }
 
 gboolean
-tracker_monitor_is_watched_by_string (const gchar *path)
+tracker_monitor_is_watched_by_string (const gchar *path,
+				      const gchar *module_name)
 {
-	GFile    *file;
-	gboolean  watched;
+	GFile      *file;
+	GHashTable *monitors;
+	gboolean    watched;
 
 	g_return_val_if_fail (path != NULL, FALSE);
+	g_return_val_if_fail (module_name != NULL, FALSE);
+
+	monitors = g_hash_table_lookup (modules, module_name);
+	if (!monitors) {
+		g_warning ("No monitor hash table for module:'%s'", 
+			   module_name);
+		return FALSE;
+	}
 
 	file = g_file_new_for_path (path);
 	watched = g_hash_table_lookup (monitors, file) != NULL;
@@ -627,9 +819,34 @@ tracker_monitor_is_watched_by_string (const gchar *path)
 }
 
 guint
-tracker_monitor_get_count (void)
+tracker_monitor_get_count (const gchar *module_name)
 {
-	return g_hash_table_size (monitors);
+	guint count;
+
+	if (module_name) {
+		GHashTable *monitors;
+
+		monitors = g_hash_table_lookup (modules, module_name);
+		if (!monitors) {
+			g_warning ("No monitor hash table for module:'%s'", 
+				   module_name);
+			return 0;
+		}
+		
+		count = g_hash_table_size (monitors);
+	} else {
+		GList *all_modules, *l;
+
+		all_modules = g_hash_table_get_values (modules);
+		
+		for (l = all_modules, count = 0; l; l = l->next) {
+			count += g_hash_table_size (l->data);
+		}
+		
+		g_list_free (all_modules);
+	}
+
+	return count;
 }
 
 guint

@@ -179,12 +179,12 @@ tracker_processor_finalize (GObject *object)
 }
 
 static void
-add_monitors (const gchar *name)
+add_monitors (const gchar *module_name)
 {
 	GList *monitors;
 	GList *l;
 
-	monitors = tracker_module_config_get_monitor_directories (name);
+	monitors = tracker_module_config_get_monitor_directories (module_name);
 
 	for (l = monitors; l; l = l->next) {
 		GFile       *file;
@@ -195,7 +195,7 @@ add_monitors (const gchar *name)
 		g_message ("  Adding specific directory monitor:'%s'", path);
 
 		file = g_file_new_for_path (path);
-		tracker_monitor_add (file);
+		tracker_monitor_add (file, module_name);
 		g_object_unref (file);
 	}
 
@@ -207,12 +207,12 @@ add_monitors (const gchar *name)
 }
 
 static void
-add_recurse_monitors (const gchar *name)
+add_recurse_monitors (const gchar *module_name)
 {
 	GList *monitors;
 	GList *l;
 
-	monitors = tracker_module_config_get_monitor_recurse_directories (name);
+	monitors = tracker_module_config_get_monitor_recurse_directories (module_name);
 
 	for (l = monitors; l; l = l->next) {
 		GFile       *file;
@@ -223,7 +223,7 @@ add_recurse_monitors (const gchar *name)
 		g_message ("  Adding recurse directory monitor:'%s' (FIXME: Not finished)", path);
 
 		file = g_file_new_for_path (path);
-		tracker_monitor_add (file);
+		tracker_monitor_add (file, module_name);
 		g_object_unref (file);
 	}
 
@@ -515,7 +515,7 @@ tracker_processor_stop (TrackerProcessor *processor)
 		   priv->files_found,
 		   priv->files_ignored);
 	g_message ("Total monitors   : %d\n",
-		   tracker_monitor_get_count ());
+		   tracker_monitor_get_count (NULL));
 
 	/* Here we set to IDLE when we were stopped, otherwise, we
 	 * we are currently in the process of sending files to the

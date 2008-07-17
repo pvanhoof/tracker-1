@@ -700,6 +700,8 @@ main (gint argc, gchar *argv[])
 		return EXIT_FAILURE;
 	}
 
+        tracker_module_config_init ();
+
 	if (!tracker_monitor_init (config)) {
 		return EXIT_FAILURE;
 	} 
@@ -755,7 +757,6 @@ main (gint argc, gchar *argv[])
 
 	tracker_db_init (config, language, file_index);
 	tracker_xesam_manager_init ();
-        tracker_module_config_init ();
 
 	processor = tracker_processor_new (config, hal);
 
@@ -815,12 +816,12 @@ main (gint argc, gchar *argv[])
 	shutdown_directories ();
 
 	/* Shutdown major subsystems */
-        tracker_module_config_shutdown ();
 	tracker_xesam_manager_shutdown ();
 	tracker_dbus_shutdown ();
 	tracker_db_manager_shutdown ();
 	tracker_db_shutdown ();
 	tracker_monitor_shutdown ();
+        tracker_module_config_shutdown ();
 	tracker_nfs_lock_shutdown ();
 	tracker_log_shutdown ();
 

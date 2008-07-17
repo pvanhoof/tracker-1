@@ -1,3 +1,9 @@
+2008-07-17  Ivan Frade  <ivan.frade@nokia.com>
+	
+	* data/dbus/tracker-files.xml
+	* src/trackerd/tracker-files.[ch]:
+	Async files API.
+
 2008-07-17  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-log.[ch]: Cleaned up the code here

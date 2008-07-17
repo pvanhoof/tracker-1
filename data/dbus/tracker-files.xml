@@ -8,6 +8,7 @@
 	 database if not already present.
       -->
     <method name="Exist">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="s" name="uri" direction="in" />
       <arg type="b" name="auto_create" direction="in" />
       <arg type="b" name="result" direction="out" />
@@ -19,6 +20,7 @@
 	 outside the watch/crawl path.
       --> 
     <method name="Create">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="s" name="uri" direction="in" />
       <arg type="b" name="is_directory" direction="in" />
       <arg type="s" name="mime" direction="in" />
@@ -28,30 +30,34 @@
     
     <!-- Removes the file entry from tracker's database. -->
     <method name="Delete">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="s" name="uri" direction="in" />
     </method>
 
     <!-- Get the Service subtype for the file. -->
     <method name="GetServiceType">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="s" name="uri" direction="in" />
-      <arg type="s" name="result" direction="out" />
+      <arg type="s" name="service_type" direction="out" />
     </method>
 
     <!-- Get the "File.Content" field for a file and allows you to
 	 specify the offset and amount of text to retrieve.
       -->
     <method name="GetTextContents">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <annotation name="org.freedesktop.DBus.Deprecated" value="true"/>
       <arg type="s" name="uri" direction="in" />
       <arg type="i" name="offset"  direction="in" />
       <arg type="i" name="max_length"  direction="in" />				
-      <arg type="s" name="result" direction="out" />
+      <arg type="s" name="content" direction="out" />
     </method>
     
     <!-- Retrieves a chunk of matching text of specified length that
 	 contains the search text in the File.Content field.
       -->
     <method name="SearchTextContents">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <annotation name="org.freedesktop.DBus.Deprecated" value="true"/>
       <arg type="s" name="uri" direction="in" />
       <arg type="s" name="text"  direction="in" />
@@ -61,6 +67,7 @@
 
     <!-- Retrieves all files that match a service description. -->
     <method name="GetByServiceType">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="i" name="live_query_id" direction="in" />
       <arg type="s" name="file_service" direction="in" />
       <arg type="i" name="offset" direction="in" />
@@ -70,6 +77,7 @@
 
     <!-- Retrieves all non-vfs files of the specified mime type(s). -->
     <method name="GetByMimeType">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="i" name="live_query_id" direction="in" />
       <arg type="as" name="mime_types" direction="in" />
       <arg type="i" name="offset" direction="in" />
@@ -79,6 +87,7 @@
 
     <!-- Retrieves all vfs files of the specified mime type(s). -->
     <method name="GetByMimeTypeVfs">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="i" name="live_query_id" direction="in" />
       <arg type="as" name="mime_types" direction="in" />
       <arg type="i" name="offset" direction="in" />
@@ -88,6 +97,7 @@
 
     <!-- returns mtime of file in seconds since epoch -->
     <method name="GetMTime">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <annotation name="org.freedesktop.DBus.Deprecated" value="true"/>
       <arg type="s" name="uri" direction="in" />
       <arg type="i" name="result" direction="out" />
@@ -98,6 +108,7 @@
 	 field1, field2...].
       -->
     <method name="GetMetadataForFilesInFolder">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="i" name="live_query_id" direction="in" />
       <arg type="s" name="uri" direction="in" />
       <arg type="as" name="fields" direction="in" />
@@ -106,18 +117,21 @@
 
     <!-- Specific calls for Nautilus, mostly used by Nautilus search. -->
     <method name="SearchByTextAndMime">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <annotation name="org.freedesktop.DBus.Deprecated" value="true"/>
       <arg type="s" name="text" direction="in" />
       <arg type="as" name="mimes" direction="in" />
       <arg type="as" name="result" direction="out" />
     </method>
     <method name="SearchByTextAndLocation">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <annotation name="org.freedesktop.DBus.Deprecated" value="true"/>
       <arg type="s" name="text" direction="in" />
       <arg type="s" name="location" direction="in" />
       <arg type="as" name="result" direction="out" />
     </method>
     <method name="SearchByTextAndMimeAndLocation">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <annotation name="org.freedesktop.DBus.Deprecated" value="true"/>
       <arg type="s" name="text" direction="in" />
       <arg type="as" name="mimes" direction="in" />

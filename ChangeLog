@@ -1,7 +1,15 @@
+2008-07-17  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-search.c:
+	* data/dbus/tracker-search.xml:
+
+	Async search API.
+
 2008-07-17  Ivan Frade  <ivan.frade@nokia.com>
 	
 	* data/dbus/tracker-files.xml
 	* src/trackerd/tracker-files.[ch]:
+
 	Async files API.
 
 2008-07-17  Martyn Russell  <martyn@imendio.com>
@@ -19,6 +27,18 @@
 	* src/trackerd/tracker-metadata.[ch]:
 	Async metadata API.
 	
+2008-07-17  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/tracker-indexer/modules/files.c:
+	* src/tracker-indexer/modules/evolution.c:
+	* src/tracker-indexer/modules/applications.c:
+	* src/tracker-indexer/tracker-indexer.c:
+
+	tracker-indexer modules returned a GHashTable with field name/value
+	pairs, we now use TrackerField pointers for the hashtable keys, so we
+	could deal with values in their native format (instead of having to
+	convert everything to strings)
+
 2008-07-17  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/libtracker-db/tracker-db-manager.c: Add the functions for the

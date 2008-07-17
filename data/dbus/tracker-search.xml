@@ -7,6 +7,7 @@
   <interface name="org.freedesktop.Tracker.Search">
     <!-- Returns no of hits for the search_text on the servce. -->
     <method name="GetHitCount">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="s" name="service" direction="in" />
       <arg type="s" name="search_text" direction="in" />
       <arg type="i" name="result" direction="out" />
@@ -14,6 +15,7 @@
 
     <!--  returns [service name, no. of hits] for the search_text -->
     <method name="GetHitCountAll">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="s" name="search_text" direction="in" />
       <arg type="aas" name="result" direction="out" />
     </method>
@@ -22,6 +24,7 @@
 	 specified search_text. Returns uri of all hits.
       -->
     <method name="Text">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="i" name="live_query_id" direction="in" />
       <arg type="s" name="service" direction="in" />
       <arg type="s" name="search_text" direction="in" />
@@ -35,6 +38,7 @@
 	 hits in array format [uri, service, mime].
       --> 
     <method name="TextDetailed">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="i" name="live_query_id" direction="in" />
       <arg type="s" name="service" direction="in" />
       <arg type="s" name="search_text" direction="in" />
@@ -47,6 +51,7 @@
 	 in bold tags. 
       -->
     <method name="GetSnippet">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="s" name="service" direction="in" />
       <arg type="s" name="id" direction="in" />
       <arg type="s" name="search_text" direction="in" />
@@ -57,6 +62,7 @@
 	 search term (search_text). The result is an array of uri/id's.
       -->
     <method name="Metadata">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <annotation name="org.freedesktop.DBus.Deprecated" value="true"/>
       <arg type="s" name="service" direction="in" />
       <arg type="s" name="field" direction="in" />
@@ -91,6 +97,7 @@
 	 specified field in the fields paramter and so on.
       -->
     <method name="Query">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="i" name="live_query_id" direction="in" />
       <arg type="s" name="service" direction="in" />
       <arg type="as" name="fields" direction="in" />
@@ -105,6 +112,7 @@
 
     <!-- Suggests an alternate spelling based on the word index. -->
     <method name="Suggest">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="s" name="search_text" direction="in" />
       <arg type="i" name="maxdist" direction="in" />
       <arg type="s" name="result" direction="out" />

@@ -432,46 +432,52 @@ search_get_snippet (const gchar  *text,
 	}
 }
 
-gboolean
-tracker_search_get_hit_count (TrackerSearch  *object,
-			      const gchar    *service,
-			      const gchar    *search_text,
-			      gint           *value,
-			      GError        **error)
+void
+tracker_search_get_hit_count (TrackerSearch          *object,
+			      const gchar            *service,
+			      const gchar            *search_text,
+			      DBusGMethodInvocation  *context,
+			      GError                **error)
 {
+	GError            *actual_error = NULL;
 	TrackerSearchPriv *priv;
 	TrackerQueryTree  *tree;
 	GArray            *array;
 	guint              request_id;
 	gint               services[12];
-        gint               count = 0;
+	gint               count = 0;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (search_text != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (value != NULL, FALSE, error);
+	tracker_dbus_async_return_if_fail (service != NULL, context);
+	tracker_dbus_async_return_if_fail (search_text != NULL, context);
 
 	tracker_dbus_request_new (request_id,
-                                  "DBus request to get hit count, "
+				  "DBus request to get hit count, "
 				  "service:'%s', search text:'%s'",
-                                  service,
-                                  search_text);
+				  service,
+				  search_text);
 
 	if (!tracker_ontology_is_valid_service_type (service)) {
-		tracker_dbus_request_failed (request_id,
-					     error, 
-                                             "Service '%s' is invalid or has not been implemented yet", 
-                                             service);
-		return FALSE;
+		g_set_error (&actual_error,
+			     TRACKER_DBUS_ERROR,
+			     0,
+			     "Service '%s' is invalid or has not been implemented yet", 
+			     service);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
 	}
 
-        if (tracker_is_empty_string (search_text)) {
-		tracker_dbus_request_failed (request_id,
-					     error, 
-                                             "No search term was specified");
-		return FALSE;
-        }
+	if (tracker_is_empty_string (search_text)) {
+		g_set_error (&actual_error,
+			     TRACKER_DBUS_ERROR,
+			     0,
+			     "No search term was specified");
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
 
 	priv = GET_PRIV (object);
 
@@ -503,59 +509,66 @@ tracker_search_get_hit_count (TrackerSearch  *object,
 				       priv->config,
 				       priv->language,
 				       array);
-	*value = tracker_query_tree_get_hit_count (tree);
+
+	dbus_g_method_return (context, tracker_query_tree_get_hit_count (tree));
+
 	g_object_unref (tree);
-        g_array_free (array, TRUE);
+	g_array_free (array, TRUE);
 
 	tracker_dbus_request_success (request_id);
 
-	return TRUE;
+	return;
 }
 
-gboolean
-tracker_search_get_hit_count_all (TrackerSearch  *object,
-				  const gchar    *search_text,
-				  GPtrArray     **values,
-				  GError        **error)
+void
+tracker_search_get_hit_count_all (TrackerSearch          *object,
+				  const gchar            *search_text,
+				  DBusGMethodInvocation  *context,
+				  GError                **error)
 {
+	GError             *actual_error = NULL;
 	TrackerSearchPriv  *priv;
 	TrackerDBResultSet *result_set = NULL;
-        TrackerQueryTree   *tree;
-        GArray             *hit_counts;
+	TrackerQueryTree   *tree;
+	GArray             *hit_counts;
 	GArray             *mail_hit_counts;
 	guint               request_id;
 	guint               i;
+	GPtrArray          *values = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_return_val_if_fail (search_text != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
+	tracker_dbus_async_return_if_fail (search_text != NULL, context);
+	tracker_dbus_async_return_if_fail (values != NULL, context);
 
 	tracker_dbus_request_new (request_id,
-                                  "DBus request to get search hit count for all, "
-                                  "search text:'%s'",
-                                  search_text);
+				  "DBus request to get search hit count for all, "
+				  "search text:'%s'",
+				  search_text);
 
-        if (tracker_is_empty_string (search_text)) {
-		tracker_dbus_request_failed (request_id,
-					     error, 
-                                             "No search term was specified");
-		return FALSE;
-        }
+	if (tracker_is_empty_string (search_text)) {
+		g_set_error (&actual_error,
+			     TRACKER_DBUS_ERROR,
+			     0,
+			     "No search term was specified");
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
 
 	priv = GET_PRIV (object);
 
-        tree = tracker_query_tree_new (search_text, 
+	tree = tracker_query_tree_new (search_text, 
 				       priv->file_index, 
 				       priv->config,
 				       priv->language,
 				       NULL);
 
-        hit_counts = tracker_query_tree_get_hit_counts (tree);
-        tracker_query_tree_set_indexer (tree, priv->email_index);
-        mail_hit_counts = tracker_query_tree_get_hit_counts (tree);
-        g_array_append_vals (hit_counts, mail_hit_counts->data, mail_hit_counts->len);
-        g_array_free (mail_hit_counts, TRUE);
+	hit_counts = tracker_query_tree_get_hit_counts (tree);
+	tracker_query_tree_set_indexer (tree, priv->email_index);
+	mail_hit_counts = tracker_query_tree_get_hit_counts (tree);
+	g_array_append_vals (hit_counts, mail_hit_counts->data, mail_hit_counts->len);
+	g_array_free (mail_hit_counts, TRUE);
 
 	for (i = 0; i < hit_counts->len; i++) {
 		TrackerHitCount count;
@@ -580,66 +593,76 @@ tracker_search_get_hit_count_all (TrackerSearch  *object,
 		g_value_unset (&value);
 	}
 
-	*values = tracker_dbus_query_result_to_ptr_array (result_set);
+	values = tracker_dbus_query_result_to_ptr_array (result_set);
+
+	dbus_g_method_return (context, values);
+
+	tracker_dbus_results_ptr_array_free (&values);
 
 	if (result_set) {
 		tracker_db_result_set_rewind (result_set);
 		g_object_unref (result_set);
 	}
 
-        g_array_free (hit_counts, TRUE);
-        g_object_unref (tree);
+	g_array_free (hit_counts, TRUE);
+	g_object_unref (tree);
 
 	tracker_dbus_request_success (request_id);
 
-	return TRUE;
+	return;
 }
 
-gboolean
-tracker_search_text (TrackerSearch   *object,
-		     gint             live_query_id,
-		     const gchar     *service,
-		     const gchar     *search_text,
-		     gint             offset,
-		     gint             max_hits,
-		     gchar         ***values,
-		     GError         **error)
+void
+tracker_search_text (TrackerSearch          *object,
+		     gint                    live_query_id,
+		     const gchar            *service,
+		     const gchar            *search_text,
+		     gint                    offset,
+		     gint                    max_hits,
+		     DBusGMethodInvocation  *context,
+		     GError                **error)
 {
+	GError              *actual_error = NULL;
 	TrackerDBInterface  *iface;
 	TrackerDBResultSet  *result_set;
-	guint               request_id;
-        gchar              **strv = NULL;
+	guint                request_id;
+	gchar              **strv = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (search_text != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
+	tracker_dbus_async_return_if_fail (service != NULL, context);
+	tracker_dbus_async_return_if_fail (search_text != NULL, context);
 
 	tracker_dbus_request_new (request_id,
-                                  "DBus request to search text, "
+				  "DBus request to search text, "
 				  "query id:%d, service:'%s', search text:'%s', "
 				  "offset:%d, max hits:%d",
 				  live_query_id,
-                                  service,
-                                  search_text,
-                                  offset,
-                                  max_hits);
+				  service,
+				  search_text,
+				  offset,
+				  max_hits);
 
 	if (!tracker_ontology_is_valid_service_type (service)) {
-		tracker_dbus_request_failed (request_id,
-					     error, 
-                                             "Service '%s' is invalid or has not been implemented yet", 
-                                             service);
-		return FALSE;
+		g_set_error (&actual_error,
+			     TRACKER_DBUS_ERROR,
+			     0,
+			    "Service '%s' is invalid or has not been implemented yet", 
+			    service);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
 	}
 
-        if (tracker_is_empty_string (search_text)) {
-		tracker_dbus_request_failed (request_id,
-					     error, 
-                                             "No search term was specified");
-		return FALSE;
-        }
+	if (tracker_is_empty_string (search_text)) {
+		g_set_error (&actual_error,
+			     TRACKER_DBUS_ERROR,
+			     0,
+			     "No search term was specified");
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
 
 	iface = tracker_db_manager_get_db_interface_by_service (service);
 
@@ -679,65 +702,74 @@ tracker_search_text (TrackerSearch   *object,
 		g_object_unref (result_set);
 	}
  
-        if (!strv) {
-                strv = g_new (gchar*, 1);
+	if (!strv) {
+		strv = g_new (gchar*, 1);
 		strv[0] = NULL;
-
-                tracker_dbus_request_comment (request_id,
+		tracker_dbus_request_comment (request_id,
 					      "Search found no results");
 	}
 
-	*values = strv;
+	dbus_g_method_return (context, strv);
+
+	g_strfreev (strv);
 
 	tracker_dbus_request_success (request_id);
 
-        return TRUE;
+	return;
 }
 
-gboolean
-tracker_search_text_detailed (TrackerSearch  *object,
-			      gint            live_query_id,
-			      const gchar    *service,
-			      const gchar    *search_text,
-			      gint            offset,
-			      gint            max_hits,
-			      GPtrArray     **values,
-			      GError        **error)
+void
+tracker_search_text_detailed (TrackerSearch          *object,
+			      gint                    live_query_id,
+			      const gchar            *service,
+			      const gchar            *search_text,
+			      gint                    offset,
+			      gint                    max_hits,
+			      DBusGMethodInvocation  *context,
+			      GError                **error)
 {
+	GError             *actual_error = NULL;
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
 	guint               request_id;
+	GPtrArray          *values = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (search_text != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
+	tracker_dbus_async_return_if_fail (service != NULL, context);
+	tracker_dbus_async_return_if_fail (search_text != NULL, context);
+	tracker_dbus_async_return_if_fail (values != NULL, context);
 
-        tracker_dbus_request_new (request_id,
-                                  "DBus request to search text detailed, "
+	tracker_dbus_request_new (request_id,
+				  "DBus request to search text detailed, "
 				  "query id:%d, service:'%s', search text:'%s', "
 				  "offset:%d, max hits:%d",
 				  live_query_id,
-                                  service,
-                                  search_text,
-                                  offset,
-                                  max_hits);
+				  service,
+				  search_text,
+				  offset,
+				  max_hits);
 
 	if (!tracker_ontology_is_valid_service_type (service)) {
-		tracker_dbus_request_failed (request_id,
-					     error, 
-                                             "Service '%s' is invalid or has not been implemented yet", 
-                                             service);
-		return FALSE;
+		g_set_error (&actual_error,
+			     TRACKER_DBUS_ERROR,
+			     0,
+			     "Service '%s' is invalid or has not been implemented yet", 
+			     service);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
 	}
 
-        if (tracker_is_empty_string (search_text)) {
-		tracker_dbus_request_failed (request_id,
-					     error, 
-                                             "No search term was specified");
-		return FALSE;
-        }
+	if (tracker_is_empty_string (search_text)) {
+		g_set_error (&actual_error,
+			     TRACKER_DBUS_ERROR,
+			     0,
+			     "No search term was specified");
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
 
 	iface = tracker_db_manager_get_db_interface_by_service (service);
 
@@ -749,7 +781,11 @@ tracker_search_text_detailed (TrackerSearch  *object,
 					     FALSE, 
 					     TRUE);
 
-        *values = tracker_dbus_query_result_to_ptr_array (result_set);
+	values = tracker_dbus_query_result_to_ptr_array (result_set);
+
+	dbus_g_method_return (context, values);
+
+	tracker_dbus_results_ptr_array_free (&values);
 
 	if (result_set) {
 		g_object_unref (result_set);
@@ -757,70 +793,79 @@ tracker_search_text_detailed (TrackerSearch  *object,
 
 	tracker_dbus_request_success (request_id);
 
-	return TRUE;
+	return;
 }
 
-gboolean
-tracker_search_get_snippet (TrackerSearch  *object,
-			    const gchar    *service,
-			    const gchar    *id,
-			    const gchar    *search_text,
-			    gchar         **values,
-			    GError        **error)
+void
+tracker_search_get_snippet (TrackerSearch          *object,
+			    const gchar            *service,
+			    const gchar            *id,
+			    const gchar            *search_text,
+			    DBusGMethodInvocation  *context,
+			    GError                **error)
 {
+	GError             *actual_error = NULL;
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
 	guint               request_id;
-        gchar              *snippet = NULL;
-        gchar              *service_id;
+	gchar              *snippet = NULL;
+	gchar              *service_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (id != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (search_text != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
+	tracker_dbus_async_return_if_fail (service != NULL, context);
+	tracker_dbus_async_return_if_fail (id != NULL, context);
+	tracker_dbus_async_return_if_fail (search_text != NULL, context);
 
-        tracker_dbus_request_new (request_id,
-                                  "DBus request to get snippet, "
+	tracker_dbus_request_new (request_id,
+				  "DBus request to get snippet, "
 				  "service:'%s', search text:'%s', id:'%s'",
-                                  service,
-                                  search_text,
-                                  id);
+				  service,
+				  search_text,
+				  id);
 
 	if (!tracker_ontology_is_valid_service_type (service)) {
-		tracker_dbus_request_failed (request_id,
-					     error, 
-                                             "Service '%s' is invalid or has not been implemented yet", 
-                                             service);
-		return FALSE;
+		g_set_error (&actual_error,
+			     TRACKER_DBUS_ERROR,
+			     0,
+			     "Service '%s' is invalid or has not been implemented yet", 
+			     service);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
 	}
 
-        if (tracker_is_empty_string (search_text)) {
-		tracker_dbus_request_failed (request_id,
-					     error, 
-                                             "No search term was specified");
-		return FALSE;
-        }
+	if (tracker_is_empty_string (search_text)) {
+		g_set_error (&actual_error,
+			     TRACKER_DBUS_ERROR,
+			     0,
+			     "No search term was specified");
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
 
 	iface = tracker_db_manager_get_db_interface_by_service (service);
 
 	service_id = tracker_db_file_get_id_as_string (iface, service, id);
-        if (!service_id) {
-		tracker_dbus_request_failed (request_id,
-					     error, 
-                                             "Service URI '%s' not found", 
-                                             id);
-                return FALSE;
-        }
+	if (!service_id) {
+		g_set_error (&actual_error,
+			     TRACKER_DBUS_ERROR,
+			     0,
+			     "Service URI '%s' not found",
+			     id);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
 
 	iface = tracker_db_manager_get_db_interface_by_service (service);
-             
+
 	result_set = tracker_db_exec_proc (iface, 
 					   "GetAllContents", 
 					   service_id, 
 					   NULL);
-        g_free (service_id);
+	g_free (service_id);
 
 	if (result_set) {
 		TrackerSearchPriv  *priv;
@@ -849,41 +894,44 @@ tracker_search_get_snippet (TrackerSearch  *object,
 		snippet = g_strdup (" ");
 	}
 
-        *values = snippet;
+	dbus_g_method_return (context, snippet);
+
+	g_free (snippet);
 
 	tracker_dbus_request_success (request_id);
 
-	return TRUE;
+	return;
 }
 
-gboolean
-tracker_search_files_by_text (TrackerSearch  *object,
-			      gint            live_query_id,
-			      const gchar    *search_text,
-			      gint            offset,
-			      gint            max_hits,
-			      gboolean        group_results,
-			      GHashTable    **values,
-			      GError        **error)
+void
+tracker_search_files_by_text (TrackerSearch         *object,
+			      gint                   live_query_id,
+			      const gchar           *search_text,
+			      gint                   offset,
+			      gint                   max_hits,
+			      gboolean               group_results,
+			      DBusGMethodInvocation  *context,
+			      GError                **error)
 {
 	/* TrackerDBInterface *iface; */
 	TrackerDBResultSet *result_set;
 	guint               request_id;
+	GHashTable         *values = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_return_val_if_fail (search_text != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
+	tracker_dbus_async_return_if_fail (search_text != NULL, context);
+	tracker_dbus_async_return_if_fail (values != NULL, context);
 
-        tracker_dbus_request_new (request_id,
-                                  "DBus request to search files by text, "
+	tracker_dbus_request_new (request_id,
+				   "DBus request to search files by text, "
 				  "query id:%d, search text:'%s', offset:%d"
-                                  "max hits:%d, group results:'%s'",
+				   "max hits:%d, group results:'%s'",
 				  live_query_id,
-                                  search_text,
-                                  offset,
-                                  max_hits,
-                                  group_results ? "yes" : "no");
+				  search_text,
+				  offset,
+				  max_hits,
+				  group_results ? "yes" : "no");
 
 	/* iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE); */
 
@@ -899,7 +947,11 @@ tracker_search_files_by_text (TrackerSearch  *object,
 	/* 					      search_sanity_check_max_hits (max_hits), */
 	/* 					      group_results); */
 
-	*values = tracker_dbus_query_result_to_hash_table (result_set);
+	values = tracker_dbus_query_result_to_hash_table (result_set);
+
+	dbus_g_method_return (context, values);
+
+	g_hash_table_destroy (values);
 
 	if (result_set) {
 		g_object_unref (result_set);
@@ -907,48 +959,53 @@ tracker_search_files_by_text (TrackerSearch  *object,
 
 	tracker_dbus_request_success (request_id);
 
-	return TRUE;
+	return;
 }
 
-gboolean
-tracker_search_metadata (TrackerSearch   *object,
-			 const gchar     *service,
-			 const gchar     *field,
-			 const gchar     *search_text,
-			 gint             offset,
-			 gint             max_hits,
-			 gchar         ***values,
-			 GError         **error)
+void
+tracker_search_metadata (TrackerSearch          *object,
+			 const gchar            *service,
+			 const gchar            *field,
+			 const gchar            *search_text,
+			 gint                    offset,
+			 gint                    max_hits,
+			 DBusGMethodInvocation  *context,
+			 GError                **error)
 {
+	GError             *actual_error = NULL;
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
 	guint               request_id;
+	gchar             **values;
 
-        /* FIXME: This function is completely redundant */
+	/* FIXME: This function is completely redundant */
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (field != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (search_text != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
+	tracker_dbus_async_return_if_fail (service != NULL, context);
+	tracker_dbus_async_return_if_fail (field != NULL, context);
+	tracker_dbus_async_return_if_fail (search_text != NULL, context);
+	tracker_dbus_async_return_if_fail (values != NULL, context);
 
-        tracker_dbus_request_new (request_id,
-                                  "DBus request to search metadata, "
+	tracker_dbus_request_new (request_id,
+				  "DBus request to search metadata, "
 				  "service:'%s', search text:'%s', field:'%s', "
 				  "offset:%d, max hits:%d",
-                                  service,
-                                  search_text,
-                                  field,
-                                  offset,
-                                  max_hits);
+				  service,
+				  search_text,
+				  field,
+				  offset,
+				  max_hits);
 
 	if (!tracker_ontology_is_valid_service_type (service)) {
-		tracker_dbus_request_failed (request_id,
-					     error, 
-                                             "Service '%s' is invalid or has not been implemented yet", 
-                                             service);
-		return FALSE;
+		g_set_error (&actual_error,
+			     TRACKER_DBUS_ERROR,
+			     0,
+			     "Service '%s' is invalid or has not been implemented yet",
+			     service);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
 	}
 
 	iface = tracker_db_manager_get_db_interface_by_service (service);
@@ -957,7 +1014,7 @@ tracker_search_metadata (TrackerSearch   *object,
 	 * NULL in every case, this DBus function needs rewriting or
 	 * to be removed.
 	 */
-        result_set = NULL;
+	result_set = NULL;
 
 	/* result_set = tracker_db_search_metadata (iface,  */
 	/* 					 service,  */
@@ -965,7 +1022,12 @@ tracker_search_metadata (TrackerSearch   *object,
 	/* 					 text,  */
 	/* 					 offset,  */
 	/* 					 search_sanity_check_max_hits (max_hits)); */
-	*values = tracker_dbus_query_result_to_strv (result_set, 0, NULL);
+
+	values = tracker_dbus_query_result_to_strv (result_set, 0, NULL);
+
+	dbus_g_method_return (context, values);
+
+	g_strfreev (values);
 
 	if (result_set) {
 		g_object_unref (result_set);
@@ -973,49 +1035,57 @@ tracker_search_metadata (TrackerSearch   *object,
 
 	tracker_dbus_request_success (request_id);
 
-	return TRUE;
+	return;
 }
 
-gboolean
-tracker_search_matching_fields (TrackerSearch  *object,
-				const gchar    *service,
-				const gchar    *id,
-				const gchar    *search_text,
-				GHashTable    **values,
-				GError        **error)
+void
+tracker_search_matching_fields (TrackerSearch         *object,
+				const gchar           *service,
+				const gchar           *id,
+				const gchar           *search_text,
+				DBusGMethodInvocation  *context,
+				GError                **error)
 {
+	GError             *actual_error = NULL;
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
 	guint               request_id;
+	GHashTable         *values = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (id != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (search_text != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
-	
-        tracker_dbus_request_new (request_id,
-                                  "DBus request to search matching fields, "
+	tracker_dbus_async_return_if_fail (service != NULL, context);
+	tracker_dbus_async_return_if_fail (id != NULL, context);
+	tracker_dbus_async_return_if_fail (search_text != NULL, context);
+	tracker_dbus_async_return_if_fail (values != NULL, context);
+
+	tracker_dbus_request_new (request_id,
+				  "DBus request to search matching fields, "
 				  "service:'%s', search text:'%s', id:'%s'",
-                                  service,
-                                  search_text,
-                                  id);
+				  service,
+				  search_text,
+				  id);
 
 	if (!tracker_ontology_is_valid_service_type (service)) {
-		tracker_dbus_request_failed (request_id,
-					     error, 
-                                             "Service '%s' is invalid or has not been implemented yet", 
-                                             service);
-		return FALSE;
+		g_set_error (&actual_error,
+			     TRACKER_DBUS_ERROR,
+			     0,
+			     "Service '%s' is invalid or has not been implemented yet",
+			     service);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
 	}
 
-        if (tracker_is_empty_string (id)) {
-		tracker_dbus_request_failed (request_id,
-					     error, 
-                                             "ID field must have a value");
-		return FALSE;
-        }
+	if (tracker_is_empty_string (id)) {
+		g_set_error (&actual_error,
+			     TRACKER_DBUS_ERROR,
+			     0,
+			     "ID field must have a value");
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
 
 	iface = tracker_db_manager_get_db_interface_by_service (service);
 
@@ -1023,13 +1093,18 @@ tracker_search_matching_fields (TrackerSearch  *object,
 	 * NULL in every case, this DBus function needs rewriting or
 	 * to be removed.
 	 */
-        result_set = NULL;
+	result_set = NULL;
 
 	/* result_set = tracker_db_search_matching_metadata (iface,  */
 	/* 						  service,  */
 	/* 						  id,  */
 	/* 						  search_text); */
-	*values = tracker_dbus_query_result_to_hash_table (result_set);
+
+	values = tracker_dbus_query_result_to_hash_table (result_set);
+
+	dbus_g_method_return (context, values);
+
+	g_hash_table_destroy (values);
 
 	if (result_set) {
 		g_object_unref (result_set);
@@ -1037,10 +1112,10 @@ tracker_search_matching_fields (TrackerSearch  *object,
 
 	tracker_dbus_request_success (request_id);
 
-	return TRUE;
+	return;
 }
 
-gboolean
+void
 tracker_search_query (TrackerSearch  *object,
 		      gint            live_query_id,
 		      const gchar    *service,
@@ -1051,42 +1126,47 @@ tracker_search_query (TrackerSearch  *object,
 		      gboolean        sort_by_service,
 		      gint            offset,
 		      gint            max_hits,
-		      GPtrArray     **values,
+		      DBusGMethodInvocation  *context,
 		      GError        **error)
 {
+	GError             *actual_error = NULL;
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
 	guint               request_id;
+	GPtrArray          *values = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_return_val_if_fail (service != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (fields != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (search_text != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (keyword != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (query_condition != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (values != NULL, FALSE, error);
+	tracker_dbus_async_return_if_fail (service != NULL, context);
+	tracker_dbus_async_return_if_fail (fields != NULL, context);
+	tracker_dbus_async_return_if_fail (search_text != NULL, context);
+	tracker_dbus_async_return_if_fail (keyword != NULL, context);
+	tracker_dbus_async_return_if_fail (query_condition != NULL, context);
+	tracker_dbus_async_return_if_fail (values != NULL, context);
 
-        tracker_dbus_request_new (request_id,
-                                  "DBus request to search query, "
+	tracker_dbus_request_new (request_id,
+				  "DBus request to search query, "
 				  "query id:%d, service:'%s', search text '%s', "
 				  "keyword:'%s', query condition:'%s', offset:%d, "
 				  "max hits:%d, sort by service:'%s'",
 				  live_query_id,
-                                  service,
-                                  search_text,
-                                  keyword,
-                                  query_condition,
-                                  offset,
-                                  max_hits, 
-                                  sort_by_service ? "yes" : "no");
-	
+				  service,
+				  search_text,
+				  keyword,
+				  query_condition,
+				  offset,
+				  max_hits, 
+				  sort_by_service ? "yes" : "no");
+
 	if (!tracker_ontology_is_valid_service_type (service)) {
-		tracker_dbus_request_failed (request_id,
-					     error, 
-                                             "Service '%s' is invalid or has not been implemented yet", 
-                                             service);
-		return FALSE;
+		g_set_error (&actual_error,
+			     TRACKER_DBUS_ERROR,
+			     0,
+			     "Service '%s' is invalid or has not been implemented yet",
+			     service);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
 	}
 
 	result_set = NULL;
@@ -1097,52 +1177,56 @@ tracker_search_query (TrackerSearch  *object,
 		GError *query_error = NULL;
 		gchar  *query_translated;
 
-                tracker_dbus_request_comment (request_id,
+		tracker_dbus_request_comment (request_id,
 					      "Executing RDF query:'%s' with search "
 					      "term:'%s' and keyword:'%s'",
 					      query_condition,
 					      search_text,
 					      keyword);
-	
-		query_translated = tracker_rdf_query_to_sql (iface, 
-                                                             query_condition, 
-                                                             service, 
-                                                             fields, 
-                                                             g_strv_length (fields), 
-                                                             search_text, 
-                                                             keyword, 
-                                                             sort_by_service, 
-                                                             offset, 
-                                                             search_sanity_check_max_hits (max_hits), 
-                                                             query_error);
-               
-		if (query_error) {
-                        tracker_dbus_request_failed (request_id,
-						     error, 
-                                                     "Invalid rdf query produced following error: %s", 
-                                                     query_error->message);
-                        g_error_free (query_error);
 
-                        return FALSE;
-                } else if (!query_translated) {
-                        tracker_dbus_request_failed (request_id,
-						     error, 
-                                                     "Invalid rdf query, no error given");
-                        return FALSE;
+		query_translated = tracker_rdf_query_to_sql (iface, 
+							     query_condition, 
+							     service, 
+							     fields, 
+							     g_strv_length (fields), 
+							     search_text, 
+							     keyword, 
+							     sort_by_service, 
+							     offset, 
+							     search_sanity_check_max_hits (max_hits), 
+							     query_error);
+
+		if (query_error) {
+			g_set_error (&actual_error,
+				     TRACKER_DBUS_ERROR,
+				     0,
+				     query_error->message);
+			dbus_g_method_return_error (context, actual_error);
+			g_error_free (actual_error);
+			g_error_free (query_error);
+			return;
+		} else if (!query_translated) {
+			g_set_error (&actual_error,
+				     TRACKER_DBUS_ERROR,
+				     0,
+				     "Invalid rdf query, no error given");
+			dbus_g_method_return_error (context, actual_error);
+			g_error_free (actual_error);
+			return;
 		}
 
-                tracker_dbus_request_comment (request_id,
+		tracker_dbus_request_comment (request_id,
 					      "Translated RDF query:'%s'",
 					      query_translated);
 
 		if (!tracker_is_empty_string (search_text)) {
 			tracker_db_search_text (iface, 
-                                                service, 
-                                                search_text, 
-                                                0, 
-                                                999999, 
-                                                TRUE, 
-                                                FALSE);
+						service, 
+						search_text, 
+						0, 
+						999999, 
+						TRUE, 
+						FALSE);
 		}
 
 		result_set = tracker_db_interface_execute_query (iface, 
@@ -1151,7 +1235,11 @@ tracker_search_query (TrackerSearch  *object,
 		g_free (query_translated);
 	}
 
-        *values = tracker_dbus_query_result_to_ptr_array (result_set);
+	values = tracker_dbus_query_result_to_ptr_array (result_set);
+
+	dbus_g_method_return (context, values);
+
+	tracker_dbus_results_ptr_array_free (&values);
 
 	if (result_set) {
 		g_object_unref (result_set);
@@ -1159,46 +1247,52 @@ tracker_search_query (TrackerSearch  *object,
 
 	tracker_dbus_request_success (request_id);
 
-	return TRUE;
+	return;
 }
 
-gboolean
+void
 tracker_search_suggest (TrackerSearch  *object,
 			const gchar    *search_text,
 			gint            max_dist,
-			gchar         **value,
+			DBusGMethodInvocation  *context,
 			GError        **error)
 {
-        TrackerSearchPriv *priv;
+	GError            *actual_error = NULL;
+	TrackerSearchPriv *priv;
 	guint              request_id;
+	gchar             *value;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_return_val_if_fail (search_text != NULL, FALSE, error);
-	tracker_dbus_return_val_if_fail (value != NULL, FALSE, error);
-      
-        tracker_dbus_request_new (request_id,
-                                  "DBus request to for suggested words, "
+	tracker_dbus_async_return_if_fail (search_text != NULL, context);
+	tracker_dbus_async_return_if_fail (value != NULL, context);
+
+	tracker_dbus_request_new (request_id,
+				  "DBus request to for suggested words, "
 				  "term:'%s', max dist:%d",
 				  search_text,
 				  max_dist);
 
 	priv = GET_PRIV (object);
 
-        *value = tracker_indexer_get_suggestion (priv->file_index, search_text, max_dist);
+	value = tracker_indexer_get_suggestion (priv->file_index, search_text, max_dist);
 
-        if (!(*value)) {
-		tracker_dbus_request_failed (request_id,
-					     error, 
-					     "Possible data error in index, no suggestions given for '%s'",
-					     search_text);
-		return FALSE;
-        }
-	
-	tracker_dbus_request_comment (request_id,
+	if (!value) {
+		g_set_error (&actual_error,
+			     TRACKER_DBUS_ERROR,
+			     0,
+			     "Possible data error in index, no suggestions given for '%s'",
+			     search_text);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	} else {
+		dbus_g_method_return (context, value);
+		tracker_dbus_request_comment (request_id,
 				      "Suggested spelling for '%s' is '%s'",
-				      search_text, *value);
+				      search_text, value);
+		g_free (value);
+	}
 
-
-        return TRUE;
+	return;
 }

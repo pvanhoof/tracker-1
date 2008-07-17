@@ -1,3 +1,8 @@
+2008-07-17  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/libtracker-db/tracker-db-manager.c: Add the functions for the
+	combine-attached db connections
+
 2008-07-16  Ivan Frade  <ivan.frade@nokia.com>
 	
 	* src/libtracker-common/tracker-field.[ch]:

@@ -2474,7 +2474,7 @@ tracker_db_manager_get_db_interfaces (gint num, ...)
 			db_set_params (connection,
 				       dbs[db].cache_size,
 				       dbs[db].page_size,
-				       dbs[db].add_functions,
+				       TRUE,
 				       FALSE);
 		} else {
 			db_exec_no_reply (connection, 

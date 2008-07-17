@@ -1,3 +1,9 @@
+2008-07-17  Ivan Frade  <ivan.frade@nokia.com>
+	
+	* data/dbus/tracker-metadata.xml
+	* src/trackerd/tracker-metadata.[ch]:
+	Async metadata API.
+	
 2008-07-17  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/libtracker-db/tracker-db-manager.c: Add the functions for the

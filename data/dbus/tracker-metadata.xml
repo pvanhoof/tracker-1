@@ -2,47 +2,54 @@
 
 <node name="/org/freedesktop/Tracker">
   <interface name="org.freedesktop.Tracker.Metadata">
+
     <!-- Retrieves an array of metadata values for the specified array
 	 of metadata keys for a service and id pair.
       --> 
     <method name="Get">
-      <arg type="s" name="service" direction="in" />
-      <arg type="s" name="id" direction="in" />
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/> 
+      <arg type="s" name="service_type" direction="in" />
+      <arg type="s" name="uri" direction="in" />
       <arg type="as" name="keys" direction="in" />
-      <arg type="as" name="values" direction="out" />
+      <arg type="as" name="metadata" direction="out" />
     </method>
     
     <!-- Sets specified metadata keys to the specified metadata values
 	 for a service and id pair.
       -->
     <method name="Set">
-      <arg type="s" name="service" direction="in" />
-      <arg type="s" name="id" direction="in" />
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/> 
+      <arg type="s" name="service_type" direction="in" />
+      <arg type="s" name="uri" direction="in" />
       <arg type="as" name="keys" direction="in" />
-      <arg type="as" name="values" direction="in" />
+      <arg type="as" name="metadata" direction="in" />
     </method>
        
-    <!-- Gets all details of a named metadata type. -->		
+    <!-- Gets all details of a named metadata type (e.g. "Video:FrameRate" or "Audio:Title"). 
+	 data_type: keyword, index, fulltext, string, integer, dobule, date, blob, struct, link
+    -->		
     <method name="GetTypeDetails">
-      <arg type="s" name="name" direction="in" />
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/> 
+      <arg type="s" name="metadata" direction="in" />
       <arg type="s" name="data_type" direction="out" />
       <arg type="b" name="is_embedded" direction="out" />
       <arg type="b" name="is_writable" direction="out" />
     </method>
     
     <!-- Returns an array of all metadata types that are registered
-	 for a certain class. You can enter "*" as the class to get all
-	 metadat types for all classes.
+	 for a certain service type. You can enter "*" as the service type to get all
+	 registered metadata types .
       --> 
     <method name="GetRegisteredTypes">
-      <arg type="s" name="metadata_class" direction="in" />
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/> 
+      <arg type="s" name="service_type" direction="in" />
       <arg type="as" name="result" direction="out" />
     </method>
        
-    <!-- Returns an array of all metadata type classes that are
-	 registered.
+    <!-- Returns an array of all service types that are registered.
       -->
     <method name="GetRegisteredClasses">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
       <arg type="as" name="result" direction="out" />
     </method>
   </interface>

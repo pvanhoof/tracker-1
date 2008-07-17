@@ -52,39 +52,30 @@ struct TrackerMetadataClass {
 
 GType            tracker_metadata_get_type               (void);
 TrackerMetadata *tracker_metadata_new                    (void);
-gboolean         tracker_metadata_get                    (TrackerMetadata   *object,
-							  const gchar       *service,
-							  const gchar       *id,
-							  gchar            **keys,
-							  gchar           ***values,
-							  GError           **error);
-gboolean         tracker_metadata_set                    (TrackerMetadata   *object,
-							  const gchar       *service,
-							  const gchar       *id,
-							  gchar            **keys,
-							  gchar            **values,
-							  GError           **error);
-gboolean         tracker_metadata_register_type          (TrackerMetadata   *object,
-							  const gchar       *metadata,
-							  const gchar       *type,
-							  GError           **error);
-gboolean         tracker_metadata_get_type_details       (TrackerMetadata   *object,
-							  const gchar       *metadata,
-							  gchar            **type,
-							  gboolean          *is_embedded,
-							  gboolean          *is_writable,
-							  GError           **error);
-gboolean         tracker_metadata_get_registered_types   (TrackerMetadata   *object,
-							  const gchar       *metadata,
-							  gchar           ***values,
-							  GError           **error);
-gboolean         tracker_metadata_get_writable_types     (TrackerMetadata   *object,
-							  const gchar       *class,
-							  gchar           ***values,
-							  GError           **error);
-gboolean         tracker_metadata_get_registered_classes (TrackerMetadata   *object,
-							  gchar           ***values,
-							  GError           **error);
+void             tracker_metadata_get                    (TrackerMetadata         *object,
+							  const gchar             *service_type,
+							  const gchar             *uri,
+							  gchar                  **keys,
+							  DBusGMethodInvocation   *context,
+							  GError                 **error);
+void             tracker_metadata_set                    (TrackerMetadata         *object,
+							  const gchar             *service_type,
+							  const gchar             *uri,
+							  gchar                  **keys,
+							  gchar                  **metadata,
+							  DBusGMethodInvocation   *context,
+							  GError                 **error);
+void             tracker_metadata_get_type_details       (TrackerMetadata         *object,
+							  const gchar             *metadata,
+							  DBusGMethodInvocation   *context,
+							  GError                 **error);
+void             tracker_metadata_get_registered_types   (TrackerMetadata         *object,
+							  const gchar             *service_type,
+							  DBusGMethodInvocation   *context,
+							  GError                 **error);
+void             tracker_metadata_get_registered_classes (TrackerMetadata         *object,
+							  DBusGMethodInvocation   *context,
+							  GError                 **error);
 
 G_END_DECLS
 

@@ -51,6 +51,8 @@ gint            tracker_ontology_metadata_key_in_service      (const gchar    *s
 							       const gchar    *meta_name);
 gboolean        tracker_ontology_show_service_directories     (const gchar    *service_str);
 gboolean        tracker_ontology_show_service_files           (const gchar    *service_str);
+GSList *        tracker_ontology_registered_service_types     (void);
+GSList *        tracker_ontology_registered_field_types       (const gchar    *service_type);
 
 /* Service directories */
 GSList *        tracker_ontology_get_dirs_for_service_type    (const gchar    *service);

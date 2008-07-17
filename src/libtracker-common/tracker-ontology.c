@@ -470,6 +470,43 @@ tracker_ontology_show_service_files (const gchar *service_str)
 	return tracker_service_get_show_service_files (service);
 }
 
+
+GSList *
+tracker_ontology_registered_service_types (void)
+{
+	GList *service_types = NULL, *iter = NULL;
+	GSList *names = NULL;
+	TrackerService *service;
+
+	service_types = g_hash_table_get_values (service_table);
+
+	for (iter = service_types; iter != NULL; iter = iter->next) {
+		service = (TrackerService*)iter->data;
+		names = g_slist_prepend (names, g_strdup (tracker_service_get_name (service)));
+	}
+	return names;
+}
+
+GSList *
+tracker_ontology_registered_field_types (const gchar *service_type)
+{
+	GList *field_types = NULL, *iter = NULL;
+	GSList *names = NULL;
+	TrackerField *field;
+
+	field_types = g_hash_table_get_values (metadata_table);
+
+	for (iter = field_types; iter != NULL; iter = iter->next) {
+		field = (TrackerField*)iter->data;
+
+		if (service_type == NULL 
+		    || g_str_has_prefix (tracker_field_get_name (field), service_type)) {
+			names = g_slist_prepend (names, g_strdup (tracker_field_get_name (field)));
+		}
+	}
+	return names;
+}
+
 /*
  * Service directories
  */

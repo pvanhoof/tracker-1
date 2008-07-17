@@ -27,6 +27,7 @@
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-field-data.h>
 #include <libtracker-common/tracker-utils.h>
+#include <libtracker-common/tracker-type-utils.h>
 
 #include <libtracker-db/tracker-db-dbus.h>
 #include <libtracker-db/tracker-db-manager.h>
@@ -353,10 +354,10 @@ tracker_metadata_get_registered_types (TrackerMetadata        *object,
 				       DBusGMethodInvocation  *context,
 				       GError                **error)
 {
-	TrackerDBInterface  *iface;
-	TrackerDBResultSet  *result_set;
 	guint                request_id;
 	gchar              **values = NULL;
+	const gchar         *requested = NULL;
+	GSList              *registered = NULL;
 	GError              *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
@@ -379,20 +380,14 @@ tracker_metadata_get_registered_types (TrackerMetadata        *object,
 		return;
 	}
 
-	/* Here it doesn't matter which one we ask, as long as it has common.db
-	 * attached. The service ones are cached connections, so we can use
-	 * those instead of asking for an individual-file connection (like what
-	 * the original code had) */
+	requested = (strcmp (service_type, "*") == 0 ? NULL : service_type);
 
-	/* iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_COMMON); */
+	registered = tracker_ontology_registered_field_types (requested);
 
-	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
+	values = tracker_gslist_to_string_list (registered);
 
-	result_set = tracker_db_metadata_get_types (iface, service_type, FALSE);
-	if (result_set) {
-		values = tracker_dbus_query_result_to_strv (result_set, 1, NULL);
-		g_object_unref (result_set);
-	}
+	g_slist_foreach (registered, (GFunc) g_free, NULL);
+	g_slist_free (registered);
 
 	dbus_g_method_return (context, values);
 
@@ -409,33 +404,21 @@ tracker_metadata_get_registered_classes (TrackerMetadata        *object,
 					 DBusGMethodInvocation  *context,
 					 GError                **error)
 {
-	TrackerDBInterface  *iface;
-	TrackerDBResultSet  *result_set;
 	guint                request_id;
 	gchar              **values = NULL;
+	GSList              *registered = NULL;
 						 
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get registered classes");
 
-	/* Here it doesn't matter which one we ask, as long as it has common.db
-	 * attached. The service ones are cached connections, so we can use
-	 * those instead of asking for an individual-file connection (like what
-	 * the original code had) */
+	registered = tracker_ontology_registered_service_types ();
 
-	/* iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_COMMON); */
+	values = tracker_gslist_to_string_list (registered);
 
-	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
-
-	result_set = tracker_db_exec_proc (iface, 
-					   "SelectRegisteredClasses", 
-					   NULL);
-	
-	if (result_set) {
-		values = tracker_dbus_query_result_to_strv (result_set, 0, NULL);
-		g_object_unref (result_set);
-	}
+	g_slist_foreach (registered, (GFunc) g_free, NULL);
+	g_slist_free (registered);
 
 	dbus_g_method_return (context, values);
 

@@ -1,3 +1,18 @@
+2008-07-17  Ivan Frade  <ivan.frade@nokia.com>
+	
+	* src/libtracker-common/tracker-ontology.[ch]:
+	(tracker_ontology_registered_service_types)
+	(tracker_ontology_registered_field_types): new functions to obtain
+	services and field type names registered in the ontology.
+	
+	* src/trackerd/tracker-metadata.c: 
+	(tracker_metadata_get_registered_types)
+	(tracker_metadata_get_registered_classes): Use the new functions
+	instead accessing to the DB.
+	
+	* tests/libtracker-common/tracker-ontology-test.c: Tests for the
+	new methods.
+	
 2008-07-17  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-crawler.c:

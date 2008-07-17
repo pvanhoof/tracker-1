@@ -23,6 +23,7 @@
 #include <glib.h>
 #include <glib/gtestutils.h>
 #include <tracker-test-helpers.h>
+#include <string.h>
 
 gboolean
 test_cmp_servicedef_equals (TrackerService *one, 
@@ -90,6 +91,12 @@ create_service_definition (int id, const char *name, const char *parent, gboolea
         tracker_service_set_has_metadata (def, FALSE);
 
 	return def;
+}
+
+static gboolean
+element_in_list (GSList *list, gchar *element) 
+{
+	return (g_slist_find_custom (list, element, (GCompareFunc)strcmp) != NULL);
 }
 
 
@@ -226,12 +233,19 @@ test_get_parent_service ()
 static void
 test_get_service_type_for_mime ()
 {
-	g_assert ( g_str_equal ("Parent service", 
-				tracker_ontology_get_service_type_for_mime ("application/rtf")));
-	g_assert ( g_str_equal ("Parent service",
-				tracker_ontology_get_service_type_for_mime ("images/jpeg")));
-	g_assert ( g_str_equal ("Other",
-				tracker_ontology_get_service_type_for_mime ("noexists/bla")));
+	gchar *value;
+
+	value = tracker_ontology_get_service_type_for_mime ("application/rtf");
+	g_assert ( g_str_equal ("Parent service", value));
+	g_free (value);
+
+	value = tracker_ontology_get_service_type_for_mime ("images/jpeg");
+	g_assert ( g_str_equal ("Parent service", value));
+	g_free (value);
+
+	value = tracker_ontology_get_service_type_for_mime ("noexists/bla");
+	g_assert ( g_str_equal ("Other", value));
+	g_free (value);
 }
 
 
@@ -303,6 +317,55 @@ test_field_in_ontology ()
         g_assert (!tracker_ontology_get_field_def ("nooooo"));
 }
 
+static void
+test_get_registered_service_types (void)
+{
+	GSList *service_types = NULL;
+
+	service_types = tracker_ontology_registered_service_types ();
+
+	g_assert_cmpint (7, ==, g_slist_length (service_types));
+	
+	g_assert (element_in_list (service_types, "Applications"));
+
+	g_slist_foreach (service_types, (GFunc)g_free, NULL);
+	g_slist_free (service_types);
+
+}
+
+static void
+test_get_registered_field_types (void)
+{
+	GSList *field_types = NULL;
+	
+	/* All registered field types */
+	field_types = tracker_ontology_registered_field_types (NULL);
+
+	g_assert_cmpint (1 ,==, g_slist_length (field_types));
+
+	g_assert (element_in_list (field_types, "App.Title"));
+
+	g_slist_foreach (field_types, (GFunc)g_free, NULL);
+	g_slist_free (field_types);
+
+	/* Music field types */
+	field_types = tracker_ontology_registered_field_types ("Music");
+
+	g_assert (!field_types);
+
+
+	/* App field types */
+	field_types = tracker_ontology_registered_field_types ("App");
+
+	g_assert_cmpint (1 ,==, g_slist_length (field_types));
+
+	g_assert (element_in_list (field_types, "App.Title"));
+
+	g_slist_foreach (field_types, (GFunc)g_free, NULL);
+	g_slist_free (field_types);
+
+}
+
 int
 main (int argc, char **argv) {
 
@@ -339,6 +402,11 @@ main (int argc, char **argv) {
                          test_has_metadata);
         g_test_add_func ("/trackerd/tracker-services/test_field_in_ontology",
                          test_field_in_ontology);
+
+	g_test_add_func ("/trackerd/tracker-services/test_get_all_registered_service_types",
+			 test_get_registered_service_types);
+	g_test_add_func ("/trackerd/tracker-services/test_get_all_registered_field_types",
+			 test_get_registered_field_types);
 
         result = g_test_run ();
         

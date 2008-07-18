@@ -539,7 +539,6 @@ tracker_search_get_hit_count_all (TrackerSearch          *object,
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_async_return_if_fail (search_text != NULL, context);
-	tracker_dbus_async_return_if_fail (values != NULL, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get search hit count for all, "
@@ -738,7 +737,6 @@ tracker_search_text_detailed (TrackerSearch          *object,
 
 	tracker_dbus_async_return_if_fail (service != NULL, context);
 	tracker_dbus_async_return_if_fail (search_text != NULL, context);
-	tracker_dbus_async_return_if_fail (values != NULL, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to search text detailed, "
@@ -921,7 +919,6 @@ tracker_search_files_by_text (TrackerSearch         *object,
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_async_return_if_fail (search_text != NULL, context);
-	tracker_dbus_async_return_if_fail (values != NULL, context);
 
 	tracker_dbus_request_new (request_id,
 				   "DBus request to search files by text, "
@@ -985,7 +982,6 @@ tracker_search_metadata (TrackerSearch          *object,
 	tracker_dbus_async_return_if_fail (service != NULL, context);
 	tracker_dbus_async_return_if_fail (field != NULL, context);
 	tracker_dbus_async_return_if_fail (search_text != NULL, context);
-	tracker_dbus_async_return_if_fail (values != NULL, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to search metadata, "
@@ -1057,7 +1053,6 @@ tracker_search_matching_fields (TrackerSearch         *object,
 	tracker_dbus_async_return_if_fail (service != NULL, context);
 	tracker_dbus_async_return_if_fail (id != NULL, context);
 	tracker_dbus_async_return_if_fail (search_text != NULL, context);
-	tracker_dbus_async_return_if_fail (values != NULL, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to search matching fields, "
@@ -1142,7 +1137,6 @@ tracker_search_query (TrackerSearch  *object,
 	tracker_dbus_async_return_if_fail (search_text != NULL, context);
 	tracker_dbus_async_return_if_fail (keyword != NULL, context);
 	tracker_dbus_async_return_if_fail (query_condition != NULL, context);
-	tracker_dbus_async_return_if_fail (values != NULL, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to search query, "
@@ -1265,7 +1259,6 @@ tracker_search_suggest (TrackerSearch  *object,
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_async_return_if_fail (search_text != NULL, context);
-	tracker_dbus_async_return_if_fail (value != NULL, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to for suggested words, "

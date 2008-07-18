@@ -790,20 +790,24 @@ process_file (TrackerIndexer *indexer,
 	metadata = tracker_indexer_module_file_get_metadata (info->module, info->file);
 
 	if (metadata) {
-		TrackerService *service;
-		const gchar *service_type;
+		TrackerService *service_def;
+		gchar *service_type, *mimetype;
 		gboolean created;
 		guint32 id;
 
-		service_type = tracker_indexer_module_get_name (info->module);
-		service = tracker_ontology_get_service_type_by_name (service_type);
+		mimetype = tracker_file_get_mime_type (info->file->path);
+		service_type = tracker_ontology_get_service_type_for_mime (mimetype);
+		service_def = tracker_ontology_get_service_type_by_name (service_type);
 		id = tracker_db_get_new_service_id (indexer->private->common);
 
 		created = tracker_db_create_service (indexer->private->metadata, 
 						     id, 
-						     service, 
+						     service_def, 
 						     info->file->path, 
 						     metadata);
+
+		g_free (service_type);
+		g_free (mimetype);
 		
 		if (created) {
 			gchar *text;
@@ -820,9 +824,9 @@ process_file (TrackerIndexer *indexer,
 				inc_events = TRUE;
 			}
 
-			tracker_db_increment_stats (indexer->private->common, service);
+			tracker_db_increment_stats (indexer->private->common, service_def);
 
-			index_metadata (indexer, id, service, metadata);
+			index_metadata (indexer, id, service_def, metadata);
 
 			text = tracker_indexer_module_file_get_text (info->module, info->file);
 

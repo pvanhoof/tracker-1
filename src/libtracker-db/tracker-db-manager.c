@@ -1648,13 +1648,16 @@ db_get_static_xesam_data (TrackerDBInterface *iface)
 			TrackerField  *def;
 
 			def = db_row_to_field_def (result_set);
-
-			g_message ("Loading xesam metadata def:'%s' with type:%d",
-				   tracker_field_get_name (def),
-				   tracker_field_get_data_type (def));
-
-			tracker_ontology_add_field (def);
-
+			/*
+			 * The ids in xesam db overwritte the IDs in common db! It means that all the 
+			 * files are assigned to a wrong category
+			 *
+			 * g_message ("Loading xesam metadata def:'%s' with type:%d",
+			 *                 tracker_field_get_name (def),
+			 *                 tracker_field_get_data_type (def));
+			 *
+			 * tracker_ontology_add_field (def);
+			 */
 			valid = tracker_db_result_set_iter_next (result_set);
 		}
 
@@ -1687,16 +1690,19 @@ db_get_static_xesam_data (TrackerDBInterface *iface)
 
                         mimes = db_get_xesam_mimes_for_service_id (iface, id);
                         mime_prefixes = db_get_xesam_mime_prefixes_for_service_id (iface, id);
-
-                        g_message ("Adding xesam service:'%s' with id:%d and mimes:%d",
-				   name,
-				   id,
-				   g_slist_length (mimes));
-
-                        tracker_ontology_add_service_type (service,
-							   mimes,
-							   mime_prefixes);
-
+			
+			/* 
+			 * Same as above
+			 *
+			 * g_message ("Adding xesam service:'%s' with id:%d and mimes:%d",
+			 *   name,
+			 *   id,
+			 *   g_slist_length (mimes));
+			 *
+			 * tracker_ontology_add_service_type (service,
+			 *				   mimes,
+			 *				   mime_prefixes);
+			 */
                         g_slist_free (mimes);
                         g_slist_free (mime_prefixes);
                         g_object_unref (service);

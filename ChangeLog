@@ -1,3 +1,14 @@
+2008-07-18  Ivan Frade  <ivan.frade@nokia.com>
+	
+	* src/libtracker-db/tracker-db-manager.c:
+	Commented out the code to load xesam categories in
+	tracker_ontology. It overwrittes the real categories because the
+	IDs are not unique.
+	
+	* src/tracker-indexer/tracker-indexer.c
+	Obtain the mimetype and service type from the file, instead from
+	the module name.
+	
 2008-07-18  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/tracker-indexer/tracker-indexer.c:

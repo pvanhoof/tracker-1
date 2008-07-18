@@ -470,6 +470,98 @@ tracker_path_remove (const gchar *uri)
 	g_slist_free (dirs_to_remove);
 }
 
+gboolean
+tracker_path_is_in_path (const gchar *path,
+			 const gchar *in_path)
+{
+	gchar    *new_path;
+	gchar    *new_in_path;
+	gboolean  is_in_path = FALSE;
+
+	g_return_val_if_fail (path != NULL, FALSE);
+	g_return_val_if_fail (in_path != NULL, FALSE);
+	
+	if (!g_str_has_suffix (path, G_DIR_SEPARATOR_S)) {
+		new_path = g_strconcat (path, G_DIR_SEPARATOR_S, NULL);
+	} else {
+		new_path = g_strdup (path);
+	}
+
+	if (!g_str_has_suffix (in_path, G_DIR_SEPARATOR_S)) {
+		new_in_path = g_strconcat (in_path, G_DIR_SEPARATOR_S, NULL);
+	} else {
+		new_in_path = g_strdup (in_path);
+	}
+	
+	if (g_str_has_prefix (new_path, new_in_path)) {
+		is_in_path = TRUE;
+	} 
+
+	g_free (new_in_path);
+	g_free (new_path);
+
+	return is_in_path;
+}
+
+void
+tracker_path_hash_table_filter_duplicates (GHashTable *roots)
+{
+	GHashTableIter iter1, iter2;
+	gpointer       key;
+
+	g_debug ("Filtering duplicates in path hash table:");
+
+	g_hash_table_iter_init (&iter1, roots);
+	while (g_hash_table_iter_next (&iter1, &key, NULL)) {
+		const gchar *path;
+		
+		path = (const gchar*) key;
+
+		g_hash_table_iter_init (&iter2, roots);
+		while (g_hash_table_iter_next (&iter2, &key, NULL)) {
+			const gchar *in_path;
+
+			in_path = (const gchar*) key;
+
+			if (path == in_path) {
+				continue;
+			}
+
+			if (tracker_path_is_in_path (path, in_path)) {
+				g_debug ("Removing path:'%s', it is in path:'%s'", 
+					 path, in_path);
+
+				g_hash_table_iter_remove (&iter1);
+				g_hash_table_iter_init (&iter1, roots);
+				break;
+			} else if (tracker_path_is_in_path (in_path, path)) {
+				g_debug ("Removing path:'%s', it is in path:'%s'", 
+					 in_path, path);
+
+				g_hash_table_iter_remove (&iter2);
+				g_hash_table_iter_init (&iter1, roots);
+				break;
+			}
+		}
+	}
+
+#ifdef TESTING
+	g_debug ("Using the following roots to crawl:");
+
+	if (TRUE) {
+		GList *keys, *l;
+
+		keys = g_hash_table_get_keys (roots);
+		
+		for (l = keys; l; l = l->next) {
+			g_debug ("  %s", (gchar*) l->data);
+		}
+		
+		g_list_free (keys);
+	}
+#endif /* TESTING */
+}
+
 GSList *
 tracker_path_list_filter_duplicates (GSList *roots)
 {

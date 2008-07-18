@@ -1,3 +1,30 @@
+2008-07-18  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-file-utils.[ch]:
+	* src/libtracker-common/tracker-module-config.c: Added functions
+	to remove duplicates or hierarchical conflicts between monitor
+	directories and monitor recurse directories. 
+	
+	* src/trackerd/tracker-marshal.list:
+	* src/trackerd/tracker-crawler.c: Emit a signal for each directory
+	we process so the processor can add monitors. The bug where we
+	don't monitor or crawl the toplevel directory/files for each
+	module is fixed now. We now only send files to the indexer AFTER
+	we have crawled the file system. This time is insignificant, for
+	100k files it takes ~10 seconds.
+
+	Emitting a signal for each directory is not really the best way
+	forward here, since the directories we crawl are the directories
+	which are "recursive monitor directories". What we should do is
+	set flags on the crawler before we start it so we know if we are
+	crawling to set up monitors or to get files. We should also return
+	the files to the processor to send to the indexer, instead of
+	doing all that in this module too. This needs more work. 
+	
+	* src/trackerd/tracker-processor.c: Removed add_recurse_monitors()
+	and add_monitors(), they are not needed. Added the code to handle
+	adding monitors from the process-directory callback in the crawler.
+
 2008-07-18  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/trackerd/tracker-search.c: Fixed assertions that are not

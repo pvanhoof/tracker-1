@@ -26,6 +26,7 @@
 #include <gio/gio.h>
 
 #include <libtracker-common/tracker-module-config.h>
+#include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-hal.h>
 #include <libtracker-common/tracker-utils.h>
 
@@ -42,7 +43,6 @@ typedef struct TrackerProcessorPrivate TrackerProcessorPrivate;
 struct TrackerProcessorPrivate {
 	TrackerConfig  *config;
 	TrackerHal     *hal;
-
 	TrackerCrawler *crawler;
 
 	DBusGProxy     *indexer_proxy;
@@ -66,26 +66,28 @@ enum {
 	LAST_SIGNAL
 };
 
-static void tracker_processor_finalize (GObject          *object);
-static void process_next_module        (TrackerProcessor *processor);
-static void indexer_status_cb          (DBusGProxy       *proxy,
-					gdouble           seconds_elapsed,
-					const gchar      *current_module_name,
-					guint             items_done,
-					guint             items_remaining,
-					gpointer          user_data);
-static void indexer_finished_cb        (DBusGProxy       *proxy,
-					gdouble           seconds_elapsed,
-					guint             items_done,
-					gpointer          user_data);
-static void crawler_all_sent_cb        (TrackerCrawler   *crawler,
-					gpointer          user_data);
-static void crawler_finished_cb        (TrackerCrawler   *crawler,
-					guint             directories_found,
-					guint             directories_ignored,
-					guint             files_found,
-					guint             files_ignored,
-					gpointer          user_data);
+static void tracker_processor_finalize      (GObject          *object);
+static void process_next_module             (TrackerProcessor *processor);
+static void indexer_status_cb               (DBusGProxy       *proxy,
+					     gdouble           seconds_elapsed,
+					     const gchar      *current_module_name,
+					     guint             items_done,
+					     guint             items_remaining,
+					     gpointer          user_data);
+static void indexer_finished_cb             (DBusGProxy       *proxy,
+					     gdouble           seconds_elapsed,
+					     guint             items_done,
+					     gpointer          user_data);
+static void crawler_processing_directory_cb (TrackerCrawler   *crawler,
+					     const gchar      *module_name,
+					     GFile            *file,
+					     gpointer          user_data);
+static void crawler_finished_cb             (TrackerCrawler   *crawler,
+					     guint             directories_found,
+					     guint             directories_ignored,
+					     guint             files_found,
+					     guint             files_ignored,
+					     gpointer          user_data);
 
 #ifdef HAVE_HAL
 static void mount_point_added_cb       (TrackerHal       *hal,
@@ -151,9 +153,9 @@ tracker_processor_finalize (GObject *object)
 					G_CALLBACK (indexer_status_cb),
 					processor);
 	g_object_unref (priv->indexer_proxy);
-	
+
 	g_signal_handlers_disconnect_by_func (priv->crawler,
-					      G_CALLBACK (crawler_all_sent_cb),
+					      G_CALLBACK (crawler_processing_directory_cb),
 					      object);
 	g_signal_handlers_disconnect_by_func (priv->crawler,
 					      G_CALLBACK (crawler_finished_cb),
@@ -176,62 +178,6 @@ tracker_processor_finalize (GObject *object)
 	g_object_unref (priv->config);
 
 	G_OBJECT_CLASS (tracker_processor_parent_class)->finalize (object);
-}
-
-static void
-add_monitors (const gchar *module_name)
-{
-	GList *monitors;
-	GList *l;
-
-	monitors = tracker_module_config_get_monitor_directories (module_name);
-
-	for (l = monitors; l; l = l->next) {
-		GFile       *file;
-		const gchar *path;
-
-		path = l->data;
-
-		g_message ("  Adding specific directory monitor:'%s'", path);
-
-		file = g_file_new_for_path (path);
-		tracker_monitor_add (file, module_name);
-		g_object_unref (file);
-	}
-
-	g_list_free (monitors);
-
-	if (!monitors) {
-		g_message ("  No specific monitors to set up");
-	}
-}
-
-static void
-add_recurse_monitors (const gchar *module_name)
-{
-	GList *monitors;
-	GList *l;
-
-	monitors = tracker_module_config_get_monitor_recurse_directories (module_name);
-
-	for (l = monitors; l; l = l->next) {
-		GFile       *file;
-		const gchar *path;
-
-		path = l->data;
-
-		g_message ("  Adding recurse directory monitor:'%s' (FIXME: Not finished)", path);
-
-		file = g_file_new_for_path (path);
-		tracker_monitor_add (file, module_name);
-		g_object_unref (file);
-	}
-
-	g_list_free (monitors);
-
-	if (!monitors) {
-		g_message ("  No recurse monitors to set up");
-	}
 }
 
 static void
@@ -350,11 +296,54 @@ indexer_finished_cb (DBusGProxy  *proxy,
 }
 
 static void
-crawler_all_sent_cb (TrackerCrawler *crawler,
-		     gpointer        user_data)
+crawler_processing_directory_cb (TrackerCrawler *crawler,
+				 const gchar    *module_name,
+				 GFile          *file,
+				 gpointer        user_data)
 {
-	g_message ("All items have been sent to the indexer to process, "
-		   "waiting for indexer to finished");
+#if 1
+	/* FIXME: We are doing this for now because the code is really inefficient */
+	tracker_monitor_add (file, module_name);
+#else
+	GList    *directories, *l;
+	gchar    *path;
+	gboolean  add_monitor;
+
+	path = g_file_get_path (file);
+
+	g_debug ("Processing module:'%s' with for path:'%s'",
+		 module_name,
+		 path);
+
+	/* Is it a monitor directory? */
+	directories = tracker_module_config_get_monitor_directories (module_name);
+
+	for (l = directories; l && !add_monitor; l = l->next) {
+		if (strcmp (path, l->data) == 0) {
+			add_monitor = TRUE;
+		}
+	}
+
+	g_list_free (directories);
+
+	/* Is it underneath a monitor recurse directory? */
+	directories = tracker_module_config_get_monitor_directories (module_name);
+
+	for (l = directories; l && !add_monitor; l = l->next) {
+		if (tracker_path_is_in_path (path, l->data) == 0) {
+			add_monitor = TRUE;
+		}
+	}
+
+	g_list_free (directories);
+	
+	/* Should we add? */
+	if (add_monitor) {
+		tracker_monitor_add (file, module_name);
+	}
+
+	g_free (path);
+#endif
 }
 
 static void
@@ -440,8 +429,8 @@ tracker_processor_new (TrackerConfig *config,
 
 	priv->crawler = tracker_crawler_new (config, hal);
 
-	g_signal_connect (priv->crawler, "all-sent",
-			  G_CALLBACK (crawler_all_sent_cb),
+	g_signal_connect (priv->crawler, "processing-directory",
+			  G_CALLBACK (crawler_processing_directory_cb),
 			  processor);
 	g_signal_connect (priv->crawler, "finished",
 			  G_CALLBACK (crawler_finished_cb),
@@ -531,6 +520,7 @@ tracker_processor_stop (TrackerProcessor *processor)
 		g_signal_emit (processor, signals[FINISHED], 0);
 	} else {
 		tracker_status_set_and_signal (TRACKER_STATUS_INDEXING);
+		tracker_crawler_set_can_send_yet (priv->crawler, TRUE);
 	}
 }
 

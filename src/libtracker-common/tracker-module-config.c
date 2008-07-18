@@ -67,8 +67,12 @@ static GHashTable   *modules;
 static GFileMonitor *monitor;
 
 static void
-module_config_free (ModuleConfig *mc)
+module_destroy_notify (gpointer data)
 {
+	ModuleConfig *mc;
+
+	mc = (ModuleConfig*) data;
+
 	g_list_foreach (mc->index_file_patterns,
 			(GFunc) g_pattern_spec_free,
 			NULL);
@@ -99,14 +103,65 @@ module_config_free (ModuleConfig *mc)
 	g_slice_free (ModuleConfig, mc);
 }
 
+static void
+check_for_monitor_directory_conflicts (ModuleConfig *mc)
+{
+	GHashTableIter iter1, iter2;
+	gpointer       key;
+
+	/* Make sure we don't have duplicates from the monitor
+	 * directories in the monitor recurse directories hash table
+	 * and also, make sure there are no recurse directories higher
+	 * as parents of monitor directories, this would duplicate
+	 * monitors unnecesarily.
+	 */
+	g_hash_table_iter_init (&iter1, mc->monitor_directories);
+	while (g_hash_table_iter_next (&iter1, &key, NULL)) {
+		const gchar *path;
+		
+		path = (const gchar*) key;
+
+		if (g_hash_table_lookup (mc->monitor_recurse_directories, path)) {
+			g_debug ("Removing path:'%s' from monitor directories, "
+				 "ALREADY in monitor recurse directories", 
+				 path);
+
+			g_hash_table_iter_remove (&iter1);
+			g_hash_table_iter_init (&iter1, mc->monitor_directories);
+			continue;
+		}
+
+		g_hash_table_iter_init (&iter2, mc->monitor_recurse_directories);
+		while (g_hash_table_iter_next (&iter2, &key, NULL)) {
+			const gchar *in_path;
+
+			in_path = (const gchar*) key;
+
+			if (path == in_path) {
+				continue;
+			}
+
+			if (tracker_path_is_in_path (path, in_path)) {
+				g_debug ("Removing path:'%s' from monitor directories, "
+					 "ALREADY in monitor recurse directories HIERARCHY", 
+					 path);
+
+				g_hash_table_iter_remove (&iter1);
+				g_hash_table_iter_init (&iter1, mc->monitor_directories);
+				break;
+			}
+		}
+	}
+}
+
 static gchar *
-module_config_get_directory (void)
+get_directory (void)
 {
 	return g_build_path (G_DIR_SEPARATOR_S, SHAREDIR, "tracker", "modules", NULL);
 }
 
 static void
-module_config_set_ignored_file_patterns (ModuleConfig *mc)
+set_ignored_file_patterns (ModuleConfig *mc)
 {
 	GPatternSpec *spec;
 	GList        *ignored_files;
@@ -133,7 +188,7 @@ module_config_set_ignored_file_patterns (ModuleConfig *mc)
 }
 
 static void
-module_config_set_ignored_directory_patterns (ModuleConfig *mc)
+set_ignored_directory_patterns (ModuleConfig *mc)
 {
 	GPatternSpec *spec;
 	GList        *ignored_directories;
@@ -160,7 +215,7 @@ module_config_set_ignored_directory_patterns (ModuleConfig *mc)
 }
 
 static void
-module_config_set_index_file_patterns (ModuleConfig *mc)
+set_index_file_patterns (ModuleConfig *mc)
 {
 	GPatternSpec *spec;
 	GList        *index_files;
@@ -187,9 +242,9 @@ module_config_set_index_file_patterns (ModuleConfig *mc)
 }
 
 static gboolean
-module_config_load_boolean (GKeyFile    *key_file,
-			    const gchar *group,
-			    const gchar *key)
+load_boolean (GKeyFile    *key_file,
+	      const gchar *group,
+	      const gchar *key)
 {
 	GError   *error = NULL;
 	gboolean  boolean;
@@ -213,10 +268,10 @@ module_config_load_boolean (GKeyFile    *key_file,
 }
 
 static gchar *
-module_config_load_string (GKeyFile    *key_file,
-			   const gchar *group,
-			   const gchar *key,
-			   gboolean     expand_string_as_path)
+load_string (GKeyFile    *key_file,
+	      const gchar *group,
+	      const gchar *key,
+	      gboolean     expand_string_as_path)
 {
 	GError *error = NULL;
 	gchar  *str;
@@ -249,10 +304,11 @@ module_config_load_string (GKeyFile    *key_file,
 }
 
 static GHashTable *
-module_config_load_string_list (GKeyFile    *key_file,
-				const gchar *group,
-				const gchar *key,
-				gboolean     expand_strings_as_paths)
+load_string_list (GKeyFile    *key_file,
+		  const gchar *group,
+		  const gchar *key,
+		  gboolean     expand_strings_as_paths,
+		  gboolean     remove_hierarchy_dups)
 {
 	GError      *error = NULL;
 	GHashTable  *table;
@@ -307,16 +363,23 @@ module_config_load_string_list (GKeyFile    *key_file,
 					     GINT_TO_POINTER (1));
 			g_debug ("Got real path:'%s' for '%s'", real_path, *p);
 		}
-
 	}
 
 	g_strfreev (str);
-
+	
+	/* Go through again to make sure we don't have situations
+	 * where /foo and / exist, because of course /foo is
+	 * redundant here where 'remove_hierarchy_dups' is TRUE.
+	 */
+	if (remove_hierarchy_dups) {
+		tracker_path_hash_table_filter_duplicates (table);
+	}
+	
 	return table;
 }
 
 static ModuleConfig *
-module_config_load_file (const gchar *filename)
+load_file (const gchar *filename)
 {
 	GKeyFile     *key_file;
 	GError       *error = NULL;
@@ -343,62 +406,61 @@ module_config_load_file (const gchar *filename)
 	mc = g_slice_new0 (ModuleConfig);
 
 	/* General */
-	mc->description =
-		module_config_load_string (key_file,
-					   GROUP_GENERAL,
-					   "Description",
-					   FALSE);
-	mc->enabled =
-		module_config_load_boolean (key_file,
-					    GROUP_GENERAL,
-					    "Enabled");
+	mc->description = load_string (key_file,
+				       GROUP_GENERAL,
+				       "Description",
+				       FALSE);
+	mc->enabled = load_boolean (key_file,
+				    GROUP_GENERAL,
+				    "Enabled");
 
 	/* Monitors */
-	mc->monitor_directories =
-		module_config_load_string_list (key_file,
-						GROUP_MONITORS,
-						"Directories",
-						TRUE);
-	mc->monitor_recurse_directories =
-		module_config_load_string_list (key_file,
-						GROUP_MONITORS,
-						"RecurseDirectories",
-						TRUE);
+	mc->monitor_directories = load_string_list (key_file,
+						    GROUP_MONITORS,
+						    "Directories",
+						    TRUE,
+						    FALSE);
+	mc->monitor_recurse_directories = load_string_list (key_file,
+							   GROUP_MONITORS,
+							   "RecurseDirectories",
+							   TRUE,
+							   TRUE);
 
 	/* Ignored */
-	mc->ignored_directories =
-		module_config_load_string_list (key_file,
-						GROUP_IGNORED,
-						"Directories",
-						TRUE);
-	mc->ignored_files =
-		module_config_load_string_list (key_file,
-						GROUP_IGNORED,
-						"Files",
-						FALSE);
+	mc->ignored_directories = load_string_list (key_file,
+						    GROUP_IGNORED,
+						    "Directories",
+						    TRUE,
+						    FALSE);
+	mc->ignored_files = load_string_list (key_file,
+					      GROUP_IGNORED,
+					      "Files",
+					      FALSE,
+					      FALSE);
 
 	/* Index */
-	mc->index_service =
-		module_config_load_string (key_file,
-					   GROUP_INDEX,
-					   "Service",
-					   FALSE);
-	mc->index_mime_types =
-		module_config_load_string_list (key_file,
-						GROUP_INDEX,
-						"MimeTypes",
-						FALSE);
-	mc->index_files =
-		module_config_load_string_list (key_file,
-						GROUP_INDEX,
-						"Files",
-						FALSE);
+	mc->index_service = load_string (key_file,
+					 GROUP_INDEX,
+					 "Service",
+					 FALSE);
+	mc->index_mime_types = load_string_list (key_file,
+						 GROUP_INDEX,
+						 "MimeTypes",
+						 FALSE,
+						 FALSE);
+	mc->index_files = load_string_list (key_file,
+					    GROUP_INDEX,
+					    "Files",
+					    FALSE,
+					    FALSE);
+
+	check_for_monitor_directory_conflicts (mc);
 
 	/* FIXME: Specific options */
 
-	module_config_set_ignored_file_patterns (mc);
-	module_config_set_ignored_directory_patterns (mc);
-	module_config_set_index_file_patterns (mc);
+	set_ignored_file_patterns (mc);
+	set_ignored_directory_patterns (mc);
+	set_index_file_patterns (mc);
 
 	g_key_file_free (key_file);
 
@@ -406,7 +468,7 @@ module_config_load_file (const gchar *filename)
 }
 
 static gboolean
-module_config_load (void)
+load_directory (void)
 {
 	GFile           *file;
 	GFileEnumerator *enumerator;
@@ -418,7 +480,7 @@ module_config_load (void)
 	const gchar     *extension;
 	glong            extension_len;
 
-	path = module_config_get_directory ();
+	path = get_directory ();
 	file = g_file_new_for_path (path);
 
 	enumerator = g_file_enumerate_children (file,
@@ -459,7 +521,7 @@ module_config_load (void)
 
 		child = g_file_get_child (file, name);
 		filename = g_file_get_path (child);
-		mc = module_config_load_file (filename);
+		mc = load_file (filename);
 		g_free (filename);
 
 		if (mc) {
@@ -494,11 +556,11 @@ module_config_load (void)
 }
 
 static void
-module_config_changed_cb (GFileMonitor     *monitor,
-			  GFile            *file,
-			  GFile            *other_file,
-			  GFileMonitorEvent event_type,
-			  gpointer          user_data)
+changed_cb (GFileMonitor     *monitor,
+	    GFile            *file,
+	    GFile            *other_file,
+	    GFileMonitorEvent event_type,
+	    gpointer          user_data)
 {
 	gchar *filename;
 
@@ -512,7 +574,7 @@ module_config_changed_cb (GFileMonitor     *monitor,
 			   filename);
 		g_free (filename);
 
-		module_config_load ();
+		load_directory ();
 		break;
 
 	default:
@@ -530,7 +592,7 @@ tracker_module_config_init (void)
 		return TRUE;
 	}
 
-	path = module_config_get_directory ();
+	path = get_directory ();
 	if (!g_file_test (path, G_FILE_TEST_IS_DIR | G_FILE_TEST_EXISTS)) {
 		g_critical ("Module config directory:'%s' doesn't exist",
 			    path);
@@ -540,11 +602,11 @@ tracker_module_config_init (void)
 
 	modules = g_hash_table_new_full (g_str_hash,
 					 g_str_equal,
-					 (GDestroyNotify) g_free,
-					 (GDestroyNotify) module_config_free);
+					 g_free,
+					 module_destroy_notify);
 
 	/* Get modules */
-	if (!module_config_load ()) {
+	if (!load_directory ()) {
 		g_hash_table_unref (modules);
 		g_free (path);
 		return FALSE;
@@ -561,7 +623,7 @@ tracker_module_config_init (void)
 					    NULL);
 
 	g_signal_connect (monitor, "changed",
-			  G_CALLBACK (module_config_changed_cb),
+			  G_CALLBACK (changed_cb),
 			  NULL);
 
 	g_object_unref (file);
@@ -579,9 +641,7 @@ tracker_module_config_shutdown (void)
 		return;
 	}
 
-	g_signal_handlers_disconnect_by_func (monitor,
-					      module_config_changed_cb,
-					      NULL);
+	g_signal_handlers_disconnect_by_func (monitor, changed_cb, NULL);
 
 	g_object_unref (monitor);
 

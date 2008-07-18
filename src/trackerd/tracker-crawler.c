@@ -60,6 +60,7 @@ struct _TrackerCrawlerPrivate {
 
 	guint           idle_id;
 	guint           files_queue_handle_id;
+	gboolean        can_send_yet;
 
 	/* Specific to each crawl ... */
 	GList          *ignored_directory_patterns;
@@ -81,7 +82,7 @@ struct _TrackerCrawlerPrivate {
 };
 
 enum {
-	ALL_SENT,
+	PROCESSING_DIRECTORY,
 	FINISHED,
 	LAST_SIGNAL
 };
@@ -111,15 +112,17 @@ tracker_crawler_class_init (TrackerCrawlerClass *klass)
 
 	object_class->finalize = crawler_finalize;
 
-	signals[ALL_SENT] = 
-		g_signal_new ("all-sent",
+	signals[PROCESSING_DIRECTORY] = 
+		g_signal_new ("processing-directory",
 			      G_TYPE_FROM_CLASS (klass),
 			      G_SIGNAL_RUN_LAST,
 			      0,
 			      NULL, NULL,
-			      g_cclosure_marshal_VOID__VOID,
+			      tracker_marshal_VOID__STRING_OBJECT,
 			      G_TYPE_NONE, 
-			      0);
+			      2,
+			      G_TYPE_STRING,
+			      G_TYPE_OBJECT);
 	signals[FINISHED] = 
 		g_signal_new ("finished",
 			      G_TYPE_FROM_CLASS (klass),
@@ -589,6 +592,10 @@ file_queue_handler_cb (gpointer user_data)
 
 	crawler = TRACKER_CRAWLER (user_data);
 	
+	if (!crawler->private->can_send_yet) {
+		return TRUE;
+	}
+
 	/* This is here so we don't try to send something if we are
 	 * still waiting for a response from the last send.
 	 */
@@ -602,10 +609,7 @@ file_queue_handler_cb (gpointer user_data)
 
 	if (!queue || !module_name) {
 		g_message ("No file queues to process");
-
-		g_signal_emit (crawler, signals[ALL_SENT], 0);
 		crawler->private->files_queue_handle_id = 0;
-
 		return FALSE;
 	}
 
@@ -655,7 +659,7 @@ process_directory (TrackerCrawler *crawler,
 		   GFile          *file,
 		   const gchar    *module_name)
 {
-	tracker_monitor_add (file, module_name);
+	g_signal_emit (crawler, signals[PROCESSING_DIRECTORY], 0, module_name, file);
 
 	file_enumerate_children (crawler, file);
 }
@@ -1016,7 +1020,7 @@ tracker_crawler_start (TrackerCrawler *crawler,
 		file = g_file_new_for_path (sl->data);
 		g_message ("  Searching directory:'%s'", (gchar *) sl->data);
 
-		file_enumerate_children (crawler, file);
+		add_directory (crawler, file);
 		g_object_unref (file);
 		g_free (sl->data);
 	}
@@ -1080,4 +1084,13 @@ tracker_crawler_stop (TrackerCrawler *crawler)
 		       priv->directories_ignored,
 		       priv->files_found,
 		       priv->files_ignored);
+}
+
+void
+tracker_crawler_set_can_send_yet (TrackerCrawler *crawler,
+				  gboolean        can_send_yet)
+{
+	g_return_if_fail (TRACKER_IS_CRAWLER (crawler));
+
+	crawler->private->can_send_yet = can_send_yet;
 }

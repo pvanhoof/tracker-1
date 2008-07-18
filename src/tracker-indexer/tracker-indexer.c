@@ -149,6 +149,8 @@ enum {
 	FINISHED,
 	MODULE_STARTED,
 	MODULE_FINISHED,
+	PAUSED,
+	CONTINUED,
 	LAST_SIGNAL
 };
 
@@ -464,6 +466,24 @@ tracker_indexer_class_init (TrackerIndexerClass *class)
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_LAST,
 			      G_STRUCT_OFFSET (TrackerIndexerClass, started),
+			      NULL, NULL,
+			      g_cclosure_marshal_VOID__VOID,
+			      G_TYPE_NONE, 
+			      0);
+	signals[PAUSED] = 
+		g_signal_new ("paused",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (TrackerIndexerClass, paused),
+			      NULL, NULL,
+			      g_cclosure_marshal_VOID__VOID,
+			      G_TYPE_NONE, 
+			      0);
+	signals[CONTINUED] = 
+		g_signal_new ("continued",
+			      G_OBJECT_CLASS_TYPE (object_class),
+			      G_SIGNAL_RUN_LAST,
+			      G_STRUCT_OFFSET (TrackerIndexerClass, continued),
 			      NULL, NULL,
 			      g_cclosure_marshal_VOID__VOID,
 			      G_TYPE_NONE, 
@@ -978,6 +998,45 @@ tracker_indexer_get_is_running (TrackerIndexer *indexer)
 
 	return indexer->private->idle_id != 0;
 }
+
+
+/**
+ * This one is not being used yet, but might be used in near future. Therefore
+ * it would be useful if Garnacho could review this for consistency and 
+ * correctness. Ps. it got written by that pvanhoof dude, just ping him if you
+ * have questions.
+ **/
+
+void
+tracker_indexer_set_paused (TrackerIndexer         *indexer,
+			    gboolean                paused,
+			    DBusGMethodInvocation  *context,
+			    GError                **error)
+{
+	g_return_if_fail (TRACKER_IS_INDEXER (indexer));
+
+	if (tracker_indexer_get_is_running (indexer)) {
+		if (paused) {
+			if (indexer->private->in_transaction) {
+				stop_transaction (indexer);
+			}
+			if (indexer->private->idle_id) {
+				g_source_remove (indexer->private->idle_id);
+				indexer->private->idle_id = 0;
+			}
+			g_signal_emit (indexer, signals[PAUSED], 0);
+		}
+	} else {
+		if (!paused) {
+			if (!indexer->private->idle_id) {
+				indexer->private->idle_id = g_idle_add (process_func, indexer);
+				g_signal_emit (indexer, signals[CONTINUED], 0);
+			}
+		}
+	}
+	dbus_g_method_return (context);
+}
+
 
 void
 tracker_indexer_process_all (TrackerIndexer *indexer)

@@ -1,3 +1,11 @@
+2008-07-18  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/tracker-indexer/tracker-indexer.c:
+	* src/tracker-indexer/tracker-indexer.h:
+	* data/dbus/tracker-indexer.xml:
+
+	Added a SetPaused DBus API to the indexer
+
 2008-07-17  Ivan Frade  <ivan.frade@nokia.com>
 	
 	* src/libtracker-common/tracker-ontology.[ch]:

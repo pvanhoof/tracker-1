@@ -26,7 +26,11 @@
       <arg type="s" name="module" direction="in" />
       <arg type="as" name="files" direction="in" />
     </method>
-    
+    <method name="SetPaused">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
+      <arg type="b" name="paused" direction="in" />
+    </method>
+
     <!-- Signals --> 
     <signal name="Status">
       <arg type="d" name="elapsed_time" />
@@ -34,6 +38,8 @@
       <arg type="u" name="items_done" />
       <arg type="u" name="items_remaining" />
     </signal>
+    <signal name="Paused" />
+    <signal name="Continued" />
     <signal name="Started" />
     <signal name="Finished">
       <arg type="d" name="elapsed_time" />

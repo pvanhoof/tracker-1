@@ -58,6 +58,8 @@ struct TrackerIndexerClass {
 				 guint           items_indexed,
 				 guint           items_remaining);
 	void (*started)         (TrackerIndexer *indexer);
+	void (*paused)          (TrackerIndexer *indexer);
+	void (*continued)       (TrackerIndexer *indexer);
 	void (*finished)        (TrackerIndexer *indexer,
 				 gdouble         seconds_elapsed,
 				 guint           items_indexed);
@@ -72,8 +74,10 @@ GType           tracker_indexer_get_type       (void) G_GNUC_CONST;
 TrackerIndexer *tracker_indexer_new            (void);
 
 gboolean        tracker_indexer_get_is_running (TrackerIndexer         *indexer);
-void            tracker_indexer_set_is_running (TrackerIndexer         *indexer,
-						gboolean                is_running);
+void            tracker_indexer_set_paused     (TrackerIndexer         *indexer,
+						 gboolean                paused,
+						 DBusGMethodInvocation  *context,
+						 GError                **error);
 void            tracker_indexer_process_all    (TrackerIndexer         *indexer);
 
 void            tracker_indexer_files_check    (TrackerIndexer         *indexer,

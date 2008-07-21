@@ -146,19 +146,19 @@ tracker_ontology_shutdown (void)
 		return;
 	}
 
-	g_hash_table_unref (service_directory_table);
+	g_hash_table_destroy (service_directory_table);
 	service_directory_table = NULL;
 
-	g_hash_table_unref (service_id_table);
+	g_hash_table_destroy (service_id_table);
 	service_id_table = NULL;
 
-	g_hash_table_unref (service_table);
+	g_hash_table_destroy (service_table);
 	service_table = NULL;
 
-	g_hash_table_unref (mime_service);
+	g_hash_table_destroy (mime_service);
 	mime_service = NULL;
 
-	g_hash_table_unref (metadata_table);
+	g_hash_table_destroy (metadata_table);
 	metadata_table = NULL;
 
 	if (mime_prefix_service) {

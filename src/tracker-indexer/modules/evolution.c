@@ -30,6 +30,7 @@
 #include <libtracker-common/tracker-utils.h>
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-type-utils.h>
+#include <libtracker-common/tracker-ontology.h>
 
 #define METADATA_FILE_PATH           "File:Path"
 #define METADATA_FILE_NAME           "File:Name"
@@ -578,24 +579,34 @@ get_metadata_for_mbox (TrackerFile *file)
                 return NULL;
         }
 
-	metadata = g_hash_table_new_full (g_str_hash, g_str_equal,
-					  NULL,
-					  (GDestroyNotify) g_free);
+		metadata = g_hash_table_new_full (g_direct_hash, g_direct_equal,
+						  (GDestroyNotify) g_object_unref,
+						  (GDestroyNotify) g_free);
 
-        dir = tracker_string_replace (file->path, local_dir, NULL);
-        name = g_strdup_printf ("%s;uid=%d", dir, get_mbox_message_id (message));
+		dir = tracker_string_replace (file->path, local_dir, NULL);
+		name = g_strdup_printf ("%s;uid=%d", dir, get_mbox_message_id (message));
 
-        g_hash_table_insert (metadata, METADATA_FILE_PATH, g_strdup ("email://local@local"));
-        g_hash_table_insert (metadata, METADATA_FILE_NAME, name);
+		g_hash_table_insert (metadata, 
+				     g_object_ref (tracker_ontology_get_field_def (METADATA_FILE_PATH)),
+				     g_strdup ("email://local@local"));
 
-        g_mime_message_get_date (message, &date, NULL);
-	g_hash_table_insert (metadata, METADATA_EMAIL_DATE,
-                             tracker_uint_to_string (date));
+		g_hash_table_insert (metadata, 
+				     g_object_ref (tracker_ontology_get_field_def (METADATA_FILE_NAME)),
+				     name);
 
-        g_hash_table_insert (metadata, METADATA_EMAIL_SENDER,
-                             g_strdup (g_mime_message_get_sender (message)));
-        g_hash_table_insert (metadata, METADATA_EMAIL_SUBJECT,
-                             g_strdup (g_mime_message_get_subject (message)));
+		g_mime_message_get_date (message, &date, NULL);
+
+		g_hash_table_insert (metadata, 
+				     g_object_ref (tracker_ontology_get_field_def (METADATA_EMAIL_DATE)),
+				     tracker_uint_to_string (date));
+
+		g_hash_table_insert (metadata, 
+				     g_object_ref (tracker_ontology_get_field_def (METADATA_EMAIL_SENDER)),
+				     g_strdup (g_mime_message_get_sender (message)));
+
+		g_hash_table_insert (metadata, 
+				     g_object_ref (tracker_ontology_get_field_def (METADATA_EMAIL_SUBJECT)),
+				     g_strdup (g_mime_message_get_subject (message)));
 
         /* Missing:
          *
@@ -716,21 +727,33 @@ get_metadata_for_imap (TrackerFile *file)
                       SUMMARY_TYPE_STRING, NULL, /* mlist */
                       -1);
 
-	metadata = g_hash_table_new_full (g_str_hash, g_str_equal,
-					  NULL,
-					  (GDestroyNotify) g_free);
+		metadata = g_hash_table_new_full (g_direct_hash, g_direct_equal,
+						  (GDestroyNotify) g_object_unref,
+						  (GDestroyNotify) g_free);
 
-        get_imap_uri (file->path, &dirname, &basename);
+		get_imap_uri (file->path, &dirname, &basename);
 
-        g_hash_table_insert (metadata, METADATA_FILE_PATH, dirname);
-        g_hash_table_insert (metadata, METADATA_FILE_NAME, g_strdup_printf ("%s;uid=%s", basename, uid));
-        g_free (basename);
+		g_hash_table_insert (metadata, 
+				     g_object_ref (tracker_ontology_get_field_def (METADATA_FILE_PATH)),
+				     dirname);
 
-	g_hash_table_insert (metadata, METADATA_EMAIL_DATE,
-                             tracker_uint_to_string (date));
+		g_hash_table_insert (metadata, 
+				     g_object_ref (tracker_ontology_get_field_def (METADATA_FILE_NAME)),
+				     g_strdup_printf ("%s;uid=%s", basename, uid));
 
-        g_hash_table_insert (metadata, METADATA_EMAIL_SENDER, from);
-        g_hash_table_insert (metadata, METADATA_EMAIL_SUBJECT, subject);
+		g_free (basename);
+
+		g_hash_table_insert (metadata, 
+				     g_object_ref (tracker_ontology_get_field_def (METADATA_EMAIL_DATE)),
+				     tracker_uint_to_string (date));
+
+		g_hash_table_insert (metadata, 
+				     g_object_ref (tracker_ontology_get_field_def (METADATA_EMAIL_SENDER)), 
+				     from);
+
+		g_hash_table_insert (metadata, 
+				     g_object_ref (tracker_ontology_get_field_def (METADATA_EMAIL_SUBJECT)), 
+				     subject);
 
         g_free (uid);
         g_free (to);

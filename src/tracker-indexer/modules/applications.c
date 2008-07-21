@@ -19,7 +19,9 @@
 
 #include <stdlib.h>
 #include <glib.h>
+#include <glib-object.h>
 #include <tracker-indexer/tracker-module.h>
+#include <libtracker-common/tracker-ontology.h>
 
 #define GROUP_DESKTOP_ENTRY "Desktop Entry"
 #define KEY_TYPE            "Type"
@@ -102,21 +104,53 @@ tracker_module_file_get_metadata (TrackerFile *file)
 	}
 
 	/* Begin collecting data */
-	metadata = g_hash_table_new_full (g_str_hash, g_str_equal,
-					  NULL,
+	metadata = g_hash_table_new_full (g_direct_hash, g_direct_equal,
+					  (GDestroyNotify) g_object_unref,
 					  (GDestroyNotify) g_free);
 
-	insert_data_from_desktop_file (metadata, METADATA_APP_NAME, key_file, KEY_NAME, FALSE);
-	insert_data_from_desktop_file (metadata, METADATA_APP_DISPLAY_NAME, key_file, KEY_NAME, TRUE);
-	insert_data_from_desktop_file (metadata, METADATA_APP_GENERIC_NAME, key_file, KEY_GENERIC_NAME, TRUE);
-	insert_data_from_desktop_file (metadata, METADATA_APP_COMMENT, key_file, KEY_COMMENT, TRUE);
-	insert_data_from_desktop_file (metadata, METADATA_APP_EXECUTABLE, key_file, KEY_EXECUTABLE, FALSE);
-	insert_data_from_desktop_file (metadata, METADATA_APP_ICON, key_file, KEY_ICON, FALSE);
+	insert_data_from_desktop_file (metadata, 
+				       g_object_ref (tracker_ontology_get_field_def (METADATA_APP_NAME)), 
+				       key_file, 
+				       KEY_NAME, 
+				       FALSE);
+
+	insert_data_from_desktop_file (metadata, 
+				       g_object_ref (tracker_ontology_get_field_def (METADATA_APP_DISPLAY_NAME)),
+				       key_file,
+				       KEY_NAME,
+				       TRUE);
+
+	insert_data_from_desktop_file (metadata, 
+				       g_object_ref (tracker_ontology_get_field_def (METADATA_APP_GENERIC_NAME)),
+				       key_file,
+				       KEY_GENERIC_NAME,
+				       TRUE);
+
+	insert_data_from_desktop_file (metadata, 
+				       g_object_ref (tracker_ontology_get_field_def (METADATA_APP_COMMENT)),
+				       key_file,
+				       KEY_COMMENT,
+				       TRUE);
+
+	insert_data_from_desktop_file (metadata, 
+				       g_object_ref (tracker_ontology_get_field_def (METADATA_APP_EXECUTABLE)),
+				       key_file,
+				       KEY_EXECUTABLE,
+				       FALSE);
+
+	insert_data_from_desktop_file (metadata, 
+				       g_object_ref (tracker_ontology_get_field_def (METADATA_APP_ICON)),
+				       key_file,
+				       KEY_ICON,
+				       FALSE);
 
 	/* FIXME: mimetypes list and categories? */
 
 	filename = g_filename_display_basename (file->path);
-	g_hash_table_insert (metadata, METADATA_FILE_NAME, filename);
+
+	g_hash_table_insert (metadata, 
+			     g_object_ref (tracker_ontology_get_field_def (METADATA_FILE_NAME)),
+			     filename);
 
 	g_key_file_free (key_file);
 	g_free (type);

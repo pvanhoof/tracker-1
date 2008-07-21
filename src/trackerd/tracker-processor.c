@@ -40,8 +40,8 @@
 
 #define TRACKER_PROCESSOR_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_PROCESSOR, TrackerProcessorPrivate))
 
-#define FILES_QUEUE_PROCESS_INTERVAL 2000
-#define FILES_QUEUE_PROCESS_MAX      5000
+#define ITEMS_QUEUE_PROCESS_INTERVAL 2000
+#define ITEMS_QUEUE_PROCESS_MAX      5000
 
 typedef enum {
 	SENT_TYPE_NONE,
@@ -61,11 +61,11 @@ struct TrackerProcessorPrivate {
 	DBusGProxy     *indexer_proxy;
 
 	/* File queues for indexer */
-	guint           files_queue_handlers_id;
+	guint           item_queues_handler_id;
 
-	GHashTable     *files_created_queues;
-	GHashTable     *files_updated_queues;
-	GHashTable     *files_deleted_queues;
+	GHashTable     *items_created_queues;
+	GHashTable     *items_updated_queues;
+	GHashTable     *items_deleted_queues;
 	
  	SentType        sent_type;
 	GStrv           sent_items;
@@ -92,7 +92,7 @@ enum {
 };
 
 static void tracker_processor_finalize      (GObject          *object);
-static void files_queue_destroy_notify      (gpointer          data);
+static void item_queue_destroy_notify       (gpointer          data);
 static void process_next_module             (TrackerProcessor *processor);
 static void indexer_status_cb               (DBusGProxy       *proxy,
 					     gdouble           seconds_elapsed,
@@ -121,6 +121,8 @@ static void crawler_processing_directory_cb (TrackerCrawler   *crawler,
 					     GFile            *file,
 					     gpointer          user_data);
 static void crawler_finished_cb             (TrackerCrawler   *crawler,
+					     const gchar      *module_name,
+					     GQueue           *files,
 					     guint             directories_found,
 					     guint             directories_ignored,
 					     guint             files_found,
@@ -173,31 +175,31 @@ tracker_processor_init (TrackerProcessor *processor)
 	 * to update/create/delete in the indexer. This is sent on
 	 * when the queue is processed. 
 	 */
-	priv->files_created_queues = 
+	priv->items_created_queues = 
 		g_hash_table_new_full (g_str_hash,
 				       g_str_equal,
 				       g_free,
-				       files_queue_destroy_notify);
-	priv->files_updated_queues = 
+				       item_queue_destroy_notify);
+	priv->items_updated_queues = 
 		g_hash_table_new_full (g_str_hash,
 				       g_str_equal,
 				       g_free,
-				       files_queue_destroy_notify);
-	priv->files_deleted_queues = 
+				       item_queue_destroy_notify);
+	priv->items_deleted_queues = 
 		g_hash_table_new_full (g_str_hash,
 				       g_str_equal,
 				       g_free,
-				       files_queue_destroy_notify);
+				       item_queue_destroy_notify);
 
 	for (l = priv->modules; l; l = l->next) {
 		/* Create queues for this module */
-		g_hash_table_insert (priv->files_created_queues, 
+		g_hash_table_insert (priv->items_created_queues, 
 				     g_strdup (l->data), 
 				     g_queue_new ());
-		g_hash_table_insert (priv->files_updated_queues, 
+		g_hash_table_insert (priv->items_updated_queues, 
 				     g_strdup (l->data), 
 				     g_queue_new ());
-		g_hash_table_insert (priv->files_deleted_queues, 
+		g_hash_table_insert (priv->items_deleted_queues, 
 				     g_strdup (l->data), 
 				     g_queue_new ());
 	}
@@ -216,21 +218,21 @@ tracker_processor_finalize (GObject *object)
 		g_timer_destroy (priv->timer);
 	}
 
-	if (priv->files_queue_handlers_id) {
-		g_source_remove (priv->files_queue_handlers_id);
-		priv->files_queue_handlers_id = 0;
+	if (priv->item_queues_handler_id) {
+		g_source_remove (priv->item_queues_handler_id);
+		priv->item_queues_handler_id = 0;
 	}
 
-	if (priv->files_deleted_queues) {
-		g_hash_table_unref (priv->files_deleted_queues);
+	if (priv->items_deleted_queues) {
+		g_hash_table_unref (priv->items_deleted_queues);
 	}
 
-	if (priv->files_updated_queues) {
-		g_hash_table_unref (priv->files_updated_queues);
+	if (priv->items_updated_queues) {
+		g_hash_table_unref (priv->items_updated_queues);
 	}
 
-	if (priv->files_created_queues) {
-		g_hash_table_unref (priv->files_created_queues);
+	if (priv->items_created_queues) {
+		g_hash_table_unref (priv->items_created_queues);
 	}
 
 	g_list_free (priv->modules);
@@ -243,13 +245,15 @@ tracker_processor_finalize (GObject *object)
 					processor);
 	g_object_unref (priv->indexer_proxy);
 
-	g_signal_handlers_disconnect_by_func (priv->crawler,
-					      G_CALLBACK (crawler_processing_directory_cb),
-					      object);
-	g_signal_handlers_disconnect_by_func (priv->crawler,
-					      G_CALLBACK (crawler_finished_cb),
-					      object);
-	g_object_unref (priv->crawler);
+	if (priv->crawler) {
+		g_signal_handlers_disconnect_by_func (priv->crawler,
+						      G_CALLBACK (crawler_processing_directory_cb),
+						      object);
+		g_signal_handlers_disconnect_by_func (priv->crawler,
+						      G_CALLBACK (crawler_finished_cb),
+						      object);
+		g_object_unref (priv->crawler);
+	}
 
 	g_signal_handlers_disconnect_by_func (priv->monitor,
 					      G_CALLBACK (monitor_item_deleted_cb),
@@ -315,7 +319,7 @@ get_next_queue_with_data (GHashTable  *hash_table,
 }
 
 static void
-files_queue_destroy_notify (gpointer data)
+item_queue_destroy_notify (gpointer data)
 {
 	GQueue *queue;
 
@@ -326,7 +330,7 @@ files_queue_destroy_notify (gpointer data)
 }
 
 static void
-file_queue_readd_items (GQueue *queue, 
+item_queue_readd_items (GQueue *queue, 
 			GStrv   strv)
 {
 	if (queue) {
@@ -340,7 +344,7 @@ file_queue_readd_items (GQueue *queue,
 }
 
 static void
-file_queue_processed_cb (DBusGProxy *proxy,
+item_queue_processed_cb (DBusGProxy *proxy,
 			 GError     *error,
 			 gpointer    user_data)
 {
@@ -351,7 +355,7 @@ file_queue_processed_cb (DBusGProxy *proxy,
 	if (error) {
 		GQueue *queue;
 
-		g_message ("Monitor events could not be processed by the indexer, %s",
+		g_message ("Items could not be processed by the indexer, %s",
 			   error->message);
 		g_error_free (error);
 
@@ -361,20 +365,20 @@ file_queue_processed_cb (DBusGProxy *proxy,
 			queue = NULL;
 			break;
 		case SENT_TYPE_CREATED:
-			queue = g_hash_table_lookup (priv->files_created_queues, 
+			queue = g_hash_table_lookup (priv->items_created_queues, 
 						     priv->sent_module_name);
 			break;
 		case SENT_TYPE_UPDATED:
-			queue = g_hash_table_lookup (priv->files_updated_queues, 
+			queue = g_hash_table_lookup (priv->items_updated_queues, 
 						     priv->sent_module_name);
 			break;
 		case SENT_TYPE_DELETED:
-			queue = g_hash_table_lookup (priv->files_deleted_queues, 
+			queue = g_hash_table_lookup (priv->items_deleted_queues, 
 						     priv->sent_module_name);
 			break;
 		}
 				
-		file_queue_readd_items (queue, priv->sent_items);
+		item_queue_readd_items (queue, priv->sent_items);
  	} else {
 		g_debug ("Sent!");
 	}
@@ -388,7 +392,7 @@ file_queue_processed_cb (DBusGProxy *proxy,
 }
 
 static gboolean
-file_queue_handlers_cb (gpointer user_data)
+item_queue_handlers_cb (gpointer user_data)
 {
 	TrackerProcessor        *processor;	
 	TrackerProcessorPrivate *priv;	
@@ -409,13 +413,13 @@ file_queue_handlers_cb (gpointer user_data)
 	}
 
 	/* Process the deleted items first */
-	queue = get_next_queue_with_data (priv->files_deleted_queues, &module_name);
+	queue = get_next_queue_with_data (priv->items_deleted_queues, &module_name);
 
 	if (queue && g_queue_get_length (queue) > 0) {
 		/* First do the deleted queue */
-		files = tracker_dbus_queue_str_to_strv (queue, FILES_QUEUE_PROCESS_MAX);
+		files = tracker_dbus_queue_str_to_strv (queue, ITEMS_QUEUE_PROCESS_MAX);
 		
-		g_message ("Monitor events queue for deleted items processed, sending first %d to the indexer", 
+		g_message ("Queue for deleted items processed, sending first %d to the indexer", 
 			   g_strv_length (files));
 
 		priv->sent_type = SENT_TYPE_DELETED;
@@ -425,20 +429,20 @@ file_queue_handlers_cb (gpointer user_data)
 		org_freedesktop_Tracker_Indexer_files_delete_async (priv->indexer_proxy,
 								    module_name,
 								    (const gchar **) files,
-								    file_queue_processed_cb,
+								    item_queue_processed_cb,
 								    processor);
 		
 		return TRUE;
 	}
 
 	/* Process the deleted items first */
-	queue = get_next_queue_with_data (priv->files_created_queues, &module_name);
+	queue = get_next_queue_with_data (priv->items_created_queues, &module_name);
 
 	if (queue && g_queue_get_length (queue) > 0) {
 		/* First do the deleted queue */
-		files = tracker_dbus_queue_str_to_strv (queue, FILES_QUEUE_PROCESS_MAX);
+		files = tracker_dbus_queue_str_to_strv (queue, ITEMS_QUEUE_PROCESS_MAX);
 		
-		g_message ("Monitor events queue for created items processed, sending first %d to the indexer", 
+		g_message ("Queue for created items processed, sending first %d to the indexer", 
 			   g_strv_length (files));
 
 		priv->sent_type = SENT_TYPE_CREATED;
@@ -448,20 +452,20 @@ file_queue_handlers_cb (gpointer user_data)
 		org_freedesktop_Tracker_Indexer_files_delete_async (priv->indexer_proxy,
 								    module_name,
 								    (const gchar **) files,
-								    file_queue_processed_cb,
+								    item_queue_processed_cb,
 								    processor);
 		
 		return TRUE;
 	}
 
 	/* Process the deleted items first */
-	queue = get_next_queue_with_data (priv->files_updated_queues, &module_name);
+	queue = get_next_queue_with_data (priv->items_updated_queues, &module_name);
 
 	if (queue && g_queue_get_length (queue) > 0) {
 		/* First do the deleted queue */
-		files = tracker_dbus_queue_str_to_strv (queue, FILES_QUEUE_PROCESS_MAX);
+		files = tracker_dbus_queue_str_to_strv (queue, ITEMS_QUEUE_PROCESS_MAX);
 		
-		g_message ("Monitor events queue for updated items processed, sending first %d to the indexer", 
+		g_message ("Queue for updated items processed, sending first %d to the indexer", 
 			   g_strv_length (files));
 
 		priv->sent_type = SENT_TYPE_UPDATED;
@@ -471,32 +475,32 @@ file_queue_handlers_cb (gpointer user_data)
 		org_freedesktop_Tracker_Indexer_files_delete_async (priv->indexer_proxy,
 								    module_name,
 								    (const gchar **) files,
-								    file_queue_processed_cb,
+								    item_queue_processed_cb,
 								    processor);
 		
 		return TRUE;
 	}
 
-	g_message ("No monitor events to process, doing nothing");
-	priv->files_queue_handlers_id = 0;
+	g_message ("No items in any queues to process, doing nothing");
+	priv->item_queues_handler_id = 0;
 
 	return FALSE;
 }
 
 static void
-file_queue_handlers_set_up (TrackerProcessor *processor)
+item_queue_handlers_set_up (TrackerProcessor *processor)
 {
 	TrackerProcessorPrivate *priv;
 
 	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
 
-	if (priv->files_queue_handlers_id != 0) {
+	if (priv->item_queues_handler_id != 0) {
 		return;
 	}
 
-	priv->files_queue_handlers_id = g_timeout_add (FILES_QUEUE_PROCESS_INTERVAL, 
-						       file_queue_handlers_cb,
-						       processor);
+	priv->item_queues_handler_id = g_timeout_add (ITEMS_QUEUE_PROCESS_INTERVAL, 
+						      item_queue_handlers_cb,
+						      processor);
 }
 
 static void
@@ -521,7 +525,7 @@ process_module (TrackerProcessor *processor,
 	/* Gets all files and directories */
 	tracker_status_set_and_signal (TRACKER_STATUS_PENDING);
 
-	if (!tracker_crawler_start (priv->crawler, module_name)) {
+	if (!tracker_crawler_start (priv->crawler)) {
 		/* If there is nothing to crawl, we are done, process
 		 * the next module.
 		 */
@@ -539,18 +543,43 @@ process_next_module (TrackerProcessor *processor)
 
 	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
 
+	/* Clean up last module's work */
+	if (priv->crawler) {
+		g_signal_handlers_disconnect_by_func (priv->crawler,
+						      G_CALLBACK (crawler_processing_directory_cb),
+						      processor);
+		g_signal_handlers_disconnect_by_func (priv->crawler,
+						      G_CALLBACK (crawler_finished_cb),
+						      processor);
+
+		g_object_unref (priv->crawler);
+		priv->crawler = NULL;
+	}
+
 	if (!priv->current_module) {
 		priv->current_module = priv->modules;
 	} else {
 		priv->current_module = priv->current_module->next;
 	}
 
+	/* If we have no further modules to iterate */
 	if (!priv->current_module) {
 		priv->finished = TRUE;
 		tracker_processor_stop (processor);
-
 		return;
 	}
+	
+	/* Set up new crawler for new module */
+	priv->crawler = tracker_crawler_new (priv->config,
+					     priv->hal,
+					     priv->current_module->data);
+
+	g_signal_connect (priv->crawler, "processing-directory",
+			  G_CALLBACK (crawler_processing_directory_cb),
+			  processor);
+	g_signal_connect (priv->crawler, "finished",
+			  G_CALLBACK (crawler_finished_cb),
+			  processor);
 
 	process_module (processor, priv->current_module->data);
 }
@@ -626,11 +655,11 @@ monitor_item_created_cb (TrackerMonitor *monitor,
 
 	priv = TRACKER_PROCESSOR_GET_PRIVATE (user_data);
 
-	queue = g_hash_table_lookup (priv->files_created_queues, module_name);
+	queue = g_hash_table_lookup (priv->items_created_queues, module_name);
 	path = g_file_get_path (file);
 	g_queue_push_tail (queue, path);
 
-	file_queue_handlers_set_up (user_data);
+	item_queue_handlers_set_up (user_data);
 }
 
 static void
@@ -645,11 +674,11 @@ monitor_item_updated_cb (TrackerMonitor *monitor,
 
 	priv = TRACKER_PROCESSOR_GET_PRIVATE (user_data);
 
-	queue = g_hash_table_lookup (priv->files_updated_queues, module_name);
+	queue = g_hash_table_lookup (priv->items_updated_queues, module_name);
 	path = g_file_get_path (file);
 	g_queue_push_tail (queue, path);
 
-	file_queue_handlers_set_up (user_data);
+	item_queue_handlers_set_up (user_data);
 }
 
 static void
@@ -664,11 +693,11 @@ monitor_item_deleted_cb (TrackerMonitor *monitor,
 
 	priv = TRACKER_PROCESSOR_GET_PRIVATE (user_data);
 
-	queue = g_hash_table_lookup (priv->files_deleted_queues, module_name);
+	queue = g_hash_table_lookup (priv->items_deleted_queues, module_name);
 	path = g_file_get_path (file);
 	g_queue_push_tail (queue, path);
 
-	file_queue_handlers_set_up (user_data);
+	item_queue_handlers_set_up (user_data);
 }
 
 static void
@@ -677,17 +706,12 @@ crawler_processing_directory_cb (TrackerCrawler *crawler,
 				 GFile          *file,
 				 gpointer        user_data)
 {
-	TrackerProcessorPrivate *priv;
 	
-	priv = TRACKER_PROCESSOR_GET_PRIVATE (user_data);
+	TrackerProcessorPrivate *priv;
+	gchar                   *path;
+	gboolean                 add_monitor;
 
-#if 0
-	/* FIXME: We are doing this for now because the code is really inefficient */
-	tracker_monitor_add (priv->monitor, file, module_name);
-#else
-	GList    *directories, *l;
-	gchar    *path;
-	gboolean  add_monitor;
+	priv = TRACKER_PROCESSOR_GET_PRIVATE (user_data);
 
 	path = g_file_get_path (file);
 
@@ -695,39 +719,24 @@ crawler_processing_directory_cb (TrackerCrawler *crawler,
 		 module_name,
 		 path);
 
-	/* Is it a monitor directory? */
-	directories = tracker_module_config_get_monitor_directories (module_name);
+	/* FIXME: Get ignored directories from .cfg? We know that
+	 * normally these would have monitors because these
+	 * directories are those crawled based on the module config.
+	 */
+	add_monitor = TRUE;
 
-	for (l = directories; l && !add_monitor; l = l->next) {
-		if (strcmp (path, l->data) == 0) {
-			add_monitor = TRUE;
-		}
-	}
-
-	g_list_free (directories);
-
-	/* Is it underneath a monitor recurse directory? */
-	directories = tracker_module_config_get_monitor_directories (module_name);
-
-	for (l = directories; l && !add_monitor; l = l->next) {
-		if (tracker_path_is_in_path (path, l->data) == 0) {
-			add_monitor = TRUE;
-		}
-	}
-
-	g_list_free (directories);
-	
 	/* Should we add? */
 	if (add_monitor) {
 		tracker_monitor_add (priv->monitor, file, module_name);
 	}
 
 	g_free (path);
-#endif
 }
 
 static void
 crawler_finished_cb (TrackerCrawler *crawler,
+		     const gchar    *module_name,
+		     GQueue         *files,
 		     guint           directories_found,
 		     guint           directories_ignored,
 		     guint           files_found,
@@ -736,6 +745,9 @@ crawler_finished_cb (TrackerCrawler *crawler,
 {
 	TrackerProcessor        *processor;
 	TrackerProcessorPrivate *priv;
+	GQueue                  *queue;
+	GFile                   *file;
+	gchar                   *path;
 
 	processor = TRACKER_PROCESSOR (user_data);
 	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
@@ -745,6 +757,23 @@ crawler_finished_cb (TrackerCrawler *crawler,
 	priv->files_found += files_found;
 	priv->files_ignored += files_ignored;
 
+	/* Add files in queue to our queues to send to the indexer */
+	queue = g_hash_table_lookup (priv->items_created_queues, module_name);
+
+	/* Not sure if this is the best way to do this, we are
+	 * effectively editing the queue in the signal handler, this
+	 * isn't recommended code practise, maybe we should be
+	 * g_queue_peek_nth() but this is much faster because when we
+	 * process the next module, we will only pop head until and
+	 * unref all items anyway.
+	 */
+	while ((file = g_queue_pop_head (files)) != NULL) {
+		path = g_file_get_path (file);
+		g_queue_push_tail (queue, path);
+		g_object_unref (file);
+	}
+	
+	/* Proceed to next module */
 	process_next_module (processor);
 }
 
@@ -817,15 +846,6 @@ tracker_processor_new (TrackerConfig *config,
 			  processor);
 	g_signal_connect (priv->monitor, "item-deleted",
 			  G_CALLBACK (monitor_item_deleted_cb),
-			  processor);
-
-	priv->crawler = tracker_crawler_new (config, hal);
-
-	g_signal_connect (priv->crawler, "processing-directory",
-			  G_CALLBACK (crawler_processing_directory_cb),
-			  processor);
-	g_signal_connect (priv->crawler, "finished",
-			  G_CALLBACK (crawler_finished_cb),
 			  processor);
 
 	/* Set up the indexer proxy and signalling to know when we are
@@ -903,7 +923,7 @@ tracker_processor_stop (TrackerProcessor *processor)
 	 * indexer and we set the state to INDEXING
 	 */
 	if (!priv->finished) {
-		/* Do we even need this step Optimizing ? */
+		/* Do we even need this step optimizing ? */
 		tracker_status_set_and_signal (TRACKER_STATUS_OPTIMIZING);
 
 		/* All done */
@@ -911,8 +931,10 @@ tracker_processor_stop (TrackerProcessor *processor)
 
 		g_signal_emit (processor, signals[FINISHED], 0);
 	} else {
+		/* Now we try to send all items to the indexer */
 		tracker_status_set_and_signal (TRACKER_STATUS_INDEXING);
-		tracker_crawler_set_can_send_yet (priv->crawler, TRUE);
+
+		item_queue_handlers_set_up (processor);
 	}
 }
 

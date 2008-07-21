@@ -1,3 +1,14 @@
+2008-07-21  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-crawler.[ch]: 
+	* src/trackerd/tracker-marshal.list:
+	* src/trackerd/tracker-processor.c: Completely rework the crawler,
+	so we have ONE per module. It also now will crawl non-recursive
+	directories set in the .module files. All non-recursive
+	directories are crawled first. This also moves the "sending" of
+	items to the indexer into the processor module so it is in ONE
+	place not TWO.
+
 2008-07-21  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* Reverted TrackerField instances as hash keys patch

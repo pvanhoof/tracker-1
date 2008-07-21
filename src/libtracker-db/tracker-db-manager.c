@@ -1473,8 +1473,7 @@ static void
 db_set_params (TrackerDBInterface *iface,
 	       gint                cache_size,
 	       gint                page_size,
-	       gboolean            add_functions,
-	       gboolean            created)
+	       gboolean            add_functions)
 {
 	tracker_db_interface_execute_query (iface, NULL, "PRAGMA synchronous = NORMAL;");
 	tracker_db_interface_execute_query (iface, NULL, "PRAGMA count_changes = 0;");
@@ -1499,82 +1498,30 @@ db_set_params (TrackerDBInterface *iface,
 			g_critical ("Collation sequence failed");
 		}
 
-		if (created) {
-			/* Create user defined functions that can be used in sql */
-			tracker_db_interface_sqlite_create_function (iface, 
-								     "FormatDate", 
-								     function_date_to_str, 
-								     1);
-			tracker_db_interface_sqlite_create_function (iface, 
-								     "GetServiceName", 
-								     function_get_service_name, 
-								     1);
-			tracker_db_interface_sqlite_create_function (iface, 
-								     "GetServiceTypeID", 
-								     function_get_service_type, 
-								     1);
-			tracker_db_interface_sqlite_create_function (iface, 
-								     "GetMaxServiceTypeID", 
-								     function_get_max_service_type, 
-								     1);
-			tracker_db_interface_sqlite_create_function (iface, 
-								     "REGEXP",
-								     function_regexp,
-								     2);
-		}
+		/* Create user defined functions that can be used in sql */
+		tracker_db_interface_sqlite_create_function (iface, 
+							     "FormatDate", 
+							     function_date_to_str, 
+							     1);
+		tracker_db_interface_sqlite_create_function (iface, 
+							     "GetServiceName", 
+							     function_get_service_name, 
+							     1);
+		tracker_db_interface_sqlite_create_function (iface, 
+							     "GetServiceTypeID", 
+							     function_get_service_type, 
+							     1);
+		tracker_db_interface_sqlite_create_function (iface, 
+							     "GetMaxServiceTypeID", 
+							     function_get_max_service_type, 
+							     1);
+		tracker_db_interface_sqlite_create_function (iface, 
+							     "REGEXP",
+							     function_regexp,
+							     2);
 	}
 }
 
-
-static void
-db_set_interfaces_params (TrackerDBInterface *iface,
-	       gint                cache_size,
-	       gint                page_size)
-{
-	tracker_db_interface_execute_query (iface, NULL, "PRAGMA synchronous = NORMAL;");
-	tracker_db_interface_execute_query (iface, NULL, "PRAGMA count_changes = 0;");
-	tracker_db_interface_execute_query (iface, NULL, "PRAGMA temp_store = FILE;");
-	tracker_db_interface_execute_query (iface, NULL, "PRAGMA encoding = \"UTF-8\"");
-	tracker_db_interface_execute_query (iface, NULL, "PRAGMA auto_vacuum = 0;");
-
-	if (page_size != TRACKER_DB_PAGE_SIZE_DONT_SET) {
-		g_message ("  Setting page size to %d", page_size);
-		tracker_db_interface_execute_query (iface, NULL, "PRAGMA page_size = %d", page_size);
-	}
-
-	tracker_db_interface_execute_query (iface, NULL, "PRAGMA cache_size = %d", cache_size);
-	g_message ("  Setting cache size to %d", cache_size);
-
-	g_message ("  Adding functions (FormatDate, etc)");
-
-	if (!tracker_db_interface_sqlite_set_collation_function (TRACKER_DB_INTERFACE_SQLITE (iface),
-								 "UTF8", 
-								 utf8_collation_func)) {
-		g_critical ("Collation sequence failed");
-	}
-
-	/* Create user defined functions that can be used in sql */
-	tracker_db_interface_sqlite_create_function (iface, 
-						     "FormatDate", 
-						     function_date_to_str, 
-						     1);
-	tracker_db_interface_sqlite_create_function (iface, 
-						     "GetServiceName", 
-						     function_get_service_name, 
-						     1);
-	tracker_db_interface_sqlite_create_function (iface, 
-						     "GetServiceTypeID", 
-						     function_get_service_type, 
-						     1);
-	tracker_db_interface_sqlite_create_function (iface, 
-						     "GetMaxServiceTypeID", 
-						     function_get_max_service_type, 
-						     1);
-	tracker_db_interface_sqlite_create_function (iface, 
-						     "REGEXP",
-						     function_regexp,
-						     2);
-}
 
 static void
 db_get_static_data (TrackerDBInterface *iface)
@@ -1811,8 +1758,7 @@ db_interface_get (TrackerDB  type,
 	db_set_params (iface,
 		       dbs[type].cache_size,
 		       dbs[type].page_size,
-		       dbs[type].add_functions,
-		       *create);
+		       dbs[type].add_functions);
 
 	return iface;
 }
@@ -2528,9 +2474,10 @@ tracker_db_manager_get_db_interfaces (gint num, ...)
 			tracker_db_interface_set_procedure_table (connection, 
 								  prepared_queries);
 
-			db_set_interfaces_params (connection,
+			db_set_params (connection,
 				       dbs[db].cache_size,
-				       dbs[db].page_size);
+				       dbs[db].page_size,
+				       TRUE);
 
 		} else {
 			db_exec_no_reply (connection, 

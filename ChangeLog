@@ -1,3 +1,13 @@
+2008-07-21  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-crawler.c:
+	* src/trackerd/tracker-main.c: 
+	* src/trackerd/tracker-monitor.[ch]: 
+	* src/trackerd/tracker-processor.c: Make tracker-monitor a GObject
+	with signalling when there are items created/updated/deleted and
+	move all the code which sends file notifications to the indexer
+	into the processor.
+
 2008-07-21  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/libtracker-db/tracker-db-manager.c: Functions for attached

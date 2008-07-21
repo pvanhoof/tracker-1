@@ -702,10 +702,6 @@ main (gint argc, gchar *argv[])
 
         tracker_module_config_init ();
 
-	if (!tracker_monitor_init (config)) {
-		return EXIT_FAILURE;
-	} 
-
 	flags = TRACKER_DB_MANAGER_REMOVE_CACHE;
 
 	if (force_reindex) {
@@ -820,7 +816,6 @@ main (gint argc, gchar *argv[])
 	tracker_dbus_shutdown ();
 	tracker_db_manager_shutdown ();
 	tracker_db_shutdown ();
-	tracker_monitor_shutdown ();
         tracker_module_config_shutdown ();
 	tracker_nfs_lock_shutdown ();
 	tracker_log_shutdown ();

@@ -1013,8 +1013,10 @@ tracker_crawler_start (TrackerCrawler *crawler,
 	priv->directories_ignored = 0;
 	priv->files_found = 0;
 	priv->files_ignored = 0;
+#if 0
 	priv->monitors_added = tracker_monitor_get_count (module_name);
 	priv->monitors_ignored = tracker_monitor_get_ignored ();
+#endif
 
 	for (sl = paths; sl; sl = sl->next) {
 		file = g_file_new_for_path (sl->data);
@@ -1048,9 +1050,11 @@ tracker_crawler_stop (TrackerCrawler *crawler)
 	g_message ("  Found %d files, ignored %d files",
 		   priv->files_found,
 		   priv->files_ignored);
+#if 0
 	g_message ("  Added %d monitors, ignored %d monitors",
 		   tracker_monitor_get_count (priv->current_module_name),
 		   tracker_monitor_get_ignored () - priv->monitors_ignored);
+#endif
 
 	priv->running = FALSE;
 

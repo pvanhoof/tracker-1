@@ -1,3 +1,8 @@
+2008-07-21  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/libtracker-db/tracker-db-manager.c: Functions for attached
+	connections
+
 2008-07-18  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-file-utils.[ch]:

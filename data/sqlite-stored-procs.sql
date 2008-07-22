@@ -22,9 +22,10 @@ GetFileMTime SELECT M.MetaDataValue  FROM Services F inner join ServiceNumericMe
 GetServices SELECT TypeName, Description, Parent  FROM ServiceTypes ORDER BY TypeID;
 GetAllServices SELECT TypeID, TypeName, Parent, Enabled, Embedded, HasMetadata, HasFullText, HasThumbs, ContentMetadata, Database, ShowServiceFiles, ShowServiceDirectories, KeyMetadata1, KeyMetadata2, KeyMetadata3, KeyMetadata4, KeyMetadata5, KeyMetadata6, KeyMetadata7, KeyMetadata8, KeyMetadata9, KeyMetadata10, KeyMetadata11  FROM ServiceTypes;
 
+/* GetNewID and UpdateNewID are deprecated !! */
 GetNewID SELECT OptionValue FROM Options WHERE OptionKey = 'Sequence';
 UpdateNewID UPDATE Options set OptionValue = ? WHERE OptionKey = 'Sequence';
-CreateEvent INSERT INTO Events (ID, ServiceID, EventType) VALUES (?,?,?); 
+CreateEvent INSERT INTO Events (ServiceID, EventType) VALUES (?,?); 
 GetEvents SELECT ID, ServiceID, EventType FROM Events WHERE BeingHandled = 1;
 SetEventsBeingHandled UPDATE Events SET BeingHandled = 1;
 
@@ -35,6 +36,7 @@ DeleteLiveSearchDeletedIDs DELETE FROM cache.LiveSearches AS Y WHERE Y.ServiceID
 GetLiveSearchHitCount SELECT count(*) FROM cache.LiveSearches WHERE SearchID = ?;
 LiveSearchStopSearch DELETE FROM cache.LiveSearches WHERE SearchID = ?
 
+/* GetNewEventID and UpdateNewEventID are deprecated !! */
 GetNewEventID SELECT OptionValue FROM Options WHERE OptionKey = 'EventSequence';
 UpdateNewEventID UPDATE Options set OptionValue = ? WHERE OptionKey = 'EventSequence';
 

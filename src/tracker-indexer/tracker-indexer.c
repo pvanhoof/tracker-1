@@ -776,6 +776,7 @@ process_file (TrackerIndexer *indexer,
 		mimetype = tracker_file_get_mime_type (info->file->path);
 		service_type = tracker_ontology_get_service_type_for_mime (mimetype);
 		service_def = tracker_ontology_get_service_type_by_name (service_type);
+
 		id = tracker_db_get_new_service_id (indexer->private->common);
 
 		created = tracker_db_create_service (indexer->private->metadata, 
@@ -789,19 +790,10 @@ process_file (TrackerIndexer *indexer,
 		
 		if (created) {
 			gchar *text;
-			guint32 eid;
-			gboolean inc_events = FALSE;
-
-			eid = tracker_db_get_new_event_id (indexer->private->common);
 
 			created = tracker_db_create_event (indexer->private->cache, 
-							   eid, 
 							   id,
 							   "Create");
-			if (created) {
-				inc_events = TRUE;
-			}
-
 			tracker_db_increment_stats (indexer->private->common, service_def);
 
 			index_metadata (indexer, id, service_def, metadata);
@@ -813,11 +805,6 @@ process_file (TrackerIndexer *indexer,
 				g_free (text);
 			}
 
-			if (inc_events) {
-				tracker_db_inc_event_id (indexer->private->common, eid);
-			}
-
-			tracker_db_inc_service_id (indexer->private->common, id);
 		}
 
 		g_hash_table_destroy (metadata);

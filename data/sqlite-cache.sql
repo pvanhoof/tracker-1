@@ -71,7 +71,7 @@ CREATE TABLE  FileWatches
 
 CREATE TABLE Events
 (
-	ID		Integer primary key not null,
+	ID		Integer primary key autoincrement,
 	ServiceID	Integer not null,
 	BeingHandled	Integer default 0,
 	EventType	Text

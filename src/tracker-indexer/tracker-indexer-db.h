@@ -28,7 +28,6 @@
 G_BEGIN_DECLS
 
 guint32  tracker_db_get_new_service_id (TrackerDBInterface *iface);
-guint32  tracker_db_get_new_event_id   (TrackerDBInterface *iface);
 void     tracker_db_increment_stats    (TrackerDBInterface *iface,
                                         TrackerService     *service);
 gboolean tracker_db_create_service     (TrackerDBInterface *iface,
@@ -45,13 +44,8 @@ void     tracker_db_set_text           (TrackerDBInterface *iface,
 					guint32             id,
 					const gchar        *text);
 gboolean tracker_db_create_event       (TrackerDBInterface *iface,
-                                        guint32             id,
                                         guint32             service_id,
                                         const gchar        *type);
-void     tracker_db_inc_service_id      (TrackerDBInterface *iface, 
-					 guint32 id);
-void     tracker_db_inc_event_id        (TrackerDBInterface *iface, 
-					 guint32 id);
 
 
 G_END_DECLS

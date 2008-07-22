@@ -24,78 +24,57 @@
 #include <stdlib.h>
 
 #include <libtracker-common/tracker-type-utils.h>
+#include <libtracker-db/tracker-db-manager.h>
 
 #include "tracker-indexer-db.h"
 
-void
-tracker_db_inc_service_id (TrackerDBInterface *iface, guint32 id)
-{
-	gchar              *id_str;
-
-	id_str = tracker_int_to_string (id);
-
-	tracker_db_interface_execute_procedure (iface, NULL, "UpdateNewID", id_str, NULL);
-	g_free (id_str);
-}
 
 guint32
 tracker_db_get_new_service_id (TrackerDBInterface *iface)
 {
+	guint32             files_max;
 	TrackerDBResultSet *result_set;
-	gchar              *id_str;
-	guint32             id;
+	TrackerDBInterface *temp_iface;
+	static guint32      max = 0;
 
-	result_set = tracker_db_interface_execute_procedure (iface, NULL, "GetNewID", NULL);
-
-	if (!result_set) {
-		g_critical ("Could not create service, GetNewID failed");
-		return 0;
+	if (max != 0) {
+		return ++max;
 	}
 
-	tracker_db_result_set_get (result_set, 0, &id_str, -1);
-	g_object_unref (result_set);
+	temp_iface = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
 
-	id = atoi (id_str);
-	id++;
-	g_free (id_str);
+	result_set = tracker_db_interface_execute_query (temp_iface, NULL,
+							 "SELECT MAX(ID) AS A FROM Services");
 
-	return id;
-}
-
-void
-tracker_db_inc_event_id (TrackerDBInterface *iface, guint32 id)
-{
-	gchar              *id_str;
-
-	id_str = tracker_int_to_string (id);
-
-	tracker_db_interface_execute_procedure (iface, NULL, "UpdateNewEventID", id_str, NULL);
-	g_free (id_str);
-}
-
-guint32
-tracker_db_get_new_event_id (TrackerDBInterface *iface)
-{
-	TrackerDBResultSet *result_set;
-	gchar              *id_str;
-	guint32             id;
-
-	result_set = tracker_db_interface_execute_procedure (iface, NULL, "GetNewEventID", NULL);
-
-	if (!result_set) {
-		g_critical ("Could not create event, GetNewEventID failed");
-		return 0;
+	if (result_set) {
+		GValue val = {0, };
+		_tracker_db_result_set_get_value (result_set, 0, &val);
+		if (G_VALUE_TYPE (&val) == G_TYPE_INT) {
+			max = g_value_get_int (&val);
+		}
+		g_value_unset (&val);
+		g_object_unref (result_set);
 	}
 
-	tracker_db_result_set_get (result_set, 0, &id_str, -1);
-	g_object_unref (result_set);
+	temp_iface = tracker_db_manager_get_db_interface (TRACKER_DB_EMAIL_METADATA);
 
-	id = atoi (id_str);
-	id++;
-	g_free (id_str);
+	result_set = tracker_db_interface_execute_query (temp_iface, NULL,
+							 "SELECT MAX(ID) AS A FROM Services");
 
-	return id;
+	if (result_set) {
+		GValue val = {0, };
+		_tracker_db_result_set_get_value (result_set, 0, &val);
+		if (G_VALUE_TYPE (&val) == G_TYPE_INT) {
+			files_max = g_value_get_int (&val);
+			max = MAX (files_max, max);
+		}
+		g_value_unset (&val);
+		g_object_unref (result_set);
+	}
+
+	return ++max;
 }
+
 
 void
 tracker_db_increment_stats (TrackerDBInterface *iface,
@@ -115,22 +94,18 @@ tracker_db_increment_stats (TrackerDBInterface *iface,
 
 gboolean
 tracker_db_create_event (TrackerDBInterface *iface,
-			   guint32 id, 
 			   guint32 service_id, 
 			   const gchar *type)
 {
-	gchar *id_str, *service_id_str;
+	gchar *service_id_str;
 
-	id_str = tracker_guint32_to_string (id);
 	service_id_str = tracker_guint32_to_string (service_id);
 
 	tracker_db_interface_execute_procedure (iface, NULL, "CreateEvent", 
-						id_str,
 						service_id_str,
 						type,
 						NULL);
 
-	g_free (id_str);
 	g_free (service_id_str);
 
 	return TRUE;

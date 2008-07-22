@@ -2739,6 +2739,11 @@ tracker_db_service_create (TrackerDBInterface *iface,
 		path = tracker_file_get_vfs_path (info->uri);
 	}
 
+	/* Using GetNewUID is deprecated, use 
+
+	SELECT MAX(ID) from files-meta.Services followed by 
+	SELECT MAX(ID) from email-meta.Services instead !!! */
+
 	/* Get a new unique ID for the service - use mutex to prevent race conditions */
 	result_set = tracker_db_exec_proc (iface, "GetNewID", NULL);
 

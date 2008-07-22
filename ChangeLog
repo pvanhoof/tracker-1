@@ -1,3 +1,14 @@
+2008-07-22  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* data/sqlite-stored-procs.sql:
+	* data/sqlite-cache.sql:
+	* src/tracker-indexer/tracker-indexer-db.c:
+	* src/tracker-indexer/tracker-indexer-db.h:
+	* src/tracker-indexer/tracker-indexer.c:
+
+	Removed the need for GetNewID and UpdateNewID from the indexer
+	Replaced the GetNewEventID and UpdateNewEventID with an autoincrement
+
 2008-07-22  Carlos Garnacho  <carlos@imendio.com>
 
 	Improve data flushing to DBs/Indexes, based on a patch by Ivan Frade

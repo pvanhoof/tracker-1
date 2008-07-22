@@ -71,9 +71,6 @@ gboolean                   tracker_indexer_remove_dud_hits               (Tracke
 									  const gchar               *word,
 									  GSList                    *dud_list);
 
-void                       tracker_indexer_pause                          (void);
-void                       tracker_indexer_continue                       (void);
-
 G_END_DECLS
 
 #endif /* __TRACKERD_INDEXER_H__ */

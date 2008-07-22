@@ -44,6 +44,9 @@ gboolean    tracker_dbus_register_objects  (TrackerConfig    *config,
 GObject    *tracker_dbus_get_object        (GType             type);
 DBusGProxy *tracker_dbus_indexer_get_proxy (void);
 
+void        tracker_indexer_pause          (void);
+void        tracker_indexer_continue       (void);
+
 G_END_DECLS
 
 #endif /* __TRACKERD_DBUS_H__ */

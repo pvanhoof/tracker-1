@@ -1,3 +1,12 @@
+2008-07-22  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-dbus.c:
+	* src/trackerd/tracker-indexer.c:
+	* src/trackerd/tracker-dbus.h:
+	* src/trackerd/tracker-indexer.h:
+
+	Moving some code around
+
 2008-06-22  Ivan Frade  <ivan.frade@nokia.com>
 
 	* tests/trackerd/example.index: Small QDBM index to use in tests.

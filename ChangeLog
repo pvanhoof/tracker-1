@@ -1,5 +1,19 @@
 2008-07-22  Carlos Garnacho  <carlos@imendio.com>
 
+	Improve data flushing to DBs/Indexes, based on a patch by Ivan Frade
+
+	* src/tracker-indexer/tracker-index.c (tracker_index_free): Just flush
+	if there are remaining items before the index is destroyed.
+	* src/tracker-indexer/tracker-indexer.c (schedule_flush_cb): Renamed
+	to flush_data(). Always flush the Index, which is completely unrelated
+	to DB transactions.
+	(schedule_flush): Call flush_data() if needed immediately
+	* src/tracker-indexer/tracker-main.c (indexer_finished_cb): Attach the
+	extra refcount to indexer to the timeout. So it's unreferenced when
+	the timeout source is removed.
+
+2008-07-22  Carlos Garnacho  <carlos@imendio.com>
+
 	Several random fixes by Philip Van Hoof.
 
 	* src/libtracker-db/tracker-db-dbus.c

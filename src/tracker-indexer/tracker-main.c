@@ -196,8 +196,6 @@ quit_timeout_cb (gpointer user_data)
                 g_message ("Indexer is now running, staying alive until finished...");
         }
 
-        g_object_unref (indexer);
-
         return FALSE;
 }
 
@@ -218,9 +216,11 @@ indexer_finished_cb (TrackerIndexer *indexer,
         g_message ("Nothing was indexed, waiting %d seconds before quitting...",
                    QUIT_TIMEOUT);
 
-        quit_timeout_id = g_timeout_add_seconds (QUIT_TIMEOUT,
-                                                 quit_timeout_cb,
-                                                 g_object_ref (indexer));
+        quit_timeout_id = g_timeout_add_seconds_full (G_PRIORITY_DEFAULT,
+                                                      QUIT_TIMEOUT,
+                                                      quit_timeout_cb,
+                                                      g_object_ref (indexer),
+                                                      (GDestroyNotify) g_object_unref);
 }
 
 gint

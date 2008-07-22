@@ -250,25 +250,16 @@ signal_status (TrackerIndexer *indexer,
 }
 
 static gboolean
-schedule_flush_cb (gpointer data)
+flush_data (TrackerIndexer *indexer)
 {
-	TrackerIndexer *indexer;
-
-	indexer = TRACKER_INDEXER (data);
-
 	indexer->private->flush_id = 0;
 
-	/* If we have transactions, we don't need to flush, we
-	 * just need to end the transactions on each
-	 * interface. This performs a commit for us. 
-	 */
 	if (indexer->private->in_transaction) {
 		stop_transaction (indexer);
-	} else {
-		indexer->private->items_indexed += tracker_index_flush (indexer->private->index);
 	}
 
-	signal_status (indexer, "timed flush");
+	indexer->private->items_indexed += tracker_index_flush (indexer->private->index);
+	signal_status (indexer, "flush");
 
 	return FALSE;
 }
@@ -284,18 +275,7 @@ schedule_flush (TrackerIndexer *indexer,
 			indexer->private->flush_id = 0;
 		}
 
-		/* If we have transactions, we don't need to flush, we
-		 * just need to end the transactions on each
-		 * interface. This performs a commit for us. 
-		 */
-		if (indexer->private->in_transaction) {
-			stop_transaction (indexer);
-		} else {
-			indexer->private->items_indexed += tracker_index_flush (indexer->private->index);
-		}
-
-		signal_status (indexer, "immediate flush");
-
+		flush_data (indexer);
 		return;
 	}
 
@@ -304,8 +284,8 @@ schedule_flush (TrackerIndexer *indexer,
 		return;
 	}
 
-	indexer->private->flush_id = g_timeout_add_seconds (FLUSH_FREQUENCY, 
-							    schedule_flush_cb, 
+	indexer->private->flush_id = g_timeout_add_seconds (FLUSH_FREQUENCY,
+							    (GSourceFunc) flush_data,
 							    indexer);
 }
 
@@ -395,8 +375,6 @@ tracker_indexer_finalize (GObject *object)
 
 	g_object_unref (priv->language);
 	g_object_unref (priv->config);
-
-	/* Do we destroy interfaces? I can't remember */
 
 	tracker_index_free (priv->index);
 

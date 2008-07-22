@@ -121,6 +121,7 @@ struct TrackerIndexerPrivate {
 	guint items_indexed;
 
 	gboolean in_transaction;
+	gboolean is_paused;
 };
 
 struct PathInfo {
@@ -289,10 +290,11 @@ schedule_flush (TrackerIndexer *indexer,
 							    indexer);
 }
 
+#ifdef HAVE_HAL
+
 static void
 set_up_throttle (TrackerIndexer *indexer)
 {
-#ifdef HAVE_HAL
 	gint throttle;
 
 	/* If on a laptop battery and the throttling is default (i.e.
@@ -328,10 +330,6 @@ set_up_throttle (TrackerIndexer *indexer)
 				   throttle);
 		}
 	}
-#else  /* HAVE_HAL */
-	g_message ("HAL is not available to know if we are using a battery or not.");
-	g_message ("Not setting the throttle");
-#endif /* HAVE_HAL */
 }
 
 static void
@@ -341,6 +339,8 @@ notify_battery_in_use_cb (GObject *gobject,
 {
 	set_up_throttle (TRACKER_INDEXER (user_data));
 }
+
+#endif /* HAVE_HAL */
 
 static void
 tracker_indexer_finalize (GObject *object)
@@ -519,7 +519,8 @@ close_module (GModule *module)
 static void
 check_started (TrackerIndexer *indexer)
 {
-	if (indexer->private->idle_id) {
+	if (indexer->private->idle_id ||
+	    indexer->private->is_paused == TRUE) {
 		return;
 	}
 
@@ -967,42 +968,60 @@ tracker_indexer_get_is_running (TrackerIndexer *indexer)
 	return indexer->private->idle_id != 0;
 }
 
-
 /**
  * This one is not being used yet, but might be used in near future. Therefore
  * it would be useful if Garnacho could review this for consistency and 
  * correctness. Ps. it got written by that pvanhoof dude, just ping him if you
  * have questions.
  **/
-
 void
 tracker_indexer_set_paused (TrackerIndexer         *indexer,
 			    gboolean                paused,
 			    DBusGMethodInvocation  *context,
 			    GError                **error)
 {
-	g_return_if_fail (TRACKER_IS_INDEXER (indexer));
+	guint request_id;
+	
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
+
+	tracker_dbus_request_new (request_id,
+                                  "DBus request to %s the indexer",
+				  paused ? "pause" : "resume");
 
 	if (tracker_indexer_get_is_running (indexer)) {
 		if (paused) {
 			if (indexer->private->in_transaction) {
+				tracker_dbus_request_comment (request_id, 
+							      "Committing transactions");
 				stop_transaction (indexer);
 			}
-			if (indexer->private->idle_id) {
-				g_source_remove (indexer->private->idle_id);
-				indexer->private->idle_id = 0;
-			}
+
+			tracker_dbus_request_comment (request_id, 
+						      "Pausing indexing");
+			
+			g_source_remove (indexer->private->idle_id);
+			indexer->private->idle_id = 0;
+			indexer->private->is_paused = TRUE;
+
 			g_signal_emit (indexer, signals[PAUSED], 0);
 		}
 	} else {
 		if (!paused) {
-			if (!indexer->private->idle_id) {
-				indexer->private->idle_id = g_idle_add (process_func, indexer);
-				g_signal_emit (indexer, signals[CONTINUED], 0);
-			}
+			tracker_dbus_request_comment (request_id, 
+						      "Resuming indexing");
+
+			indexer->private->is_paused = FALSE;
+			indexer->private->idle_id = g_idle_add (process_func, indexer);
+
+			g_signal_emit (indexer, signals[CONTINUED], 0);
 		}
 	}
+
 	dbus_g_method_return (context);
+
+	tracker_dbus_request_success (request_id);
 }
 
 
@@ -1028,10 +1047,10 @@ tracker_indexer_files_check (TrackerIndexer *indexer,
 	gint i;
 	GError *actual_error = NULL;
 
+	request_id = tracker_dbus_get_next_request_id ();
+
 	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
 	tracker_dbus_async_return_if_fail (files != NULL, FALSE);
-
-	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_request_new (request_id,
                                   "DBus request to check %d files",
@@ -1075,10 +1094,10 @@ tracker_indexer_files_update (TrackerIndexer *indexer,
 	gint i;
 	GError *actual_error = NULL;
 
+	request_id = tracker_dbus_get_next_request_id ();
+
 	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
 	tracker_dbus_async_return_if_fail (files != NULL, FALSE);
-
-	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_request_new (request_id,
                                   "DBus request to update %d files",
@@ -1122,10 +1141,10 @@ tracker_indexer_files_delete (TrackerIndexer *indexer,
 	gint i;
 	GError *actual_error = NULL;
 
+	request_id = tracker_dbus_get_next_request_id ();
+
 	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
 	tracker_dbus_async_return_if_fail (files != NULL, FALSE);
-
-	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_request_new (request_id,
                                   "DBus request to delete %d files",

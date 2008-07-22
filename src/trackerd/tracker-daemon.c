@@ -35,6 +35,7 @@
 #include "tracker-dbus.h"
 #include "tracker-daemon.h"
 #include "tracker-db.h"
+#include "tracker-indexer-client.h"
 #include "tracker-main.h"
 #include "tracker-status.h"
 #include "tracker-marshal.h"
@@ -42,10 +43,9 @@
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DAEMON, TrackerDaemonPriv))
 
 typedef struct {
-	DBusGProxy       *fd_proxy;
-
 	TrackerConfig    *config;
 	TrackerProcessor *processor;
+	DBusGProxy       *indexer_proxy;
 } TrackerDaemonPriv;
 
 enum {
@@ -55,7 +55,16 @@ enum {
         LAST_SIGNAL
 };
 
-static void daemon_finalize (GObject *object);
+static void daemon_finalize       (GObject    *object);
+static void indexer_set_paused_cb (DBusGProxy *proxy,
+				   GError     *error,
+				   gpointer    user_data);
+static void indexer_paused_cb     (DBusGProxy *proxy,
+				   GError     *error,
+				   gpointer    user_data);
+static void indexer_continued_cb  (DBusGProxy *proxy,
+				   GError     *error,
+				   gpointer    user_data);
 
 static guint signals[LAST_SIGNAL] = {0};
 
@@ -122,13 +131,19 @@ tracker_daemon_init (TrackerDaemon *object)
 static void
 daemon_finalize (GObject *object)
 {
+	TrackerDaemon     *daemon;
 	TrackerDaemonPriv *priv;
 
-	priv = GET_PRIV (object);
+	daemon = TRACKER_DAEMON (object);
+	priv = GET_PRIV (daemon);
 
-	if (priv->fd_proxy) {
-		g_object_unref (priv->fd_proxy);
-	}
+	dbus_g_proxy_disconnect_signal (priv->indexer_proxy, "Continued",
+					G_CALLBACK (indexer_continued_cb),
+					daemon);
+	dbus_g_proxy_disconnect_signal (priv->indexer_proxy, "Paused",
+					G_CALLBACK (indexer_paused_cb),
+					daemon);
+	g_object_unref (priv->indexer_proxy);
 
 	g_object_unref (priv->processor);
 	g_object_unref (priv->config);
@@ -142,6 +157,7 @@ tracker_daemon_new (TrackerConfig    *config,
 {
 	TrackerDaemon     *object;
 	TrackerDaemonPriv *priv;
+	DBusGProxy        *proxy;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 	g_return_val_if_fail (TRACKER_IS_PROCESSOR (processor), NULL);
@@ -153,7 +169,48 @@ tracker_daemon_new (TrackerConfig    *config,
 	priv->config = g_object_ref (config);
 	priv->processor = g_object_ref (processor);
 
+	proxy = tracker_dbus_indexer_get_proxy ();
+	priv->indexer_proxy = g_object_ref (proxy);
+
+	dbus_g_proxy_connect_signal (proxy, "Paused",
+				     G_CALLBACK (indexer_paused_cb),
+				     g_object_ref (object),
+				     (GClosureNotify) g_object_unref);
+	dbus_g_proxy_connect_signal (proxy, "Continued",
+				     G_CALLBACK (indexer_continued_cb),
+				     g_object_ref (object),
+				     (GClosureNotify) g_object_unref);
+
 	return object;
+}
+
+static void 
+indexer_set_paused_cb (DBusGProxy *proxy,
+		       GError     *error,
+		       gpointer    user_data)
+{
+	if (error) {
+		g_message ("Could not pause/resume the indexer, %s",
+			   error->message);
+	}
+}
+
+static void 
+indexer_paused_cb (DBusGProxy *proxy,
+		   GError     *error,
+		   gpointer    user_data)
+{
+	g_message ("The indexer has paused");
+	tracker_set_is_paused_manually (TRUE);
+}
+
+static void 
+indexer_continued_cb (DBusGProxy *proxy,
+		      GError     *error,
+		      gpointer    user_data)
+{
+	g_message ("The indexer has continued");
+	tracker_set_is_paused_manually (FALSE);
 }
 
 /*
@@ -323,7 +380,10 @@ tracker_daemon_set_bool_option (TrackerDaemon          *object,
 				  value ? "true" : "false");
 
 	if (strcasecmp (option, "Pause") == 0) {
-		tracker_set_is_paused_manually (value);
+		org_freedesktop_Tracker_Indexer_set_paused_async (priv->indexer_proxy, 
+								  value, 
+								  indexer_set_paused_cb, 
+								  NULL);
 	} else if (strcasecmp (option, "FastMerges") == 0) {
                 tracker_config_set_fast_merges (priv->config, value);
                 g_message ("Fast merges set to %d", value);

@@ -370,6 +370,12 @@ tracker_dbus_indexer_get_proxy (void)
 					 "Started",
 					 G_TYPE_INVALID);
 		dbus_g_proxy_add_signal (proxy_for_indexer,
+					 "Paused",
+					 G_TYPE_INVALID);
+		dbus_g_proxy_add_signal (proxy_for_indexer,
+					 "Continued",
+					 G_TYPE_INVALID);
+		dbus_g_proxy_add_signal (proxy_for_indexer,
 					 "Finished",
 					 G_TYPE_DOUBLE,
 					 G_TYPE_UINT,

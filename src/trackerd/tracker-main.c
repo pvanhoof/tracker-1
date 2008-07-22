@@ -913,12 +913,6 @@ tracker_set_is_paused_manually (gboolean value)
 		return;
 	}
 	
-	if (value) {
-		g_message ("Tracker daemon has been paused by user");
-	} else {
-		g_message ("Tracker daemon has been resumed by user");
-	}
-
 	/* Set value */
 	is_paused_manually = value;
 

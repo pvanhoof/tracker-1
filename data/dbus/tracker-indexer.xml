@@ -38,9 +38,9 @@
       <arg type="u" name="items_done" />
       <arg type="u" name="items_remaining" />
     </signal>
+    <signal name="Started" />
     <signal name="Paused" />
     <signal name="Continued" />
-    <signal name="Started" />
     <signal name="Finished">
       <arg type="d" name="elapsed_time" />
       <arg type="u" name="items_done" />

@@ -75,9 +75,9 @@ TrackerIndexer *tracker_indexer_new            (void);
 
 gboolean        tracker_indexer_get_is_running (TrackerIndexer         *indexer);
 void            tracker_indexer_set_paused     (TrackerIndexer         *indexer,
-						 gboolean                paused,
-						 DBusGMethodInvocation  *context,
-						 GError                **error);
+						gboolean                paused,
+						DBusGMethodInvocation  *context,
+						GError                **error);
 void            tracker_indexer_process_all    (TrackerIndexer         *indexer);
 
 void            tracker_indexer_files_check    (TrackerIndexer         *indexer,

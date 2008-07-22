@@ -1,3 +1,21 @@
+2008-07-22  Martyn Russell  <martyn@imendio.com>
+
+	* data/dbus/tracker-indexer.xml:
+	* src/tracker-indexer/tracker-indexer.c: Fixed HAL warning when it
+	isn't compiled in. Fixed the indexer pausing so it works properly
+	and has proper debugging so we know when it is called like all
+	other DBus functions. 
+
+	* src/trackerd/tracker-daemon.c: Connected the "Paused" and
+	"Continued" signals of the indexer so we know when to signal it
+	up the stack.
+
+	* src/trackerd/tracker-dbus.c: Add the prototypes for "Paused" and
+	"Continued" for the indexer proxy.
+	
+	* src/trackerd/tracker-main.c: Removed some debugging which was
+	duplicated when we changed state between paused/resumed.
+
 2008-07-22  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/tracker-indexer/tracker-indexer.c:

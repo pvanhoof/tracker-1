@@ -1,3 +1,14 @@
+2008-07-22  Carlos Garnacho  <carlos@imendio.com>
+
+	Several random fixes by Philip Van Hoof.
+
+	* src/libtracker-db/tracker-db-dbus.c
+	(tracker_dbus_query_result_to_hash_table): tabify.
+	* src/libtracker-db/tracker-db-manager.c: Initialize correctly the
+	TrackerDBDefinition structure
+	* tests/libtracker-common/tracker-file-utils-test.c
+	(test_path_list_filter_duplicates): Avoid compiler warning.
+
 2008-07-22  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-processor.c: (item_queue_handlers_cb),

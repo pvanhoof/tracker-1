@@ -50,7 +50,7 @@ test_path_list_filter_duplicates ()
         g_assert (string_in_list (result, "/usr/"));
 
 
-        g_slist_foreach (input_as_list, g_free, NULL);
+        g_slist_foreach (input_as_list, (GFunc) g_free, NULL);
 }
 
 static void

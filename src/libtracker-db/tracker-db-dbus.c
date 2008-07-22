@@ -72,35 +72,35 @@ tracker_dbus_query_result_to_strv (TrackerDBResultSet *result_set,
 GHashTable *
 tracker_dbus_query_result_to_hash_table (TrackerDBResultSet *result_set)
 {
-        GHashTable *hash_table;
+	GHashTable *hash_table;
 	gint        field_count;
 	gboolean    valid = FALSE;
 
 	hash_table = g_hash_table_new_full (g_str_hash,
-                                            g_str_equal,
-                                            (GDestroyNotify) g_free,
-                                            (GDestroyNotify) tracker_dbus_gvalue_slice_free);       
+					    g_str_equal,
+					    (GDestroyNotify) g_free,
+					    (GDestroyNotify) tracker_dbus_gvalue_slice_free);
 
 	if (result_set) {
 		valid = TRUE;
 		field_count = tracker_db_result_set_get_n_columns (result_set);
-        }
+	}
 
 	while (valid) {
-		GValue   transform = { 0, };
-		GValue  *values;
-                gchar  **p;
-                gint     field_count;
-                gint     i = 0;
-		gchar   *key;
-		GSList  *list = NULL;
+		GValue	 transform = { 0, };
+		GValue	*values;
+		gchar  **p;
+		gint	 field_count;
+		gint	 i = 0;
+		gchar	*key;
+		GSList	*list = NULL;
 
 		g_value_init (&transform, G_TYPE_STRING);
 
 		tracker_db_result_set_get (result_set, 0, &key, -1);
 		values = tracker_dbus_gvalue_slice_new (G_TYPE_STRV);
 
-                for (i = 1; i < field_count; i++) {
+		for (i = 1; i < field_count; i++) {
 			GValue  value = { 0, };
 			gchar  *str;
 

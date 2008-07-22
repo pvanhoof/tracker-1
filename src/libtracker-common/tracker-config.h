@@ -63,6 +63,7 @@ gboolean       tracker_config_get_enable_indexing                  (TrackerConfi
 gboolean       tracker_config_get_enable_xesam                     (TrackerConfig *config);
 gboolean       tracker_config_get_enable_content_indexing          (TrackerConfig *config);
 gboolean       tracker_config_get_enable_thumbnails                (TrackerConfig *config);
+GSList *       tracker_config_get_disabled_modules                 (TrackerConfig *config);
 gboolean       tracker_config_get_fast_merges                      (TrackerConfig *config);
 GSList *       tracker_config_get_no_index_file_types              (TrackerConfig *config);
 gint           tracker_config_get_min_word_length                  (TrackerConfig *config);

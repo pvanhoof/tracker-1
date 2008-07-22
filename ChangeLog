@@ -1,3 +1,11 @@
+2008-07-22  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-config.[ch]:
+	* src/trackerd/tracker-processor.c: (process_module): Make it
+	possible to disable modules from the user's config, not just in
+	the module files which are owned by root. Added config option
+	"disabled-modules". 
+
 2008-07-21  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/tracker-indexer/modules/files.c:

@@ -508,6 +508,7 @@ process_module (TrackerProcessor *processor,
 		const gchar      *module_name)
 {
 	TrackerProcessorPrivate *priv;
+	GSList                  *disabled_modules;
 
 	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
 
@@ -515,6 +516,15 @@ process_module (TrackerProcessor *processor,
 
 	/* Check it is enabled */
 	if (!tracker_module_config_get_enabled (module_name)) {
+		g_message ("  Module disabled");
+		process_next_module (processor);
+		return;
+	}
+
+	/* Check it is is not disabled by the user locally */
+	disabled_modules = tracker_config_get_disabled_modules (priv->config);
+	if (g_slist_find_custom (disabled_modules, module_name, (GCompareFunc) strcmp)) {
+		g_message ("  Module disabled by user");
 		process_next_module (processor);
 		return;
 	}

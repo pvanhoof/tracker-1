@@ -51,6 +51,7 @@
 #define KEY_ENABLE_INDEXING			 "EnableIndexing"
 #define KEY_ENABLE_CONTENT_INDEXING		 "EnableFileContentIndexing"
 #define KEY_ENABLE_THUMBNAILS			 "EnableThumbnails"
+#define KEY_DISABLED_MODULES                     "DisabledModules"
 #define KEY_FAST_MERGES				 "FastMerges"
 #define KEY_NO_INDEX_FILE_TYPES			 "NoIndexFileTypes"
 #define KEY_MIN_WORD_LENGTH			 "MinWorldLength"
@@ -105,42 +106,43 @@ struct _TrackerConfigPriv {
 	GFileMonitor *monitor;
 
 	/* General */
-	gint	  verbosity;
-	gint	  initial_sleep;
-	gboolean  low_memory_mode;
-	gboolean  nfs_locking;
+	gint	      verbosity;
+	gint	      initial_sleep;
+	gboolean      low_memory_mode;
+	gboolean      nfs_locking;
 
 	/* Watches */
-	GSList	 *watch_directory_roots;
-	GSList	 *crawl_directory_roots;
-	GSList	 *no_watch_directory_roots;
-	gboolean  enable_watches;
+	GSList	     *watch_directory_roots;
+	GSList	     *crawl_directory_roots;
+	GSList	     *no_watch_directory_roots;
+	gboolean      enable_watches;
 
 	/* Indexing */
-	gint	  throttle;
-	gboolean  enable_indexing;
-	gboolean  enable_content_indexing;
-	gboolean  enable_thumbnails;
-	gboolean  fast_merges;
-	GSList	 *no_index_file_types;
-	gint	  min_word_length;
-	gint	  max_word_length;
-	gchar	 *language;
-	gboolean  enable_stemmer;
-	gboolean  disable_indexing_on_battery;
-	gboolean  disable_indexing_on_battery_init;
-	gint	  low_disk_space_limit;
-	gboolean  index_mounted_directories;
-	gboolean  index_removable_devices;
+	gint	      throttle;
+	gboolean      enable_indexing;
+	gboolean      enable_content_indexing;
+	gboolean      enable_thumbnails;
+	GSList       *disabled_modules;
+	gboolean      fast_merges;
+	GSList	     *no_index_file_types;
+	gint	      min_word_length;
+	gint	      max_word_length;
+	gchar	     *language;
+	gboolean      enable_stemmer;
+	gboolean      disable_indexing_on_battery;
+	gboolean      disable_indexing_on_battery_init;
+	gint	      low_disk_space_limit;
+	gboolean      index_mounted_directories;
+	gboolean      index_removable_devices;
 
 	/* Performance */
-	gint	  max_text_to_index;
-	gint	  max_words_to_index;
-	gint	  max_bucket_count;
-	gint	  min_bucket_count;
+	gint	      max_text_to_index;
+	gint	      max_words_to_index;
+	gint	      max_bucket_count;
+	gint	      min_bucket_count;
 
 	/* Services*/
-	gboolean  enable_xesam;
+	gboolean      enable_xesam;
 };
 
 static void config_finalize	(GObject      *object);
@@ -174,6 +176,7 @@ enum {
 	PROP_ENABLE_INDEXING,
 	PROP_ENABLE_CONTENT_INDEXING,
 	PROP_ENABLE_THUMBNAILS,
+	PROP_DISABLED_MODULES,
 	PROP_FAST_MERGES,
 	PROP_NO_INDEX_FILE_TYPES,
 	PROP_MIN_WORD_LENGTH,
@@ -309,6 +312,12 @@ tracker_config_class_init (TrackerConfigClass *klass)
 							       "Create thumbnails from image based files",
 							       DEFAULT_ENABLE_THUMBNAILS,
 							       G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
+	g_object_class_install_property (object_class,
+					 PROP_DISABLED_MODULES,
+					 g_param_spec_pointer ("disabled-modules",
+							       "Disabled modules",
+							       "Modules to disable, like 'files', etc.",
+							       G_PARAM_READABLE));
 	g_object_class_install_property (object_class,
 					 PROP_FAST_MERGES,
 					 g_param_spec_boolean ("fast-merges",
@@ -541,6 +550,9 @@ config_get_property (GObject	*object,
 	case PROP_ENABLE_THUMBNAILS:
 		g_value_set_boolean (value, priv->enable_thumbnails);
 		break;
+	case PROP_DISABLED_MODULES:
+		g_value_set_pointer (value, priv->disabled_modules);
+		break;
 	case PROP_FAST_MERGES:
 		g_value_set_boolean (value, priv->fast_merges);
 		break;
@@ -656,11 +668,15 @@ config_set_property (GObject	  *object,
 		tracker_config_set_enable_thumbnails (TRACKER_CONFIG (object),
 						      g_value_get_boolean (value));
 		break;
+	case PROP_DISABLED_MODULES:
+		/* Not writable */
+		break;
 	case PROP_FAST_MERGES:
 		tracker_config_set_fast_merges (TRACKER_CONFIG (object),
 						g_value_get_boolean (value));
 		break;
-	case PROP_NO_INDEX_FILE_TYPES:	    /* Not writable */
+	case PROP_NO_INDEX_FILE_TYPES:	    
+		/* Not writable */
 		break;
 	case PROP_MIN_WORD_LENGTH:
 		tracker_config_set_min_word_length (TRACKER_CONFIG (object),
@@ -910,6 +926,12 @@ config_create_with_defaults (const gchar *filename,
 	g_key_file_set_comment (key_file, GROUP_INDEXING, KEY_ENABLE_THUMBNAILS,
 				" Set to false to completely disable thumbnail generation",
 				NULL);
+	g_key_file_set_string_list (key_file, GROUP_INDEXING, KEY_DISABLED_MODULES,
+				    empty_string_list, 0);
+	g_key_file_set_comment (key_file, GROUP_INDEXING, KEY_DISABLED_MODULES,
+				" List of disabled modules (separator=;)\n"
+				" The modules that are indexed are kept in $prefix/share/tracker/modules",
+				NULL);
 	g_key_file_set_boolean (key_file, GROUP_INDEXING, KEY_FAST_MERGES, DEFAULT_FAST_MERGES);
 	g_key_file_set_comment (key_file, GROUP_INDEXING, KEY_FAST_MERGES,
 				" Set to false to NOT hog the disk for extended periods",
@@ -1148,6 +1170,12 @@ config_load_string_list (TrackerConfig *config,
 				config_string_list_to_gslist ((const gchar **) value, FALSE);
 		}
 	}
+	else if (strcmp (property, "disabled-modules") == 0) {
+		if (value) {
+			priv->disabled_modules =
+				config_string_list_to_gslist ((const gchar **) value, FALSE);
+		}
+	}
 	else {
 		g_warning ("Property '%s' not recognized to set string list from key '%s'",
 			   property, key);
@@ -1255,6 +1283,7 @@ config_load (TrackerConfig *config)
 	config_load_boolean (config, "enable-indexing", key_file, GROUP_INDEXING, KEY_ENABLE_INDEXING);
 	config_load_boolean (config, "enable-content-indexing", key_file, GROUP_INDEXING, KEY_ENABLE_CONTENT_INDEXING);
 	config_load_boolean (config, "enable-thumbnails", key_file, GROUP_INDEXING, KEY_ENABLE_THUMBNAILS);
+	config_load_string_list (config, "disabled-modules", key_file, GROUP_INDEXING, KEY_DISABLED_MODULES);
 	config_load_boolean (config, "fast-merges", key_file, GROUP_INDEXING, KEY_FAST_MERGES);
 	config_load_string_list (config, "no-index-file-types", key_file, GROUP_INDEXING, KEY_NO_INDEX_FILE_TYPES);
 	config_load_int (config, "min-word-length", key_file, GROUP_INDEXING, KEY_MIN_WORD_LENGTH);
@@ -1469,6 +1498,18 @@ tracker_config_get_enable_thumbnails (TrackerConfig *config)
 	priv = GET_PRIV (config);
 
 	return priv->enable_thumbnails;
+}
+
+GSList *
+tracker_config_get_disabled_modules (TrackerConfig *config)
+{
+	TrackerConfigPriv *priv;
+
+	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
+
+	priv = GET_PRIV (config);
+
+	return priv->disabled_modules;
 }
 
 gboolean

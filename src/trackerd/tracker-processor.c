@@ -416,10 +416,10 @@ item_queue_handlers_cb (gpointer user_data)
 	queue = get_next_queue_with_data (priv->items_deleted_queues, &module_name);
 
 	if (queue && g_queue_get_length (queue) > 0) {
-		/* First do the deleted queue */
 		files = tracker_dbus_queue_str_to_strv (queue, ITEMS_QUEUE_PROCESS_MAX);
 		
-		g_message ("Queue for deleted items processed, sending first %d to the indexer", 
+		g_message ("Queue for module:'%s' deleted items processed, sending first %d to the indexer", 
+			   module_name,
 			   g_strv_length (files));
 
 		priv->sent_type = SENT_TYPE_DELETED;
@@ -435,44 +435,44 @@ item_queue_handlers_cb (gpointer user_data)
 		return TRUE;
 	}
 
-	/* Process the deleted items first */
+	/* Process the created items first */
 	queue = get_next_queue_with_data (priv->items_created_queues, &module_name);
 
 	if (queue && g_queue_get_length (queue) > 0) {
-		/* First do the deleted queue */
 		files = tracker_dbus_queue_str_to_strv (queue, ITEMS_QUEUE_PROCESS_MAX);
 		
-		g_message ("Queue for created items processed, sending first %d to the indexer", 
+		g_message ("Queue for module:'%s' created items processed, sending first %d to the indexer", 
+			   module_name,
 			   g_strv_length (files));
 
 		priv->sent_type = SENT_TYPE_CREATED;
 		priv->sent_module_name = module_name;
 		priv->sent_items = files;
 
-		org_freedesktop_Tracker_Indexer_files_delete_async (priv->indexer_proxy,
-								    module_name,
-								    (const gchar **) files,
-								    item_queue_processed_cb,
-								    processor);
+		org_freedesktop_Tracker_Indexer_files_check_async (priv->indexer_proxy,
+								   module_name,
+								   (const gchar **) files,
+								   item_queue_processed_cb,
+								   processor);
 		
 		return TRUE;
 	}
 
-	/* Process the deleted items first */
+	/* Process the updated items first */
 	queue = get_next_queue_with_data (priv->items_updated_queues, &module_name);
 
 	if (queue && g_queue_get_length (queue) > 0) {
-		/* First do the deleted queue */
 		files = tracker_dbus_queue_str_to_strv (queue, ITEMS_QUEUE_PROCESS_MAX);
 		
-		g_message ("Queue for updated items processed, sending first %d to the indexer", 
+		g_message ("Queue for module:'%s' updated items processed, sending first %d to the indexer", 
+			   module_name,
 			   g_strv_length (files));
 
 		priv->sent_type = SENT_TYPE_UPDATED;
 		priv->sent_module_name = module_name;
 		priv->sent_items = files;
 
-		org_freedesktop_Tracker_Indexer_files_delete_async (priv->indexer_proxy,
+		org_freedesktop_Tracker_Indexer_files_update_async (priv->indexer_proxy,
 								    module_name,
 								    (const gchar **) files,
 								    item_queue_processed_cb,
@@ -781,6 +781,11 @@ crawler_finished_cb (TrackerCrawler *crawler,
 		path = g_file_get_path (file);
 		g_queue_push_tail (queue, path);
 		g_object_unref (file);
+
+		/* This is a tight loop, we should eleviate this */
+		while (g_main_context_pending (NULL)) {
+			g_main_context_iteration (NULL, FALSE);
+		}
 	}
 	
 	/* Proceed to next module */

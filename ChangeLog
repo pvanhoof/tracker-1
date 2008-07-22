@@ -1,5 +1,16 @@
 2008-07-22  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-processor.c: (item_queue_handlers_cb),
+	(crawler_finished_cb): Make it clear which module we are sending
+	items for and also fixed the cut and paste bug I introduced which
+	was using the _files_delete() API for new and updated files. Plus
+	now we have some main context iteration code in the tight loop
+	where we get back all files from the crawler. Being unresponsive
+	for 10 seconds while the processor adds 100k items into a queue
+	and create strings for each of them is not acceptable.
+
+2008-07-22  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-config.[ch]:
 	* src/trackerd/tracker-processor.c: (process_module): Make it
 	possible to disable modules from the user's config, not just in

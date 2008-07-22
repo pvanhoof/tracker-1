@@ -1,5 +1,12 @@
 2008-07-22  Philip Van Hoof  <pvanhoof@gnome.org>
 
+	* src/tracker-indexer/tracker-indexer.c:
+	* src/libtracker-common/tracker-ontology.c:
+
+	Fixed two major problems with r1898
+
+2008-07-22  Philip Van Hoof  <pvanhoof@gnome.org>
+
 	* data/sqlite-stored-procs.sql:
 	* data/sqlite-cache.sql:
 	* src/tracker-indexer/tracker-indexer-db.c:

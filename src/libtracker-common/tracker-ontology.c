@@ -603,7 +603,7 @@ tracker_ontology_add_field (TrackerField *field)
 	
 	g_hash_table_insert (metadata_table, 
 			     g_utf8_collate_key (tracker_field_get_name (field), -1),
-			     field);
+			     g_object_ref (field));
 }
 
 gchar *

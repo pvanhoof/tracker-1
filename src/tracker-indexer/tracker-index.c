@@ -23,6 +23,7 @@
 #include <qdbm/depot.h>
 
 #include "tracker-index.h"
+#include <libtracker-common/tracker-index-item.h>
 
 #define MAX_HIT_BUFFER 480000
 
@@ -32,58 +33,6 @@ struct TrackerIndex {
 	GHashTable *cache;
 	DEPOT *index;
 };
-
-struct TrackerIndexElement {
-	guint32 id;          /* Service ID number of the
-			      * document */
-	guint32 amalgamated; /* amalgamation of
-			      * service_type and score of
-			      * the word in the document's
-			      * metadata */
-};
-
-/* This functions will be used also in the search code! */
-static inline gint16
-index_get_score (TrackerIndexElement *element)
-{
-	unsigned char a[2];
-
-	a[0] = (element->amalgamated >> 16) & 0xFF;
-	a[1] = (element->amalgamated >> 8) & 0xFF;
-
-	return (gint16) (a[0] << 8) | (a[1]);	
-}
-
-
-static inline guint8
-index_get_service_type (TrackerIndexElement *element)
-{
-	return (element->amalgamated >> 24) & 0xFF;
-}
-
-
-static guint32
-index_calc_amalgamated (gint service,
-				gint weight)
-{
-	unsigned char a[4];
-	gint16 score16;
-	guint8 service_type;
-
-	score16 = (gint16) MIN (weight, 30000);
-	service_type = (guint8) service;
-
-	/* amalgamate and combine score and service_type
-	 * into a single 32-bit int for compact storage
-	 */
-	a[0] = service_type;
-	a[1] = (score16 >> 8 ) & 0xFF ;
-	a[2] = score16 & 0xFF ;
-	a[3] = 0;
-
-	return (a[0] << 24) | (a[1] << 16) | (a[2] << 8) | a[3];
-}
-
 
 static void
 free_cache_values (GArray *array)
@@ -136,19 +85,19 @@ tracker_index_add_word (TrackerIndex *index,
 			gint          service_type,
 			gint          weight)
 {
-	TrackerIndexElement elem;
+	TrackerIndexItem elem;
 	GArray *array;
 	guint    i, new_score;
-	TrackerIndexElement *current;
+	TrackerIndexItem *current;
 
 	elem.id = service_id;
-	elem.amalgamated = index_calc_amalgamated (service_type, weight);
+	elem.amalgamated = tracker_index_item_calc_amalgamated (service_type, weight);
 
 	array = g_hash_table_lookup (index->cache, word);
 
 	if (!array) {
 		/* create the array if it didn't exist (first time we find the word) */
-		array = g_array_new (FALSE, TRUE, sizeof (TrackerIndexElement));
+		array = g_array_new (FALSE, TRUE, sizeof (TrackerIndexItem));
 		g_hash_table_insert (index->cache, g_strdup (word), array);
 		g_array_append_val (array, elem);
 		return;
@@ -157,13 +106,13 @@ tracker_index_add_word (TrackerIndex *index,
 	/* It is not the first time we find the word */
 	for (i = 0; i < array->len; i++) {
 
-		current = &g_array_index (array, TrackerIndexElement, i);
+		current = &g_array_index (array, TrackerIndexItem, i);
 
 		if (current->id == service_id) {
 			/* The word was already found in the same service_id (file), increase score */
-			new_score = index_get_score (current) + weight;
-			current->amalgamated = index_calc_amalgamated (index_get_service_type (current), 
-								       new_score);
+			new_score = tracker_index_item_get_score (current) + weight;
+			current->amalgamated = tracker_index_item_calc_amalgamated (tracker_index_item_get_service_type (current), 
+										    new_score);
 			return;
 		}
 	}
@@ -183,7 +132,7 @@ indexer_update_word (DEPOT        *index,
 	guint j;
 	gint k;
 					
-	TrackerIndexElement *new_hit, *previous_hits;
+	TrackerIndexItem *new_hit, *previous_hits;
 	gboolean write_back = FALSE, edited = FALSE;
 	gint old_hit_count = 0;
 	GArray *pending_hits = NULL;
@@ -193,14 +142,14 @@ indexer_update_word (DEPOT        *index,
 	g_return_val_if_fail (word, FALSE);
 	g_return_val_if_fail (new_hits, FALSE);
 
-	previous_hits = (TrackerIndexElement *)dpget (index, word, -1, 0, MAX_HIT_BUFFER, &tsiz);
+	previous_hits = (TrackerIndexItem *)dpget (index, word, -1, 0, MAX_HIT_BUFFER, &tsiz);
 	
 	/* New word in the index */
 	if (previous_hits == NULL) {
 
 		result = dpput (index, 
 				word, -1, 
-				(char *) new_hits->data, (new_hits->len * sizeof (TrackerIndexElement)), 
+				(char *) new_hits->data, (new_hits->len * sizeof (TrackerIndexItem)), 
 				DP_DCAT);
 
 		if (!result) {
@@ -212,11 +161,11 @@ indexer_update_word (DEPOT        *index,
 	}
 
 	/* Word already exists */
-	old_hit_count = tsiz / sizeof (TrackerIndexElement);
+	old_hit_count = tsiz / sizeof (TrackerIndexItem);
 
 	for (j = 0; j < new_hits->len; j++) {
 
-		new_hit = &g_array_index (new_hits, TrackerIndexElement, j); 
+		new_hit = &g_array_index (new_hits, TrackerIndexItem, j); 
 
 		edited = FALSE;
 
@@ -227,9 +176,9 @@ indexer_update_word (DEPOT        *index,
 				write_back = TRUE;
 				
 				/* NB the paramter score can be negative */
-				score = index_get_score (&previous_hits[i]) + index_get_score (new_hit);
+				score = tracker_index_item_get_score (&previous_hits[i]) + tracker_index_item_get_score (new_hit);
 				/* g_print ("current score for %s is %d and new is %d and final is %d\n", 
-				   word, index_get_score (&previous_hits[i]), index_get_score (new_hit), score);  */
+				   word, tracker_index_item_get_score (&previous_hits[i]), tracker_index_item_get_score (new_hit), score);  */
 				
 				
 				/* check for deletion */		
@@ -243,7 +192,7 @@ indexer_update_word (DEPOT        *index,
 					old_hit_count--;
 					
 				} else {
-					previous_hits[i].amalgamated = index_calc_amalgamated (index_get_service_type (&previous_hits[i]), score);
+					previous_hits[i].amalgamated = tracker_index_item_calc_amalgamated (tracker_index_item_get_service_type (&previous_hits[i]), score);
 				}
 				
 				edited = TRUE;
@@ -255,7 +204,7 @@ indexer_update_word (DEPOT        *index,
 		if (!edited) {
 
 			if (!pending_hits) {
-				pending_hits = g_array_new (FALSE, TRUE, sizeof (TrackerIndexElement));
+				pending_hits = g_array_new (FALSE, TRUE, sizeof (TrackerIndexItem));
 			}
 
 			g_array_append_val (pending_hits, *new_hit);
@@ -274,7 +223,7 @@ indexer_update_word (DEPOT        *index,
 		} else {
 			dpput (index, 
 			       word, -1, 
-			       (char *) previous_hits, (old_hit_count * sizeof (TrackerIndexElement)), 
+			       (char *) previous_hits, (old_hit_count * sizeof (TrackerIndexItem)), 
 			       DP_DOVER);
 		}
 	}
@@ -283,7 +232,7 @@ indexer_update_word (DEPOT        *index,
 	if (pending_hits) {
 		dpput (index, 
 		       word, -1, 
-		       (char *) pending_hits->data, (pending_hits->len * sizeof (TrackerIndexElement)), 
+		       (char *) pending_hits->data, (pending_hits->len * sizeof (TrackerIndexItem)), 
 		       DP_DCAT);
 		g_array_free (pending_hits, TRUE);
 	}

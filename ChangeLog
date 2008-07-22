@@ -1,3 +1,8 @@
+2008-07-22  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/tracker-indexer/tracker-index.c:
+	Use the new TrackerIndexItem instead old duplicate code.
+	
 2008-07-22  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/trackerd/tracker-dbus.c:

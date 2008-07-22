@@ -24,13 +24,11 @@
 
 #include <glib.h>
 
-#include <libtracker-common/tracker-config.h>
-
-#define TRACKER_INDEXER_FILE_INDEX_DB_FILENAME         "file-index.db"
-#define TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME        "email-index.db"
-#define TRACKER_INDEXER_FILE_UPDATE_INDEX_DB_FILENAME  "file-update-index.db"
-
 G_BEGIN_DECLS
+
+#include <glib-object.h>
+#include <libtracker-common/tracker-index-item.h>
+
 
 #define TRACKER_TYPE_INDEXER         (tracker_indexer_get_type())
 #define TRACKER_INDEXER(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_INDEXER, TrackerIndexer))
@@ -51,50 +49,28 @@ struct TrackerIndexerClass {
 	GObjectClass parent_class;
 };
 
-struct TrackerIndexerWordDetails {                         
-	/* Service ID number of the document */
-	guint32 id;              
 
-	/* Amalgamation of service_type and score of the word in the
-	 * document's metadata.
-	 */
-	gint    amalgamated;     
-};
+GType                      tracker_indexer_get_type                      (void);
+TrackerIndexer *           tracker_indexer_new                           (const gchar               *name,
+									  gint                       min_bucket,
+									  gint                       max_bucket);
+void                       tracker_indexer_set_name                      (TrackerIndexer            *indexer,
+									  const gchar               *name);
+void                       tracker_indexer_set_min_bucket                (TrackerIndexer            *indexer,
+									  gint                       min_bucket);
+void                       tracker_indexer_set_max_bucket                (TrackerIndexer            *indexer,
+									  gint                       max_bucket);
+guint32                    tracker_indexer_get_size                      (TrackerIndexer            *indexer);
+char *                     tracker_indexer_get_suggestion                (TrackerIndexer            *indexer,
+									  const gchar               *term,
+									  gint                       maxdist);
+TrackerIndexItem *         tracker_indexer_get_word_hits                 (TrackerIndexer            *indexer,
+									  const gchar               *word,
+									  guint                     *count);
+gboolean                   tracker_indexer_remove_dud_hits               (TrackerIndexer            *indexer,
+									  const gchar               *word,
+									  GSList                    *dud_list);
 
-typedef enum {
-	TRACKER_INDEXER_TYPE_FILES,
-	TRACKER_INDEXER_TYPE_EMAILS,
-	TRACKER_INDEXER_TYPE_FILES_UPDATE
-} TrackerIndexerType;
-
-
-GType           tracker_indexer_get_type                      (void);
-
-TrackerIndexer *tracker_indexer_new                           (TrackerIndexerType         type,
-							       TrackerConfig             *config);
-void            tracker_indexer_set_config                    (TrackerIndexer            *object,
-							       TrackerConfig             *config);
-guint32         tracker_indexer_get_size                      (TrackerIndexer            *indexer);
-
-gboolean        tracker_indexer_are_databases_too_big         (void);
-gboolean        tracker_indexer_has_tmp_merge_files           (TrackerIndexerType         type);
-guint32         tracker_indexer_calc_amalgamated              (gint                       service,
-							       gint                       score);
-
-guint8          tracker_indexer_word_details_get_service_type (TrackerIndexerWordDetails *details);
-gint16          tracker_indexer_word_details_get_score        (TrackerIndexerWordDetails *details);
-
-char *          tracker_indexer_get_suggestion                (TrackerIndexer            *indexer,
-							       const gchar               *term,
-							       gint                       maxdist);
-TrackerIndexerWordDetails *
-                tracker_indexer_get_word_hits                 (TrackerIndexer            *indexer,
-							       const gchar               *word,
-							       guint                     *count);
-
-gboolean        tracker_indexer_remove_dud_hits               (TrackerIndexer            *indexer,
-							       const gchar               *word,
-							       GSList                    *dud_list);
 
 G_END_DECLS
 

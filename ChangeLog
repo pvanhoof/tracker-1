@@ -1,3 +1,32 @@
+2008-07-22  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/libtracker-common/Makefile.am
+	* src/libtracker-common/tracker-index-item.[ch]:
+	Common struct to write and read in the index.
+
+	* src/trackerd/tracker-query-tree.c
+	* tests/tracker-indexer/tracker-index-test.c: Updated to use the
+	new index-item struct.
+	
+	* src/libtracker-db/tracker-db-manager.[ch]:
+	(tracker_db_manager_are_db_too_big): Moved code here. It looks
+	like nobody uses this function.
+	
+	* src/trackerd/Makefile.am
+	* src/trackerd/tracker-index-manager.[ch]:
+	New module to handle indexes and their directories.
+	
+	* src/trackerd/tracker-indexer.[ch]
+	Refactored GObject representing one index.
+	
+	* src/trackerd/tracker-main.c: added _init and _shutdown to the
+	new index manager.
+
+	* tests/trackerd/Makefile.am
+	* tests/trackerd/run-tests.sh: Script to compile the test for
+	trackerd modules. Ugly but the only fast and easy solution.
+	* tests/trackerd/tracker-indexer-test.c: Test for the new object	
+	
 2008-07-22  Martyn Russell  <martyn@imendio.com>
 
 	* data/dbus/tracker-indexer.xml:

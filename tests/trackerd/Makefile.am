@@ -8,14 +8,17 @@ INCLUDES = \
 	-g \
 	-DG_LOG_DOMAIN=\"Tracker\" \
 	-I$(top_srcdir)/src \
+	-I$(top_srcdir)/src/trackerd \
+	-I$(top_srcdir)/tests/common	\
 	$(GMODULE_CFLAGS) \
 	$(GTHREAD_CFLAGS) \
 	$(GLIB2_CFLAGS) \
+	$(QDBM_CFLAGS) \
 	$(DBUS_CFLAGS)
 
 if HAVE_XESAM_GLIB
 
-TEST_PROGS += tracker-xesam
+TEST_PROGS += tracker-xesam 
 
 INCLUDES += $(XESAM_GLIB_CFLAGS)
 
@@ -38,4 +41,18 @@ tracker_xesam_LDADD = \
 	$(DBUS_LIBS)
 
 endif
+
+TEST_PROGS += tracker-indexer
+
+tracker_indexer_SOURCES = \
+	tracker-indexer-test.c \
+	tracker-indexer.c
+
+tracker_indexer_LDADD = \
+	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
+	$(GMODULE_LIBS) \
+	$(GTHREAD_LIBS) \
+	$(GLIB2_LIBS) \
+	$(DBUS_LIBS) \
+	$(QDBM_LIBS) 
 

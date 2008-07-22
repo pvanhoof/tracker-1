@@ -38,6 +38,8 @@ libtracker_common_la_SOURCES = 			\
 	tracker-field-data.h			\
 	tracker-file-utils.c			\
 	tracker-file-utils.h			\
+	tracker-index-item.c			\
+	tracker-index-item.h			\
 	tracker-language.c			\
 	tracker-language.h			\
 	tracker-log.c	 			\

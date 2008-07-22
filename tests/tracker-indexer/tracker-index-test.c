@@ -3,30 +3,10 @@
 #include <glib/gstdio.h>
 
 #include <tracker-indexer/tracker-index.h>
-
+#include <libtracker-common/tracker-index-item.h>
 #include <qdbm/depot.h>
 
 #define BUCKET_COUNT 100
-
-
-
-/* Private code from the module. Used here to check results */
-typedef struct {
-	guint32 id;
-	guint32 amalgamated; 
-} TrackerIndexElement;
-
-gint16
-helper_get_score (TrackerIndexElement *element) 
-{
-	unsigned char a[2];
-
-	a[0] = (element->amalgamated >> 16) & 0xFF;
-	a[1] = (element->amalgamated >> 8) & 0xFF;
-
-	return (gint16) (a[0] << 8) | (a[1]);	
-}
-
 
 /* Helper functions to read the index */
 gint
@@ -56,7 +36,7 @@ get_results_for_word (const gchar *index_file, const gchar *word)
 
         dpclose (index);
 
-        return result / sizeof (TrackerIndexElement);
+        return result / sizeof (TrackerIndexItem);
 }
 
 gint
@@ -64,19 +44,19 @@ get_score_for_word (const gchar *index_file, const gchar *word)
 {
         DEPOT *index;
         gint tsiz;
-        TrackerIndexElement *results;
+        TrackerIndexItem *results;
         gint score;
 
         index = dpopen (index_file, DP_OREADER, BUCKET_COUNT);
 
-        results = (TrackerIndexElement *)dpget (index, word, -1, 0, -1, &tsiz);
+        results = (TrackerIndexItem *)dpget (index, word, -1, 0, -1, &tsiz);
 
         dpclose (index);
 
-        g_return_val_if_fail ((tsiz / sizeof (TrackerIndexElement)) == 1, -1);
+        g_return_val_if_fail ((tsiz / sizeof (TrackerIndexItem)) == 1, -1);
         g_return_val_if_fail (results, -1);
 
-        score = helper_get_score (&results[0]);
+        score = tracker_index_item_get_score (&results[0]);
 
         g_free (results);
         return score;
@@ -88,7 +68,7 @@ debug_print_index (const gchar *index_file) {
         DEPOT *index;
         gint rsiz, elements, i;
         gchar *iter; 
-        TrackerIndexElement *results;
+        TrackerIndexItem *results;
 
         g_print ("Contents of %s\n", index_file);
 
@@ -98,13 +78,13 @@ debug_print_index (const gchar *index_file) {
         
         while ((iter = dpiternext (index, NULL)) != NULL) {
                 g_print ("word: %s doc_ids:", iter);
-                results = (TrackerIndexElement *)dpget (index, iter, -1, 0, -1, &rsiz);
+                results = (TrackerIndexItem *)dpget (index, iter, -1, 0, -1, &rsiz);
 
                 if (!results) {
                         g_print ("[No results]\n");
                         continue;
                 } else {
-                        elements = rsiz / sizeof (TrackerIndexElement);
+                        elements = rsiz / sizeof (TrackerIndexItem);
                         for (i = 0; i < elements; i++) {
                                 g_print ("%d ", results[i].id);
                         }

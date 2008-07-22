@@ -42,6 +42,8 @@
 
 #define ZLIBBUFSIZ                    8192
 
+#define MAX_DB_FILE_SIZE        2000000000
+
 typedef enum {
         TRACKER_DB_LOCATION_DATA_DIR,
         TRACKER_DB_LOCATION_USER_DATA_DIR,
@@ -2579,4 +2581,29 @@ tracker_db_manager_get_db_interface_by_service (const gchar *service)
 	}
 
 	return iface;
+}
+
+gboolean     
+tracker_db_manager_are_db_too_big (void)
+{
+	const gchar *filename_const;
+	gboolean     too_big;
+        filename_const = tracker_db_manager_get_file (TRACKER_DB_FILE_METADATA);
+	too_big = tracker_file_get_size (filename_const) > MAX_DB_FILE_SIZE;
+        
+        if (too_big) {
+                g_critical ("File metadata database is too big, discontinuing indexing");
+		return TRUE;	
+	}
+
+        filename_const = tracker_db_manager_get_file (TRACKER_DB_EMAIL_METADATA);
+	too_big = tracker_file_get_size (filename_const) > MAX_DB_FILE_SIZE;
+        
+        if (too_big) {
+		g_critical ("Email metadata database is too big, discontinuing indexing");
+		return TRUE;	
+	}
+
+	return FALSE;
+
 }

@@ -35,6 +35,7 @@
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-parser.h>
 #include <libtracker-common/tracker-ontology.h>
+#include <libtracker-common/tracker-index-item.h>
 
 #include "tracker-query-tree.h"
 #include "tracker-utils.h"
@@ -651,13 +652,13 @@ tracker_query_tree_get_words (TrackerQueryTree *tree)
 }
 
 static gint
-get_idf_score (TrackerIndexerWordDetails *details, 
+get_idf_score (TrackerIndexItem *details, 
                gfloat                     idf)
 {
 	guint32 score;
 	gfloat  f;
 
-        score = tracker_indexer_word_details_get_score (details);
+        score = tracker_index_item_get_score (details);
         f = idf * score * SCORE_MULTIPLIER;
 
         return (f > 1.0) ? lrintf (f) : 1;
@@ -690,7 +691,7 @@ get_search_term_hits (TrackerQueryTree *tree,
 		      const gchar      *term)
 {
 	TrackerQueryTreePrivate *priv;
-	TrackerIndexerWordDetails *details;
+	TrackerIndexItem *details;
 	GHashTable *result;
 	guint count, i;
 
@@ -707,7 +708,7 @@ get_search_term_hits (TrackerQueryTree *tree,
 		SearchHitData *data;
 		gint service;
 
-		service = tracker_indexer_word_details_get_service_type (&details[i]);
+		service = tracker_index_item_get_service_type (&details[i]);
 
 		if (in_array (priv->services, service)) {
 			data = g_slice_new (SearchHitData);

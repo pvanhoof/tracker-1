@@ -53,6 +53,7 @@
 #include "tracker-dbus.h"
 #include "tracker-indexer.h"
 #include "tracker-indexer-client.h"
+#include "tracker-index-manager.h"
 #include "tracker-main.h"
 #include "tracker-monitor.h"
 #include "tracker-processor.h"
@@ -471,54 +472,6 @@ initialize_databases (void)
 	return TRUE;
 }
 
-static gboolean
-initialize_indexers (TrackerConfig *config)
-{
-	gchar *final_index_name;
-
-	/* Create index files */
-	final_index_name = g_build_filename (data_dir, "file-index-final", NULL);
-	
-	if (g_file_test (final_index_name, G_FILE_TEST_EXISTS) && 
-	    !tracker_indexer_has_tmp_merge_files (TRACKER_INDEXER_TYPE_FILES)) {
-		gchar *file_index_name;
-
-		file_index_name = g_build_filename (data_dir, 
-						    TRACKER_INDEXER_FILE_INDEX_DB_FILENAME, 
-						    NULL);
-	
-		g_message ("Overwriting '%s' with '%s'", 
-			   file_index_name, 
-			   final_index_name);	
-		rename (final_index_name, file_index_name);
-		g_free (file_index_name);
-	}
-	
-	g_free (final_index_name);
-	
-	final_index_name = g_build_filename (data_dir, 
-					     "email-index-final", 
-					     NULL);
-	
-	if (g_file_test (final_index_name, G_FILE_TEST_EXISTS) && 
-	    !tracker_indexer_has_tmp_merge_files (TRACKER_INDEXER_TYPE_EMAILS)) {
-		gchar *file_index_name;
-
-		file_index_name = g_build_filename (data_dir, 
-						    TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME, 
-						    NULL);
-	
-		g_message ("Overwriting '%s' with '%s'", 
-			   file_index_name, 
-			   final_index_name);	
-		rename (final_index_name, file_index_name);
-		g_free (file_index_name);
-	}
-	
-	g_free (final_index_name);
-
-	return TRUE;
-}
 
 static void
 shutdown_indexer (void)
@@ -713,6 +666,11 @@ main (gint argc, gchar *argv[])
 	}
 
 	tracker_db_manager_init (flags, &is_first_time_index);
+	if (!tracker_index_manager_init (tracker_get_data_dir (), 
+					 tracker_config_get_min_bucket_count (config),
+					 tracker_config_get_max_bucket_count (config))) {
+		return EXIT_FAILURE;
+	}
 
 	/*
 	 * Check instances running
@@ -736,13 +694,9 @@ main (gint argc, gchar *argv[])
 		return EXIT_FAILURE;
 	}
 
-	if (!initialize_indexers (config)) {
-		return EXIT_FAILURE;
-	}
-
-	file_index = tracker_indexer_new (TRACKER_INDEXER_TYPE_FILES, config);
-	file_update_index = tracker_indexer_new (TRACKER_INDEXER_TYPE_FILES_UPDATE, config);
-	email_index = tracker_indexer_new (TRACKER_INDEXER_TYPE_EMAILS, config);
+	file_index = tracker_index_manager_get_index (TRACKER_INDEXER_TYPE_FILES);
+	file_update_index = tracker_index_manager_get_index (TRACKER_INDEXER_TYPE_FILES_UPDATE);
+	email_index = tracker_index_manager_get_index (TRACKER_INDEXER_TYPE_EMAILS);
 
 	if (!TRACKER_IS_INDEXER (file_index) || 
 	    !TRACKER_IS_INDEXER (file_update_index) ||
@@ -815,6 +769,7 @@ main (gint argc, gchar *argv[])
 	tracker_xesam_manager_shutdown ();
 	tracker_dbus_shutdown ();
 	tracker_db_manager_shutdown ();
+	tracker_index_manager_shutdown ();
 	tracker_db_shutdown ();
         tracker_module_config_shutdown ();
 	tracker_nfs_lock_shutdown ();

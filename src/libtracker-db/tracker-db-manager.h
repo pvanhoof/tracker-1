@@ -65,6 +65,7 @@ TrackerDBInterface *
              tracker_db_manager_get_db_interfaces           (gint num, ...);
 TrackerDBInterface *
              tracker_db_manager_get_db_interface_by_service (const gchar           *service);
+gboolean     tracker_db_manager_are_db_too_big              (void);
 
 G_END_DECLS
 

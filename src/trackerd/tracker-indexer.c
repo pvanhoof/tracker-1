@@ -21,47 +21,25 @@
 
 #include "config.h"
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
 #include <string.h>
-
-/* Needed before including math.h for lrintf() */
-#define _ISOC9X_SOURCE   1
-#define _ISOC99_SOURCE   1
-
-#define __USE_ISOC9X     1
-#define __USE_ISOC99     1
-
-#include <math.h>
 
 #include <depot.h>
 
 #include <glib.h>
 #include <glib/gstdio.h>
-#include <gio/gio.h>
 
 #include <libtracker-common/tracker-log.h>
-#include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-file-utils.h>
-#include <libtracker-common/tracker-hal.h>
-#include <libtracker-common/tracker-ontology.h>
+#include <libtracker-common/tracker-index-item.h>
 
 #include <libtracker-db/tracker-db-manager.h>
 
-#include "tracker-query-tree.h"
 #include "tracker-indexer.h"
-#include "tracker-dbus.h"
-#include "tracker-daemon.h"
 #include "tracker-query-tree.h"
-#include "tracker-main.h"
-#include "tracker-status.h"
 
 /* Size of free block pool of inverted index */
 #define MAX_HIT_BUFFER      480000
-#define MAX_INDEX_FILE_SIZE 2000000000
+
 
 #define TRACKER_INDEXER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_INDEXER, TrackerIndexerPrivate))
 
@@ -71,12 +49,12 @@ struct TrackerIndexerPrivate {
         /* File hashtable handle for the word -> {serviceID,
          * ServiceTypeID, Score}.
          */
-        TrackerConfig *config;
-
 	DEPOT         *word_index;	
 	GMutex        *word_mutex;
 
 	gchar         *name;
+	guint          min_bucket;
+        guint          max_bucket;
 };
 
 static void tracker_indexer_class_init   (TrackerIndexerClass *class);
@@ -94,7 +72,8 @@ static void tracker_indexer_get_property (GObject             *object,
 enum {
 	PROP_0,
 	PROP_NAME,
-        PROP_CONFIG
+        PROP_MIN_BUCKET,
+	PROP_MAX_BUCKET
 };
 
 G_DEFINE_TYPE (TrackerIndexer, tracker_indexer, G_TYPE_OBJECT)
@@ -114,15 +93,26 @@ tracker_indexer_class_init (TrackerIndexerClass *klass)
 							      "Name",
 							      "Name",
 							      NULL,
-							      G_PARAM_READABLE));
+							      G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
 	g_object_class_install_property (object_class,
-					 PROP_CONFIG,
-					 g_param_spec_object ("config",
-							      "Config",
-							      "Config",
-							      tracker_config_get_type (),
-							      G_PARAM_READWRITE));
+					 PROP_MIN_BUCKET,
+					 g_param_spec_int ("min-bucket",
+							   "Minimum bucket",
+							   "Minimum bucket",
+							   0,
+							   1000000, /* FIXME MAX_GUINT ?? */
+							   0,
+							   G_PARAM_READWRITE));
 
+	g_object_class_install_property (object_class,
+					 PROP_MAX_BUCKET,
+					 g_param_spec_int ("max-bucket",
+							   "Maximum bucket",
+							   "Maximum bucket",
+							   0,
+							   1000000, /* FIXME MAX_GUINT ?? */
+							   0,
+							   G_PARAM_READWRITE));
 	g_type_class_add_private (object_class, sizeof (TrackerIndexerPrivate));
 }
 
@@ -143,7 +133,9 @@ tracker_indexer_finalize (GObject *object)
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (object);
 
-        g_free (priv->name);
+	if (priv->name) {
+		g_free (priv->name);
+	}
 
         g_mutex_lock (priv->word_mutex);
 
@@ -155,10 +147,6 @@ tracker_indexer_finalize (GObject *object)
 
 	g_mutex_free (priv->word_mutex);
 
-        if (priv->config) {
-                g_object_unref (priv->config);
-        }
-
 	G_OBJECT_CLASS (tracker_indexer_parent_class)->finalize (object);
 }
 
@@ -169,9 +157,17 @@ tracker_indexer_set_property (GObject      *object,
                               GParamSpec   *pspec)
 {
 	switch (prop_id) {
-	case PROP_CONFIG:
-		tracker_indexer_set_config (TRACKER_INDEXER (object),
-                                            g_value_get_object (value));
+	case PROP_NAME:
+		tracker_indexer_set_name (TRACKER_INDEXER (object),
+					  g_value_get_string (value));
+	break;
+	case PROP_MIN_BUCKET:
+		tracker_indexer_set_min_bucket (TRACKER_INDEXER (object),
+						g_value_get_int (value));
+		break;
+	case PROP_MAX_BUCKET:
+		tracker_indexer_set_max_bucket (TRACKER_INDEXER (object),
+						g_value_get_int (value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -192,79 +188,95 @@ tracker_indexer_get_property (GObject      *object,
 	case PROP_NAME:
 		g_value_set_string (value, priv->name);
 		break;
-	case PROP_CONFIG:
-		g_value_set_object (value, priv->config);
+	case PROP_MIN_BUCKET:
+		g_value_set_int (value, priv->min_bucket);
+		break;
+	case PROP_MAX_BUCKET:
+		g_value_set_int (value, priv->max_bucket);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 	}
 }
 
-static inline gint16
-get_score (TrackerIndexerWordDetails *details)
-{
-	unsigned char a[2];
+void 
+tracker_indexer_set_name (TrackerIndexer *indexer,
+			  const gchar *name) {
 
-	a[0] = (details->amalgamated >> 16) & 0xFF;
-	a[1] = (details->amalgamated >> 8) & 0xFF;
+	TrackerIndexerPrivate *priv;
 
-	return (gint16) (a[0] << 8) | (a[1]);	
+	g_return_if_fail (TRACKER_IS_INDEXER (indexer));
+
+	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
+
+	if (priv->name) {
+		g_free (priv->name);
+	}
+	priv->name = g_strdup (name);
 }
 
-static inline guint8
-get_service_type (TrackerIndexerWordDetails *details)
+void
+tracker_indexer_set_min_bucket (TrackerIndexer *indexer,
+				gint min_bucket)
 {
-	return (details->amalgamated >> 24) & 0xFF;
+	TrackerIndexerPrivate *priv;
+
+	g_return_if_fail (TRACKER_IS_INDEXER (indexer));
+
+	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
+
+	priv->min_bucket = min_bucket;
+
 }
+
+void
+tracker_indexer_set_max_bucket (TrackerIndexer *indexer,
+				gint max_bucket)
+{
+	TrackerIndexerPrivate *priv;
+
+	g_return_if_fail (TRACKER_IS_INDEXER (indexer));
+
+	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
+
+	priv->max_bucket = max_bucket;
+}
+
 
 static inline DEPOT *
-open_index (const gchar *name,
+open_index (const gchar *filename,
             gint         min_bucket_count,
             gint         max_bucket_count)
 {
 	DEPOT *word_index = NULL;
 
-        if (!name) {
-                return NULL;
-        }
+	g_return_val_if_fail (filename, NULL);
 
-	g_message ("Opening index:'%s'", name);
+	g_message ("Opening index:'%s'", filename);
 
-	if (strstr (name, "tmp")) {
-		word_index = dpopen (name, 
-                                     DP_OWRITER | DP_OCREAT | DP_ONOLCK, 
-                                     min_bucket_count);
-	} else {
-		word_index = dpopen (name, 
-                                     DP_OWRITER | DP_OCREAT | DP_ONOLCK, 
-                                     max_bucket_count);
-	}
+	word_index = dpopen (filename, 
+			     DP_OWRITER | DP_OCREAT | DP_ONOLCK, /* Should be DP_OREADER!!!! */
+			     max_bucket_count);
 
 	if (!word_index) {
 		g_critical ("Index was not closed properly, index:'%s', %s", 
-                            name, 
+                            filename, 
                             dperrmsg (dpecode));
 		g_message ("Attempting to repair...");
 
-		if (dprepair (name)) {
-			word_index = dpopen (name, 
-                                             DP_OWRITER | DP_OCREAT | DP_ONOLCK, 
-                                             min_bucket_count);
+		if (dprepair (filename)) {
+			word_index = dpopen (filename, 
+                                             DP_OWRITER | DP_OCREAT | DP_ONOLCK, /* Should be DP_OREADER!!!! */
+                                             max_bucket_count);
 		} else {
 			g_critical ("Index file is dead, it is suggested you remove "
                                     "the indexe file:'%s' and restart trackerd",
-                                    name);
+                                    filename);
                         return NULL;
 		}
 	}
 
 	return word_index;
-}
-
-static inline gchar *
-get_index_file (const gchar *name)
-{
-	return g_build_filename (tracker_get_data_dir (), name, NULL);
 }
 
 static inline gboolean 
@@ -402,54 +414,36 @@ count_hits_for_word (TrackerIndexer *indexer,
         tsiz = count_hit_size_for_word (indexer, str);
 
         if (tsiz == -1 || 
-            tsiz % sizeof (TrackerIndexerWordDetails) != 0) {
+            tsiz % sizeof (TrackerIndexItem) != 0) {
                 return -1;
         }
 
-        hits = tsiz / sizeof (TrackerIndexerWordDetails);
+        hits = tsiz / sizeof (TrackerIndexItem);
 
         return hits;
 }
 
 TrackerIndexer *
-tracker_indexer_new (TrackerIndexerType  type,
-                     TrackerConfig      *config)
+tracker_indexer_new (const gchar *filename,
+		     gint min_bucket,
+		     gint max_bucket)
 {
         TrackerIndexer        *indexer;
         TrackerIndexerPrivate *priv;
-        const gchar           *name;
-        gchar                 *directory;
 	gint                   bucket_count;
         gint                   rec_count;
 
-	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
-
 	indexer = g_object_new (TRACKER_TYPE_INDEXER,
-                                "config", config,
+				"name", filename,
+                                "min-bucket", min_bucket,
+				"max-bucket", max_bucket,
                                 NULL);
-
-        switch (type) {
-        case TRACKER_INDEXER_TYPE_FILES:
-                name = TRACKER_INDEXER_FILE_INDEX_DB_FILENAME;
-                break;
-        case TRACKER_INDEXER_TYPE_EMAILS:
-                name = TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME;
-                break;
-        case TRACKER_INDEXER_TYPE_FILES_UPDATE:
-                name = TRACKER_INDEXER_FILE_UPDATE_INDEX_DB_FILENAME;
-                break;
-        }
 
         priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
-	priv->name = g_strdup (name);
-
-	directory = get_index_file (name);
-	priv->word_index = open_index (directory,
-                                       tracker_config_get_min_bucket_count (priv->config),
-                                       tracker_config_get_max_bucket_count (priv->config));
-        g_free (directory);
-
+	priv->word_index = open_index (filename,
+                                       min_bucket,
+                                       max_bucket);
 	dpsetalign (priv->word_index, 8);
 
 	/* Re optimize database if bucket count < rec count */
@@ -457,35 +451,11 @@ tracker_indexer_new (TrackerIndexerType  type,
 	rec_count = dprnum (priv->word_index);
 
 	g_message ("Bucket count (max is %d) is %d and record count is %d", 
-                   tracker_config_get_max_bucket_count (priv->config),
+                   max_bucket,
                    bucket_count, 
                    rec_count);
        
         return indexer;
-}
-
-void
-tracker_indexer_set_config (TrackerIndexer *object,
-			    TrackerConfig  *config)
-{
-	TrackerIndexerPrivate *priv;
-
-	g_return_if_fail (TRACKER_IS_INDEXER (object));
-	g_return_if_fail (TRACKER_IS_CONFIG (config));
-
-	priv = TRACKER_INDEXER_GET_PRIVATE (object);
-
-	if (config) {
-		g_object_ref (config);
-	}
-
-	if (priv->config) {
-		g_object_unref (priv->config);
-	}
-
-	priv->config = config;
-
-	g_object_notify (G_OBJECT (object), "config");
 }
 
 guint32
@@ -503,166 +473,6 @@ tracker_indexer_get_size (TrackerIndexer *indexer)
         g_mutex_unlock (priv->word_mutex);
 
 	return size;
-}
-
-gboolean
-tracker_indexer_are_databases_too_big (void)
-{
-	gchar       *filename;
-        const gchar *filename_const;
-        const gchar *data_dir;
-        gboolean     too_big;
-
-        data_dir = tracker_get_data_dir ();
-
-	filename = g_build_filename (data_dir, TRACKER_INDEXER_FILE_INDEX_DB_FILENAME, NULL);
-	too_big = tracker_file_get_size (filename) > MAX_INDEX_FILE_SIZE;
-        g_free (filename);
-        
-        if (too_big) {
-		g_critical ("File index database is too big, discontinuing indexing");
-		return TRUE;	
-	}
-
-	filename = g_build_filename (data_dir, TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME, NULL);
-	too_big = tracker_file_get_size (filename) > MAX_INDEX_FILE_SIZE;
-	g_free (filename);
-        
-        if (too_big) {
-		g_critical ("Email index database is too big, discontinuing indexing");
-		return TRUE;	
-	}
-
-        filename_const = tracker_db_manager_get_file (TRACKER_DB_FILE_METADATA);
-	too_big = tracker_file_get_size (filename_const) > MAX_INDEX_FILE_SIZE;
-        
-        if (too_big) {
-                g_critical ("File metadata database is too big, discontinuing indexing");
-		return TRUE;	
-	}
-
-        filename_const = tracker_db_manager_get_file (TRACKER_DB_EMAIL_METADATA);
-	too_big = tracker_file_get_size (filename_const) > MAX_INDEX_FILE_SIZE;
-        
-        if (too_big) {
-		g_critical ("Email metadata database is too big, discontinuing indexing");
-		return TRUE;	
-	}
-
-	return FALSE;
-}
-
-guint32
-tracker_indexer_calc_amalgamated (gint service, 
-                                  gint score)
-{
-	unsigned char a[4];
-	gint16        score16;
-	guint8        service_type;
-
-	if (score > 30000) {
-		score16 = 30000;
-	} else {
-		score16 = (gint16) score;
-	}
-
-	service_type = (guint8) service;
-
-	/* Amalgamate and combine score and service_type into a single
-         * 32-bit int for compact storage.
-         */
-	a[0] = service_type;
-	a[1] = (score16 >> 8) & 0xFF;
-	a[2] = score16 & 0xFF;
-	a[3] = 0;
-
-	return (a[0] << 24) | (a[1] << 16) | (a[2] << 8) | a[3];
-}
-
-gboolean
-tracker_indexer_has_tmp_merge_files (TrackerIndexerType type)
-{
-	GFile           *file;
-	GFileEnumerator *enumerator;
-	GFileInfo       *info;
-	GError          *error = NULL;
-	const gchar     *prefix;
-	const gchar     *data_dir;
-	gboolean         found;
-
-	data_dir = tracker_get_data_dir ();
-	file = g_file_new_for_path (data_dir);
-
-	enumerator = g_file_enumerate_children (file,
-						G_FILE_ATTRIBUTE_STANDARD_NAME ","
-						G_FILE_ATTRIBUTE_STANDARD_TYPE,
-						G_PRIORITY_DEFAULT,
-						NULL, 
-						&error);
-
-	if (error) {
-		g_warning ("Could not check for temporary indexer files in "
-			   "directory:'%s', %s",
-			   data_dir,
-			   error->message);
-		g_error_free (error);
-		g_object_unref (file);
-		return FALSE;
-	}
-
-	
-	if (type == TRACKER_INDEXER_TYPE_FILES) {
-		prefix = "file-index.tmp.";
-	} else {
-		prefix = "email-index.tmp.";
-	}
-
-	found = FALSE;
-
-	for (info = g_file_enumerator_next_file (enumerator, NULL, &error);
-	     info && !error && !found;
-	     info = g_file_enumerator_next_file (enumerator, NULL, &error)) {
-		/* Check each file has or hasn't got the prefix */
-		if (g_str_has_prefix (g_file_info_get_name (info), prefix)) {
-			found = TRUE;
-		}
-
-		g_object_unref (info);
-	}
-
-	if (error) {
-		g_warning ("Could not get file information for temporary "
-			   "indexer files in directory:'%s', %s",
-			   data_dir,
-			   error->message);
-		g_error_free (error);
-	}
-		
-	g_object_unref (enumerator);
-	g_object_unref (file);
-
-	return found;
-}
-
-guint8
-tracker_indexer_word_details_get_service_type (TrackerIndexerWordDetails *details)
-{
-        g_return_val_if_fail (details != NULL, 0);
-
-	return (details->amalgamated >> 24) & 0xFF;
-}
-
-gint16
-tracker_indexer_word_details_get_score (TrackerIndexerWordDetails *details)
-{
-	unsigned char a[2];
-
-        g_return_val_if_fail (details != NULL, 0);
-
-	a[0] = (details->amalgamated >> 16) & 0xFF;
-	a[1] = (details->amalgamated >> 8) & 0xFF;
-
-	return (gint16) (a[0] << 8) | (a[1]);	
 }
 
 char *
@@ -733,15 +543,15 @@ tracker_indexer_get_suggestion (TrackerIndexer *indexer,
         return winner_str;
 }
 
-TrackerIndexerWordDetails *
+TrackerIndexItem *
 tracker_indexer_get_word_hits (TrackerIndexer *indexer,
 			       const gchar    *word,
 			       guint          *count)
 {
-        TrackerIndexerPrivate     *priv;
-	TrackerIndexerWordDetails *details;
-	gint                       tsiz;
-	gchar                     *tmp;
+        TrackerIndexerPrivate *priv;
+	TrackerIndexItem      *details;
+	gint                   tsiz;
+	gchar                 *tmp;
 
         g_return_val_if_fail (TRACKER_IS_INDEXER (indexer), NULL);
         g_return_val_if_fail (word != NULL, NULL);
@@ -757,11 +567,11 @@ tracker_indexer_get_word_hits (TrackerIndexer *indexer,
         }
 
 	if ((tmp = dpget (priv->word_index, word, -1, 0, MAX_HIT_BUFFER, &tsiz)) != NULL) {
-		if (tsiz >= (gint) sizeof (TrackerIndexerWordDetails)) {
-			details = (TrackerIndexerWordDetails *) tmp;
+		if (tsiz >= (gint) sizeof (TrackerIndexItem)) {
+			details = (TrackerIndexItem *) tmp;
 
                         if (count) {
-                                *count = tsiz / sizeof (TrackerIndexerWordDetails);
+                                *count = tsiz / sizeof (TrackerIndexItem);
                         }
 		}
 	}
@@ -804,12 +614,12 @@ tracker_indexer_remove_dud_hits (TrackerIndexer *indexer,
                 return FALSE;
         }
 
-        if (tsiz >= (int) sizeof (TrackerIndexerWordDetails)) {
-                TrackerIndexerWordDetails *details;
-                gint                       wi, i, pnum;
+        if (tsiz >= (int) sizeof (TrackerIndexItem)) {
+                TrackerIndexItem *details;
+                gint              wi, i, pnum;
                 
-                details = (TrackerIndexerWordDetails *) tmp;
-                pnum = tsiz / sizeof (TrackerIndexerWordDetails);
+                details = (TrackerIndexItem *) tmp;
+                pnum = tsiz / sizeof (TrackerIndexItem);
                 wi = 0;	
                 
                 for (i = 0; i < pnum; i++) {
@@ -828,7 +638,7 @@ tracker_indexer_remove_dud_hits (TrackerIndexer *indexer,
                                                 }
                                                 
                                                 /* Make size of array one size smaller */
-                                                tsiz -= sizeof (TrackerIndexerWordDetails); 
+                                                tsiz -= sizeof (TrackerIndexItem); 
                                                 pnum--;
                                                 
                                                 break;

@@ -1,3 +1,11 @@
+2008-06-22  Ivan Frade  <ivan.frade@nokia.com>
+
+	* tests/trackerd/example.index: Small QDBM index to use in tests.
+	
+	* tests/trackerd/run-tests.sh (removed)
+	* configure.ac: Create symbolic links in autoconf instead a bash
+	script.
+	
 2008-07-22  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/tracker-indexer/tracker-indexer.c:

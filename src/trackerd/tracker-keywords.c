@@ -32,6 +32,7 @@
 #include "tracker-keywords.h"
 #include "tracker-db.h"
 #include "tracker-marshal.h"
+#include "tracker-indexer.h"
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_KEYWORDS, TrackerKeywordsPriv))
 
@@ -132,7 +133,6 @@ tracker_keywords_get_list (TrackerKeywords  *object,
 				  service_type);
 
 	if (!tracker_ontology_is_valid_service_type (service_type)) {
-
 		tracker_dbus_request_failed (request_id,
 					     &actual_error, 
                                              "Service type '%s' is invalid or has not been implemented yet", 
@@ -141,6 +141,8 @@ tracker_keywords_get_list (TrackerKeywords  *object,
 		g_error_free (actual_error);
 		return;
 	}
+
+	tracker_indexer_pause ();
 
 	iface = tracker_db_manager_get_db_interface_by_service (service_type);
 	result_set = tracker_db_keywords_get_list (iface, service_type);
@@ -153,6 +155,7 @@ tracker_keywords_get_list (TrackerKeywords  *object,
 	dbus_g_method_return (context, values);
 	tracker_dbus_results_ptr_array_free (&values);
 
+	tracker_indexer_continue ();
 	tracker_dbus_request_success (request_id);
 }
 
@@ -200,10 +203,12 @@ tracker_keywords_get (TrackerKeywords        *object,
 		return;
 	}
 
-	
+	tracker_indexer_pause ();
+
 	iface = tracker_db_manager_get_db_interface_by_service (service_type);
 	id = tracker_db_file_get_id_as_string (iface, service_type, uri);
 	if (!id) {
+		tracker_indexer_continue ();
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
 					     "Entity '%s' was not found", 
@@ -230,6 +235,7 @@ tracker_keywords_get (TrackerKeywords        *object,
 		g_strfreev (values);
 	}
 
+	tracker_indexer_continue ();
 	tracker_dbus_request_success (request_id);
 }
 
@@ -278,9 +284,12 @@ tracker_keywords_add (TrackerKeywords        *object,
 		return;
         }
 
+	tracker_indexer_pause ();
+
 	iface = tracker_db_manager_get_db_interface_by_service (service_type);
 	id = tracker_db_file_get_id_as_string (iface, service_type, uri);
 	if (!id) {
+		tracker_indexer_continue ();
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
 					     "Entity '%s' was not found", 
@@ -305,6 +314,7 @@ tracker_keywords_add (TrackerKeywords        *object,
 
 	dbus_g_method_return (context);
 
+	tracker_indexer_continue ();
 	tracker_dbus_request_success (request_id);
 }
 
@@ -353,9 +363,12 @@ tracker_keywords_remove (TrackerKeywords        *object,
 		return;
         }
 
+	tracker_indexer_pause ();
+
 	iface = tracker_db_manager_get_db_interface_by_service (service_type);
 	id = tracker_db_file_get_id_as_string (iface, service_type, uri);
 	if (!id) {
+		tracker_indexer_continue ();
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
 					     "Entity '%s' was not found", 
@@ -376,6 +389,7 @@ tracker_keywords_remove (TrackerKeywords        *object,
 
 	dbus_g_method_return (context);
 
+	tracker_indexer_continue ();
 	tracker_dbus_request_success (request_id);
 }
 
@@ -421,9 +435,12 @@ tracker_keywords_remove_all (TrackerKeywords        *object,
 		return;
         }
 
+	tracker_indexer_pause ();
+
 	iface = tracker_db_manager_get_db_interface_by_service (service_type);
 	id = tracker_db_file_get_id_as_string (iface, service_type, uri);
 	if (!id) {
+		tracker_indexer_continue ();
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
 					     "Entity '%s' was not found", 
@@ -442,6 +459,7 @@ tracker_keywords_remove_all (TrackerKeywords        *object,
 
 	dbus_g_method_return (context);
 
+	tracker_indexer_continue ();
 	tracker_dbus_request_success (request_id);
 }
 
@@ -491,6 +509,8 @@ tracker_keywords_search (TrackerKeywords        *object,
 		g_error_free (actual_error);
 		return;
 	}
+
+	tracker_indexer_pause ();
 
 	iface = tracker_db_manager_get_db_interface_by_service (service_type);
 
@@ -561,5 +581,6 @@ tracker_keywords_search (TrackerKeywords        *object,
 		g_strfreev (values);
 	}
 
+	tracker_indexer_continue ();
 	tracker_dbus_request_success (request_id);
 }

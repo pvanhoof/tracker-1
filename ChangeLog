@@ -1,3 +1,15 @@
+2008-07-22  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/tracker-indexer/tracker-indexer.c:
+	* src/trackerd/tracker-search.c:
+	* src/trackerd/tracker-keywords.c:
+	* src/trackerd/tracker-metadata.c:
+	* src/trackerd/tracker-daemon.c:
+	* src/trackerd/tracker-utils.c:
+
+	Wrapped all database access in the DBus implementations with two 
+	convenient functions. 
+
 2008-07-22  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/libtracker-common/Makefile.am

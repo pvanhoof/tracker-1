@@ -39,6 +39,7 @@
 #include "tracker-main.h"
 #include "tracker-status.h"
 #include "tracker-marshal.h"
+#include "tracker-indexer.h"
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DAEMON, TrackerDaemonPriv))
 
@@ -295,6 +296,8 @@ tracker_daemon_get_services (TrackerDaemon          *object,
 
 	/* iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_COMMON); */
 
+	tracker_indexer_pause ();
+
 	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	result_set = tracker_db_exec_proc (iface, "GetServices", 0);
@@ -308,6 +311,7 @@ tracker_daemon_get_services (TrackerDaemon          *object,
 
 	g_hash_table_destroy (values);
 
+	tracker_indexer_continue ();
 	tracker_dbus_request_success (request_id);
 }
 
@@ -334,6 +338,8 @@ tracker_daemon_get_stats (TrackerDaemon          *object,
 
 	/* iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_COMMON); */
 
+	tracker_indexer_pause ();
+
 	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	result_set = tracker_db_exec_proc (iface, "GetStats", 0);
@@ -348,6 +354,7 @@ tracker_daemon_get_stats (TrackerDaemon          *object,
 	g_ptr_array_foreach (values, (GFunc) g_strfreev, NULL);
 	g_ptr_array_free (values, TRUE);
 
+	tracker_indexer_continue ();
 	tracker_dbus_request_success (request_id);
 }
 

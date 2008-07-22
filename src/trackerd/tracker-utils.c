@@ -56,3 +56,4 @@ tracker_add_metadata_to_table (GHashTable  *meta_table,
 	g_hash_table_steal (meta_table, key);
 	g_hash_table_insert (meta_table, (gchar*) key, list);
 }
+

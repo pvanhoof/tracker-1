@@ -1,5 +1,10 @@
 2008-07-23  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-main.c: (main): Call nice() to try and
+	limit how much attention the daemon gets from the CPU.
+
+2008-07-23  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-main.c: (main), (tracker_shutdown): Make
 	sure we signal when we shutdown and also if we are started in
 	readonly mode make sure we set our status to IDLE.

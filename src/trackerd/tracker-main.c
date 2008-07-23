@@ -588,6 +588,19 @@ main (gint argc, gchar *argv[])
 
 	initialize_signal_handler ();
 
+        /* nice() uses attribute "warn_unused_result" and so complains
+	 * if we do not check its returned value. But it seems that
+	 * since glibc 2.2.4, nice() can return -1 on a successful
+	 * call so we have to check value of errno too. Stupid... 
+	 */
+        if (nice (19) == -1 && errno) {
+                const gchar *str;
+
+                str = g_strerror (errno);
+                g_message ("Couldn't set nice value to 19, %s", 
+                           str ? str : "no error given");
+        }
+
 	/* This makes sure we have all the locations like the data
 	 * dir, user data dir, etc all configured.
 	 * 

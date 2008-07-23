@@ -1,5 +1,16 @@
 2008-07-23  Carlos Garnacho  <carlos@imendio.com>
 
+	Check that a service exists before inserting it again in the database.
+
+	* src/tracker-indexer/tracker-indexer-db.[ch]
+	(get_dirname_and_basename): New helper function.
+	(tracker_db_check_service): New function, returns the ID for the
+	service (if any).
+	* src/tracker-indexer/tracker-indexer.c (process_file): Check that the
+	service doesn't exist before trying to index it.
+
+2008-07-23  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/modules/applications.c:
 	* src/tracker-indexer/modules/evolution.c:
 	* src/tracker-indexer/modules/files.c:

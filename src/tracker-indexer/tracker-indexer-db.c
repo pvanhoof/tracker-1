@@ -37,7 +37,7 @@ tracker_db_get_new_service_id (TrackerDBInterface *iface)
 	TrackerDBInterface *temp_iface;
 	static guint32      max = 0;
 
-	if (max != 0) {
+	if (G_LIKELY (max != 0)) {
 		return ++max;
 	}
 
@@ -92,7 +92,7 @@ tracker_db_increment_stats (TrackerDBInterface *iface,
 	}
 }
 
-gboolean
+void
 tracker_db_create_event (TrackerDBInterface *iface,
 			   guint32 service_id, 
 			   const gchar *type)
@@ -107,8 +107,56 @@ tracker_db_create_event (TrackerDBInterface *iface,
 						NULL);
 
 	g_free (service_id_str);
+}
 
-	return TRUE;
+static void
+get_dirname_and_basename (const gchar  *path,
+			  GHashTable   *metadata,
+			  gchar       **out_dirname,
+			  gchar       **out_basename)
+{
+	const gchar *dirname, *basename;
+
+	dirname = g_hash_table_lookup (metadata, "File:Path");
+	basename = g_hash_table_lookup (metadata, "File:Name");
+
+	if (dirname && basename) {
+		*out_dirname = g_strdup (dirname);
+		*out_basename = g_strdup (basename);
+	} else {
+		*out_dirname = g_path_get_dirname (path);
+		*out_basename = g_path_get_basename (path);
+	}
+}
+
+guint
+tracker_db_check_service (TrackerDBInterface *iface,
+			  const gchar        *path,
+			  GHashTable         *metadata)
+{
+	TrackerDBResultSet *result_set;
+	gchar *dirname, *basename;
+	guint id;
+
+	get_dirname_and_basename (path, metadata, &dirname, &basename);
+
+	result_set = tracker_db_interface_execute_procedure (iface, NULL,
+							     "GetServiceID",
+							     dirname,
+							     basename,
+							     NULL);
+
+	g_free (dirname);
+	g_free (basename);
+
+	if (!result_set) {
+		return 0;
+	}
+
+	tracker_db_result_set_get (result_set, 0, &id, -1);
+	g_object_unref (result_set);
+
+	return id;
 }
 
 gboolean
@@ -126,20 +174,10 @@ tracker_db_create_service (TrackerDBInterface *iface,
 		return FALSE;
 	}
 
+	get_dirname_and_basename (path, metadata, &dirname, &basename);
+
 	id_str = tracker_guint32_to_string (id);
 	service_type_id_str = tracker_int_to_string (tracker_service_get_id (service));
-
-	dirname = g_hash_table_lookup (metadata, "File:Path");
-	basename = g_hash_table_lookup (metadata, "File:Name");
-
-	if (dirname && basename) {
-		/* Keep a copy */
-		dirname = g_strdup (dirname);
-		basename = g_strdup (basename);
-	} else {
-		dirname = g_path_get_dirname (path);
-		basename = g_path_get_basename (path);
-	}
 
 	is_dir = g_file_test (path, G_FILE_TEST_IS_DIR);
 	is_symlink = g_file_test (path, G_FILE_TEST_IS_SYMLINK);

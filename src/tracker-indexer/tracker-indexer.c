@@ -736,9 +736,9 @@ index_metadata_foreach (gpointer key,
 
 static void
 index_metadata (TrackerIndexer *indexer,
-		guint32 id,
+		guint32         id,
 		TrackerService *service,
-		GHashTable *metadata)
+		GHashTable     *metadata)
 {
 	MetadataForeachData data;
 
@@ -756,7 +756,7 @@ index_metadata (TrackerIndexer *indexer,
 
 static gboolean
 process_file (TrackerIndexer *indexer,
-	      PathInfo *info)
+	      PathInfo       *info)
 {
 	GHashTable *metadata;
 
@@ -774,40 +774,43 @@ process_file (TrackerIndexer *indexer,
 
 	if (metadata) {
 		TrackerService *service_def;
-		gchar *service_type, *mimetype;
-		gboolean created;
+		gchar *service_type, *mimetype, *text;
 		guint32 id;
 
 		mimetype = tracker_file_get_mime_type (info->file->path);
 		service_type = tracker_ontology_get_service_type_for_mime (mimetype);
 		service_def = tracker_ontology_get_service_type_by_name (service_type);
 
-		id = tracker_db_get_new_service_id (indexer->private->common);
-
-		created = tracker_db_create_service (indexer->private->metadata, 
-						     id, 
-						     service_def, 
-						     info->file->path, 
-						     metadata);
-
 		g_free (service_type);
 		g_free (mimetype);
-		
-		if (created) {
-			gchar *text;
 
-			created = tracker_db_create_event (indexer->private->cache, 
-							   id,
-							   "Create");
-			tracker_db_increment_stats (indexer->private->common, service_def);
+		if (service_def) {
+			id = tracker_db_check_service (indexer->private->metadata,
+						       info->file->path,
+						       metadata);
 
-			index_metadata (indexer, id, service_def, metadata);
+			/* FIXME: should check mtime and reindex if necessary */
 
-			text = tracker_indexer_module_file_get_text (info->module, info->file);
+			if (id == 0) {
+				/* Service wasn't previously indexed */
+				id = tracker_db_get_new_service_id (indexer->private->common);
 
-			if (text) {
-				tracker_db_set_text (indexer->private->contents, id, text);
-				g_free (text);
+				tracker_db_create_service (indexer->private->metadata,
+							   id, service_def,
+							   info->file->path,
+							   metadata);
+
+				tracker_db_create_event (indexer->private->cache, id, "Create");
+				tracker_db_increment_stats (indexer->private->common, service_def);
+
+				index_metadata (indexer, id, service_def, metadata);
+
+				text = tracker_indexer_module_file_get_text (info->module, info->file);
+
+				if (text) {
+					tracker_db_set_text (indexer->private->contents, id, text);
+					g_free (text);
+				}
 			}
 
 		}

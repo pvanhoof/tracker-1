@@ -115,6 +115,7 @@ struct TrackerIndexerPrivate {
 	GTimer *timer;
 
 	guint idle_id;
+	guint pause_for_duration_id;
 	guint flush_id;
 
 	guint items_processed;
@@ -355,6 +356,10 @@ tracker_indexer_finalize (GObject *object)
 	if (priv->flush_id) {
 		g_source_remove (priv->flush_id);
 		schedule_flush (TRACKER_INDEXER (object), TRUE);
+	}
+
+	if (priv->pause_for_duration_id) {
+		g_source_remove (priv->pause_for_duration_id);
 	}
 
 	if (priv->idle_id) {
@@ -968,17 +973,110 @@ tracker_indexer_get_is_running (TrackerIndexer *indexer)
 	return indexer->private->idle_id != 0;
 }
 
-/**
- * This one is not being used yet, but might be used in near future. Therefore
- * it would be useful if Garnacho could review this for consistency and 
- * correctness. Ps. it got written by that pvanhoof dude, just ping him if you
- * have questions.
- **/
 void
-tracker_indexer_set_paused (TrackerIndexer         *indexer,
-			    gboolean                paused,
-			    DBusGMethodInvocation  *context,
-			    GError                **error)
+tracker_indexer_pause (TrackerIndexer         *indexer,
+		       DBusGMethodInvocation  *context,
+		       GError                **error)
+{
+	guint request_id;
+	
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
+
+	tracker_dbus_request_new (request_id, 
+				  "DBus request to pause the indexer");
+
+	if (tracker_indexer_get_is_running (indexer)) {
+		if (indexer->private->in_transaction) {
+			tracker_dbus_request_comment (request_id, 
+						      "Committing transactions");
+			stop_transaction (indexer);
+		}
+		
+		tracker_dbus_request_comment (request_id, 
+					      "Pausing indexing");
+		
+		g_source_remove (indexer->private->idle_id);
+		indexer->private->idle_id = 0;
+		indexer->private->is_paused = TRUE;
+		
+		g_signal_emit (indexer, signals[PAUSED], 0);
+	}
+
+	dbus_g_method_return (context);
+
+	tracker_dbus_request_success (request_id);
+}
+
+static gboolean
+pause_for_duration_cb (gpointer user_data)
+{
+	TrackerIndexer *indexer;
+
+	indexer = TRACKER_INDEXER (user_data);
+
+	if (tracker_indexer_get_is_running (indexer) == FALSE) {
+		g_message ("Continuing indexing");
+
+		indexer->private->is_paused = FALSE;
+		indexer->private->idle_id = g_idle_add (process_func, indexer);
+		
+		g_signal_emit (indexer, signals[CONTINUED], 0);
+	}
+	
+	indexer->private->pause_for_duration_id = 0;
+
+	return FALSE;
+}
+
+void
+tracker_indexer_pause_for_duration (TrackerIndexer         *indexer,
+				    guint                   seconds,
+				    DBusGMethodInvocation  *context,
+				    GError                **error)
+{
+	guint request_id;
+	
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
+
+	tracker_dbus_request_new (request_id, 
+				  "DBus request to pause the indexer for %d seconds",
+				  seconds);
+
+	if (tracker_indexer_get_is_running (indexer)) {
+		if (indexer->private->in_transaction) {
+			tracker_dbus_request_comment (request_id, 
+						      "Committing transactions");
+			stop_transaction (indexer);
+		}
+		
+		tracker_dbus_request_comment (request_id, 
+					      "Pausing indexing");
+		
+		g_source_remove (indexer->private->idle_id);
+		indexer->private->idle_id = 0;
+		indexer->private->is_paused = TRUE;
+
+		indexer->private->pause_for_duration_id = 
+			g_timeout_add_seconds (seconds, 
+					       pause_for_duration_cb, 
+					       indexer);
+
+		g_signal_emit (indexer, signals[PAUSED], 0);
+	}
+
+	dbus_g_method_return (context);
+
+	tracker_dbus_request_success (request_id);
+}
+
+void
+tracker_indexer_continue (TrackerIndexer         *indexer,
+			  DBusGMethodInvocation  *context,
+			  GError                **error)
 {
 	guint request_id;
 	
@@ -987,36 +1085,16 @@ tracker_indexer_set_paused (TrackerIndexer         *indexer,
 	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
 
 	tracker_dbus_request_new (request_id,
-                                  "DBus request to %s the indexer",
-				  paused ? "pause" : "resume");
+                                  "DBus request to continue the indexer");
 
-	if (tracker_indexer_get_is_running (indexer)) {
-		if (paused) {
-			if (indexer->private->in_transaction) {
-				tracker_dbus_request_comment (request_id, 
-							      "Committing transactions");
-				stop_transaction (indexer);
-			}
-
-			tracker_dbus_request_comment (request_id, 
-						      "Pausing indexing");
-			
-			g_source_remove (indexer->private->idle_id);
-			indexer->private->idle_id = 0;
-			indexer->private->is_paused = TRUE;
-
-			g_signal_emit (indexer, signals[PAUSED], 0);
-		}
-	} else {
-		if (!paused) {
-			tracker_dbus_request_comment (request_id, 
-						      "Resuming indexing");
-
-			indexer->private->is_paused = FALSE;
-			indexer->private->idle_id = g_idle_add (process_func, indexer);
-
-			g_signal_emit (indexer, signals[CONTINUED], 0);
-		}
+	if (tracker_indexer_get_is_running (indexer) == FALSE) {
+		tracker_dbus_request_comment (request_id, 
+					      "Continuing indexing");
+		
+		indexer->private->is_paused = FALSE;
+		indexer->private->idle_id = g_idle_add (process_func, indexer);
+		
+		g_signal_emit (indexer, signals[CONTINUED], 0);
 	}
 
 	dbus_g_method_return (context);

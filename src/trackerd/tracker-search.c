@@ -516,8 +516,6 @@ tracker_search_get_hit_count (TrackerSearch          *object,
 	g_array_free (array, TRUE);
 
 	tracker_dbus_request_success (request_id);
-
-	return;
 }
 
 void
@@ -607,8 +605,6 @@ tracker_search_get_hit_count_all (TrackerSearch          *object,
 	g_object_unref (tree);
 
 	tracker_dbus_request_success (request_id);
-
-	return;
 }
 
 void
@@ -663,8 +659,6 @@ tracker_search_text (TrackerSearch          *object,
 		return;
 	}
 
-	tracker_indexer_pause ();
-
 	iface = tracker_db_manager_get_db_interface_by_service (service);
 
 	result_set = tracker_db_search_text (iface, 
@@ -714,10 +708,7 @@ tracker_search_text (TrackerSearch          *object,
 
 	g_strfreev (strv);
 
-	tracker_indexer_continue ();
 	tracker_dbus_request_success (request_id);
-
-	return;
 }
 
 void
@@ -772,8 +763,6 @@ tracker_search_text_detailed (TrackerSearch          *object,
 		return;
 	}
 
-	tracker_indexer_pause ();
-
 	iface = tracker_db_manager_get_db_interface_by_service (service);
 
 	result_set = tracker_db_search_text (iface, 
@@ -794,10 +783,7 @@ tracker_search_text_detailed (TrackerSearch          *object,
 		g_object_unref (result_set);
 	}
 
-	tracker_indexer_continue ();
 	tracker_dbus_request_success (request_id);
-
-	return;
 }
 
 void
@@ -849,13 +835,10 @@ tracker_search_get_snippet (TrackerSearch          *object,
 		return;
 	}
 
-	tracker_indexer_pause ();
-
 	iface = tracker_db_manager_get_db_interface_by_service (service);
 
 	service_id = tracker_db_file_get_id_as_string (iface, service, id);
 	if (!service_id) {
-		tracker_indexer_continue ();
 		g_set_error (&actual_error,
 			     TRACKER_DBUS_ERROR,
 			     0,
@@ -903,10 +886,7 @@ tracker_search_get_snippet (TrackerSearch          *object,
 
 	g_free (snippet);
 
-	tracker_indexer_continue ();
 	tracker_dbus_request_success (request_id);
-
-	return;
 }
 
 void
@@ -963,8 +943,6 @@ tracker_search_files_by_text (TrackerSearch         *object,
 	}
 
 	tracker_dbus_request_success (request_id);
-
-	return;
 }
 
 void
@@ -1012,8 +990,6 @@ tracker_search_metadata (TrackerSearch          *object,
 		return;
 	}
 
-	tracker_indexer_pause ();
-
 	iface = tracker_db_manager_get_db_interface_by_service (service);
 
 	/* FIXME: This function no longer exists, it was returning
@@ -1039,10 +1015,7 @@ tracker_search_metadata (TrackerSearch          *object,
 		g_object_unref (result_set);
 	}
 
-	tracker_indexer_continue ();
 	tracker_dbus_request_success (request_id);
-
-	return;
 }
 
 void
@@ -1093,8 +1066,6 @@ tracker_search_matching_fields (TrackerSearch         *object,
 		return;
 	}
 
-	tracker_indexer_pause ();
-
 	iface = tracker_db_manager_get_db_interface_by_service (service);
 
 	/* FIXME: This function no longer exists, it was returning
@@ -1118,10 +1089,7 @@ tracker_search_matching_fields (TrackerSearch         *object,
 		g_object_unref (result_set);
 	}
 
-	tracker_indexer_continue ();
 	tracker_dbus_request_success (request_id);
-
-	return;
 }
 
 void
@@ -1179,8 +1147,6 @@ tracker_search_query (TrackerSearch  *object,
 
 	result_set = NULL;
 
-	tracker_indexer_pause ();
-
 	iface = tracker_db_manager_get_db_interface_by_service (service);
 
 	if (query_condition) {
@@ -1207,7 +1173,6 @@ tracker_search_query (TrackerSearch  *object,
 							     query_error);
 
 		if (query_error) {
-			tracker_indexer_continue ();
 			g_set_error (&actual_error,
 				     TRACKER_DBUS_ERROR,
 				     0,
@@ -1217,7 +1182,6 @@ tracker_search_query (TrackerSearch  *object,
 			g_error_free (query_error);
 			return;
 		} else if (!query_translated) {
-			tracker_indexer_continue ();
 			g_set_error (&actual_error,
 				     TRACKER_DBUS_ERROR,
 				     0,
@@ -1257,10 +1221,7 @@ tracker_search_query (TrackerSearch  *object,
 		g_object_unref (result_set);
 	}
 
-	tracker_indexer_continue ();
 	tracker_dbus_request_success (request_id);
-
-	return;
 }
 
 void
@@ -1307,6 +1268,4 @@ tracker_search_suggest (TrackerSearch  *object,
 	}
 
 	tracker_dbus_request_success (request_id);
-
-	return;
 }

@@ -101,13 +101,10 @@ tracker_metadata_get (TrackerMetadata        *object,
 		return;
 	}
 
-	tracker_indexer_pause ();
-
 	iface = tracker_db_manager_get_db_interface_by_service (service_type);
 
 	service_id = tracker_db_file_get_id_as_string (iface, service_type, uri);
         if (!service_id) {
-		tracker_indexer_continue ();
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
 					     "Service URI '%s' not found", 
@@ -122,7 +119,6 @@ tracker_metadata_get (TrackerMetadata        *object,
 	 */
 	service_result = tracker_db_service_get_by_entity (iface, service_id);
 	if (!service_result) {
-		tracker_indexer_continue ();
 		g_free (service_id);
 		tracker_dbus_request_failed (request_id,
 					     &actual_error, 
@@ -214,7 +210,6 @@ tracker_metadata_get (TrackerMetadata        *object,
 	dbus_g_method_return (context, values);
 	g_strfreev (values);
 
-	tracker_indexer_continue ();
 	tracker_dbus_request_success (request_id);
 }
 
@@ -257,13 +252,10 @@ tracker_metadata_set (TrackerMetadata        *object,
 		return;
 	}
 
-	tracker_indexer_pause ();
-
 	iface = tracker_db_manager_get_db_interface_by_service (service_type);
 
 	service_id = tracker_db_file_get_id_as_string (iface, service_type, uri);
         if (!service_id) {
-		tracker_indexer_continue ();
 		tracker_dbus_request_failed (request_id,
 					     &actual_error, 
 					     "Service URI '%s' not found", 
@@ -282,7 +274,6 @@ tracker_metadata_set (TrackerMetadata        *object,
 
 		if (!key || strlen (key) < 3 || strchr (key, ':') == NULL) {
 			g_free (service_id);
-			tracker_indexer_continue ();
 			tracker_dbus_request_failed (request_id,
 						     &actual_error, 
 						     "Metadata type name '%s' is invalid, all names must be registered", 
@@ -306,11 +297,8 @@ tracker_metadata_set (TrackerMetadata        *object,
 
 	dbus_g_method_return (context);
 
-	tracker_indexer_continue ();
 	tracker_dbus_request_success (request_id);
-
 }
-
 
 void
 tracker_metadata_get_type_details (TrackerMetadata        *object,

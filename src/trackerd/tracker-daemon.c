@@ -57,7 +57,10 @@ enum {
 };
 
 static void daemon_finalize       (GObject    *object);
-static void indexer_set_paused_cb (DBusGProxy *proxy,
+static void indexer_pause_cb      (DBusGProxy *proxy,
+				   GError     *error,
+				   gpointer    user_data);
+static void indexer_continue_cb   (DBusGProxy *proxy,
 				   GError     *error,
 				   gpointer    user_data);
 static void indexer_paused_cb     (DBusGProxy *proxy,
@@ -186,12 +189,23 @@ tracker_daemon_new (TrackerConfig    *config,
 }
 
 static void 
-indexer_set_paused_cb (DBusGProxy *proxy,
-		       GError     *error,
-		       gpointer    user_data)
+indexer_pause_cb (DBusGProxy *proxy,
+		  GError     *error,
+		  gpointer    user_data)
 {
 	if (error) {
-		g_message ("Could not pause/resume the indexer, %s",
+		g_message ("Could not pause the indexer, %s",
+			   error->message);
+	}
+}
+
+static void 
+indexer_continue_cb (DBusGProxy *proxy,
+		     GError     *error,
+		     gpointer    user_data)
+{
+	if (error) {
+		g_message ("Could not continue the indexer, %s",
 			   error->message);
 	}
 }
@@ -296,8 +310,6 @@ tracker_daemon_get_services (TrackerDaemon          *object,
 
 	/* iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_COMMON); */
 
-	tracker_indexer_pause ();
-
 	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	result_set = tracker_db_exec_proc (iface, "GetServices", 0);
@@ -311,7 +323,6 @@ tracker_daemon_get_services (TrackerDaemon          *object,
 
 	g_hash_table_destroy (values);
 
-	tracker_indexer_continue ();
 	tracker_dbus_request_success (request_id);
 }
 
@@ -338,8 +349,6 @@ tracker_daemon_get_stats (TrackerDaemon          *object,
 
 	/* iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_COMMON); */
 
-	tracker_indexer_pause ();
-
 	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	result_set = tracker_db_exec_proc (iface, "GetStats", 0);
@@ -354,7 +363,6 @@ tracker_daemon_get_stats (TrackerDaemon          *object,
 	g_ptr_array_foreach (values, (GFunc) g_strfreev, NULL);
 	g_ptr_array_free (values, TRUE);
 
-	tracker_indexer_continue ();
 	tracker_dbus_request_success (request_id);
 }
 
@@ -387,10 +395,15 @@ tracker_daemon_set_bool_option (TrackerDaemon          *object,
 				  value ? "true" : "false");
 
 	if (strcasecmp (option, "Pause") == 0) {
-		org_freedesktop_Tracker_Indexer_set_paused_async (priv->indexer_proxy, 
-								  value, 
-								  indexer_set_paused_cb, 
-								  NULL);
+		if (value) {
+			org_freedesktop_Tracker_Indexer_pause_async (priv->indexer_proxy, 
+								     indexer_pause_cb, 
+								     NULL);
+		} else {
+			org_freedesktop_Tracker_Indexer_continue_async (priv->indexer_proxy, 
+									indexer_continue_cb, 
+									NULL);
+		}
 	} else if (strcasecmp (option, "FastMerges") == 0) {
                 tracker_config_set_fast_merges (priv->config, value);
                 g_message ("Fast merges set to %d", value);

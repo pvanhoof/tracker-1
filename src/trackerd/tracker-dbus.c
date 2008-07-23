@@ -19,8 +19,9 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-dbus.h>
+#include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-utils.h>
 
 #include <libtracker-db/tracker-db-manager.h>
@@ -43,12 +44,15 @@
 #include "tracker-utils.h"
 #include "tracker-marshal.h"
 #include "tracker-status.h"
+#include "tracker-main.h"
+
+#define INDEXER_PAUSE_TIME_FOR_REQUESTS 10 /* seconds */
 
 static DBusGConnection *connection;
 static DBusGProxy      *proxy;
 static DBusGProxy      *proxy_for_indexer;
 static GSList          *objects;
-static guint            pause_timeout = 0;
+static guint            indexer_resume_timeout_id;
 
 static gboolean
 dbus_register_service (DBusGProxy  *proxy,
@@ -152,6 +156,91 @@ dbus_register_names (TrackerConfig *config)
         return TRUE;
 }
 
+static gboolean
+indexer_resume_cb (gpointer user_data)
+{
+	DBusGProxy *proxy;
+	GError     *error = NULL;
+
+	proxy = user_data;
+
+	org_freedesktop_Tracker_Indexer_continue (proxy, &error);
+
+	if (error) {
+		g_message ("Couldn't resume the indexer, eeek");
+		g_error_free (error);
+	}
+
+	return FALSE;
+}
+
+static void
+indexer_resume_destroy_notify_cb (gpointer user_data)
+{
+	g_object_unref (user_data);
+	indexer_resume_timeout_id = 0;
+}
+
+static void
+dbus_request_new_cb (guint    request_id,
+		     gpointer user_data) 
+{
+	DBusGProxy *proxy;
+	GError     *error = NULL;
+	gboolean    set_paused = TRUE;
+
+	g_message ("New DBus request, checking indexer is paused...");
+
+	/* First remove the timeout */
+	if (indexer_resume_timeout_id != 0) {
+		set_paused = FALSE;
+
+		g_source_remove (indexer_resume_timeout_id);
+		indexer_resume_timeout_id = 0;
+	}
+	
+	/* Second reset it so we have another 10 seconds before
+	 * continuing.
+	 */
+	proxy = tracker_dbus_indexer_get_proxy ();
+	indexer_resume_timeout_id = 
+		g_timeout_add_seconds_full (G_PRIORITY_DEFAULT,
+					    INDEXER_PAUSE_TIME_FOR_REQUESTS,
+					    indexer_resume_cb,
+					    g_object_ref (proxy),
+					    indexer_resume_destroy_notify_cb);
+
+	/* Third check if we are already paused, if we are there is
+	 * no need to tell the indexer.
+	 */
+	if (tracker_get_is_paused_manually ()) {
+		g_message ("Tracker is already manually paused, doing nothing");
+		return;
+	}
+	
+	/* We really only do this because of the chance that we tell
+	 * the indexer to pause but don't get notified until the next
+	 * request. When we are notified of being paused,
+	 * tracker_get_is_paused_manually() returns TRUE.
+	 */
+	if (!set_paused) {
+		return;
+	}
+
+	/* We use the blocking call here because this function
+	 * proceeds a call which needs the database to be available.
+	 * Therefore the indexer must reply to tell us it has paused
+	 * so we can actually use the database.
+	 */
+	org_freedesktop_Tracker_Indexer_pause (proxy, &error);
+
+	if (error) {
+		g_message ("Couldn't pause the indexer, "
+			   "we may have to wait for it to finish");
+		g_error_free (error);
+	}
+}
+
 gboolean
 tracker_dbus_init (TrackerConfig *config)
 {
@@ -166,6 +255,11 @@ tracker_dbus_init (TrackerConfig *config)
 	if (!dbus_register_names (config)) {
 		return FALSE;
 	}
+
+	/* Register request handler so we can pause the indexer */
+	tracker_dbus_request_add_hook (dbus_request_new_cb, 
+				       NULL,
+				       NULL);
 
 	return TRUE;
 }
@@ -393,71 +487,4 @@ tracker_dbus_indexer_get_proxy (void)
 	}
 
 	return proxy_for_indexer;
-}
-
-
-static void 
-set_paused_reply (DBusGProxy *proxy, GError *error, gpointer userdata)
-{
-	return;
-}
-
-static gboolean
-tracker_indexer_paused (gpointer user_data)
-{
-	DBusGProxy *proxy = user_data;
-
-	/* Here it doesn't matter, so we don't block like below */
-	org_freedesktop_Tracker_Indexer_set_paused_async (proxy, FALSE, 
-							  set_paused_reply,
-							  NULL);
-
-	return FALSE;
-}
-
-static void
-tracker_indexer_pause_finished (gpointer user_data)
-{
-	DBusGProxy *proxy = user_data;
-	pause_timeout = 0;
-	g_object_unref (proxy);
-}
-
-void
-tracker_indexer_pause (void)
-{
-	/* If we are not indexing, there's no indexer to pauze ... 
-	 * Q: what if during this pause an indexer gets started? */
-
-	if (tracker_status_get () != TRACKER_STATUS_INDEXING)
-		return;
-
-	/* If another pause is already active */
-	if (pause_timeout == 0) {
-		DBusGProxy *proxy;
-		GError     *error = NULL;
-
-		proxy = tracker_dbus_indexer_get_proxy ();
-
-		/* We want to block until we are sure that we are pauzed */
-		org_freedesktop_Tracker_Indexer_set_paused (proxy, TRUE, &error);
-
-		if (!error) {
-			/* Activate a pause */
-			pause_timeout = g_timeout_add_full (G_PRIORITY_DEFAULT,
-							    10 * 1000 /* 10 seconds */,
-							    tracker_indexer_paused,
-							    g_object_ref (proxy),
-							    tracker_indexer_pause_finished);
-		} else {
-			/* Should we do something useful with error here? */
-			g_error_free (error);
-		}
-	}
-}
-
-void
-tracker_indexer_continue (void)
-{
-	return;
 }

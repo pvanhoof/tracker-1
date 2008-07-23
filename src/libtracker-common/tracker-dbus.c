@@ -23,6 +23,46 @@
 
 #include <gio/gio.h>
 
+struct TrackerDBusRequestHandler {
+	TrackerDBusRequestFunc new;
+	TrackerDBusRequestFunc done;
+	gpointer               user_data;
+};
+
+static GSList *hooks;
+
+static void
+request_handler_call_for_new (guint request_id)
+{
+	GSList *l;
+	
+	for (l = hooks; l; l = l->next) {
+		TrackerDBusRequestHandler *handler;
+
+		handler = l->data;
+
+		if (handler->new) {
+			(handler->new)(request_id, handler->user_data);
+		}
+	}
+}
+
+static void
+request_handler_call_for_done (guint request_id)
+{
+	GSList *l;
+	
+	for (l = hooks; l; l = l->next) {
+		TrackerDBusRequestHandler *handler;
+
+		handler = l->data;
+
+		if (handler->done) {
+			(handler->done)(request_id, handler->user_data);
+		}
+	}
+}
+
 GValue *
 tracker_dbus_gvalue_slice_new (GType type)
 {
@@ -179,13 +219,38 @@ tracker_dbus_results_ptr_array_free (GPtrArray **ptr_array)
 	*ptr_array = NULL;
 }
 
-
 guint
 tracker_dbus_get_next_request_id (void)
 {
         static guint request_id = 1;
 	
         return request_id++;
+}
+
+TrackerDBusRequestHandler *
+tracker_dbus_request_add_hook (TrackerDBusRequestFunc new,
+			       TrackerDBusRequestFunc done,
+			       gpointer               user_data) 
+{
+	TrackerDBusRequestHandler *handler;
+
+	handler = g_slice_new0 (TrackerDBusRequestHandler);
+	handler->new = new;
+	handler->done = done;
+	handler->user_data = user_data;
+
+	hooks = g_slist_append (hooks, handler);
+
+	return handler;
+}
+
+void
+tracker_dbus_request_remove_hook (TrackerDBusRequestHandler *handler)
+{
+	g_return_if_fail (handler != NULL);
+
+	hooks = g_slist_remove (hooks, handler);
+	g_slice_free (TrackerDBusRequestHandler, handler);
 }
 
 void
@@ -205,11 +270,15 @@ tracker_dbus_request_new (gint          request_id,
 		   str);
 
 	g_free (str);
+
+	request_handler_call_for_new (request_id);
 }
 
 void
 tracker_dbus_request_success (gint request_id)
 {
+	request_handler_call_for_done (request_id);
+
 	g_message ("---> [%d] Success, no error given", 
 		   request_id);
 }
@@ -222,6 +291,8 @@ tracker_dbus_request_failed (gint          request_id,
 {
 	gchar   *str;
 	va_list  args;
+
+	request_handler_call_for_done (request_id);
 
 	va_start (args, format);
 	str = g_strdup_vprintf (format, args);

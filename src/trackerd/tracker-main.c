@@ -766,6 +766,13 @@ main (gint argc, gchar *argv[])
 		g_main_loop_run (main_loop);
 	}
 
+	/* We can block on this since we are likely to block on
+	 * shutting down otherwise anyway.
+	 */
+	org_freedesktop_Tracker_Indexer_pause_for_duration (tracker_dbus_indexer_get_proxy (),
+							    2,
+							    NULL);
+
 	g_message ("Shutting down...\n");
 
 	/* 

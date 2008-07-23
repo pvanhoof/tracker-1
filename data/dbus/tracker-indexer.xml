@@ -26,9 +26,15 @@
       <arg type="s" name="module" direction="in" />
       <arg type="as" name="files" direction="in" />
     </method>
-    <method name="SetPaused">
+    <method name="Pause">
       <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
-      <arg type="b" name="paused" direction="in" />
+    </method>
+    <method name="PauseForDuration">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
+      <arg type="u" name="seconds" direction="in" />
+    </method>
+    <method name="Continue">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
     </method>
 
     <!-- Signals --> 

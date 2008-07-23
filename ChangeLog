@@ -1,5 +1,31 @@
 2008-07-23  Martyn Russell  <martyn@imendio.com>
 
+	* data/dbus/tracker-indexer.xml: 
+	* src/tracker-indexer/tracker-indexer.[ch]: Changed _set_paused()
+	API to have _pause(), _continue() and _pause_for_duration().
+	
+	* src/libtracker-common/tracker-dbus.[ch]: 
+	* src/trackerd/tracker-daemon.c:
+	* src/trackerd/tracker-dbus.[ch]: 
+	* src/trackerd/tracker-files.c:
+	* src/trackerd/tracker-keywords.c:
+	* src/trackerd/tracker-metadata.c:
+	* src/trackerd/tracker-search.c:
+	* src/trackerd/tracker-xesam.c: Completely rework Phillip's patch
+	to pause the indexer when daemon requests come in. Instead of
+	littering the DBus code with pause/continue calls, we add a
+	hook to the DBus request_new() and request_{success|failed)()
+	functions so we know when a request starts and ends. We then
+	simply pause the indexer and wait for at least 10 seconds of
+	DBus request inactivity before allowing the indexer to continue as
+	normal. 
+
+	* src/trackerd/tracker-main.c: Used the new _pause_for_duration()
+	API when shutting down because sometimes the daemon has to wait
+	because the indexer has the lock on the database.
+	
+2008-07-23  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-main.c: (main): Call nice() to try and
 	limit how much attention the daemon gets from the CPU.
 

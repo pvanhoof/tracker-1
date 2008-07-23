@@ -48,6 +48,7 @@ static DBusGConnection *connection;
 static DBusGProxy      *proxy;
 static DBusGProxy      *proxy_for_indexer;
 static GSList          *objects;
+static guint            pause_timeout = 0;
 
 static gboolean
 dbus_register_service (DBusGProxy  *proxy,
@@ -395,16 +396,14 @@ tracker_dbus_indexer_get_proxy (void)
 }
 
 
-
-static guint pause_timeout = 0;
-
 static void 
 set_paused_reply (DBusGProxy *proxy, GError *error, gpointer userdata)
 {
+	return;
 }
 
 static gboolean
-tracker_indexer_pauzed (gpointer user_data)
+tracker_indexer_paused (gpointer user_data)
 {
 	DBusGProxy *proxy = user_data;
 
@@ -417,7 +416,7 @@ tracker_indexer_pauzed (gpointer user_data)
 }
 
 static void
-tracker_indexer_pauze_finished (gpointer user_data)
+tracker_indexer_pause_finished (gpointer user_data)
 {
 	DBusGProxy *proxy = user_data;
 	pause_timeout = 0;
@@ -447,9 +446,9 @@ tracker_indexer_pause (void)
 			/* Activate a pause */
 			pause_timeout = g_timeout_add_full (G_PRIORITY_DEFAULT,
 							    10 * 1000 /* 10 seconds */,
-							    tracker_indexer_pauzed,
+							    tracker_indexer_paused,
 							    g_object_ref (proxy),
-							    tracker_indexer_pauze_finished);
+							    tracker_indexer_pause_finished);
 		} else {
 			/* Should we do something useful with error here? */
 			g_error_free (error);

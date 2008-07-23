@@ -202,6 +202,9 @@ tracker_xesam_new_session (TrackerXesam          *object,
 	gboolean  insert = FALSE;
 
 	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_indexer_pause ();
+
 	key = dbus_g_method_get_sender (context);
 
 	if (!sessions)
@@ -241,6 +244,8 @@ tracker_xesam_new_session (TrackerXesam          *object,
 	g_free (session_id);
 	g_free (key);
 
+	tracker_indexer_continue ();
+
 	tracker_dbus_request_success (request_id);
 }
 
@@ -254,6 +259,7 @@ tracker_xesam_close_session (TrackerXesam          *object,
 	guint   request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
+
 	key = dbus_g_method_get_sender (context);
 	tracker_xesam_close_session_interal (session_id, &error);
 
@@ -393,6 +399,9 @@ tracker_xesam_new_search (TrackerXesam          *object,
 	guint                request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_indexer_pause ();
+
 	session = tracker_xesam_manager_get_session (session_id, &error);
 
 	if (session) {
@@ -428,6 +437,8 @@ tracker_xesam_new_search (TrackerXesam          *object,
 	if (session)
 		g_object_unref (session);
 
+	tracker_indexer_continue ();
+
 	tracker_dbus_request_success (request_id);
 }
 
@@ -441,6 +452,9 @@ tracker_xesam_start_search (TrackerXesam          *object,
 	guint                   request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_indexer_pause ();
+
 	search = tracker_xesam_manager_get_live_search (search_id, &error);
 
 	if (search) {
@@ -462,6 +476,8 @@ tracker_xesam_start_search (TrackerXesam          *object,
 	if (search)
 		g_object_unref (search);
 
+	tracker_indexer_continue ();
+
 	tracker_dbus_request_success (request_id);
 }
 
@@ -475,6 +491,9 @@ tracker_xesam_get_hit_count (TrackerXesam          *object,
 	guint                   request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_indexer_pause ();
+
 	search = tracker_xesam_manager_get_live_search (search_id, &error);
 
 	if (search) {
@@ -497,6 +516,8 @@ tracker_xesam_get_hit_count (TrackerXesam          *object,
 
 	if (search)
 		g_object_unref (search);
+
+	tracker_indexer_continue ();
 
 	tracker_dbus_request_success (request_id);
 }
@@ -533,6 +554,9 @@ tracker_xesam_get_hits (TrackerXesam          *object,
 	guint                   request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_indexer_pause ();
+
 	search = tracker_xesam_manager_get_live_search (search_id, &error);
 
 	if (search) {
@@ -562,6 +586,8 @@ tracker_xesam_get_hits (TrackerXesam          *object,
 	if (search)
 		g_object_unref (search);
 
+	tracker_indexer_continue ();
+
 	tracker_dbus_request_success (request_id);
 }
 
@@ -577,6 +603,9 @@ tracker_xesam_get_range_hits (TrackerXesam          *object,
 	guint                   request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_indexer_pause ();
+
 	search = tracker_xesam_manager_get_live_search (search_id, &error);
 
 	if (search) {
@@ -607,6 +636,8 @@ tracker_xesam_get_range_hits (TrackerXesam          *object,
 	if (search)
 		g_object_unref (search);
 
+	tracker_indexer_continue ();
+
 	tracker_dbus_request_success (request_id);
 }
 
@@ -623,6 +654,9 @@ tracker_xesam_get_hit_data (TrackerXesam          *object,
 	guint                   request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_indexer_pause ();
+
 	search = tracker_xesam_manager_get_live_search (search_id, &error);
 
 	if (search) {
@@ -653,6 +687,8 @@ tracker_xesam_get_hit_data (TrackerXesam          *object,
 	if (search)
 		g_object_unref (search);
 
+	tracker_indexer_continue ();
+
 	tracker_dbus_request_success (request_id);
 }
 
@@ -669,6 +705,9 @@ tracker_xesam_get_range_hit_data (TrackerXesam          *object,
 	guint                   request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_indexer_pause ();
+
 	search = tracker_xesam_manager_get_live_search (search_id, &error);
 
 	if (search) {
@@ -700,6 +739,8 @@ tracker_xesam_get_range_hit_data (TrackerXesam          *object,
 	if (search)
 		g_object_unref (search);
 
+	tracker_indexer_continue ();
+
 	tracker_dbus_request_success (request_id);
 }
 
@@ -713,6 +754,9 @@ tracker_xesam_close_search (TrackerXesam          *object,
 	guint                   request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_indexer_pause ();
+
 	search = tracker_xesam_manager_get_live_search (search_id, &error);
 
 	if (search) {
@@ -733,6 +777,8 @@ tracker_xesam_close_search (TrackerXesam          *object,
 
 	if (search)
 		g_object_unref (search);
+
+	tracker_indexer_continue ();
 
 	tracker_dbus_request_success (request_id);
 }

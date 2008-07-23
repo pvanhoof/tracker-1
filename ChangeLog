@@ -1,3 +1,8 @@
+2008-07-23  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-dbus.c: Style fixes
+	* src/trackerd/tracker-xesam.c: Wrapped db related functions
+
 2008-07-22  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/tracker-indexer/tracker-index.c:

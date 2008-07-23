@@ -1,3 +1,14 @@
+2008-07-23  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-crawler.c: 
+	* src/trackerd/tracker-marshal.list:
+	* src/trackerd/tracker-monitor.c: 
+	* src/trackerd/tracker-processor.c: Don't create a gchar* for
+	EVERY file we crawl just to move it from one queue to another,
+	instead, just make the queue use GFile pointers and ref the one we
+	are passed. This has halved the memory consumption of the daemon
+	and speed things up. It also shouldn't hang while crawling now.
+
 2008-07-23  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/trackerd/tracker-dbus.c: Style fixes

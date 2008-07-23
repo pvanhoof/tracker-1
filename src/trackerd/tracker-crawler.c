@@ -86,6 +86,7 @@ struct _TrackerCrawlerPrivate {
 
 enum {
 	PROCESSING_DIRECTORY,
+	PROCESSING_FILE,
 	FINISHED,
 	LAST_SIGNAL
 };
@@ -125,17 +126,27 @@ tracker_crawler_class_init (TrackerCrawlerClass *klass)
 			      2,
 			      G_TYPE_STRING,
 			      G_TYPE_OBJECT);
+	signals[PROCESSING_FILE] =
+		g_signal_new ("processing-file",
+			      G_TYPE_FROM_CLASS (klass),
+			      G_SIGNAL_RUN_LAST,
+			      0,
+			      NULL, NULL,
+			      tracker_marshal_VOID__STRING_OBJECT,
+			      G_TYPE_NONE,
+			      2,
+			      G_TYPE_STRING,
+			      G_TYPE_OBJECT);
 	signals[FINISHED] =
 		g_signal_new ("finished",
 			      G_TYPE_FROM_CLASS (klass),
 			      G_SIGNAL_RUN_LAST,
 			      0,
 			      NULL, NULL,
-			      tracker_marshal_VOID__STRING_POINTER_UINT_UINT_UINT_UINT,
+			      tracker_marshal_VOID__STRING_UINT_UINT_UINT_UINT,
 			      G_TYPE_NONE,
-			      6,
+			      5,
 			      G_TYPE_STRING,
-			      G_TYPE_POINTER,
 			      G_TYPE_UINT,
 			      G_TYPE_UINT,
 			      G_TYPE_UINT,
@@ -479,6 +490,14 @@ add_directory (TrackerCrawler *crawler,
 }
 
 static void
+process_file (TrackerCrawler *crawler,
+	      const gchar    *module_name,
+	      GFile          *file)
+{
+	g_signal_emit (crawler, signals[PROCESSING_FILE], 0, module_name, file);
+}
+
+static void
 process_directory (TrackerCrawler *crawler,
 		   const gchar    *module_name,
 		   GFile          *file)
@@ -498,7 +517,17 @@ process_func (gpointer data)
 	crawler = TRACKER_CRAWLER (data);
 	priv = crawler->private;
 
-	/* Crawler directory contents */
+	/* Crawler files */
+	file = g_queue_pop_head (priv->files);
+
+	if (file) {
+		process_file (crawler, priv->module_name, file);
+		g_object_unref (file);
+
+		return TRUE;
+	}
+
+	/* Crawler directories */
 	file = g_queue_pop_head (priv->directories);
 
 	if (file) {
@@ -856,7 +885,6 @@ tracker_crawler_stop (TrackerCrawler *crawler)
 
 	g_signal_emit (crawler, signals[FINISHED], 0,
 		       priv->module_name,
-		       priv->files,
 		       priv->directories_found,
 		       priv->directories_ignored,
 		       priv->files_found,

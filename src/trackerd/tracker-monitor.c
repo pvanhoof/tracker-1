@@ -369,14 +369,14 @@ monitor_event_cb (GFileMonitor      *file_monitor,
 	if (other_file) {
 		str2 = g_file_get_path (other_file);
 	} else {
-		str2 = g_strdup ("");
+		str2 = NULL;
 	}
 
 	g_message ("Received monitor event:%d->'%s' for file:'%s' and other file:'%s'",
 		   event_type,
 		   monitor_event_to_string (event_type),
 		   str1,
-		   str2);
+		   str2 ? str2 : "");
 		   
 	switch (event_type) {
 	case G_FILE_MONITOR_EVENT_CHANGED:

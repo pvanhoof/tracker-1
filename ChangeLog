@@ -1,3 +1,13 @@
+2008-07-23  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/modules/applications.c:
+	* src/tracker-indexer/modules/evolution.c:
+	* src/tracker-indexer/modules/files.c:
+	* src/tracker-indexer/tracker-indexer.c: Revert the "use TrackerField
+	as metadata keys" patch, it's incomplete at the moment and adds extra
+	lookup overhead. Probably a TrackerMetadata simple object to collect
+	data and do some caching would be the best option.
+
 2008-07-23  Martyn Russell  <martyn@imendio.com>
 
 	* data/dbus/tracker-indexer.xml: 

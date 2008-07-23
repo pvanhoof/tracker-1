@@ -709,7 +709,7 @@ index_metadata_foreach (gpointer key,
 		indexer_throttle (data->config, throttle * 100);
 	}
 
-	field = key;
+	field = tracker_ontology_get_field_def ((gchar *) key);
 
 	parsed_value = tracker_parser_text_to_string ((gchar *) value,
 						      data->language,

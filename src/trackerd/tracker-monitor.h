@@ -52,17 +52,17 @@ struct _TrackerMonitorClass {
 GType           tracker_monitor_get_type             (void);
 TrackerMonitor *tracker_monitor_new                  (TrackerConfig  *config);
 gboolean        tracker_monitor_add                  (TrackerMonitor *monitor,
-						      GFile          *file,
-						      const gchar    *module_name);
+						      const gchar    *module_name,
+						      GFile          *file);
 gboolean        tracker_monitor_remove               (TrackerMonitor *monitor,
-						      GFile          *file,
-						      const gchar    *module_name);
+						      const gchar    *module_name,
+						      GFile          *file);
 gboolean        tracker_monitor_is_watched           (TrackerMonitor *monitor,
-						      GFile          *file,
-						      const gchar    *module_name);
+						      const gchar    *module_name,
+						      GFile          *file);
 gboolean        tracker_monitor_is_watched_by_string (TrackerMonitor *monitor,
-						      const gchar    *path,
-						      const gchar    *module_name);
+						      const gchar    *module_name,
+						      const gchar    *path);
 guint           tracker_monitor_get_count            (TrackerMonitor *monitor,
 						      const gchar    *module_name);
 guint           tracker_monitor_get_ignored          (TrackerMonitor *monitor);

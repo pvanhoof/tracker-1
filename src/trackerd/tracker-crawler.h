@@ -55,6 +55,10 @@ TrackerCrawler *tracker_crawler_new      (TrackerConfig  *config,
 gboolean        tracker_crawler_start    (TrackerCrawler *crawler);
 void            tracker_crawler_stop     (TrackerCrawler *crawler);
 
+/* Convenience API for old .cfg file */
+void            tracker_crawler_add      (TrackerCrawler *crawler,
+					  const gchar    *path);
+
 G_END_DECLS
 
 #endif /* __TRACKERD_CRAWLER_H__ */

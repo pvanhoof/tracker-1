@@ -405,8 +405,8 @@ monitor_event_cb (GFileMonitor      *file_monitor,
 
 gboolean
 tracker_monitor_add (TrackerMonitor *monitor,
-		     GFile          *file,
-		     const gchar    *module_name)
+		     const gchar    *module_name,
+		     GFile          *file)
 {
 	TrackerMonitorPrivate *priv;
 	GFileMonitor          *file_monitor;
@@ -417,8 +417,8 @@ tracker_monitor_add (TrackerMonitor *monitor,
 	gchar                 *path;
 
 	g_return_val_if_fail (TRACKER_IS_MONITOR (monitor), FALSE);
-	g_return_val_if_fail (G_IS_FILE (file), FALSE);
 	g_return_val_if_fail (module_name != NULL, FALSE);
+	g_return_val_if_fail (G_IS_FILE (file), FALSE);
 
 	priv = TRACKER_MONITOR_GET_PRIVATE (monitor);
 	
@@ -504,8 +504,8 @@ tracker_monitor_add (TrackerMonitor *monitor,
 
 gboolean
 tracker_monitor_remove (TrackerMonitor *monitor,
-			GFile          *file,
-			const gchar    *module_name)
+			const gchar    *module_name,
+			GFile          *file)
 {
 	TrackerMonitorPrivate *priv;
 	GFileMonitor          *file_monitor;
@@ -513,8 +513,8 @@ tracker_monitor_remove (TrackerMonitor *monitor,
 	gchar                 *path;
 
 	g_return_val_if_fail (TRACKER_IS_MONITOR (monitor), FALSE);
-	g_return_val_if_fail (G_IS_FILE (file), FALSE);
 	g_return_val_if_fail (module_name != NULL, FALSE);
+	g_return_val_if_fail (G_IS_FILE (file), FALSE);
 
 	priv = TRACKER_MONITOR_GET_PRIVATE (monitor);
 
@@ -553,15 +553,15 @@ tracker_monitor_remove (TrackerMonitor *monitor,
 
 gboolean
 tracker_monitor_is_watched (TrackerMonitor *monitor,
-			    GFile          *file,
-			    const gchar    *module_name)
+			    const gchar    *module_name,
+			    GFile          *file)
 {
 	TrackerMonitorPrivate *priv;
 	GHashTable            *monitors;
 
 	g_return_val_if_fail (TRACKER_IS_MONITOR (monitor), FALSE);
-	g_return_val_if_fail (G_IS_FILE (file), FALSE);
 	g_return_val_if_fail (module_name != NULL, FALSE);
+	g_return_val_if_fail (G_IS_FILE (file), FALSE);
 
 	priv = TRACKER_MONITOR_GET_PRIVATE (monitor);
 
@@ -577,8 +577,8 @@ tracker_monitor_is_watched (TrackerMonitor *monitor,
 
 gboolean
 tracker_monitor_is_watched_by_string (TrackerMonitor *monitor,
-				      const gchar    *path,
-				      const gchar    *module_name)
+				      const gchar    *module_name,
+				      const gchar    *path)
 {
 	TrackerMonitorPrivate *priv;
 	GFile                 *file;
@@ -586,8 +586,8 @@ tracker_monitor_is_watched_by_string (TrackerMonitor *monitor,
 	gboolean               watched;
 
 	g_return_val_if_fail (TRACKER_IS_MONITOR (monitor), FALSE);
-	g_return_val_if_fail (path != NULL, FALSE);
 	g_return_val_if_fail (module_name != NULL, FALSE);
+	g_return_val_if_fail (path != NULL, FALSE);
 
 	priv = TRACKER_MONITOR_GET_PRIVATE (monitor);
 

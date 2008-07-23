@@ -1,5 +1,21 @@
 2008-07-23  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-config.c: Don't leak from calling
+	tracker_path_list_filter_duplicates(). 
+	
+	* src/trackerd/tracker-crawler.[ch]: Don't just iterate the FIRST
+	path in the list of paths and recurse paths, make sure we iterate
+	2,3,4,etc. too. Also make it possible to add paths to be iterated
+	as a public API.
+	
+	* src/trackerd/tracker-monitor.[ch]: Put the module_name parameter
+	before the GFile since that's how it is done everywhere else.
+	
+	* src/trackerd/tracker-processor.c: Implemented the old config
+	option WatchDirectoryRoots and CrawlDirectoryRoots.
+
+2008-07-23  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-config.c:
 	(config_dir_ensure_exists_and_return): Use file-utils functions
 	instead of duplicating code here. Make sure we filter for

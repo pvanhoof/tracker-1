@@ -1046,6 +1046,7 @@ config_load_string_list (TrackerConfig *config,
 			 const gchar   *key)
 {
 	TrackerConfigPriv  *priv;
+	GSList             *l;
 	gchar		  **value;
 
 	priv = GET_PRIV (config);
@@ -1054,26 +1055,29 @@ config_load_string_list (TrackerConfig *config,
 
 	if (strcmp (property, "watch-directory-roots") == 0) {
 		if (value) {
-			priv->watch_directory_roots =
+			priv->watch_directory_roots = l = 
 				config_string_list_to_gslist ((const gchar **) value, TRUE);
 			priv->watch_directory_roots = 
 				tracker_path_list_filter_duplicates (priv->watch_directory_roots);
+			g_slist_free (l);
 		}
 	}
 	else if (strcmp (property, "crawl-directory-roots") == 0) {
 		if (value) {
-			priv->crawl_directory_roots =
+			priv->crawl_directory_roots = l =
 				config_string_list_to_gslist ((const gchar **) value, TRUE);
 			priv->crawl_directory_roots = 
 				tracker_path_list_filter_duplicates (priv->crawl_directory_roots);
+			g_slist_free (l);
 		}
 	}
 	else if (strcmp (property, "no-watch-directory-roots") == 0) {
 		if (value) {
-			priv->no_watch_directory_roots =
+			priv->no_watch_directory_roots = l = 
 				config_string_list_to_gslist ((const gchar **) value, TRUE);
 			priv->no_watch_directory_roots = 
 				tracker_path_list_filter_duplicates (priv->no_watch_directory_roots);
+			g_slist_free (l);
 		}
 	}
 	else if (strcmp (property, "no-index-file-types") == 0) {
@@ -1998,9 +2002,10 @@ void
 tracker_config_add_watch_directory_roots (TrackerConfig *config,
 					  gchar * const *roots)
 {
-	TrackerConfigPriv  *priv;
-	gchar		   *validated_root;
-	gchar * const	   *p;
+	TrackerConfigPriv *priv;
+	GSList            *l;
+	gchar		  *validated_root;
+	gchar * const	  *p;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 	g_return_if_fail (roots != NULL);
@@ -2019,9 +2024,11 @@ tracker_config_add_watch_directory_roots (TrackerConfig *config,
 							      validated_root);
 	}
 
-	priv->watch_directory_roots = 
+	l = priv->watch_directory_roots;
+	priv->watch_directory_roots =
 		tracker_path_list_filter_duplicates (priv->watch_directory_roots);
-
+	g_slist_free (l);
+       		
 	g_object_notify (G_OBJECT (config), "watch-directory-roots");
 }
 
@@ -2029,9 +2036,10 @@ void
 tracker_config_add_crawl_directory_roots (TrackerConfig *config,
 					  gchar * const *roots)
 {
-	TrackerConfigPriv  *priv;
-	gchar		   *validated_root;
-	gchar * const	   *p;
+	TrackerConfigPriv *priv;
+	GSList            *l;
+	gchar		  *validated_root;
+	gchar * const	  *p;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 	g_return_if_fail (roots != NULL);
@@ -2050,8 +2058,10 @@ tracker_config_add_crawl_directory_roots (TrackerConfig *config,
 							      validated_root);
 	}
 
-	priv->crawl_directory_roots = 
+	l = priv->crawl_directory_roots;
+	priv->crawl_directory_roots =
 		tracker_path_list_filter_duplicates (priv->crawl_directory_roots);
+	g_slist_free (l);
 
 	g_object_notify (G_OBJECT (config), "crawl-directory-roots");
 }
@@ -2060,9 +2070,10 @@ void
 tracker_config_add_no_watch_directory_roots (TrackerConfig *config,
 					     gchar * const *roots)
 {
-	TrackerConfigPriv  *priv;
-	gchar		   *validated_root;
-	gchar * const	   *p;
+	TrackerConfigPriv *priv;
+	GSList            *l;
+	gchar             *validated_root;
+	gchar * const	  *p;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 	g_return_if_fail (roots != NULL);
@@ -2081,8 +2092,10 @@ tracker_config_add_no_watch_directory_roots (TrackerConfig *config,
 								 validated_root);
 	}
 
+	l = priv->no_watch_directory_roots;
 	priv->no_watch_directory_roots = 
 		tracker_path_list_filter_duplicates (priv->no_watch_directory_roots);
+	g_slist_free (l);
 
 	g_object_notify (G_OBJECT (config), "no-watch-directory-roots");
 }

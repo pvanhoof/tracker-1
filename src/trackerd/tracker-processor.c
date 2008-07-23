@@ -534,9 +534,35 @@ process_module (TrackerProcessor *processor,
 		return;
 	}
 
-	/* Set up monitors && recursive monitors */
+	/* Here we set up legacy .cfg options like watch roots */
 	tracker_status_set_and_signal (TRACKER_STATUS_WATCHING);
 
+	if (strcmp (module_name, "files") == 0) {
+		GSList *roots;
+		GSList *l;
+
+		g_message ("  User monitors being added");
+		
+		roots = tracker_config_get_watch_directory_roots (priv->config);
+		for (l = roots; l; l = l->next) {
+			GFile *file;
+			
+			g_message ("    %s", (gchar*) l->data);
+			
+			file = g_file_new_for_path (l->data);
+			tracker_monitor_add (priv->monitor, module_name, file);
+			g_object_unref (file);
+		}
+
+		g_message ("  User crawls being added");
+		roots = tracker_config_get_crawl_directory_roots (priv->config);
+		for (l = roots; l; l = l->next) {
+			g_message ("    %s", (gchar*) l->data);
+		
+			tracker_crawler_add (priv->crawler, l->data);		
+		}
+	}
+	
 	/* Gets all files and directories */
 	tracker_status_set_and_signal (TRACKER_STATUS_PENDING);
 
@@ -752,7 +778,7 @@ crawler_processing_directory_cb (TrackerCrawler *crawler,
 
 	/* Should we add? */
 	if (add_monitor) {
-		tracker_monitor_add (priv->monitor, file, module_name);
+		tracker_monitor_add (priv->monitor, module_name, file);
 	}
 }
 

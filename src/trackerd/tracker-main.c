@@ -741,7 +741,11 @@ main (gint argc, gchar *argv[])
 			g_idle_add (start_cb, processor);
 		}
 	} else {
+		/* We set the state here because it is not set in the
+		 * processor otherwise. 
+		 */
 		g_message ("Running in read-only mode, not starting crawler/indexing");
+		tracker_status_set_and_signal (TRACKER_STATUS_IDLE);
 	}
 
 	if (is_running) {
@@ -754,7 +758,7 @@ main (gint argc, gchar *argv[])
 	/* 
 	 * Shutdown the daemon
 	 */
-	tracker_status_set (TRACKER_STATUS_SHUTDOWN);
+	tracker_status_set_and_signal (TRACKER_STATUS_SHUTDOWN);
 
 	/* Set kill timeout */
 	g_timeout_add_full (G_PRIORITY_LOW, 5000, shutdown_timeout_cb, NULL, NULL);
@@ -797,8 +801,7 @@ tracker_shutdown (void)
 {
 	is_running = FALSE;
 
-	/* Stop any tight loop operations */
-/*	tracker_processor_stop ();*/
+	/* FIXME: Should we stop the crawler? */
 
 	g_main_loop_quit (main_loop);
 }

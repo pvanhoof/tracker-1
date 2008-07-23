@@ -291,37 +291,30 @@ tracker_processor_finalize (GObject *object)
 }
 
 static GQueue *
-get_next_queue_with_data (GHashTable  *hash_table,
-			  gchar      **module_name_p)
+get_next_queue_with_data (GList       *modules,
+			  GHashTable  *hash_table,
+			  gchar      **module_name)
 {
+	GQueue *found_queue;
 	GQueue *queue;
-	GList  *all_modules, *l;
-	gchar  *module_name;
+	GList  *l;
 
-	if (module_name_p) {
-		*module_name_p = NULL;
+	if (module_name) {
+		*module_name = NULL;
 	}
 
-	all_modules = g_hash_table_get_keys (hash_table);
-	
-	for (l = all_modules, queue = NULL; l && !queue; l = l->next) {
-		module_name = l->data;
-		queue = g_hash_table_lookup (hash_table, module_name);
+	for (l = modules, found_queue = NULL; l && !found_queue; l = l->next) {
+		queue = g_hash_table_lookup (hash_table, l->data);
 
 		if (g_queue_get_length (queue) > 0) {
-			if (module_name_p) {
-				*module_name_p = module_name;
+			if (module_name) {
+				*module_name = l->data;
+				found_queue = queue;
 			}
-
-			continue;
 		}
-
-		queue = NULL;
 	}
 	
-	g_list_free (all_modules);
-
-	return queue;
+	return found_queue;
 }
 
 static void
@@ -419,9 +412,11 @@ item_queue_handlers_cb (gpointer user_data)
 	}
 
 	/* Process the deleted items first */
-	queue = get_next_queue_with_data (priv->items_deleted_queues, &module_name);
+	queue = get_next_queue_with_data (priv->modules,
+					  priv->items_deleted_queues, 
+					  &module_name);
 
-	if (queue && g_queue_get_length (queue) > 0) {
+	if (queue) {
 		files = tracker_dbus_queue_gfile_to_strv (queue, ITEMS_QUEUE_PROCESS_MAX);
 		
 		g_message ("Queue for module:'%s' deleted items processed, sending first %d to the indexer", 
@@ -442,9 +437,11 @@ item_queue_handlers_cb (gpointer user_data)
 	}
 
 	/* Process the created items first */
-	queue = get_next_queue_with_data (priv->items_created_queues, &module_name);
+	queue = get_next_queue_with_data (priv->modules,
+					  priv->items_created_queues, 
+					  &module_name);
 
-	if (queue && g_queue_get_length (queue) > 0) {
+	if (queue) {
 		files = tracker_dbus_queue_gfile_to_strv (queue, ITEMS_QUEUE_PROCESS_MAX);
 		
 		g_message ("Queue for module:'%s' created items processed, sending first %d to the indexer", 
@@ -465,9 +462,11 @@ item_queue_handlers_cb (gpointer user_data)
 	}
 
 	/* Process the updated items first */
-	queue = get_next_queue_with_data (priv->items_updated_queues, &module_name);
+	queue = get_next_queue_with_data (priv->modules,
+					  priv->items_updated_queues, 
+					  &module_name);
 
-	if (queue && g_queue_get_length (queue) > 0) {
+	if (queue) {
 		files = tracker_dbus_queue_gfile_to_strv (queue, ITEMS_QUEUE_PROCESS_MAX);
 		
 		g_message ("Queue for module:'%s' updated items processed, sending first %d to the indexer", 

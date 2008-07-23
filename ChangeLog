@@ -1,5 +1,13 @@
 2008-07-23  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-crawler.c:
+	* src/trackerd/tracker-monitor.c: Code clean ups.
+	
+	* src/trackerd/tracker-processor.c: Improved efficiency of the get
+	queue function we use in each timeout to send files to the indexer.
+
+2008-07-23  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-crawler.c: 
 	* src/trackerd/tracker-marshal.list:
 	* src/trackerd/tracker-monitor.c: 

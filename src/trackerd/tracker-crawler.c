@@ -96,11 +96,11 @@ typedef struct {
 	GFile          *parent;
 } EnumeratorData;
 
-static void crawler_finalize        (GObject         *object);
-static void file_enumerate_next     (GFileEnumerator *enumerator,
-				     EnumeratorData  *ed);
-static void file_enumerate_children (TrackerCrawler  *crawler,
-				     GFile           *file);
+static void tracker_crawler_finalize (GObject         *object);
+static void file_enumerate_next      (GFileEnumerator *enumerator,
+				      EnumeratorData  *ed);
+static void file_enumerate_children  (TrackerCrawler  *crawler,
+				      GFile           *file);
 
 static guint signals[LAST_SIGNAL] = { 0, };
 
@@ -113,7 +113,7 @@ tracker_crawler_class_init (TrackerCrawlerClass *klass)
 
 	object_class = G_OBJECT_CLASS (klass);
 
-	object_class->finalize = crawler_finalize;
+	object_class->finalize = tracker_crawler_finalize;
 
 	signals[PROCESSING_DIRECTORY] =
 		g_signal_new ("processing-directory",
@@ -169,7 +169,7 @@ tracker_crawler_init (TrackerCrawler *object)
 }
 
 static void
-crawler_finalize (GObject *object)
+tracker_crawler_finalize (GObject *object)
 {
 	TrackerCrawlerPrivate *priv;
 

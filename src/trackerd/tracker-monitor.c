@@ -475,7 +475,6 @@ tracker_monitor_add (TrackerMonitor *monitor,
 						 NULL,
 						 &error);
 
-	
 	if (error) {
 		g_warning ("Could not add monitor for path:'%s', %s", 
 			   path, 

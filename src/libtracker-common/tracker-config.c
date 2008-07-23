@@ -768,92 +768,6 @@ config_dir_ensure_exists_and_return (void)
 }
 
 static gboolean
-config_dir_is_child_of (const char *dir,
-			const char *dir_to_test)
-{
-	gchar	 *path;
-	gboolean  result;
-
-	if (!dir_to_test) {
-		return FALSE;
-	}
-
-	if (dir[strlen (dir)-1] != '/') {
-		path = g_strconcat (dir, "/", NULL);
-	} else {
-		path = g_strdup (dir);
-	}
-
-	result = g_str_has_prefix (dir_to_test, path);
-	g_free (path);
-
-	return result;
-}
-
-static void
-config_dir_check_roots_for_conflicts (TrackerConfig *config)
-{
-	TrackerConfigPriv *priv;
-	GSList		  *final_list = NULL;
-	GSList		  *l1, *l2;
-
-	priv = GET_PRIV (config);
-
-	for (l1 = priv->watch_directory_roots; l1; l1 = l1->next) {
-		gboolean add = TRUE;
-
-		if (!final_list) {
-			final_list = g_slist_prepend (NULL, l1->data);
-			continue;
-		}
-
-		for (l2 = final_list; l2 && add; l2 = l2->next) {
-			if (!l2->data) {
-				continue;
-			}
-
-			/* Is new directory a child of another in
-			 * current list already?
-			 */
-			if (config_dir_is_child_of (l2->data, l1->data)) {
-				add = FALSE;
-				continue;
-			}
-
-			/* Is current directory a child of the new
-			 * directory we are adding?
-			 */
-			if (config_dir_is_child_of (l1->data, l2->data)) {
-				l2->data = NULL;
-			}
-		}
-
-		if (add) {
-			final_list = g_slist_prepend (final_list, l1->data);
-		}
-	}
-
-	g_slist_free (priv->watch_directory_roots);
-	priv->watch_directory_roots = NULL;
-
-	for (l1 = final_list; l1; l1 = l1->next) {
-		gchar *root;
-
-		root = l1->data;
-
-		if (!root || root[0] != G_DIR_SEPARATOR) {
-			continue;
-		}
-
-		priv->watch_directory_roots =
-			g_slist_prepend (priv->watch_directory_roots, root);
-	}
-
-	priv->watch_directory_roots = g_slist_reverse (priv->watch_directory_roots);
-	g_slist_free (final_list);
-}
-
-static gboolean
 config_create_with_defaults (const gchar *filename,
 			     GKeyFile    *key_file)
 {
@@ -1139,29 +1053,27 @@ config_load_string_list (TrackerConfig *config,
 	value = g_key_file_get_string_list (key_file, group, key, NULL, NULL);
 
 	if (strcmp (property, "watch-directory-roots") == 0) {
-		if (!value) {
-			priv->watch_directory_roots =
-				g_slist_prepend (NULL, g_strdup (g_get_home_dir ()));
-		} else {
+		if (value) {
 			priv->watch_directory_roots =
 				config_string_list_to_gslist ((const gchar **) value, TRUE);
+			priv->watch_directory_roots = 
+				tracker_path_list_filter_duplicates (priv->watch_directory_roots);
 		}
-
-		/* We only do this for watch directory roots right now, not
-		 * sure why.
-		 */
-		config_dir_check_roots_for_conflicts (config);
 	}
 	else if (strcmp (property, "crawl-directory-roots") == 0) {
 		if (value) {
 			priv->crawl_directory_roots =
 				config_string_list_to_gslist ((const gchar **) value, TRUE);
+			priv->crawl_directory_roots = 
+				tracker_path_list_filter_duplicates (priv->crawl_directory_roots);
 		}
 	}
 	else if (strcmp (property, "no-watch-directory-roots") == 0) {
 		if (value) {
 			priv->no_watch_directory_roots =
 				config_string_list_to_gslist ((const gchar **) value, TRUE);
+			priv->no_watch_directory_roots = 
+				tracker_path_list_filter_duplicates (priv->no_watch_directory_roots);
 		}
 	}
 	else if (strcmp (property, "no-index-file-types") == 0) {
@@ -2083,8 +1995,8 @@ tracker_config_set_min_bucket_count (TrackerConfig *config,
 }
 
 void
-tracker_config_add_watch_directory_roots (TrackerConfig	 *config,
-					  gchar * const	 *roots)
+tracker_config_add_watch_directory_roots (TrackerConfig *config,
+					  gchar * const *roots)
 {
 	TrackerConfigPriv  *priv;
 	gchar		   *validated_root;
@@ -2107,17 +2019,15 @@ tracker_config_add_watch_directory_roots (TrackerConfig	 *config,
 							      validated_root);
 	}
 
-	/* We only do this for watch directory roots right now, not
-	 * sure why.
-	 */
-	config_dir_check_roots_for_conflicts (config);
+	priv->watch_directory_roots = 
+		tracker_path_list_filter_duplicates (priv->watch_directory_roots);
 
 	g_object_notify (G_OBJECT (config), "watch-directory-roots");
 }
 
 void
-tracker_config_add_crawl_directory_roots (TrackerConfig	 *config,
-					  gchar * const	 *roots)
+tracker_config_add_crawl_directory_roots (TrackerConfig *config,
+					  gchar * const *roots)
 {
 	TrackerConfigPriv  *priv;
 	gchar		   *validated_root;
@@ -2140,12 +2050,15 @@ tracker_config_add_crawl_directory_roots (TrackerConfig	 *config,
 							      validated_root);
 	}
 
+	priv->crawl_directory_roots = 
+		tracker_path_list_filter_duplicates (priv->crawl_directory_roots);
+
 	g_object_notify (G_OBJECT (config), "crawl-directory-roots");
 }
 
 void
-tracker_config_add_no_watch_directory_roots (TrackerConfig  *config,
-					     gchar * const  *roots)
+tracker_config_add_no_watch_directory_roots (TrackerConfig *config,
+					     gchar * const *roots)
 {
 	TrackerConfigPriv  *priv;
 	gchar		   *validated_root;
@@ -2167,6 +2080,9 @@ tracker_config_add_no_watch_directory_roots (TrackerConfig  *config,
 		priv->no_watch_directory_roots = g_slist_append (priv->no_watch_directory_roots,
 								 validated_root);
 	}
+
+	priv->no_watch_directory_roots = 
+		tracker_path_list_filter_duplicates (priv->no_watch_directory_roots);
 
 	g_object_notify (G_OBJECT (config), "no-watch-directory-roots");
 }

@@ -1,3 +1,10 @@
+2008-07-23  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-config.c:
+	(config_dir_ensure_exists_and_return): Use file-utils functions
+	instead of duplicating code here. Make sure we filter for
+	duplicates no-watch-roots, watch-roots and crawl-roots.
+
 2008-07-23  Carlos Garnacho  <carlos@imendio.com>
 
 	Check that a service exists before inserting it again in the database.

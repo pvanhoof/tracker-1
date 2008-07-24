@@ -174,9 +174,9 @@
     <signal name="IndexProgress">
       <arg type="s" name="service"/>
       <arg type="s" name="current_uri" />
-      <arg type="i" name="index_count"/>
-      <arg type="i" name="folders_processed"/>
-      <arg type="i" name="folders_total"/>
+      <arg type="i" name="items_done"/>
+      <arg type="i" name="items_remaining"/>
+      <arg type="i" name="items_total"/>
     </signal>
   </interface>
 </node>

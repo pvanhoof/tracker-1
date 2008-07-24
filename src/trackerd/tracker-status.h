@@ -24,6 +24,8 @@
 
 #include <glib-object.h>
 
+#include <libtracker-common/tracker-config.h>
+
 G_BEGIN_DECLS
 
 #define TRACKER_TYPE_STATUS (tracker_status_get_type ())
@@ -38,13 +40,17 @@ typedef enum {
         TRACKER_STATUS_SHUTDOWN
 } TrackerStatus;
 
-GType         tracker_status_get_type  (void) G_GNUC_CONST;
 
-const gchar * tracker_status_to_string      (TrackerStatus  status);
+gboolean      tracker_status_init           (TrackerConfig *config);
+void          tracker_status_shutdown       (void);
+
+GType         tracker_status_get_type       (void) G_GNUC_CONST;
+
+const gchar * tracker_status_to_string      (TrackerStatus status);
 TrackerStatus tracker_status_get            (void);
 const gchar * tracker_status_get_as_string  (void);
-void          tracker_status_set            (TrackerStatus  new_status);
-void          tracker_status_set_and_signal (TrackerStatus  new_status);
+void          tracker_status_set            (TrackerStatus new_status);
+void          tracker_status_set_and_signal (TrackerStatus new_status);
 void          tracker_status_signal         (void);
 
 G_END_DECLS

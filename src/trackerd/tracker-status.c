@@ -26,14 +26,54 @@
 #include "tracker-daemon.h"
 #include "tracker-main.h"
 
-static TrackerStatus status = TRACKER_STATUS_INITIALIZING;
+static TrackerStatus  status = TRACKER_STATUS_INITIALIZING;
+static TrackerConfig *status_config;
+static gpointer       status_type_class;
+
+gboolean
+tracker_status_init (TrackerConfig *config)
+{
+	GType type;
+
+	g_return_val_if_fail (TRACKER_IS_CONFIG (config), FALSE);
+
+	status = TRACKER_STATUS_INITIALIZING;
+
+	/* Since we don't reference this enum anywhere, we do
+	 * it here to make sure it exists when we call
+	 * g_type_class_peek(). This wouldn't be necessary if
+	 * it was a param in a GObject for example.
+	 * 
+	 * This does mean that we are leaking by 1 reference
+	 * here and should clean it up, but it doesn't grow so
+	 * this is acceptable. 
+	 */
+	type = tracker_status_get_type ();
+	status_type_class = g_type_class_ref (type);
+
+	status_config = g_object_ref (config);
+
+	return TRUE;
+}
+
+void
+tracker_status_shutdown (void)
+{
+	g_object_unref (status_config);
+	status_config = NULL;
+
+	g_type_class_unref (status_type_class);
+	status_type_class = NULL;
+
+	status = TRACKER_STATUS_INITIALIZING;
+}
 
 GType
 tracker_status_get_type (void)
 {
-        static GType etype = 0;
+        static GType type = 0;
 
-        if (etype == 0) {
+        if (type == 0) {
                 static const GEnumValue values[] = {
                         { TRACKER_STATUS_INITIALIZING,
                           "TRACKER_STATUS_INITIALIZING",
@@ -59,22 +99,10 @@ tracker_status_get_type (void)
                         { 0, NULL, NULL }
                 };
 
-                etype = g_enum_register_static ("TrackerStatus", values);
-
-                /* Since we don't reference this enum anywhere, we do
-                 * it here to make sure it exists when we call
-                 * g_type_class_peek(). This wouldn't be necessary if
-                 * it was a param in a GObject for example.
-                 * 
-                 * This does mean that we are leaking by 1 reference
-                 * here and should clean it up, but it doesn't grow so
-                 * this is acceptable. 
-                 */
-                
-                g_type_class_ref (etype);
+                type = g_enum_register_static ("TrackerStatus", values);
         }
 
-        return etype;
+        return type;
 }
 
 const gchar *
@@ -116,7 +144,9 @@ tracker_status_set (TrackerStatus new_status)
 void
 tracker_status_signal (void)
 {
-        GObject *object;
+        GObject  *object;
+	gboolean  pause_io;
+	gboolean  pause_on_battery;
 
         object = tracker_dbus_get_object (TRACKER_TYPE_DAEMON);
 
@@ -126,6 +156,7 @@ tracker_status_signal (void)
 	 * created. This is redundant now since we don't do both in
 	 * the daemon. Should this be added back?
 	 */
+	pause_io = status == TRACKER_STATUS_PENDING ? TRUE : FALSE;
 
 	/* Pause on battery is a config option, not sure how to get
 	 * that from here or the point of passing it in the state
@@ -133,15 +164,33 @@ tracker_status_signal (void)
 	 * shouldn't send all this crap just for a simple state
 	 * change. This is passed as FALSE for now.
 	 */
-	
+	pause_on_battery = FALSE;
+
+#if 0
+	/* According to the old code, we always used:
+	 *  
+	 * if (!tracker->pause_battery) 
+	 *     pause_on_battery = FALSE;  
+	 *
+	 * Which means this code was never used and FALSE was ALWAYS
+	 * passed because tracker->pause_battery wasn't ever set to
+	 * anything other than FALSE.
+	 */
+        if (tracker->first_time_index) {
+                pause_on_battery = tracker_config_get_disable_indexing_on_battery_init (status_config);
+        } else {
+		pause_on_battery = tracker_config_get_disable_indexing_on_battery (status_config);
+	}
+#endif
+
         g_signal_emit_by_name (object, 
                                "index-state-change", 
                                tracker_status_to_string (status),
                                tracker_get_is_first_time_index (),
                                tracker_get_in_merge (),
                                tracker_get_is_paused_manually (),
-                               FALSE, /* Pause on battery */
-                               FALSE, /* Pause IO */
+                               pause_on_battery, /* Pause on battery */
+                               pause_io,         /* Pause IO */
 			       !tracker_get_is_readonly ());
 }
 

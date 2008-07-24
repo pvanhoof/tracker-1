@@ -216,7 +216,6 @@ indexer_paused_cb (DBusGProxy *proxy,
 		   gpointer    user_data)
 {
 	g_message ("The indexer has paused");
-	tracker_set_is_paused_manually (TRUE);
 }
 
 static void 
@@ -225,7 +224,6 @@ indexer_continued_cb (DBusGProxy *proxy,
 		      gpointer    user_data)
 {
 	g_message ("The indexer has continued");
-	tracker_set_is_paused_manually (FALSE);
 }
 
 /*
@@ -395,6 +393,12 @@ tracker_daemon_set_bool_option (TrackerDaemon          *object,
 				  value ? "true" : "false");
 
 	if (strcasecmp (option, "Pause") == 0) {
+		/* We do it here and not in the callback because we
+		 * don't know if something else paused us or if it
+		 * was the signal from our request.
+		 */
+		tracker_set_is_paused_manually (value);
+
 		if (value) {
 			org_freedesktop_Tracker_Indexer_pause_async (priv->indexer_proxy, 
 								     indexer_pause_cb, 

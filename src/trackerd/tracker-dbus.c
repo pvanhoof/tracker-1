@@ -156,20 +156,29 @@ dbus_register_names (TrackerConfig *config)
         return TRUE;
 }
 
-static gboolean
-indexer_resume_cb (gpointer user_data)
+static void
+indexer_continue_async_cb (DBusGProxy *proxy,
+			   GError     *error,
+			   gpointer    user_data)
 {
-	DBusGProxy *proxy;
-	GError     *error = NULL;
-
-	proxy = user_data;
-
-	org_freedesktop_Tracker_Indexer_continue (proxy, &error);
-
 	if (error) {
 		g_message ("Couldn't resume the indexer, eeek");
 		g_error_free (error);
 	}
+
+	g_object_unref (proxy);
+}
+
+static gboolean
+indexer_resume_cb (gpointer user_data)
+{
+	DBusGProxy *proxy;
+
+	proxy = user_data;
+
+	org_freedesktop_Tracker_Indexer_continue_async (g_object_ref (proxy), 
+							indexer_continue_async_cb,
+							NULL);
 
 	return FALSE;
 }

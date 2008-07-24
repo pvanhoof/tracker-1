@@ -1,3 +1,30 @@
+2008-07-24  Martyn Russell  <martyn@imendio.com>
+
+	* data/dbus/tracker-daemon.xml: 
+	* src/tracker-applet/tracker-applet.c: Signal how many items are
+	done/remaining/total instead of files/folders. This is much more
+	generic for whatever is being indexed.
+	
+	* src/trackerd/tracker-daemon.c: Don't set the daemon/indexer as
+	"manually paused" if we get paused/continued state from the
+	indexer, only set that when the user sets it using DBus. 
+	
+	* src/trackerd/tracker-dbus.c:  Don't synchronously continue the
+	indexer, do it asynchronously.  
+	
+	* src/trackerd/tracker-processor.c: When we get state from the
+	indexer, signal it up the stack so the applet knows how many items
+	have been indexed as we are doing it. This was completely
+	forgotten about until now!
+
+	* src/trackerd/tracker-main.c:
+	* src/trackerd/tracker-status.[ch]: Initialize and shutdown the
+	status module. The only reason for adding this is because we need
+	TrackerConfig for some of the information we emit when we signal
+	status. We now correctly signal if we are on battery or not and if
+	we are paused for IO (i.e. if we are indexing or not). This is now
+	correctly reflected in the tooltip in the applet.
+
 2008-07-24  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer.c: Don't increase incorrectly

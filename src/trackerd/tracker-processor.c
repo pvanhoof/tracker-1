@@ -33,6 +33,7 @@
 
 #include "tracker-processor.h"
 #include "tracker-crawler.h"
+#include "tracker-daemon.h"
 #include "tracker-dbus.h"
 #include "tracker-indexer-client.h"
 #include "tracker-monitor.h"
@@ -42,6 +43,8 @@
 
 #define ITEMS_QUEUE_PROCESS_INTERVAL 2000
 #define ITEMS_QUEUE_PROCESS_MAX      5000
+
+#define ITEMS_SIGNAL_TO_DAEMON_RATIO 500
 
 typedef enum {
 	SENT_TYPE_NONE,
@@ -84,6 +87,9 @@ struct TrackerProcessorPrivate {
 	guint           directories_ignored;
 	guint           files_found;
 	guint           files_ignored;
+
+	guint           items_done;
+	guint           items_remaining;
 };
 
 enum {
@@ -639,8 +645,36 @@ indexer_status_cb (DBusGProxy  *proxy,
 		   guint        items_remaining,
 		   gpointer     user_data)
 {
-	gchar *str1;
-	gchar *str2;
+	TrackerProcessorPrivate *priv;
+	GObject                 *daemon;
+	GQueue                  *queue;
+	GFile                   *file;
+	gchar                   *path = NULL;
+	gchar                   *str1;
+	gchar                   *str2;
+
+	priv = TRACKER_PROCESSOR_GET_PRIVATE (user_data);
+
+	priv->items_done = items_done; 
+	priv->items_remaining = items_remaining; 
+
+	queue = g_hash_table_lookup (priv->items_created_queues, current_module_name);
+	if (queue) {
+		file = g_queue_peek_tail (queue);
+		if (file) {
+			path = g_file_get_path (file);
+		}
+	}
+	
+	daemon = tracker_dbus_get_object (TRACKER_TYPE_DAEMON);
+	g_signal_emit_by_name (daemon,
+			       "index-progress",
+			       tracker_module_config_get_index_service (current_module_name),
+			       path ? path : "",
+			       priv->items_done,                          /* files */
+			       priv->items_remaining,                     /* files */
+			       priv->items_done + priv->items_remaining); /* files */
+	g_free (path);
 
 	if (items_remaining < 1) {
 		return;
@@ -658,7 +692,7 @@ indexer_status_cb (DBusGProxy  *proxy,
 		   current_module_name,
 		   str1,
 		   str2);
-	
+
 	g_free (str2);
 	g_free (str1);
 }

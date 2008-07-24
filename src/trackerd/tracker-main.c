@@ -655,6 +655,8 @@ main (gint argc, gchar *argv[])
 	initialize_directories ();
 
 	/* Initialize other subsystems */
+	tracker_status_init (config);
+
 	tracker_log_init (log_filename, tracker_config_get_verbosity (config));
 	g_print ("Starting log:\n  File:'%s'\n", log_filename);
 
@@ -797,6 +799,7 @@ main (gint argc, gchar *argv[])
 	tracker_db_shutdown ();
         tracker_module_config_shutdown ();
 	tracker_nfs_lock_shutdown ();
+	tracker_status_shutdown ();
 	tracker_log_shutdown ();
 
 	/* Clean up object references */

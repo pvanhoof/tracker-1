@@ -137,8 +137,9 @@ typedef struct _TrayIconPrivate {
 	gboolean indexer_stopped;
 
 	/* status hints */
-	int folders_indexed;
-	int folders_total;
+	gint items_done;
+	gint items_remaining;
+	gint items_total;
 
 	/* main window */
 	GtkMenu *menu;
@@ -288,22 +289,23 @@ set_status_hint (TrayIcon * icon)
 	if (priv->index_state == INDEX_BUSY) {
 
 		if (!priv->email_indexing) {
-			status = _("folders");
+			status = _("files");
 		} else {
 			status = _("mailboxes");
 		}
 
 		g_string_append_printf (hint, " %d/%d %s",
-					priv->folders_indexed,
-					priv->folders_total, status);
+					priv->items_done,
+					priv->items_total, 
+                                        status);
 
 	}
 
 
 	if (priv->index_state == INDEX_MERGING) {
 		g_string_append_printf (hint, " %d/%d indexes being merged",
-					priv->folders_indexed,
-					priv->folders_total);
+					priv->items_done,
+					priv->items_total);
 	}
 
 	tray_icon_set_tooltip (icon, hint->str);
@@ -1576,19 +1578,19 @@ index_state_changed (DBusGProxy * proxy, const gchar * state,
 }
 
 static void
-index_progress_changed (DBusGProxy * proxy, const gchar * service,
-			const char *uri, int index_count,
-			int folders_processed, int folders_total,
-			TrayIcon * icon)
+index_progress_changed (DBusGProxy  *proxy, 
+                        const gchar *service,
+			const gchar *uri,
+                        gint         items_done,
+			gint         items_remaining, 
+                        gint         items_total,
+			TrayIcon    *icon)
 {
 
 	TrayIconPrivate *priv = TRAY_ICON_GET_PRIVATE (icon);
 
-	if (folders_processed > folders_total)
-		folders_processed = folders_total;
-
-	priv->folders_indexed = folders_processed;
-	priv->folders_total = folders_total;
+	priv->items_done = items_done;
+	priv->items_total = items_total;
 
 	priv->email_indexing = (strcmp (service, "Emails") == 0);
 

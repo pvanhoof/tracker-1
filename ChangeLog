@@ -1,3 +1,10 @@
+2008-07-24  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer.c: Don't increase incorrectly
+	the number of items processed. Also, split Files/Items processed
+	count, so we get status signalling correctly, and we still flush when
+	processing files with several items in it.
+
 2008-07-24  Ivan Frade  <ivan.frade@nokia.com>
 
 	Small programs to show and search in the contests of QDBM file.

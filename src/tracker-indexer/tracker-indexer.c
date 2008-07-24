@@ -118,8 +118,9 @@ struct TrackerIndexerPrivate {
 	guint pause_for_duration_id;
 	guint flush_id;
 
+	guint files_processed;
+	guint files_indexed;
 	guint items_processed;
-	guint items_indexed;
 
 	gboolean in_transaction;
 	gboolean is_paused;
@@ -204,8 +205,8 @@ stop_transaction (TrackerIndexer *indexer)
 	tracker_db_interface_end_transaction (indexer->private->contents);
 	tracker_db_interface_end_transaction (indexer->private->cache);
 
-	indexer->private->items_indexed += indexer->private->items_processed;
-	indexer->private->items_processed = 0;
+	indexer->private->files_indexed += indexer->private->files_processed;
+	indexer->private->files_processed = 0;
 	indexer->private->in_transaction = FALSE;
 
 	g_debug ("Transaction commit");
@@ -216,25 +217,25 @@ signal_status (TrackerIndexer *indexer,
 	       const gchar    *why)
 {
 	gdouble seconds_elapsed;
-	guint   items_remaining;
+	guint   files_remaining;
 
-	items_remaining = g_queue_get_length (indexer->private->file_queue);
+	files_remaining = g_queue_get_length (indexer->private->file_queue);
 	seconds_elapsed = g_timer_elapsed (indexer->private->timer, NULL);
 
-	if (indexer->private->items_indexed > 0 && 
-	    items_remaining > 0) {
+	if (indexer->private->files_indexed > 0 &&
+	    files_remaining > 0) {
 		gchar *str1;
 		gchar *str2;
 
-		str1 = tracker_seconds_estimate_to_string (seconds_elapsed, 
+		str1 = tracker_seconds_estimate_to_string (seconds_elapsed,
 							   TRUE,
-							   indexer->private->items_indexed, 
-							   items_remaining);
+							   indexer->private->files_indexed,
+							   files_remaining);
 		str2 = tracker_seconds_to_string (seconds_elapsed, TRUE);
-		
-		g_message ("Indexed %d/%d, module:'%s', %s left, %s elapsed (%s)", 
-			   indexer->private->items_indexed,
-			   indexer->private->items_indexed + items_remaining,
+
+		g_message ("Indexed %d/%d, module:'%s', %s left, %s elapsed (%s)",
+			   indexer->private->files_indexed,
+			   indexer->private->files_indexed + files_remaining,
 			   indexer->private->current_module_name,
 			   str1,
 			   str2,
@@ -243,12 +244,12 @@ signal_status (TrackerIndexer *indexer,
 		g_free (str2);
 		g_free (str1);
 	}
-	
+
 	g_signal_emit (indexer, signals[STATUS], 0, 
 		       seconds_elapsed,
 		       indexer->private->current_module_name,
-		       indexer->private->items_indexed,
-		       items_remaining);
+		       indexer->private->files_indexed,
+		       files_remaining);
 }
 
 static gboolean
@@ -260,7 +261,7 @@ flush_data (TrackerIndexer *indexer)
 		stop_transaction (indexer);
 	}
 
-	indexer->private->items_indexed += tracker_index_flush (indexer->private->index);
+	tracker_index_flush (indexer->private->index);
 	signal_status (indexer, "flush");
 
 	return FALSE;
@@ -560,15 +561,15 @@ check_stopped (TrackerIndexer *indexer)
 	/* Print out how long it took us */
 	str = tracker_seconds_to_string (seconds_elapsed, FALSE);
 
-	g_message ("Indexer finished in %s, %d items indexed in total",
+	g_message ("Indexer finished in %s, %d files indexed in total",
 		   str,
-		   indexer->private->items_indexed);
+		   indexer->private->files_indexed);
 	g_free (str);
 
 	/* Finally signal done */
 	g_signal_emit (indexer, signals[FINISHED], 0, 
 		       seconds_elapsed,
-		       indexer->private->items_indexed);
+		       indexer->private->files_indexed);
 }
 
 static void
@@ -928,6 +929,7 @@ process_func (gpointer data)
 	if ((path = g_queue_peek_head (indexer->private->file_queue)) != NULL) {
 		/* Process file */
 		if (process_file (indexer, path)) {
+			indexer->private->files_processed++;
 			path = g_queue_pop_head (indexer->private->file_queue);
 			path_info_free (path);
 		}

@@ -1,4 +1,4 @@
-SUBDIRS = data src filters thumbnailers docs po python
+SUBDIRS = data src filters thumbnailers docs po python utils
 
 if HAVE_UNIT_TESTS
 include $(top_srcdir)/Makefile.decl

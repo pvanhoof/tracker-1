@@ -1,3 +1,13 @@
+2008-07-24  Ivan Frade  <ivan.frade@gmail.com>
+
+	* Makefile.am
+	* configure.ac
+	* utils/Makefile.am
+	* utils/qdbm/Makefile.am: Using autotools to build helper
+	programs.
+	
+	* utils/qdbm/Makefile: Removed.
+
 2008-07-24  Martyn Russell  <martyn@imendio.com>
 
 	* data/dbus/tracker-daemon.xml: 

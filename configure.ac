@@ -756,6 +756,8 @@ AC_CONFIG_FILES([
 	tests/scripts/dummy_data_start.sh
 	tests/scripts/dummy_data_stop.sh
 	tests/scripts/Makefile
+	utils/Makefile
+	utils/qdbm/Makefile
 	src/xdgmime/Makefile
 	po/Makefile.in
 	python/Makefile

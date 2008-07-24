@@ -1,3 +1,13 @@
+2008-07-24  Ivan Frade  <ivan.frade@nokia.com>
+
+	Small programs to show and search in the contests of QDBM file.
+	Useful for testing.
+	
+	* utils/qdbm/Makefile
+	* utils/qdbm/search-word.c: search a word in the QDBM file
+	* utils/qdbm/print-words.c: print all words in the file and also
+	their hits (pairs of service id and service type).
+
 2008-07-23  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-config.c: Don't leak from calling

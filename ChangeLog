@@ -1,5 +1,10 @@
 2008-07-24  Carlos Garnacho  <carlos@imendio.com>
 
+	* data/modules/files.module: Remove service type, so the indexer uses
+	file mimetype.
+
+2008-07-24  Carlos Garnacho  <carlos@imendio.com>
+
 	Store things in the correct DB based on the service type.
 
 	* src/libtracker-common/tracker-ontology.c

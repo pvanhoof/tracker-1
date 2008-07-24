@@ -100,8 +100,10 @@ struct TrackerIndexerPrivate {
 
 	TrackerIndex *index;
 
-	TrackerDBInterface *metadata;
-	TrackerDBInterface *contents;
+	TrackerDBInterface *file_metadata;
+	TrackerDBInterface *file_contents;
+	TrackerDBInterface *email_metadata;
+	TrackerDBInterface *email_contents;
 	TrackerDBInterface *common;
 	TrackerDBInterface *cache;
 
@@ -133,7 +135,6 @@ struct PathInfo {
 
 struct MetadataForeachData {
 	TrackerIndex *index;
-	TrackerDBInterface *db;
 
 	TrackerLanguage *language;
 	TrackerConfig *config;
@@ -192,8 +193,10 @@ start_transaction (TrackerIndexer *indexer)
 	indexer->private->in_transaction = TRUE;
 
 	tracker_db_interface_start_transaction (indexer->private->cache);
-	tracker_db_interface_start_transaction (indexer->private->contents);
-	tracker_db_interface_start_transaction (indexer->private->metadata);
+	tracker_db_interface_start_transaction (indexer->private->file_contents);
+	tracker_db_interface_start_transaction (indexer->private->email_contents);
+	tracker_db_interface_start_transaction (indexer->private->file_metadata);
+	tracker_db_interface_start_transaction (indexer->private->email_metadata);
 	tracker_db_interface_start_transaction (indexer->private->common);
 }
 
@@ -201,8 +204,10 @@ static void
 stop_transaction (TrackerIndexer *indexer)
 {
 	tracker_db_interface_end_transaction (indexer->private->common);
-	tracker_db_interface_end_transaction (indexer->private->metadata);
-	tracker_db_interface_end_transaction (indexer->private->contents);
+	tracker_db_interface_end_transaction (indexer->private->email_metadata);
+	tracker_db_interface_end_transaction (indexer->private->file_metadata);
+	tracker_db_interface_end_transaction (indexer->private->email_contents);
+	tracker_db_interface_end_transaction (indexer->private->file_contents);
 	tracker_db_interface_end_transaction (indexer->private->cache);
 
 	indexer->private->files_indexed += indexer->private->files_processed;
@@ -634,11 +639,17 @@ tracker_indexer_init (TrackerIndexer *indexer)
 					 tracker_config_get_max_bucket_count (priv->config));
 	g_free (index_file);
 
-	/* Set up databases */
+	/* Set up databases, these pointers are mostly used to
+	 * start/stop transactions, since TrackerDBManager treats
+	 * interfaces as singletons, it's safe to just ask it
+	 * again for an interface.
+	 */
 	priv->cache = tracker_db_manager_get_db_interface (TRACKER_DB_CACHE);
 	priv->common = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
-	priv->metadata = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
-	priv->contents = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_CONTENTS);
+	priv->file_metadata = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_METADATA);
+	priv->file_contents = tracker_db_manager_get_db_interface (TRACKER_DB_FILE_CONTENTS);
+	priv->email_metadata = tracker_db_manager_get_db_interface (TRACKER_DB_EMAIL_METADATA);
+	priv->email_contents = tracker_db_manager_get_db_interface (TRACKER_DB_EMAIL_CONTENTS);
 
 	/* Set up timer to know how long the process will take and took */
 	priv->timer = g_timer_new ();
@@ -729,7 +740,7 @@ index_metadata_foreach (gpointer key,
 					tracker_field_get_weight (field));
 	}
 
-	tracker_db_set_metadata (data->db, data->id, field, (gchar *) value, parsed_value);
+	tracker_db_set_metadata (data->service, data->id, field, (gchar *) value, parsed_value);
 
 	g_free (parsed_value);
 	g_strfreev (arr);
@@ -744,7 +755,6 @@ index_metadata (TrackerIndexer *indexer,
 	MetadataForeachData data;
 
 	data.index = indexer->private->index;
-	data.db = indexer->private->metadata;
 	data.language = indexer->private->language;
 	data.config = indexer->private->config;
 	data.service = service;
@@ -775,20 +785,25 @@ process_file (TrackerIndexer *indexer,
 
 	if (metadata) {
 		TrackerService *service_def;
-		gchar *service_type, *mimetype, *text;
+		gchar *service_type, *text;
 		guint32 id;
 
-		mimetype = tracker_file_get_mime_type (info->file->path);
-		service_type = tracker_ontology_get_service_type_for_mime (mimetype);
-		service_def = tracker_ontology_get_service_type_by_name (service_type);
+		/* FIXME: We clearly need a better way to define the service type for a given item */
+		service_type = g_strdup (tracker_module_config_get_index_service (info->file->module_name));
 
+		if (!service_type || !service_type[0]) {
+			gchar *mimetype;
+
+			mimetype = tracker_file_get_mime_type (info->file->path);
+			service_type = tracker_ontology_get_service_type_for_mime (mimetype);
+			g_free (mimetype);
+		}
+
+		service_def = tracker_ontology_get_service_type_by_name (service_type);
 		g_free (service_type);
-		g_free (mimetype);
 
 		if (service_def) {
-			id = tracker_db_check_service (indexer->private->metadata,
-						       info->file->path,
-						       metadata);
+			id = tracker_db_check_service (service_def, info->file->path, metadata);
 
 			/* FIXME: should check mtime and reindex if necessary */
 
@@ -796,8 +811,8 @@ process_file (TrackerIndexer *indexer,
 				/* Service wasn't previously indexed */
 				id = tracker_db_get_new_service_id (indexer->private->common);
 
-				tracker_db_create_service (indexer->private->metadata,
-							   id, service_def,
+				tracker_db_create_service (service_def,
+							   id,
 							   info->file->path,
 							   metadata);
 
@@ -809,7 +824,7 @@ process_file (TrackerIndexer *indexer,
 				text = tracker_indexer_module_file_get_text (info->module, info->file);
 
 				if (text) {
-					tracker_db_set_text (indexer->private->contents, id, text);
+					tracker_db_set_text (service_def, id, text);
 					g_free (text);
 				}
 			}
@@ -1259,4 +1274,3 @@ tracker_indexer_files_delete (TrackerIndexer *indexer,
 		g_error_free (actual_error);
 	}
 }
-

@@ -2583,6 +2583,43 @@ tracker_db_manager_get_db_interface_by_service (const gchar *service)
 	return iface;
 }
 
+TrackerDBInterface *
+tracker_db_manager_get_db_interface_by_type (const gchar          *service,
+					     TrackerDBContentType  content_type)
+{
+	TrackerDBType type;
+	TrackerDB db;
+
+	g_return_val_if_fail (initialized != FALSE, NULL);
+	g_return_val_if_fail (service != NULL, NULL);
+
+	type = tracker_ontology_get_db_for_service_type (service);
+
+	switch (type) {
+	case TRACKER_DB_TYPE_EMAIL:
+		if (content_type == TRACKER_DB_CONTENT_TYPE_METADATA) {
+			db = TRACKER_DB_EMAIL_METADATA;
+		} else {
+			db = TRACKER_DB_EMAIL_CONTENTS;
+		}
+
+		break;
+	case TRACKER_DB_TYPE_FILES:
+		if (content_type == TRACKER_DB_CONTENT_TYPE_METADATA) {
+			db = TRACKER_DB_FILE_METADATA;
+		} else {
+			db = TRACKER_DB_FILE_CONTENTS;
+		}
+
+		break;
+	default:
+		g_warning ("Database type not supported");
+		return NULL;
+	}
+
+	return tracker_db_manager_get_db_interface (db);
+}
+
 gboolean     
 tracker_db_manager_are_db_too_big (void)
 {

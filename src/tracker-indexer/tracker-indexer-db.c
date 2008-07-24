@@ -130,22 +130,24 @@ get_dirname_and_basename (const gchar  *path,
 }
 
 guint
-tracker_db_check_service (TrackerDBInterface *iface,
-			  const gchar        *path,
-			  GHashTable         *metadata)
+tracker_db_check_service (TrackerService *service,
+			  const gchar    *path,
+			  GHashTable     *metadata)
 {
+	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
 	gchar *dirname, *basename;
 	guint id;
 
 	get_dirname_and_basename (path, metadata, &dirname, &basename);
+	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service),
+							     TRACKER_DB_CONTENT_TYPE_METADATA);
 
 	result_set = tracker_db_interface_execute_procedure (iface, NULL,
 							     "GetServiceID",
 							     dirname,
 							     basename,
 							     NULL);
-
 	g_free (dirname);
 	g_free (basename);
 
@@ -160,12 +162,12 @@ tracker_db_check_service (TrackerDBInterface *iface,
 }
 
 gboolean
-tracker_db_create_service (TrackerDBInterface *iface,
-			   guint32             id,
-			   TrackerService     *service,
-			   const gchar        *path,
-			   GHashTable         *metadata)
+tracker_db_create_service (TrackerService *service,
+			   guint32         id,
+			   const gchar    *path,
+			   GHashTable     *metadata)
 {
+	TrackerDBInterface *iface;
 	gchar *id_str, *service_type_id_str;
 	gchar *dirname, *basename;
 	gboolean is_dir, is_symlink, enabled;
@@ -175,6 +177,8 @@ tracker_db_create_service (TrackerDBInterface *iface,
 	}
 
 	get_dirname_and_basename (path, metadata, &dirname, &basename);
+	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service),
+							     TRACKER_DB_CONTENT_TYPE_METADATA);
 
 	id_str = tracker_guint32_to_string (id);
 	service_type_id_str = tracker_int_to_string (tracker_service_get_id (service));
@@ -216,15 +220,18 @@ tracker_db_create_service (TrackerDBInterface *iface,
 }
 
 void
-tracker_db_set_metadata (TrackerDBInterface *iface,
-			 guint32             id,
-			 TrackerField       *field,
-			 const gchar        *value,
-			 const gchar        *parsed_value)
+tracker_db_set_metadata (TrackerService *service,
+			 guint32         id,
+			 TrackerField   *field,
+			 const gchar    *value,
+			 const gchar    *parsed_value)
 {
+	TrackerDBInterface *iface;
 	gchar *id_str;
 
 	id_str = tracker_guint32_to_string (id);
+	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service),
+							     TRACKER_DB_CONTENT_TYPE_METADATA);
 
 	switch (tracker_field_get_data_type (field)) {
 	case TRACKER_FIELD_TYPE_KEYWORD:
@@ -256,10 +263,7 @@ tracker_db_set_metadata (TrackerDBInterface *iface,
 							NULL);
 		break;
 	case TRACKER_FIELD_TYPE_FULLTEXT:
-		/* FIXME: missing DB connection to contents here */
-		/*
-		  tracker_db_set_text (iface, id, value);
-		*/
+		tracker_db_set_text (service, id, value);
 		break;
 	case TRACKER_FIELD_TYPE_BLOB:
 	case TRACKER_FIELD_TYPE_STRUCT:
@@ -273,15 +277,18 @@ tracker_db_set_metadata (TrackerDBInterface *iface,
 }
 
 void
-tracker_db_set_text (TrackerDBInterface *iface,
-		     guint32             id,
-		     const gchar        *text)
+tracker_db_set_text (TrackerService *service,
+		     guint32         id,
+		     const gchar    *text)
 {
+	TrackerDBInterface *iface;
 	TrackerField *field;
 	gchar *id_str;
 
 	id_str = tracker_guint32_to_string (id);
 	field = tracker_ontology_get_field_def ("File:Contents");
+	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service),
+							     TRACKER_DB_CONTENT_TYPE_CONTENTS);
 
 	tracker_db_interface_execute_procedure (iface, NULL,
 						"SaveServiceContents",

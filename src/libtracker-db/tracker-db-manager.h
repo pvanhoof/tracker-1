@@ -40,6 +40,11 @@ typedef enum {
 } TrackerDB;
 
 typedef enum {
+	TRACKER_DB_CONTENT_TYPE_METADATA,
+	TRACKER_DB_CONTENT_TYPE_CONTENTS
+} TrackerDBContentType;
+
+typedef enum {
 	TRACKER_DB_MANAGER_FORCE_REINDEX    = 1 << 1,
 	TRACKER_DB_MANAGER_REMOVE_CACHE     = 1 << 2,
 	TRACKER_DB_MANAGER_LOW_MEMORY_MODE  = 1 << 3,
@@ -65,6 +70,9 @@ TrackerDBInterface *
              tracker_db_manager_get_db_interfaces           (gint num, ...);
 TrackerDBInterface *
              tracker_db_manager_get_db_interface_by_service (const gchar           *service);
+TrackerDBInterface *
+             tracker_db_manager_get_db_interface_by_type    (const gchar           *service,
+							     TrackerDBContentType   content_type);
 gboolean     tracker_db_manager_are_db_too_big              (void);
 
 G_END_DECLS

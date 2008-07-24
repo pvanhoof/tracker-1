@@ -31,20 +31,19 @@ guint32  tracker_db_get_new_service_id (TrackerDBInterface *iface);
 void     tracker_db_increment_stats    (TrackerDBInterface *iface,
                                         TrackerService     *service);
 
-guint    tracker_db_check_service      (TrackerDBInterface *iface,
+guint    tracker_db_check_service      (TrackerService     *service,
 					const gchar        *path,
 					GHashTable         *metadata);
-gboolean tracker_db_create_service     (TrackerDBInterface *iface,
+gboolean tracker_db_create_service     (TrackerService     *service,
                                         guint32             id,
-                                        TrackerService     *service,
                                         const gchar        *path,
                                         GHashTable         *metadata);
-void     tracker_db_set_metadata       (TrackerDBInterface *iface,
+void     tracker_db_set_metadata       (TrackerService     *service,
                                         guint32             id,
                                         TrackerField       *field,
                                         const gchar        *value,
 					const gchar        *parsed_value);
-void     tracker_db_set_text           (TrackerDBInterface *iface,
+void     tracker_db_set_text           (TrackerService     *service,
 					guint32             id,
 					const gchar        *text);
 void     tracker_db_create_event       (TrackerDBInterface *iface,

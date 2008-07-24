@@ -334,11 +334,11 @@ tracker_ontology_get_db_for_service_type (const gchar *service_str)
 	TrackerDBType  type;
 	gchar         *str;
 
-	type = TRACKER_DB_TYPE_DATA;
+	type = TRACKER_DB_TYPE_FILES;
 	str = g_utf8_strdown (service_str, -1);
 
-	if (g_str_has_prefix (str, "emails") || 
-	    g_str_has_prefix (str, "attachments")) {
+	if (g_str_has_suffix (str, "emails") || 
+	    g_str_has_suffix (str, "attachments")) {
 		type = TRACKER_DB_TYPE_EMAIL;
 	} else if (g_str_has_prefix (str, "files")) {
 		type = TRACKER_DB_TYPE_FILES;

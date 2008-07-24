@@ -1,3 +1,21 @@
+2008-07-24  Carlos Garnacho  <carlos@imendio.com>
+
+	Store things in the correct DB based on the service type.
+
+	* src/libtracker-common/tracker-ontology.c
+	(tracker_ontology_get_db_for_service_type): Return
+	TRACKER_DB_TYPE_FILES by default, as most of the services want to end
+	up there.
+	* src/libtracker-db/tracker-db-manager.[ch]
+	(tracker_db_manager_get_db_interface_by_type): New function, returns a
+	non-attached interface given the service type and the data content we
+	want to deal with (contents/metadata).
+	* src/tracker-indexer/tracker-indexer-db.[ch]: Pass the TrackerService
+	instead of a TrackerDBInterface where it's relevant, so functions can
+	guess the correct database based on it.
+	* src/tracker-indexer/tracker-indexer.c: Adapt to API changes in
+	tracker-indexer-db.[ch].
+
 2008-07-24  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-config.[ch]:

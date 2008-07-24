@@ -646,7 +646,6 @@ indexer_status_cb (DBusGProxy  *proxy,
 		   gpointer     user_data)
 {
 	TrackerProcessorPrivate *priv;
-	GObject                 *daemon;
 	GQueue                  *queue;
 	GFile                   *file;
 	gchar                   *path = NULL;
@@ -658,16 +657,19 @@ indexer_status_cb (DBusGProxy  *proxy,
 	priv->items_done = items_done; 
 	priv->items_remaining = items_remaining; 
 
+	if (items_remaining < 1 ||
+	    current_module_name == NULL || 
+	    current_module_name[0] == '\0') {
+		return;
+	}
+
 	queue = g_hash_table_lookup (priv->items_created_queues, current_module_name);
-	if (queue) {
-		file = g_queue_peek_tail (queue);
-		if (file) {
-			path = g_file_get_path (file);
-		}
+	file = g_queue_peek_tail (queue);
+	if (file) {
+		path = g_file_get_path (file);
 	}
 	
-	daemon = tracker_dbus_get_object (TRACKER_TYPE_DAEMON);
-	g_signal_emit_by_name (daemon,
+	g_signal_emit_by_name (tracker_dbus_get_object (TRACKER_TYPE_DAEMON),
 			       "index-progress",
 			       tracker_module_config_get_index_service (current_module_name),
 			       path ? path : "",
@@ -675,10 +677,6 @@ indexer_status_cb (DBusGProxy  *proxy,
 			       priv->items_remaining,                     /* files */
 			       priv->items_done + priv->items_remaining); /* files */
 	g_free (path);
-
-	if (items_remaining < 1) {
-		return;
-	}
 
 	str1 = tracker_seconds_estimate_to_string (seconds_elapsed, 
 						   TRUE,
@@ -703,8 +701,20 @@ indexer_finished_cb (DBusGProxy  *proxy,
 		     guint        items_done,
 		     gpointer     user_data)
 {
-	TrackerProcessor *processor;
-	gchar            *str;
+	TrackerProcessor        *processor;
+	TrackerProcessorPrivate *priv;
+	gchar                   *str;
+
+	processor = TRACKER_PROCESSOR (user_data);
+	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
+
+	g_signal_emit_by_name (tracker_dbus_get_object (TRACKER_TYPE_DAEMON),
+			       "index-progress",
+			       "", /* Service */
+			       "", /* Path */
+			       priv->items_done,                          /* files */
+			       priv->items_remaining,                     /* files */
+			       priv->items_done + priv->items_remaining); /* files */
 
 	str = tracker_seconds_to_string (seconds_elapsed, FALSE);
 
@@ -720,7 +730,6 @@ indexer_finished_cb (DBusGProxy  *proxy,
 	tracker_status_set_and_signal (TRACKER_STATUS_IDLE);
 
 	/* Signal the processor is now finished */
-	processor = TRACKER_PROCESSOR (user_data);
 	g_signal_emit (processor, signals[FINISHED], 0);
 }
 

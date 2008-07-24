@@ -1,3 +1,7 @@
+2008-07-24  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-processor.c: Fixed some warnings.
+
 2008-07-24  Ivan Frade  <ivan.frade@gmail.com>
 
 	* Makefile.am

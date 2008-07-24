@@ -1,3 +1,8 @@
+2008-07-24  Ivan Frade  <ivan.frade@nokia.com>
+	
+	* src/tracker-extract/tracker-extract-mp3.c: Property names with
+	":" instead of ".". Fixed mime. Mp3 are audio/mpeg and not audio/mp3.
+	
 2008-07-24  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-processor.c: Fixed some warnings.

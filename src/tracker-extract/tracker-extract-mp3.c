@@ -51,35 +51,35 @@ static struct {
 	char *meta_name;
 	gboolean writable;
 } tags[] = {
-	 {"title", "Audio.Title", FALSE},
-	 {"artist", "Audio.Artist", FALSE},
-	 {"album", "Audio.Album", FALSE},
-	 {"albumartist", "Audio.AlbumArtist", FALSE},
-	 {"trackcount", "Audio.AlbumTrackCount", FALSE},
-	 {"tracknumber", "Audio.TrackNo", FALSE},
-	 {"DiscNo", "Audio.DiscNo", FALSE},
-	 {"Performer", "Audio.Performer", FALSE},
-	 {"TrackGain", "Audio.TrackGain", FALSE},
-	 {"TrackPeakGain", "Audio.TrackPeakGain", FALSE},
-	 {"AlbumGain", "Audio.AlbumGain", FALSE},
-	 {"AlbumPeakGain", "Audio.AlbumPeakGain", FALSE},
-	 {"date", "Audio.ReleaseDate", FALSE},
-	 {"comment", "Audio.Comment", FALSE},
-	 {"genre", "Audio.Genre", FALSE},
-	 {"Codec", "Audio.Codec", FALSE},
-	 {"CodecVersion", "Audio.CodecVersion", FALSE},
-	 {"Samplerate", "Audio.Samplerate", FALSE},
-	 {"Channels", "Audio.Channels", FALSE},
-	 {"MBAlbumID", "Audio.MBAlbumID", FALSE},
-	 {"MBArtistID", "Audio.MBArtistID", FALSE},
-	 {"MBAlbumArtistID", "Audio.MBAlbumArtistID", FALSE},
-	 {"MBTrackID", "Audio.MBTrackID", FALSE},
-	 {"Lyrics", "Audio.Lyrics", FALSE},
-	 {"Copyright", "File.Copyright", FALSE},
-	 {"License", "File.License", FALSE},
-	 {"Organization", "File.Organization", FALSE},
-	 {"Location", "File.Location", FALSE},
-	 {"Publisher", "File.Publisher", FALSE},
+	 {"title", "Audio:Title", FALSE},
+	 {"artist", "Audio:Artist", FALSE},
+	 {"album", "Audio:Album", FALSE},
+	 {"albumartist", "Audio:AlbumArtist", FALSE},
+	 {"trackcount", "Audio:AlbumTrackCount", FALSE},
+	 {"tracknumber", "Audio:TrackNo", FALSE},
+	 {"DiscNo", "Audio:DiscNo", FALSE},
+	 {"Performer", "Audio:Performer", FALSE},
+	 {"TrackGain", "Audio:TrackGain", FALSE},
+	 {"TrackPeakGain", "Audio:TrackPeakGain", FALSE},
+	 {"AlbumGain", "Audio:AlbumGain", FALSE},
+	 {"AlbumPeakGain", "Audio:AlbumPeakGain", FALSE},
+	 {"date", "Audio:ReleaseDate", FALSE},
+	 {"comment", "Audio:Comment", FALSE},
+	 {"genre", "Audio:Genre", FALSE},
+	 {"Codec", "Audio:Codec", FALSE},
+	 {"CodecVersion", "Audio:CodecVersion", FALSE},
+	 {"Samplerate", "Audio:Samplerate", FALSE},
+	 {"Channels", "Audio:Channels", FALSE},
+	 {"MBAlbumID", "Audio:MBAlbumID", FALSE},
+	 {"MBArtistID", "Audio:MBArtistID", FALSE},
+	 {"MBAlbumArtistID", "Audio:MBAlbumArtistID", FALSE},
+	 {"MBTrackID", "Audio:MBTrackID", FALSE},
+	 {"Lyrics", "Audio:Lyrics", FALSE},
+	 {"Copyright", "File:Copyright", FALSE},
+	 {"License", "File:License", FALSE},
+	 {"Organization", "File:Organization", FALSE},
+	 {"Location", "File:Location", FALSE},
+	 {"Publisher", "File:Publisher", FALSE},
 	 {NULL, NULL, FALSE},
 };
 
@@ -425,18 +425,18 @@ mp3_parse (const char *data, size_t size, GHashTable *metadata)
 			mpeg_ver = MPEG_ERR; /*error*/
 			break;
 		case 0x800:
-			g_hash_table_insert (metadata, g_strdup ("Audio.Codec"), g_strdup ("MPEG"));
-			g_hash_table_insert (metadata, g_strdup ("Audio.CodecVersion"), g_strdup ("2"));
+			g_hash_table_insert (metadata, g_strdup ("Audio:Codec"), g_strdup ("MPEG"));
+			g_hash_table_insert (metadata, g_strdup ("Audio:CodecVersion"), g_strdup ("2"));
 			mpeg_ver = MPEG_V2;
 			break;
 		case 0x1800:
-			g_hash_table_insert (metadata, g_strdup ("Audio.Codec"), g_strdup ("MPEG"));
-			g_hash_table_insert (metadata, g_strdup ("Audio.CodecVersion"), g_strdup ("1"));
+			g_hash_table_insert (metadata, g_strdup ("Audio:Codec"), g_strdup ("MPEG"));
+			g_hash_table_insert (metadata, g_strdup ("Audio:CodecVersion"), g_strdup ("1"));
 			mpeg_ver = MPEG_V1;
 			break;
 		case 0:	
-			g_hash_table_insert (metadata, g_strdup ("Audio.Codec"), g_strdup ("MPEG"));
-			g_hash_table_insert (metadata, g_strdup ("Audio.CodecVersion"), g_strdup ("2.5"));
+			g_hash_table_insert (metadata, g_strdup ("Audio:Codec"), g_strdup ("MPEG"));
+			g_hash_table_insert (metadata, g_strdup ("Audio:CodecVersion"), g_strdup ("2.5"));
 			mpeg_ver = MPEG_V25;
 			break;
 		}
@@ -475,10 +475,10 @@ mp3_parse (const char *data, size_t size, GHashTable *metadata)
 
 		if ((header&ch_mask)==ch_mask) {
 			ch=1;
-			g_hash_table_insert (metadata, g_strdup ("Audio.Channels"), g_strdup ("1"));
+			g_hash_table_insert (metadata, g_strdup ("Audio:Channels"), g_strdup ("1"));
 		} else {
 			ch=2; /*stereo non stereo select*/
-			g_hash_table_insert (metadata, g_strdup ("Audio.Channels"), g_strdup ("2"));
+			g_hash_table_insert (metadata, g_strdup ("Audio:Channels"), g_strdup ("2"));
 		}
 
 		frame_size = 144*bitrate/(sample_rate?sample_rate:1)+((header&pad_mask)>>17);
@@ -507,9 +507,9 @@ mp3_parse (const char *data, size_t size, GHashTable *metadata)
 		length=1152*frames/(sample_rate?sample_rate:0xFFFFFFFF);
 	}
 
-	g_hash_table_insert (metadata, g_strdup ("Audio.Duration"), g_strdup_printf ("%d", length));
-	g_hash_table_insert (metadata, g_strdup ("Audio.Samplerate"), g_strdup_printf ("%d", sample_rate));
-	g_hash_table_insert (metadata, g_strdup ("Audio.Bitrate"), g_strdup_printf ("%d", avg_bps));
+	g_hash_table_insert (metadata, g_strdup ("Audio:Duration"), g_strdup_printf ("%d", length));
+	g_hash_table_insert (metadata, g_strdup ("Audio:Samplerate"), g_strdup_printf ("%d", sample_rate));
+	g_hash_table_insert (metadata, g_strdup ("Audio:Bitrate"), g_strdup_printf ("%d", avg_bps));
 
 }
 
@@ -518,24 +518,24 @@ static void
 get_id3v24_tags (const char *data, size_t size, GHashTable *metadata) 
 {
 	Matches tmap[] = {
-		{"COMM", "Audio.Comment"},
-		{"TCOP", "File.Copyright"},
-		{"TDRC", "Audio.ReleaseDate"},
-		{"TCON", "Audio.Genre"},
-		{"TIT1", "Audio.Genre"},
-		{"TENC", "File.Publisher"},
-		{"TEXT", "Audio.Lyrics"},
-		{"TPE1", "Audio.Artist"},
-		{"TPE2", "Audio.Artist"},
-		{"TPE3", "Audio.Performer"},
-		{"TOPE", "Audio.Artist"},
-		{"TPUB", "File.Publisher"},
-		{"TOAL", "Audio.Album"},
-		{"TALB", "Audio.Album"},
-		{"TLAN", "File.Language"},
-		{"TIT2", "Audio.Title"},
-		{"TIT3", "Audio.Comment"},
-		{"WCOP", "File.License"},
+		{"COMM", "Audio:Comment"},
+		{"TCOP", "File:Copyright"},
+		{"TDRC", "Audio:ReleaseDate"},
+		{"TCON", "Audio:Genre"},
+		{"TIT1", "Audio:Genre"},
+		{"TENC", "File:Publisher"},
+		{"TEXT", "Audio:Lyrics"},
+		{"TPE1", "Audio:Artist"},
+		{"TPE2", "Audio:Artist"},
+		{"TPE3", "Audio:Performer"},
+		{"TOPE", "Audio:Artist"},
+		{"TPUB", "File:Publisher"},
+		{"TOAL", "Audio:Album"},
+		{"TALB", "Audio:Album"},
+		{"TLAN", "File:Language"},
+		{"TIT2", "Audio:Title"},
+		{"TIT3", "Audio:Comment"},
+		{"WCOP", "File:License"},
 		{NULL, 0},
 	};
 
@@ -690,24 +690,24 @@ static void
 get_id3v23_tags (const char *data, size_t size, GHashTable *metadata) 
 {
  	Matches tmap[] = {
-		{"COMM", "Audio.Comment"},
-		{"TCOP", "File.Copyright"},
-		{"TDAT", "Audio.ReleaseDate"},
-		{"TCON", "Audio.Genre"},
-		{"TIT1", "Audio.Genre"},
-		{"TENC", "File.Publisher"},
-		{"TEXT", "Audio.Lyrics"},
-		{"TPE1", "Audio.Artist"},
-		{"TPE2", "Audio.Artist"},
-		{"TPE3", "Audio.Performer"},
-		{"TIME", "Audio.ReleaseDate"},
-		{"TOPE", "Audio.Artist"},
-		{"TPUB", "File.Publisher"},
-		{"TOAL", "Audio.Album"},
-		{"TALB", "Audio.Album"},
-		{"TLAN", "File.Language"},
-		{"TIT2", "Audio.Title"},
-		{"WCOP", "File.License"},
+		{"COMM", "Audio:Comment"},
+		{"TCOP", "File:Copyright"},
+		{"TDAT", "Audio:ReleaseDate"},
+		{"TCON", "Audio:Genre"},
+		{"TIT1", "Audio:Genre"},
+		{"TENC", "File:Publisher"},
+		{"TEXT", "Audio:Lyrics"},
+		{"TPE1", "Audio:Artist"},
+		{"TPE2", "Audio:Artist"},
+		{"TPE3", "Audio:Performer"},
+		{"TIME", "Audio:ReleaseDate"},
+		{"TOPE", "Audio:Artist"},
+		{"TPUB", "File:Publisher"},
+		{"TOAL", "Audio:Album"},
+		{"TALB", "Audio:Album"},
+		{"TLAN", "File:Language"},
+		{"TIT2", "Audio:Title"},
+		{"WCOP", "File:License"},
 		{NULL, 0},
 	};
 
@@ -848,31 +848,31 @@ get_id3v2_tags (const char *data, size_t size, GHashTable *metadata)
 {
 
 	Matches tmap[] = {
-		{"TAL", "Audio.Title"},
-		{"TT1", "Audio.Artist"},
-		{"TT2", "Audio.Title"},
-		{"TT3", "Audio.Title"},
-		{"TXT", "Audio.Comment"},
-		{"TPB", "File.Publisher"},
-		{"WAF", "File.Location"},
-		{"WAR", "File.Location"},
-		{"WAS", "File.Location"},
-		{"WCP", "File.Copyright"},
-		{"WAF", "File.Location"},
-		{"WCM", "File.License"},
-		{"TYE", "Audio.ReleaseDate"},
-		{"TLA", "File.Lanuguage"},
-		{"TP1", "Audio.Artist"},
-		{"TP2", "Audio.Artist"},
-		{"TP3", "Audio.Performer"},
-		{"TEN", "Audio.Performer"},
-		{"TCO", "Audio.Title"},
-		{"TCR", "File.Copyright"},
-		{"SLT", "Audio.Lyrics"},
-		{"TOA", "Audio.Artist"},
-		{"TOT", "Audio.Album"},
-		{"TOL", "Audio.Artist"},
-		{"COM", "Audio.Comment"},
+		{"TAL", "Audio:Title"},
+		{"TT1", "Audio:Artist"},
+		{"TT2", "Audio:Title"},
+		{"TT3", "Audio:Title"},
+		{"TXT", "Audio:Comment"},
+		{"TPB", "File:Publisher"},
+		{"WAF", "File:Location"},
+		{"WAR", "File:Location"},
+		{"WAS", "File:Location"},
+		{"WCP", "File:Copyright"},
+		{"WAF", "File:Location"},
+		{"WCM", "File:License"},
+		{"TYE", "Audio:ReleaseDate"},
+		{"TLA", "File:Lanuguage"},
+		{"TP1", "Audio:Artist"},
+		{"TP2", "Audio:Artist"},
+		{"TP3", "Audio:Performer"},
+		{"TEN", "Audio:Performer"},
+		{"TCO", "Audio:Title"},
+		{"TCR", "File:Copyright"},
+		{"SLT", "Audio:Lyrics"},
+		{"TOA", "Audio:Artist"},
+		{"TOT", "Audio:Album"},
+		{"TOL", "Audio:Artist"},
+		{"COM", "Audio:Comment"},
 		{ NULL, 0},
 	};
 	
@@ -1034,27 +1034,27 @@ tracker_extract_mp3 (const char *filename, GHashTable *metadata)
 
 
 	if (info.title && strlen (info.title) > 0) {
-		g_hash_table_insert (metadata, g_strdup ("Audio.Title"), g_strdup (info.title));
+		g_hash_table_insert (metadata, g_strdup ("Audio:Title"), g_strdup (info.title));
 	}
 
 	if (info.artist && strlen (info.artist) > 0) {
-		g_hash_table_insert (metadata, g_strdup ("Audio.Artist"), g_strdup (info.artist));
+		g_hash_table_insert (metadata, g_strdup ("Audio:Artist"), g_strdup (info.artist));
 	}
 
 	if (info.album && strlen (info.album) > 0) {
-		g_hash_table_insert (metadata, g_strdup ("Audio.Album"), g_strdup (info.album));
+		g_hash_table_insert (metadata, g_strdup ("Audio:Album"), g_strdup (info.album));
 	}
 
 	if (info.year && strlen (info.year) > 0) {
-		g_hash_table_insert (metadata, g_strdup ("Audio.ReleaseDate"), g_strdup (info.year));
+		g_hash_table_insert (metadata, g_strdup ("Audio:ReleaseDate"), g_strdup (info.year));
 	}
 
 	if (info.genre && strlen (info.genre) > 0) {
-		g_hash_table_insert (metadata, g_strdup ("Audio.Genre"), g_strdup (info.genre));
+		g_hash_table_insert (metadata, g_strdup ("Audio:Genre"), g_strdup (info.genre));
 	}
 
 	if (info.comment && strlen (info.comment) > 0) {
-		g_hash_table_insert (metadata, g_strdup ("Audio.Comment"), g_strdup (info.comment));
+		g_hash_table_insert (metadata, g_strdup ("Audio:Comment"), g_strdup (info.comment));
 	}
 
 	free(info.title);
@@ -1082,7 +1082,7 @@ tracker_extract_mp3 (const char *filename, GHashTable *metadata)
 
 
 TrackerExtractorData data[] = {
-	{ "audio/mp3", tracker_extract_mp3 },
+	{ "audio/mpeg", tracker_extract_mp3 },
 	{ NULL, NULL }
 };
 

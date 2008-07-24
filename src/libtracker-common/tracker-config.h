@@ -135,7 +135,8 @@ void           tracker_config_add_crawl_directory_roots            (TrackerConfi
 								    gchar * const *roots);
 void           tracker_config_add_no_watch_directory_roots         (TrackerConfig *config,
 								    gchar * const *roots);
-
+void           tracker_config_add_disabled_modules                 (TrackerConfig *config,
+								    gchar * const *modules);
 
 G_END_DECLS
 

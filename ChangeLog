@@ -1,3 +1,9 @@
+2008-07-24  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-config.[ch]:
+	* src/trackerd/tracker-main.c: Make it possible to disable modules
+	on the command line.
+
 2008-07-24  Ivan Frade  <ivan.frade@nokia.com>
 	
 	* src/tracker-extract/tracker-extract-mp3.c: Property names with

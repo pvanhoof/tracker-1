@@ -2099,3 +2099,34 @@ tracker_config_add_no_watch_directory_roots (TrackerConfig *config,
 
 	g_object_notify (G_OBJECT (config), "no-watch-directory-roots");
 }
+
+void
+tracker_config_add_disabled_modules (TrackerConfig *config,
+				     gchar * const *modules)
+{
+	TrackerConfigPriv *priv;
+	GSList            *new_modules;
+	gchar * const	  *p;
+
+	g_return_if_fail (TRACKER_IS_CONFIG (config));
+	g_return_if_fail (modules != NULL);
+
+	priv = GET_PRIV (config);
+
+	new_modules = NULL;
+
+	for (p = modules; *p; p++) {
+		if (g_slist_find_custom (priv->disabled_modules,
+					 *p,
+					 (GCompareFunc) strcmp)) {
+			continue;
+		}
+		
+		new_modules = g_slist_append (new_modules, g_strdup (*p));
+	}
+
+	priv->disabled_modules = g_slist_concat (priv->disabled_modules, 
+						 new_modules);
+
+	g_object_notify (G_OBJECT (config), "disabled-modules");
+}

@@ -105,6 +105,7 @@ static gboolean       low_memory;
 static gchar        **monitors_to_exclude;
 static gchar        **monitors_to_include;
 static gchar        **crawl_dirs;
+static gchar        **disable_modules;
 
 static gboolean       force_reindex;
 static gboolean       disable_indexing;
@@ -135,6 +136,10 @@ static GOptionEntry   entries_daemon[] = {
 	{ "crawler-include-dirs", 'c', 0, 
 	  G_OPTION_ARG_STRING_ARRAY, &crawl_dirs, 
 	  N_("Directories to crawl to index files (you can do -c <path> -c <path>)"), 
+	  NULL },
+	{ "disable-modules", 'd', 0, 
+	  G_OPTION_ARG_STRING_ARRAY, &disable_modules, 
+	  N_("Disable modules from being processed (you can do -d <module> -d <module)"), 
 	  NULL },
 	{ NULL }
 };
@@ -296,6 +301,8 @@ sanity_check_option_values (TrackerConfig *config)
 			 "Crawling directories");
 	log_option_list (tracker_config_get_no_index_file_types (config),
 			 "File types excluded from indexing");
+	log_option_list (tracker_config_get_disabled_modules (config),
+			 "Disabled modules");
 }
 
 static gboolean 
@@ -641,6 +648,10 @@ main (gint argc, gchar *argv[])
 
 	if (crawl_dirs) {
                 tracker_config_add_crawl_directory_roots (config, crawl_dirs);
+	}
+
+	if (disable_modules) {
+                tracker_config_add_disabled_modules (config, disable_modules);
 	}
 
 	/* Indexer command line arguments */

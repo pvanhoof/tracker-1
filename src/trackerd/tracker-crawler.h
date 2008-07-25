@@ -48,16 +48,18 @@ struct _TrackerCrawlerClass {
 	GObjectClass           parent;
 };
 
-GType           tracker_crawler_get_type (void);
-TrackerCrawler *tracker_crawler_new      (TrackerConfig  *config,
-					  TrackerHal     *hal,
-					  const gchar    *module_name);
-gboolean        tracker_crawler_start    (TrackerCrawler *crawler);
-void            tracker_crawler_stop     (TrackerCrawler *crawler);
+GType           tracker_crawler_get_type             (void);
+TrackerCrawler *tracker_crawler_new                  (TrackerConfig  *config,
+						      TrackerHal     *hal,
+						      const gchar    *module_name);
+gboolean        tracker_crawler_start                (TrackerCrawler *crawler);
+void            tracker_crawler_stop                 (TrackerCrawler *crawler);
 
 /* Convenience API for old .cfg file */
-void            tracker_crawler_add      (TrackerCrawler *crawler,
-					  const gchar    *path);
+void            tracker_crawler_add_path             (TrackerCrawler *crawler,
+						      const gchar    *path);
+void            tracker_crawler_set_use_module_paths (TrackerCrawler *crawler,
+						      gboolean        use_paths);
 
 G_END_DECLS
 

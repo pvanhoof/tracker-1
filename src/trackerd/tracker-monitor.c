@@ -394,6 +394,9 @@ monitor_event_cb (GFileMonitor      *file_monitor,
 		break;
 
 	case G_FILE_MONITOR_EVENT_PRE_UNMOUNT:
+		g_signal_emit (monitor, signals[ITEM_DELETED], 0, module_name, file);
+		break;
+
 	case G_FILE_MONITOR_EVENT_UNMOUNTED:
 		/* Do nothing */
 		break;

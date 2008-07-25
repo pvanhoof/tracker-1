@@ -77,9 +77,12 @@ struct TrackerProcessorPrivate {
 	/* Status */
 	GList          *modules;
 	GList          *current_module;
+	gboolean        iterated_modules;
+	gboolean        iterated_removable_media;
 
 	GTimer         *timer;
 
+	gboolean        interrupted; 
 	gboolean        finished;
 
 	/* Statistics */
@@ -99,7 +102,7 @@ enum {
 
 static void tracker_processor_finalize      (GObject          *object);
 static void item_queue_destroy_notify       (gpointer          data);
-static void process_next_module             (TrackerProcessor *processor);
+static void process_module_next             (TrackerProcessor *processor);
 static void indexer_status_cb               (DBusGProxy       *proxy,
 					     gdouble           seconds_elapsed,
 					     const gchar      *current_module_name,
@@ -294,6 +297,109 @@ tracker_processor_finalize (GObject *object)
 	g_object_unref (priv->config);
 
 	G_OBJECT_CLASS (tracker_processor_parent_class)->finalize (object);
+}
+
+
+static void
+get_remote_roots (TrackerProcessor  *processor,
+		  GSList           **mounted_directory_roots,
+		  GSList           **removable_device_roots)
+{
+	TrackerProcessorPrivate *priv;
+        GSList                  *l1;
+        GSList                  *l2;
+
+	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
+
+#ifdef HAVE_HAL
+        l1 = tracker_hal_get_mounted_directory_roots (priv->hal);
+        l2 = tracker_hal_get_removable_device_roots (priv->hal);
+#else  /* HAVE_HAL */
+	l1 = NULL;
+	l2 = NULL;
+#endif /* HAVE_HAL */
+
+        /* The options to index removable media and the index mounted
+         * directories are both mutually exclusive even though
+         * removable media is mounted on a directory.
+         *
+         * Since we get ALL mounted directories from HAL, we need to
+         * remove those which are removable device roots.
+         */
+        if (l2) {
+                GSList *l;
+                GSList *list = NULL;
+
+                for (l = l1; l; l = l->next) {
+                        if (g_slist_find_custom (l2, l->data, (GCompareFunc) strcmp)) {
+                                continue;
+                        }
+
+                        list = g_slist_prepend (list, l->data);
+                }
+
+                *mounted_directory_roots = g_slist_reverse (list);
+        } else {
+                *mounted_directory_roots = NULL;
+        }
+
+        *removable_device_roots = g_slist_copy (l2);
+}
+
+static gboolean
+path_should_be_ignored_for_media (TrackerProcessor *processor,
+				  const gchar      *path)
+{
+	TrackerProcessorPrivate *priv;
+        GSList                  *roots = NULL;
+        GSList                  *mounted_directory_roots = NULL;
+        GSList                  *removable_device_roots = NULL;
+	GSList                  *l;
+        gboolean                 ignore_mounted_directories;
+        gboolean                 ignore_removable_devices;
+        gboolean                 ignore = FALSE;
+
+	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
+
+        ignore_mounted_directories =
+		!tracker_config_get_index_mounted_directories (priv->config);
+        ignore_removable_devices =
+		!tracker_config_get_index_removable_devices (priv->config);
+
+        if (ignore_mounted_directories || ignore_removable_devices) {
+                get_remote_roots (processor,
+				  &mounted_directory_roots,
+				  &removable_device_roots);
+        }
+
+        if (ignore_mounted_directories) {
+                roots = g_slist_concat (roots, mounted_directory_roots);
+        }
+
+        if (ignore_removable_devices) {
+                roots = g_slist_concat (roots, removable_device_roots);
+        }
+
+	for (l = roots; l && !ignore; l = l->next) {
+		/* If path matches a mounted or removable device by
+		 * prefix then we should ignore it since we don't
+		 * crawl those by choice in the config.
+		 */
+		if (strcmp (path, l->data) == 0) {
+			ignore = TRUE;
+		}
+
+		/* FIXME: Should we add a DIR_SEPARATOR on the end of
+		 * these before comparing them?
+		 */
+		if (g_str_has_prefix (path, l->data)) {
+			ignore = TRUE;
+		}
+	}
+
+        g_slist_free (roots);
+
+	return ignore;
 }
 
 static GQueue *
@@ -515,20 +621,121 @@ item_queue_handlers_set_up (TrackerProcessor *processor)
 }
 
 static void
+process_module_files_add_removable_media (TrackerProcessor *processor) 
+{
+	TrackerProcessorPrivate *priv;
+	GSList                  *roots;
+	GSList                  *l;
+
+	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
+
+#ifdef HAVE_HAL 
+	roots = tracker_hal_get_removable_device_roots (priv->hal);
+#else  /* HAVE_HAL */
+	roots = NULL;
+#endif /* HAVE_HAL */
+
+	g_message ("  Removable media monitors being added:");
+
+	for (l = roots; l; l = l->next) {
+		GFile *file;
+
+		/* This is dreadfully inefficient */
+		if (path_should_be_ignored_for_media (processor, l->data)) {
+			g_message ("    %s (ignored due to config)", (gchar*) l->data);
+			continue;
+		}
+		
+		g_message ("    %s", (gchar*) l->data);
+		
+		file = g_file_new_for_path (l->data);
+		tracker_monitor_add (priv->monitor, "files", file);
+		g_object_unref (file);
+	}
+
+	if (g_slist_length (roots) == 0) {
+		g_message ("    NONE");
+	}
+
+	g_message ("  Removable media crawls being added:");
+
+	for (l = roots; l; l = l->next) {
+		/* This is dreadfully inefficient */
+		if (path_should_be_ignored_for_media (processor, l->data)) {
+			g_message ("    %s (ignored due to config)", (gchar*) l->data);
+			continue;
+		}
+		
+		g_message ("    %s", (gchar*) l->data);
+		tracker_crawler_add_path (priv->crawler, l->data);
+	}
+
+	if (g_slist_length (roots) == 0) {
+		g_message ("    NONE");
+	}
+
+	tracker_crawler_set_use_module_paths (priv->crawler, FALSE);
+}
+
+static void
+process_module_files_add_legacy_options (TrackerProcessor *processor) 
+{
+	TrackerProcessorPrivate *priv;
+	GSList                  *roots;
+	GSList                  *l;
+
+	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
+
+	/* This module get special treatment to make sure legacy
+	 * options are supported.
+	 */
+	g_message ("  User monitors being added:");
+	roots = tracker_config_get_watch_directory_roots (priv->config);
+	for (l = roots; l; l = l->next) {
+		GFile *file;
+		
+		g_message ("    %s", (gchar*) l->data);
+		
+		file = g_file_new_for_path (l->data);
+		tracker_monitor_add (priv->monitor, "files", file);
+		g_object_unref (file);
+	}
+
+	if (g_slist_length (roots) == 0) {
+		g_message ("    NONE");
+	}
+	
+	g_message ("  User crawls being added:");
+	roots = tracker_config_get_crawl_directory_roots (priv->config);
+	for (l = roots; l; l = l->next) {
+		g_message ("    %s", (gchar*) l->data);
+		
+		tracker_crawler_add_path (priv->crawler, l->data);		
+	}
+
+	if (g_slist_length (roots) == 0) {
+		g_message ("    NONE");
+	}
+}
+
+static void
 process_module (TrackerProcessor *processor,
-		const gchar      *module_name)
+		const gchar      *module_name,
+		gboolean          is_removable_media)
 {
 	TrackerProcessorPrivate *priv;
 	GSList                  *disabled_modules;
 
 	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
 
-	g_message ("Processing module:'%s'", module_name);
+	g_message ("Processing module:'%s' %s",
+		   module_name,
+		   is_removable_media ? "(for removable media)" : "");
 
 	/* Check it is enabled */
 	if (!tracker_module_config_get_enabled (module_name)) {
 		g_message ("  Module disabled");
-		process_next_module (processor);
+		process_module_next (processor);
 		return;
 	}
 
@@ -536,7 +743,7 @@ process_module (TrackerProcessor *processor,
 	disabled_modules = tracker_config_get_disabled_modules (priv->config);
 	if (g_slist_find_custom (disabled_modules, module_name, (GCompareFunc) strcmp)) {
 		g_message ("  Module disabled by user");
-		process_next_module (processor);
+		process_module_next (processor);
 		return;
 	}
 
@@ -544,30 +751,12 @@ process_module (TrackerProcessor *processor,
 	tracker_status_set_and_signal (TRACKER_STATUS_WATCHING);
 
 	if (strcmp (module_name, "files") == 0) {
-		GSList *roots;
-		GSList *l;
-
-		g_message ("  User monitors being added");
-		
-		roots = tracker_config_get_watch_directory_roots (priv->config);
-		for (l = roots; l; l = l->next) {
-			GFile *file;
-			
-			g_message ("    %s", (gchar*) l->data);
-			
-			file = g_file_new_for_path (l->data);
-			tracker_monitor_add (priv->monitor, module_name, file);
-			g_object_unref (file);
+		if (is_removable_media) {
+			process_module_files_add_removable_media (processor);
+		} else {
+			process_module_files_add_legacy_options (processor);
 		}
-
-		g_message ("  User crawls being added");
-		roots = tracker_config_get_crawl_directory_roots (priv->config);
-		for (l = roots; l; l = l->next) {
-			g_message ("    %s", (gchar*) l->data);
-		
-			tracker_crawler_add (priv->crawler, l->data);		
-		}
-	}
+	} 
 	
 	/* Gets all files and directories */
 	tracker_status_set_and_signal (TRACKER_STATUS_PENDING);
@@ -576,65 +765,108 @@ process_module (TrackerProcessor *processor,
 		/* If there is nothing to crawl, we are done, process
 		 * the next module.
 		 */
-		process_next_module (processor);
-		return;
+		process_module_next (processor);
 	}
-
-	/* Do soemthing else? */
 }
 
 static void
-process_next_module (TrackerProcessor *processor)
+process_module_create_crawler (TrackerProcessor *processor,
+			       const gchar      *module_name)
 {
 	TrackerProcessorPrivate *priv;
+	TrackerCrawler          *crawler;
+
+	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
+
+	crawler = tracker_crawler_new (priv->config,
+				       priv->hal,
+				       module_name);
+
+	g_signal_connect (crawler, "processing-file",
+			  G_CALLBACK (crawler_processing_file_cb),
+			  processor);
+	g_signal_connect (crawler, "processing-directory",
+			  G_CALLBACK (crawler_processing_directory_cb),
+			  processor);
+	g_signal_connect (crawler, "finished",
+			  G_CALLBACK (crawler_finished_cb),
+			  processor);
+
+	priv->crawler = crawler;
+}
+
+static void
+process_module_free_crawler (TrackerProcessor *processor)
+{
+	TrackerProcessorPrivate *priv;
+	TrackerCrawler          *crawler;
+
+	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
+
+	crawler = priv->crawler;
+	priv->crawler = NULL;
+
+	if (crawler) {
+		g_signal_handlers_disconnect_by_func (crawler,
+						      G_CALLBACK (crawler_processing_file_cb),
+						      processor);
+		g_signal_handlers_disconnect_by_func (crawler,
+						      G_CALLBACK (crawler_processing_directory_cb),
+						      processor);
+		g_signal_handlers_disconnect_by_func (crawler,
+						      G_CALLBACK (crawler_finished_cb),
+						      processor);
+
+		g_object_unref (crawler);
+	}
+}
+
+static void
+process_module_next (TrackerProcessor *processor)
+{
+	TrackerProcessorPrivate *priv;
+	const gchar             *module_name;
 
 	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
 
 	/* Clean up last module's work */
-	if (priv->crawler) {
-		g_signal_handlers_disconnect_by_func (priv->crawler,
-						      G_CALLBACK (crawler_processing_file_cb),
-						      processor);
-		g_signal_handlers_disconnect_by_func (priv->crawler,
-						      G_CALLBACK (crawler_processing_directory_cb),
-						      processor);
-		g_signal_handlers_disconnect_by_func (priv->crawler,
-						      G_CALLBACK (crawler_finished_cb),
-						      processor);
+	process_module_free_crawler (processor);
 
-		g_object_unref (priv->crawler);
-		priv->crawler = NULL;
-	}
-
+	/* Don't recursively iterate the modules if this function is
+	 * called, check first.
+	 */
 	if (!priv->current_module) {
-		priv->current_module = priv->modules;
+		if (!priv->iterated_modules) {
+			priv->current_module = priv->modules;
+		}
 	} else {
 		priv->current_module = priv->current_module->next;
 	}
 
 	/* If we have no further modules to iterate */
 	if (!priv->current_module) {
-		priv->finished = TRUE;
-		tracker_processor_stop (processor);
-		return;
+		priv->iterated_modules = TRUE;
+
+		/* If we have no more modules but some removable media
+		 * was added during the initial crawl, we then make
+		 * sure we crawl the new removable media too.
+		 */
+		if (priv->iterated_removable_media) {
+			priv->interrupted = FALSE;
+			tracker_processor_stop (processor);
+			return;
+		}
+
+		/* We use this for removable media */
+		module_name = "files";
+		priv->iterated_removable_media = TRUE;
+	} else {
+		module_name = priv->current_module->data;
 	}
 	
 	/* Set up new crawler for new module */
-	priv->crawler = tracker_crawler_new (priv->config,
-					     priv->hal,
-					     priv->current_module->data);
-
-	g_signal_connect (priv->crawler, "processing-file",
-			  G_CALLBACK (crawler_processing_file_cb),
-			  processor);
-	g_signal_connect (priv->crawler, "processing-directory",
-			  G_CALLBACK (crawler_processing_directory_cb),
-			  processor);
-	g_signal_connect (priv->crawler, "finished",
-			  G_CALLBACK (crawler_finished_cb),
-			  processor);
-
-	process_module (processor, priv->current_module->data);
+	process_module_create_crawler (processor, module_name);
+	process_module (processor, module_name, priv->iterated_removable_media);
 }
 
 static void
@@ -730,6 +962,7 @@ indexer_finished_cb (DBusGProxy  *proxy,
 	tracker_status_set_and_signal (TRACKER_STATUS_IDLE);
 
 	/* Signal the processor is now finished */
+	priv->finished = TRUE;
 	g_signal_emit (processor, signals[FINISHED], 0);
 }
 
@@ -846,7 +1079,7 @@ crawler_finished_cb (TrackerCrawler *crawler,
 	priv->files_ignored += files_ignored;
 
 	/* Proceed to next module */
-	process_next_module (processor);
+	process_module_next (processor);
 }
 
 #ifdef HAVE_HAL
@@ -856,11 +1089,28 @@ mount_point_added_cb (TrackerHal  *hal,
 		      const gchar *mount_point,
 		      gpointer     user_data)
 {
+	TrackerProcessor        *processor;
+	TrackerProcessorPrivate *priv;
+	TrackerStatus            status;
+
+	processor = TRACKER_PROCESSOR (user_data);
+	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
+
         g_message ("** TRAWLING THROUGH NEW MOUNT POINT:'%s'", mount_point);
 
-        /* list = g_slist_prepend (NULL, (gchar*) mount_point); */
-        /* process_directory_list (list, TRUE, iface); */
-        /* g_slist_free (list); */
+	status = tracker_status_get ();
+
+	priv->iterated_removable_media = FALSE;
+
+	if (status == TRACKER_STATUS_INDEXING ||
+	    status == TRACKER_STATUS_OPTIMIZING ||
+	    status == TRACKER_STATUS_IDLE) {
+		/* If we are indexing then we must have already
+		 * crawled all locations so we need to start up the
+		 * processor again for the removable media once more. 
+		 */
+		process_module_next (processor);
+	}
 }
 
 static void
@@ -868,9 +1118,17 @@ mount_point_removed_cb (TrackerHal  *hal,
 			const gchar *mount_point,
 			gpointer     user_data)
 {
+	TrackerProcessorPrivate *priv;
+	GFile                   *file;
+
+	priv = TRACKER_PROCESSOR_GET_PRIVATE (user_data);
+
         g_message ("** CLEANING UP OLD MOUNT POINT:'%s'", mount_point);
 
-        /* process_index_delete_directory_check (mount_point, iface);  */
+	/* Remove the monitor? */
+	file = g_file_new_for_path (mount_point);
+	tracker_monitor_remove (priv->monitor, "files", file);
+	g_object_unref (file);
 }
 
 #endif /* HAVE_HAL */
@@ -956,9 +1214,9 @@ tracker_processor_start (TrackerProcessor *processor)
 
 	priv->timer = g_timer_new ();
 
-	priv->finished = FALSE;
+	priv->interrupted = TRUE;
 
-	process_next_module (processor);
+	process_module_next (processor);
 }
 
 void
@@ -970,7 +1228,7 @@ tracker_processor_stop (TrackerProcessor *processor)
 
 	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
 
-	if (!priv->finished) {
+	if (priv->interrupted) {
 		tracker_crawler_stop (priv->crawler);
 	}
 
@@ -994,13 +1252,14 @@ tracker_processor_stop (TrackerProcessor *processor)
 	 * we are currently in the process of sending files to the
 	 * indexer and we set the state to INDEXING
 	 */
-	if (!priv->finished) {
+	if (priv->interrupted) {
 		/* Do we even need this step optimizing ? */
 		tracker_status_set_and_signal (TRACKER_STATUS_OPTIMIZING);
 
 		/* All done */
 		tracker_status_set_and_signal (TRACKER_STATUS_IDLE);
 
+		priv->finished = TRUE;
 		g_signal_emit (processor, signals[FINISHED], 0);
 	} else {
 		/* Now we try to send all items to the indexer */

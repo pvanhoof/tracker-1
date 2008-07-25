@@ -782,9 +782,13 @@ hal_device_property_modified_cb (LibHalContext *context,
                                                               &error);
 
                 if (dbus_error_is_set (&error)) {
-                        g_critical ("Could not get device property:'%s' for udi:'%s', %s",
-				    udi, key, error.message);
+                        g_message ("Could not get device property:'%s' for udi:'%s', %s",
+				   udi, key, error.message);
                         dbus_error_free (&error);
+
+                        g_message ("HAL device with udi:'%s' is now unmounted (due to error)",
+				   udi);
+                        hal_mount_point_remove (hal, udi);
                         return;
                 }
                        
@@ -798,7 +802,7 @@ hal_device_property_modified_cb (LibHalContext *context,
 			device_file = libhal_volume_get_device_file (volume);
 
                         g_message ("HAL device with udi:'%s' is now mounted",
-                                     udi);
+				   udi);
 
 			hal_mount_point_add (hal, 
 					     udi, 
@@ -808,7 +812,7 @@ hal_device_property_modified_cb (LibHalContext *context,
                         libhal_volume_free (volume);
                 } else {
                         g_message ("HAL device with udi:'%s' is now unmounted",
-                                     udi);
+				   udi);
 
                         hal_mount_point_remove (hal, udi);
                 }

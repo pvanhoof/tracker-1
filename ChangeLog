@@ -1,3 +1,23 @@
+2008-07-25  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-hal.c: If we can't get the
+	property for a device that no longer exists, then don't make that
+	a critical, just set the device as unmounted and print a regular
+	message.
+	
+	* src/trackerd/tracker-crawler.[ch]: Move the removable media path
+	check to the processor since we should be filtering paths before
+	the crawler even starts. Also, make it possible to crawl special
+	locations set with the API instead of the module-config paths.
+
+	* src/trackerd/tracker-monitor.c: (monitor_event_cb): On unmount,
+	tell the indexer that the directories has gone. Not sure yet if
+	the indexer will be clever enough to remove all files below it.
+	
+	* src/trackerd/tracker-processor.c: Handle removable media now.
+	This work is working on a basic level, there are some issues still
+	to be ironed out.
+
 2008-07-24  Carlos Garnacho  <carlos@imendio.com>
 
 	* data/modules/files.module: Remove service type, so the indexer uses

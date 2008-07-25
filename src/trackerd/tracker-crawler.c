@@ -57,6 +57,9 @@ struct _TrackerCrawlerPrivate {
 	/* Idle handler for processing found data */
 	guint           idle_id;
 
+	/* Options */
+	gboolean        use_module_paths;
+
 	/* Actual paths that exist which we are crawling */
 	GSList         *paths;
 	GSList         *current_path;
@@ -252,109 +255,18 @@ tracker_crawler_new (TrackerConfig *config,
 	crawler->private->index_file_patterns =
 		tracker_module_config_get_index_file_patterns (module_name);
 
+	/* Should we use module config paths? If true, when we
+	 * _start() the module config paths are used to import paths
+	 * to crawl. By default this is TRUE.
+	 */
+	crawler->private->use_module_paths = TRUE;
+
 	return crawler;
 }
 
 /*
  * Functions
  */
-
-static void
-get_remote_roots (TrackerCrawler  *crawler,
-		  GSList         **mounted_directory_roots,
-		  GSList         **removable_device_roots)
-{
-        GSList *l1 = NULL;
-        GSList *l2 = NULL;
-
-	/* FIXME: Shouldn't we keep this static for a period of time
-	 * so we make this process faster?
-	 */
-
-#ifdef HAVE_HAL
-        l1 = tracker_hal_get_mounted_directory_roots (crawler->private->hal);
-        l2 = tracker_hal_get_removable_device_roots (crawler->private->hal);
-#endif /* HAVE_HAL */
-
-        /* The options to index removable media and the index mounted
-         * directories are both mutually exclusive even though
-         * removable media is mounted on a directory.
-         *
-         * Since we get ALL mounted directories from HAL, we need to
-         * remove those which are removable device roots.
-         */
-        if (l2) {
-                GSList *l;
-                GSList *list = NULL;
-
-                for (l = l1; l; l = l->next) {
-                        if (g_slist_find_custom (l2, l->data, (GCompareFunc) strcmp)) {
-                                continue;
-                        }
-
-                        list = g_slist_prepend (list, l->data);
-                }
-
-                *mounted_directory_roots = g_slist_reverse (list);
-        } else {
-                *mounted_directory_roots = NULL;
-        }
-
-        *removable_device_roots = g_slist_copy (l2);
-}
-
-static gboolean
-path_should_be_ignored_for_media (TrackerCrawler *crawler,
-				  const gchar    *path)
-{
-        GSList   *roots = NULL;
-        GSList   *mounted_directory_roots = NULL;
-        GSList   *removable_device_roots = NULL;
-	GSList   *l;
-        gboolean  ignore_mounted_directories;
-        gboolean  ignore_removable_devices;
-        gboolean  ignore = FALSE;
-
-        ignore_mounted_directories =
-		!tracker_config_get_index_mounted_directories (crawler->private->config);
-        ignore_removable_devices =
-		!tracker_config_get_index_removable_devices (crawler->private->config);
-
-        if (ignore_mounted_directories || ignore_removable_devices) {
-                get_remote_roots (crawler,
-				  &mounted_directory_roots,
-				  &removable_device_roots);
-        }
-
-        if (ignore_mounted_directories) {
-                roots = g_slist_concat (roots, mounted_directory_roots);
-        }
-
-        if (ignore_removable_devices) {
-                roots = g_slist_concat (roots, removable_device_roots);
-        }
-
-	for (l = roots; l && !ignore; l = l->next) {
-		/* If path matches a mounted or removable device by
-		 * prefix then we should ignore it since we don't
-		 * crawl those by choice in the config.
-		 */
-		if (strcmp (path, l->data) == 0) {
-			ignore = TRUE;
-		}
-
-		/* FIXME: Should we add a DIR_SEPARATOR on the end of
-		 * these before comparing them?
-		 */
-		if (g_str_has_prefix (path, l->data)) {
-			ignore = TRUE;
-		}
-	}
-
-        g_slist_free (roots);
-
-	return ignore;
-}
 
 static gboolean
 path_should_be_ignored (TrackerCrawler *crawler,
@@ -415,11 +327,6 @@ path_should_be_ignored (TrackerCrawler *crawler,
 				goto done;
 			}
 		}
-	}
-
-	/* Should we crawl mounted or removable media */
-	if (path_should_be_ignored_for_media (crawler, path)) {
-		goto done;
 	}
 
         ignore = FALSE;
@@ -774,61 +681,65 @@ tracker_crawler_start (TrackerCrawler *crawler)
 	g_message ("Crawling directories for module:'%s'",
 		   crawler->private->module_name);
 
-	recurse_directories =
-		tracker_module_config_get_monitor_recurse_directories (priv->module_name);
-	directories =
-		tracker_module_config_get_monitor_directories (priv->module_name);
-
-	if (recurse_directories || directories) {
-		/* First we do non-recursive directories */
-		for (l = directories; l; l = l->next) {
-			path = l->data;
-			
-			/* Check location exists before we do anything */
-			file = g_file_new_for_path (path);
-			exists = g_file_query_exists (file, NULL);
-			
-			if (!exists) {
-				g_message ("  Directory:'%s' does not exist",
+	if (priv->use_module_paths) {
+		recurse_directories =
+			tracker_module_config_get_monitor_recurse_directories (priv->module_name);
+		directories =
+			tracker_module_config_get_monitor_directories (priv->module_name);
+		
+		if (recurse_directories || directories) {
+			/* First we do non-recursive directories */
+			for (l = directories; l; l = l->next) {
+				path = l->data;
+				
+				/* Check location exists before we do anything */
+				file = g_file_new_for_path (path);
+				exists = g_file_query_exists (file, NULL);
+				
+				if (!exists) {
+					g_message ("  Directory:'%s' does not exist",
+						   path);
+					g_object_unref (file);
+					continue;
+				}
+				
+				g_message ("  Directory:'%s' added to list to crawl",
 					   path);
+				
+				priv->paths = g_slist_append (priv->paths, g_strdup (l->data));
 				g_object_unref (file);
-				continue;
 			}
 			
-			g_message ("  Directory:'%s' added to list to crawl",
-				   path);
+			g_list_free (directories);
 			
-			priv->paths = g_slist_append (priv->paths, g_strdup (l->data));
-			g_object_unref (file);
-		}
-		
-		g_list_free (directories);
-		
-		/* Second we do recursive directories */
-		for (l = recurse_directories; l; l = l->next) {
-			path = l->data;
-			
-			/* Check location exists before we do anything */
-			file = g_file_new_for_path (path);
-			exists = g_file_query_exists (file, NULL);
-			
-			if (!exists) {
-				g_message ("  Directory:'%s' does not exist",
+			/* Second we do recursive directories */
+			for (l = recurse_directories; l; l = l->next) {
+				path = l->data;
+				
+				/* Check location exists before we do anything */
+				file = g_file_new_for_path (path);
+				exists = g_file_query_exists (file, NULL);
+				
+				if (!exists) {
+					g_message ("  Directory:'%s' does not exist",
+						   path);
+					g_object_unref (file);
+					continue;
+				}
+				
+				g_message ("  Directory:'%s' added to list to crawl (recursively)",
 					   path);
+				
+				priv->recurse_paths = g_slist_append (priv->recurse_paths, g_strdup (l->data));
 				g_object_unref (file);
-				continue;
 			}
 			
-			g_message ("  Directory:'%s' added to list to crawl (recursively)",
-				   path);
-			
-			priv->recurse_paths = g_slist_append (priv->recurse_paths, g_strdup (l->data));
-			g_object_unref (file);
+			g_list_free (recurse_directories);
+		} else {
+			g_message ("  No directories from module config");
 		}
-		
-		g_list_free (recurse_directories);
 	} else {
-		g_message ("  No directories from module config");
+		g_message ("  Not using module config paths, using special paths added");
 	}
 
 	if (!priv->paths && !priv->recurse_paths) {
@@ -910,8 +821,8 @@ tracker_crawler_stop (TrackerCrawler *crawler)
  * "Files" module, for example.
  */
 void
-tracker_crawler_add (TrackerCrawler *crawler,
-		     const gchar    *path)
+tracker_crawler_add_path (TrackerCrawler *crawler,
+			  const gchar    *path)
 {
 	TrackerCrawlerPrivate *priv;
 
@@ -923,4 +834,17 @@ tracker_crawler_add (TrackerCrawler *crawler,
 	g_return_if_fail (priv->running == FALSE);
 
 	priv->recurse_paths = g_slist_append (priv->recurse_paths, g_strdup (path));
+}
+
+void
+tracker_crawler_set_use_module_paths (TrackerCrawler *crawler,
+				      gboolean        use_paths)
+{
+	TrackerCrawlerPrivate *priv;
+
+	g_return_if_fail (TRACKER_IS_CRAWLER (crawler));
+
+	priv = crawler->private;
+
+	priv->use_module_paths = use_paths;
 }

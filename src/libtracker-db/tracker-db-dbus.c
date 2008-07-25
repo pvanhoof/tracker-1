@@ -36,6 +36,9 @@ tracker_dbus_query_result_to_strv (TrackerDBResultSet *result_set,
 		gchar    *str;
 		gboolean  valid = TRUE;
 
+		/* Make sure we rewind before iterating the result set */
+		tracker_db_result_set_rewind (result_set);
+
                 rows = tracker_db_result_set_get_n_rows (result_set);
 		strv = g_new (gchar*, rows + 1);
 		
@@ -83,6 +86,11 @@ tracker_dbus_query_result_to_hash_table (TrackerDBResultSet *result_set)
 
 	if (result_set) {
 		valid = TRUE;
+
+		/* Make sure we rewind before iterating the result set */
+		tracker_db_result_set_rewind (result_set);
+
+		/* Find out how many columns to iterate */
 		field_count = tracker_db_result_set_get_n_columns (result_set);
 	}
 
@@ -145,6 +153,11 @@ tracker_dbus_query_result_to_ptr_array (TrackerDBResultSet *result_set)
 
 	if (result_set) {
 		valid = TRUE;
+
+		/* Make sure we rewind before iterating the result set */
+		tracker_db_result_set_rewind (result_set);
+
+		/* Find out how many columns to iterate */
 		columns = tracker_db_result_set_get_n_columns (result_set);
 	}
 

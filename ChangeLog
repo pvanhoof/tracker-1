@@ -1,5 +1,15 @@
 2008-07-25  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-db/tracker-db-dbus.c:
+	(tracker_dbus_query_result_to_ptr_array): Make sure we rewind
+	result sets before trying to create GStrv, GPtrArray or GHashTable
+	pointers from them. This means the tracker-search-tool now shows a
+	list of categories with the indexed count next to them - still not
+	sure why the content is not listed but the service types are all
+	wrong. 
+
+2008-07-25  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-db.c: Finding a dud hit is no longer a
 	warning, just a regular message.
 	

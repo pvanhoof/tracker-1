@@ -277,7 +277,7 @@ tracker_query_tree_get_property (GObject      *object,
 
 TrackerQueryTree *
 tracker_query_tree_new (const gchar     *query_str,
-			TrackerIndex  *index,
+			TrackerIndex    *index,
                         TrackerConfig   *config,
                         TrackerLanguage *language,
 			GArray          *services)

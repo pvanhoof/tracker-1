@@ -884,7 +884,7 @@ tracker_db_search_text (TrackerDBInterface *iface,
 			g_free (path);
 			g_object_unref (result_set);
 		} else {
-			g_warning ("Dud hit for search detected");
+			g_message ("Dud hit for search detected");
 			duds = g_slist_prepend (duds, &hit);
 		}
 	}

@@ -1,5 +1,20 @@
 2008-07-25  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-db.c: Finding a dud hit is no longer a
+	warning, just a regular message.
+	
+	* src/trackerd/tracker-index-manager.c: Reworked the way we get
+	indexes so we remember them to avoid creating too many
+	TrackerIndex objects. Also fixed a nasty bug here which was
+	getting one for EVERY time the status callback was triggered by
+	the indexer :O
+	
+	* src/trackerd/tracker-index.c: Cleaned up the code a bit and put
+	some more locking in place. This is redundant for now since we
+	don't have a multithreaded approach at the moment. 
+
+2008-07-25  Martyn Russell  <martyn@imendio.com>
+
 	* tests/trackerd/Makefile.am:
 	* tests/trackerd/tracker-index-test.c:
 	(test_created_file_in_the_mean_time): Fixed compilation errors.

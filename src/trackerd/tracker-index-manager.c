@@ -1,6 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
- * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2008, Nokia
  *
  * This library is free software; you can redistribute it and/or
@@ -38,10 +37,11 @@
 
 #define MAX_INDEX_FILE_SIZE 2000000000
 
-static gboolean  initialized;
-static gint      index_manager_min_bucket;
-static gint      index_manager_max_bucket;
-static gchar    *index_manager_data_dir;
+static gboolean      initialized;
+static TrackerIndex *indexes[] = { NULL, NULL, NULL };
+static gint          index_manager_min_bucket;
+static gint          index_manager_max_bucket;
+static gchar        *index_manager_data_dir;
 
 static const gchar *
 get_index_name (TrackerIndexType index) 
@@ -64,7 +64,7 @@ get_index_name (TrackerIndexType index)
 }
 
 static gboolean
-initialize_indexs (void)
+initialize_indexes (void)
 {
 	gchar *final_index_name;
 
@@ -130,12 +130,14 @@ tracker_index_manager_init (const gchar *data_dir,
 
         initialized = TRUE;
 
-        return initialize_indexs ();
+        return initialize_indexes ();
 }
 
 void
 tracker_index_manager_shutdown (void)
 {
+	guint i;
+
         if (!initialized) {
                 return;
         }
@@ -143,23 +145,30 @@ tracker_index_manager_shutdown (void)
         g_free (index_manager_data_dir);
         index_manager_data_dir = NULL;
 
+	for (i = 0; i < G_N_ELEMENTS (indexes); i++) {
+		g_object_unref (indexes[i]);
+		indexes[i] = NULL;
+	}
+
         initialized = FALSE;
 }
 
 TrackerIndex * 
 tracker_index_manager_get_index (TrackerIndexType type)
 {
-        TrackerIndex *index;
-        gchar        *filename;
+        gchar *filename;
+
+	if (indexes[type]) {
+		return indexes[type];
+	}
 
         filename = tracker_index_manager_get_filename (type);
-
-        index = tracker_index_new (filename,
-                                   index_manager_min_bucket, 
-                                   index_manager_max_bucket);
+        indexes[type] = tracker_index_new (filename,
+					   index_manager_min_bucket, 
+					   index_manager_max_bucket);
         g_free (filename);
 
-        return index;
+        return indexes[type];
 }
 
 gchar *

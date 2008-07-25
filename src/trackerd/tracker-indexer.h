@@ -50,26 +50,30 @@ struct TrackerIndexerClass {
 };
 
 
-GType                      tracker_indexer_get_type                      (void);
-TrackerIndexer *           tracker_indexer_new                           (const gchar               *name,
-									  gint                       min_bucket,
-									  gint                       max_bucket);
-void                       tracker_indexer_set_name                      (TrackerIndexer            *indexer,
-									  const gchar               *name);
-void                       tracker_indexer_set_min_bucket                (TrackerIndexer            *indexer,
-									  gint                       min_bucket);
-void                       tracker_indexer_set_max_bucket                (TrackerIndexer            *indexer,
-									  gint                       max_bucket);
-guint32                    tracker_indexer_get_size                      (TrackerIndexer            *indexer);
-char *                     tracker_indexer_get_suggestion                (TrackerIndexer            *indexer,
-									  const gchar               *term,
-									  gint                       maxdist);
-TrackerIndexItem *         tracker_indexer_get_word_hits                 (TrackerIndexer            *indexer,
-									  const gchar               *word,
-									  guint                     *count);
-gboolean                   tracker_indexer_remove_dud_hits               (TrackerIndexer            *indexer,
-									  const gchar               *word,
-									  GSList                    *dud_list);
+GType             tracker_indexer_get_type        (void);
+TrackerIndexer *  tracker_indexer_new             (const gchar    *name,
+						   gint            min_bucket,
+						   gint            max_bucket);
+void              tracker_indexer_set_name        (TrackerIndexer *indexer,
+						   const gchar    *name);
+void              tracker_indexer_set_min_bucket  (TrackerIndexer *indexer,
+						   gint            min_bucket);
+void              tracker_indexer_set_max_bucket  (TrackerIndexer *indexer,
+						   gint            max_bucket);
+void              tracker_indexer_set_reload      (TrackerIndexer *indexer,
+						   gboolean        reload);
+gboolean          tracker_indexer_get_reload      (TrackerIndexer *indexer);
+guint32           tracker_indexer_get_size        (TrackerIndexer *indexer);
+char *            tracker_indexer_get_suggestion  (TrackerIndexer *indexer,
+						   const gchar    *term,
+						   gint            maxdist);
+TrackerIndexItem *tracker_indexer_get_word_hits   (TrackerIndexer *indexer,
+						   const gchar    *word,
+						   guint          *count);
+gboolean          tracker_indexer_remove_dud_hits (TrackerIndexer *indexer,
+						   const gchar    *word,
+						   GSList         *dud_list);
+
 
 G_END_DECLS
 

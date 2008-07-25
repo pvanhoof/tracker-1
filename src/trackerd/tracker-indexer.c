@@ -56,6 +56,8 @@ struct TrackerIndexerPrivate {
 	gchar         *name;
 	guint          min_bucket;
         guint          max_bucket;
+	
+	gboolean       reload;
 };
 
 static void tracker_indexer_class_init   (TrackerIndexerClass *class);
@@ -74,7 +76,8 @@ enum {
 	PROP_0,
 	PROP_NAME,
         PROP_MIN_BUCKET,
-	PROP_MAX_BUCKET
+	PROP_MAX_BUCKET,
+	PROP_RELOAD
 };
 
 G_DEFINE_TYPE (TrackerIndexer, tracker_indexer, G_TYPE_OBJECT)
@@ -114,6 +117,16 @@ tracker_indexer_class_init (TrackerIndexerClass *klass)
 							   1000000, /* FIXME MAX_GUINT ?? */
 							   0,
 							   G_PARAM_READWRITE));
+	g_object_class_install_property (object_class,
+					 PROP_RELOAD,
+					 g_param_spec_int ("reload",
+							   "Reload the index file before read",
+							   "Reload the index file before read",
+							   0,
+							   1000000, /* FIXME MAX_GUINT ?? */
+							   0,
+							   G_PARAM_READWRITE));
+	
 	g_type_class_add_private (object_class, sizeof (TrackerIndexerPrivate));
 }
 
@@ -125,6 +138,7 @@ tracker_indexer_init (TrackerIndexer *indexer)
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
         
 	priv->word_mutex = g_mutex_new ();
+	priv->reload = TRUE;
 }
 
 static void
@@ -140,7 +154,7 @@ tracker_indexer_finalize (GObject *object)
 
         g_mutex_lock (priv->word_mutex);
 
-	if (!dpclose (priv->word_index)) {
+	if (priv->word_index && !dpclose (priv->word_index)) {
 		g_message ("Index closure has failed, %s", dperrmsg (dpecode));
 	}
 
@@ -170,6 +184,11 @@ tracker_indexer_set_property (GObject      *object,
 		tracker_indexer_set_max_bucket (TRACKER_INDEXER (object),
 						g_value_get_int (value));
 		break;
+	case PROP_RELOAD:
+		tracker_indexer_set_reload (TRACKER_INDEXER (object),
+					    g_value_get_boolean (value));
+		break;
+
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 	}
@@ -195,6 +214,10 @@ tracker_indexer_get_property (GObject      *object,
 	case PROP_MAX_BUCKET:
 		g_value_set_int (value, priv->max_bucket);
 		break;
+	case PROP_RELOAD:
+		g_value_set_boolean (value, priv->reload);
+		break;
+
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 	}
@@ -244,40 +267,84 @@ tracker_indexer_set_max_bucket (TrackerIndexer *indexer,
 }
 
 
-static inline DEPOT *
-open_index (const gchar *filename,
-            gint         min_bucket_count,
-            gint         max_bucket_count)
+void
+tracker_indexer_set_reload (TrackerIndexer *indexer,
+			    gboolean reload)
 {
-	DEPOT *word_index = NULL;
+	TrackerIndexerPrivate *priv;
 
-	g_return_val_if_fail (filename, NULL);
+	g_return_if_fail (TRACKER_IS_INDEXER (indexer));
 
-	g_message ("Opening index:'%s'", filename);
+	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
-	word_index = dpopen (filename, 
-			     DP_OWRITER | DP_OCREAT | DP_ONOLCK, /* Should be DP_OREADER!!!! */
-			     max_bucket_count);
+	priv->reload = reload;
+}
 
-	if (!word_index) {
-		g_critical ("Index was not closed properly, index:'%s', %s", 
-                            filename, 
-                            dperrmsg (dpecode));
-		g_message ("Attempting to repair...");
+gboolean
+tracker_indexer_get_reload (TrackerIndexer *indexer)
+{
+	TrackerIndexerPrivate *priv;
 
-		if (dprepair (filename)) {
-			word_index = dpopen (filename, 
-                                             DP_OWRITER | DP_OCREAT | DP_ONOLCK, /* Should be DP_OREADER!!!! */
-                                             max_bucket_count);
-		} else {
-			g_critical ("Index file is dead, it is suggested you remove "
-                                    "the indexe file:'%s' and restart trackerd",
-                                    filename);
-                        return NULL;
-		}
+	g_return_val_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
+
+	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
+
+	return priv->reload;
+}
+
+static inline gboolean
+tracker_indexer_open_index (TrackerIndexer *indexer)
+{
+	TrackerIndexerPrivate *priv = NULL;
+	gint                   bucket_count;
+        gint                   rec_count;
+
+	g_return_val_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
+
+	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
+
+	g_return_val_if_fail (priv->name, FALSE);
+
+	g_message ("Opening index:'%s'", priv->name);
+
+	priv->word_index = dpopen (priv->name, 
+				   DP_OREADER | DP_ONOLCK, 
+				   priv->max_bucket);
+
+	if (!priv->word_index) {
+		g_debug ("Index doesnt exists or was not closed properly, index:'%s', %s", 
+			 priv->name, 
+			 dperrmsg (dpecode));
+
+		if (g_file_test (priv->name, G_FILE_TEST_EXISTS)) {
+
+			if (dprepair (priv->name)) {
+				priv->word_index = dpopen (priv->name, 
+							   DP_OREADER | DP_ONOLCK, 
+							   priv->max_bucket);
+			} else {
+				g_critical ("Corrupted index file %s. Remove and restart trackerd.", 
+					    priv->name);
+			}
+		} 
 	}
 
-	return word_index;
+
+	if (priv->word_index) {
+		dpsetalign (priv->word_index, 8);
+
+		/* Re optimize database if bucket count < rec count */
+		bucket_count = dpbnum (priv->word_index);
+		rec_count = dprnum (priv->word_index);
+		
+		g_message ("Bucket count (max is %d) is %d and record count is %d", 
+			   priv->max_bucket,
+			   bucket_count, 
+			   rec_count);
+	}
+
+	return (priv->word_index != NULL);
+
 }
 
 static inline gboolean 
@@ -431,8 +498,6 @@ tracker_indexer_new (const gchar *filename,
 {
         TrackerIndexer        *indexer;
         TrackerIndexerPrivate *priv;
-	gint                   bucket_count;
-        gint                   rec_count;
 
 	indexer = g_object_new (TRACKER_TYPE_INDEXER,
 				"name", filename,
@@ -440,24 +505,35 @@ tracker_indexer_new (const gchar *filename,
 				"max-bucket", max_bucket,
                                 NULL);
 
-        priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
+	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
-	priv->word_index = open_index (filename,
-                                       min_bucket,
-                                       max_bucket);
-	dpsetalign (priv->word_index, 8);
-
-	/* Re optimize database if bucket count < rec count */
-	bucket_count = dpbnum (priv->word_index);
-	rec_count = dprnum (priv->word_index);
-
-	g_message ("Bucket count (max is %d) is %d and record count is %d", 
-                   max_bucket,
-                   bucket_count, 
-                   rec_count);
+	priv->reload = !tracker_indexer_open_index (indexer);
        
         return indexer;
 }
+
+static gboolean
+indexer_is_up_to_date (TrackerIndexer *indexer)
+{
+        TrackerIndexerPrivate *priv;
+
+        g_return_val_if_fail (TRACKER_IS_INDEXER (indexer), 0);
+
+        priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
+
+	if (priv->reload || !priv->word_index) {
+		if (priv->word_index) {
+			dpclose (priv->word_index);
+			priv->word_index = NULL;
+		}
+		priv->reload = !tracker_indexer_open_index (indexer);
+		g_message ("Reloading the index %s", priv->name);
+	}
+
+	return !priv->reload;
+
+}
+
 
 guint32
 tracker_indexer_get_size (TrackerIndexer *indexer)
@@ -467,6 +543,9 @@ tracker_indexer_get_size (TrackerIndexer *indexer)
 
         g_return_val_if_fail (TRACKER_IS_INDEXER (indexer), 0);
 
+	if (!indexer_is_up_to_date (indexer)) {
+		return 0;
+	}
         priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
         g_mutex_lock (priv->word_mutex);
@@ -491,6 +570,10 @@ tracker_indexer_get_suggestion (TrackerIndexer *indexer,
 
         g_return_val_if_fail (TRACKER_IS_INDEXER (indexer), NULL);
         g_return_val_if_fail (term != NULL, NULL);
+
+	if (!indexer_is_up_to_date (indexer)) {
+		return NULL;
+	}
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
@@ -559,6 +642,10 @@ tracker_indexer_get_word_hits (TrackerIndexer *indexer,
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 
+	if (!indexer_is_up_to_date (indexer)) {
+		return NULL;
+	}
+
 	g_mutex_lock (priv->word_mutex);
 
 	details = NULL;
@@ -582,7 +669,10 @@ tracker_indexer_get_word_hits (TrackerIndexer *indexer,
 	return details;
 }
 
-/* Use to delete dud hits for a word - dud_list is a list of
+/*
+ * UNUSED
+ *
+ *  Use to delete dud hits for a word - dud_list is a list of
  * TrackerSearchHit structs.
  */
 gboolean
@@ -598,6 +688,10 @@ tracker_indexer_remove_dud_hits (TrackerIndexer *indexer,
 	g_return_val_if_fail (priv->word_index, FALSE);
 	g_return_val_if_fail (word, FALSE);
 	g_return_val_if_fail (dud_list, FALSE);
+
+	if (!indexer_is_up_to_date (indexer)) {
+		return TRUE;
+	}
 
 	priv = TRACKER_INDEXER_GET_PRIVATE (indexer);
 	

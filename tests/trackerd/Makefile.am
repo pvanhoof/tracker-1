@@ -14,6 +14,7 @@ INCLUDES = \
 	$(GTHREAD_CFLAGS) \
 	$(GLIB2_CFLAGS) \
 	$(QDBM_CFLAGS) \
+	$(GIO_GFLAGS) \
 	$(DBUS_CFLAGS)
 
 if HAVE_XESAM_GLIB
@@ -54,5 +55,6 @@ tracker_indexer_LDADD = \
 	$(GTHREAD_LIBS) \
 	$(GLIB2_LIBS) \
 	$(DBUS_LIBS) \
+	$(GIO_LIBS) \
 	$(QDBM_LIBS) 
 

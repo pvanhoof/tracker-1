@@ -36,7 +36,7 @@
 #include "tracker-metadata.h"
 #include "tracker-db.h"
 #include "tracker-marshal.h"
-#include "tracker-indexer.h"
+#include "tracker-index.h"
 
 G_DEFINE_TYPE(TrackerMetadata, tracker_metadata, G_TYPE_OBJECT)
 

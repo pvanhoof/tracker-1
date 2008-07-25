@@ -24,7 +24,7 @@
 
 #include <glib-object.h>
 
-#include "tracker-indexer.h"
+#include "tracker-index.h"
 
 #define TRACKER_METADATA_SERVICE         "org.freedesktop.Tracker"
 #define TRACKER_METADATA_PATH            "/org/freedesktop/Tracker/Metadata"

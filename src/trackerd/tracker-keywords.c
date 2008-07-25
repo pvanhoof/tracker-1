@@ -32,7 +32,7 @@
 #include "tracker-keywords.h"
 #include "tracker-db.h"
 #include "tracker-marshal.h"
-#include "tracker-indexer.h"
+#include "tracker-index.h"
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_KEYWORDS, TrackerKeywordsPriv))
 

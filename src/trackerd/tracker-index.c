@@ -34,7 +34,7 @@
 
 #include <libtracker-db/tracker-db-manager.h>
 
-#include "tracker-indexer.h"
+#include "tracker-index.h"
 #include "tracker-query-tree.h"
 #include "tracker-indexer-client.h"
 

@@ -26,7 +26,7 @@
 
 G_BEGIN_DECLS
 
-#include "tracker-indexer.h"
+#include "tracker-index.h"
 
 typedef enum {
 	TRACKER_INDEXER_TYPE_FILES,

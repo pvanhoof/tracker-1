@@ -29,7 +29,7 @@
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-language.h>
 
-#include "tracker-indexer.h"
+#include "tracker-index.h"
 #include "tracker-processor.h"
 
 G_BEGIN_DECLS

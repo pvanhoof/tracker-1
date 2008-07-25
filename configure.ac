@@ -769,8 +769,8 @@ AC_CONFIG_HEADERS([config.h])
 # Dirty trick to compile the test for trackerd modules 
 # They are not part of a library... so i dont know how to link the test with them
 #
-AC_CONFIG_LINKS(tests/trackerd/tracker-indexer.c:src/trackerd/tracker-indexer.c 
-                tests/trackerd/tracker-indexer.h:src/trackerd/tracker-indexer.h)
+AC_CONFIG_LINKS(tests/trackerd/tracker-index.c:src/trackerd/tracker-index.c 
+                tests/trackerd/tracker-index.h:src/trackerd/tracker-index.h)
 
 
 AC_OUTPUT

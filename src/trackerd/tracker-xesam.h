@@ -27,7 +27,7 @@
 #include <dbus/dbus-glib-bindings.h>
 
 #include "tracker-db.h"
-#include "tracker-indexer.h"
+#include "tracker-index.h"
 
 #define TRACKER_XESAM_SERVICE         "org.freedesktop.xesam.searcher"
 #define TRACKER_XESAM_PATH            "/org/freedesktop/xesam/searcher/main"

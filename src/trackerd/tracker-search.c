@@ -39,7 +39,7 @@
 #include "tracker-search.h"
 #include "tracker-rdf-query.h"
 #include "tracker-query-tree.h"
-#include "tracker-indexer.h"
+#include "tracker-index.h"
 #include "tracker-marshal.h"
 
 #define DEFAULT_SEARCH_MAX_HITS 1024

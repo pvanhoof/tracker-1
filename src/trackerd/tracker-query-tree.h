@@ -30,7 +30,7 @@ G_BEGIN_DECLS
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-language.h>
 
-#include "tracker-indexer.h"
+#include "tracker-index.h"
 
 #define TRACKER_TYPE_QUERY_TREE         (tracker_query_tree_get_type())
 #define TRACKER_QUERY_TREE(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_QUERY_TREE, TrackerQueryTree))

@@ -51,7 +51,7 @@
 
 #include "tracker-crawler.h"
 #include "tracker-dbus.h"
-#include "tracker-indexer.h"
+#include "tracker-index.h"
 #include "tracker-indexer-client.h"
 #include "tracker-index-manager.h"
 #include "tracker-main.h"

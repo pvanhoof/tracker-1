@@ -26,7 +26,7 @@
 
 #include <libtracker-common/tracker-language.h>
 
-#include "tracker-indexer.h"
+#include "tracker-index.h"
 
 #define TRACKER_SEARCH_SERVICE         "org.freedesktop.Tracker"
 #define TRACKER_SEARCH_PATH            "/org/freedesktop/Tracker/Search"

@@ -1,5 +1,23 @@
 2008-07-25  Martyn Russell  <martyn@imendio.com>
 
+	* configure.ac:
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-daemon.c:
+	* src/trackerd/tracker-db.h:
+	* src/trackerd/tracker-dbus.h:
+	* src/trackerd/tracker-index-manager.h:
+	* src/trackerd/tracker-index.c:
+	* src/trackerd/tracker-indexer.[ch]:
+	* src/trackerd/tracker-keywords.c:
+	* src/trackerd/tracker-main.c:
+	* src/trackerd/tracker-metadata.[ch]:
+	* src/trackerd/tracker-query-tree.h:
+	* src/trackerd/tracker-search.[ch]:
+	* src/trackerd/tracker-xesam.[ch]: Renamed tracker-indexer to
+	tracker-index. 
+
+2008-07-25  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-index-manager.[ch]: 
 	* src/trackerd/tracker-indexer.h: Code clean ups.
 

@@ -1,5 +1,11 @@
 2008-07-25  Martyn Russell  <martyn@imendio.com>
 
+	* tests/trackerd/Makefile.am:
+	* tests/trackerd/tracker-index-test.c:
+	(test_created_file_in_the_mean_time): Fixed compilation errors.
+
+2008-07-25  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-processor.c: (indexer_status_cb),
 	(indexer_finished_cb): Call the index reload function when we get
 	status updates from the indexer.

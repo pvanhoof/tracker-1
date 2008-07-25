@@ -43,13 +43,13 @@ tracker_xesam_LDADD = \
 
 endif
 
-TEST_PROGS += tracker-indexer
+TEST_PROGS += tracker-index
 
-tracker_indexer_SOURCES = \
-	tracker-indexer-test.c \
-	tracker-indexer.c
+tracker_index_SOURCES = \
+	tracker-index-test.c \
+	tracker-index.c
 
-tracker_indexer_LDADD = \
+tracker_index_LDADD = \
 	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
 	$(GMODULE_LIBS) \
 	$(GTHREAD_LIBS) \

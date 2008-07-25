@@ -198,6 +198,9 @@ dbus_request_new_cb (guint    request_id,
 	GError     *error = NULL;
 	gboolean    set_paused = TRUE;
 
+	if (tracker_status_get () != TRACKER_STATUS_INDEXING)
+		return;
+
 	g_message ("New DBus request, checking indexer is paused...");
 
 	/* First remove the timeout */

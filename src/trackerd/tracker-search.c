@@ -51,8 +51,8 @@ typedef struct {
 
 	TrackerConfig   *config;
 	TrackerLanguage *language;
-        TrackerIndexer  *file_index;
-        TrackerIndexer  *email_index;
+        TrackerIndex    *file_index;
+        TrackerIndex    *email_index;
 } TrackerSearchPriv;
 
 static void search_finalize (GObject *object);
@@ -98,16 +98,16 @@ search_finalize (GObject *object)
 TrackerSearch *
 tracker_search_new (TrackerConfig   *config,
 		    TrackerLanguage *language,
-		    TrackerIndexer  *file_index,
-		    TrackerIndexer  *email_index)
+		    TrackerIndex    *file_index,
+		    TrackerIndex    *email_index)
 {
 	TrackerSearch     *object;
 	TrackerSearchPriv *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 	g_return_val_if_fail (TRACKER_IS_LANGUAGE (language), NULL);
-	g_return_val_if_fail (TRACKER_IS_INDEXER (file_index), NULL);
-	g_return_val_if_fail (TRACKER_IS_INDEXER (email_index), NULL);
+	g_return_val_if_fail (TRACKER_IS_INDEX (file_index), NULL);
+	g_return_val_if_fail (TRACKER_IS_INDEX (email_index), NULL);
 
 	object = g_object_new (TRACKER_TYPE_SEARCH, NULL); 
 
@@ -562,7 +562,7 @@ tracker_search_get_hit_count_all (TrackerSearch          *object,
 				       NULL);
 
 	hit_counts = tracker_query_tree_get_hit_counts (tree);
-	tracker_query_tree_set_indexer (tree, priv->email_index);
+	tracker_query_tree_set_index (tree, priv->email_index);
 	mail_hit_counts = tracker_query_tree_get_hit_counts (tree);
 	g_array_append_vals (hit_counts, mail_hit_counts->data, mail_hit_counts->len);
 	g_array_free (mail_hit_counts, TRUE);
@@ -1093,18 +1093,18 @@ tracker_search_matching_fields (TrackerSearch         *object,
 }
 
 void
-tracker_search_query (TrackerSearch  *object,
-		      gint            live_query_id,
-		      const gchar    *service,
-		      gchar         **fields,
-		      const gchar    *search_text,
-		      const gchar    *keyword,
-		      const gchar    *query_condition,
-		      gboolean        sort_by_service,
-		      gint            offset,
-		      gint            max_hits,
+tracker_search_query (TrackerSearch          *object,
+		      gint                    live_query_id,
+		      const gchar            *service,
+		      gchar                 **fields,
+		      const gchar            *search_text,
+		      const gchar            *keyword,
+		      const gchar            *query_condition,
+		      gboolean                sort_by_service,
+		      gint                    offset,
+		      gint                    max_hits,
 		      DBusGMethodInvocation  *context,
-		      GError        **error)
+		      GError                **error)
 {
 	GError             *actual_error = NULL;
 	TrackerDBInterface *iface;
@@ -1225,11 +1225,11 @@ tracker_search_query (TrackerSearch  *object,
 }
 
 void
-tracker_search_suggest (TrackerSearch  *object,
-			const gchar    *search_text,
-			gint            max_dist,
+tracker_search_suggest (TrackerSearch          *object,
+			const gchar            *search_text,
+			gint                    max_dist,
 			DBusGMethodInvocation  *context,
-			GError        **error)
+			GError                **error)
 {
 	GError            *actual_error = NULL;
 	TrackerSearchPriv *priv;
@@ -1248,7 +1248,7 @@ tracker_search_suggest (TrackerSearch  *object,
 
 	priv = GET_PRIV (object);
 
-	value = tracker_indexer_get_suggestion (priv->file_index, search_text, max_dist);
+	value = tracker_index_get_suggestion (priv->file_index, search_text, max_dist);
 
 	if (!value) {
 		g_set_error (&actual_error,

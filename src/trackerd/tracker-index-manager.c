@@ -32,9 +32,9 @@
 #define MIN_BUCKET_DEFAULT 10
 #define MAX_BUCKET_DEFAULT 20
 
-#define TRACKER_INDEXER_FILE_INDEX_DB_FILENAME         "file-index.db"
-#define TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME        "email-index.db"
-#define TRACKER_INDEXER_FILE_UPDATE_INDEX_DB_FILENAME  "file-update-index.db"
+#define TRACKER_INDEX_FILE_INDEX_DB_FILENAME         "file-index.db"
+#define TRACKER_INDEX_EMAIL_INDEX_DB_FILENAME        "email-index.db"
+#define TRACKER_INDEX_FILE_UPDATE_INDEX_DB_FILENAME  "file-update-index.db"
 
 #define MAX_INDEX_FILE_SIZE 2000000000
 
@@ -44,19 +44,19 @@ static gint      index_manager_max_bucket;
 static gchar    *index_manager_data_dir;
 
 static const gchar *
-get_index_name (TrackerIndexerType index) 
+get_index_name (TrackerIndexType index) 
 {
         const gchar *name;
 
         switch (index) {
-        case TRACKER_INDEXER_TYPE_FILES:
-                name = TRACKER_INDEXER_FILE_INDEX_DB_FILENAME;
+        case TRACKER_INDEX_TYPE_FILES:
+                name = TRACKER_INDEX_FILE_INDEX_DB_FILENAME;
                 break;
-        case TRACKER_INDEXER_TYPE_EMAILS:
-                name = TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME;
+        case TRACKER_INDEX_TYPE_EMAILS:
+                name = TRACKER_INDEX_EMAIL_INDEX_DB_FILENAME;
                 break;
-        case TRACKER_INDEXER_TYPE_FILES_UPDATE:
-                name = TRACKER_INDEXER_FILE_UPDATE_INDEX_DB_FILENAME;
+        case TRACKER_INDEX_TYPE_FILES_UPDATE:
+                name = TRACKER_INDEX_FILE_UPDATE_INDEX_DB_FILENAME;
                 break;
         }
 
@@ -64,7 +64,7 @@ get_index_name (TrackerIndexerType index)
 }
 
 static gboolean
-initialize_indexers (void)
+initialize_indexs (void)
 {
 	gchar *final_index_name;
 
@@ -74,11 +74,11 @@ initialize_indexers (void)
                                              NULL);
 	
 	if (g_file_test (final_index_name, G_FILE_TEST_EXISTS) && 
-	    !tracker_index_manager_has_tmp_merge_files (TRACKER_INDEXER_TYPE_FILES)) {
+	    !tracker_index_manager_has_tmp_merge_files (TRACKER_INDEX_TYPE_FILES)) {
 		gchar *file_index_name;
 
 		file_index_name = g_build_filename (index_manager_data_dir, 
-						    TRACKER_INDEXER_FILE_INDEX_DB_FILENAME, 
+						    TRACKER_INDEX_FILE_INDEX_DB_FILENAME, 
 						    NULL);
 	
 		g_message ("Overwriting '%s' with '%s'", 
@@ -95,11 +95,11 @@ initialize_indexers (void)
 					     NULL);
 	
 	if (g_file_test (final_index_name, G_FILE_TEST_EXISTS) && 
-	    !tracker_index_manager_has_tmp_merge_files (TRACKER_INDEXER_TYPE_EMAILS)) {
+	    !tracker_index_manager_has_tmp_merge_files (TRACKER_INDEX_TYPE_EMAILS)) {
 		gchar *file_index_name;
 
 		file_index_name = g_build_filename (index_manager_data_dir, 
-						    TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME, 
+						    TRACKER_INDEX_EMAIL_INDEX_DB_FILENAME, 
 						    NULL);
 	
 		g_message ("Overwriting '%s' with '%s'", 
@@ -130,7 +130,7 @@ tracker_index_manager_init (const gchar *data_dir,
 
         initialized = TRUE;
 
-        return initialize_indexers ();
+        return initialize_indexs ();
 }
 
 void
@@ -146,23 +146,24 @@ tracker_index_manager_shutdown (void)
         initialized = FALSE;
 }
 
-TrackerIndexer * 
-tracker_index_manager_get_index (TrackerIndexerType index)
+TrackerIndex * 
+tracker_index_manager_get_index (TrackerIndexType type)
 {
-        TrackerIndexer *indexer;
-        gchar          *filename;
+        TrackerIndex *index;
+        gchar        *filename;
 
-        filename = tracker_index_manager_get_filename (index);
+        filename = tracker_index_manager_get_filename (type);
 
-        indexer = tracker_indexer_new (filename,
-                                    index_manager_min_bucket, 
-                                    index_manager_max_bucket);
+        index = tracker_index_new (filename,
+                                   index_manager_min_bucket, 
+                                   index_manager_max_bucket);
         g_free (filename);
-        return indexer;
+
+        return index;
 }
 
 gchar *
-tracker_index_manager_get_filename (TrackerIndexerType index)
+tracker_index_manager_get_filename (TrackerIndexType index)
 {
         return g_build_filename (index_manager_data_dir, 
                                  get_index_name (index), 
@@ -175,7 +176,7 @@ tracker_index_manager_are_indexes_too_big (void)
 	gchar       *filename;
         gboolean     too_big;
 
-	filename = g_build_filename (index_manager_data_dir, TRACKER_INDEXER_FILE_INDEX_DB_FILENAME, NULL);
+	filename = g_build_filename (index_manager_data_dir, TRACKER_INDEX_FILE_INDEX_DB_FILENAME, NULL);
 	too_big = tracker_file_get_size (filename) > MAX_INDEX_FILE_SIZE;
         g_free (filename);
         
@@ -184,7 +185,7 @@ tracker_index_manager_are_indexes_too_big (void)
 		return TRUE;	
 	}
 
-	filename = g_build_filename (index_manager_data_dir, TRACKER_INDEXER_EMAIL_INDEX_DB_FILENAME, NULL);
+	filename = g_build_filename (index_manager_data_dir, TRACKER_INDEX_EMAIL_INDEX_DB_FILENAME, NULL);
 	too_big = tracker_file_get_size (filename) > MAX_INDEX_FILE_SIZE;
 	g_free (filename);
         
@@ -197,7 +198,7 @@ tracker_index_manager_are_indexes_too_big (void)
 }
 
 gboolean
-tracker_index_manager_has_tmp_merge_files (TrackerIndexerType type)
+tracker_index_manager_has_tmp_merge_files (TrackerIndexType type)
 {
 	GFile           *file;
 	GFileEnumerator *enumerator;
@@ -217,7 +218,7 @@ tracker_index_manager_has_tmp_merge_files (TrackerIndexerType type)
 						&error);
 
 	if (error) {
-		g_warning ("Could not check for temporary indexer files in "
+		g_warning ("Could not check for temporary index files in "
 			   "directory:'%s', %s",
 			   data_dir,
 			   error->message);
@@ -226,7 +227,7 @@ tracker_index_manager_has_tmp_merge_files (TrackerIndexerType type)
 		return FALSE;
 	}
 	
-	if (type == TRACKER_INDEXER_TYPE_FILES) {
+	if (type == TRACKER_INDEX_TYPE_FILES) {
 		prefix = "file-index.tmp.";
 	} else {
 		prefix = "email-index.tmp.";
@@ -247,7 +248,7 @@ tracker_index_manager_has_tmp_merge_files (TrackerIndexerType type)
 
 	if (error) {
 		g_warning ("Could not get file information for temporary "
-			   "indexer files in directory:'%s', %s",
+			   "index files in directory:'%s', %s",
 			   data_dir,
 			   error->message);
 		g_error_free (error);

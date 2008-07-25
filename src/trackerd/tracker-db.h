@@ -42,7 +42,7 @@ G_BEGIN_DECLS
 
 void                tracker_db_init                              (TrackerConfig       *this_config,
 								  TrackerLanguage     *this_language,
-								  TrackerIndexer      *this_file_index);
+								  TrackerIndex        *this_file_index);
 void                tracker_db_shutdown                          (void);
 
 /* Operations for TrackerDBInterface */

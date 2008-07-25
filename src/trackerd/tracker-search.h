@@ -53,80 +53,80 @@ struct TrackerSearchClass {
 };
 
 GType          tracker_search_get_type          (void);
-TrackerSearch *tracker_search_new               (TrackerConfig *config,
-						 TrackerLanguage *language,
-						 TrackerIndexer *file_index,
-						 TrackerIndexer *email_index);
-void           tracker_search_get_hit_count     (TrackerSearch     *object,
-						 const gchar       *service,
-						 const gchar       *search_text,
+TrackerSearch *tracker_search_new               (TrackerConfig          *config,
+						 TrackerLanguage        *language,
+						 TrackerIndex           *file_index,
+						 TrackerIndex           *email_index);
+void           tracker_search_get_hit_count     (TrackerSearch          *object,
+						 const gchar            *service,
+						 const gchar            *search_text,
 						 DBusGMethodInvocation  *context,
-						 GError           **error);
-void           tracker_search_get_hit_count_all (TrackerSearch     *object,
-						 const gchar       *search_text,
+						 GError                **error);
+void           tracker_search_get_hit_count_all (TrackerSearch          *object,
+						 const gchar            *search_text,
 						 DBusGMethodInvocation  *context,
-						 GError           **error_in);
-void           tracker_search_text              (TrackerSearch     *object,
-						 gint               live_query_id,
-						 const gchar       *service,
-						 const gchar       *search_text,
-						 gint               offset,
-						 gint               max_hits,
+						 GError                **error_in);
+void           tracker_search_text              (TrackerSearch          *object,
+						 gint                    live_query_id,
+						 const gchar            *service,
+						 const gchar            *search_text,
+						 gint                    offset,
+						 gint                    max_hits,
 						 DBusGMethodInvocation  *context,
-						 GError           **error_in);
-void           tracker_search_text_detailed     (TrackerSearch     *object,
-						 gint               live_query_id,
-						 const gchar       *service,
-						 const gchar       *search_text,
-						 gint               offset,
-						 gint               max_hits,
+						 GError                **error_in);
+void           tracker_search_text_detailed     (TrackerSearch          *object,
+						 gint                    live_query_id,
+						 const gchar            *service,
+						 const gchar            *search_text,
+						 gint                    offset,
+						 gint                    max_hits,
 						 DBusGMethodInvocation  *context,
-						 GError           **error);
-void           tracker_search_get_snippet       (TrackerSearch     *object,
-						 const gchar       *service,
-						 const gchar       *id,
-						 const gchar       *search_text,
+						 GError                **error);
+void           tracker_search_get_snippet       (TrackerSearch          *object,
+						 const gchar            *service,
+						 const gchar            *id,
+						 const gchar            *search_text,
 						 DBusGMethodInvocation  *context,
-						 GError           **error);
-void           tracker_search_files_by_text     (TrackerSearch     *object,
-						 gint               live_query_id,
-						 const gchar       *search_text,
-						 gint               offset,
-						 gint               max_hits,
-						 gboolean           group_results,
+						 GError                **error);
+void           tracker_search_files_by_text     (TrackerSearch          *object,
+						 gint                    live_query_id,
+						 const gchar            *search_text,
+						 gint                    offset,
+						 gint                    max_hits,
+						 gboolean                group_results,
 						 DBusGMethodInvocation  *context,
-						 GError           **error);
-void           tracker_search_metadata          (TrackerSearch     *object,
-						 const gchar       *service,
-						 const gchar       *field,
-						 const gchar       *search_text,
-						 gint               offset,
-						 gint               max_hits,
+						 GError                **error);
+void           tracker_search_metadata          (TrackerSearch          *object,
+						 const gchar            *service,
+						 const gchar            *field,
+						 const gchar            *search_text,
+						 gint                    offset,
+						 gint                    max_hits,
 						 DBusGMethodInvocation  *context,
-						 GError           **error);
-void           tracker_search_matching_fields   (TrackerSearch     *object,
-						 const gchar       *service,
-						 const gchar       *id,
-						 const gchar       *search_text,
+						 GError                **error);
+void           tracker_search_matching_fields   (TrackerSearch          *object,
+						 const gchar            *service,
+						 const gchar            *id,
+						 const gchar            *search_text,
 						 DBusGMethodInvocation  *context,
-						 GError           **error);
-void           tracker_search_query             (TrackerSearch     *object,
-						 gint               live_query_id,
-						 const gchar       *service,
-						 gchar            **fields,
-						 const gchar       *search_text,
-						 const gchar       *keyword,
-						 const gchar       *query_condition,
-						 gboolean           sort_by_service,
-						 gint               offset,
-						 gint               max_hits,
+						 GError                **error);
+void           tracker_search_query             (TrackerSearch          *object,
+						 gint                    live_query_id,
+						 const gchar            *service,
+						 gchar                 **fields,
+						 const gchar            *search_text,
+						 const gchar            *keyword,
+						 const gchar            *query_condition,
+						 gboolean                sort_by_service,
+						 gint                    offset,
+						 gint                    max_hits,
 						 DBusGMethodInvocation  *context,
-						 GError           **error);
-void           tracker_search_suggest           (TrackerSearch     *object,
-						 const gchar       *search_text,
-						 gint               max_dist,
+						 GError                **error);
+void           tracker_search_suggest           (TrackerSearch          *object,
+						 const gchar            *search_text,
+						 gint                    max_dist,
 						 DBusGMethodInvocation  *context,
-						 GError           **error);
+						 GError                **error);
 
 G_END_DECLS
 

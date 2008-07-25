@@ -38,8 +38,8 @@ gboolean    tracker_dbus_init              (TrackerConfig    *config);
 void        tracker_dbus_shutdown          (void);
 gboolean    tracker_dbus_register_objects  (TrackerConfig    *config,
 					    TrackerLanguage  *language,
-					    TrackerIndexer   *file_index,
-					    TrackerIndexer   *email_index,
+					    TrackerIndex     *file_index,
+					    TrackerIndex     *email_index,
 					    TrackerProcessor *processor);
 GObject    *tracker_dbus_get_object        (GType             type);
 DBusGProxy *tracker_dbus_indexer_get_proxy (void);

@@ -19,8 +19,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKERD_INDEXER_H__
-#define __TRACKERD_INDEXER_H__
+#ifndef __TRACKERD_INDEX_H__
+#define __TRACKERD_INDEX_H__
 
 G_BEGIN_DECLS
 
@@ -28,49 +28,49 @@ G_BEGIN_DECLS
 
 #include <libtracker-common/tracker-index-item.h>
 
-#define TRACKER_TYPE_INDEXER         (tracker_indexer_get_type())
-#define TRACKER_INDEXER(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_INDEXER, TrackerIndexer))
-#define TRACKER_INDEXER_CLASS(c)     (G_TYPE_CHECK_CLASS_CAST ((c), TRACKER_TYPE_INDEXER, TrackerIndexerClass))
-#define TRACKER_IS_INDEXER(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), TRACKER_TYPE_INDEXER))
-#define TRACKER_IS_INDEXER_CLASS(c)  (G_TYPE_CHECK_CLASS_TYPE ((c), TRACKER_TYPE_INDEXER))
-#define TRACKER_INDEXER_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o), TRACKER_TYPE_INDEXER, TrackerIndexerClass))
+#define TRACKER_TYPE_INDEX         (tracker_index_get_type())
+#define TRACKER_INDEX(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_INDEX, TrackerIndex))
+#define TRACKER_INDEX_CLASS(c)     (G_TYPE_CHECK_CLASS_CAST ((c), TRACKER_TYPE_INDEX, TrackerIndexClass))
+#define TRACKER_IS_INDEX(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), TRACKER_TYPE_INDEX))
+#define TRACKER_IS_INDEX_CLASS(c)  (G_TYPE_CHECK_CLASS_TYPE ((c), TRACKER_TYPE_INDEX))
+#define TRACKER_INDEX_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o), TRACKER_TYPE_INDEX, TrackerIndexClass))
 
-typedef struct TrackerIndexer            TrackerIndexer;
-typedef struct TrackerIndexerClass       TrackerIndexerClass;
-typedef struct TrackerIndexerWordDetails TrackerIndexerWordDetails;
+typedef struct TrackerIndex            TrackerIndex;
+typedef struct TrackerIndexClass       TrackerIndexClass;
+typedef struct TrackerIndexWordDetails TrackerIndexWordDetails;
 
-struct TrackerIndexer {
+struct TrackerIndex {
 	GObject parent;
 };
 
-struct TrackerIndexerClass {
+struct TrackerIndexClass {
 	GObjectClass parent_class;
 };
 
-GType             tracker_indexer_get_type        (void);
-TrackerIndexer *  tracker_indexer_new             (const gchar    *name,
-						   gint            min_bucket,
-						   gint            max_bucket);
-void              tracker_indexer_set_name        (TrackerIndexer *indexer,
-						   const gchar    *name);
-void              tracker_indexer_set_min_bucket  (TrackerIndexer *indexer,
-						   gint            min_bucket);
-void              tracker_indexer_set_max_bucket  (TrackerIndexer *indexer,
-						   gint            max_bucket);
-void              tracker_indexer_set_reload      (TrackerIndexer *indexer,
-						   gboolean        reload);
-gboolean          tracker_indexer_get_reload      (TrackerIndexer *indexer);
-guint32           tracker_indexer_get_size        (TrackerIndexer *indexer);
-char *            tracker_indexer_get_suggestion  (TrackerIndexer *indexer,
-						   const gchar    *term,
-						   gint            maxdist);
-TrackerIndexItem *tracker_indexer_get_word_hits   (TrackerIndexer *indexer,
-						   const gchar    *word,
-						   guint          *count);
-gboolean          tracker_indexer_remove_dud_hits (TrackerIndexer *indexer,
-						   const gchar    *word,
-						   GSList         *dud_list);
+GType             tracker_index_get_type        (void);
+TrackerIndex *    tracker_index_new             (const gchar  *name,
+						 gint          min_bucket,
+						 gint          max_bucket);
+void              tracker_index_set_name        (TrackerIndex *index,
+						 const gchar  *name);
+void              tracker_index_set_min_bucket  (TrackerIndex *index,
+						 gint          min_bucket);
+void              tracker_index_set_max_bucket  (TrackerIndex *index,
+						 gint          max_bucket);
+void              tracker_index_set_reload      (TrackerIndex *index,
+						 gboolean      reload);
+gboolean          tracker_index_get_reload      (TrackerIndex *index);
+guint32           tracker_index_get_size        (TrackerIndex *index);
+char *            tracker_index_get_suggestion  (TrackerIndex *index,
+						 const gchar  *term,
+						 gint          maxdist);
+TrackerIndexItem *tracker_index_get_word_hits   (TrackerIndex *index,
+						 const gchar  *word,
+						 guint        *count);
+gboolean          tracker_index_remove_dud_hits (TrackerIndex *index,
+						 const gchar  *word,
+						 GSList       *dud_list);
 
 G_END_DECLS
 
-#endif /* __TRACKERD_INDEXER_H__ */
+#endif /* __TRACKERD_INDEX_H__ */

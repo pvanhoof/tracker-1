@@ -1,5 +1,16 @@
 2008-07-25  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-db.[ch]:
+	* src/trackerd/tracker-dbus.[ch]:
+	* src/trackerd/tracker-index-manager.[ch]:
+	* src/trackerd/tracker-index.[ch]:
+	* src/trackerd/tracker-main.c:
+	* src/trackerd/tracker-query-tree.[ch]:
+	* src/trackerd/tracker-search.[ch]: Renamed
+	TrackerIndexer->TrackerIndex, since it is the index not the indexer.
+
+2008-07-25  Martyn Russell  <martyn@imendio.com>
+
 	* configure.ac:
 	* src/trackerd/Makefile.am:
 	* src/trackerd/tracker-daemon.c:

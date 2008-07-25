@@ -51,7 +51,7 @@ static gboolean         initialized;
 
 static TrackerConfig   *config;
 static TrackerLanguage *language;
-static TrackerIndexer  *file_index;
+static TrackerIndex    *file_index;
 
 static gchar *
 compress_string (const gchar *ptr, 
@@ -604,11 +604,11 @@ db_create_array_of_services (void)
 void
 tracker_db_init (TrackerConfig   *this_config,
 		 TrackerLanguage *this_language,
-		 TrackerIndexer  *this_file_index)
+		 TrackerIndex    *this_file_index)
 {
 	g_return_if_fail (TRACKER_IS_CONFIG (this_config));
 	g_return_if_fail (TRACKER_IS_LANGUAGE (this_language));
-	g_return_if_fail (TRACKER_IS_INDEXER (this_file_index));
+	g_return_if_fail (TRACKER_IS_INDEX (this_file_index));
 	
 	if (initialized) {
 		return;
@@ -895,16 +895,16 @@ tracker_db_search_text (TrackerDBInterface *iface,
 
 	/* Delete duds */
 	if (duds) {
-		TrackerIndexer *indexer;
-		GSList         *words, *w;
+		TrackerIndex *indexer;
+		GSList       *words, *w;
 
 		words = tracker_query_tree_get_words (tree);
-		indexer = tracker_query_tree_get_indexer (tree);
+		indexer = tracker_query_tree_get_index (tree);
 
 		for (w = words; w; w = w->next) {
-			tracker_indexer_remove_dud_hits (indexer, 
-							 (const gchar *) w->data, 
-							 duds);
+			tracker_index_remove_dud_hits (indexer, 
+						       (const gchar *) w->data, 
+						       duds);
 		}
 
 		g_slist_free (words);

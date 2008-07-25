@@ -29,19 +29,19 @@ G_BEGIN_DECLS
 #include "tracker-index.h"
 
 typedef enum {
-	TRACKER_INDEXER_TYPE_FILES,
-	TRACKER_INDEXER_TYPE_EMAILS,
-	TRACKER_INDEXER_TYPE_FILES_UPDATE
-} TrackerIndexerType;
+	TRACKER_INDEX_TYPE_FILES,
+	TRACKER_INDEX_TYPE_EMAILS,
+	TRACKER_INDEX_TYPE_FILES_UPDATE
+} TrackerIndexType;
 
-gboolean        tracker_index_manager_init                (const gchar        *data_dir,
-                                                           gint                min_bucket,
-                                                           gint                max_bucket);
-void            tracker_index_manager_shutdown            (void);
-gchar *         tracker_index_manager_get_filename        (TrackerIndexerType  index);
-TrackerIndexer *tracker_index_manager_get_index           (TrackerIndexerType  index);
-gboolean        tracker_index_manager_are_indexes_too_big (void);
-gboolean        tracker_index_manager_has_tmp_merge_files (TrackerIndexerType  type);
+gboolean      tracker_index_manager_init                (const gchar      *data_dir,
+                                                         gint              min_bucket,
+                                                         gint              max_bucket);
+void          tracker_index_manager_shutdown            (void);
+gchar *       tracker_index_manager_get_filename        (TrackerIndexType  index);
+TrackerIndex *tracker_index_manager_get_index           (TrackerIndexType  index);
+gboolean      tracker_index_manager_are_indexes_too_big (void);
+gboolean      tracker_index_manager_has_tmp_merge_files (TrackerIndexType  type);
 
 G_END_DECLS
 

@@ -1,3 +1,8 @@
+2008-07-25  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-index-manager.[ch]: 
+	* src/trackerd/tracker-indexer.h: Code clean ups.
+
 2008-07-25  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/trackerd/tracker-indexer.[ch]: Added "reload" capabilities

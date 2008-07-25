@@ -41,7 +41,6 @@
 /* Size of free block pool of inverted index */
 #define MAX_HIT_BUFFER      480000
 
-
 #define TRACKER_INDEXER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_INDEXER, TrackerIndexerPrivate))
 
 typedef struct TrackerIndexerPrivate TrackerIndexerPrivate;

@@ -1,9 +1,33 @@
-#include "tracker-index-manager.h"
-#include <libtracker-common/tracker-file-utils.h>
-#include <glib.h>
-#include <gio/gio.h>
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
+ * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2008, Nokia
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public
+ * License along with this library; if not, write to the
+ * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ * Boston, MA  02110-1301, USA.
+ */
 
 #include <stdio.h>
+
+#include <glib.h>
+#include <glib/gstdio.h>
+#include <gio/gio.h>
+
+#include <libtracker-common/tracker-file-utils.h>
+
+#include "tracker-index-manager.h"
 
 #define MIN_BUCKET_DEFAULT 10
 #define MAX_BUCKET_DEFAULT 20
@@ -14,13 +38,14 @@
 
 #define MAX_INDEX_FILE_SIZE 2000000000
 
-gint   index_manager_min_bucket;
-gint   index_manager_max_bucket;
-gchar *index_manager_data_dir = NULL;
-
+static gboolean  initialized;
+static gint      index_manager_min_bucket;
+static gint      index_manager_max_bucket;
+static gchar    *index_manager_data_dir;
 
 static const gchar *
-get_index_name (TrackerIndexerType index) {
+get_index_name (TrackerIndexerType index) 
+{
         const gchar *name;
 
         switch (index) {
@@ -33,13 +58,10 @@ get_index_name (TrackerIndexerType index) {
         case TRACKER_INDEXER_TYPE_FILES_UPDATE:
                 name = TRACKER_INDEXER_FILE_UPDATE_INDEX_DB_FILENAME;
                 break;
-        default:
-                g_critical ("Unrecognized index type");
         }
 
         return name;
 }
-
 
 static gboolean
 initialize_indexers (void)
@@ -47,7 +69,9 @@ initialize_indexers (void)
 	gchar *final_index_name;
 
 	/* Create index files */
-	final_index_name = g_build_filename (index_manager_data_dir, "file-index-final", NULL);
+	final_index_name = g_build_filename (index_manager_data_dir,
+                                             "file-index-final", 
+                                             NULL);
 	
 	if (g_file_test (final_index_name, G_FILE_TEST_EXISTS) && 
 	    !tracker_index_manager_has_tmp_merge_files (TRACKER_INDEXER_TYPE_FILES)) {
@@ -60,7 +84,7 @@ initialize_indexers (void)
 		g_message ("Overwriting '%s' with '%s'", 
 			   file_index_name, 
 			   final_index_name);	
-		rename (final_index_name, file_index_name);
+		g_rename (final_index_name, file_index_name);
 		g_free (file_index_name);
 	}
 	
@@ -81,7 +105,7 @@ initialize_indexers (void)
 		g_message ("Overwriting '%s' with '%s'", 
 			   file_index_name, 
 			   final_index_name);	
-		rename (final_index_name, file_index_name);
+		g_rename (final_index_name, file_index_name);
 		g_free (file_index_name);
 	}
 	
@@ -90,30 +114,43 @@ initialize_indexers (void)
 	return TRUE;
 }
 
-
-
 gboolean
-tracker_index_manager_init (const gchar *data_dir, gint min_bucket, gint max_bucket)
+tracker_index_manager_init (const gchar *data_dir,
+                            gint         min_bucket, 
+                            gint         max_bucket)
 {
-        if (index_manager_data_dir) {
-                /* Avoid reinitialization */
+        if (initialized) {
                 return TRUE;
         }
 
         index_manager_data_dir = g_strdup (data_dir);
+
         index_manager_min_bucket = min_bucket;
         index_manager_max_bucket = max_bucket;
+
+        initialized = TRUE;
 
         return initialize_indexers ();
 }
 
+void
+tracker_index_manager_shutdown (void)
+{
+        if (!initialized) {
+                return;
+        }
+        
+        g_free (index_manager_data_dir);
+        index_manager_data_dir = NULL;
 
+        initialized = FALSE;
+}
 
 TrackerIndexer * 
 tracker_index_manager_get_index (TrackerIndexerType index)
 {
-        gchar          *filename;
         TrackerIndexer *indexer;
+        gchar          *filename;
 
         filename = tracker_index_manager_get_filename (index);
 
@@ -127,7 +164,9 @@ tracker_index_manager_get_index (TrackerIndexerType index)
 gchar *
 tracker_index_manager_get_filename (TrackerIndexerType index)
 {
-        return g_build_filename (index_manager_data_dir, get_index_name (index), NULL);
+        return g_build_filename (index_manager_data_dir, 
+                                 get_index_name (index), 
+                                 NULL);
 }
 
 gboolean
@@ -186,7 +225,6 @@ tracker_index_manager_has_tmp_merge_files (TrackerIndexerType type)
 		g_object_unref (file);
 		return FALSE;
 	}
-
 	
 	if (type == TRACKER_INDEXER_TYPE_FILES) {
 		prefix = "file-index.tmp.";
@@ -219,14 +257,4 @@ tracker_index_manager_has_tmp_merge_files (TrackerIndexerType type)
 	g_object_unref (file);
 
 	return found;
-}
-
-
-void
-tracker_index_manager_shutdown ()
-{
-        if (index_manager_data_dir) {
-                g_free (index_manager_data_dir);
-        }
-        index_manager_data_dir = NULL;
 }

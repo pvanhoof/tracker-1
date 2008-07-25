@@ -1,5 +1,10 @@
 2008-07-25  Philip Van Hoof  <pvanhoof@gnome.org>
 
+	* src/trackerd/tracker-dbus.c: Don't try to pause the indexer if 
+	it's not running
+
+2008-07-25  Philip Van Hoof  <pvanhoof@gnome.org>
+
 	* src/libtracker/tracker-query.c
 	* src/libtracker/tracker-search.c
 	* src/libtracker/tracker-tag.c

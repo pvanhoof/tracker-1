@@ -1,5 +1,14 @@
 2008-07-25  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-processor.c: (indexer_status_cb),
+	(indexer_finished_cb): Call the index reload function when we get
+	status updates from the indexer.
+	
+	* tests/trackerd/tracker-indexer-test.c: Renamed to reflect new
+	TrackerIndex name.
+
+2008-07-25  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-db.[ch]:
 	* src/trackerd/tracker-dbus.[ch]:
 	* src/trackerd/tracker-index-manager.[ch]:
@@ -7,7 +16,8 @@
 	* src/trackerd/tracker-main.c:
 	* src/trackerd/tracker-query-tree.[ch]:
 	* src/trackerd/tracker-search.[ch]: Renamed
-	TrackerIndexer->TrackerIndex, since it is the index not the indexer.
+	TrackerIndexer->TrackerIndex, since it is the index not the
+	indexer. 
 
 2008-07-25  Martyn Russell  <martyn@imendio.com>
 

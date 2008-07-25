@@ -35,6 +35,8 @@
 #include "tracker-crawler.h"
 #include "tracker-daemon.h"
 #include "tracker-dbus.h"
+#include "tracker-index.h"
+#include "tracker-index-manager.h"
 #include "tracker-indexer-client.h"
 #include "tracker-monitor.h"
 #include "tracker-status.h"
@@ -878,6 +880,7 @@ indexer_status_cb (DBusGProxy  *proxy,
 		   gpointer     user_data)
 {
 	TrackerProcessorPrivate *priv;
+	TrackerIndex            *index;
 	GQueue                  *queue;
 	GFile                   *file;
 	gchar                   *path = NULL;
@@ -895,6 +898,7 @@ indexer_status_cb (DBusGProxy  *proxy,
 		return;
 	}
 
+	/* Signal to any applications */
 	queue = g_hash_table_lookup (priv->items_created_queues, current_module_name);
 	file = g_queue_peek_tail (queue);
 	if (file) {
@@ -910,6 +914,17 @@ indexer_status_cb (DBusGProxy  *proxy,
 			       priv->items_done + priv->items_remaining); /* files */
 	g_free (path);
 
+	/* Tell the index that it can reload, really we should do
+	 * module_name->index type so we don't do this for both
+	 * every time:
+	 */
+	index = tracker_index_manager_get_index (TRACKER_INDEX_TYPE_FILES);
+	tracker_index_set_reload (index, TRUE);
+
+	index = tracker_index_manager_get_index (TRACKER_INDEX_TYPE_EMAILS);
+	tracker_index_set_reload (index, TRUE);
+
+	/* Message to the console about state */
 	str1 = tracker_seconds_estimate_to_string (seconds_elapsed, 
 						   TRUE,
 						   items_done, 
@@ -935,11 +950,13 @@ indexer_finished_cb (DBusGProxy  *proxy,
 {
 	TrackerProcessor        *processor;
 	TrackerProcessorPrivate *priv;
+	TrackerIndex            *index;
 	gchar                   *str;
 
 	processor = TRACKER_PROCESSOR (user_data);
 	priv = TRACKER_PROCESSOR_GET_PRIVATE (processor);
 
+	/* Signal to any applications */
 	g_signal_emit_by_name (tracker_dbus_get_object (TRACKER_TYPE_DAEMON),
 			       "index-progress",
 			       "", /* Service */
@@ -948,12 +965,24 @@ indexer_finished_cb (DBusGProxy  *proxy,
 			       priv->items_remaining,                     /* files */
 			       priv->items_done + priv->items_remaining); /* files */
 
+	/* Tell the index that it can reload, really we should do
+	 * module_name->index type so we don't do this for both
+	 * every time:
+	 */
+	index = tracker_index_manager_get_index (TRACKER_INDEX_TYPE_FILES);
+	tracker_index_set_reload (index, TRUE);
+
+	index = tracker_index_manager_get_index (TRACKER_INDEX_TYPE_EMAILS);
+	tracker_index_set_reload (index, TRUE);
+
+	/* Message to the console about state */
 	str = tracker_seconds_to_string (seconds_elapsed, FALSE);
 
 	g_message ("Indexer finished in %s, %d items indexed in total",
 		   str,
 		   items_done);
 	g_free (str);
+
 
 	/* Do we even need this step Optimizing ? */
 	tracker_status_set_and_signal (TRACKER_STATUS_OPTIMIZING);

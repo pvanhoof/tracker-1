@@ -18,11 +18,11 @@
  */
 
 #include <locale.h>
+#include <time.h>
 #include <glib.h>
 #include <glib-object.h>
 
-#include "../libtracker/tracker.h" 
-
+#include <tracker.h>
 
 static void
 get_meta_table_data (gpointer value)
@@ -92,7 +92,11 @@ main (int argc, char **argv)
 
 	char *folder = g_filename_to_utf8 (argv[1], -1, NULL, NULL, NULL);
 
-	out_array = tracker_files_get_metadata_for_files_in_folder (client, -1, folder, meta_fields, &error);
+	out_array = tracker_files_get_metadata_for_files_in_folder (client, 
+								    time(NULL), 
+								    folder, 
+								    meta_fields, 
+								    &error);
 
 	g_free (folder);
 

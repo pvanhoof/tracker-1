@@ -1,5 +1,6 @@
 /* Tracker - indexer and metadata database engine
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2008, Nokia
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -20,25 +21,24 @@
 #include <config.h>
 
 #include <locale.h>
+#include <stdlib.h>
+#include <time.h>
 #include <string.h>
 #include <glib.h>
-#include <glib-object.h>
 #include <glib/gi18n.h>
 
-#include "../libtracker/tracker.h" 
-
+#include <tracker.h>
 
 gint
 main (gint argc, gchar *argv[])
 {
 	GError *error = NULL;
 	TrackerClient *client = NULL;
+	gchar* status;
 
-	setlocale (LC_ALL, "");
-
-        bindtextdomain (GETTEXT_PACKAGE, TRACKER_LOCALEDIR);
-        bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
-        textdomain (GETTEXT_PACKAGE);
+	bindtextdomain (GETTEXT_PACKAGE, TRACKER_LOCALEDIR);
+	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+	textdomain (GETTEXT_PACKAGE);
 
 	client =  tracker_connect (FALSE);
 
@@ -47,22 +47,24 @@ main (gint argc, gchar *argv[])
                 g_printerr ("\n");
                 g_printerr (_("Ensure \"trackerd\" is running before launch this command."));
                 g_printerr ("\n");
-                return 1;
+                return EXIT_FAILURE;
         }
 
-        gchar* status = tracker_get_status (client, &error);
+        status = tracker_get_status (client, &error);
 
 	if (error) {
 		g_printerr (_("%s: internal tracker error: %s"), 
 			    argv[0], error->message);
 		g_printerr ("\n");
 		g_error_free (error);
-		return 1;
+		return EXIT_FAILURE;
 	}
 
-	if (status) g_print ("Tracker daemon's status is %s\n", status);
+	if (status) {
+		g_print ("Tracker daemon's status is %s\n", status);
+	}
 
 	tracker_disconnect (client);
 
-	return 0;
+	return EXIT_SUCCESS;
 }

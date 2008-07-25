@@ -1,7 +1,7 @@
-INCLUDES =				\
+INCLUDES = -I.	-I..				\
 	-DTRACKER_DATADIR=\""$(datadir)"\"	\
-	-DTRACKER_LOCALEDIR=\""$(localedir)"\" \
-	$(GLIB2_CFLAGS)			\
+	-DTRACKER_LOCALEDIR=\""$(localedir)"\"	\
+	$(GLIB2_CFLAGS)				\
 	$(DBUS_CFLAGS)			
 
 # Common linking

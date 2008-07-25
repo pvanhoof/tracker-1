@@ -1,5 +1,6 @@
 /* Tracker - indexer and metadata database engine
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2008, Nokia
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -20,22 +21,27 @@
 #include <config.h>
 
 #include <locale.h>
+#include <stdlib.h>
+#include <time.h>
+#include <string.h>
 #include <glib.h>
 #include <glib/gi18n.h>
 
-#include "../libtracker/tracker.h" 
+#include <tracker.h>
 
-static gint limit = 0;
+static gint limit = 512;
+static gint offset = 0;
 static gchar **terms = NULL;
 static gchar *service = NULL;
 static gboolean detailed;
 
 static GOptionEntry entries[] = {
-	{"limit", 'l', 0, G_OPTION_ARG_INT, &limit, N_("Limit the number of results showed to N"), N_("N")},
-	{"service", 's', 0, G_OPTION_ARG_STRING, &service, N_("Search for a specific service"), N_("SERVICE")},
-	{"detailed", 'd', 0, G_OPTION_ARG_NONE, &detailed, N_("Show more detailed results with service and mime type as well"), NULL},
-	{G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_STRING_ARRAY, &terms, "search terms", NULL},
-	{NULL}
+	{ "limit", 'l', 0, G_OPTION_ARG_INT, &limit, N_("Limit the number of results showed to N"), N_("512") },
+	{ "offset", 'o', 0, G_OPTION_ARG_INT, &offset, N_("Offset the results at O"), N_("0") },
+	{ "service", 's', 0, G_OPTION_ARG_STRING, &service, N_("Search from a specific service"), "service" },
+	{ "detailed", 'd', 0, G_OPTION_ARG_NONE, &detailed, N_("Show more detailed results with service and mime type as well"), NULL},
+	{ G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_STRING_ARRAY, &terms, N_("search terms"), NULL},
+	{ NULL }
 };
 
 
@@ -45,7 +51,7 @@ get_meta_table_data (gpointer value)
 {
 	char **meta, **meta_p;
 
-	meta = (char **)value;
+	meta = (char **) value;
 
 	int i = 0;
 	for (meta_p = meta; *meta_p; meta_p++) {
@@ -78,15 +84,14 @@ main (int argc, char **argv)
 	char **p_strarray;
 	GPtrArray *out_array = NULL;
 
-	setlocale (LC_ALL, "");
 
 	bindtextdomain (GETTEXT_PACKAGE, TRACKER_LOCALEDIR);
-        bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
-        textdomain (GETTEXT_PACKAGE);
+	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+	textdomain (GETTEXT_PACKAGE);
 
 	/* Translators: this messagge will apper immediately after the  */
         /* usage string - Usage: COMMAND [OPTION]... <THIS_MESSAGE>     */
-	context = g_option_context_new (_("TERM... - search files for certain terms"));
+	context = g_option_context_new (_("- Search files for certain terms"));
 
 	/* Translators: this message will appear after the usage string */
         /* and before the list of options.                              */
@@ -109,7 +114,7 @@ main (int argc, char **argv)
 		g_printerr ("\n");
 		g_printerr (_("Try \"%s --help\" for more information."), argv[0]);
 		g_printerr ("\n");
-		return 1;
+		return EXIT_FAILURE;
 	}
 
 	if (!terms) {
@@ -117,7 +122,7 @@ main (int argc, char **argv)
 		g_printerr ("\n");
 		g_printerr (_("Try \"%s --help\" for more information."), argv[0]);
 		g_printerr ("\n");
-		return 1;
+		return EXIT_FAILURE;
 	}
 
 	if (limit <= 0)
@@ -131,7 +136,7 @@ main (int argc, char **argv)
                 g_printerr (_("Ensure \"trackerd\" is running before launch this command."));
                 g_printerr ("\n");
 
-		return 1;
+		return EXIT_FAILURE;
 	}
 
 	if (!service) {
@@ -147,9 +152,21 @@ main (int argc, char **argv)
 	search = g_strjoinv (" ", terms);
 
 	if (!detailed) {
-		result = tracker_search_text (client, -1, type, search, 0, limit, &error);
+		result = tracker_search_text (client, 
+					      time(NULL), 
+					      type, 
+					      search, 
+					      offset, 
+					      limit, 
+					      &error);
 	} else  {
-		out_array = tracker_search_text_detailed (client, -1, type, search, 0, limit, &error);
+		out_array = tracker_search_text_detailed (client, 
+							  time(NULL), 
+							  type, 
+							  search, 
+							  offset, 
+							  limit, 
+							  &error);
 		result = NULL;
 	}
 	
@@ -161,7 +178,7 @@ main (int argc, char **argv)
 			    argv[0], error->message);
 		g_printerr ("\n");
 		g_error_free (error);
-		return 1;
+		return EXIT_FAILURE;
 	}
 
 	if ((!detailed && !result) || (detailed && !out_array)) {
@@ -169,16 +186,16 @@ main (int argc, char **argv)
  		g_print (_("No results found matching your query"));
 		g_print ("\n");
 		tracker_disconnect (client);
- 		return 0;
+ 		return EXIT_SUCCESS;
  	}
 
 	if (detailed) {
 		if (out_array) {
-			g_ptr_array_foreach (out_array, (GFunc)get_meta_table_data, NULL);
+			g_ptr_array_foreach (out_array, (GFunc) get_meta_table_data, NULL);
 			g_ptr_array_free (out_array, TRUE);
 		}
 		tracker_disconnect (client);
-		return 0;
+		return EXIT_SUCCESS;
 	} 
 
 
@@ -196,6 +213,5 @@ main (int argc, char **argv)
 	g_strfreev (result);
 
 	tracker_disconnect (client);
-	return 0;
-
+	return EXIT_SUCCESS;
 }

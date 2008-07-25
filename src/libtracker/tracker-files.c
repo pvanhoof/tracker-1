@@ -1,5 +1,6 @@
 /* Tracker - indexer and metadata database engine
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2008, Nokia
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -17,121 +18,123 @@
  * Boston, MA  02110-1301, USA.
  */
 
+#include <config.h>
+
 #include <locale.h>
 #include <stdlib.h>
 #include <string.h>
 #include <glib.h>
+#include <time.h>
+#include <locale.h>
+#include <glib/gi18n.h>
 
-#include "../libtracker/tracker.h" 
+#include <tracker.h>
 
-#define USAGE "usage: \ntracker-files -s ServiceType\t: Gets files with ServiceType (Documents, Music, Images, Videos, Text, Development, Other, Applications, Folders, Files, Conversations, Emails, EmailAttachments)\ntracker-files -m Mime1 [Mime2...] : Get all files that match one of the specified mime types\n"
+static gchar *service = NULL;
+static gchar **mimes = NULL;
+static gint limit = 512;
+static gint offset = 0;
 
-
+static GOptionEntry entries[] = 
+{
+	{ "service", 's', 0, G_OPTION_ARG_STRING, &service, N_("Search from a specific service"), "service" },
+	{ "limit", 'l', 0, G_OPTION_ARG_INT, &limit, N_("Limit the number of results showed to N"), N_("512") },
+	{ "offset", 'o', 0, G_OPTION_ARG_INT, &offset, N_("Offset the results at O"), N_("0") },
+	{ "add-mime", 'm', 0, G_OPTION_ARG_STRING_ARRAY, &mimes, N_("MIME types (can be used multiple times)"), N_("M") },
+	{ NULL }
+};
 
 int
 main (int argc, char **argv) 
 {
 
 	TrackerClient *client = NULL;
-	GError *error = NULL;
 	ServiceType type;
+	GError *error = NULL;
+	GOptionContext *context;
 
+	bindtextdomain (GETTEXT_PACKAGE, TRACKER_LOCALEDIR);
+	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+	textdomain (GETTEXT_PACKAGE);
 
-	setlocale (LC_ALL, "");
+	context = g_option_context_new (_("- Search for files by service or by MIME type"));
+	g_option_context_add_main_entries (context, entries, "tracker-files");
 
-	if (argc < 3) {
-		g_print (USAGE);
-		return 1;
+	if (!g_option_context_parse (context, &argc, &argv, &error)) {
+		g_print ("option parsing failed: %s\n", error->message);
+		exit (1);
 	}
+
+	g_option_context_free (context);
 
 	client = tracker_connect (FALSE);
 
 	if (!client) {
-		g_print ("Could not initialize Tracker - exiting...\n");
-		return 1;
+		g_print (_("Could not initialize Tracker - exiting...\n"));
+		return EXIT_FAILURE;
 	}
 
-	if (strcmp (argv[1], "-s") == 0) {
+	if (service) {
+		gchar **array = NULL;
+		gchar **p_strarray;
 
-		if (argc != 3) {
-			g_print (USAGE);
-			return 1;
-		} else {
+		type = tracker_service_name_to_type (service);
 
-			type = tracker_service_name_to_type (argv[2]);
+		array = tracker_files_get_by_service_type (client, 
+							   time(NULL), 
+							   type, 
+							   offset, 
+							   limit, 
+							   &error);
 
-			char **array = NULL;
-
-			array = tracker_files_get_by_service_type (client, -1, type, 0, 512, &error);
-
-			if (error) {
-				g_warning ("An error has occurred : %s", error->message);
-				g_error_free (error);
-				return 1;
-			}
-
-			if (!array) {
-				g_print ("no results were found matching your query\n");
-				return 1;
-			}
-
-			char **p_strarray;
-
-			for (p_strarray = array; *p_strarray; p_strarray++) {
-				g_print ("%s\n", *p_strarray);
-			}
-
-			g_strfreev (array);
+		if (error) {
+			g_warning ("An error has occurred : %s", error->message);
+			g_error_free (error);
+			return EXIT_FAILURE;
 		}
 
-	} else if (strcmp (argv[1], "-m") == 0)  {
-
-		if (argc < 3) {
-			g_print (USAGE);
-			return 1;
-		} else {
-
-			char **mimes = NULL;
-			char **array = NULL;
-			int i;
-
-			mimes = g_new (char *, (argc-1));
-
-			for (i=0; i < (argc-2); i++) {
-				mimes[i] = g_locale_to_utf8 (argv[i+2], -1, NULL, NULL, NULL);
-			}
-			mimes[argc-2] = NULL;
-		
-			array = tracker_files_get_by_mime_type (client, -1, mimes, 0, 512, &error);
-
-			g_strfreev (mimes);
-
-			if (error) {
-				g_warning ("An error has occurred : %s", error->message);
-				g_error_free (error);
-				return 1;
-			}
-
-			if (!array) {
-				g_print ("no results were found matching your query\n");
-				return 1;
-			}
-
-			char **p_strarray;
-
-			for (p_strarray = array; *p_strarray; p_strarray++) {
-				g_print ("%s\n", *p_strarray);
-			}
-
-			g_strfreev (array);
+		if (!array) {
+			g_print ("no results were found matching your query\n");
+			return EXIT_FAILURE;
 		}
 
-	}  else {
-		g_print (USAGE);
-		return 1;
+		for (p_strarray = array; *p_strarray; p_strarray++) {
+			g_print ("%s\n", *p_strarray);
+		}
+
+		g_strfreev (array);
+	}
+
+	if (mimes) {
+		gchar **array = NULL;
+		gchar **p_strarray;
+
+		array = tracker_files_get_by_mime_type (client, 
+							time(NULL), 
+							mimes, 
+							offset, 
+							limit, 
+							&error);
+
+		if (error) {
+			g_warning ("An error has occurred : %s", error->message);
+			g_error_free (error);
+			return 1;
+		}
+
+		if (!array) {
+			g_print ("no results were found matching your query\n");
+			return EXIT_FAILURE;
+		}
+
+		for (p_strarray = array; *p_strarray; p_strarray++) {
+			g_print ("%s\n", *p_strarray);
+		}
+
+		g_strfreev (array);
 	}
 
 	tracker_disconnect (client);
 
-	return 0;
+	return EXIT_SUCCESS;
 }

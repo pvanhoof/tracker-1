@@ -1,5 +1,6 @@
 /* Tracker - indexer and metadata database engine
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2008, Nokia
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -21,15 +22,18 @@
 
 #include <locale.h>
 #include <stdlib.h>
+#include <time.h>
 #include <glib.h>
 #include <glib/gi18n.h>
 
-#include "../libtracker/tracker.h" 
+#include <tracker.h>
 
 #ifdef OS_WIN32
 #include "../trackerd/mingw-compat.h"
 #endif
 
+static gint limit = 512;
+static gint offset = 0;
 static gchar **add = NULL;
 static gchar **delete = NULL;
 static gchar **search = NULL;
@@ -38,13 +42,15 @@ static gboolean remove_all = FALSE;
 static gboolean list = FALSE;
 
 static GOptionEntry entries[] = {
-	{"add", 'a', 0, G_OPTION_ARG_STRING_ARRAY, &add, N_("Add specified tag to a file"), N_("TAG")},
-	{"remove", 'r', 0, G_OPTION_ARG_STRING_ARRAY, &delete, N_("Remove specified tag from a file"), N_("TAG")},
-	{"remove-all", 'R', 0, G_OPTION_ARG_NONE, &remove_all, N_("Remove all tags from a file"), NULL},
-	{"list", 'l', 0, G_OPTION_ARG_NONE, &list, N_("List all defined tags"), NULL},
-	{"search", 's', 0, G_OPTION_ARG_STRING_ARRAY, &search, N_("Search for files with specified tag"), N_("TAG")},
-	{G_OPTION_REMAINING, 0, G_OPTION_FLAG_FILENAME, G_OPTION_ARG_STRING_ARRAY, &files, N_("FILE..."), NULL},
-	{NULL}
+	{ "add", 'a', 0, G_OPTION_ARG_STRING_ARRAY, &add, N_("Add specified tag to a file"), N_("TAG")},
+	{ "remove", 'r', 0, G_OPTION_ARG_STRING_ARRAY, &delete, N_("Remove specified tag from a file"), N_("TAG")},
+	{ "remove-all", 'R', 0, G_OPTION_ARG_NONE, &remove_all, N_("Remove all tags from a file"), NULL},
+	{ "list", 'l', 0, G_OPTION_ARG_NONE, &list, N_("List all defined tags"), NULL},
+	{ "limit", 'l', 0, G_OPTION_ARG_INT, &limit, N_("Limit the number of results showed to N"), N_("512") },
+	{ "offset", 'o', 0, G_OPTION_ARG_INT, &offset, N_("Offset the results at O"), N_("0") },
+	{ "search", 's', 0, G_OPTION_ARG_STRING_ARRAY, &search, N_("Search for files with specified tag"), N_("TAG")},
+	{ G_OPTION_REMAINING, 0, G_OPTION_FLAG_FILENAME, G_OPTION_ARG_STRING_ARRAY, &files, N_("FILE..."), NULL},
+	{ NULL }
 };
 
 
@@ -81,11 +87,9 @@ main (int argc, char **argv)
 	gint            i = 0;
         gint            k;
 
-	setlocale (LC_ALL, "");
-
 	bindtextdomain (GETTEXT_PACKAGE, TRACKER_LOCALEDIR);
-        bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
-        textdomain (GETTEXT_PACKAGE);
+	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+	textdomain (GETTEXT_PACKAGE);
 
 	/* Translators: this messagge will apper immediately after the  
          * usage string - Usage: COMMAND [OPTION]... <THIS_MESSAGE>     
@@ -105,19 +109,19 @@ main (int argc, char **argv)
                                example, 
                                NULL);
 
-	g_option_context_set_summary (context, summary);	     
+	g_option_context_set_summary (context, summary);
 	g_option_context_add_main_entries (context, entries, NULL);
 	g_option_context_parse (context, &argc, &argv, &error);
 	g_option_context_free (context);
-        g_free (summary);
+	g_free (summary);
 	g_free (example);
-	
+
 	if (error) {
 		g_printerr ("%s: %s", argv[0], error->message);
 		g_printerr ("\n");
 		g_printerr (_("Try \"%s --help\" for more information."), argv[0]);
 		g_printerr ("\n");
-		return 1;
+		return EXIT_FAILURE;
 	}
 
 	if (((add || delete || remove_all) && !files) || (remove_all && (add || delete)) || (search && files)) {
@@ -125,7 +129,7 @@ main (int argc, char **argv)
 		g_printerr ("\n");
 		g_printerr (_("Try \"%s --help\" for more information."), argv[0]);
 		g_printerr ("\n");
-		return 1;
+		return EXIT_FAILURE;
 	}
 
 
@@ -136,13 +140,13 @@ main (int argc, char **argv)
 		g_printerr ("\n");
 		g_printerr (_("Ensure \"trackerd\" is running before launch this command."));
 		g_printerr ("\n");
-		return 1;
+		return EXIT_FAILURE;
 	}
 
 
 	if (files) {
 		for (i = 0; files[i] != NULL; i++) {
-                        char resolved_path[1024];
+			char resolved_path[1024];
 			gchar *tmp = realpath (files[i], resolved_path);
 			if (tmp) {
 				g_free (files[i]);
@@ -173,9 +177,7 @@ main (int argc, char **argv)
 				delete[i] = tmp;
 			}
 
-
 		for (i = 0; files[i] != NULL; i++) {
-
 			if (remove_all) {
 				tracker_keywords_remove_all (client, SERVICE_FILES, files[i], &error);
 
@@ -208,13 +210,13 @@ main (int argc, char **argv)
 	}
 
 	if (((list && !files) || (!files && (!remove_all && !delete && !add))) && !search) {
-
 		GPtrArray *out_array = NULL;
 
 		out_array = tracker_keywords_get_list (client, SERVICE_FILES, &error);
 
-		if (error)
+		if (error) {
 			goto error;
+		}
 
 		if (out_array) {
 			g_ptr_array_foreach (out_array, (GFunc)get_meta_table_data, NULL);
@@ -230,10 +232,15 @@ main (int argc, char **argv)
 		for (i = 0; files[i] != NULL; i++) {
 
 			int j = 0;
-			gchar **tags = tracker_keywords_get (client, SERVICE_FILES, files[i], &error);
+			gchar **tags = tracker_keywords_get (client, 
+							     SERVICE_FILES, 
+							     files[i], 
+							     &error);
 
 			if (error) {
-				g_printerr (_("%s: internal tracker error: %s"), argv[0], error->message);
+				g_printerr (_("%s: internal tracker error: %s"), 
+					    argv[0], 
+					    error->message);
 				g_printerr ("\n");
 			}
 
@@ -252,16 +259,25 @@ main (int argc, char **argv)
 	}
 
 	if (search) {
-
 		int i = 0;
+		gchar **results;
 
 		for (i = 0; search[i] != NULL; i++) {
-			gchar *tmp = g_locale_to_utf8 (search[i], -1, NULL, NULL, NULL);
+			gchar *tmp = g_locale_to_utf8 (search[i], 
+						       -1, 
+						       NULL, 
+						       NULL, 
+						       NULL);
 			g_free (search[i]);
 			search[i] = tmp;
 		}
 
-		gchar **results = tracker_keywords_search (client, -1, SERVICE_FILES, search, 0, 512, &error);
+		results = tracker_keywords_search (client, -1, 
+						   SERVICE_FILES, 
+						   search, 
+						   offset, 
+						   limit, 
+						   &error);
 
 		if (error)
 			goto error;
@@ -280,11 +296,11 @@ main (int argc, char **argv)
 	}
 
 	tracker_disconnect (client);
-	return 0;
+	return EXIT_SUCCESS;
 
 error:
 	g_printerr (_("%s: internal tracker error: %s"), argv[0], error->message);
 	g_printerr ("\n");
 	tracker_disconnect (client);
-	return 1;	
+	return EXIT_FAILURE;
 }

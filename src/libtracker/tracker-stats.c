@@ -1,5 +1,6 @@
 /* Tracker - indexer and metadata database engine
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2008, Nokia
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -20,14 +21,15 @@
 #include <config.h>
 
 #include <locale.h>
+#include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <glib.h>
-#include <glib-object.h>
 #include <glib/gi18n.h>
 
-#include "../libtracker/tracker.h" 
+#include <tracker.h>
 
-#define TOTAL_COUNT "Total files indexed"
+#define TOTAL_COUNT _("Total files indexed")
 
 static void
 get_meta_table_data (gpointer value)
@@ -62,15 +64,13 @@ main (int argc, char **argv)
 	GOptionContext *context = NULL;
 	TrackerClient *client = NULL;
 
-	setlocale (LC_ALL, "");
-
-        bindtextdomain (GETTEXT_PACKAGE, TRACKER_LOCALEDIR);
-        bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
-        textdomain (GETTEXT_PACKAGE);
+	bindtextdomain (GETTEXT_PACKAGE, TRACKER_LOCALEDIR);
+	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+	textdomain (GETTEXT_PACKAGE);
 
         /* Translators: this messagge will apper immediately after the  */
         /* usage string - Usage: COMMAND [OPTION]... <THIS_MESSAGE>     */
-        context = g_option_context_new (_(" - show number of indexed files for each service"));
+        context = g_option_context_new (_(" - Show number of indexed files for each service"));
 
 	g_option_context_parse (context, &argc, &argv, &error);
 
@@ -101,7 +101,6 @@ main (int argc, char **argv)
 		g_error_free (error);
 	}
 
-
 	if (out_array) {
 		gchar *tmp;
 
@@ -117,8 +116,7 @@ main (int argc, char **argv)
 
 	}
 
-
 	tracker_disconnect (client);
 
-	return 0;
+	return EXIT_SUCCESS;
 }

@@ -48,7 +48,7 @@ indexer_status_cb (DBusGProxy  *proxy,
 		   guint        items_remaining,
 		   gpointer     user_data)
 {
-	tracker_xesam_manager_wakeup ();	
+	tracker_xesam_manager_wakeup ();
 }
 
 static void
@@ -73,6 +73,9 @@ indexer_finished_cb (DBusGProxy *proxy,
 	 */
 	g_message ("Enabling live search event updates (indexer finished)");
 	indexing_finished = TRUE;
+
+	/* Shouldn't we release ref (A) here? (see below) */
+	/* g_object_unref (proxy) */
 }
 
 GQuark
@@ -107,6 +110,8 @@ tracker_xesam_manager_init (void)
 
 	/* Set up DBus proxy to the indexer process */
 	proxy = tracker_dbus_indexer_get_proxy ();
+
+	/* When is this ref released? (A) */
 	g_object_ref (proxy);
 
 	dbus_g_proxy_connect_signal (proxy, "Status",

@@ -104,7 +104,6 @@
 	* src/tracker-indexer/tracker-indexer (tracker_indexer_finalize): Fix
 	invalid free().
 
->>>>>>> .r1951
 2008-07-25  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-db/tracker-db-dbus.c:

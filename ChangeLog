@@ -1,3 +1,12 @@
+2008-07-28  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-metadata.c:
+	* src/libtracker-db/tracker-db-dbus.h:
+	* src/libtracker-db/tracker-db-dbus.c:
+
+	Make tracker_metadata_get return the columns as a GStrv, not the rows.
+	This patch fixed tracker-search-tool's crash
+
 2008-07-28  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/trackerd/tracker-crawler.c (file_enumerate_next_cb): Do not leak

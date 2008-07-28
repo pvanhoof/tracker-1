@@ -72,6 +72,59 @@ tracker_dbus_query_result_to_strv (TrackerDBResultSet *result_set,
 	return strv;
 }
 
+
+
+gchar **
+tracker_dbus_query_result_columns_to_strv (TrackerDBResultSet *result_set, 
+					   gint offset_column,
+					   gint until_column,
+					   gboolean rewind)
+{
+	gchar **strv = NULL;
+	gint    i = 0;
+	gint    columns;
+
+	if (result_set) {
+		columns = tracker_db_result_set_get_n_columns (result_set);
+		if (rewind) {
+			 /* Make sure we rewind before iterating the result set */
+			tracker_db_result_set_rewind (result_set);
+		}
+	}
+
+	if (!result_set || offset_column > columns) {
+		strv = g_new (gchar*, 1);
+		strv[0] = NULL;
+		return strv;
+	} else if (offset_column == -1)
+		offset_column = 0;
+
+	if (until_column == -1)
+		until_column = columns;
+
+	strv = g_new (gchar*, until_column + 1);
+
+
+	for (i = offset_column ; i < until_column; i++) {
+		GValue value = {0, };
+		GValue  transform = {0, };
+
+		g_value_init (&transform, G_TYPE_STRING);
+
+		_tracker_db_result_set_get_value (result_set, i, &value);
+		if (g_value_transform (&value, &transform)) {
+			strv[i] = g_value_dup_string (&transform);
+		}
+		g_value_unset (&value);
+		g_value_unset (&transform);
+	}
+
+	strv[i] = NULL;
+
+	return strv;
+}
+
+
 GHashTable *
 tracker_dbus_query_result_to_hash_table (TrackerDBResultSet *result_set)
 {

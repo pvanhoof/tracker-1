@@ -192,7 +192,7 @@ tracker_metadata_get (TrackerMetadata        *object,
 	g_debug (query);
 
 	result_set = tracker_db_interface_execute_query (iface, NULL, query);
-	values = tracker_dbus_query_result_to_strv (result_set, 0, NULL);
+	values = tracker_dbus_query_result_columns_to_strv (result_set, -1, -1, TRUE);
 	g_free (query);
 
 	if (result_set) {

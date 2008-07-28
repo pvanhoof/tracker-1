@@ -1522,6 +1522,16 @@ db_set_params (TrackerDBInterface *iface,
 							     "REGEXP",
 							     function_regexp,
 							     2);
+
+		tracker_db_interface_sqlite_create_function (iface, 
+							     "uncompress", 
+							     function_uncompress, 
+							     1);
+		tracker_db_interface_sqlite_create_function (iface,
+							     "compress",
+							     function_compress,
+							     1);
+
 	}
 }
 

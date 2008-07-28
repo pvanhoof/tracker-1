@@ -1,5 +1,10 @@
 2008-07-28  Philip Van Hoof  <pvanhoof@gnome.org>
 
+	* src/libtracker-db/tracker-db-manager.c: Added compress and
+	uncompress functions for attached database connections
+
+2008-07-28  Philip Van Hoof  <pvanhoof@gnome.org>
+
 	* src/trackerd/tracker-metadata.c:
 	* src/libtracker-db/tracker-db-dbus.h:
 	* src/libtracker-db/tracker-db-dbus.c:

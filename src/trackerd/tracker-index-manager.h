@@ -34,9 +34,14 @@ typedef enum {
 	TRACKER_INDEX_TYPE_FILES_UPDATE
 } TrackerIndexType;
 
-gboolean      tracker_index_manager_init                (const gchar      *data_dir,
-                                                         gint              min_bucket,
-                                                         gint              max_bucket);
+typedef enum {
+	TRACKER_INDEX_MANAGER_FORCE_REINDEX    = 1 << 1,
+} TrackerIndexManagerFlags;
+
+gboolean      tracker_index_manager_init                (TrackerIndexManagerFlags flags,
+							 const gchar             *data_dir,
+                                                         gint                     min_bucket,
+                                                         gint                     max_bucket);
 void          tracker_index_manager_shutdown            (void);
 gchar *       tracker_index_manager_get_filename        (TrackerIndexType  index);
 TrackerIndex *tracker_index_manager_get_index           (TrackerIndexType  index);

@@ -528,18 +528,19 @@ start_cb (gpointer user_data)
 gint
 main (gint argc, gchar *argv[])
 {
-	GOptionContext        *context = NULL;
-	GOptionGroup          *group;
-	GError                *error = NULL;
-        TrackerConfig         *config;
-        TrackerLanguage       *language;
-        TrackerHal            *hal;
-	TrackerProcessor      *processor;
-        TrackerIndex          *file_index;
-        TrackerIndex          *file_update_index;
-        TrackerIndex          *email_index;
-	TrackerRunningLevel    runtime_level;
-	TrackerDBManagerFlags  flags;
+	GOptionContext          *context = NULL;
+	GOptionGroup            *group;
+	GError                  *error = NULL;
+        TrackerConfig           *config;
+        TrackerLanguage         *language;
+        TrackerHal              *hal;
+	TrackerProcessor        *processor;
+        TrackerIndex            *file_index;
+        TrackerIndex            *file_update_index;
+        TrackerIndex            *email_index;
+	TrackerRunningLevel      runtime_level;
+	TrackerDBManagerFlags    flags;
+	TrackerIndexManagerFlags iflags = 0;
 
         g_type_init ();
         
@@ -685,6 +686,7 @@ main (gint argc, gchar *argv[])
 
 	if (force_reindex) {
 		flags |= TRACKER_DB_MANAGER_FORCE_REINDEX;
+		iflags |= TRACKER_INDEX_MANAGER_FORCE_REINDEX;
 	}
 
 	if (tracker_config_get_low_memory_mode (config)) {
@@ -692,7 +694,7 @@ main (gint argc, gchar *argv[])
 	}
 
 	tracker_db_manager_init (flags, &is_first_time_index);
-	if (!tracker_index_manager_init (tracker_get_data_dir (), 
+	if (!tracker_index_manager_init (iflags, tracker_get_data_dir (), 
 					 tracker_config_get_min_bucket_count (config),
 					 tracker_config_get_max_bucket_count (config))) {
 		return EXIT_FAILURE;

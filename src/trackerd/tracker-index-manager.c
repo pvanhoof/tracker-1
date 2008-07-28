@@ -64,7 +64,7 @@ get_index_name (TrackerIndexType index)
 }
 
 static gboolean
-initialize_indexes (void)
+initialize_indexes (TrackerIndexManagerFlags flags)
 {
 	gchar *final_index_name;
 
@@ -72,7 +72,12 @@ initialize_indexes (void)
 	final_index_name = g_build_filename (index_manager_data_dir,
                                              "file-index-final", 
                                              NULL);
-	
+
+	if (g_file_test (final_index_name, G_FILE_TEST_EXISTS) && 
+	    (flags & TRACKER_INDEX_MANAGER_FORCE_REINDEX)) {
+		    g_unlink (final_index_name);
+	}
+
 	if (g_file_test (final_index_name, G_FILE_TEST_EXISTS) && 
 	    !tracker_index_manager_has_tmp_merge_files (TRACKER_INDEX_TYPE_FILES)) {
 		gchar *file_index_name;
@@ -93,7 +98,12 @@ initialize_indexes (void)
 	final_index_name = g_build_filename (index_manager_data_dir, 
 					     "email-index-final", 
 					     NULL);
-	
+
+	if (g_file_test (final_index_name, G_FILE_TEST_EXISTS) && 
+	    (flags & TRACKER_INDEX_MANAGER_FORCE_REINDEX)) {
+		    g_unlink (final_index_name);
+	}
+
 	if (g_file_test (final_index_name, G_FILE_TEST_EXISTS) && 
 	    !tracker_index_manager_has_tmp_merge_files (TRACKER_INDEX_TYPE_EMAILS)) {
 		gchar *file_index_name;
@@ -115,9 +125,10 @@ initialize_indexes (void)
 }
 
 gboolean
-tracker_index_manager_init (const gchar *data_dir,
-                            gint         min_bucket, 
-                            gint         max_bucket)
+tracker_index_manager_init (TrackerIndexManagerFlags flags,
+                            const gchar             *data_dir,
+                            gint                     min_bucket, 
+                            gint                     max_bucket)
 {
         if (initialized) {
                 return TRUE;
@@ -130,7 +141,7 @@ tracker_index_manager_init (const gchar *data_dir,
 
         initialized = TRUE;
 
-        return initialize_indexes ();
+        return initialize_indexes (flags);
 }
 
 void

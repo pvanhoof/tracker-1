@@ -1,3 +1,11 @@
+2008-07-28  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/trackerd/tracker-index-manager.c:
+	* src/trackerd/tracker-main.c:
+	* src/trackerd/tracker-index-manager.h:
+
+	Removing the QDBM indexes in case of force-reindex
+
 2008-07-28  Ivan Frade  <ivan.frade@nokia.com>
 	
 	* src/libtracker-common/tracker-language.c:

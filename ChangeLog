@@ -10,6 +10,11 @@
 
 2008-07-28  Philip Van Hoof  <pvanhoof@gnome.org>
 
+	* utils/qdbm/print-words.c: Open the qdbm file in DP_ONOLCK mode, like
+	the application itself does
+
+2008-07-28  Philip Van Hoof  <pvanhoof@gnome.org>
+
 	* src/tracker-indexer/tracker-index.c:
 	* src/tracker-indexer/tracker-index.h:
 	* src/tracker-indexer/tracker-indexer.c:

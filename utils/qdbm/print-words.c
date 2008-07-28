@@ -78,7 +78,7 @@ load_terms_from_index (gchar* filename){
     gint hits, i;
     TrackerIndexerWordDetails *results;
 
-    depot = dpopen (filename, DP_OREADER, -1);
+    depot = dpopen (filename, DP_OREADER | DP_ONOLCK, -1);
 
     if ( depot == NULL ) {
 	   g_print ("Unable to open file: %s (Could be a lock problem: is tracker running?)\n", filename);

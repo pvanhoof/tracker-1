@@ -1929,20 +1929,12 @@ gsearch_app_create (GSearchWindow * gsearch)
 
 	gsearch->category_table = g_hash_table_new (g_str_hash, g_str_equal);
 
-	g_hash_table_insert (gsearch->category_table, g_strdup ("Emails"), &services[0]);
-	g_hash_table_insert (gsearch->category_table, g_strdup ("Files"), &services[1]);
-	g_hash_table_insert (gsearch->category_table, g_strdup ("Folders"), &services[2]);
-	g_hash_table_insert (gsearch->category_table, g_strdup ("Documents"), &services[3]);
-	g_hash_table_insert (gsearch->category_table, g_strdup ("Images"), &services[4]);
-	g_hash_table_insert (gsearch->category_table, g_strdup ("Music"), &services[5]);
-	g_hash_table_insert (gsearch->category_table, g_strdup ("Videos"), &services[6]);
-	g_hash_table_insert (gsearch->category_table, g_strdup ("Text"), &services[7]);
-	g_hash_table_insert (gsearch->category_table, g_strdup ("Development"), &services[8]);
-	g_hash_table_insert (gsearch->category_table, g_strdup ("Conversations"), &services[9]);
-	g_hash_table_insert (gsearch->category_table, g_strdup ("Applications"), &services[10]);
-	g_hash_table_insert (gsearch->category_table, g_strdup ("WebHistory"), &services[11]);
-	//g_hash_table_insert (gsearch->category_table, g_strdup ("EmailAttachments"), &services[11]);
-	
+	for (service = services; service->service; service++) {
+		g_hash_table_insert (gsearch->category_table,
+				     g_strdup (service->service),
+				     service);
+	}
+
 	gsearch->category_store = gtk_list_store_new (NUM_CATEGORY_COLUMNS, GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_STRING);
 
 	GtkIconTheme * theme = gtk_icon_theme_get_default ();

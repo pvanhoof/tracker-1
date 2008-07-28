@@ -1,5 +1,12 @@
 2008-07-28  Ivan Frade  <ivan.frade@nokia.com>
 
+	* src/tracker-search-tool/tracker-search-tool.c:
+	(g_search_app_create): Remove hardcoding in the category ->
+	service description hash table. This fixes the categories in
+	tracker-search-tool.
+	
+2008-07-28  Ivan Frade  <ivan.frade@nokia.com>
+
 	* src/tracker-indexer/tracker-indexer.c:
 	(index_text_contents): Added function to add the contents of the
 	file into QDBM.

@@ -1,3 +1,11 @@
+2008-07-28  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	src/tracker-indexer/tracker-index.c:
+	src/tracker-indexer/tracker-index.h:
+	src/tracker-indexer/tracker-indexer.c:
+
+	Open and close the QDBM file during pause and continue
+
 2008-07-28  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/libtracker-common/tracker-config.c (config_load_string_list)

@@ -1017,7 +1017,8 @@ tracker_indexer_pause (TrackerIndexer         *indexer,
 		g_source_remove (indexer->private->idle_id);
 		indexer->private->idle_id = 0;
 		indexer->private->is_paused = TRUE;
-		
+
+		tracker_index_close (indexer->private->index);
 		g_signal_emit (indexer, signals[PAUSED], 0);
 	}
 
@@ -1038,7 +1039,8 @@ pause_for_duration_cb (gpointer user_data)
 
 		indexer->private->is_paused = FALSE;
 		indexer->private->idle_id = g_idle_add (process_func, indexer);
-		
+
+		tracker_index_open (indexer->private->index);
 		g_signal_emit (indexer, signals[CONTINUED], 0);
 	}
 	
@@ -1082,6 +1084,7 @@ tracker_indexer_pause_for_duration (TrackerIndexer         *indexer,
 					       pause_for_duration_cb, 
 					       indexer);
 
+		tracker_index_close (indexer->private->index);
 		g_signal_emit (indexer, signals[PAUSED], 0);
 	}
 
@@ -1110,7 +1113,8 @@ tracker_indexer_continue (TrackerIndexer         *indexer,
 		
 		indexer->private->is_paused = FALSE;
 		indexer->private->idle_id = g_idle_add (process_func, indexer);
-		
+
+		tracker_index_open (indexer->private->index);
 		g_signal_emit (indexer, signals[CONTINUED], 0);
 	}
 

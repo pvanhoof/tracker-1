@@ -40,6 +40,8 @@ void           tracker_index_add_word (TrackerIndex *index,
 
 guint          tracker_index_flush    (TrackerIndex *index);
 
+void           tracker_index_open     (TrackerIndex *index);
+void           tracker_index_close    (TrackerIndex *index);
 
 G_END_DECLS
 

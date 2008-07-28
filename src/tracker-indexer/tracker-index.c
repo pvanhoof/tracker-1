@@ -32,12 +32,36 @@ typedef struct TrackerIndexElement TrackerIndexElement;
 struct TrackerIndex {
 	GHashTable *cache;
 	DEPOT *index;
+	gchar *file;
+	gint bucket_count;
 };
 
 static void
 free_cache_values (GArray *array)
 {
 	g_array_free (array, TRUE);
+}
+
+void 
+tracker_index_open (TrackerIndex *index)
+{
+	if (index->index)
+		tracker_index_close (index);
+
+	index->index = dpopen (index->file, 
+			       DP_OWRITER | DP_OCREAT | DP_ONOLCK, 
+			       index->bucket_count);
+}
+
+void 
+tracker_index_close (TrackerIndex *index)
+{
+	if (index->index) {
+		if (!dpclose (index->index)) {
+			g_warning ("Could not close index: %s", dperrmsg (dpecode));
+		}
+		index->index = NULL;
+	}
 }
 
 
@@ -53,7 +77,11 @@ tracker_index_new (const gchar *file,
 					      (GDestroyNotify) g_free,
 					      (GDestroyNotify) free_cache_values);
 
-	index->index = dpopen (file, DP_OWRITER | DP_OCREAT | DP_ONOLCK, bucket_count);
+	index->index = NULL;
+	index->file = g_strdup (file);
+	index->bucket_count = bucket_count;
+
+	tracker_index_open (index);
 
 	return index;
 }
@@ -70,10 +98,9 @@ tracker_index_free (TrackerIndex *index)
 
 	g_debug ("Closing index");
 
-	if (!dpclose (index->index)) {
-		g_warning ("Could not close index: %s", dperrmsg (dpecode));
-	}
+	tracker_index_close (index);
 
+	g_free (index->file);
 	g_free (index);
 }
 
@@ -264,6 +291,11 @@ guint
 tracker_index_flush (TrackerIndex *index)
 {
 	guint size;
+
+	if (!index->index) {
+		g_warning ("Flushing index while closed, this indicates a problem in the software");
+		tracker_index_open (index);
+	}
 
 	size = g_hash_table_size (index->cache);
 	g_debug ("Flushing index with %d items in cache", size);

@@ -271,9 +271,9 @@ test_get_db_for_service ()
 	TrackerDBType result_db;
 
 	result_db = tracker_ontology_get_db_for_service_type ("Test service");
-	g_assert (result_db == TRACKER_DB_TYPE_DATA); // ????? HARDCODED IN tracker-utils!!!!!
+	g_assert (result_db == TRACKER_DB_TYPE_FILES); // ????? HARDCODED IN tracker-ontology!!!!!
 	result_db = tracker_ontology_get_db_for_service_type ("trash");
-	g_assert (result_db == TRACKER_DB_TYPE_DATA);
+	g_assert (result_db == TRACKER_DB_TYPE_FILES);
 }
 
 
@@ -376,36 +376,36 @@ main (int argc, char **argv) {
 
         tracker_services_general_setup ();
 
-	g_test_add_func ("/trackerd/tracker-services/get_id_for_service",  
+	g_test_add_func ("/libtracker-common/tracker-ontology/get_id_for_service",  
                          test_get_id_for_service);
-	g_test_add_func ("/trackerd/tracker-services/get_service_for_id",  
+	g_test_add_func ("/libtracker-common/tracker-ontology/get_service_for_id",  
                          test_get_service_by_id);
-        g_test_add_func ("/trackerd/tracker-services/get_parent_service_by_id",  
+        g_test_add_func ("/libtracker-common/tracker-ontology/get_parent_service_by_id",  
                           test_get_parent_service_by_id); 
-	g_test_add_func ("/trackerd/tracker-services/get_parent_id_for_service_id",  
+	g_test_add_func ("/libtracker-common/tracker-ontology/get_parent_id_for_service_id",  
                          test_get_parent_id_for_service_id);
-	g_test_add_func ("/trackerd/tracker-services/get_parent_service", 
+	g_test_add_func ("/libtracker-common/tracker-ontology/get_parent_service", 
                          test_get_parent_service);
-	g_test_add_func ("/trackerd/tracker-services/get_service_type_for_mime", 
+	g_test_add_func ("/libtracker-common/tracker-ontology/get_service_type_for_mime", 
                          test_get_service_type_for_mime);
-	g_test_add_func ("/trackerd/tracker-services/get_service", 
+	g_test_add_func ("/libtracker-common/tracker-ontology/get_service", 
                          test_get_service);
-	g_test_add_func ("/trackerd/tracker-services/get_db_for_service", 
+	g_test_add_func ("/libtracker-common/tracker-ontology/get_db_for_service", 
                          test_get_db_for_service);
-	g_test_add_func ("/trackerd/tracker-services/is_service_embedded", 
+	g_test_add_func ("/libtracker-common/tracker-ontology/is_service_embedded", 
                          test_is_service_embedded);
-	g_test_add_func ("/trackerd/tracker-services/has_thumbnails", 
+	g_test_add_func ("/libtracker-common/tracker-ontology/has_thumbnails", 
                          test_has_thumbnails);
-	g_test_add_func ("/trackerd/tracker-services/has_text", 
+	g_test_add_func ("/libtracker-common/tracker-ontology/has_text", 
                          test_has_text);
-	g_test_add_func ("/trackerd/tracker-services/has_metadata", 
+	g_test_add_func ("/libtracker-common/tracker-ontology/has_metadata", 
                          test_has_metadata);
-        g_test_add_func ("/trackerd/tracker-services/test_field_in_ontology",
+        g_test_add_func ("/libtracker-common/tracker-ontology/test_field_in_ontology",
                          test_field_in_ontology);
 
-	g_test_add_func ("/trackerd/tracker-services/test_get_all_registered_service_types",
+	g_test_add_func ("/libtracker-common/tracker-ontology/test_get_all_registered_service_types",
 			 test_get_registered_service_types);
-	g_test_add_func ("/trackerd/tracker-services/test_get_all_registered_field_types",
+	g_test_add_func ("/libtracker-common/tracker-ontology/test_get_all_registered_field_types",
 			 test_get_registered_field_types);
 
         result = g_test_run ();

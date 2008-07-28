@@ -1,3 +1,12 @@
+2008-07-28  Ivan Frade  <ivan.frade@nokia.com>
+
+	* tests/libtracker-common/tracker-ontology-test.c:
+	(test_get_db_for_service): Updated to new default value.
+	Used proper namespace for tests.
+
+	* src/libtracker-common/tracker-parser.c:
+	(tracker_parser_text): Fixed max words to index
+	
 2008-07-28  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/libtracker-db/tracker-db-manager.c: Added compress and
@@ -51,6 +60,7 @@
 	* src/tracker-indexer/tracker-indexer (tracker_indexer_finalize): Fix
 	invalid free().
 
+>>>>>>> .r1951
 2008-07-25  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-db/tracker-db-dbus.c:

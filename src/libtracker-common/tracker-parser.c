@@ -578,7 +578,7 @@ tracker_parser_text (GHashTable      *word_table,
 					
 					total_words++;
 
-					if (total_words < max_words_to_index) { 
+					if (total_words <= max_words_to_index) { 
 						gint count;
 
                                                 count = GPOINTER_TO_INT (g_hash_table_lookup (word_table, index_word));
@@ -617,7 +617,7 @@ tracker_parser_text (GHashTable      *word_table,
 			if (word) {
 				total_words++;
 
-				if (total_words < max_words_to_index) { 
+				if (total_words <= max_words_to_index) { 
                                         gint count;
 
                                         count = GPOINTER_TO_INT (g_hash_table_lookup (word_table, word));

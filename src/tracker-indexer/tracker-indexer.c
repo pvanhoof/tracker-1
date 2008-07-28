@@ -762,6 +762,44 @@ index_metadata (TrackerIndexer *indexer,
 	schedule_flush (indexer, FALSE);
 }
 
+static void
+index_text_contents (TrackerIndexer *indexer,
+		     gint service_id,
+		     gint service_type,
+		     const gchar *text)
+{
+	GHashTable *parsed = NULL;
+	GList      *words = NULL, *iter;
+	gint        weight;
+
+	parsed = tracker_parser_text (parsed,
+				      text,
+				      1,
+				      indexer->private->language,
+				      tracker_config_get_max_words_to_index (indexer->private->config),
+				      tracker_config_get_max_word_length (indexer->private->config),
+				      tracker_config_get_min_word_length (indexer->private->config),
+				      tracker_config_get_enable_stemmer (indexer->private->config),
+				      FALSE); 
+	
+	words = g_hash_table_get_keys (parsed);
+	
+	for (iter = words; iter != NULL; iter = iter->next) {
+		
+		weight = GPOINTER_TO_INT (g_hash_table_lookup (parsed, (gchar *)iter->data));
+
+		tracker_index_add_word (indexer->private->index, 
+					(gchar *)iter->data,
+					service_id,
+					service_type,
+					weight); 
+	}
+
+	tracker_parser_text_free (parsed);
+					
+}
+
+
 static gboolean
 process_file (TrackerIndexer *indexer,
 	      PathInfo       *info)
@@ -821,6 +859,13 @@ process_file (TrackerIndexer *indexer,
 				text = tracker_indexer_module_file_get_text (info->module, info->file);
 
 				if (text) {
+					/* Save in the index */
+					index_text_contents (indexer, 
+							     id, 
+							     tracker_service_get_id (service_def),
+							     text);
+
+					/* Save in the DB */
 					tracker_db_set_text (service_def, id, text);
 					g_free (text);
 				}

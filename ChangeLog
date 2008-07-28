@@ -1,3 +1,9 @@
+2008-07-28  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/tracker-indexer/tracker-indexer.c:
+	(index_text_contents): Added function to add the contents of the
+	file into QDBM.
+	
 2008-07-28  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/trackerd/tracker-index-manager.c:

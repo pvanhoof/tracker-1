@@ -214,6 +214,7 @@ tracker_monitor_init (TrackerMonitor *object)
 	g_message ("Monitor limit is %d", priv->monitor_limit);
 	
 	g_file_monitor_cancel (monitor);
+	g_object_unref (monitor);
 	g_object_unref (file);
 }
 

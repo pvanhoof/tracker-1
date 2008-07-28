@@ -1,3 +1,13 @@
+2008-07-28  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/trackerd/tracker-crawler.c (file_enumerate_next_cb): Do not leak
+	file infos and the enumerator.
+	(tracker_crawler_start): Free remaining elements in the list.
+	* src/trackerd/tracker-main.c (main): The index objects are owned by
+	the index manager. Do not free them there.
+	* src/trackerd/tracker-monitor.c (tracker_monitor_init): Do not leak
+	the test monitor.
+
 2008-07-28  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	src/tracker-indexer/tracker-index.c:

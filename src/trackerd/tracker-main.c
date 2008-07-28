@@ -813,11 +813,6 @@ main (gint argc, gchar *argv[])
 	tracker_status_shutdown ();
 	tracker_log_shutdown ();
 
-	/* Clean up object references */
-	g_object_unref (email_index);
-	g_object_unref (file_update_index);
-	g_object_unref (file_index);
-
 #ifdef HAVE_HAL
 	g_object_unref (hal);
 #endif /* HAVE_HAL */

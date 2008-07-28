@@ -576,12 +576,19 @@ file_enumerate_next_cb (GObject      *object,
 		/* No more files or we are stopping anyway, so clean
 		 * up and close all file enumerators.
 		 */
+		if (files) {
+			g_list_foreach (files, (GFunc) g_object_unref, NULL);
+			g_list_free (files);
+		}
+
 		enumerator_data_free (ed);
 		g_file_enumerator_close_async (enumerator,
 					       G_PRIORITY_DEFAULT,
 					       NULL,
 					       file_enumerator_close_cb,
 					       crawler);
+		g_object_unref (enumerator);
+
 		return;
 	}
 
@@ -603,6 +610,8 @@ file_enumerate_next_cb (GObject      *object,
 	}
 
 	g_object_unref (child);
+
+	g_list_foreach (files, (GFunc) g_object_unref, NULL);
 	g_list_free (files);
 
 	/* Get next file */
@@ -749,10 +758,14 @@ tracker_crawler_start (TrackerCrawler *crawler)
 	
 	sl = priv->paths;
 	priv->paths = tracker_path_list_filter_duplicates (priv->paths);
+
+	g_slist_foreach (sl, (GFunc) g_free, NULL);
 	g_slist_free (sl);
 
 	sl = priv->recurse_paths;
 	priv->recurse_paths = tracker_path_list_filter_duplicates (priv->recurse_paths);
+
+	g_slist_foreach (sl, (GFunc) g_free, NULL);
 	g_slist_free (sl);
 
 	/* Time the event */

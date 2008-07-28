@@ -2,7 +2,11 @@ include $(top_srcdir)/Makefile.decl
 
 noinst_PROGRAMS = $(TEST_PROGS)
 
-TEST_PROGS += tracker-ontology tracker-dbus tracker-type-utils tracker-file-utils
+TEST_PROGS += tracker-ontology \
+	tracker-dbus \
+	tracker-type-utils \
+	tracker-file-utils \
+	tracker-parser
 
 INCLUDES = 				\
 	-g 				\
@@ -55,6 +59,19 @@ tracker_file_utils_LDADD =						\
 	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
 	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
 	$(top_builddir)/src/xdgmime/libxdgmime.la 			\
+	$(GMODULE_LIBS)							\
+	$(GTHREAD_LIBS)							\
+	$(GLIB2_LIBS)							
+
+
+tracker_parser_SOURCES = \
+	tracker-parser-test.c 
+
+tracker_parser_LDADD =							\
+	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
+	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
+	$(top_builddir)/src/xdgmime/libxdgmime.la 			\
+	$(top_builddir)/src/libstemmer/libstemmer-private.la 		\
 	$(GMODULE_LIBS)							\
 	$(GTHREAD_LIBS)							\
 	$(GLIB2_LIBS)							

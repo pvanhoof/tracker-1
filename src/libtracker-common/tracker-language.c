@@ -217,11 +217,10 @@ language_get_stopword_filename (const gchar *language_code)
 	gchar *str;
 	gchar *filename;
 
-	str = g_strconcat (".", language_code, NULL);
+	str = g_strconcat ("stopwords.", language_code, NULL);
 	filename = g_build_filename (SHAREDIR,
 				     "tracker",
 				     "languages",
-				     "stopwords",
 				     str,
 				     NULL);
 	g_free (str);
@@ -269,7 +268,7 @@ language_add_stopwords (TrackerLanguage *language,
 
 	content = g_mapped_file_get_contents (mapped_file);
 	words = g_strsplit_set (content, "\n" , -1);
-	g_free (content);
+
 	g_mapped_file_free (mapped_file);
 
 	/* FIXME: Shouldn't clear the hash table first? */
@@ -342,11 +341,18 @@ language_notify_cb (TrackerConfig *config,
 TrackerLanguage *
 tracker_language_new (TrackerConfig *config)
 {
+	TrackerLanguage *language;
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 
-	return g_object_new (TRACKER_TYPE_LANGUAGE,
-			     "config", config,
-			     NULL);
+	language = g_object_new (TRACKER_TYPE_LANGUAGE,
+				 "config", config,
+				 NULL);
+	
+	language_set_stopword_list (language,
+				    tracker_config_get_language (config));
+	
+	return language;
+
 }
 
 TrackerConfig *

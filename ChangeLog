@@ -1,5 +1,16 @@
 2008-07-28  Ivan Frade  <ivan.frade@nokia.com>
 
+	* src/libtracker-common/tracker-language.c:
+	(tracker_language_new): Set stop words on creation.
+	(language_get_stopword_filename): Build correct filename.
+	(language_add_stopwords): Dont free contents of g_mapped_file
+	
+	* tests/libtracker-common/Makefile.am
+	* tests/libtracker-common/tracker-parser-test.c: Added tests to
+	tracker_parser_
+
+2008-07-28  Ivan Frade  <ivan.frade@nokia.com>
+
 	* tests/libtracker-common/tracker-ontology-test.c:
 	(test_get_db_for_service): Updated to new default value.
 	Used proper namespace for tests.

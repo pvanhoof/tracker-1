@@ -1577,6 +1577,7 @@ db_get_static_data (TrackerDBInterface *iface)
 				   tracker_field_get_weight (def));
 
 			tracker_ontology_add_field (def);
+			g_object_unref (def);
 
 			valid = tracker_db_result_set_iter_next (result_set);
 		}
@@ -1660,6 +1661,7 @@ db_get_static_xesam_data (TrackerDBInterface *iface)
 			 * tracker_ontology_add_field (def);
 			 */
 			valid = tracker_db_result_set_iter_next (result_set);
+			g_object_unref (def);
 		}
 
 		g_object_unref (result_set);

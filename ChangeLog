@@ -1,3 +1,19 @@
+2008-07-28  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/libtracker-common/tracker-config.c (config_load_string_list)
+	(tracker_config_add_watch_directory_roots)
+	(tracker_config_add_crawl_directory_roots)
+	(tracker_config_add_no_watch_directory_roots): Plug some leaks.
+	* src/libtracker-db/tracker-db-manager.c (db_get_static_data)
+	(db_get_static_xesam_data): Same here.
+	* src/tracker-indexer/modules/evolution.c
+	(get_account_name_from_imap_uri): Do not try to parse the wrong mail
+	URIs.
+	* src/tracker-indexer/tracker-index.c (tracker_index_free): Fix
+	invalid memory reads.
+	* src/tracker-indexer/tracker-indexer (tracker_indexer_finalize): Fix
+	invalid free().
+
 2008-07-25  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-db/tracker-db-dbus.c:

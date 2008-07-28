@@ -62,11 +62,11 @@ tracker_index_new (const gchar *file,
 void
 tracker_index_free (TrackerIndex *index)
 {
-	g_hash_table_destroy (index->cache);
-
 	if (g_hash_table_size (index->cache) > 0) {
 		tracker_index_flush (index);
 	}
+
+	g_hash_table_destroy (index->cache);
 
 	g_debug ("Closing index");
 

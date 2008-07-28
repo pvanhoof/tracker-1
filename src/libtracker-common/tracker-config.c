@@ -1059,6 +1059,8 @@ config_load_string_list (TrackerConfig *config,
 				config_string_list_to_gslist ((const gchar **) value, TRUE);
 			priv->watch_directory_roots = 
 				tracker_path_list_filter_duplicates (priv->watch_directory_roots);
+
+			g_slist_foreach (l, (GFunc) g_free, NULL);
 			g_slist_free (l);
 		}
 	}
@@ -1068,6 +1070,8 @@ config_load_string_list (TrackerConfig *config,
 				config_string_list_to_gslist ((const gchar **) value, TRUE);
 			priv->crawl_directory_roots = 
 				tracker_path_list_filter_duplicates (priv->crawl_directory_roots);
+
+			g_slist_foreach (l, (GFunc) g_free, NULL);
 			g_slist_free (l);
 		}
 	}
@@ -1077,6 +1081,8 @@ config_load_string_list (TrackerConfig *config,
 				config_string_list_to_gslist ((const gchar **) value, TRUE);
 			priv->no_watch_directory_roots = 
 				tracker_path_list_filter_duplicates (priv->no_watch_directory_roots);
+
+			g_slist_foreach (l, (GFunc) g_free, NULL);
 			g_slist_free (l);
 		}
 	}
@@ -2027,6 +2033,8 @@ tracker_config_add_watch_directory_roots (TrackerConfig *config,
 	l = priv->watch_directory_roots;
 	priv->watch_directory_roots =
 		tracker_path_list_filter_duplicates (priv->watch_directory_roots);
+
+	g_slist_foreach (l, (GFunc) g_free, NULL);
 	g_slist_free (l);
        		
 	g_object_notify (G_OBJECT (config), "watch-directory-roots");
@@ -2061,6 +2069,8 @@ tracker_config_add_crawl_directory_roots (TrackerConfig *config,
 	l = priv->crawl_directory_roots;
 	priv->crawl_directory_roots =
 		tracker_path_list_filter_duplicates (priv->crawl_directory_roots);
+
+	g_slist_foreach (l, (GFunc) g_free, NULL);
 	g_slist_free (l);
 
 	g_object_notify (G_OBJECT (config), "crawl-directory-roots");
@@ -2095,6 +2105,8 @@ tracker_config_add_no_watch_directory_roots (TrackerConfig *config,
 	l = priv->no_watch_directory_roots;
 	priv->no_watch_directory_roots = 
 		tracker_path_list_filter_duplicates (priv->no_watch_directory_roots);
+
+	g_slist_foreach (l, (GFunc) g_free, NULL);
 	g_slist_free (l);
 
 	g_object_notify (G_OBJECT (config), "no-watch-directory-roots");

@@ -404,9 +404,6 @@ tracker_indexer_finalize (GObject *object)
 	g_queue_foreach (priv->file_queue, (GFunc) path_info_free, NULL);
 	g_queue_free (priv->file_queue);
 
-	/* The queue doesn't own the module names */
-	g_queue_free (priv->modules_queue);
-
 	G_OBJECT_CLASS (tracker_indexer_parent_class)->finalize (object);
 }
 

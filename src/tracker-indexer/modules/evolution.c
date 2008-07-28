@@ -262,7 +262,7 @@ get_account_name_from_imap_uri (const gchar *imap_uri)
          * We try to get "foo@imap.free.fr".
          */
 
-        if (g_str_has_prefix (imap_uri, "imap://")) {
+        if (!g_str_has_prefix (imap_uri, "imap://")) {
                 return NULL;
         }
 

@@ -144,6 +144,18 @@ text_needs_pango (const gchar *text)
 	return FALSE;
 }
 
+static gboolean
+is_stop_word (TrackerLanguage *language,
+              const gchar     *word)
+{
+        GHashTable *stop_words;
+        
+        stop_words = tracker_language_get_stop_words (language);
+
+        return (g_hash_table_lookup (stop_words, word) != NULL);
+}
+
+
 static const gchar *
 analyze_text (const gchar      *text, 
               TrackerLanguage  *language,
@@ -306,11 +318,13 @@ analyze_text (const gchar      *text,
                                 *index_word = tracker_language_stem_word (language, 
                                                                           tmp, 
                                                                           strlen (tmp));
-                                if (*index_word) {
-                                        g_free (tmp);
-                                } else {
-                                        *index_word = tmp;			
+                                g_free (tmp);
+                                
+                                if (filter_words && is_stop_word (language, *index_word)) {
+                                        g_free (*index_word);
+                                        *index_word = NULL;
                                 }
+
                         }
                 }
         } 

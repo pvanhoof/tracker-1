@@ -9,8 +9,9 @@
 /* 
  * len(word) > 3 : 6 words  
  * longest word: 10 chars
+ * stop words ("here", "a", "of", "various", "to", "after")
  */
-#define SAMPLE_TEXT "Here a good collection of various words to parse 12345678"
+#define SAMPLE_TEXT "Here a good collection of various words to parse 12345678 after"
 
 TrackerConfig *config;
 TrackerLanguage *language;
@@ -72,7 +73,7 @@ test_parser_text_max_length (void)
                                       3, /* min length of the word */
                                       FALSE, FALSE); /* Filter / Delimit */
         g_hash_table_foreach (result, assert_key_length, GINT_TO_POINTER (max_length));
-        g_assert_cmpint (g_hash_table_size (result), ==, 7);
+        g_assert_cmpint (g_hash_table_size (result), ==, 8);
 
         tracker_parser_text_free (result);        
 }
@@ -81,7 +82,7 @@ test_parser_text_max_length (void)
  * Filter numbers 
  */
 static void
-test_parser_text_filter_numbers (void)
+test_parser_text_filter_numbers_stop_words (void)
 {
         GHashTable *result = NULL;
 
@@ -92,12 +93,12 @@ test_parser_text_filter_numbers (void)
                                       language,
                                       100, /* max words to index */
                                       100, /* max length of the word */
-                                      1, /* min length of the word */
+                                      0, /* min length of the word */
                                       TRUE, FALSE); /* Filter / Delimit */
 
         g_assert (!g_hash_table_lookup (result, "12345678"));
 
-        g_assert_cmpint (g_hash_table_size (result), ==, 9);
+        g_assert_cmpint (g_hash_table_size (result), ==, 4);
 
         tracker_parser_text_free (result);        
         result = NULL;
@@ -109,10 +110,10 @@ test_parser_text_filter_numbers (void)
                                       language,
                                       100, /* max words to index */
                                       100, /* max length of the word */
-                                      1, /* min length of the word */
+                                      0, /* min length of the word */
                                       FALSE, FALSE); /* Filter / Delimit */
 
-        g_assert_cmpint (g_hash_table_size (result), ==, 10);
+        g_assert_cmpint (g_hash_table_size (result), ==, 11);
 
         g_assert (g_hash_table_lookup (result, "12345678"));
 
@@ -123,7 +124,7 @@ test_parser_text_filter_numbers (void)
 static void
 test_parser_stop_words (void)
 {
-        GHashTable *stop_words;
+        GHashTable *stop_words, *result = NULL;
         
         /* Check we have the default stop words */
         stop_words = tracker_language_get_stop_words (language);
@@ -134,6 +135,14 @@ test_parser_stop_words (void)
         tracker_config_set_language (config, "en");
         g_assert (g_hash_table_lookup (stop_words, "after"));
 
+        result = tracker_parser_text (result,
+                                      SAMPLE_TEXT,
+                                      1,
+                                      language,
+                                      100, /* max words to index */
+                                      100, /* max length of the word */
+                                      1, /* min length of the word */
+                                      TRUE, FALSE); /* Filter / Delimit */        
 }
 
 int
@@ -156,7 +165,7 @@ main (int argc, char **argv) {
                          test_parser_text_max_length);
 
         g_test_add_func ("/libtracker-common/tracker-parser/parser_text/filter_numbers",
-                         test_parser_text_filter_numbers);
+                         test_parser_text_filter_numbers_stop_words);
 
         g_test_add_func ("/libtracker-common/tracker-parser/stop_words",
                          test_parser_stop_words);

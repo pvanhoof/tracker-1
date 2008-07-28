@@ -1,4 +1,16 @@
 2008-07-28  Ivan Frade  <ivan.frade@nokia.com>
+	
+	* src/libtracker-common/tracker-language.c:
+	(tracker_language_stem_word): Return always a valid word, the
+	input or the stemmed one.
+	
+	* src/libtracker-common/tracker-parser.c: 
+	(analyze_text): Added stop words checking
+	
+	* tests/libtracker-common/tracker-parser-test.c: Updated tests
+	with stop words.
+	
+2008-07-28  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/libtracker-common/tracker-language.c:
 	(tracker_language_new): Set stop words on creation.

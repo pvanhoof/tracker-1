@@ -425,7 +425,7 @@ tracker_language_stem_word (TrackerLanguage *language,
 	priv = GET_PRIV (language);
 
 	if (!tracker_config_get_enable_stemmer (priv->config)) {
-		return NULL;
+		return g_strdup (word);
 	}
 
 	g_mutex_lock (priv->stemmer_mutex);

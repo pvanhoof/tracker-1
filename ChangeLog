@@ -1,5 +1,11 @@
 2008-07-29  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/modules/evolution.c (get_metadata_for_mbox)
+	(get_imap_message_body) (get_metadata_for_imap): Index message body
+	for both mbox and imap.
+
+2008-07-29  Carlos Garnacho  <carlos@imendio.com>
+
 	Support saving metadata with multiple items.
 
 	* src/tracker-indexer/tracker-metadata.[ch]: Old code was removed,

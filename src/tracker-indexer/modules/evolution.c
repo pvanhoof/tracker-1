@@ -40,6 +40,7 @@
 #define METADATA_EMAIL_SUBJECT       "Email:Subject"
 #define METADATA_EMAIL_SENT_TO       "Email:SentTo"
 #define METADATA_EMAIL_CC            "Email:CC"
+#define METADATA_EMAIL_BODY          "Email:Body"
 
 typedef union EvolutionFileData EvolutionFileData;
 typedef struct EvolutionLocalData EvolutionLocalData;
@@ -601,7 +602,8 @@ get_metadata_for_mbox (TrackerFile *file)
         EvolutionLocalData *data;
         GMimeMessage *message;
         TrackerMetadata *metadata;
-        gchar *dir, *name;
+        gchar *dir, *name, *body;
+        gboolean is_html;
         time_t date;
         GList *list;
 
@@ -634,11 +636,10 @@ get_metadata_for_mbox (TrackerFile *file)
         list = get_mbox_recipient_list (message, GMIME_RECIPIENT_TYPE_CC);
         tracker_metadata_insert_multiple_values (metadata, METADATA_EMAIL_CC, list);
 
-        /* Missing:
-         *
-         * Body
-         * Attachments
-         */
+        body = g_mime_message_get_body (message, TRUE, &is_html);
+        tracker_metadata_insert (metadata, METADATA_EMAIL_BODY, body);
+
+        /* FIXME: Missing attachments handling */
 
         g_free (dir);
 
@@ -743,13 +744,31 @@ get_imap_recipient_list (const gchar *str)
         return g_list_reverse (list);
 }
 
+static gchar *
+get_imap_message_body (TrackerFile *file,
+                       const gchar *uid)
+{
+        gchar *prefix, *body_path;
+        gchar *body = NULL;
+
+        prefix = g_strndup (file->path, strlen (file->path) - strlen ("summary"));
+        body_path = g_strconcat (prefix, uid, ".", NULL);
+
+        g_file_get_contents (body_path, &body, NULL, NULL);
+
+        g_free (prefix);
+        g_free (body_path);
+
+        return body;
+}
+
 TrackerMetadata *
 get_metadata_for_imap (TrackerFile *file)
 {
         EvolutionImapData *data;
         TrackerMetadata *metadata;
         gchar *dirname, *basename;
-        gchar *uid, *subject, *from, *to, *cc;
+        gchar *uid, *subject, *from, *to, *cc, *body;
         gint32 i, count;
         time_t date;
         GList *list;
@@ -791,6 +810,9 @@ get_metadata_for_imap (TrackerFile *file)
 
         list = get_imap_recipient_list (cc);
         tracker_metadata_insert_multiple_values (metadata, METADATA_EMAIL_CC, list);
+
+        body = get_imap_message_body (file, uid);
+        tracker_metadata_insert (metadata, METADATA_EMAIL_BODY, body);
 
         g_free (uid);
         g_free (to);

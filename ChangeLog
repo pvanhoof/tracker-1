@@ -1,3 +1,10 @@
+2008-07-29  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-index-manager.[ch]: Rework the code here to
+	initialize a bit more thoroughly and to print what is going on
+	more clearly similar to how we do the db manager. Also make sure
+	we remove indexes on reindex, not just temporary files.
+
 2008-07-29  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/modules/evolution.c (get_metadata_for_mbox)

@@ -1,3 +1,11 @@
+2008-07-29  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/libtracker-common/tracker-ontology.c
+	(tracker_ontology_metadata_key_in_service): Valid metadata keys start 
+	from number 1.
+	* src/tracker-indexer/tracker-indexer-db.c (tracker_db_set_metadata):
+	Store corresponding metadata into the Services table.
+
 2008-07-29  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-index-manager.[ch]: Rework the code here to

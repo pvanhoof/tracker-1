@@ -427,8 +427,8 @@ tracker_ontology_metadata_key_in_service (const gchar *service_str,
 		return 0;
 	}
 
-	for (l = tracker_service_get_key_metadata (service), i = 0; 
-	     l; 
+	for (l = tracker_service_get_key_metadata (service), i = 1;
+	     l;
 	     l = l->next, i++) {
 		if (!l->data) {
 			continue;

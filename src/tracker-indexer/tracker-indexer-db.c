@@ -227,6 +227,7 @@ tracker_db_set_metadata (TrackerService *service,
 			 const gchar    *parsed_value)
 {
 	TrackerDBInterface *iface;
+	gint metadata_key;
 	gchar *id_str;
 
 	id_str = tracker_guint32_to_string (id);
@@ -271,6 +272,14 @@ tracker_db_set_metadata (TrackerService *service,
 		/* not handled */
 	default:
 		break;
+	}
+
+	metadata_key = tracker_ontology_metadata_key_in_service (tracker_service_get_name (service),
+								 tracker_field_get_name (field));
+	if (metadata_key > 0) {
+		tracker_db_interface_execute_query (iface, NULL,
+						    "update Services set KeyMetadata%d = '%s' where id = %d",
+						    metadata_key, value, id);
 	}
 
 	g_free (id_str);

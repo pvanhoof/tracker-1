@@ -23,6 +23,7 @@
 G_BEGIN_DECLS
 
 #include <glib.h>
+#include <tracker-indexer/tracker-metadata.h>
 
 typedef struct TrackerFile TrackerFile;
 
@@ -32,18 +33,18 @@ struct TrackerFile {
 	gpointer  data;
 };
 
-typedef void          (* TrackerModuleInit)               (void);
-typedef void          (* TrackerModuleShutdown)           (void);
+typedef void              (* TrackerModuleInit)               (void);
+typedef void              (* TrackerModuleShutdown)           (void);
 
-typedef const gchar * (* TrackerModuleGetNameFunc)        (void);
-typedef gchar **      (* TrackerModuleGetDirectoriesFunc) (void);
+typedef const gchar *     (* TrackerModuleGetNameFunc)        (void);
+typedef gchar **          (* TrackerModuleGetDirectoriesFunc) (void);
 
-typedef gpointer      (* TrackerModuleFileGetDataFunc)  (const gchar *path);
-typedef void          (* TrackerModuleFileFreeDataFunc) (gpointer     data);
+typedef gpointer          (* TrackerModuleFileGetDataFunc)  (const gchar *path);
+typedef void              (* TrackerModuleFileFreeDataFunc) (gpointer     data);
 
-typedef GHashTable *  (* TrackerModuleFileGetMetadataFunc) (TrackerFile *file);
-typedef gchar *       (* TrackerModuleFileGetText)         (TrackerFile *path);
-typedef gboolean      (* TrackerModuleFileIterContents)    (TrackerFile *path);
+typedef TrackerMetadata * (* TrackerModuleFileGetMetadataFunc) (TrackerFile *file);
+typedef gchar *           (* TrackerModuleFileGetText)         (TrackerFile *path);
+typedef gboolean          (* TrackerModuleFileIterContents)    (TrackerFile *path);
 
 
 void                   tracker_module_init                   (void);
@@ -54,7 +55,7 @@ G_CONST_RETURN gchar * tracker_module_get_name               (void);
 gpointer               tracker_module_file_get_data  (const gchar *path);
 void                   tracker_module_file_free_data (gpointer     file_data);
 
-GHashTable *           tracker_module_file_get_metadata  (TrackerFile *file);
+TrackerMetadata *      tracker_module_file_get_metadata  (TrackerFile *file);
 gchar *                tracker_module_file_get_text      (TrackerFile *file);
 gboolean               tracker_module_file_iter_contents (TrackerFile *file);
 

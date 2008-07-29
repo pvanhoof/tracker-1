@@ -1,5 +1,21 @@
-2008-07-28  Ivan Frade  <ivan.frade@nokia.com>
+2008-07-29  Carlos Garnacho  <carlos@imendio.com>
 
+	Support saving metadata with multiple items.
+
+	* src/tracker-indexer/tracker-metadata.[ch]: Old code was removed,
+	these files now contain a TrackerMetadata struct, which is used to
+	store metadata, taking care of the type, whether it has multiple
+	items, how data must be freed, ...
+	* src/tracker-module.h:
+	* src/tracker-indexer-module.[ch]: Adapt modules API to return a
+	TrackerMetadata instead of a GHashTable for metadata.
+	* src/tracker-indexer/tracker-indexer-db.c: Use TrackerMetadata API.
+	Also support storing metadata with multiple values.
+	* src/tracker-indexer/modules/*.c: Adapt to module API changes, also
+	store metadata lists where appropriate (mimetypes/categories for
+	applications, recipients for mail).
+
+2008-07-28  Ivan Frade  <ivan.frade@nokia.com>
 	* src/tracker-search-tool/tracker-search-tool.c:
 	(g_search_app_create): Remove hardcoding in the category ->
 	service description hash table. This fixes the categories in

@@ -1,7 +1,8 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
- *
+ * Copyright (C) 2008, Nokia
+
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
  * License as published by the Free Software Foundation; either
@@ -22,20 +23,32 @@
 #define __TRACKER_METADATA_H__
 
 #include <glib.h>
+#include <libtracker-common/tracker-field.h>
 
-#define THUMB_SMALL "128"
-#define THUMB_LARGE "640"
+typedef struct TrackerMetadata TrackerMetadata;
 
-G_BEGIN_DECLS
+typedef void (* TrackerMetadataForeach) (TrackerField *field,
+					 gpointer      value,
+					 gpointer      user_data);
 
-gchar *tracker_metadata_get_text_file       (const gchar   *uri,
-					     const gchar   *mime);
-gchar *tracker_metadata_get_thumbnail       (const gchar   *path,
-					     const gchar   *mime,
-					     const gchar   *size);
-void   tracker_metadata_get_embedded        (const gchar   *uri,
-					     const gchar   *mime,
-					     GHashTable    *table);
+TrackerMetadata *      tracker_metadata_new    (void);
+void                   tracker_metadata_free   (TrackerMetadata *metadata);
+
+void                   tracker_metadata_insert                 (TrackerMetadata *metadata,
+								const gchar     *field_name,
+								gpointer         value);
+void                   tracker_metadata_insert_multiple_values (TrackerMetadata *metadata,
+								const gchar     *field_name,
+								GList           *list);
+
+gpointer               tracker_metadata_lookup                 (TrackerMetadata *metadata,
+								const gchar     *field_name);
+G_CONST_RETURN GList * tracker_metadata_lookup_multiple_values (TrackerMetadata *metadata,
+								const gchar     *field_name);
+
+void                   tracker_metadata_foreach (TrackerMetadata        *metadata,
+						 TrackerMetadataForeach  func,
+						 gpointer                user_data);
 
 G_END_DECLS
 

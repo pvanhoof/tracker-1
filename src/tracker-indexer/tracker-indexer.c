@@ -695,30 +695,13 @@ indexer_throttle (TrackerConfig *config,
 }
 
 static void
-index_metadata_foreach (gpointer key,
-			gpointer value,
-			gpointer user_data)
+index_metadata_item (TrackerField        *field,
+		     gpointer             value,
+		     MetadataForeachData *data)
 {
-	TrackerField *field;
-	MetadataForeachData *data;
 	gchar *parsed_value;
 	gchar **arr;
-	gint throttle;
 	gint i;
-
-	if (!value) {
-		return;
-	}
-
-	data = (MetadataForeachData *) user_data;
-
-	/* Throttle indexer, value 9 is from older code, why 9? */
-	throttle = tracker_config_get_throttle (data->config);
-	if (throttle > 9) {
-		indexer_throttle (data->config, throttle * 100);
-	}
-
-	field = tracker_ontology_get_field_def ((gchar *) key);
 
 	parsed_value = tracker_parser_text_to_string ((gchar *) value,
 						      data->language,
@@ -744,10 +727,44 @@ index_metadata_foreach (gpointer key,
 }
 
 static void
-index_metadata (TrackerIndexer *indexer,
-		guint32         id,
-		TrackerService *service,
-		GHashTable     *metadata)
+index_metadata_foreach (TrackerField *field,
+			gpointer      value,
+			gpointer      user_data)
+{
+	MetadataForeachData *data;
+	gint throttle;
+
+	if (!value) {
+		return;
+	}
+
+	data = (MetadataForeachData *) user_data;
+
+	/* Throttle indexer, value 9 is from older code, why 9? */
+	throttle = tracker_config_get_throttle (data->config);
+	if (throttle > 9) {
+		indexer_throttle (data->config, throttle * 100);
+	}
+
+	if (!tracker_field_get_multiple_values (field)) {
+		index_metadata_item (field, value, data);
+	} else {
+		GList *list;
+
+		list = (GList *) value;
+
+		while (list) {
+			index_metadata_item (field, list->data, data);
+			list = list->next;
+		}
+	}
+}
+
+static void
+index_metadata (TrackerIndexer  *indexer,
+		guint32          id,
+		TrackerService  *service,
+		TrackerMetadata *metadata)
 {
 	MetadataForeachData data;
 
@@ -757,7 +774,7 @@ index_metadata (TrackerIndexer *indexer,
 	data.service = service;
 	data.id = id;
 
-	g_hash_table_foreach (metadata, index_metadata_foreach, &data);
+	tracker_metadata_foreach (metadata, index_metadata_foreach, &data);
 
 	schedule_flush (indexer, FALSE);
 }
@@ -804,7 +821,7 @@ static gboolean
 process_file (TrackerIndexer *indexer,
 	      PathInfo       *info)
 {
-	GHashTable *metadata;
+	TrackerMetadata *metadata;
 
 	g_debug ("Processing file:'%s'", info->file->path);
 
@@ -873,7 +890,7 @@ process_file (TrackerIndexer *indexer,
 
 		}
 
-		g_hash_table_destroy (metadata);
+		tracker_metadata_free (metadata);
 	}
 
 	indexer->private->items_processed++;

@@ -18,6 +18,7 @@
  */
 
 #include <glib.h>
+#include <tracker-indexer/tracker-module.h>
 
 G_CONST_RETURN gchar *
 tracker_module_get_name (void)
@@ -26,7 +27,7 @@ tracker_module_get_name (void)
 	return "GaimConversations";
 }
 
-GHashTable *
+TrackerMetadata *
 tracker_module_get_file_metadata (const gchar *file)
 {
 	/* Return a hashtable filled with metadata for the file */

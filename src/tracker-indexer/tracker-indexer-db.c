@@ -110,15 +110,15 @@ tracker_db_create_event (TrackerDBInterface *iface,
 }
 
 static void
-get_dirname_and_basename (const gchar  *path,
-			  GHashTable   *metadata,
-			  gchar       **out_dirname,
-			  gchar       **out_basename)
+get_dirname_and_basename (const gchar      *path,
+			  TrackerMetadata  *metadata,
+			  gchar           **out_dirname,
+			  gchar           **out_basename)
 {
 	const gchar *dirname, *basename;
 
-	dirname = g_hash_table_lookup (metadata, "File:Path");
-	basename = g_hash_table_lookup (metadata, "File:Name");
+	dirname = tracker_metadata_lookup (metadata, "File:Path");
+	basename = tracker_metadata_lookup (metadata, "File:Name");
 
 	if (dirname && basename) {
 		*out_dirname = g_strdup (dirname);
@@ -130,9 +130,9 @@ get_dirname_and_basename (const gchar  *path,
 }
 
 guint
-tracker_db_check_service (TrackerService *service,
-			  const gchar    *path,
-			  GHashTable     *metadata)
+tracker_db_check_service (TrackerService  *service,
+			  const gchar     *path,
+			  TrackerMetadata *metadata)
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
@@ -162,10 +162,10 @@ tracker_db_check_service (TrackerService *service,
 }
 
 gboolean
-tracker_db_create_service (TrackerService *service,
-			   guint32         id,
-			   const gchar    *path,
-			   GHashTable     *metadata)
+tracker_db_create_service (TrackerService  *service,
+			   guint32          id,
+			   const gchar     *path,
+			   TrackerMetadata *metadata)
 {
 	TrackerDBInterface *iface;
 	gchar *id_str, *service_type_id_str;
@@ -192,12 +192,12 @@ tracker_db_create_service (TrackerService *service,
 						dirname,
 						basename,
 						service_type_id_str,
-						is_dir ? "Folder" : g_hash_table_lookup (metadata, "File:Mime"),
-						g_hash_table_lookup (metadata, "File:Size"),
+						is_dir ? "Folder" : tracker_metadata_lookup (metadata, "File:Mime"),
+						tracker_metadata_lookup (metadata, "File:Size"),
 						is_dir ? "1" : "0",
 						is_symlink ? "1" : "0",
 						"0", /* offset */
-						g_hash_table_lookup (metadata, "File:Modified"),
+						tracker_metadata_lookup (metadata, "File:Modified"),
 						"0", /* aux ID */
 						NULL);
 

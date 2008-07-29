@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <gconf/gconf-client.h>
 #include <tracker-indexer/tracker-module.h>
+#include <tracker-indexer/tracker-metadata.h>
 #include <libtracker-common/tracker-utils.h>
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-type-utils.h>
@@ -37,6 +38,8 @@
 #define METADATA_EMAIL_DATE          "Email:Date"
 #define METADATA_EMAIL_SENDER        "Email:Sender"
 #define METADATA_EMAIL_SUBJECT       "Email:Subject"
+#define METADATA_EMAIL_SENT_TO       "Email:SentTo"
+#define METADATA_EMAIL_CC            "Email:CC"
 
 typedef union EvolutionFileData EvolutionFileData;
 typedef struct EvolutionLocalData EvolutionLocalData;
@@ -562,14 +565,45 @@ get_mbox_message_id (GMimeMessage *message)
         return id;
 }
 
-GHashTable *
+static GList *
+get_mbox_recipient_list (GMimeMessage *message,
+                         const gchar  *type)
+{
+        GList *list = NULL;
+        const InternetAddressList *addresses;
+
+        addresses = g_mime_message_get_recipients (message, type);
+
+        while (addresses) {
+                InternetAddress *address;
+                gchar *str;
+
+                address = addresses->address;
+
+                if (address->name && address->value.addr) {
+                        str = g_strdup_printf ("%s %s", address->name, address->value.addr);
+                } else if (address->value.addr) {
+                        str = g_strdup (address->value.addr);
+                } else if (address->name) {
+                        str = g_strdup (address->name);
+                }
+
+                list = g_list_prepend (list, str);
+                addresses = addresses->next;
+        }
+
+        return g_list_reverse (list);
+}
+
+TrackerMetadata *
 get_metadata_for_mbox (TrackerFile *file)
 {
         EvolutionLocalData *data;
         GMimeMessage *message;
-        GHashTable *metadata;
+        TrackerMetadata *metadata;
         gchar *dir, *name;
         time_t date;
+        GList *list;
 
         data = file->data;
         message = data->message;
@@ -578,31 +612,30 @@ get_metadata_for_mbox (TrackerFile *file)
                 return NULL;
         }
 
-	metadata = g_hash_table_new_full (g_str_hash, g_str_equal,
-					  NULL,
-					  (GDestroyNotify) g_free);
-
+        metadata = tracker_metadata_new ();
         dir = tracker_string_replace (file->path, local_dir, NULL);
         name = g_strdup_printf ("%s;uid=%d", dir, get_mbox_message_id (message));
 
-        g_hash_table_insert (metadata, METADATA_FILE_PATH, g_strdup ("email://local@local"));
-        g_hash_table_insert (metadata, METADATA_FILE_NAME, name);
+        tracker_metadata_insert (metadata, METADATA_FILE_PATH, g_strdup ("email://local@local"));
+        tracker_metadata_insert (metadata, METADATA_FILE_NAME, name);
 
         g_mime_message_get_date (message, &date, NULL);
-	g_hash_table_insert (metadata, METADATA_EMAIL_DATE,
-                             tracker_uint_to_string (date));
+	tracker_metadata_insert (metadata, METADATA_EMAIL_DATE,
+                                 tracker_uint_to_string (date));
 
-        g_hash_table_insert (metadata, METADATA_EMAIL_SENDER,
-                             g_strdup (g_mime_message_get_sender (message)));
-        g_hash_table_insert (metadata, METADATA_EMAIL_SUBJECT,
-                             g_strdup (g_mime_message_get_subject (message)));
+        tracker_metadata_insert (metadata, METADATA_EMAIL_SENDER,
+                                 g_strdup (g_mime_message_get_sender (message)));
+        tracker_metadata_insert (metadata, METADATA_EMAIL_SUBJECT,
+                                 g_strdup (g_mime_message_get_subject (message)));
+
+        list = get_mbox_recipient_list (message, GMIME_RECIPIENT_TYPE_TO);
+        tracker_metadata_insert_multiple_values (metadata, METADATA_EMAIL_SENT_TO, list);
+
+        list = get_mbox_recipient_list (message, GMIME_RECIPIENT_TYPE_CC);
+        tracker_metadata_insert_multiple_values (metadata, METADATA_EMAIL_CC, list);
 
         /* Missing:
          *
-         * Recipients:
-         *   To
-         *   CC
-         *   BCC
          * Body
          * Attachments
          */
@@ -687,15 +720,39 @@ get_imap_uri (const gchar  *path,
         return;
 }
 
-GHashTable *
+static GList *
+get_imap_recipient_list (const gchar *str)
+{
+        GList *list = NULL;
+        gchar **arr;
+        gint i;
+
+        if (!str) {
+                return NULL;
+        }
+
+        arr = g_strsplit (str, ",", -1);
+
+        for (i = 0; arr[i]; i++) {
+                g_strstrip (arr[i]);
+                list = g_list_prepend (list, g_strdup (arr[i]));
+        }
+
+        g_strfreev (arr);
+
+        return g_list_reverse (list);
+}
+
+TrackerMetadata *
 get_metadata_for_imap (TrackerFile *file)
 {
         EvolutionImapData *data;
-        GHashTable *metadata;
+        TrackerMetadata *metadata;
         gchar *dirname, *basename;
-        gchar *uid, *subject, *from, *to;
+        gchar *uid, *subject, *from, *to, *cc;
         gint32 i, count;
         time_t date;
+        GList *list;
 
         data = file->data;
 
@@ -712,28 +769,32 @@ get_metadata_for_imap (TrackerFile *file)
                       SUMMARY_TYPE_STRING, &subject, /* subject */
                       SUMMARY_TYPE_STRING, &from, /* from */
                       SUMMARY_TYPE_STRING, &to, /* to */
-                      SUMMARY_TYPE_STRING, NULL, /* cc */
+                      SUMMARY_TYPE_STRING, &cc, /* cc */
                       SUMMARY_TYPE_STRING, NULL, /* mlist */
                       -1);
 
-	metadata = g_hash_table_new_full (g_str_hash, g_str_equal,
-					  NULL,
-					  (GDestroyNotify) g_free);
-
+	metadata = tracker_metadata_new ();
         get_imap_uri (file->path, &dirname, &basename);
 
-        g_hash_table_insert (metadata, METADATA_FILE_PATH, dirname);
-        g_hash_table_insert (metadata, METADATA_FILE_NAME, g_strdup_printf ("%s;uid=%s", basename, uid));
+        tracker_metadata_insert (metadata, METADATA_FILE_PATH, dirname);
+        tracker_metadata_insert (metadata, METADATA_FILE_NAME, g_strdup_printf ("%s;uid=%s", basename, uid));
         g_free (basename);
 
-	g_hash_table_insert (metadata, METADATA_EMAIL_DATE,
-                             tracker_uint_to_string (date));
+	tracker_metadata_insert (metadata, METADATA_EMAIL_DATE,
+                                 tracker_uint_to_string (date));
 
-        g_hash_table_insert (metadata, METADATA_EMAIL_SENDER, from);
-        g_hash_table_insert (metadata, METADATA_EMAIL_SUBJECT, subject);
+        tracker_metadata_insert (metadata, METADATA_EMAIL_SENDER, from);
+        tracker_metadata_insert (metadata, METADATA_EMAIL_SUBJECT, subject);
+
+        list = get_imap_recipient_list (to);
+        tracker_metadata_insert_multiple_values (metadata, METADATA_EMAIL_SENT_TO, list);
+
+        list = get_imap_recipient_list (cc);
+        tracker_metadata_insert_multiple_values (metadata, METADATA_EMAIL_CC, list);
 
         g_free (uid);
         g_free (to);
+        g_free (cc);
 
         read_summary (data->summary,
                       SUMMARY_TYPE_INT32, NULL,
@@ -776,7 +837,7 @@ get_metadata_for_imap (TrackerFile *file)
         return metadata;
 }
 
-GHashTable *
+TrackerMetadata *
 tracker_module_file_get_metadata (TrackerFile *file)
 {
         EvolutionFileData *data;

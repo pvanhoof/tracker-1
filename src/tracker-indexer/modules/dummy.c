@@ -18,6 +18,7 @@
  */
 
 #include <glib.h>
+#include <tracker-indexer/tracker-metadata.h>
 
 void
 tracker_module_init (void)
@@ -69,7 +70,7 @@ tracker_module_file_free_data (gpointer file_data)
          */
 }
 
-GHashTable *
+TrackerMetadata *
 tracker_module_file_get_metadata (TrackerFile *file)
 {
 	/* Return a hashtable filled with metadata for file, given the

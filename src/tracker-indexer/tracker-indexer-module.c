@@ -115,7 +115,7 @@ tracker_indexer_module_file_free (GModule     *module,
 	g_slice_free (TrackerFile, file);
 }
 
-GHashTable *
+TrackerMetadata *
 tracker_indexer_module_file_get_metadata (GModule     *module,
 					  TrackerFile *file)
 {

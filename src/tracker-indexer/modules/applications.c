@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <glib.h>
 #include <tracker-indexer/tracker-module.h>
+#include <tracker-indexer/tracker-metadata.h>
 
 #define GROUP_DESKTOP_ENTRY "Desktop Entry"
 #define KEY_TYPE            "Type"
@@ -50,11 +51,11 @@ tracker_module_get_name (void)
 }
 
 static void
-insert_data_from_desktop_file (GHashTable  *metadata,
-			       const gchar *metadata_key,
-			       GKeyFile    *desktop_file,
-			       const gchar *key,
-			       gboolean     use_locale)
+insert_data_from_desktop_file (TrackerMetadata *metadata,
+			       const gchar     *metadata_key,
+			       GKeyFile        *desktop_file,
+			       const gchar     *key,
+			       gboolean         use_locale)
 {
 	gchar *str;
 
@@ -65,14 +66,44 @@ insert_data_from_desktop_file (GHashTable  *metadata,
 	}
 
 	if (str) {
-		g_hash_table_insert (metadata, (gpointer) metadata_key, str);
+                tracker_metadata_insert (metadata, metadata_key, str);
 	}
 }
 
-GHashTable *
+static void
+insert_list_from_desktop_file (TrackerMetadata *metadata,
+                               const gchar     *metadata_key,
+                               GKeyFile        *desktop_file,
+                               const gchar     *key,
+                               gboolean         use_locale)
+{
+        gchar **arr;
+
+        if (use_locale) {
+                arr = g_key_file_get_locale_string_list (desktop_file, GROUP_DESKTOP_ENTRY, key, NULL, NULL, NULL);
+        } else {
+                arr = g_key_file_get_string_list (desktop_file, GROUP_DESKTOP_ENTRY, key, NULL, NULL);
+        }
+
+        if (arr) {
+                GList *list = NULL;
+                gint i;
+
+                for (i = 0; arr[i]; i++) {
+                        list = g_list_prepend (list, arr[i]);
+                }
+
+                list = g_list_reverse (list);
+                g_free (arr);
+
+                tracker_metadata_insert_multiple_values (metadata, metadata_key, list);
+        }
+}
+
+TrackerMetadata *
 tracker_module_file_get_metadata (TrackerFile *file)
 {
-	GHashTable *metadata;
+        TrackerMetadata *metadata;
 	GKeyFile *key_file;
 	gchar *type, *filename;
 
@@ -102,9 +133,7 @@ tracker_module_file_get_metadata (TrackerFile *file)
 	}
 
 	/* Begin collecting data */
-	metadata = g_hash_table_new_full (g_str_hash, g_str_equal,
-					  NULL,
-					  (GDestroyNotify) g_free);
+        metadata = tracker_metadata_new ();
 
 	insert_data_from_desktop_file (metadata, METADATA_APP_NAME, key_file, KEY_NAME, FALSE);
 	insert_data_from_desktop_file (metadata, METADATA_APP_DISPLAY_NAME, key_file, KEY_NAME, TRUE);
@@ -113,10 +142,11 @@ tracker_module_file_get_metadata (TrackerFile *file)
 	insert_data_from_desktop_file (metadata, METADATA_APP_EXECUTABLE, key_file, KEY_EXECUTABLE, FALSE);
 	insert_data_from_desktop_file (metadata, METADATA_APP_ICON, key_file, KEY_ICON, FALSE);
 
-	/* FIXME: mimetypes list and categories? */
+        insert_list_from_desktop_file (metadata, METADATA_APP_MIMETYPE, key_file, KEY_MIMETYPE, FALSE);
+        insert_list_from_desktop_file (metadata, METADATA_APP_CATEGORIES, key_file, KEY_CATEGORIES, FALSE);
 
 	filename = g_filename_display_basename (file->path);
-	g_hash_table_insert (metadata, METADATA_FILE_NAME, filename);
+        tracker_metadata_insert (metadata, METADATA_FILE_NAME, filename);
 
 	g_key_file_free (key_file);
 	g_free (type);

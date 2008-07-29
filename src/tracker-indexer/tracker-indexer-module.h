@@ -24,6 +24,7 @@
 
 #include <glib.h>
 #include "tracker-module.h"
+#include "tracker-metadata.h"
 
 G_BEGIN_DECLS
 
@@ -40,7 +41,7 @@ TrackerFile *           tracker_indexer_module_file_new               (GModule  
 void                    tracker_indexer_module_file_free              (GModule     *module,
 								       TrackerFile *file);
 
-GHashTable *            tracker_indexer_module_file_get_metadata      (GModule     *module,
+TrackerMetadata *       tracker_indexer_module_file_get_metadata      (GModule     *module,
 								       TrackerFile *file);
 gchar *                 tracker_indexer_module_file_get_text          (GModule     *module,
 								       TrackerFile *file);

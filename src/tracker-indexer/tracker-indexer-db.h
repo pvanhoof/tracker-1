@@ -24,6 +24,7 @@
 
 #include <libtracker-common/tracker-ontology.h>
 #include <libtracker-db/tracker-db-interface.h>
+#include "tracker-metadata.h"
 
 G_BEGIN_DECLS
 
@@ -33,11 +34,11 @@ void     tracker_db_increment_stats    (TrackerDBInterface *iface,
 
 guint    tracker_db_check_service      (TrackerService     *service,
 					const gchar        *path,
-					GHashTable         *metadata);
+					TrackerMetadata    *metadata);
 gboolean tracker_db_create_service     (TrackerService     *service,
                                         guint32             id,
                                         const gchar        *path,
-                                        GHashTable         *metadata);
+					TrackerMetadata    *metadata);
 void     tracker_db_set_metadata       (TrackerService     *service,
                                         guint32             id,
                                         TrackerField       *field,

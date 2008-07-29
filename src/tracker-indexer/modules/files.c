@@ -49,9 +49,9 @@ tracker_module_get_name (void)
 }
 
 static void
-tracker_metadata_get_embedded (const char *path,
-			       const char *mimetype,
-			       GHashTable *table)
+tracker_metadata_get_embedded (const char      *path,
+			       const char      *mimetype,
+                               TrackerMetadata *metadata)
 {
 	gboolean success;
 	gchar **argv, *output, **values, *service_type;
@@ -113,7 +113,7 @@ tracker_metadata_get_embedded (const char *path,
 		if (!name || !value)
 			continue;
 
-		if (g_hash_table_lookup (table, name))
+		if (tracker_metadata_lookup (metadata, name))
 			continue;
 
 		if (!g_utf8_validate (value, -1, NULL)) {
@@ -125,8 +125,7 @@ tracker_metadata_get_embedded (const char *path,
 		if (!utf_value)
 			continue;
 
-		/* FIXME: name should be const */
-		g_hash_table_insert (table, g_strdup (name), utf_value);
+                tracker_metadata_insert (metadata, name, utf_value);
 	}
 
 	g_strfreev (values);
@@ -199,11 +198,11 @@ check_exclude_file (const gchar *path)
 	return FALSE;
 }
 
-GHashTable *
+TrackerMetadata *
 tracker_module_file_get_metadata (TrackerFile *file)
 {
 	const gchar *path;
-	GHashTable *metadata;
+        TrackerMetadata *metadata;
 	struct stat st;
 	const gchar *ext;
 	gchar *mimetype;
@@ -215,39 +214,37 @@ tracker_module_file_get_metadata (TrackerFile *file)
 	}
 
 	g_lstat (path, &st);
-	metadata = g_hash_table_new_full (g_str_hash, g_str_equal,
-					  NULL,
-					  (GDestroyNotify) g_free);
+        metadata = tracker_metadata_new ();
 	ext = strrchr (path, '.');
 
 	if (ext) {
-		g_hash_table_insert (metadata, METADATA_FILE_EXT, g_strdup (ext + 1));
+		tracker_metadata_insert (metadata, METADATA_FILE_EXT, g_strdup (ext + 1));
 	}
 
 	mimetype = tracker_file_get_mime_type (path);
 
-	g_hash_table_insert (metadata, METADATA_FILE_NAME, g_filename_display_basename (path));
-	g_hash_table_insert (metadata, METADATA_FILE_PATH, g_path_get_dirname (path));
-	g_hash_table_insert (metadata, METADATA_FILE_NAME_DELIMITED,
-			     g_filename_to_utf8 (path, -1, NULL, NULL, NULL));
-	g_hash_table_insert (metadata, METADATA_FILE_MIMETYPE, mimetype);
+        tracker_metadata_insert (metadata, METADATA_FILE_NAME, g_filename_display_basename (path));
+	tracker_metadata_insert (metadata, METADATA_FILE_PATH, g_path_get_dirname (path));
+	tracker_metadata_insert (metadata, METADATA_FILE_NAME_DELIMITED,
+                                 g_filename_to_utf8 (path, -1, NULL, NULL, NULL));
+	tracker_metadata_insert (metadata, METADATA_FILE_MIMETYPE, mimetype);
 
 	if (S_ISLNK (st.st_mode)) {
 		gchar *link_path;
 
 		link_path = g_file_read_link (path, NULL);
-		g_hash_table_insert (metadata, METADATA_FILE_LINK,
-				     g_filename_to_utf8 (link_path, -1, NULL, NULL, NULL));
+		tracker_metadata_insert (metadata, METADATA_FILE_LINK,
+                                         g_filename_to_utf8 (link_path, -1, NULL, NULL, NULL));
 		g_free (link_path);
 	}
 
 	/* FIXME: These should be dealt directly as integer/times/whatever, not strings */
-	g_hash_table_insert (metadata, METADATA_FILE_SIZE,
-			     tracker_uint_to_string (st.st_size));
-	g_hash_table_insert (metadata, METADATA_FILE_MODIFIED,
-			     tracker_uint_to_string (st.st_mtime));
-	g_hash_table_insert (metadata, METADATA_FILE_ACCESSED,
-			     tracker_uint_to_string (st.st_atime));
+	tracker_metadata_insert (metadata, METADATA_FILE_SIZE,
+                                 tracker_uint_to_string (st.st_size));
+	tracker_metadata_insert (metadata, METADATA_FILE_MODIFIED,
+                                 tracker_uint_to_string (st.st_mtime));
+	tracker_metadata_insert (metadata, METADATA_FILE_ACCESSED,
+                                 tracker_uint_to_string (st.st_atime));
 
 	tracker_metadata_get_embedded (path, mimetype, metadata);
 

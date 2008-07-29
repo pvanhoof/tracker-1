@@ -52,6 +52,26 @@ test_cmp_servicedef_equals (TrackerService *one,
 
 }
 
+static gboolean
+element_in_list (GSList *list, gchar *element) 
+{
+	return (g_slist_find_custom (list, element, (GCompareFunc)strcmp) != NULL);
+}
+
+
+static GSList *
+array_to_list (char **array)                                                                          
+{                                                                                                     
+        GSList  *list = NULL;
+        int     i;
+
+        for (i = 0; array[i] != NULL; i++) {
+		list = g_slist_prepend (list, g_strdup (array[i]));
+        }                                                                                                      
+        return list; 
+}
+
+
 TrackerField *
 create_field_definition (const gchar *id, 
                          const gchar *name, 
@@ -78,6 +98,9 @@ TrackerService *
 create_service_definition (int id, const char *name, const char *parent, gboolean embedded) {
 
         TrackerService *def;
+	/* array_to_list use prepend, so use reverse order here  */
+	gchar * key_metadata [] = {"Key:Metadata2", "Key:MetaData1", NULL};
+	
         
         def = tracker_service_new ();
         tracker_service_set_id (def, id);
@@ -89,27 +112,9 @@ create_service_definition (int id, const char *name, const char *parent, gboolea
         tracker_service_set_has_thumbs (def, TRUE);
         tracker_service_set_has_full_text (def, TRUE);
         tracker_service_set_has_metadata (def, FALSE);
+	tracker_service_set_key_metadata (def, array_to_list (key_metadata));
 
 	return def;
-}
-
-static gboolean
-element_in_list (GSList *list, gchar *element) 
-{
-	return (g_slist_find_custom (list, element, (GCompareFunc)strcmp) != NULL);
-}
-
-
-static GSList *
-array_to_list (char **array)                                                                          
-{                                                                                                     
-        GSList  *list = NULL;
-        int     i;
-
-        for (i = 0; array[i] != NULL; i++) {
-		list = g_slist_prepend (list, g_strdup (array[i]));
-        }                                                                                                      
-        return list; 
 }
 
 typedef struct {
@@ -366,6 +371,24 @@ test_get_registered_field_types (void)
 
 }
 
+
+static void
+test_metadata_key_in_service (void)
+{
+	gint key;
+
+	key = tracker_ontology_metadata_key_in_service ("Applications",
+							"Key:MetaData1");
+	g_assert_cmpint (key, ==, 1);
+
+	key = tracker_ontology_metadata_key_in_service ("Applications",
+							"Key:MetaDataUnknown");
+	g_assert_cmpint (key, ==, 0);
+
+
+}
+
+
 int
 main (int argc, char **argv) {
 
@@ -407,6 +430,9 @@ main (int argc, char **argv) {
 			 test_get_registered_service_types);
 	g_test_add_func ("/libtracker-common/tracker-ontology/test_get_all_registered_field_types",
 			 test_get_registered_field_types);
+
+	g_test_add_func ("/libtracker-common/tracker-ontology/test_metadata_key_in_service",
+			 test_metadata_key_in_service);
 
         result = g_test_run ();
         

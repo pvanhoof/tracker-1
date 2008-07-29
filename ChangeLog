@@ -1,3 +1,15 @@
+2008-07-29  Ivan Frade  <ivan.frade@nokia.com>
+
+	* tests/libtracker-common/tracker-file-utils-test.c
+	* src/libtracker-common/tracker-file-utils.c: Set correct mime
+	type to directories.
+
+	* data/services/default.service: Lined x-directory/ mime with
+	Folders category.
+
+	* tests/libtracker-common/tracker-ontology-test.c:
+	Test for the previous fix.
+	
 2008-07-29  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/libtracker-common/tracker-ontology.c

@@ -13,9 +13,11 @@ Description=Folders in the filesystem
 Parent=Files
 UIVisible=true
 UIView=icon
+MimePrefixes=x-directory/
 Icon=folder
 ShowServiceFiles=true
 ShowServiceDirectories=true
+HasFullText=false
 
 [Documents]
 DisplayName=Documents

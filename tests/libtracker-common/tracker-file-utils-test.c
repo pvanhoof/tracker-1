@@ -1,5 +1,6 @@
 #include <glib.h>
 #include <glib/gtestutils.h>
+#include <gio/gio.h>
 
 #include <libtracker-common/tracker-file-utils.h>
 #include <tracker-test-helpers.h>
@@ -126,6 +127,28 @@ test_path_evaluate_name ()
 }
 
 
+static void
+test_file_get_mime_type (void)
+{
+
+        gchar *dir_name, *result;
+        GFile *dir;
+
+        /* Create test directory */
+        dir_name = g_build_filename (g_get_tmp_dir (), "tracker-test", NULL);
+        dir = g_file_new_for_path (dir_name);
+        g_file_make_directory (dir, NULL, NULL);
+
+        result = tracker_file_get_mime_type (dir_name);
+
+        g_assert (tracker_test_helpers_cmpstr_equal (result, "x-directory/normal"));
+
+        /* Remove test directory */
+        g_file_delete (dir, NULL, NULL);
+        g_object_unref (dir);
+        g_free (dir_name);
+}
+
 int
 main (int argc, char **argv) {
 
@@ -140,6 +163,9 @@ main (int argc, char **argv) {
 
         g_test_add_func ("/tracker/libtracker-common/tracker-file-utils/path_list_filter_duplicates",
                          test_path_list_filter_duplicates);
+
+        g_test_add_func ("/tracker/libtracker-common/tracker-file-utils/file_get_mime_type",
+                         test_file_get_mime_type);
 
         result = g_test_run ();
 

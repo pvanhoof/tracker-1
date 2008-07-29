@@ -334,6 +334,8 @@ tracker_file_get_mime_type (const gchar *uri)
 	if (!result || result == XDG_MIME_TYPE_UNKNOWN) {
 		if (is_text_file (str)) {
 			mime_type = g_strdup ("text/plain");
+		} else if (S_ISDIR (finfo.st_mode)) {
+			mime_type = g_strdup ("x-directory/normal");
 		} else {
 			mime_type = g_strdup ("unknown");
 		}

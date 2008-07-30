@@ -209,6 +209,7 @@ tracker_seconds_to_string (gdouble  seconds_elapsed,
 	str = g_string_free (s, FALSE);
 
 	if (str[0] == '\0') {
+		g_free (str);
 		str = g_strdup (_("unknown time"));
 	} else {
 		g_strchug (str);

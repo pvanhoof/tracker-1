@@ -802,7 +802,6 @@ index_text_contents (TrackerIndexer *indexer,
 	words = g_hash_table_get_keys (parsed);
 	
 	for (iter = words; iter != NULL; iter = iter->next) {
-		
 		weight = GPOINTER_TO_INT (g_hash_table_lookup (parsed, (gchar *)iter->data));
 
 		tracker_index_add_word (indexer->private->index, 
@@ -813,7 +812,7 @@ index_text_contents (TrackerIndexer *indexer,
 	}
 
 	tracker_parser_text_free (parsed);
-					
+	g_list_free (words);
 }
 
 
@@ -846,6 +845,7 @@ process_file (TrackerIndexer *indexer,
 		if (!service_type || !service_type[0]) {
 			gchar *mimetype;
 
+			g_free (service_type);
 			mimetype = tracker_file_get_mime_type (info->file->path);
 			service_type = tracker_ontology_get_service_type_for_mime (mimetype);
 			g_free (mimetype);

@@ -1,5 +1,11 @@
 2008-07-30  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/libtracker-common/tracker-utils.c (tracker_seconds_to_string):
+	* src/tracker-indexer/tracker-indexer.c (index_text_contents)
+	(process_file): Plug a few leaks.
+
+2008-07-30  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-metadata.[ch]: Make it accept just
 	strings and lists of strings at the moment, strings are anyways needed
 	to insert values through stored DB procedures, and there are some

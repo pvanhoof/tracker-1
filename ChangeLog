@@ -1,3 +1,8 @@
+2008-07-30  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer.c (process_func): Reset the
+	number of processed items after committing a transaction.
+
 2008-07-29  Ivan Frade  <ivan.frade@nokia.com>
 
 	* tests/libtracker-common/tracker-file-utils-test.c

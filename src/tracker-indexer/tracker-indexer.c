@@ -1033,6 +1033,7 @@ process_func (gpointer data)
 
 	if (indexer->private->items_processed > TRANSACTION_MAX) {
 		schedule_flush (indexer, TRUE);
+		indexer->private->items_processed = 0;
 	}
 
 	return TRUE;

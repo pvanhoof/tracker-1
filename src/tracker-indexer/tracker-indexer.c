@@ -696,14 +696,14 @@ indexer_throttle (TrackerConfig *config,
 
 static void
 index_metadata_item (TrackerField        *field,
-		     gpointer             value,
+		     const gchar         *value,
 		     MetadataForeachData *data)
 {
 	gchar *parsed_value;
 	gchar **arr;
 	gint i;
 
-	parsed_value = tracker_parser_text_to_string ((gchar *) value,
+	parsed_value = tracker_parser_text_to_string (value,
 						      data->language,
 						      tracker_config_get_max_word_length (data->config),
 						      tracker_config_get_min_word_length (data->config),

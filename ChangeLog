@@ -1,5 +1,21 @@
 2008-07-30  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-metadata.[ch]: Make it accept just
+	strings and lists of strings at the moment, strings are anyways needed
+	to insert values through stored DB procedures, and there are some
+	metadata types that will be difficult to store in a generic way.
+	Since this API will be used from third party code, any failure in 
+	there will be quite hard to debug if we use a generic API, (it will 
+	probably crash inside tracker-indexer code, making things harder). 
+	By using strings we guarantee that at least sloppy third party module 
+	developers will get compiler warnings, which is safer.
+	* src/tracker-indexer/tracker-indexer.c (index_metadata_item): Adapt
+	to API change.
+	* src/tracker-indexer/modules/files.c (tracker_metadata_get_embedded):
+	Remove unnecessary check.
+
+2008-07-30  Carlos Garnacho  <carlos@imendio.com>
+
 	* data/services/audio.metadata: Genre and Performer shouldn't have
 	multiple values.
 

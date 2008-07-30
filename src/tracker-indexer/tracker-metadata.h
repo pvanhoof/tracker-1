@@ -36,12 +36,12 @@ void                   tracker_metadata_free   (TrackerMetadata *metadata);
 
 void                   tracker_metadata_insert                 (TrackerMetadata *metadata,
 								const gchar     *field_name,
-								gpointer         value);
+								gchar           *value);
 void                   tracker_metadata_insert_multiple_values (TrackerMetadata *metadata,
 								const gchar     *field_name,
 								GList           *list);
 
-gpointer               tracker_metadata_lookup                 (TrackerMetadata *metadata,
+G_CONST_RETURN gchar * tracker_metadata_lookup                 (TrackerMetadata *metadata,
 								const gchar     *field_name);
 G_CONST_RETURN GList * tracker_metadata_lookup_multiple_values (TrackerMetadata *metadata,
 								const gchar     *field_name);

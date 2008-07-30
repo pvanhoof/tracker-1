@@ -1,5 +1,10 @@
 2008-07-30  Carlos Garnacho  <carlos@imendio.com>
 
+	* data/services/audio.metadata: Genre and Performer shouldn't have
+	multiple values.
+
+2008-07-30  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-indexer.c (process_func): Reset the
 	number of processed items after committing a transaction.
 

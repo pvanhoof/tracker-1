@@ -27,7 +27,6 @@ Description=The type or genre of the music track
 DataType=keyword
 Parent=DC:Type
 Weight=5
-MultipleValues=true
 
 [Audio:Duration]
 DisplayName=Duration
@@ -69,7 +68,6 @@ Description=The individual or group performing the track
 DataType=index
 Weight=5
 Parent=DC:Contributor
-MultipleValues=true
 
 [Audio:TrackGain]
 DisplayName=Track gain

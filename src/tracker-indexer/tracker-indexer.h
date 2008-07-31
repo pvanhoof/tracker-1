@@ -99,6 +99,20 @@ void            tracker_indexer_files_delete       (TrackerIndexer         *inde
 						    GStrv                   files,
 						    DBusGMethodInvocation  *context,
 						    GError                **error);
+void            tracker_indexer_property_set       (TrackerIndexer         *indexer,
+						    const gchar            *service_type,
+						    const gchar            *uri,
+						    const gchar            *property,
+						    GStrv                   values,
+						    DBusGMethodInvocation  *context,
+						    GError                **error);
+void            tracker_indexer_property_remove    (TrackerIndexer         *indexer,
+						    const gchar            *service_type,
+						    const gchar            *uri,
+						    const gchar            *property,
+						    GStrv                   values,
+						    DBusGMethodInvocation  *context,
+						    GError                **error);
 
 G_END_DECLS
 

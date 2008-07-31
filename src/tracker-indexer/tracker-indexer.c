@@ -86,6 +86,7 @@
 
 typedef struct PathInfo PathInfo;
 typedef struct MetadataForeachData MetadataForeachData;
+typedef struct MetadataRequest MetadataRequest;
 
 struct TrackerIndexerPrivate {
 	GQueue *dir_queue;
@@ -193,6 +194,7 @@ path_info_free (PathInfo *info)
 	tracker_indexer_module_file_free (info->module, info->file);
 	g_slice_free (PathInfo, info);
 }
+
 
 static void 
 start_transaction (TrackerIndexer *indexer)
@@ -793,21 +795,29 @@ send_text_to_index (TrackerIndexer *indexer,
 		    gint service_id,
 		    gint service_type,
 		    const gchar *text,
+		    gboolean full_parsing,
 		    gint weight_factor)
 {
 	GHashTable *parsed = NULL;
 	GList      *words = NULL, *iter;
 	gint        weight;
 
-	parsed = tracker_parser_text (parsed,
-				      text,
-				      1,
-				      indexer->private->language,
-				      tracker_config_get_max_words_to_index (indexer->private->config),
-				      tracker_config_get_max_word_length (indexer->private->config),
-				      tracker_config_get_min_word_length (indexer->private->config),
-				      tracker_config_get_enable_stemmer (indexer->private->config),
-				      FALSE); 
+	if (full_parsing) {
+		parsed = tracker_parser_text (parsed,
+					      text,
+					      weight_factor,
+					      indexer->private->language,
+					      tracker_config_get_max_words_to_index (indexer->private->config),
+					      tracker_config_get_max_word_length (indexer->private->config),
+					      tracker_config_get_min_word_length (indexer->private->config),
+					      tracker_config_get_enable_stemmer (indexer->private->config),
+					      FALSE); 
+	} else {
+		parsed = tracker_parser_text_fast (parsed,
+						   text,
+						   weight_factor); /* We dont know the exact property weight. Big value works */
+	
+	}
 	
 	words = g_hash_table_get_keys (parsed);
 	
@@ -818,7 +828,7 @@ send_text_to_index (TrackerIndexer *indexer,
 					(gchar *)iter->data,
 					service_id,
 					service_type,
-					weight*weight_factor); 
+					weight); 
 	}
 
 	tracker_parser_text_free (parsed);
@@ -827,46 +837,27 @@ send_text_to_index (TrackerIndexer *indexer,
 
 
 static void
-index_text_with_parsing (TrackerIndexer *indexer, gint service_id, gint service_type_id, const gchar *content) 
+index_text_with_parsing (TrackerIndexer *indexer, gint service_id, gint service_type_id, const gchar *content, gint weight_factor) 
 {
-	send_text_to_index (indexer, service_id, service_type_id, content, 1);
+	send_text_to_index (indexer, service_id, service_type_id, content, TRUE, weight_factor);
 }
 
 static void
 unindex_text_with_parsing (TrackerIndexer *indexer, gint service_id, gint service_type_id, const gchar *content, gint weight_factor) 
 {
-	send_text_to_index (indexer, service_id, service_type_id, content, weight_factor);
+	send_text_to_index (indexer, service_id, service_type_id, content, TRUE, -1*weight_factor);
 }
 
 static void
-unindex_text_no_parsing (TrackerIndexer *indexer,
-			 gint service_id,
-			 gint service_type_id,
-			 const gchar *text)
+index_text_no_parsing (TrackerIndexer *indexer, gint service_id, gint service_type_id, const gchar *content, gchar weight_factor)
 {
-	GHashTable *parsed = NULL;
-	GList      *words = NULL, *iter;
-	gint        weight;
+	send_text_to_index (indexer, service_id, service_type_id, content, FALSE, weight_factor);
+}
 
-	parsed = tracker_parser_text_fast (parsed,
-					   text,
-					   50); /* We dont know the exact property weight. Big value works */
-	
-	words = g_hash_table_get_keys (parsed);
-	
-	for (iter = words; iter != NULL; iter = iter->next) {
-		
-		weight = GPOINTER_TO_INT (g_hash_table_lookup (parsed, (gchar *)iter->data));
-
-
-		tracker_index_add_word (indexer->private->index, 
-					(gchar *)iter->data,
-					service_id,
-					service_type_id,
-					weight * -1); 
-	}
-
-	tracker_parser_text_free (parsed);
+static void
+unindex_text_no_parsing (TrackerIndexer *indexer, gint service_id, gint service_type_id, const gchar *content, gint weight_factor)
+{
+	send_text_to_index (indexer, service_id, service_type_id, content, FALSE, -1*weight_factor);
 }
 
 
@@ -925,8 +916,9 @@ handle_file_create (TrackerIndexer *indexer,
 					index_text_with_parsing (indexer, 
 								 id, 
 								 tracker_service_get_id (service_def), 
-								 text);
-
+								 text,
+								 1);
+					
 					/* Save in the DB */
 					tracker_db_set_text (service_def, id, text);
 					g_free (text);
@@ -983,7 +975,7 @@ handle_file_delete (TrackerIndexer *indexer,
 	/* Get content, unindex the words and delete the contents */
 	content = tracker_db_get_text (service_def, service_id);
 	if (content) {
-		unindex_text_with_parsing (indexer, service_id, service_type_id, content, -1);
+		unindex_text_with_parsing (indexer, service_id, service_type_id, content, 1);
 		g_free (content);
 		tracker_db_delete_text (service_def, service_id);
 	}
@@ -991,25 +983,119 @@ handle_file_delete (TrackerIndexer *indexer,
 
 	/* Get metadata from DB to remove it from the index */
 	metadata = tracker_db_get_parsed_metadata (service_def, service_id);
-	unindex_text_no_parsing (indexer, service_id, service_type_id, metadata);
+	unindex_text_no_parsing (indexer, service_id, service_type_id, metadata, 1000);
 	g_free (metadata);
 
 
 	/* the weight depends on metadata, but a number high enough force deletion  */
 	metadata = tracker_db_get_unparsed_metadata (service_def, service_id);
-	unindex_text_with_parsing (indexer, service_id, service_type_id, metadata, -1000);
+	unindex_text_with_parsing (indexer, service_id, service_type_id, metadata, 1000);
 	g_free (metadata);
 
 	
 	/* delete service */
         tracker_db_delete_service (service_def, service_id);
-	tracker_db_delete_metadata (service_def, service_id);
+	tracker_db_delete_all_metadata (service_def, service_id);
 
 	tracker_db_decrement_stats (indexer->private->common, service_def);
 	
 	indexer->private->items_processed++;
 
 	return !tracker_indexer_module_file_iter_contents (info->module, info->file);
+}
+
+static gboolean
+handle_metadata_add (TrackerIndexer *indexer, 
+		     const gchar    *service_type,
+		     const gchar    *uri,
+		     const gchar    *property,
+		     GStrv           values)
+{
+	TrackerService *service_def;
+	TrackerField   *field_def;
+	guint           service_id, i;
+	gchar          *joined;
+
+	service_def = tracker_ontology_get_service_type_by_name (service_type);
+	if (!service_def) {
+		return FALSE;
+	}
+
+	field_def = tracker_ontology_get_field_def (property);
+	if (!field_def) {
+		return FALSE;
+	}
+
+	service_id = tracker_db_check_service (service_def, uri, NULL);
+	if (service_id < 1) {
+		g_message ("Cannot delete file: it doesnt exist in DB");
+		return FALSE;
+	}
+
+	for (i = 0; values[i] != NULL; i++) {
+		tracker_db_set_metadata (service_def,
+					 service_id,
+					 field_def,
+					 values[i],
+					 NULL);
+	}
+	
+	joined = g_strjoinv (" ", values);
+	index_text_no_parsing (indexer,
+			       service_id,
+			       tracker_service_get_id (service_def),
+			       joined,
+			       tracker_field_get_weight (field_def));
+	g_free (joined);
+
+	return TRUE;
+}
+
+
+static gboolean
+handle_metadata_remove (TrackerIndexer *indexer, 
+		     const gchar    *service_type,
+		     const gchar    *uri,
+		     const gchar    *property,
+		     GStrv           values)
+{
+	TrackerService *service_def;
+	TrackerField   *field_def;
+	guint           service_id, i;
+	gchar          *joined;
+
+	service_def = tracker_ontology_get_service_type_by_name (service_type);
+	if (!service_def) {
+		return FALSE;
+	}
+
+	field_def = tracker_ontology_get_field_def (property);
+	if (!field_def) {
+		return FALSE;
+	}
+
+	service_id = tracker_db_check_service (service_def, uri, NULL);
+	if (service_id < 1) {
+		g_message ("Cannot delete file: it doesnt exist in DB");
+		return FALSE;
+	}
+
+	for (i = 0; values[i] != NULL; i++) {
+		tracker_db_delete_metadata (service_def,
+					    service_id,
+					    field_def,
+					    values[i]);
+	}
+	
+	joined = g_strjoinv (" ", values);
+	unindex_text_no_parsing (indexer,
+				 service_id,
+				 tracker_service_get_id (service_def),
+				 joined,
+				 tracker_field_get_weight (field_def));
+	g_free (joined);
+	
+	return TRUE;
 }
 
 static gboolean
@@ -1481,4 +1567,57 @@ tracker_indexer_files_delete (TrackerIndexer *indexer,
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
 	}
+}
+
+void            
+tracker_indexer_property_set (TrackerIndexer         *indexer,
+			      const gchar            *service_type,
+			      const gchar            *uri,
+			      const gchar            *property,
+			      GStrv                   values,
+			      DBusGMethodInvocation  *context,
+			      GError                **error) {
+
+	guint request_id;
+
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
+	tracker_dbus_async_return_if_fail (service_type != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (property != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (values != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (g_strv_length (values) > 0, FALSE);
+
+	handle_metadata_add (indexer, service_type, uri, property, values);
+
+	dbus_g_method_return (context);
+	tracker_dbus_request_success (request_id);
+	
+}
+
+void            
+tracker_indexer_property_remove (TrackerIndexer         *indexer,
+				 const gchar            *service_type,
+				 const gchar            *uri,
+				 const gchar            *property,
+				 GStrv                   values,
+				 DBusGMethodInvocation  *context,
+				 GError                **error) {
+
+	guint request_id;
+
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
+	tracker_dbus_async_return_if_fail (service_type != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (property != NULL, FALSE);
+	/* Values can be NULL */
+
+	handle_metadata_remove (indexer, service_type, uri, property, values);
+
+	dbus_g_method_return (context);
+	tracker_dbus_request_success (request_id);
+	
 }

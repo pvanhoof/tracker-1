@@ -1,5 +1,13 @@
 2008-07-31  Ivan Frade  <ivan.frade@nokia.com>
 	
+	* data/dbus/tracker-indexer.xml
+	* src/tracker-indexer/tracker-indexer-db.[ch]
+	* src/tracker-indexer/tracker-indexer.[ch]
+	New methods ("PropertySet" and "PropertyRemove") in
+	tracker-indexer. 
+	
+2008-07-31  Ivan Frade  <ivan.frade@nokia.com>
+	
 	* src/tracker-indexer/tracker-index.c
 	* tests/tracker-indexer/tracker-index-test.c:
 	When we added and removed a word before indexing, the word was

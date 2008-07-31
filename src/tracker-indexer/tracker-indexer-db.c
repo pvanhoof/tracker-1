@@ -340,8 +340,8 @@ tracker_db_delete_service (TrackerService  *service,
 }
 
 void
-tracker_db_delete_metadata (TrackerService *service,
-			    guint32         service_id)
+tracker_db_delete_all_metadata (TrackerService *service,
+				guint32         service_id)
 {
 	TrackerDBInterface *iface;
 	gchar *service_id_str;
@@ -432,6 +432,71 @@ tracker_db_set_metadata (TrackerService *service,
 		tracker_db_interface_execute_query (iface, NULL,
 						    "update Services set KeyMetadata%d = '%s' where id = %d",
 						    metadata_key, value, id);
+	}
+
+	g_free (id_str);
+}
+
+void
+tracker_db_delete_metadata (TrackerService *service,
+			    guint32         id,
+			    TrackerField   *field,
+			    const gchar    *value)
+{
+	TrackerDBInterface *iface;
+	gint metadata_key;
+	gchar *id_str;
+
+	id_str = tracker_guint32_to_string (id);
+	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service),
+							     TRACKER_DB_CONTENT_TYPE_METADATA);
+
+	switch (tracker_field_get_data_type (field)) {
+	case TRACKER_FIELD_TYPE_KEYWORD:
+		if (!value) {
+			g_warning ("Trying to remove keyword field with no specific value");
+		}
+		tracker_db_interface_execute_procedure (iface, NULL,
+							"DeleteMetadataKeywordValue",
+							id_str,
+							tracker_field_get_id (field),
+							value,
+							NULL);
+		break;
+	case TRACKER_FIELD_TYPE_INDEX:
+	case TRACKER_FIELD_TYPE_STRING:
+	case TRACKER_FIELD_TYPE_DOUBLE:
+		tracker_db_interface_execute_procedure (iface, NULL,
+							"DeleteMetadata",
+							id_str,
+							tracker_field_get_id (field),
+							NULL);
+		break;
+	case TRACKER_FIELD_TYPE_INTEGER:
+	case TRACKER_FIELD_TYPE_DATE:
+		tracker_db_interface_execute_procedure (iface, NULL,
+							"DeleteMetadataNumeric",
+							id_str,
+							tracker_field_get_id (field),
+							NULL);
+		break;
+	case TRACKER_FIELD_TYPE_FULLTEXT:
+		tracker_db_delete_text (service, id);
+		break;
+	case TRACKER_FIELD_TYPE_BLOB:
+	case TRACKER_FIELD_TYPE_STRUCT:
+	case TRACKER_FIELD_TYPE_LINK:
+		/* not handled */
+	default:
+		break;
+	}
+
+	metadata_key = tracker_ontology_metadata_key_in_service (tracker_service_get_name (service),
+								 tracker_field_get_name (field));
+	if (metadata_key > 0) {
+		tracker_db_interface_execute_query (iface, NULL,
+						    "update Services set KeyMetadata%d = '%s' where id = %d",
+						    metadata_key, "", id);
 	}
 
 	g_free (id_str);

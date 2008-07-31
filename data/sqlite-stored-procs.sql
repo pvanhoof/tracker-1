@@ -76,6 +76,11 @@ DeleteService9 Delete FROM ServiceLinks Where (DestPath = ? and DestName = ?);
 DeleteService10 Delete FROM ServiceLinks Where (DestPath = ?) or (DestPath glob ?); 
 DeleteService11 DELETE FROM ServiceContents where ServiceID = ?;
 
+
+DeleteServiceMetadata DELETE FROM ServiceMetaData WHERE ServiceID = ?;
+DeleteServiceKeywordMetadata DELETE FROM ServiceMetaData WHERE ServiceID = ?;
+DeleteServiceNumericMetadata DELETE FROM ServiceMetaData WHERE ServiceID = ?;
+
 DeleteEmbeddedServiceMetadata1 DELETE FROM ServiceMetaData WHERE ServiceID = ? and MetaDataID in (select ID from MetaDataTypes where Embedded = 1);
 DeleteEmbeddedServiceMetadata2 DELETE FROM ServiceKeywordMetaData WHERE ServiceID = ? and MetaDataID in (select ID from MetaDataTypes where Embedded = 1);
 DeleteEmbeddedServiceMetadata3 DELETE FROM ServiceNumericMetaData WHERE ServiceID = ? and MetaDataID in (select ID from MetaDataTypes where Embedded = 1);

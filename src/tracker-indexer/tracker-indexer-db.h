@@ -27,29 +27,56 @@
 #include "tracker-metadata.h"
 
 G_BEGIN_DECLS
+guint32  tracker_db_get_new_service_id    (TrackerDBInterface *iface);
+void     tracker_db_increment_stats       (TrackerDBInterface *iface,
+					   TrackerService     *service);
+void     tracker_db_decrement_stats       (TrackerDBInterface *iface,
+					   TrackerService     *service);
+/* Using path */
+guint    tracker_db_check_service         (TrackerService     *service,
+					   const gchar        *path,
+					   TrackerMetadata    *metadata);
+guint    tracker_db_get_service_type      (const gchar        *path);
 
-guint32  tracker_db_get_new_service_id (TrackerDBInterface *iface);
-void     tracker_db_increment_stats    (TrackerDBInterface *iface,
-                                        TrackerService     *service);
 
-guint    tracker_db_check_service      (TrackerService     *service,
-					const gchar        *path,
-					TrackerMetadata    *metadata);
-gboolean tracker_db_create_service     (TrackerService     *service,
-                                        guint32             id,
-                                        const gchar        *path,
-					TrackerMetadata    *metadata);
-void     tracker_db_set_metadata       (TrackerService     *service,
-                                        guint32             id,
-                                        TrackerField       *field,
-                                        const gchar        *value,
-					const gchar        *parsed_value);
-void     tracker_db_set_text           (TrackerService     *service,
-					guint32             id,
-					const gchar        *text);
-void     tracker_db_create_event       (TrackerDBInterface *iface,
-                                        guint32             service_id,
-                                        const gchar        *type);
+/* Services  */
+gboolean tracker_db_create_service        (TrackerService     *service,
+					   guint32             id,
+					   const gchar        *path,
+					   TrackerMetadata    *metadata);
+void     tracker_db_delete_service        (TrackerService     *service,
+					   guint32             id);
+
+
+/* Metadata */
+void     tracker_db_set_metadata          (TrackerService     *service,
+					   guint32             id,
+					   TrackerField       *field,
+					   const gchar        *value,
+					   const gchar        *parsed_value);
+gchar   *tracker_db_get_parsed_metadata   (TrackerService     *service,
+					   guint32             id);
+gchar   *tracker_db_get_unparsed_metadata (TrackerService     *service,
+					   guint32             id);
+void     tracker_db_delete_metadata       (TrackerService     *service,
+					   guint32             id);
+
+
+/* Contents */
+void     tracker_db_set_text              (TrackerService     *service,
+					   guint32             id,
+					   const gchar        *text);
+gchar   *tracker_db_get_text              (TrackerService     *service,
+					   guint32             id);
+void     tracker_db_delete_text           (TrackerService     *service,
+					   guint32             id);
+
+
+/* Events */
+void     tracker_db_create_event          (TrackerDBInterface *iface,
+					   guint32             service_id,
+					   const gchar        *type);
+
 
 
 G_END_DECLS

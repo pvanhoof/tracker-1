@@ -1,4 +1,11 @@
-2008-07-31  Ivan frade  <ivan.frade@nokia.com>
+2008-07-31  Ivan Frade  <ivan.frade@nokia.com>
+	
+	* data/sqlite-stored-procs.sql
+	* src/tracker-indexer/tracker-indexer-db.[ch]
+	* src/tracker-indexer/tracker-indexer.c:
+	Added deletion superpowers to the indexer.
+	
+2008-07-31  Ivan Frade  <ivan.frade@nokia.com>
 
 	* tests/libtracker-common/tracker-parser-test.c:
 	Added test to tracker_parser_text_fast

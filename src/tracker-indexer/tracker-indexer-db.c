@@ -93,6 +93,22 @@ tracker_db_increment_stats (TrackerDBInterface *iface,
 }
 
 void
+tracker_db_decrement_stats (TrackerDBInterface *iface,
+			    TrackerService     *service)
+{
+	const gchar *service_type, *parent;
+
+	service_type = tracker_service_get_name (service);
+	parent = tracker_service_get_parent (service);
+
+	tracker_db_interface_execute_procedure (iface, NULL, "DecStat", service_type, NULL);
+
+	if (parent) {
+		tracker_db_interface_execute_procedure (iface, NULL, "DecStat", parent, NULL);
+	}
+}
+
+void
 tracker_db_create_event (TrackerDBInterface *iface,
 			   guint32 service_id, 
 			   const gchar *type)
@@ -115,10 +131,12 @@ get_dirname_and_basename (const gchar      *path,
 			  gchar           **out_dirname,
 			  gchar           **out_basename)
 {
-	const gchar *dirname, *basename;
+	const gchar *dirname = NULL, *basename = NULL;
 
-	dirname = tracker_metadata_lookup (metadata, "File:Path");
-	basename = tracker_metadata_lookup (metadata, "File:Name");
+	if (metadata) {
+		dirname = tracker_metadata_lookup (metadata, "File:Path");
+		basename = tracker_metadata_lookup (metadata, "File:Name");
+	}
 
 	if (dirname && basename) {
 		*out_dirname = g_strdup (dirname);
@@ -159,6 +177,38 @@ tracker_db_check_service (TrackerService  *service,
 	g_object_unref (result_set);
 
 	return id;
+}
+
+guint
+tracker_db_get_service_type (const gchar *path)
+{
+	TrackerDBInterface *iface;
+	TrackerDBResultSet *result_set;
+	gchar *dirname, *basename;
+	guint service_type_id;
+
+	get_dirname_and_basename (path, NULL, &dirname, &basename);
+
+	/* We are asking this because the module cannot assign service_type -> probably it is files */
+	iface = tracker_db_manager_get_db_interface_by_type ("Files",
+							     TRACKER_DB_CONTENT_TYPE_METADATA);
+
+	result_set = tracker_db_interface_execute_procedure (iface, NULL,
+							     "GetServiceID",
+							     dirname,
+							     basename,
+							     NULL);
+	g_free (dirname);
+	g_free (basename);
+
+	if (!result_set) {
+		return 0;
+	}
+
+	tracker_db_result_set_get (result_set, 3, &service_type_id, -1);
+	g_object_unref (result_set);
+
+	return service_type_id;
 }
 
 gboolean
@@ -218,6 +268,108 @@ tracker_db_create_service (TrackerService  *service,
 
 	return TRUE;
 }
+
+static gchar *
+db_get_metadata (TrackerService *service, guint service_id, gboolean keywords)
+{
+	TrackerDBInterface *iface;
+	TrackerDBResultSet *result_set;
+	gchar              *query;
+	GString            *result;
+	gchar              *str = NULL;
+
+	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service),
+							     TRACKER_DB_CONTENT_TYPE_METADATA);
+
+	result = g_string_new ("");
+
+	if (service_id < 1) {
+		return g_string_free (result, FALSE);
+	}
+
+	if (keywords) {
+		query = g_strdup_printf ("Select MetadataValue From ServiceKeywordMetadata WHERE serviceID = %d",
+					 service_id);
+	} else {
+		query = g_strdup_printf ("Select MetadataValue From ServiceMetadata WHERE serviceID = %d",
+					 service_id);
+	}
+	result_set = tracker_db_interface_execute_query (iface, NULL, query);
+	g_free (query);
+
+	if (result_set) {
+
+		gboolean valid = TRUE;
+
+		while (valid) {
+			tracker_db_result_set_get (result_set, 0, &str, -1);
+			result = g_string_append (result, str);
+			result = g_string_append (result, " ");
+			valid = tracker_db_result_set_iter_next (result_set);
+			g_free (str);
+		}
+		g_object_unref (result_set);
+	}
+
+	return g_string_free (result, FALSE);
+}
+
+
+
+void
+tracker_db_delete_service (TrackerService  *service,
+			   guint32          service_id)
+{
+
+	TrackerDBInterface *iface;
+	gchar *service_id_str;
+
+	if (service_id < 1) {
+		return;
+	}
+
+	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service),
+							     TRACKER_DB_CONTENT_TYPE_METADATA);
+
+	service_id_str = tracker_guint32_to_string (service_id);
+
+	/* Delete from services table */
+	tracker_db_interface_execute_procedure (iface, NULL, "DeleteService1", service_id_str, NULL);
+
+	g_free (service_id_str);
+}
+
+void
+tracker_db_delete_metadata (TrackerService *service,
+			    guint32         service_id)
+{
+	TrackerDBInterface *iface;
+	gchar *service_id_str;
+
+	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service),
+							     TRACKER_DB_CONTENT_TYPE_METADATA);
+
+	service_id_str = tracker_guint32_to_string (service_id);
+
+	/* Delete from ServiceMetadata, ServiceKeywordMetadata, ServiceNumberMetadata */
+	tracker_db_interface_execute_procedure (iface, NULL, "DeleteServiceMetadata", service_id_str, NULL);
+	tracker_db_interface_execute_procedure (iface, NULL, "DeleteServiceKeywordMetadata", service_id_str, NULL);
+	tracker_db_interface_execute_procedure (iface, NULL, "DeleteServiceNumericMetadata", service_id_str, NULL);
+}
+
+gchar *
+tracker_db_get_unparsed_metadata (TrackerService *service,
+				  guint           service_id) {
+
+	return db_get_metadata (service, service_id, TRUE);
+}
+
+gchar *
+tracker_db_get_parsed_metadata (TrackerService *service,
+				guint           service_id) {
+	return db_get_metadata (service, service_id, FALSE);
+}
+
 
 void
 tracker_db_set_metadata (TrackerService *service,
@@ -306,4 +458,57 @@ tracker_db_set_text (TrackerService *service,
 						text,
 						NULL);
 	g_free (id_str);
+}
+
+gchar *
+tracker_db_get_text (TrackerService *service, guint32 id) {
+
+	TrackerDBInterface *iface;
+	TrackerField       *field;
+	gchar              *service_id_str, *contents = NULL;
+	TrackerDBResultSet *result_set;
+
+	service_id_str = tracker_guint32_to_string (id);
+	field = tracker_ontology_get_field_def ("File:Contents");
+	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service),
+							     TRACKER_DB_CONTENT_TYPE_CONTENTS);
+
+	/* Delete contents if it has! */
+	result_set = tracker_db_interface_execute_procedure (iface, NULL, 
+							     "GetContents", 
+							     service_id_str, tracker_field_get_id (field),
+							     NULL);
+
+	if (result_set) {
+		
+		tracker_db_result_set_get (result_set, 0, &contents, -1);
+		g_object_unref (result_set);
+	}
+
+	g_free (service_id_str);
+
+	return contents;
+
+}
+
+void
+tracker_db_delete_text (TrackerService *service, guint32 id) {
+
+	TrackerDBInterface *iface;
+	TrackerField *field;
+	gchar *service_id_str;
+
+	service_id_str = tracker_guint32_to_string (id);
+	field = tracker_ontology_get_field_def ("File:Contents");
+	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service),
+							     TRACKER_DB_CONTENT_TYPE_CONTENTS);
+
+	/* Delete contents if it has! */
+	tracker_db_interface_execute_procedure (iface, NULL, 
+						"DeleteContent", 
+						service_id_str, tracker_field_get_id (field),
+						NULL);
+
+	g_free (service_id_str);
+
 }

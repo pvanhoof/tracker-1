@@ -1,4 +1,10 @@
 2008-07-31  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/trackerd/tracker-processor.c:
+	(crawler_processing_directory_cb): Send the folders as regular
+	file to the indexer.
+
+2008-07-31  Ivan Frade  <ivan.frade@nokia.com>
 	
 	* data/sqlite-stored-procs.sql
 	* src/tracker-indexer/tracker-indexer-db.[ch]

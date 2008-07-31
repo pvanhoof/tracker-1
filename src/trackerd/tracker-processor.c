@@ -1072,6 +1072,7 @@ crawler_processing_directory_cb (TrackerCrawler *crawler,
 	
 	TrackerProcessorPrivate *priv;
 	gboolean                 add_monitor;
+	GQueue                  *queue;
 
 	priv = TRACKER_PROCESSOR_GET_PRIVATE (user_data);
 
@@ -1085,6 +1086,11 @@ crawler_processing_directory_cb (TrackerCrawler *crawler,
 	if (add_monitor) {
 		tracker_monitor_add (priv->monitor, module_name, file);
 	}
+
+	/* Add files in queue to our queues to send to the indexer */
+	queue = g_hash_table_lookup (priv->items_created_queues, module_name);
+	g_return_if_fail (queue);
+	g_queue_push_tail (queue, g_object_ref (file));
 }
 
 static void

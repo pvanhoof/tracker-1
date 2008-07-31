@@ -1,3 +1,10 @@
+2008-07-31  Ivan Frade  <ivan.frade@nokia.com>
+	
+	* src/tracker-indexer/tracker-index.c
+	* tests/tracker-indexer/tracker-index-test.c:
+	When we added and removed a word before indexing, the word was
+	saved with score 0 (and it is wrong). Test and fix.
+	
 2008-07-31  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer.c: Add back some leak fixes, and

@@ -301,6 +301,33 @@ test_remove_document ()
         g_remove (indexname);
 }
 
+static void
+test_remove_before_flush (void)
+{
+        TrackerIndex *index;
+        const gchar *indexname = "test-remove-before-flush.index";
+        gint id1;
+
+        const gchar *doc1 = "this is a text";
+        
+        g_remove (indexname);
+
+        index = tracker_index_new (indexname, BUCKET_COUNT);
+
+        /* Doc 1 */
+        id1 = insert_in_index (index, doc1);
+        
+        /* Remove before flush */
+        remove_in_index (index, doc1, id1);
+
+        tracker_index_flush (index);
+
+        tracker_index_free (index);
+
+        g_assert_cmpint (get_number_words_in_index (indexname), ==, 0);
+
+        g_remove (indexname);
+}
 
 int
 main (int argc, char **argv) {
@@ -327,6 +354,9 @@ main (int argc, char **argv) {
 
         g_test_add_func ("/tracker/tracker-indexer/tracker-index/remove_document",
                          test_remove_document);
+
+        g_test_add_func ("/tracker/tracker-indexer/tracker-index/remove_before_flush",
+                         test_remove_before_flush);
 
         result = g_test_run ();
         

@@ -138,8 +138,15 @@ tracker_index_add_word (TrackerIndex *index,
 		if (current->id == service_id) {
 			/* The word was already found in the same service_id (file), increase score */
 			new_score = tracker_index_item_get_score (current) + weight;
-			current->amalgamated = tracker_index_item_calc_amalgamated (tracker_index_item_get_service_type (current), 
-										    new_score);
+			if (new_score < 1) {
+				array = g_array_remove_index (array, i);
+				if (array->len == 0) {
+					g_hash_table_remove (index->cache, word);
+				}
+			} else {
+				current->amalgamated = tracker_index_item_calc_amalgamated (tracker_index_item_get_service_type (current), 
+											    new_score);
+			}
 			return;
 		}
 	}

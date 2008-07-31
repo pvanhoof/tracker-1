@@ -145,6 +145,25 @@ test_parser_stop_words (void)
                                       TRUE, FALSE); /* Filter / Delimit */        
 }
 
+static void
+test_parser_text_fast (void)
+{
+        GHashTable  *result = NULL;
+        const gchar *contents = "one two three four five six seven eight";
+
+        result = tracker_parser_text_fast (result, NULL, 1);
+
+        g_assert (result);
+        g_assert_cmpint (g_hash_table_size (result), ==, 0);
+
+        result = tracker_parser_text_fast (result, contents, 1);
+        g_assert_cmpint (g_hash_table_size (result), ==, 8);
+
+        result = tracker_parser_text_fast (result, contents, 1);
+        g_assert_cmpint (g_hash_table_size (result), ==, 8);
+        
+}
+
 int
 main (int argc, char **argv) {
 
@@ -169,6 +188,9 @@ main (int argc, char **argv) {
 
         g_test_add_func ("/libtracker-common/tracker-parser/stop_words",
                          test_parser_stop_words);
+
+        g_test_add_func ("/libtracker-common/tracker-parser/parser_text_fast",
+                         test_parser_text_fast);
 
         result = g_test_run ();
         

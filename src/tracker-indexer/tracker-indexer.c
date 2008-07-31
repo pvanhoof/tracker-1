@@ -880,22 +880,22 @@ handle_file_create (TrackerIndexer *indexer,
 	metadata = tracker_indexer_module_file_get_metadata (info->module, info->file);
 
 	if (metadata) {
-
 		TrackerService *service_def;
 		gchar *service_type;
 		gchar *text;
 		guint32 id;
 
 		service_type = g_strdup (tracker_module_config_get_index_service (info->file->module_name));
-	
+
 		if (!service_type || !service_type[0]) {
 			gchar *mimetype;
-		
+
+			g_free (service_type);
 			mimetype = tracker_file_get_mime_type (info->file->path);
 			service_type = tracker_ontology_get_service_type_for_mime (mimetype);
 			g_free (mimetype);
 		}
-		
+
 		service_def = tracker_ontology_get_service_type_by_name (service_type);
 		g_free (service_type);
 
@@ -950,14 +950,14 @@ handle_file_delete (TrackerIndexer *indexer,
 
 	TrackerService *service_def;
 	gchar          *content;
-	gchar          *service_type = NULL;
+	const gchar    *service_type = NULL;
 	guint           service_id;
 	guint           service_type_id;
 	gchar          *metadata;
 
 
-	service_type = g_strdup (tracker_module_config_get_index_service (info->file->module_name));
-	
+	service_type = tracker_module_config_get_index_service (info->file->module_name);
+
 	if (!service_type || !service_type[0]) {
 		gchar *name;
 
@@ -973,7 +973,7 @@ handle_file_delete (TrackerIndexer *indexer,
 	}
 
 	service_id = tracker_db_check_service (service_def, info->file->path, NULL);
-	
+
 	if (service_id < 1) {
 		g_message ("Cannot delete file: it doesnt exist in DB");
 		return TRUE;

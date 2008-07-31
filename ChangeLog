@@ -1,3 +1,8 @@
+2008-07-31  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer.c: Add back some leak fixes, and
+	fix some trailing whitespaces.
+
 2008-07-31  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/trackerd/tracker-processor.c:

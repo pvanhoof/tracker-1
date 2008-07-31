@@ -1,3 +1,13 @@
+2008-07-31  Ivan Frade  <ivan.frade@nokia.com>
+
+	* utils/qdbm/Makefile.am
+	* utils/qdbm/print-words.c
+	* src/libtracker-common/tracker-index-item.[ch]
+	* src/libtracker-common/tracker-index-item.h:
+	(tracker_index_item_get_id): New method to access id.
+	Using the common tracker-index-item instead a local copy in the
+	utility program.
+	
 2008-07-30  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/libtracker-common/tracker-utils.c (tracker_seconds_to_string):

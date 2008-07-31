@@ -47,3 +47,9 @@ tracker_index_item_get_score (TrackerIndexItem *details)
 
 	return (gint16) (a[0] << 8) | (a[1]);	
 }
+
+guint32 
+tracker_index_item_get_id (TrackerIndexItem *item)
+{ 
+        return item->id;
+}

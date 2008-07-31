@@ -19,7 +19,7 @@ guint32 tracker_index_item_calc_amalgamated (gint              service_type,
                                              gint              score);
 guint8  tracker_index_item_get_service_type (TrackerIndexItem *details);
 gint16  tracker_index_item_get_score        (TrackerIndexItem *details);
-
+guint32 tracker_index_item_get_id           (TrackerIndexItem *details);
 
 G_END_DECLS
 

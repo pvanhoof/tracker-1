@@ -1,5 +1,6 @@
 #include <depot.h>
 #include <glib.h>
+#include <libtracker-common/tracker-index-item.h>
 
 #define USAGE "Usage: print -f qdbm-file\n"
 
@@ -19,24 +20,14 @@ static GOptionEntry   entries_qdbm[] = {
 };
 
 
-typedef struct  {                         
-	/* Service ID number of the document */
-	guint32 id;              
-
-	/* Amalgamation of service_type and score of the word in the
-	 * document's metadata.
-	 */
-	gint    amalgamated;     
-} TrackerIndexerWordDetails;
-
-TrackerIndexerWordDetails *
+TrackerIndexItem *
 tracker_indexer_get_word_hits (DEPOT          *index,
 			       const gchar    *word,
 			       guint          *count)
 {
-	TrackerIndexerWordDetails *details;
-	gint                       tsiz;
-	gchar                     *tmp;
+	TrackerIndexItem *details;
+	gint              tsiz;
+	gchar            *tmp;
 
         g_return_val_if_fail (word != NULL, NULL);
 
@@ -47,11 +38,11 @@ tracker_indexer_get_word_hits (DEPOT          *index,
         }
 
 	if ((tmp = dpget (index, word, -1, 0, 100, &tsiz)) != NULL) {
-		if (tsiz >= (gint) sizeof (TrackerIndexerWordDetails)) {
-			details = (TrackerIndexerWordDetails *) tmp;
+		if (tsiz >= (gint) sizeof (TrackerIndexItem)) {
+			details = (TrackerIndexItem *) tmp;
 
                         if (count) {
-                                *count = tsiz / sizeof (TrackerIndexerWordDetails);
+                                *count = tsiz / sizeof (TrackerIndexItem);
                         }
 		}
 	}
@@ -59,24 +50,14 @@ tracker_indexer_get_word_hits (DEPOT          *index,
 	return details;
 }
 
-
-guint8
-tracker_indexer_word_details_get_service_type (TrackerIndexerWordDetails *details)
-{
-        g_return_val_if_fail (details != NULL, 0);
-
-	return (details->amalgamated >> 24) & 0xFF;
-}
-
-
 void
 load_terms_from_index (gchar* filename){
 
     DEPOT *depot;
     char *key;
     int counter = 0, start_time, total_time;
-    gint hits, i;
-    TrackerIndexerWordDetails *results;
+    guint hits, i;
+    TrackerIndexItem *results;
 
     depot = dpopen (filename, DP_OREADER | DP_ONOLCK, -1);
 
@@ -98,9 +79,10 @@ load_terms_from_index (gchar* filename){
             if (print_services) {
                     results = tracker_indexer_get_word_hits (depot, key, &hits);
                     for (i = 0; i < hits; i++) {
-                            g_print (" (id:%d  t:%d) ", 
-                                     results[i].id,
-                                     tracker_indexer_word_details_get_service_type (&results[i]));
+                            g_print (" (id:%d  t:%d s:%d) ", 
+                                     tracker_index_item_get_id (&results[i]),
+                                     tracker_index_item_get_service_type (&results[i]),
+                                     tracker_index_item_get_score (&results[i]));
                     }
             }
 

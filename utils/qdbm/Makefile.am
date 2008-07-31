@@ -1,20 +1,23 @@
 noinst_PROGRAMS = print search
 
-INCLUDES = 		\ 
-	$(QDBM_CFLAGS) 	\
+INCLUDES = \
+	-DG_LOG_DOMAIN=\"Tracker\"	\
+	-I$(top_srcdir)/src		\
+	$(QDBM_CFLAGS) 			\
 	$(GLIB2_CFLAGS)
 
 print_SOURCES = 	\
 	print-words.c
 
-print_LDADD = 		\
-	$(QDBM_LIBS) 	\
+print_LDADD = 								\
+	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
+	$(QDBM_LIBS) 							\
 	$(GLIB2_LIBS)							
 
 search_SOURCES = 	\
 	search-word.c
 
-search_LDADD = 		\	
+search_LDADD = 		\
 	$(QDBM_LIBS) 	\
 	$(GLIB2_LIBS)							
 

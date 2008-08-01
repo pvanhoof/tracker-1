@@ -47,46 +47,6 @@ enum {
         LAST_SIGNAL
 };
 
-typedef struct {
-	TrackerKeywords *object;
-	gchar  *service_type;
-	gchar  *uri;
-	gchar  *property;
-	gchar **values;
-} KeywordRequest;
-
-
-static KeywordRequest *
-keyword_request_new (TrackerKeywords *object,
-		     const gchar *service_type,
-		     const gchar *uri,
-		     const gchar *property,
-		     gchar **values) 
-{
-	KeywordRequest *request;
-
-	request = g_slice_new (KeywordRequest);
-
-	request->object = g_object_ref (object);
-	request->service_type = g_strdup (service_type);
-	request->uri = g_strdup (uri);
-	request->property = g_strdup (property);
-	request->values = g_strdupv (values);
-
-	return request;
-}
-
-static void
-keyword_request_free (KeywordRequest *request) 
-{
-	g_object_unref (request->object);
-	g_free (request->service_type);
-	g_free (request->uri);
-	g_free (request->property);
-	g_strfreev (request->values);
-}
-
-
 static void keywords_finalize     (GObject      *object);
 
 static guint signals[LAST_SIGNAL] = {0};
@@ -273,34 +233,6 @@ tracker_keywords_get (TrackerKeywords        *object,
 	tracker_dbus_request_success (request_id);
 }
 
-static void
-on_property_set_callback (DBusGProxy *proxy, GError *error, gpointer userdata)
-{
-	KeywordRequest *request = (KeywordRequest *)userdata;
-	gchar **keyword;
-
-	for (keyword = request->values; *keyword; keyword++) {
-		g_message ("Added '%s'='%s' to %s", request->property, *keyword, request->uri);
-		g_signal_emit (request->object, signals[KEYWORD_ADDED], 0, request->service_type, request->uri, *keyword);
-	}
-	keyword_request_free (request);
-
-}
-
-static void
-on_property_remove_callback (DBusGProxy *proxy, GError *error, gpointer userdata)
-{
-	KeywordRequest *request = (KeywordRequest *)userdata;
-	gchar **keyword;
-
-	for (keyword = request->values; *keyword; keyword++) {
-		g_message ("Removed '%s'='%s' to %s", request->property, *keyword, request->uri);
-		g_signal_emit (request->object, signals[KEYWORD_REMOVED], 0, request->service_type, request->uri, *keyword);
-	}
-	keyword_request_free (request);
-}
-
-
 void
 tracker_keywords_add (TrackerKeywords        *object,
 		      const gchar            *service_type,
@@ -313,7 +245,6 @@ tracker_keywords_add (TrackerKeywords        *object,
 	guint                request_id;
 	gchar               *id;
 	GError              *actual_error = NULL;
-	KeywordRequest      *request;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -358,16 +289,21 @@ tracker_keywords_add (TrackerKeywords        *object,
 		return;
 	}
 
-	request = keyword_request_new (object, service_type, uri, "User:Keywords", keywords);
+	org_freedesktop_Tracker_Indexer_property_set (tracker_dbus_indexer_get_proxy (),
+						      service_type,
+						      uri,
+						      "User:Keywords",
+						      (const gchar **)keywords,
+						      &actual_error);
 
-	org_freedesktop_Tracker_Indexer_property_set_async (tracker_dbus_indexer_get_proxy (),
-							    service_type,
-							    uri,
-							    "User:Keywords",
-							    (const gchar **)keywords,
-							    on_property_set_callback,   
-							    request);
-	/* Request is freed in the callback */
+	if (actual_error) {
+		tracker_dbus_request_failed (request_id,
+					     &actual_error,
+					     "Error in the indexer");
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
 
 	g_free (id);
 
@@ -387,7 +323,6 @@ tracker_keywords_remove (TrackerKeywords        *object,
 	TrackerDBInterface  *iface;
 	guint                request_id;
 	gchar               *id;
-	KeywordRequest      *request;
 	GError              *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
@@ -434,17 +369,22 @@ tracker_keywords_remove (TrackerKeywords        *object,
 	}
 
 
-	request = keyword_request_new (object, service_type, uri, "User:Keywords", keywords);
+	org_freedesktop_Tracker_Indexer_property_remove (tracker_dbus_indexer_get_proxy (),
+							 service_type,
+							 uri,
+							 "User:Keywords",
+							 (const gchar **)keywords,
+							 &actual_error);
 
-	org_freedesktop_Tracker_Indexer_property_remove_async (tracker_dbus_indexer_get_proxy (),
-							       service_type,
-							       uri,
-							       "User:Keywords",
-							       (const gchar **)keywords,
-							       on_property_remove_callback,   
-							       request);
-	/* Request is freed in the callback */
-
+	if (actual_error) {
+		tracker_dbus_request_failed (request_id,
+					     &actual_error,
+					     "Generic error in the indexer");
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
+	
 	g_free (id);
 
 	dbus_g_method_return (context);
@@ -464,7 +404,6 @@ tracker_keywords_remove_all (TrackerKeywords        *object,
 	guint               request_id;
 	gchar              *id;
 	gchar             **values;
-	KeywordRequest     *request;
 	GError             *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
@@ -514,17 +453,22 @@ tracker_keywords_remove_all (TrackerKeywords        *object,
 					      "User:Keywords");
 	values = tracker_dbus_query_result_to_strv (result_set, 0, NULL);
 
-	request = keyword_request_new (object, service_type, uri, "User:Keywords", values);
+	org_freedesktop_Tracker_Indexer_property_remove (tracker_dbus_indexer_get_proxy (),
+							 service_type,
+							 uri,
+							 "User:Keywords",
+							 (const gchar **)values,
+							 &actual_error);
 
-	org_freedesktop_Tracker_Indexer_property_remove_async (tracker_dbus_indexer_get_proxy (),
-							       service_type,
-							       uri,
-							       "User:Keywords",
-							       (const gchar **)values,
-							       on_property_remove_callback,
-							       request);
+	if (actual_error) {
+		tracker_dbus_request_failed (request_id,
+					     &actual_error,
+					     "Generic error in the indexer");
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
 
-	/* Request is freed in the callback */
 	g_strfreev (values);
 	g_free (id);
 

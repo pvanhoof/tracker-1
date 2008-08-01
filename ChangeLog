@@ -1,3 +1,9 @@
+2008-08-01  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/trackerd/tracker-keywords.c:
+	Use sync calls to the indexer. Tracker-search-tool query for the
+	tags just after setting them.
+	
 2008-08-01  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer.[ch]:

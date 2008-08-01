@@ -33,6 +33,7 @@
 #include "tracker-db.h"
 #include "tracker-marshal.h"
 #include "tracker-index.h"
+#include "tracker-indexer-client.h"
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_KEYWORDS, TrackerKeywordsPriv))
 
@@ -45,6 +46,46 @@ enum {
         KEYWORD_REMOVED,
         LAST_SIGNAL
 };
+
+typedef struct {
+	TrackerKeywords *object;
+	gchar  *service_type;
+	gchar  *uri;
+	gchar  *property;
+	gchar **values;
+} KeywordRequest;
+
+
+static KeywordRequest *
+keyword_request_new (TrackerKeywords *object,
+		     const gchar *service_type,
+		     const gchar *uri,
+		     const gchar *property,
+		     gchar **values) 
+{
+	KeywordRequest *request;
+
+	request = g_slice_new (KeywordRequest);
+
+	request->object = g_object_ref (object);
+	request->service_type = g_strdup (service_type);
+	request->uri = g_strdup (uri);
+	request->property = g_strdup (property);
+	request->values = g_strdupv (values);
+
+	return request;
+}
+
+static void
+keyword_request_free (KeywordRequest *request) 
+{
+	g_object_unref (request->object);
+	g_free (request->service_type);
+	g_free (request->uri);
+	g_free (request->property);
+	g_strfreev (request->values);
+}
+
 
 static void keywords_finalize     (GObject      *object);
 
@@ -70,7 +111,7 @@ tracker_keywords_class_init (TrackerKeywordsClass *klass)
                               tracker_marshal_VOID__STRING_STRING_STRING,
                               G_TYPE_NONE,
                               3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
-        signals[KEYWORD_ADDED] =
+        signals[KEYWORD_REMOVED] =
                 g_signal_new ("keyword-removed",
                               G_TYPE_FROM_CLASS (klass),
                               G_SIGNAL_RUN_LAST,
@@ -232,6 +273,34 @@ tracker_keywords_get (TrackerKeywords        *object,
 	tracker_dbus_request_success (request_id);
 }
 
+static void
+on_property_set_callback (DBusGProxy *proxy, GError *error, gpointer userdata)
+{
+	KeywordRequest *request = (KeywordRequest *)userdata;
+	gchar **keyword;
+
+	for (keyword = request->values; *keyword; keyword++) {
+		g_message ("Added '%s'='%s' to %s", request->property, *keyword, request->uri);
+		g_signal_emit (request->object, signals[KEYWORD_ADDED], 0, request->service_type, request->uri, *keyword);
+	}
+	keyword_request_free (request);
+
+}
+
+static void
+on_property_remove_callback (DBusGProxy *proxy, GError *error, gpointer userdata)
+{
+	KeywordRequest *request = (KeywordRequest *)userdata;
+	gchar **keyword;
+
+	for (keyword = request->values; *keyword; keyword++) {
+		g_message ("Removed '%s'='%s' to %s", request->property, *keyword, request->uri);
+		g_signal_emit (request->object, signals[KEYWORD_REMOVED], 0, request->service_type, request->uri, *keyword);
+	}
+	keyword_request_free (request);
+}
+
+
 void
 tracker_keywords_add (TrackerKeywords        *object,
 		      const gchar            *service_type,
@@ -243,8 +312,8 @@ tracker_keywords_add (TrackerKeywords        *object,
 	TrackerDBInterface  *iface;
 	guint                request_id;
 	gchar               *id;
-	gchar              **p;
 	GError              *actual_error = NULL;
+	KeywordRequest      *request;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -289,16 +358,16 @@ tracker_keywords_add (TrackerKeywords        *object,
 		return;
 	}
 
-	tracker_db_metadata_set (iface, 
-				 service_type, 
-				 id, 
-				 "User:Keywords", 
-				 keywords, 
-				 TRUE);
-	for (p = keywords; *p; p++) {
-		g_message ("Added keyword %s to %s with ID %s", *p, uri, id);
-		g_signal_emit (object, signals[KEYWORD_ADDED], 0, service_type, uri, *p);
-	}
+	request = keyword_request_new (object, service_type, uri, "User:Keywords", keywords);
+
+	org_freedesktop_Tracker_Indexer_property_set_async (tracker_dbus_indexer_get_proxy (),
+							    service_type,
+							    uri,
+							    "User:Keywords",
+							    (const gchar **)keywords,
+							    on_property_set_callback,   
+							    request);
+	/* Request is freed in the callback */
 
 	g_free (id);
 
@@ -318,7 +387,7 @@ tracker_keywords_remove (TrackerKeywords        *object,
 	TrackerDBInterface  *iface;
 	guint                request_id;
 	gchar               *id;
-	gchar              **p;
+	KeywordRequest      *request;
 	GError              *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
@@ -364,12 +433,17 @@ tracker_keywords_remove (TrackerKeywords        *object,
 		return;
 	}
 
-	for (p = keywords; *p; p++) {
-		g_message ("Removed keyword %s from %s with ID %s", *p, uri, id);
-		tracker_db_metadata_delete_value (iface, service_type, id, "User:Keywords", *p);
 
-		g_signal_emit (object, signals[KEYWORD_REMOVED], 0, service_type, uri, *p);
-	}
+	request = keyword_request_new (object, service_type, uri, "User:Keywords", keywords);
+
+	org_freedesktop_Tracker_Indexer_property_remove_async (tracker_dbus_indexer_get_proxy (),
+							       service_type,
+							       uri,
+							       "User:Keywords",
+							       (const gchar **)keywords,
+							       on_property_remove_callback,   
+							       request);
+	/* Request is freed in the callback */
 
 	g_free (id);
 
@@ -386,8 +460,11 @@ tracker_keywords_remove_all (TrackerKeywords        *object,
 			     GError                **error)
 {
 	TrackerDBInterface *iface;
+	TrackerDBResultSet *result_set;
 	guint               request_id;
 	gchar              *id;
+	gchar             **values;
+	KeywordRequest     *request;
 	GError             *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
@@ -432,11 +509,23 @@ tracker_keywords_remove_all (TrackerKeywords        *object,
 		return;
 	}
 
-	tracker_db_metadata_delete (iface,
-				    service_type,
-				    id,
-				    "User:Keywords", 
-				    TRUE);
+	result_set = tracker_db_metadata_get (iface, 
+					      id, 
+					      "User:Keywords");
+	values = tracker_dbus_query_result_to_strv (result_set, 0, NULL);
+
+	request = keyword_request_new (object, service_type, uri, "User:Keywords", values);
+
+	org_freedesktop_Tracker_Indexer_property_remove_async (tracker_dbus_indexer_get_proxy (),
+							       service_type,
+							       uri,
+							       "User:Keywords",
+							       (const gchar **)values,
+							       on_property_remove_callback,
+							       request);
+
+	/* Request is freed in the callback */
+	g_strfreev (values);
 	g_free (id);
 
 	dbus_g_method_return (context);

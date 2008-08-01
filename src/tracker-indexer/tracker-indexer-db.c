@@ -455,13 +455,14 @@ tracker_db_delete_metadata (TrackerService *service,
 	case TRACKER_FIELD_TYPE_KEYWORD:
 		if (!value) {
 			g_warning ("Trying to remove keyword field with no specific value");
+		} else {
+			tracker_db_interface_execute_procedure (iface, NULL,
+								"DeleteMetadataKeywordValue",
+								id_str,
+								tracker_field_get_id (field),
+								value,
+								NULL);
 		}
-		tracker_db_interface_execute_procedure (iface, NULL,
-							"DeleteMetadataKeywordValue",
-							id_str,
-							tracker_field_get_id (field),
-							value,
-							NULL);
 		break;
 	case TRACKER_FIELD_TYPE_INDEX:
 	case TRACKER_FIELD_TYPE_STRING:

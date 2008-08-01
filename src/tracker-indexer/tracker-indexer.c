@@ -48,6 +48,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <sys/statvfs.h>
 
 #include <glib/gstdio.h>
 #include <gmodule.h>
@@ -76,6 +77,8 @@
 
 /* Flush every 'x' seconds */
 #define FLUSH_FREQUENCY             5
+
+#define LOW_DISK_CHECK_FREQUENCY    10
 
 /* Transaction every 'x' items */
 #define TRANSACTION_MAX             200
@@ -119,6 +122,7 @@ struct TrackerIndexerPrivate {
 
 	guint idle_id;
 	guint pause_for_duration_id;
+	guint disk_space_check_id;
 	guint flush_id;
 
 	guint files_processed;
@@ -374,6 +378,10 @@ tracker_indexer_finalize (GObject *object)
 		g_source_remove (priv->idle_id);
 	}
 
+	if (priv->disk_space_check_id) {
+		g_source_remove (priv->disk_space_check_id);
+	}
+
 	if (priv->timer) {
 		g_timer_destroy (priv->timer);
 	}
@@ -576,10 +584,49 @@ check_stopped (TrackerIndexer *indexer)
 		       indexer->private->files_indexed);
 }
 
+static gboolean
+check_disk_space_low (TrackerIndexer *indexer)
+{
+	const gchar *path;
+        struct statvfs st;
+        gint limit;
+
+        limit = tracker_config_get_low_disk_space_limit (indexer->private->config);
+	path = indexer->private->db_dir;
+
+        if (limit < 1) {
+                return FALSE;
+        }
+
+        if (statvfs (path, &st) == -1) {
+		g_warning ("Could not statvfs '%s'", path);
+                return FALSE;
+        }
+
+        if (((long long) st.f_bavail * 100 / st.f_blocks) <= limit) {
+		g_warning ("Disk space is low");
+                return TRUE;
+        }
+
+	return FALSE;
+}
+
+static gboolean
+check_disk_space_cb (TrackerIndexer *indexer)
+{
+	gboolean disk_space_low;
+
+	disk_space_low = check_disk_space_low (indexer);
+	tracker_indexer_set_running (indexer, !disk_space_low);
+
+	return TRUE;
+}
+
 static void
 tracker_indexer_init (TrackerIndexer *indexer)
 {
 	TrackerIndexerPrivate *priv;
+	gint low_disk_space_limit;
 	gchar *index_file;
 	GList *l;
 
@@ -655,6 +702,14 @@ tracker_indexer_init (TrackerIndexer *indexer)
 
 	/* Set up idle handler to process files/directories */
 	check_started (indexer);
+
+	low_disk_space_limit = tracker_config_get_low_disk_space_limit (priv->config);
+
+	if (low_disk_space_limit != -1) {
+		priv->disk_space_check_id = g_timeout_add_seconds (LOW_DISK_CHECK_FREQUENCY,
+								   (GSourceFunc) check_disk_space_cb,
+								   indexer);
+	}
 }
 
 static void
@@ -1276,11 +1331,45 @@ tracker_indexer_new (void)
 }
 
 gboolean
-tracker_indexer_get_is_running (TrackerIndexer *indexer)
+tracker_indexer_get_running (TrackerIndexer *indexer)
 {
 	g_return_val_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
 
 	return indexer->private->idle_id != 0;
+}
+
+void
+tracker_indexer_set_running (TrackerIndexer *indexer,
+			     gboolean        running)
+{
+	gboolean was_running;
+
+	g_return_if_fail (TRACKER_IS_INDEXER (indexer));
+
+	was_running = tracker_indexer_get_running (indexer);
+
+	if (was_running == was_running) {
+		return;
+	}
+
+	if (!running) {
+		if (indexer->private->in_transaction) {
+			stop_transaction (indexer);
+		}
+
+		g_source_remove (indexer->private->idle_id);
+		indexer->private->idle_id = 0;
+		indexer->private->is_paused = TRUE;
+
+		tracker_index_close (indexer->private->index);
+		g_signal_emit (indexer, signals[PAUSED], 0);
+	} else {
+		indexer->private->is_paused = FALSE;
+		indexer->private->idle_id = g_idle_add (process_func, indexer);
+
+		tracker_index_open (indexer->private->index);
+		g_signal_emit (indexer, signals[CONTINUED], 0);
+	}
 }
 
 void
@@ -1297,22 +1386,16 @@ tracker_indexer_pause (TrackerIndexer         *indexer,
 	tracker_dbus_request_new (request_id,
 				  "DBus request to pause the indexer");
 
-	if (tracker_indexer_get_is_running (indexer)) {
+	if (tracker_indexer_get_running (indexer)) {
 		if (indexer->private->in_transaction) {
 			tracker_dbus_request_comment (request_id,
 						      "Committing transactions");
-			stop_transaction (indexer);
 		}
 
 		tracker_dbus_request_comment (request_id,
 					      "Pausing indexing");
 
-		g_source_remove (indexer->private->idle_id);
-		indexer->private->idle_id = 0;
-		indexer->private->is_paused = TRUE;
-
-		tracker_index_close (indexer->private->index);
-		g_signal_emit (indexer, signals[PAUSED], 0);
+		tracker_indexer_set_running (indexer, FALSE);
 	}
 
 	dbus_g_method_return (context);
@@ -1327,16 +1410,7 @@ pause_for_duration_cb (gpointer user_data)
 
 	indexer = TRACKER_INDEXER (user_data);
 
-	if (tracker_indexer_get_is_running (indexer) == FALSE) {
-		g_message ("Continuing indexing");
-
-		indexer->private->is_paused = FALSE;
-		indexer->private->idle_id = g_idle_add (process_func, indexer);
-
-		tracker_index_open (indexer->private->index);
-		g_signal_emit (indexer, signals[CONTINUED], 0);
-	}
-
+	tracker_indexer_set_running (indexer, TRUE);
 	indexer->private->pause_for_duration_id = 0;
 
 	return FALSE;
@@ -1358,27 +1432,21 @@ tracker_indexer_pause_for_duration (TrackerIndexer         *indexer,
 				  "DBus request to pause the indexer for %d seconds",
 				  seconds);
 
-	if (tracker_indexer_get_is_running (indexer)) {
+	if (tracker_indexer_get_running (indexer)) {
 		if (indexer->private->in_transaction) {
 			tracker_dbus_request_comment (request_id,
 						      "Committing transactions");
-			stop_transaction (indexer);
 		}
 
 		tracker_dbus_request_comment (request_id,
 					      "Pausing indexing");
 
-		g_source_remove (indexer->private->idle_id);
-		indexer->private->idle_id = 0;
-		indexer->private->is_paused = TRUE;
+		tracker_indexer_set_running (indexer, FALSE);
 
 		indexer->private->pause_for_duration_id =
 			g_timeout_add_seconds (seconds,
 					       pause_for_duration_cb,
 					       indexer);
-
-		tracker_index_close (indexer->private->index);
-		g_signal_emit (indexer, signals[PAUSED], 0);
 	}
 
 	dbus_g_method_return (context);
@@ -1400,15 +1468,11 @@ tracker_indexer_continue (TrackerIndexer         *indexer,
 	tracker_dbus_request_new (request_id,
                                   "DBus request to continue the indexer");
 
-	if (tracker_indexer_get_is_running (indexer) == FALSE) {
+	if (tracker_indexer_get_running (indexer) == FALSE) {
 		tracker_dbus_request_comment (request_id,
 					      "Continuing indexing");
 
-		indexer->private->is_paused = FALSE;
-		indexer->private->idle_id = g_idle_add (process_func, indexer);
-
-		tracker_index_open (indexer->private->index);
-		g_signal_emit (indexer, signals[CONTINUED], 0);
+		tracker_indexer_set_running (indexer, TRUE);
 	}
 
 	dbus_g_method_return (context);

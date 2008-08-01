@@ -72,7 +72,10 @@ struct TrackerIndexerClass {
 GType           tracker_indexer_get_type           (void) G_GNUC_CONST;
 
 TrackerIndexer *tracker_indexer_new                (void);
-gboolean        tracker_indexer_get_is_running     (TrackerIndexer         *indexer);
+gboolean        tracker_indexer_get_running        (TrackerIndexer         *indexer);
+void            tracker_indexer_set_running        (TrackerIndexer         *indexer,
+						    gboolean                running);
+
 void            tracker_indexer_pause              (TrackerIndexer         *indexer,
 						    DBusGMethodInvocation  *context,
 						    GError                **error);

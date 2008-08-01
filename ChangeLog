@@ -1,10 +1,17 @@
+2008-08-01  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer.[ch]:
+	* src/tracker-indexer/tracker-main.c: Add check for low disk space,
+	which pauses the indexer when it detects the available space at the
+	home partition is below some configurable threshold.
+
 2008-08-01  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/tracker-indexer/tracker-indexer.c:
 	(tracker_indexer_property_remove)
 	(tracker_indexer_property_add): 
 	Return a dbus error if something fails.
-	
+
 2008-08-01  Carlos Garnacho  <carlos@imendio.com>
 
 	Make tracker-indexer delete items if the module returns NULL metadata,

@@ -111,7 +111,7 @@ struct TrackerIndexerPrivate {
 	TrackerConfig *config;
 	TrackerLanguage *language;
 
-#ifdef HAVE_HAL 
+#ifdef HAVE_HAL
 	TrackerHal *hal;
 #endif /* HAVE_HAL */
 
@@ -196,7 +196,7 @@ path_info_free (PathInfo *info)
 }
 
 
-static void 
+static void
 start_transaction (TrackerIndexer *indexer)
 {
 	g_debug ("Transaction start");
@@ -211,7 +211,7 @@ start_transaction (TrackerIndexer *indexer)
 	tracker_db_interface_start_transaction (indexer->private->common);
 }
 
-static void 
+static void
 stop_transaction (TrackerIndexer *indexer)
 {
 	tracker_db_interface_end_transaction (indexer->private->common);
@@ -261,7 +261,7 @@ signal_status (TrackerIndexer *indexer,
 		g_free (str1);
 	}
 
-	g_signal_emit (indexer, signals[STATUS], 0, 
+	g_signal_emit (indexer, signals[STATUS], 0,
 		       seconds_elapsed,
 		       indexer->private->current_module_name,
 		       indexer->private->files_indexed,
@@ -323,12 +323,12 @@ set_up_throttle (TrackerIndexer *indexer)
 
 	if (tracker_hal_get_battery_in_use (indexer->private->hal)) {
 		g_message ("We are running on battery");
-		
+
 		if (throttle == THROTTLE_DEFAULT) {
-			tracker_config_set_throttle (indexer->private->config, 
+			tracker_config_set_throttle (indexer->private->config,
 						     THROTTLE_DEFAULT_ON_BATTERY);
-			g_message ("Setting throttle from %d to %d", 
-				   throttle, 
+			g_message ("Setting throttle from %d to %d",
+				   throttle,
 				   THROTTLE_DEFAULT_ON_BATTERY);
 		} else {
 			g_message ("Not setting throttle, it is currently set to %d",
@@ -338,13 +338,13 @@ set_up_throttle (TrackerIndexer *indexer)
 		g_message ("We are not running on battery");
 
 		if (throttle == THROTTLE_DEFAULT_ON_BATTERY) {
-			tracker_config_set_throttle (indexer->private->config, 
+			tracker_config_set_throttle (indexer->private->config,
 						     THROTTLE_DEFAULT);
-			g_message ("Setting throttle from %d to %d", 
-				   throttle, 
+			g_message ("Setting throttle from %d to %d",
+				   throttle,
 				   THROTTLE_DEFAULT);
 		} else {
-			g_message ("Not setting throttle, it is currently set to %d", 
+			g_message ("Not setting throttle, it is currently set to %d",
 				   throttle);
 		}
 	}
@@ -353,7 +353,7 @@ set_up_throttle (TrackerIndexer *indexer)
 static void
 notify_battery_in_use_cb (GObject *gobject,
 			  GParamSpec *arg1,
-			  gpointer user_data) 
+			  gpointer user_data)
 {
 	set_up_throttle (TRACKER_INDEXER (user_data));
 }
@@ -388,10 +388,10 @@ tracker_indexer_finalize (GObject *object)
 	}
 
 #ifdef HAVE_HAL
-	g_signal_handlers_disconnect_by_func (priv->hal, 
+	g_signal_handlers_disconnect_by_func (priv->hal,
 					      notify_battery_in_use_cb,
 					      TRACKER_INDEXER (object));
-	
+
 	g_object_unref (priv->hal);
 #endif /* HAVE_HAL */
 
@@ -458,41 +458,41 @@ tracker_indexer_class_init (TrackerIndexerClass *class)
 			      G_TYPE_STRING,
 			      G_TYPE_UINT,
 			      G_TYPE_UINT);
-	signals[STARTED] = 
+	signals[STARTED] =
 		g_signal_new ("started",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_LAST,
 			      G_STRUCT_OFFSET (TrackerIndexerClass, started),
 			      NULL, NULL,
 			      g_cclosure_marshal_VOID__VOID,
-			      G_TYPE_NONE, 
+			      G_TYPE_NONE,
 			      0);
-	signals[PAUSED] = 
+	signals[PAUSED] =
 		g_signal_new ("paused",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_LAST,
 			      G_STRUCT_OFFSET (TrackerIndexerClass, paused),
 			      NULL, NULL,
 			      g_cclosure_marshal_VOID__VOID,
-			      G_TYPE_NONE, 
+			      G_TYPE_NONE,
 			      0);
-	signals[CONTINUED] = 
+	signals[CONTINUED] =
 		g_signal_new ("continued",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_LAST,
 			      G_STRUCT_OFFSET (TrackerIndexerClass, continued),
 			      NULL, NULL,
 			      g_cclosure_marshal_VOID__VOID,
-			      G_TYPE_NONE, 
+			      G_TYPE_NONE,
 			      0);
-	signals[FINISHED] = 
+	signals[FINISHED] =
 		g_signal_new ("finished",
 			      G_OBJECT_CLASS_TYPE (object_class),
 			      G_SIGNAL_RUN_LAST,
 			      G_STRUCT_OFFSET (TrackerIndexerClass, finished),
 			      NULL, NULL,
 			      tracker_marshal_VOID__DOUBLE_UINT,
-			      G_TYPE_NONE, 
+			      G_TYPE_NONE,
 			      2,
 			      G_TYPE_DOUBLE,
 			      G_TYPE_UINT);
@@ -544,7 +544,7 @@ check_started (TrackerIndexer *indexer)
 	}
 
 	indexer->private->idle_id = g_idle_add (process_func, indexer);
-	
+
 	g_timer_destroy (indexer->private->timer);
 	indexer->private->timer = g_timer_new ();
 
@@ -570,7 +570,7 @@ check_stopped (TrackerIndexer *indexer)
 
 	/* Clean up source ID */
 	indexer->private->idle_id = 0;
-	
+
 	/* Print out how long it took us */
 	str = tracker_seconds_to_string (seconds_elapsed, FALSE);
 
@@ -580,7 +580,7 @@ check_stopped (TrackerIndexer *indexer)
 	g_free (str);
 
 	/* Finally signal done */
-	g_signal_emit (indexer, signals[FINISHED], 0, 
+	g_signal_emit (indexer, signals[FINISHED], 0,
 		       seconds_elapsed,
 		       indexer->private->files_indexed);
 }
@@ -601,7 +601,7 @@ tracker_indexer_init (TrackerIndexer *indexer)
 	priv->modules_queue = g_queue_new ();
 	priv->config = tracker_config_new ();
 
-#ifdef HAVE_HAL 
+#ifdef HAVE_HAL
 	priv->hal = tracker_hal_new ();
 
 	g_signal_connect (priv->hal, "notify::battery-in-use",
@@ -614,7 +614,7 @@ tracker_indexer_init (TrackerIndexer *indexer)
 	priv->language = tracker_language_new (priv->config);
 
 	priv->db_dir = g_build_filename (g_get_user_cache_dir (),
-					 "tracker", 
+					 "tracker",
 					 NULL);
 
 	priv->module_names = tracker_module_config_get_modules ();
@@ -626,7 +626,7 @@ tracker_indexer_init (TrackerIndexer *indexer)
 
 	for (l = priv->module_names; l; l = l->next) {
 		GModule *module;
-		
+
 		if (!tracker_module_config_get_enabled (l->data)) {
 			continue;
 		}
@@ -811,24 +811,23 @@ send_text_to_index (TrackerIndexer *indexer,
 					      tracker_config_get_max_word_length (indexer->private->config),
 					      tracker_config_get_min_word_length (indexer->private->config),
 					      tracker_config_get_enable_stemmer (indexer->private->config),
-					      FALSE); 
+					      FALSE);
 	} else {
 		parsed = tracker_parser_text_fast (parsed,
 						   text,
 						   weight_factor); /* We dont know the exact property weight. Big value works */
-	
 	}
-	
+
 	words = g_hash_table_get_keys (parsed);
-	
+
 	for (iter = words; iter != NULL; iter = iter->next) {
 		weight = GPOINTER_TO_INT (g_hash_table_lookup (parsed, (gchar *)iter->data));
 
-		tracker_index_add_word (indexer->private->index, 
+		tracker_index_add_word (indexer->private->index,
 					(gchar *)iter->data,
 					service_id,
 					service_type,
-					weight); 
+					weight);
 	}
 
 	tracker_parser_text_free (parsed);
@@ -837,15 +836,15 @@ send_text_to_index (TrackerIndexer *indexer,
 
 
 static void
-index_text_with_parsing (TrackerIndexer *indexer, gint service_id, gint service_type_id, const gchar *content, gint weight_factor) 
+index_text_with_parsing (TrackerIndexer *indexer, gint service_id, gint service_type_id, const gchar *content, gint weight_factor)
 {
 	send_text_to_index (indexer, service_id, service_type_id, content, TRUE, weight_factor);
 }
 
 static void
-unindex_text_with_parsing (TrackerIndexer *indexer, gint service_id, gint service_type_id, const gchar *content, gint weight_factor) 
+unindex_text_with_parsing (TrackerIndexer *indexer, gint service_id, gint service_type_id, const gchar *content, gint weight_factor)
 {
-	send_text_to_index (indexer, service_id, service_type_id, content, TRUE, -1*weight_factor);
+	send_text_to_index (indexer, service_id, service_type_id, content, TRUE, -1 * weight_factor);
 }
 
 static void
@@ -857,13 +856,12 @@ index_text_no_parsing (TrackerIndexer *indexer, gint service_id, gint service_ty
 static void
 unindex_text_no_parsing (TrackerIndexer *indexer, gint service_id, gint service_type_id, const gchar *content, gint weight_factor)
 {
-	send_text_to_index (indexer, service_id, service_type_id, content, FALSE, -1*weight_factor);
+	send_text_to_index (indexer, service_id, service_type_id, content, FALSE, -1 * weight_factor);
 }
-
 
 static gboolean
 handle_file_create (TrackerIndexer *indexer,
-		    PathInfo       *info) 
+		    PathInfo       *info)
 {
 	TrackerMetadata *metadata;
 
@@ -913,12 +911,11 @@ handle_file_create (TrackerIndexer *indexer,
 
 				if (text) {
 					/* Save in the index */
-					index_text_with_parsing (indexer, 
-								 id, 
-								 tracker_service_get_id (service_def), 
+					index_text_with_parsing (indexer,
+								 id,
+								 tracker_service_get_id (service_def),
 								 text,
 								 1);
-					
 					/* Save in the DB */
 					tracker_db_set_text (service_def, id, text);
 					g_free (text);
@@ -937,7 +934,7 @@ handle_file_create (TrackerIndexer *indexer,
 
 static gboolean
 handle_file_delete (TrackerIndexer *indexer,
-		    PathInfo       *info) 
+		    PathInfo       *info)
 {
 
 	TrackerService *service_def;
@@ -992,20 +989,19 @@ handle_file_delete (TrackerIndexer *indexer,
 	unindex_text_with_parsing (indexer, service_id, service_type_id, metadata, 1000);
 	g_free (metadata);
 
-	
 	/* delete service */
         tracker_db_delete_service (service_def, service_id);
 	tracker_db_delete_all_metadata (service_def, service_id);
 
 	tracker_db_decrement_stats (indexer->private->common, service_def);
-	
+
 	indexer->private->items_processed++;
 
 	return !tracker_indexer_module_file_iter_contents (info->module, info->file);
 }
 
 static gboolean
-handle_metadata_add (TrackerIndexer *indexer, 
+handle_metadata_add (TrackerIndexer *indexer,
 		     const gchar    *service_type,
 		     const gchar    *uri,
 		     const gchar    *property,
@@ -1039,7 +1035,7 @@ handle_metadata_add (TrackerIndexer *indexer,
 					 values[i],
 					 NULL);
 	}
-	
+
 	joined = g_strjoinv (" ", values);
 	index_text_no_parsing (indexer,
 			       service_id,
@@ -1053,11 +1049,11 @@ handle_metadata_add (TrackerIndexer *indexer,
 
 
 static gboolean
-handle_metadata_remove (TrackerIndexer *indexer, 
-		     const gchar    *service_type,
-		     const gchar    *uri,
-		     const gchar    *property,
-		     GStrv           values)
+handle_metadata_remove (TrackerIndexer *indexer,
+			const gchar    *service_type,
+			const gchar    *uri,
+			const gchar    *property,
+			GStrv           values)
 {
 	TrackerService *service_def;
 	TrackerField   *field_def;
@@ -1086,7 +1082,7 @@ handle_metadata_remove (TrackerIndexer *indexer,
 					    field_def,
 					    values[i]);
 	}
-	
+
 	joined = g_strjoinv (" ", values);
 	unindex_text_no_parsing (indexer,
 				 service_id,
@@ -1094,7 +1090,7 @@ handle_metadata_remove (TrackerIndexer *indexer,
 				 joined,
 				 tracker_field_get_weight (field_def));
 	g_free (joined);
-	
+
 	return TRUE;
 }
 
@@ -1107,12 +1103,11 @@ process_file (TrackerIndexer *indexer,
 	/* Set the current module */
 	g_free (indexer->private->current_module_name);
 	indexer->private->current_module_name = g_strdup (info->file->module_name);
-	
+
 	/* Sleep to throttle back indexing */
 	indexer_throttle (indexer->private->config, 100);
 
 	switch (info->action) {
-
 	case TRACKER_ITEM_ACTION_CREATE:
 	case TRACKER_ITEM_ACTION_UPDATE:
 		return handle_file_create (indexer, info);
@@ -1169,7 +1164,7 @@ process_module_emit_signals (TrackerIndexer *indexer,
 			     const gchar *next_module_name)
 {
 	/* Signal the last module as finished */
-	g_signal_emit (indexer, signals[MODULE_FINISHED], 0, 
+	g_signal_emit (indexer, signals[MODULE_FINISHED], 0,
 		       indexer->private->current_module_name);
 
 	/* Set current module */
@@ -1178,7 +1173,7 @@ process_module_emit_signals (TrackerIndexer *indexer,
 
 	/* Signal the next module as started */
 	if (next_module_name) {
-		g_signal_emit (indexer, signals[MODULE_STARTED], 0, 
+		g_signal_emit (indexer, signals[MODULE_STARTED], 0,
 			       next_module_name);
 	}
 }
@@ -1204,7 +1199,7 @@ process_module (TrackerIndexer *indexer,
 	}
 
 	g_message ("Starting module:'%s'", module_name);
-	
+
 	dirs = tracker_module_config_get_monitor_recurse_directories (module_name);
 	g_return_if_fail (dirs != NULL);
 
@@ -1250,7 +1245,7 @@ process_func (gpointer data)
 		if (!module_name) {
 			/* Signal the last module as finished */
 			process_module_emit_signals (indexer, NULL);
-			
+
 			/* Signal stopped and clean up */
 			check_stopped (indexer);
 
@@ -1276,7 +1271,7 @@ tracker_indexer_new (void)
 }
 
 gboolean
-tracker_indexer_get_is_running (TrackerIndexer *indexer) 
+tracker_indexer_get_is_running (TrackerIndexer *indexer)
 {
 	g_return_val_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
 
@@ -1289,24 +1284,24 @@ tracker_indexer_pause (TrackerIndexer         *indexer,
 		       GError                **error)
 {
 	guint request_id;
-	
+
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
 
-	tracker_dbus_request_new (request_id, 
+	tracker_dbus_request_new (request_id,
 				  "DBus request to pause the indexer");
 
 	if (tracker_indexer_get_is_running (indexer)) {
 		if (indexer->private->in_transaction) {
-			tracker_dbus_request_comment (request_id, 
+			tracker_dbus_request_comment (request_id,
 						      "Committing transactions");
 			stop_transaction (indexer);
 		}
-		
-		tracker_dbus_request_comment (request_id, 
+
+		tracker_dbus_request_comment (request_id,
 					      "Pausing indexing");
-		
+
 		g_source_remove (indexer->private->idle_id);
 		indexer->private->idle_id = 0;
 		indexer->private->is_paused = TRUE;
@@ -1336,7 +1331,7 @@ pause_for_duration_cb (gpointer user_data)
 		tracker_index_open (indexer->private->index);
 		g_signal_emit (indexer, signals[CONTINUED], 0);
 	}
-	
+
 	indexer->private->pause_for_duration_id = 0;
 
 	return FALSE;
@@ -1349,32 +1344,32 @@ tracker_indexer_pause_for_duration (TrackerIndexer         *indexer,
 				    GError                **error)
 {
 	guint request_id;
-	
+
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
 
-	tracker_dbus_request_new (request_id, 
+	tracker_dbus_request_new (request_id,
 				  "DBus request to pause the indexer for %d seconds",
 				  seconds);
 
 	if (tracker_indexer_get_is_running (indexer)) {
 		if (indexer->private->in_transaction) {
-			tracker_dbus_request_comment (request_id, 
+			tracker_dbus_request_comment (request_id,
 						      "Committing transactions");
 			stop_transaction (indexer);
 		}
-		
-		tracker_dbus_request_comment (request_id, 
+
+		tracker_dbus_request_comment (request_id,
 					      "Pausing indexing");
-		
+
 		g_source_remove (indexer->private->idle_id);
 		indexer->private->idle_id = 0;
 		indexer->private->is_paused = TRUE;
 
-		indexer->private->pause_for_duration_id = 
-			g_timeout_add_seconds (seconds, 
-					       pause_for_duration_cb, 
+		indexer->private->pause_for_duration_id =
+			g_timeout_add_seconds (seconds,
+					       pause_for_duration_cb,
 					       indexer);
 
 		tracker_index_close (indexer->private->index);
@@ -1392,7 +1387,7 @@ tracker_indexer_continue (TrackerIndexer         *indexer,
 			  GError                **error)
 {
 	guint request_id;
-	
+
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
@@ -1401,9 +1396,9 @@ tracker_indexer_continue (TrackerIndexer         *indexer,
                                   "DBus request to continue the indexer");
 
 	if (tracker_indexer_get_is_running (indexer) == FALSE) {
-		tracker_dbus_request_comment (request_id, 
+		tracker_dbus_request_comment (request_id,
 					      "Continuing indexing");
-		
+
 		indexer->private->is_paused = FALSE;
 		indexer->private->idle_id = g_idle_add (process_func, indexer);
 
@@ -1569,7 +1564,7 @@ tracker_indexer_files_delete (TrackerIndexer *indexer,
 	}
 }
 
-void            
+void
 tracker_indexer_property_set (TrackerIndexer         *indexer,
 			      const gchar            *service_type,
 			      const gchar            *uri,
@@ -1593,10 +1588,9 @@ tracker_indexer_property_set (TrackerIndexer         *indexer,
 
 	dbus_g_method_return (context);
 	tracker_dbus_request_success (request_id);
-	
 }
 
-void            
+void
 tracker_indexer_property_remove (TrackerIndexer         *indexer,
 				 const gchar            *service_type,
 				 const gchar            *uri,
@@ -1619,5 +1613,4 @@ tracker_indexer_property_remove (TrackerIndexer         *indexer,
 
 	dbus_g_method_return (context);
 	tracker_dbus_request_success (request_id);
-	
 }

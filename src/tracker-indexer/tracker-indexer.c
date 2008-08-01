@@ -1018,6 +1018,11 @@ handle_metadata_add (TrackerIndexer *indexer,
 	}
 
 	for (i = 0; values[i] != NULL; i++) {
+		g_debug ("Setting metadata: service_type '%s' id '%d' field '%s' value '%s'",
+			 tracker_service_get_name (service_def),
+			 service_id,
+			 tracker_field_get_name (field_def),
+			 values[i]);
 		tracker_db_set_metadata (service_def,
 					 service_id,
 					 field_def,
@@ -1056,6 +1061,7 @@ handle_metadata_remove (TrackerIndexer *indexer,
 
 	field_def = tracker_ontology_get_field_def (property);
 	if (!field_def) {
+		g_message ("Unknow field %d", property);
 		return FALSE;
 	}
 
@@ -1071,6 +1077,8 @@ handle_metadata_remove (TrackerIndexer *indexer,
 		g_message ("Cannot delete file: it doesnt exist in DB");
 		return FALSE;
 	}
+
+
 
 	for (i = 0; values[i] != NULL; i++) {
 		tracker_db_delete_metadata (service_def,
@@ -1498,8 +1506,9 @@ tracker_indexer_property_set (TrackerIndexer         *indexer,
 			      DBusGMethodInvocation  *context,
 			      GError                **error) {
 
-	guint request_id;
-
+	guint     request_id;
+	gboolean  result;
+	GError   *actual_error = NULL;
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
@@ -1509,7 +1518,22 @@ tracker_indexer_property_set (TrackerIndexer         *indexer,
 	tracker_dbus_async_return_if_fail (values != NULL, FALSE);
 	tracker_dbus_async_return_if_fail (g_strv_length (values) > 0, FALSE);
 
-	handle_metadata_add (indexer, service_type, uri, property, values);
+	tracker_dbus_request_new (request_id,
+                                  "DBus request to set %d values in property '%s' for file '%s' ",
+				  g_strv_length (values),
+				  property,
+				  uri);
+
+	if (!handle_metadata_add (indexer, service_type, uri, property, values)) {
+		tracker_dbus_request_failed (request_id,
+					     &actual_error,
+					     "Unespecified error adding metadata");
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
+	
+	schedule_flush (indexer, TRUE);
 
 	dbus_g_method_return (context);
 	tracker_dbus_request_success (request_id);
@@ -1524,7 +1548,8 @@ tracker_indexer_property_remove (TrackerIndexer         *indexer,
 				 DBusGMethodInvocation  *context,
 				 GError                **error) {
 
-	guint request_id;
+	guint   request_id;
+	GError *actual_error;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -1534,7 +1559,20 @@ tracker_indexer_property_remove (TrackerIndexer         *indexer,
 	tracker_dbus_async_return_if_fail (property != NULL, FALSE);
 	/* Values can be NULL */
 
-	handle_metadata_remove (indexer, service_type, uri, property, values);
+	tracker_dbus_request_new (request_id,
+                                  "DBus request to remove %s values in property '%s' for file '%s' ",
+				  ( values == NULL ? "all" : g_strdup_printf ("%d", g_strv_length (values))),
+				  property,
+				  uri);
+
+	if (!handle_metadata_remove (indexer, service_type, uri, property, values)) {
+		tracker_dbus_request_failed (request_id,
+					     &actual_error,
+					     "Unespecified error deleting metadata");
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
 
 	dbus_g_method_return (context);
 	tracker_dbus_request_success (request_id);

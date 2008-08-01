@@ -1,5 +1,30 @@
 2008-08-01  Carlos Garnacho  <carlos@imendio.com>
 
+	Make tracker-indexer delete items if the module returns NULL metadata,
+	instead of getting requests from tracker. This is necessary to delete
+	mails and contents of other container files.
+
+	* src/tracker-indexer/tracker-module.h (tracker_module_file_get_uri): 
+	New method for modules to optionally implement. It will return 
+	dirname/basename for the current item.
+	* src/tracker-indexer/tracker-indexer-module.[ch] 
+	(tracker_indexer_module_file_get_uri): Added wrapping method.
+	* src/tracker-indexer/tracker-indexer.c: Do not pass the ItemAction
+	around, instead take the decision based on whether the module returns
+	metadata or not for the current item. Use new module API to know the
+	item URI, instead of looking it up in the metadata.
+	* src/tracker-indexer/tracker-indexer-db.[ch]
+	(tracker_db_get_service_type) (tracker_db_create_service)
+	(tracker_db_check_service): Modify API to pass directly the
+	dirname/basename.
+	* src/tracker-indexer/modules/dummy.c:
+	* src/tracker-indexer/modules/files.c:
+	* src/tracker-indexer/modules/evolution.c: Implement new method where
+	necessary, also return NULL metadata if the item doesn't exist, was
+	deleted, etc...
+
+2008-08-01  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-indexer.c: Mere whitespace/formatting
 	fixes.
 

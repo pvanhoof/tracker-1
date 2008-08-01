@@ -70,6 +70,22 @@ tracker_module_file_free_data (gpointer file_data)
          */
 }
 
+void
+tracker_module_file_get_uri (TrackerFile  *file,
+                             gchar       **dirname,
+                             gchar       **basename)
+{
+        /* Implementing this function is optional
+         *
+         * Return dirname/basename for the current item, with this
+         * method modules can specify different URIs for different
+         * elements contained in the file. Also see
+         * tracker_module_file_iter_contents()
+         */
+        *dirname = g_path_get_dirname (file->path);
+        *basename = g_path_get_basename (file->path);
+}
+
 TrackerMetadata *
 tracker_module_file_get_metadata (TrackerFile *file)
 {

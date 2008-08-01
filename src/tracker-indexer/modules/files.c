@@ -206,11 +206,14 @@ tracker_module_file_get_metadata (TrackerFile *file)
 
 	path = file->path;
 
-	if (check_exclude_file (path)) {
-		return NULL;
-	}
+        if (check_exclude_file (path)) {
+                return NULL;
+        }
 
-	g_lstat (path, &st);
+	if (g_lstat (path, &st) < 0) {
+                return NULL;
+        }
+
         metadata = tracker_metadata_new ();
 	ext = strrchr (path, '.');
 

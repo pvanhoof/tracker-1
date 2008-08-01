@@ -88,6 +88,19 @@ struct EvolutionAccountContext {
         gchar *uid;
 };
 
+enum EvolutionFlags {
+	EVOLUTION_MESSAGE_ANSWERED     = 1 << 0,
+	EVOLUTION_MESSAGE_DELETED      = 1 << 1,
+	EVOLUTION_MESSAGE_DRAFT        = 1 << 2,
+	EVOLUTION_MESSAGE_FLAGGED      = 1 << 3,
+	EVOLUTION_MESSAGE_SEEN         = 1 << 4,
+	EVOLUTION_MESSAGE_ATTACHMENTS  = 1 << 5,
+	EVOLUTION_MESSAGE_ANSWERED_ALL = 1 << 6,
+	EVOLUTION_MESSAGE_JUNK         = 1 << 7,
+	EVOLUTION_MESSAGE_SECURE       = 1 << 8
+};
+
+
 static gchar *local_dir = NULL;
 static gchar *imap_dir = NULL;
 static GHashTable *accounts = NULL;
@@ -548,7 +561,7 @@ tracker_module_file_free_data (gpointer file_data)
         g_slice_free (EvolutionFileData, data);
 }
 
-gint
+static gint
 get_mbox_message_id (GMimeMessage *message)
 {
         const gchar *header, *pos;
@@ -564,6 +577,34 @@ get_mbox_message_id (GMimeMessage *message)
         g_free (number);
 
         return id;
+}
+
+static guint
+get_mbox_message_flags (GMimeMessage *message)
+{
+        const gchar *header, *pos;
+
+        header = g_mime_message_get_header (message, "X-Evolution");
+        pos = strchr (header, '-');
+
+        return (guint) strtoul (pos + 1, NULL, 16);
+}
+
+static void
+get_mbox_uri (TrackerFile   *file,
+              GMimeMessage  *message,
+              gchar        **dirname,
+              gchar        **basename)
+{
+        gchar *dir, *name;
+
+        dir = tracker_string_replace (file->path, local_dir, NULL);
+        name = g_strdup_printf ("%s;uid=%d", dir, get_mbox_message_id (message));
+
+        *dirname = g_strdup ("email://local@local");
+        *basename = name;
+
+        g_free (dir);
 }
 
 static GList *
@@ -602,10 +643,11 @@ get_metadata_for_mbox (TrackerFile *file)
         EvolutionLocalData *data;
         GMimeMessage *message;
         TrackerMetadata *metadata;
-        gchar *dir, *name, *body;
+        gchar *dirname, *basename, *body;
         gboolean is_html;
         time_t date;
         GList *list;
+        guint flags;
 
         data = file->data;
         message = data->message;
@@ -614,12 +656,18 @@ get_metadata_for_mbox (TrackerFile *file)
                 return NULL;
         }
 
-        metadata = tracker_metadata_new ();
-        dir = tracker_string_replace (file->path, local_dir, NULL);
-        name = g_strdup_printf ("%s;uid=%d", dir, get_mbox_message_id (message));
+        flags = get_mbox_message_flags (message);
 
-        tracker_metadata_insert (metadata, METADATA_FILE_PATH, g_strdup ("email://local@local"));
-        tracker_metadata_insert (metadata, METADATA_FILE_NAME, name);
+        if (flags & EVOLUTION_MESSAGE_JUNK ||
+            flags & EVOLUTION_MESSAGE_DELETED) {
+                return NULL;
+        }
+
+        metadata = tracker_metadata_new ();
+
+        get_mbox_uri (file, message, &dirname, &basename);
+        tracker_metadata_insert (metadata, METADATA_FILE_PATH, dirname);
+        tracker_metadata_insert (metadata, METADATA_FILE_NAME, basename);
 
         g_mime_message_get_date (message, &date, NULL);
 	tracker_metadata_insert (metadata, METADATA_EMAIL_DATE,
@@ -640,8 +688,6 @@ get_metadata_for_mbox (TrackerFile *file)
         tracker_metadata_insert (metadata, METADATA_EMAIL_BODY, body);
 
         /* FIXME: Missing attachments handling */
-
-        g_free (dir);
 
         return metadata;
 }
@@ -685,13 +731,14 @@ skip_content_info (FILE *summary)
 }
 
 void
-get_imap_uri (const gchar  *path,
+get_imap_uri (TrackerFile  *file,
               gchar       **uri_base,
               gchar       **basename)
 {
         GList *keys, *k;
-        gchar *dir, *subdirs;
+        gchar *path, *dir, *subdirs;
 
+        path = file->path;
         keys = g_hash_table_get_keys (accounts);
         *uri_base = *basename = NULL;
 
@@ -769,7 +816,7 @@ get_metadata_for_imap (TrackerFile *file)
         TrackerMetadata *metadata;
         gchar *dirname, *basename;
         gchar *uid, *subject, *from, *to, *cc, *body;
-        gint32 i, count;
+        gint32 i, count, flags;
         time_t date;
         GList *list;
 
@@ -781,7 +828,16 @@ get_metadata_for_imap (TrackerFile *file)
 
         read_summary (data->summary,
                       SUMMARY_TYPE_STRING, &uid, /* message uid */
-                      SUMMARY_TYPE_UINT32, NULL, /* flags */
+                      SUMMARY_TYPE_UINT32, &flags, /* flags */
+                      -1);
+
+        if (flags & EVOLUTION_MESSAGE_JUNK ||
+            flags & EVOLUTION_MESSAGE_DELETED) {
+                g_free (uid);
+                return NULL;
+        }
+
+        read_summary (data->summary,
                       SUMMARY_TYPE_UINT32, NULL, /* size */
                       SUMMARY_TYPE_TIME_T, NULL, /* date sent */
                       SUMMARY_TYPE_TIME_T, &date, /* date received */
@@ -793,7 +849,7 @@ get_metadata_for_imap (TrackerFile *file)
                       -1);
 
 	metadata = tracker_metadata_new ();
-        get_imap_uri (file->path, &dirname, &basename);
+        get_imap_uri (file, &dirname, &basename);
 
         tracker_metadata_insert (metadata, METADATA_FILE_PATH, dirname);
         tracker_metadata_insert (metadata, METADATA_FILE_NAME, g_strdup_printf ("%s;uid=%s", basename, uid));
@@ -857,6 +913,41 @@ get_metadata_for_imap (TrackerFile *file)
         skip_content_info (data->summary);
 
         return metadata;
+}
+
+void
+tracker_module_file_get_uri (TrackerFile  *file,
+                             gchar       **dirname,
+                             gchar       **basename)
+{
+        EvolutionFileData *file_data;
+
+        file_data = file->data;
+
+        if (!file_data) {
+                /* It isn't any of the files the
+                 * module is interested for */
+                return;
+        }
+
+        switch (file_data->type) {
+        case MAIL_STORAGE_LOCAL: {
+                EvolutionLocalData *data = file->data;
+
+                if (!data->message) {
+                        return;
+                }
+
+                get_mbox_uri (file, data->message, dirname, basename);
+                break;
+        }
+        case MAIL_STORAGE_IMAP: {
+                get_imap_uri (file, dirname, basename);
+                break;
+        }
+        default:
+                break;
+        }
 }
 
 TrackerMetadata *

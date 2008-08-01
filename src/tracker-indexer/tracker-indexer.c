@@ -129,16 +129,9 @@ struct TrackerIndexerPrivate {
 	gboolean is_paused;
 };
 
-typedef enum {
-	TRACKER_ITEM_ACTION_CREATE,
-	TRACKER_ITEM_ACTION_DELETE,
-	TRACKER_ITEM_ACTION_UPDATE
-} ItemAction;
-
 struct PathInfo {
 	GModule *module;
 	TrackerFile *file;
-	ItemAction action;
 };
 
 struct MetadataForeachData {
@@ -175,15 +168,13 @@ G_DEFINE_TYPE (TrackerIndexer, tracker_indexer, G_TYPE_OBJECT)
 static PathInfo *
 path_info_new (GModule *module,
 	       const gchar *module_name,
-	       const gchar *path,
-	       ItemAction action)
+	       const gchar *path)
 {
 	PathInfo *info;
 
 	info = g_slice_new (PathInfo);
 	info->module = module;
 	info->file = tracker_indexer_module_file_new (module, module_name, path);
-	info->action = action;
 
 	return info;
 }
@@ -859,99 +850,94 @@ unindex_text_no_parsing (TrackerIndexer *indexer, gint service_id, gint service_
 	send_text_to_index (indexer, service_id, service_type_id, content, FALSE, -1 * weight_factor);
 }
 
-static gboolean
-handle_file_create (TrackerIndexer *indexer,
-		    PathInfo       *info)
+static void
+create_update_item (TrackerIndexer  *indexer,
+		    PathInfo        *info,
+		    TrackerMetadata *metadata)
 {
-	TrackerMetadata *metadata;
+	TrackerService *service_def;
+	gchar *dirname, *basename;
+	gchar *service_type;
+	gchar *text;
+	guint32 id;
 
-	/* Process file */
-	metadata = tracker_indexer_module_file_get_metadata (info->module, info->file);
+	service_type = g_strdup (tracker_module_config_get_index_service (info->file->module_name));
 
-	if (metadata) {
-		TrackerService *service_def;
-		gchar *service_type;
-		gchar *text;
-		guint32 id;
+	if (!service_type || !service_type[0]) {
+		gchar *mimetype;
 
-		service_type = g_strdup (tracker_module_config_get_index_service (info->file->module_name));
-
-		if (!service_type || !service_type[0]) {
-			gchar *mimetype;
-
-			g_free (service_type);
-			mimetype = tracker_file_get_mime_type (info->file->path);
-			service_type = tracker_ontology_get_service_type_for_mime (mimetype);
-			g_free (mimetype);
-		}
-
-		service_def = tracker_ontology_get_service_type_by_name (service_type);
 		g_free (service_type);
-
-		if (service_def) {
-			id = tracker_db_check_service (service_def, info->file->path, metadata);
-
-			/* FIXME: should check mtime and reindex if necessary */
-
-			if (id == 0) {
-				/* Service wasn't previously indexed */
-				id = tracker_db_get_new_service_id (indexer->private->common);
-
-				tracker_db_create_service (service_def,
-							   id,
-							   info->file->path,
-							   metadata);
-
-				tracker_db_create_event (indexer->private->cache, id, "Create");
-				tracker_db_increment_stats (indexer->private->common, service_def);
-
-				index_metadata (indexer, id, service_def, metadata);
-
-				text = tracker_indexer_module_file_get_text (info->module, info->file);
-
-				if (text) {
-					/* Save in the index */
-					index_text_with_parsing (indexer,
-								 id,
-								 tracker_service_get_id (service_def),
-								 text,
-								 1);
-					/* Save in the DB */
-					tracker_db_set_text (service_def, id, text);
-					g_free (text);
-				}
-			}
-
-		}
-
-		tracker_metadata_free (metadata);
+		mimetype = tracker_file_get_mime_type (info->file->path);
+		service_type = tracker_ontology_get_service_type_for_mime (mimetype);
+		g_free (mimetype);
 	}
 
-	indexer->private->items_processed++;
+	service_def = tracker_ontology_get_service_type_by_name (service_type);
+	g_free (service_type);
 
-	return !tracker_indexer_module_file_iter_contents (info->module, info->file);
+	if (!service_def) {
+		return;
+	}
+
+	tracker_indexer_module_file_get_uri (info->module, info->file, &dirname, &basename);
+	id = tracker_db_check_service (service_def, dirname, basename);
+
+	/* FIXME: should check mtime and reindex if necessary */
+
+	if (id == 0) {
+		/* Service wasn't previously indexed */
+		id = tracker_db_get_new_service_id (indexer->private->common);
+
+		tracker_db_create_service (service_def,
+					   id,
+					   dirname,
+					   basename,
+					   metadata);
+
+		tracker_db_create_event (indexer->private->cache, id, "Create");
+		tracker_db_increment_stats (indexer->private->common, service_def);
+
+		index_metadata (indexer, id, service_def, metadata);
+
+		text = tracker_indexer_module_file_get_text (info->module, info->file);
+
+		if (text) {
+			/* Save in the index */
+			index_text_with_parsing (indexer,
+						 id,
+						 tracker_service_get_id (service_def),
+						 text,
+						 1);
+			/* Save in the DB */
+			tracker_db_set_text (service_def, id, text);
+			g_free (text);
+		}
+	}
+
+	g_free (dirname);
+	g_free (basename);
 }
 
-static gboolean
-handle_file_delete (TrackerIndexer *indexer,
-		    PathInfo       *info)
+static void
+delete_item (TrackerIndexer *indexer,
+	     PathInfo       *info)
 {
-
 	TrackerService *service_def;
-	gchar          *content;
-	const gchar    *service_type = NULL;
-	guint           service_id;
-	guint           service_type_id;
-	gchar          *metadata;
-
+	gchar *dirname, *basename, *content, *metadata;
+	const gchar *service_type = NULL;
+	guint service_id, service_type_id;
 
 	service_type = tracker_module_config_get_index_service (info->file->module_name);
+
+	if (!tracker_indexer_module_file_get_uri (info->module, info->file, &dirname, &basename)) {
+		return;
+	}
 
 	if (!service_type || !service_type[0]) {
 		gchar *name;
 
 		/* The file is not anymore in the filesystem. Obtain the service type from the DB */
-		service_type_id = tracker_db_get_service_type (info->file->path);
+		service_type_id = tracker_db_get_service_type (dirname, basename);
 		name = tracker_ontology_get_service_type_by_id (service_type_id);
 		service_def = tracker_ontology_get_service_type_by_name (name);
 
@@ -961,13 +947,15 @@ handle_file_delete (TrackerIndexer *indexer,
 		service_type_id = tracker_service_get_id (service_def);
 	}
 
-	service_id = tracker_db_check_service (service_def, info->file->path, NULL);
+	service_id = tracker_db_check_service (service_def, dirname, basename);
+
+	g_free (dirname);
+	g_free (basename);
 
 	if (service_id < 1) {
 		g_message ("Cannot delete file: it doesnt exist in DB");
-		return TRUE;
+		return;
 	}
-
 
 	/* Get content, unindex the words and delete the contents */
 	content = tracker_db_get_text (service_def, service_id);
@@ -977,12 +965,10 @@ handle_file_delete (TrackerIndexer *indexer,
 		tracker_db_delete_text (service_def, service_id);
 	}
 
-
 	/* Get metadata from DB to remove it from the index */
 	metadata = tracker_db_get_parsed_metadata (service_def, service_id);
 	unindex_text_no_parsing (indexer, service_id, service_type_id, metadata, 1000);
 	g_free (metadata);
-
 
 	/* the weight depends on metadata, but a number high enough force deletion  */
 	metadata = tracker_db_get_unparsed_metadata (service_def, service_id);
@@ -994,10 +980,6 @@ handle_file_delete (TrackerIndexer *indexer,
 	tracker_db_delete_all_metadata (service_def, service_id);
 
 	tracker_db_decrement_stats (indexer->private->common, service_def);
-
-	indexer->private->items_processed++;
-
-	return !tracker_indexer_module_file_iter_contents (info->module, info->file);
 }
 
 static gboolean
@@ -1008,9 +990,9 @@ handle_metadata_add (TrackerIndexer *indexer,
 		     GStrv           values)
 {
 	TrackerService *service_def;
-	TrackerField   *field_def;
-	guint           service_id, i;
-	gchar          *joined;
+	TrackerField *field_def;
+	guint service_id, i;
+	gchar *joined, *dirname, *basename;
 
 	service_def = tracker_ontology_get_service_type_by_name (service_type);
 	if (!service_def) {
@@ -1022,7 +1004,14 @@ handle_metadata_add (TrackerIndexer *indexer,
 		return FALSE;
 	}
 
-	service_id = tracker_db_check_service (service_def, uri, NULL);
+	dirname = tracker_file_get_vfs_path (uri);
+	basename = tracker_file_get_vfs_name (uri);
+
+	service_id = tracker_db_check_service (service_def, dirname, basename);
+
+	g_free (dirname);
+	g_free (basename);
+
 	if (service_id < 1) {
 		g_message ("Cannot delete file: it doesnt exist in DB");
 		return FALSE;
@@ -1056,9 +1045,9 @@ handle_metadata_remove (TrackerIndexer *indexer,
 			GStrv           values)
 {
 	TrackerService *service_def;
-	TrackerField   *field_def;
-	guint           service_id, i;
-	gchar          *joined;
+	TrackerField *field_def;
+	guint service_id, i;
+	gchar *joined, *dirname, *basename;
 
 	service_def = tracker_ontology_get_service_type_by_name (service_type);
 	if (!service_def) {
@@ -1070,7 +1059,14 @@ handle_metadata_remove (TrackerIndexer *indexer,
 		return FALSE;
 	}
 
-	service_id = tracker_db_check_service (service_def, uri, NULL);
+	dirname = tracker_file_get_vfs_path (uri);
+	basename = tracker_file_get_vfs_name (uri);
+
+	service_id = tracker_db_check_service (service_def, dirname, basename);
+
+	g_free (dirname);
+	g_free (basename);
+
 	if (service_id < 1) {
 		g_message ("Cannot delete file: it doesnt exist in DB");
 		return FALSE;
@@ -1098,6 +1094,8 @@ static gboolean
 process_file (TrackerIndexer *indexer,
 	      PathInfo       *info)
 {
+	TrackerMetadata *metadata;
+
 	g_debug ("Processing file:'%s'", info->file->path);
 
 	/* Set the current module */
@@ -1107,20 +1105,19 @@ process_file (TrackerIndexer *indexer,
 	/* Sleep to throttle back indexing */
 	indexer_throttle (indexer->private->config, 100);
 
-	switch (info->action) {
-	case TRACKER_ITEM_ACTION_CREATE:
-	case TRACKER_ITEM_ACTION_UPDATE:
-		return handle_file_create (indexer, info);
+	metadata = tracker_indexer_module_file_get_metadata (info->module, info->file);
 
-	case TRACKER_ITEM_ACTION_DELETE:
-		return handle_file_delete (indexer, info);
-
-	default:
-		g_critical ("Action not support in indexer");
-		return FALSE;
+	if (metadata) {
+		/* Create/Update item */
+		create_update_item (indexer, info, metadata);
+		tracker_metadata_free (metadata);
+	} else {
+		delete_item (indexer, info);
 	}
 
+	indexer->private->items_processed++;
 
+	return !tracker_indexer_module_file_iter_contents (info->module, info->file);
 }
 
 static void
@@ -1145,11 +1142,11 @@ process_directory (TrackerIndexer *indexer,
 
 		path = g_build_filename (info->file->path, name, NULL);
 
-		new_info = path_info_new (info->module, info->file->module_name, path, TRACKER_ITEM_ACTION_CREATE);
+		new_info = path_info_new (info->module, info->file->module_name, path);
 		add_file (indexer, new_info);
 
 		if (recurse && g_file_test (path, G_FILE_TEST_IS_DIR)) {
-			new_info = path_info_new (info->module, info->file->module_name, path, TRACKER_ITEM_ACTION_CREATE);
+			new_info = path_info_new (info->module, info->file->module_name, path);
 			add_directory (indexer, new_info);
 		}
 
@@ -1206,7 +1203,7 @@ process_module (TrackerIndexer *indexer,
 	for (d = dirs; d; d = d->next) {
 		PathInfo *info;
 
-		info = path_info_new (module, module_name, d->data, TRACKER_ITEM_ACTION_CREATE);
+		info = path_info_new (module, module_name, d->data);
 		add_directory (indexer, info);
 	}
 
@@ -1411,7 +1408,6 @@ tracker_indexer_continue (TrackerIndexer         *indexer,
 	tracker_dbus_request_success (request_id);
 }
 
-
 void
 tracker_indexer_process_all (TrackerIndexer *indexer)
 {
@@ -1450,7 +1446,7 @@ tracker_indexer_files_check (TrackerIndexer *indexer,
 		for (i = 0; files[i]; i++) {
 			PathInfo *info;
 
-			info = path_info_new (module, module_name, files[i], TRACKER_ITEM_ACTION_CREATE);
+			info = path_info_new (module, module_name, files[i]);
 			add_file (indexer, info);
 		}
 	} else {
@@ -1469,6 +1465,7 @@ tracker_indexer_files_check (TrackerIndexer *indexer,
 	}
 }
 
+/* FIXME: Should get rid of this DBus method */
 void
 tracker_indexer_files_update (TrackerIndexer *indexer,
 			      const gchar *module_name,
@@ -1476,46 +1473,11 @@ tracker_indexer_files_update (TrackerIndexer *indexer,
 			      DBusGMethodInvocation *context,
 			      GError **error)
 {
-	GModule *module;
-	guint request_id;
-	gint i;
-	GError *actual_error = NULL;
-
-	request_id = tracker_dbus_get_next_request_id ();
-
-	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
-	tracker_dbus_async_return_if_fail (files != NULL, FALSE);
-
-	tracker_dbus_request_new (request_id,
-                                  "DBus request to update %d files",
-				  g_strv_length (files));
-
-	module = g_hash_table_lookup (indexer->private->indexer_modules, module_name);
-
-	if (module) {
-		/* Add files to the queue */
-		for (i = 0; files[i]; i++) {
-			PathInfo *info;
-
-			info = path_info_new (module, module_name, files[i], TRACKER_ITEM_ACTION_UPDATE);
-			add_file (indexer, info);
-		}
-	} else {
-		tracker_dbus_request_failed (request_id,
-					     &actual_error,
-					     "The module '%s' is not loaded",
-					     module_name);
-	}
-
-	if (!actual_error) {
-		dbus_g_method_return (context);
-		tracker_dbus_request_success (request_id);
-	} else {
-		dbus_g_method_return_error (context, actual_error);
-		g_error_free (actual_error);
-	}
+	tracker_indexer_files_check (indexer, module_name,
+				     files, context, error);
 }
 
+/* FIXME: Should get rid of this DBus method */
 void
 tracker_indexer_files_delete (TrackerIndexer *indexer,
 			      const gchar *module_name,
@@ -1523,45 +1485,8 @@ tracker_indexer_files_delete (TrackerIndexer *indexer,
 			      DBusGMethodInvocation *context,
 			      GError **error)
 {
-	GModule *module;
-	guint request_id;
-	gint i;
-	GError *actual_error = NULL;
-
-	request_id = tracker_dbus_get_next_request_id ();
-
-	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
-	tracker_dbus_async_return_if_fail (files != NULL, FALSE);
-
-	tracker_dbus_request_new (request_id,
-                                  "DBus request to delete %d files",
-				  g_strv_length (files));
-
-	module = g_hash_table_lookup (indexer->private->indexer_modules, module_name);
-
-	if (module) {
-		/* Add files to the queue */
-		for (i = 0; files[i]; i++) {
-			PathInfo *info;
-
-			info = path_info_new (module, module_name, files[i], TRACKER_ITEM_ACTION_DELETE);
-			add_file (indexer, info);
-		}
-
-	} else {
-		tracker_dbus_request_failed (request_id,
-					     &actual_error,
-					     "The module '%s' is not loaded",
-					     module_name);
-	}
-
-	if (!actual_error) {
-		dbus_g_method_return (context);
-		tracker_dbus_request_success (request_id);
-	} else {
-		dbus_g_method_return_error (context, actual_error);
-		g_error_free (actual_error);
-	}
+	tracker_indexer_files_check (indexer, module_name,
+				     files, context, error);
 }
 
 void

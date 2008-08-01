@@ -125,39 +125,15 @@ tracker_db_create_event (TrackerDBInterface *iface,
 	g_free (service_id_str);
 }
 
-static void
-get_dirname_and_basename (const gchar      *path,
-			  TrackerMetadata  *metadata,
-			  gchar           **out_dirname,
-			  gchar           **out_basename)
-{
-	const gchar *dirname = NULL, *basename = NULL;
-
-	if (metadata) {
-		dirname = tracker_metadata_lookup (metadata, "File:Path");
-		basename = tracker_metadata_lookup (metadata, "File:Name");
-	}
-
-	if (dirname && basename) {
-		*out_dirname = g_strdup (dirname);
-		*out_basename = g_strdup (basename);
-	} else {
-		*out_dirname = g_path_get_dirname (path);
-		*out_basename = g_path_get_basename (path);
-	}
-}
-
 guint
 tracker_db_check_service (TrackerService  *service,
-			  const gchar     *path,
-			  TrackerMetadata *metadata)
+			  const gchar     *dirname,
+			  const gchar     *basename)
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
-	gchar *dirname, *basename;
 	guint id;
 
-	get_dirname_and_basename (path, metadata, &dirname, &basename);
 	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service),
 							     TRACKER_DB_CONTENT_TYPE_METADATA);
 
@@ -166,9 +142,6 @@ tracker_db_check_service (TrackerService  *service,
 							     dirname,
 							     basename,
 							     NULL);
-	g_free (dirname);
-	g_free (basename);
-
 	if (!result_set) {
 		return 0;
 	}
@@ -180,14 +153,12 @@ tracker_db_check_service (TrackerService  *service,
 }
 
 guint
-tracker_db_get_service_type (const gchar *path)
+tracker_db_get_service_type (const gchar *dirname,
+			     const gchar *basename)
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
-	gchar *dirname, *basename;
 	guint service_type_id;
-
-	get_dirname_and_basename (path, NULL, &dirname, &basename);
 
 	/* We are asking this because the module cannot assign service_type -> probably it is files */
 	iface = tracker_db_manager_get_db_interface_by_type ("Files",
@@ -198,9 +169,6 @@ tracker_db_get_service_type (const gchar *path)
 							     dirname,
 							     basename,
 							     NULL);
-	g_free (dirname);
-	g_free (basename);
-
 	if (!result_set) {
 		return 0;
 	}
@@ -214,24 +182,25 @@ tracker_db_get_service_type (const gchar *path)
 gboolean
 tracker_db_create_service (TrackerService  *service,
 			   guint32          id,
-			   const gchar     *path,
+			   const gchar     *dirname,
+			   const gchar     *basename,
 			   TrackerMetadata *metadata)
 {
 	TrackerDBInterface *iface;
-	gchar *id_str, *service_type_id_str;
-	gchar *dirname, *basename;
+	gchar *id_str, *service_type_id_str, *path;
 	gboolean is_dir, is_symlink, enabled;
 
 	if (!service) {
 		return FALSE;
 	}
 
-	get_dirname_and_basename (path, metadata, &dirname, &basename);
 	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service),
 							     TRACKER_DB_CONTENT_TYPE_METADATA);
 
 	id_str = tracker_guint32_to_string (id);
 	service_type_id_str = tracker_int_to_string (tracker_service_get_id (service));
+
+	path = g_build_filename (dirname, basename, NULL);
 
 	is_dir = g_file_test (path, G_FILE_TEST_IS_DIR);
 	is_symlink = g_file_test (path, G_FILE_TEST_IS_SYMLINK);
@@ -263,8 +232,7 @@ tracker_db_create_service (TrackerService  *service,
 
 	g_free (id_str);
 	g_free (service_type_id_str);
-	g_free (dirname);
-	g_free (basename);
+	g_free (path);
 
 	return TRUE;
 }

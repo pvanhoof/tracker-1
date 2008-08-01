@@ -115,6 +115,42 @@ tracker_indexer_module_file_free (GModule     *module,
 	g_slice_free (TrackerFile, file);
 }
 
+gboolean
+tracker_indexer_module_file_get_uri (GModule      *module,
+				     TrackerFile  *file,
+				     gchar       **dirname,
+				     gchar       **basename)
+{
+	TrackerModuleFileGetUriFunc func;
+	gchar *tmp_dirname, *tmp_basename;
+
+	tmp_dirname = tmp_basename = NULL;
+
+	if (g_module_symbol (module, "tracker_module_file_get_uri", (gpointer *) &func)) {
+		(func) (file, &tmp_dirname, &tmp_basename);
+	} else {
+		tmp_dirname = g_path_get_dirname (file->path);
+		tmp_basename = g_path_get_basename (file->path);
+	}
+
+	if (tmp_dirname && tmp_basename) {
+		if (dirname) {
+			*dirname = tmp_dirname;
+		}
+
+		if (basename) {
+			*basename = tmp_basename;
+		}
+
+		return TRUE;
+	} else {
+		g_free (tmp_dirname);
+		g_free (tmp_basename);
+
+		return FALSE;
+	}
+}
+
 TrackerMetadata *
 tracker_indexer_module_file_get_metadata (GModule     *module,
 					  TrackerFile *file)

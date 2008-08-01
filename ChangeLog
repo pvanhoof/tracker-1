@@ -35,6 +35,15 @@
 	* src/tracker-indexer/tracker-indexer.c: Mere whitespace/formatting
 	fixes.
 
+2008-08-01  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/tracker-indexer/tracker-indexer-db.c: 
+	(tracker_db_delete_metadata): It is neccesary to specify the value
+	to remove a keyword property.
+	
+	* src/trackerd/tracker-keywords.c:
+	Use the indexer to set and remove tags
+	
 2008-07-31  Ivan Frade  <ivan.frade@nokia.com>
 	
 	* data/dbus/tracker-indexer.xml

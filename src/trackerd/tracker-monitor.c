@@ -32,11 +32,32 @@
 
 #define TRACKER_MONITOR_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_MONITOR, TrackerMonitorPrivate))
 
+/* Each file that a monitor event is received for is added to the
+ * black list with a number. This number is the count for how many
+ * events we have received for that file. If the count is above this
+ * number below, then it is officially black listed and we don't
+ * propagate events up the stack.
+ */
+#define BLACK_LIST_MAX_HITS    5
+
+/* Each file is only on the black list for a certain time before it
+ * is removed. When it is removed, a signal is emitted to force the
+ * indexer to check the file out. This means, for example, if you
+ * download a file, the indexer only indexes it AFTER this timeout
+ * below AFTER it has stopped getting events. The timeout is in
+ * seconds.
+ */
+#define BLACK_LIST_MAX_SECONDS 30
+
 struct _TrackerMonitorPrivate {
 	TrackerConfig *config;
 
 	GHashTable    *modules;
 	
+	guint          black_list_timeout_id;
+	GHashTable    *black_list_count;
+	GHashTable    *black_list_timestamps;
+
 	GType          monitor_backend; 
 	
 	guint          monitor_limit;
@@ -51,8 +72,10 @@ enum {
 	LAST_SIGNAL
 };
 
-static void  monitor_finalize  (GObject *object);
-static guint get_inotify_limit (void);
+static void     tracker_monitor_finalize  (GObject        *object);
+static gboolean black_list_check_items_cb (gpointer        data);
+static void     black_list_print_all      (TrackerMonitor *monitor);
+static guint    get_inotify_limit         (void);
 
 static guint signals[LAST_SIGNAL] = { 0, };
 
@@ -65,7 +88,7 @@ tracker_monitor_class_init (TrackerMonitorClass *klass)
 
 	object_class = G_OBJECT_CLASS (klass);
 
-	object_class->finalize = monitor_finalize;
+	object_class->finalize = tracker_monitor_finalize;
 
 	signals[ITEM_CREATED] = 
 		g_signal_new ("item-created",
@@ -119,10 +142,28 @@ tracker_monitor_init (TrackerMonitor *object)
 	priv = TRACKER_MONITOR_GET_PRIVATE (object);
 
 	/* For each module we create a hash table for monitors */
-	priv->modules = g_hash_table_new_full (g_str_hash,
-					       g_str_equal,
-					       g_free,
-					       (GDestroyNotify) g_hash_table_unref);
+	priv->modules =
+		g_hash_table_new_full (g_str_hash,
+				       g_str_equal,
+				       g_free,
+				       (GDestroyNotify) g_hash_table_unref);
+
+	/* The black list is for files which are CONSTANTLY being
+	 * updated causing a lot of traffic and processing. We add
+	 * these to the black list so we don't keep pushing events up
+	 * the stack. This is black list is not saved, it is per
+	 * session for the daemon only.
+	 */
+	priv->black_list_count = 
+		g_hash_table_new_full (g_file_hash,
+				       (GEqualFunc) g_file_equal,
+				       g_object_unref,
+				       NULL);
+	priv->black_list_timestamps = 
+		g_hash_table_new_full (g_file_hash,
+				       (GEqualFunc) g_file_equal,
+				       g_object_unref,
+				       NULL);
 
 	all_modules = tracker_module_config_get_modules ();
 
@@ -130,10 +171,11 @@ tracker_monitor_init (TrackerMonitor *object)
 		GHashTable *monitors;
 
 		/* Create monitors table for this module */
-		monitors = g_hash_table_new_full (g_file_hash,
-						  (GEqualFunc) g_file_equal,
-						  (GDestroyNotify) g_object_unref,
-						  (GDestroyNotify) g_file_monitor_cancel);
+		monitors = 
+			g_hash_table_new_full (g_file_hash,
+					       (GEqualFunc) g_file_equal,
+					       (GDestroyNotify) g_object_unref,
+					       (GDestroyNotify) g_file_monitor_cancel);
 		
 		g_hash_table_insert (priv->modules, g_strdup (l->data), monitors);
 	}
@@ -222,11 +264,20 @@ tracker_monitor_init (TrackerMonitor *object)
 }
 
 static void
-monitor_finalize (GObject *object)
+tracker_monitor_finalize (GObject *object)
 {
 	TrackerMonitorPrivate *priv;
 
 	priv = TRACKER_MONITOR_GET_PRIVATE (object);
+
+	black_list_print_all (TRACKER_MONITOR (object));
+
+	g_hash_table_unref (priv->black_list_timestamps);
+	g_hash_table_unref (priv->black_list_count);
+	
+	if (priv->black_list_timeout_id) {
+		g_source_remove (priv->black_list_timeout_id);		
+	}
 
 	g_hash_table_unref (priv->modules);
 	
@@ -293,6 +344,7 @@ get_queue_from_gfile (GHashTable *modules,
 
 	for (l = all_modules; l && !module_name; l = l->next) {
 		hash_table = g_hash_table_lookup (modules, l->data);
+
 		if (g_hash_table_lookup (hash_table, file)) {
 			module_name = l->data;
 		}
@@ -301,6 +353,235 @@ get_queue_from_gfile (GHashTable *modules,
 	g_list_free (all_modules);
 
 	return module_name;
+}
+
+const gchar *
+get_module_name_from_gfile (TrackerMonitor *monitor,
+			    GFile          *file,
+			    gboolean       *is_directory)
+{
+	TrackerMonitorPrivate *priv;
+	const gchar           *module_name;
+
+	priv = TRACKER_MONITOR_GET_PRIVATE (monitor);
+
+	if (is_directory) {
+		*is_directory = TRUE;
+	}
+
+	/* First try to get the module name from the file, this will
+	 * only work if the event we received is for a directory.
+	 */
+	module_name = get_queue_from_gfile (priv->modules, file);
+	if (!module_name) {
+		GFile *parent;
+
+		/* Second we try to get the module name from the base
+		 * name of the file. 
+		 */
+		parent = g_file_get_parent (file);
+		module_name = get_queue_from_gfile (priv->modules, parent);
+
+		if (!module_name) {
+			gchar *child_path;
+			gchar *parent_path;
+			
+			child_path = g_file_get_path (file); 
+			parent_path = g_file_get_path (parent); 
+
+			g_warning ("Could not get module name from GFile (path:'%s' or parent:'%s')",
+				   child_path, 
+				   parent_path);
+
+			g_free (parent_path);
+			g_free (child_path);
+			
+			return NULL;
+		}
+
+		if (is_directory) {
+			*is_directory = FALSE;
+		}
+	}
+
+	return module_name;
+}
+
+static gboolean
+black_list_check_items_cb (gpointer data)
+{
+	TrackerMonitorPrivate *priv;
+	GHashTableIter         iter;
+	GTimeVal               t;
+	gchar                 *path;
+	gpointer               key;
+	gpointer               value;
+	gsize                  seconds;
+	gsize                  seconds_now;
+	gsize                  seconds_diff;
+	guint                  count;
+
+	priv = TRACKER_MONITOR_GET_PRIVATE (data);
+
+	g_get_current_time (&t);
+	seconds_now = t.tv_sec;
+
+	g_hash_table_iter_init (&iter, priv->black_list_timestamps);
+	while (g_hash_table_iter_next (&iter, &key, &value)) {
+		seconds = GPOINTER_TO_SIZE (value);
+		seconds_diff = seconds_now - seconds;
+
+		/* Do absolutely nothing if this file hasn't been
+		 * black listed for at least BLACK_LIST_MAX_SECONDS.
+		 */
+		if (seconds_diff < BLACK_LIST_MAX_SECONDS) {
+			continue;
+		}
+
+		path = g_file_get_path (key);
+		g_message ("Removing '%s' from black list count", path);
+		g_free (path);
+
+		/* Only signal if count >= BLACK_LIST_MAX_HITS, since
+		 * we have mitigated signals due to spamming, so we
+		 * make sure that we signal the indexer that this
+		 * file needs a check.
+		 */
+		value = g_hash_table_lookup (priv->black_list_count, key);
+		count = GPOINTER_TO_UINT (value);
+
+		if (count >= BLACK_LIST_MAX_HITS) {
+			const gchar *module_name;
+			gboolean     is_directory;
+
+			module_name = get_module_name_from_gfile (data, 
+								  key,
+								  &is_directory);
+			if (!module_name) {
+				continue;
+			}
+
+			g_signal_emit (data, 
+				       signals[ITEM_CREATED], 0,
+				       module_name, 
+				       key, 
+				       is_directory);
+		}
+
+		/* Remove from hash tables (i.e. white list it) */
+		g_hash_table_remove (priv->black_list_count, key);
+		g_hash_table_remove (priv->black_list_timestamps, key);
+		
+		/* Reset iterators */
+		g_hash_table_iter_init (&iter, priv->black_list_timestamps);
+	}
+
+	/* If the hash tables are empty, don't keep calling this
+	 * callback, this interrupts and wastes battery. Set up the
+	 * timeout again when we need it instead.
+	 */
+	if (g_hash_table_size (priv->black_list_count) < 1) {
+		g_message ("No further items on the black list, removing check timeout");
+		priv->black_list_timeout_id = 0;
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static gboolean 
+black_list_file_check (TrackerMonitor *monitor,
+		       GFile          *file)
+{
+	TrackerMonitorPrivate *priv;
+	gpointer               data;
+	guint                  count;
+
+	priv = TRACKER_MONITOR_GET_PRIVATE (monitor);
+	
+	data = g_hash_table_lookup (priv->black_list_count, file);
+	count = GPOINTER_TO_UINT (data);
+
+	return count >= BLACK_LIST_MAX_HITS;
+}
+
+static void 
+black_list_file_increment (TrackerMonitor *monitor,
+			   GFile          *file)
+{
+	TrackerMonitorPrivate *priv;
+	GTimeVal               t;
+	gchar                 *path;
+	gpointer               data;
+	guint                  count;
+
+	priv = TRACKER_MONITOR_GET_PRIVATE (monitor);
+	
+	data = g_hash_table_lookup (priv->black_list_count, file);
+	count = GPOINTER_TO_UINT (data);
+
+	/* Replace the black listed item with the updated count for
+	 * how many times an event has occurred for this path
+	 */
+	count++;
+	g_get_current_time (&t);
+
+	g_hash_table_replace (priv->black_list_count, 
+			      g_object_ref (file), 
+			      GUINT_TO_POINTER (count));
+	g_hash_table_replace (priv->black_list_timestamps, 
+			      g_object_ref (file), 
+			      GSIZE_TO_POINTER (t.tv_sec));
+	
+	if (priv->black_list_timeout_id == 0) {
+		priv->black_list_timeout_id =
+			g_timeout_add_seconds (1, 
+					       black_list_check_items_cb,
+					       monitor);
+	}
+
+	path = g_file_get_path (file);
+	g_message ("Adding '%s' to black list count:%d (MAX is %d)", 
+		   path,
+		   count,
+		   BLACK_LIST_MAX_HITS);
+	g_free (path);
+}
+
+static void 
+black_list_print_all (TrackerMonitor *monitor)
+{
+	TrackerMonitorPrivate *priv;
+	GHashTableIter         iter;
+	gchar                 *path;
+	gpointer               key;
+	gpointer               value;
+	guint                  count;
+	gboolean               none = TRUE;
+
+	g_message ("Summary of black list: (with >= %d events)",
+		   BLACK_LIST_MAX_HITS);
+
+	priv = TRACKER_MONITOR_GET_PRIVATE (monitor);
+
+	g_hash_table_iter_init (&iter, priv->black_list_count);
+	while (g_hash_table_iter_next (&iter, &key, &value)) {
+		count = GPOINTER_TO_UINT (value);
+		
+		if (count < BLACK_LIST_MAX_HITS) {
+			continue;
+		}
+
+		none = FALSE;
+
+		path = g_file_get_path (key);
+		g_message ("  %s (%d events)", path, count);
+		g_free (path);
+	}
+
+	if (none) {
+		g_message ("  NONE");
+	}
 }
 
 static const gchar *
@@ -335,43 +616,29 @@ monitor_event_cb (GFileMonitor      *file_monitor,
 {
 	TrackerMonitor        *monitor;
 	TrackerMonitorPrivate *priv;
-	gboolean               is_directory = TRUE;
 	const gchar           *module_name;
 	gchar                 *str1;
 	gchar                 *str2;
+	gboolean               is_directory;
 
 	monitor = TRACKER_MONITOR (user_data);
 	priv = TRACKER_MONITOR_GET_PRIVATE (monitor);
 
-	str1 = g_file_get_path (file);
-
-	/* First try to get the module name from the file, this will
-	 * only work if the event we received is for a directory.
-	 */
-	module_name = get_queue_from_gfile (priv->modules, file);
+	module_name = get_module_name_from_gfile (monitor, 
+						  file, 
+						  &is_directory);
 	if (!module_name) {
-		GFile *parent;
-
-		/* Second we try to get the module name from the base
-		 * name of the file. 
-		 */
-		parent = g_file_get_parent (file);
-		module_name = get_queue_from_gfile (priv->modules, parent);
-
-		if (!module_name) {
-			gchar *path;
-			
-			path = g_file_get_path (parent); 
-			g_warning ("Could not get module name from GFile (path:'%s' or parent:'%s')",
-				   str1, path);
-			g_free (path);
-			g_free (str1);
-			
-			return;
-		}
-
-		is_directory = FALSE;
+		return;
 	}
+
+	str1 = g_file_get_path (file);
+	
+	/* This doesn't outright black list a file, it purely adds
+	 * each file to the hash table so we have a count for every
+	 * path we get an event for. If the count is too high, we
+	 * then don't propagate the event up.
+	 */
+	black_list_file_increment (monitor, file);
 
 	if (other_file) {
 		str2 = g_file_get_path (other_file);
@@ -385,28 +652,48 @@ monitor_event_cb (GFileMonitor      *file_monitor,
 		   str1,
 		   str2 ? str2 : "");
 		   
-	switch (event_type) {
-	case G_FILE_MONITOR_EVENT_CHANGED:
-	case G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT: 
-	case G_FILE_MONITOR_EVENT_ATTRIBUTE_CHANGED:
-		g_signal_emit (monitor, signals[ITEM_UPDATED], 0, module_name, file, is_directory);
-		break;
-
-	case G_FILE_MONITOR_EVENT_DELETED:
-		g_signal_emit (monitor, signals[ITEM_DELETED], 0, module_name, file, is_directory);
-		break;
-
-	case G_FILE_MONITOR_EVENT_CREATED:
-		g_signal_emit (monitor, signals[ITEM_CREATED], 0, module_name, file, is_directory);
-		break;
-
-	case G_FILE_MONITOR_EVENT_PRE_UNMOUNT:
-		g_signal_emit (monitor, signals[ITEM_DELETED], 0, module_name, file, is_directory);
-		break;
-
-	case G_FILE_MONITOR_EVENT_UNMOUNTED:
-		/* Do nothing */
-		break;
+	if (!black_list_file_check (monitor, file)) {
+		switch (event_type) {
+		case G_FILE_MONITOR_EVENT_CHANGED:
+		case G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT: 
+		case G_FILE_MONITOR_EVENT_ATTRIBUTE_CHANGED:
+			g_signal_emit (monitor, 
+				       signals[ITEM_UPDATED], 0, 
+				       module_name, 
+				       file, 
+				       is_directory);
+			break;
+			
+		case G_FILE_MONITOR_EVENT_DELETED:
+			g_signal_emit (monitor, 
+				       signals[ITEM_DELETED], 0, 
+				       module_name, 
+				       file, 
+				       is_directory);
+			break;
+			
+		case G_FILE_MONITOR_EVENT_CREATED:
+			g_signal_emit (monitor, 
+				       signals[ITEM_CREATED], 0,
+				       module_name, 
+				       file, 
+				       is_directory);
+			break;
+			
+		case G_FILE_MONITOR_EVENT_PRE_UNMOUNT:
+			g_signal_emit (monitor, 
+				       signals[ITEM_DELETED], 0,
+				       module_name, 
+				       file, 
+				       is_directory);
+			break;
+			
+		case G_FILE_MONITOR_EVENT_UNMOUNTED:
+			/* Do nothing */
+			break;
+		}
+	} else {
+		g_message ("Not propagating event, file is black listed");
 	}
 
 	g_free (str1);

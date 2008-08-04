@@ -1,5 +1,16 @@
 2008-08-04  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-monitor.c: Added black listing. This works
+	slightly differently to TRUNK. Files are given a black list count
+	for the number of times an event is seen. If a file gets an event
+	more than 5 times they are black listed for 30 seconds, after that
+	time the item is taken off the black list and the indexer is
+	prompted to reindex the file. The 30 second period has to be
+	completely clear of events for that file during that time. If an
+	event occurs in the mean time, the timestamp is reset.
+
+2008-08-04  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-crawler.[ch]:
 	* src/trackerd/tracker-processor.c: Removed TrackerHal
 	dependency, it is unused in this module now.

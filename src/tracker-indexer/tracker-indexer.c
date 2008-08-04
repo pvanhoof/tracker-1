@@ -984,9 +984,14 @@ delete_item (TrackerIndexer *indexer,
 
 		/* The file is not anymore in the filesystem. Obtain the service type from the DB */
 		service_type_id = tracker_db_get_service_type (dirname, basename);
+
+		if (service_type_id == 0) {
+			/* File didn't exist, nothing to delete */
+			return;
+		}
+
 		name = tracker_ontology_get_service_type_by_id (service_type_id);
 		service_def = tracker_ontology_get_service_type_by_name (name);
-
 		g_free (name);
 	} else {
 		service_def = tracker_ontology_get_service_type_by_name (service_type);

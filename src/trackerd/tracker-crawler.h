@@ -54,6 +54,9 @@ TrackerCrawler *tracker_crawler_new                  (TrackerConfig  *config,
 						      const gchar    *module_name);
 gboolean        tracker_crawler_start                (TrackerCrawler *crawler);
 void            tracker_crawler_stop                 (TrackerCrawler *crawler);
+gboolean        tracker_crawler_is_path_ignored      (TrackerCrawler *crawler,
+						      const gchar    *path,
+						      gboolean        is_directory);
 
 /* Convenience API for old .cfg file */
 void            tracker_crawler_add_path             (TrackerCrawler *crawler,

@@ -73,33 +73,36 @@ tracker_monitor_class_init (TrackerMonitorClass *klass)
 			      G_SIGNAL_RUN_LAST,
 			      0,
 			      NULL, NULL,
-			      tracker_marshal_VOID__STRING_OBJECT,
+			      tracker_marshal_VOID__STRING_OBJECT_BOOLEAN,
 			      G_TYPE_NONE, 
-			      2,
+			      3,
 			      G_TYPE_STRING,
-			      G_TYPE_OBJECT);
+			      G_TYPE_OBJECT,
+			      G_TYPE_BOOLEAN);
 	signals[ITEM_UPDATED] = 
 		g_signal_new ("item-updated",
 			      G_TYPE_FROM_CLASS (klass),
 			      G_SIGNAL_RUN_LAST,
 			      0,
 			      NULL, NULL,
-			      tracker_marshal_VOID__STRING_OBJECT,
+			      tracker_marshal_VOID__STRING_OBJECT_BOOLEAN,
 			      G_TYPE_NONE, 
-			      2,
+			      3,
 			      G_TYPE_STRING,
-			      G_TYPE_OBJECT);
+			      G_TYPE_OBJECT,
+			      G_TYPE_BOOLEAN);
 	signals[ITEM_DELETED] = 
 		g_signal_new ("item-deleted",
 			      G_TYPE_FROM_CLASS (klass),
 			      G_SIGNAL_RUN_LAST,
 			      0,
 			      NULL, NULL,
-			      tracker_marshal_VOID__STRING_OBJECT,
+			      tracker_marshal_VOID__STRING_OBJECT_BOOLEAN,
 			      G_TYPE_NONE, 
-			      2,
+			      3,
 			      G_TYPE_STRING,
-			      G_TYPE_OBJECT);
+			      G_TYPE_OBJECT,
+			      G_TYPE_BOOLEAN);
 
 	g_type_class_add_private (object_class, sizeof (TrackerMonitorPrivate));
 }
@@ -332,6 +335,7 @@ monitor_event_cb (GFileMonitor      *file_monitor,
 {
 	TrackerMonitor        *monitor;
 	TrackerMonitorPrivate *priv;
+	gboolean               is_directory = TRUE;
 	const gchar           *module_name;
 	gchar                 *str1;
 	gchar                 *str2;
@@ -365,6 +369,8 @@ monitor_event_cb (GFileMonitor      *file_monitor,
 			
 			return;
 		}
+
+		is_directory = FALSE;
 	}
 
 	if (other_file) {
@@ -383,19 +389,19 @@ monitor_event_cb (GFileMonitor      *file_monitor,
 	case G_FILE_MONITOR_EVENT_CHANGED:
 	case G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT: 
 	case G_FILE_MONITOR_EVENT_ATTRIBUTE_CHANGED:
-		g_signal_emit (monitor, signals[ITEM_UPDATED], 0, module_name, file);
+		g_signal_emit (monitor, signals[ITEM_UPDATED], 0, module_name, file, is_directory);
 		break;
 
 	case G_FILE_MONITOR_EVENT_DELETED:
-		g_signal_emit (monitor, signals[ITEM_DELETED], 0, module_name, file);
+		g_signal_emit (monitor, signals[ITEM_DELETED], 0, module_name, file, is_directory);
 		break;
 
 	case G_FILE_MONITOR_EVENT_CREATED:
-		g_signal_emit (monitor, signals[ITEM_CREATED], 0, module_name, file);
+		g_signal_emit (monitor, signals[ITEM_CREATED], 0, module_name, file, is_directory);
 		break;
 
 	case G_FILE_MONITOR_EVENT_PRE_UNMOUNT:
-		g_signal_emit (monitor, signals[ITEM_DELETED], 0, module_name, file);
+		g_signal_emit (monitor, signals[ITEM_DELETED], 0, module_name, file, is_directory);
 		break;
 
 	case G_FILE_MONITOR_EVENT_UNMOUNTED:

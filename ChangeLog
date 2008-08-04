@@ -1,3 +1,24 @@
+2008-08-04  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-crawler.[ch]: Make the is_path_ignored()
+	function we used internally available externally as an API for the
+	processor to call when we get new monitor events. This is to make
+	sure we don't monitor files newly created just because they are in
+	some directory. They too adhear to the filtering.
+	
+	* src/trackerd/tracker-daemon.c: Fixed referencing so we now
+	actually finalize the daemon and the processor modules.
+	
+	* src/trackerd/tracker-marshal.list: 
+	* src/trackerd/tracker-monitor.c: Added "is_directory" boolean
+	to monitor events.
+	
+	* src/trackerd/tracker-processor.c: Now we create a TrackerCrawler
+	for each module and we don't clean them up after the module is
+	processed, we keep them around for the duration of the daemon's
+	life. The reason being, we need to make sure we can call on the
+	crawler for monitor event path filtering.
+
 2008-08-04  Ivan Frade  <ivan.frade@nokia.com>
 
 	Reverted previous commit.

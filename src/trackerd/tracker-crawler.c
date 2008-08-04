@@ -269,13 +269,14 @@ tracker_crawler_new (TrackerConfig *config,
  */
 
 static gboolean
-path_should_be_ignored (TrackerCrawler *crawler,
-			const gchar    *path,
-			gboolean        is_directory)
+is_path_ignored (TrackerCrawler *crawler,
+		 const gchar    *path,
+		 gboolean        is_directory)
 {
 	GList    *l;
 	gchar    *basename;
         gboolean  ignore;
+
 
 	if (tracker_is_empty_string (path)) {
 		return TRUE;
@@ -347,7 +348,7 @@ add_file (TrackerCrawler *crawler,
 
 	path = g_file_get_path (file);
 
-	if (path_should_be_ignored (crawler, path, FALSE)) {
+	if (is_path_ignored (crawler, path, FALSE)) {
 		crawler->private->files_ignored++;
 
 		g_debug ("Ignored:'%s' (%d)",
@@ -376,7 +377,7 @@ add_directory (TrackerCrawler *crawler,
 
 	path = g_file_get_path (file);
 
-	if (path_should_be_ignored (crawler, path, TRUE)) {
+	if (is_path_ignored (crawler, path, TRUE)) {
 		crawler->private->directories_ignored++;
 
 		g_debug ("Ignored:'%s' (%d)",
@@ -860,4 +861,19 @@ tracker_crawler_set_use_module_paths (TrackerCrawler *crawler,
 	priv = crawler->private;
 
 	priv->use_module_paths = use_paths;
+}
+
+gboolean
+tracker_crawler_is_path_ignored (TrackerCrawler *crawler,
+				 const gchar    *path,
+				 gboolean        is_directory)
+{
+	g_return_val_if_fail (TRACKER_IS_CRAWLER (crawler), TRUE);
+	
+	/* We have an internal function here we call. The reason for
+	 * this is that it is expensive to type check the Crawler
+	 * object for EVERY file we process. Internally, we don't do
+	 * that. Externally we do.
+	 */
+	return is_path_ignored (crawler, path, is_directory);
 }

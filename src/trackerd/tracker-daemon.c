@@ -143,10 +143,10 @@ daemon_finalize (GObject *object)
 
 	dbus_g_proxy_disconnect_signal (priv->indexer_proxy, "Continued",
 					G_CALLBACK (indexer_continued_cb),
-					daemon);
+					NULL);
 	dbus_g_proxy_disconnect_signal (priv->indexer_proxy, "Paused",
 					G_CALLBACK (indexer_paused_cb),
-					daemon);
+					NULL);
 	g_object_unref (priv->indexer_proxy);
 
 	g_object_unref (priv->processor);
@@ -178,12 +178,12 @@ tracker_daemon_new (TrackerConfig    *config,
 
 	dbus_g_proxy_connect_signal (proxy, "Paused",
 				     G_CALLBACK (indexer_paused_cb),
-				     g_object_ref (object),
-				     (GClosureNotify) g_object_unref);
+				     object,
+				     NULL);
 	dbus_g_proxy_connect_signal (proxy, "Continued",
 				     G_CALLBACK (indexer_continued_cb),
-				     g_object_ref (object),
-				     (GClosureNotify) g_object_unref);
+				     object,
+				     NULL);
 
 	return object;
 }

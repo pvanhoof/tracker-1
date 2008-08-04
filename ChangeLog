@@ -1,5 +1,9 @@
 2008-08-04  Ivan Frade  <ivan.frade@nokia.com>
 
+	Reverted previous commit.
+	
+2008-08-04  Ivan Frade  <ivan.frade@nokia.com>
+
 	* src/trackerd/Makefile.am
 	* src/trackerd/tracker-index-searcher.[ch]: Added
 	* src/trackerd/tracker-query-tree.[ch]: Removed

@@ -35,7 +35,7 @@
 #include <libtracker-db/tracker-db-manager.h>
 
 #include "tracker-index.h"
-#include "tracker-index-searcher.h"
+#include "tracker-query-tree.h"
 #include "tracker-indexer-client.h"
 
 /* Size of free block pool of inverted index */

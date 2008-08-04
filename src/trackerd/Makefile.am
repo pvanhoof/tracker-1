@@ -49,8 +49,8 @@ trackerd_SOURCES =							\
 	tracker-metadata.h						\
 	tracker-monitor.c						\
 	tracker-monitor.h						\
-	tracker-index-searcher.c					\
-	tracker-index-searcher.h					\
+	tracker-query-tree.c						\
+	tracker-query-tree.h						\
 	tracker-rdf-query.c						\
 	tracker-rdf-query.h						\
 	tracker-search.c						\

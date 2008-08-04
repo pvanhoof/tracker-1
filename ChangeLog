@@ -1,3 +1,13 @@
+2008-08-04  Ivan frade  <ivan.frade@nokia.com>
+
+	* src/trackerd/tracker-metadata.c: Now uses the indexer to write
+	metadata in the database.
+	
+	* src/trackerd/tracker-db.[ch]
+	(tracker_db_metadata_get_array): Added this new method moving code
+	from tracker-metadata.
+	Removed old commented code.
+
 2008-08-04  Ivan Frade  <ivan.frade@nokia.com>
 
 	* data/services/audio.metadata: The embedded properties cannot be

@@ -55,12 +55,6 @@ gboolean            tracker_db_exec_no_reply                     (TrackerDBInter
 TrackerDBResultSet *tracker_db_exec                              (TrackerDBInterface  *iface,
 								  const char          *query,
 								  ...);
-/*
-gchar *             tracker_db_get_option_string                 (const gchar         *option);
-
-void                tracker_db_set_option_string                 (const gchar         *option,
-								  const gchar         *value);
-*/
 gint                tracker_db_get_option_int                    (const gchar         *option);
 void                tracker_db_set_option_int                    (const gchar         *option,
 								  gint                 value);
@@ -72,6 +66,10 @@ const gchar *       tracker_db_metadata_get_table                (TrackerFieldTy
 TrackerDBResultSet *tracker_db_metadata_get                      (TrackerDBInterface  *iface,
 								  const gchar         *id,
 								  const gchar         *key);
+TrackerDBResultSet *tracker_db_metadata_get_array                (TrackerDBInterface *iface,
+								  const gchar        *service_type,
+								  const gchar        *service_id,
+								  gchar             **keys);
 gchar *             tracker_db_metadata_get_delimited            (TrackerDBInterface  *iface,
 								  const gchar         *id,
 								  const gchar         *key);
@@ -87,20 +85,6 @@ void                tracker_db_metadata_set_single               (TrackerDBInter
 								  const gchar         *key,
 								  const gchar         *value,
 								  gboolean             do_backup);
-/*
-void                tracker_db_metadata_insert_embedded          (TrackerDBInterface  *iface,
-								  const gchar         *service,
-								  const gchar         *id,
-								  const gchar         *key,
-								  gchar              **values,
-								  GHashTable          *table);
-void                tracker_db_metadata_insert_single_embedded   (TrackerDBInterface  *iface,
-								  const gchar         *service,
-								  const gchar         *id,
-								  const gchar         *key,
-								  const gchar         *value,
-								  GHashTable          *table);
-*/
 void                tracker_db_metadata_delete_value             (TrackerDBInterface  *iface,
 								  const gchar         *service,
 								  const gchar         *id,
@@ -159,55 +143,6 @@ guint32             tracker_db_file_get_id                       (TrackerDBInter
 gchar *             tracker_db_file_get_id_as_string             (TrackerDBInterface  *iface,
 								  const gchar         *service,
 								  const gchar         *uri);
-/*
-TrackerDBFileInfo * tracker_db_file_get_info                     (TrackerDBInterface  *iface,
-								  TrackerDBFileInfo   *info);
-*/
-/*
-gboolean            tracker_db_file_is_up_to_date                (TrackerDBInterface  *iface,
-								  const gchar         *uri,
-								  guint32             *id);
-*/
-/*
-void                tracker_db_file_delete                       (TrackerDBInterface  *iface,
-								  guint32              file_id);
-*/
-/*
-void                tracker_db_file_move                         (TrackerDBInterface  *iface,
-								  const gchar         *moved_from_uri,
-								  const gchar         *moved_to_uri);
-*/
-/*
-void                tracker_db_directory_delete                  (TrackerDBInterface  *iface,
-								  guint32              file_id,
-								  const gchar         *uri);
-*/
-/*
-void                tracker_db_directory_move                    (TrackerDBInterface  *iface,
-								  const gchar         *moved_from_uri,
-								  const gchar         *moved_to_uri);
-*/
-								  /*
-void                tracker_db_uri_insert_pending                (const gchar         *id,
-								  const gchar         *action,
-								  const gchar         *counter,
-								  const gchar         *uri,
-								  const gchar         *mime,
-								  gboolean             is_dir,
-								  gboolean             is_new,
-								  gint                 service_type_id);
-void                tracker_db_uri_update_pending                (const gchar         *counter,
-								  const gchar         *action,
-								  const gchar         *uri);
-*/
-/*
-TrackerDBResultSet *tracker_db_uri_get_subfolders                (TrackerDBInterface  *iface,
-								  const gchar         *uri);
-*/
-/*
-TrackerDBResultSet *tracker_db_uri_sub_watches_get               (const gchar         *dir);
-TrackerDBResultSet *tracker_db_uri_sub_watches_delete            (const gchar         *dir);
-*/
 
 /* Keywords API */
 TrackerDBResultSet *tracker_db_keywords_get_list                 (TrackerDBInterface  *iface,

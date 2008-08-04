@@ -32,6 +32,7 @@
 #include <libtracker-db/tracker-db-dbus.h>
 #include <libtracker-db/tracker-db-manager.h>
 
+#include "tracker-indexer-client.h"
 #include "tracker-dbus.h"
 #include "tracker-metadata.h"
 #include "tracker-db.h"
@@ -70,12 +71,8 @@ tracker_metadata_get (TrackerMetadata        *object,
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
 	guint               request_id;
-	gchar              *service_result;
-	gchar              *service_id;
+	gchar              *service_id, *service_result;
 	guint               i;
-	GString            *sql;
-	GString            *sql_join;
-	gchar              *query;
 	gchar              **values;
 	GError              *actual_error = NULL;
 
@@ -114,88 +111,38 @@ tracker_metadata_get (TrackerMetadata        *object,
 		return;
         }
 
+	/* Checking keys */
+	for (i = 0; i < g_strv_length (keys); i++) {
+		
+		if (tracker_ontology_get_field_def (keys[i]) == NULL) {
+			tracker_dbus_request_failed (request_id,
+						     &actual_error,
+						     "Metadata field '%s' not registered in the system", 
+						     uri);
+			dbus_g_method_return_error (context, actual_error);
+			g_error_free (actual_error);
+			return;
+		}
+	}
+	
 	/* The parameter service_type can be "Files" 
 	 * and the actual service type of the uri "Video" 
 	 */
 	service_result = tracker_db_service_get_by_entity (iface, service_id);
 	if (!service_result) {
-		g_free (service_id);
-		tracker_dbus_request_failed (request_id,
-					     &actual_error, 
-					     "Service type can not be found for entity '%s'", 
-					     uri);
-		dbus_g_method_return_error (context, actual_error);
-		g_error_free (actual_error);
-		return;
+               g_free (service_id);
+               tracker_dbus_request_failed (request_id,
+                                            &actual_error, 
+                                            "Service type can not be found for entity '%s'", 
+                                            uri);
+               dbus_g_method_return_error (context, actual_error);
+               g_error_free (actual_error);
+               return;
 	}
 
-	/* Build SQL select clause */
-	sql = g_string_new (" SELECT DISTINCT ");
-	sql_join = g_string_new (" FROM Services S ");
-
-	for (i = 0; i < g_strv_length (keys); i++) {
-		TrackerFieldData *field_data;
-
-		field_data = tracker_db_get_metadata_field (iface, 
-							    service_result, 
-							    keys[i], 
-							    i, 
-							    TRUE, 
-							    FALSE);
- 
-		if (!field_data) {
-			g_string_free (sql_join, TRUE);
-			g_string_free (sql, TRUE);
-			g_free (service_result);
-			g_free (service_id);
-
-			tracker_dbus_request_failed (request_id,
-						     &actual_error, 
-						     "Invalid or non-existant metadata type '%s' specified", 
-						     keys[i]);
-			dbus_g_method_return_error (context, actual_error);
-			g_error_free (actual_error);
-			return;
-		}
-
-		if (i == 0) {
-			g_string_append_printf (sql, " %s", 
-						tracker_field_data_get_select_field (field_data));
-		} else {
-			g_string_append_printf (sql, ", %s", 
-						tracker_field_data_get_select_field (field_data));
-		}
-
-		if (tracker_field_data_get_needs_join (field_data)) {
-			g_string_append_printf (sql_join, 
-						"\n LEFT OUTER JOIN %s %s ON (S.ID = %s.ServiceID and %s.MetaDataID = %s) ", 
-						tracker_field_data_get_table_name (field_data),
-						tracker_field_data_get_alias (field_data),
-						tracker_field_data_get_alias (field_data),
-						tracker_field_data_get_alias (field_data),
-						tracker_field_data_get_id_field (field_data));
-		}
-
-		g_object_unref (field_data);
-	}
-
-	g_string_append (sql, sql_join->str);
-	g_string_free (sql_join, TRUE);
-	g_free (service_result);
-
-	/* Build SQL where clause */
-	g_string_append_printf (sql, " WHERE S.ID = %s", service_id);
-	g_free (service_id);
-
-	query = g_string_free (sql, FALSE);
-
-	g_debug (query);
-
-	result_set = tracker_db_interface_execute_query (iface, NULL, query);
-	values = tracker_dbus_query_result_columns_to_strv (result_set, -1, -1, TRUE);
-	g_free (query);
-
+	result_set = tracker_db_metadata_get_array (iface, service_result, service_id, keys); 
 	if (result_set) {
+		values = tracker_dbus_query_result_columns_to_strv (result_set, -1, -1, TRUE);
 		g_object_unref (result_set);
 	}
 
@@ -224,7 +171,7 @@ tracker_metadata_set (TrackerMetadata        *object,
 {
 	TrackerDBInterface *iface;
 	guint               request_id;
-	gchar              *service_id;
+	gchar              *service_id, *service_result;
 	guint               i;
 	GError             *actual_error = NULL;
 
@@ -265,32 +212,66 @@ tracker_metadata_set (TrackerMetadata        *object,
                 return;
         }
 
+	/* The parameter service_type can be "Files" 
+	 * and the actual service type of the uri "Video" 
+	 */
+	service_result = tracker_db_service_get_by_entity (iface, service_id);
+	if (!service_result) {
+               g_free (service_id);
+               tracker_dbus_request_failed (request_id,
+                                            &actual_error, 
+                                            "Service type can not be found for entity '%s'", 
+                                            uri);
+               dbus_g_method_return_error (context, actual_error);
+               g_error_free (actual_error);
+               return;
+	}
+
+	/* Checking keys */
 	for (i = 0; i < g_strv_length (keys); i++) {
-		const gchar *key;
-		const gchar *value;
+		TrackerField *field_def;
+		gchar       **value;
 
-		key = keys[i];
-		value = values[i];
+		field_def = tracker_ontology_get_field_def (keys[i]);
 
-		if (!key || strlen (key) < 3 || strchr (key, ':') == NULL) {
-			g_free (service_id);
+		if (field_def == NULL) {
 			tracker_dbus_request_failed (request_id,
-						     &actual_error, 
-						     "Metadata type name '%s' is invalid, all names must be registered", 
-						     key);
+						     &actual_error,
+						     "Metadata field '%s' not registered in the system", 
+						     keys[i]);
 			dbus_g_method_return_error (context, actual_error);
 			g_error_free (actual_error);
 			return;
 		}
 
-		tracker_db_metadata_set_single (iface, 
-						service_type, 
-						service_id,
-						key, 
-						value, 
-						TRUE);
+		if (tracker_field_get_embedded (field_def)) {
+			tracker_dbus_request_failed (request_id,
+						     &actual_error,
+						     "Metadata field '%s' cannot be overwritten (is embedded)", 
+						     keys[i]);
+			dbus_g_method_return_error (context, actual_error);
+			g_error_free (actual_error);
+			return;
+		}
+
+		value = tracker_string_to_string_list (values[i]);
+		org_freedesktop_Tracker_Indexer_property_set (tracker_dbus_indexer_get_proxy (),
+							      service_result,
+							      uri,
+							      keys[i],
+							      (const gchar **)value, //As gchar **
+							      &actual_error);
+		g_strfreev (value);
+		if (actual_error) {
+			/* tracker_dbus_request_failes -> find a way to propagate the error */
+			dbus_g_method_return_error (context, actual_error);
+			g_error_free (actual_error);
+			return;
+		}
+
+
 	}
-	
+
 	g_free (service_id);
 
 	/* FIXME: Check return value? */

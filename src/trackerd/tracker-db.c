@@ -466,117 +466,6 @@ db_create_event (TrackerDBInterface *iface,
 
 	return id;
 }
-/*
-static void
-delete_index_for_service (TrackerDBInterface *iface, 
-			  guint32             id)
-{
-	gchar *str_file_id;
-
-	str_file_id = tracker_uint_to_string (id);
-
-	tracker_db_exec_proc (tracker_db_manager_get_db_interface_content (iface), 
-			      "DeleteAllContents",
-			      str_file_id, 
-			      NULL);
-
-	g_free (str_file_id);
-}
-*/
-/*
-static void
-dec_stat (TrackerDBInterface *iface, gint id)
-{
-	gchar              *service;
-	gchar              *parent;
-        
-        service = tracker_ontology_get_service_type_by_id (id);
-
-	if (!service) {
-		return;
-	}
-
-	tracker_db_exec_proc (iface, "DecStat", service, NULL);
-	
-	parent = tracker_ontology_get_parent_service (service);
-	
-	if (parent) {
-		tracker_db_exec_proc (iface, "DecStat", parent, NULL);
-		g_free (parent);
-	}
-	
-	g_free (service);
-}
-*/
-
-/* Update all non-dirs in a dir for a file move */
-
-/*
-static void
-directory_move_files (TrackerDBInterface *iface, 
-		      const gchar        *moved_from_uri, 
-		      const gchar        *moved_to_uri)
-{
-	TrackerDBResultSet *result_set;
-
-	* Get all sub files (excluding folders) that were moved and add watches *
-	result_set = tracker_db_exec_proc (iface,
-					   "SelectFileChildWithoutDirs", 
-					   moved_from_uri, 
-					   NULL);
-
-	if (result_set) {
-		gchar    *prefix;
-		gchar    *name;
-		gchar    *file_name;
-		gchar    *moved_file_name;
-		gboolean  valid = TRUE;
-
-		while (valid) {
-			tracker_db_result_set_get (result_set,
-						   0, &prefix,
-						   1, &name,
-						   -1);
-
-			if (prefix && name) {
-				file_name = g_build_filename (prefix, name, NULL);
-				moved_file_name = g_build_filename (moved_to_uri, name, NULL);
-
-				tracker_db_file_move (iface, file_name, moved_file_name);
-
-				g_free (moved_file_name);
-				g_free (file_name);
-				g_free (prefix);
-				g_free (name);
-			}
-
-			valid = tracker_db_result_set_iter_next (result_set);
-		}
-
-		g_object_unref (result_set);
-	}
-}
-
-static inline void
-directory_move (TrackerDBInterface *iface, 
-		const gchar        *moved_from_uri, 
-		const gchar        *moved_to_uri)
-{
-	* FIXME: the monitor updates should not be done here, -mr *
-
-#if 0
-	* Stop watching old dir, start watching new dir *
-	tracker_monitor_remove (moved_from_uri, TRUE);
-#endif
-		
-	tracker_db_file_move (iface, moved_from_uri, moved_to_uri);
-	directory_move_files (iface, moved_from_uri, moved_to_uri);
-
-#if 0
-	tracker_monitor_add (moved_to_uri);
-#endif
-}
-*/
 
 static GArray *
 db_create_array_of_services (void)
@@ -1275,6 +1164,76 @@ tracker_db_metadata_get (TrackerDBInterface *iface,
 				     NULL);
 }
 
+TrackerDBResultSet *
+tracker_db_metadata_get_array (TrackerDBInterface *iface,
+			       const gchar        *service_type,
+			       const gchar        *service_id,
+			       gchar             ** keys) 
+{
+	TrackerDBResultSet *result_set;
+	GString            *sql, *sql_join;
+	gchar              *query;
+	guint               i;
+
+	/* Build SQL select clause */
+	sql = g_string_new (" SELECT DISTINCT ");
+	sql_join = g_string_new (" FROM Services S ");
+
+	for (i = 0; i < g_strv_length (keys); i++) {
+		TrackerFieldData *field_data;
+
+		field_data = tracker_db_get_metadata_field (iface, 
+							    service_type, 
+							    keys[i], 
+							    i, 
+							    TRUE, 
+							    FALSE);
+ 
+		if (!field_data) {
+			g_string_free (sql_join, TRUE);
+			g_string_free (sql, TRUE);
+			return NULL;
+		}
+
+		if (i == 0) {
+			g_string_append_printf (sql, " %s", 
+						tracker_field_data_get_select_field (field_data));
+		} else {
+			g_string_append_printf (sql, ", %s", 
+						tracker_field_data_get_select_field (field_data));
+		}
+
+		if (tracker_field_data_get_needs_join (field_data)) {
+			g_string_append_printf (sql_join, 
+						"\n LEFT OUTER JOIN %s %s ON (S.ID = %s.ServiceID and %s.MetaDataID = %s) ", 
+						tracker_field_data_get_table_name (field_data),
+						tracker_field_data_get_alias (field_data),
+						tracker_field_data_get_alias (field_data),
+						tracker_field_data_get_alias (field_data),
+						tracker_field_data_get_id_field (field_data));
+		}
+
+		g_object_unref (field_data);
+	}
+
+	g_string_append (sql, sql_join->str);
+	g_string_free (sql_join, TRUE);
+
+	/* Build SQL where clause */
+	g_string_append_printf (sql, " WHERE S.ID = %s", service_id);
+
+	query = g_string_free (sql, FALSE);
+
+	g_debug (query);
+
+	result_set = tracker_db_interface_execute_query (iface, NULL, query);
+
+	g_free (query);
+
+	return result_set;
+}
+
+
 /* Gets specified metadata value as a single row (multple values for a
  * metadata type are returned delimited by  "|" )
  */
@@ -1433,271 +1392,6 @@ tracker_db_metadata_get_table (TrackerFieldType type)
 	
 	return NULL;
 }
-
-/* Fast insert of embedded metadata. Table parameter is used to build
- * up a unique word list of indexable contents.
- */ 
-/*
-void
-tracker_db_metadata_insert_single_embedded (TrackerDBInterface *iface, 
-					    const gchar        *service, 
-					    const gchar        *id, 
-					    const gchar        *key, 
-					    const gchar        *value, 
-					    GHashTable         *hash_table)
-{
-	gchar *array[1];
-
-	g_return_if_fail (TRACKER_IS_DB_INTERFACE (iface));
-	g_return_if_fail (service != NULL);
-	g_return_if_fail (id != NULL);
-	g_return_if_fail (key != NULL);
-	g_return_if_fail (value != NULL);
-	g_return_if_fail (hash_table != NULL);
-
-	array[0] = (gchar*) value;
-		
-	tracker_db_metadata_insert_embedded (iface, service, id, key, array, hash_table);
-}
-
-void
-tracker_db_metadata_insert_embedded (TrackerDBInterface  *iface, 
-				     const gchar         *service, 
-				     const gchar         *id, 
-				     const gchar         *key, 
-				     gchar              **values, 
-				     GHashTable          *hash_table)
-{
-	TrackerField *def;
-	gint          key_field = 0;
-	guint         i;
-
-	g_return_if_fail (TRACKER_IS_DB_INTERFACE (iface));
-	g_return_if_fail (service != NULL);
-	g_return_if_fail (id != NULL);
-	g_return_if_fail (key != NULL);
-	g_return_if_fail (values != NULL);
-	g_return_if_fail (hash_table != NULL);
-
-	def = tracker_ontology_get_field_def (key);
-
-	if (!def) {
-		g_warning ("Metadata with key:'%s' not found", key);
-		return;
-	}
-
-	g_return_if_fail (tracker_field_get_embedded (def));
-
-        key_field = tracker_ontology_metadata_key_in_service (service, key);
-
-	switch (tracker_field_get_data_type (def)) {
-	case TRACKER_FIELD_TYPE_KEYWORD: 
-		for (i = 0; i < g_strv_length (values); i++) {
-			if (!values[i] || !values[i][0]) {
-				continue;
-			}
-			
-			if (hash_table) {
-				gchar *mvalue;
-				
-				mvalue = tracker_parser_text_to_string (values[i],
-									language,
-									tracker_config_get_max_word_length (config),
-									tracker_config_get_min_word_length (config),
-									FALSE, 
-									FALSE, 
-									FALSE);
-
-				hash_table = tracker_parser_text_fast (hash_table, 
-								       mvalue, 
-								       tracker_field_get_weight (def));
-			
-				g_free (mvalue);
-			}
-			
-			tracker_db_exec_proc (iface, 
-					      "SetMetadataKeyword", 
-					      id, 
-					      tracker_field_get_id (def), 
-					      values[i], 
-					      NULL);
-		}
-		break;
-
-	case TRACKER_FIELD_TYPE_INDEX:
-		for (i = 0; i < g_strv_length (values); i++) {
-			gchar *mvalue;
-			
-			if (!values[i] || !values[i][0]) {
-				continue;
-			}
-			
-			mvalue = tracker_parser_text_to_string (values[i], 
-								language,
-								tracker_config_get_max_word_length (config),
-								tracker_config_get_min_word_length (config),
-								tracker_field_get_filtered (def), 
-								tracker_field_get_filtered (def), 
-								tracker_field_get_delimited (def));
-			
-			hash_table = tracker_parser_text_fast (hash_table, 
-							       mvalue, 
-							       tracker_field_get_weight (def));
-			
-			tracker_db_exec_proc (iface,
-					      "SetMetadata", 
-					      id, 
-					      tracker_field_get_id (def), 
-					      mvalue, 
-					      values[i], 
-					      NULL);
-			
-			g_free (mvalue);
-		}
-		break;
-
-	case TRACKER_FIELD_TYPE_FULLTEXT: 
-		for (i = 0; i < g_strv_length (values); i++) {
-			if (!values[i] || !values[i][0]) {
-				continue;
-			}
-			
-			if (hash_table) {
-				hash_table = tracker_parser_text (hash_table, 
-								  values[i], 
-								  tracker_field_get_weight (def), 
-								  language, 
-								  tracker_config_get_max_words_to_index (config),
-								  tracker_config_get_max_word_length (config),
-								  tracker_config_get_min_word_length (config),
-								  tracker_field_get_filtered (def), 
-								  tracker_field_get_delimited (def));
-			}
-			
-			db_save_full_text (tracker_db_manager_get_db_interface_contentX (iface), 
-					   id, 
-					   values[i],
-					   strlen (values[i]));
-		}
-		break;
-		
-	case TRACKER_FIELD_TYPE_DOUBLE: 
-		for (i = 0; i < g_strv_length (values); i++) {
-			if (!values[i]) {
-				continue;
-			}
-			
-			tracker_db_exec_proc (iface,
-					      "SetMetadata", 
-					      id, 
-					      tracker_field_get_id (def),
-					      " ", 
-					      values[i], 
-					      NULL);
-		}
-		break;
-
-	case TRACKER_FIELD_TYPE_STRING: 
-		for (i = 0; i < g_strv_length (values); i++) {
-			gchar *mvalue;
-			
-			if (!values[i]) {
-				continue;
-			}
-			
-			mvalue = tracker_parser_text_to_string (values[i], 
-								language,
-								tracker_config_get_max_word_length (config),
-								tracker_config_get_min_word_length (config),
-								tracker_field_get_filtered (def),  
-								tracker_field_get_filtered (def), 
-								tracker_field_get_delimited (def));
-			tracker_db_exec_proc (iface, 
-					      "SetMetadata", 
-					      id, 
-					      tracker_field_get_id (def), 
-					      mvalue, 
-					      values[i], 
-					      NULL);
-			
-			g_free (mvalue);
-		}
-		break;
- 
-	case TRACKER_FIELD_TYPE_INTEGER: 
-		for (i = 0; i < g_strv_length (values); i++) {
-			if (!values[i]) {
-				continue;
-			}
-			
-			tracker_db_exec_proc (iface, 
-					      "SetMetadataNumeric", 
-					      id, 
-					      tracker_field_get_id (def), 
-					      values[i], 
-					      NULL);
-		}
-		break;
-
-	case TRACKER_FIELD_TYPE_DATE: 
-		for (i = 0; i < g_strv_length (values); i++) {
-			gchar *mvalue;
-
-			if (!values[i]) {
-				continue;
-			}
-			
-			mvalue = format_date (values[i]);
-			
-			if (!mvalue) {
-				g_warning ("Could not format date:'%s'", values[i]);
-				continue;
-			}
-			
-			tracker_db_exec_proc (iface,
-					      "SetMetadataNumeric", 
-					      id, 
-					      tracker_field_get_id (def), 
-					      mvalue, 
-					      NULL);
-			
-			g_free (mvalue);
-		}
-		break;
-
-	default: 
-		g_warning ("Metadata could not be set as type:%d for "
-			   "metadata:'%s' is not supported",
-			   tracker_field_get_data_type (def),
-			   key);
-		break;
-	}
-
-	if (key_field > 0 && values[0]) {
-		gchar *esc_value = NULL;
-		
-		if (tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_DATE) {
-			esc_value = format_date (values[0]);
-		} else {
-			gchar *str;
-			
-			str = tracker_string_list_to_string (values, g_strv_length (values), '|');
-			esc_value = tracker_escape_string (str);
-			g_free (str);
-		}
-
-		if (esc_value) {
-			tracker_db_exec_no_reply (iface,
-						  "update Services set KeyMetadata%d = '%s' where id = %s",
-						  key_field, 
-						  esc_value, 
-						  id);
-		
-			g_free (esc_value);
-		}
-	}
-}
-*/
 
 void
 tracker_db_metadata_set_single (TrackerDBInterface *iface, 
@@ -2978,306 +2672,6 @@ tracker_db_file_get_id_as_string (TrackerDBInterface *iface,
 	return NULL;
 }
 
-/*
-TrackerDBFileInfo *
-tracker_db_file_get_info (TrackerDBInterface *iface, 
-			  TrackerDBFileInfo  *info)
-{
-	TrackerDBResultSet *result_set;
-	gchar              *path, *name;
-
-	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), info);
-	g_return_val_if_fail (info != NULL, info);
-
-	if (!tracker_db_file_info_is_valid (info)) {
-		return NULL;
-	}
-
-	name = g_path_get_basename (info->uri);
-	path = g_path_get_dirname (info->uri);
-
-	result_set = tracker_db_exec_proc (iface, 
-					   "GetServiceID", 
-					   path, 
-					   name, 
-					   NULL);
-
-	g_free (name);
-	g_free (path);
-
-	if (result_set) {
-		gint     id, indextime, service_type_id;
-		gboolean is_directory;
-
-		tracker_db_result_set_get (result_set,
-					   0, &id,
-					   1, &indextime,
-					   2, &is_directory,
-					   3, &service_type_id,
-					   -1);
-
-		if (id > 0) {
-			info->file_id = id;
-			info->is_new = FALSE;
-		}
-
-		info->indextime = indextime;
-		info->is_directory = is_directory;
-		info->service_type_id = service_type_id;
-
-		g_object_unref (result_set);
-	}
-
-	return info;
-}
-*/
-
-/*
-gboolean
-tracker_db_file_is_up_to_date (TrackerDBInterface *iface, 
-			       const gchar        *uri, 
-			       guint32            *id)
-{
-	TrackerDBResultSet *result_set;
-	gchar              *path, *name;
-	gint32              index_time;
-
-	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), FALSE);
-	g_return_val_if_fail (uri != NULL, FALSE);
-	g_return_val_if_fail (id != NULL, FALSE);
-
-	if (uri[0] == G_DIR_SEPARATOR) {
-		name = g_path_get_basename (uri);
-		path = g_path_get_dirname (uri);
-	} else {
-		name = tracker_file_get_vfs_name (uri);
-		path = tracker_file_get_vfs_path (uri);
-	}
-
-	result_set = tracker_db_exec_proc (iface,
-					   "GetServiceID", 
-					   path, 
-					   name, 
-					   NULL);
-
-	g_free (path);
-	g_free (name);
-
-	index_time = 0;
-	*id = 0;
-
-	if (result_set) {
-		tracker_db_result_set_get (result_set,
-					   0, id,
-					   1, &index_time,
-					   -1);
-
-		g_object_unref (result_set);
-	} else {
-		return FALSE;
-	}
-
-	if (index_time < tracker_file_get_mtime (uri)) {
-		return FALSE;
-	}
-
-	return TRUE;
-}
-*/
-
-/*
-void
-tracker_db_file_delete (TrackerDBInterface *iface,
-			guint32             file_id)
-{
-	TrackerDBResultSet *result_set;
- 	TrackerDBInterface *iface_common;
-	gchar              *str_file_id;
-	gchar              *name = NULL;
-	gchar              *path;
-	gint                id;
-
-	g_return_if_fail (TRACKER_IS_DB_INTERFACE (iface));
-	g_return_if_fail (TRACKER_IS_DB_INTERFACE (iface_common));
-
-	delete_index_for_service (iface, file_id);
-
-	str_file_id = tracker_uint_to_string (file_id);
-
-	result_set = tracker_db_exec_proc (iface, "GetFileByID3", str_file_id, NULL);
-
-	if (result_set) {
-		tracker_db_result_set_get (result_set,
-					   0, &name,
-					   1, &path,
-					   3, &id,
-					   -1);
-
-		if (name && path) {
-			dec_stat (iface, id);
-
-			tracker_db_exec_proc (iface, "DeleteService1", str_file_id, NULL);
-			tracker_db_exec_proc (iface, "DeleteService6", path, name, NULL);
-			tracker_db_exec_proc (iface, "DeleteService7", path, name, NULL);
-			tracker_db_exec_proc (iface, "DeleteService9", path, name, NULL);
-
-			db_create_event (iface, str_file_id, "Delete");
-
-			g_free (name);
-			g_free (path);
-		}
-
-		g_object_unref (result_set);
-	}
-
-	g_free (str_file_id);
-}
-*/
-
-/*
-void
-tracker_db_directory_delete (TrackerDBInterface *iface,
-			     guint32             file_id, 
-			     const gchar        *uri)
-{
-	TrackerDBResultSet *result_set;
-	gchar              *str_file_id;
-	gchar              *uri_prefix;
-
-	g_return_if_fail (TRACKER_DB_INTERFACE (iface));
-	g_return_if_fail (uri != NULL);
-
-	str_file_id = tracker_uint_to_string (file_id);
-	uri_prefix = g_strconcat (uri, G_DIR_SEPARATOR_S, "*", NULL);
-	delete_index_for_service (iface, file_id);
-
-	* Get all file id's for all files recursively under directory amd delete them *
-	result_set = tracker_db_exec_proc (iface, 
-					   "SelectSubFileIDs", 
-					   uri, 
-					   uri_prefix, 
-					   NULL);
-
-	if (result_set) {
-		gboolean valid = TRUE;
-		gint     id;
-
-		while (valid) {
-			tracker_db_result_set_get (result_set, 0, &id, -1);
-			tracker_db_file_delete (iface, id);
-
-			valid = tracker_db_result_set_iter_next (result_set);
-		}
-
-		g_object_unref (result_set);
-	}
-
-	* Delete directory *
-	tracker_db_file_delete (iface, file_id);
-
-	g_free (uri_prefix);
-	g_free (str_file_id);
-}
-*/
-
-/*
-void
-tracker_db_uri_insert_pending (const gchar *id, 
-			       const gchar *action, 
-			       const gchar *counter, 
-			       const gchar *uri, 
-			       const gchar *mime, 
-			       gboolean     is_dir, 
-			       gboolean     is_new, 
-			       gint         service_type_id)
-{
-	TrackerDBInterface *iface;
-	const gchar        *str_new;
-	gchar	           *str_service_type_id;
-	gchar 	           *time_str;
-	time_t              time_now;
-	gint	            i;
-
-	g_return_if_fail (id != NULL);
-	g_return_if_fail (action != NULL);
-	g_return_if_fail (counter != NULL);
-	g_return_if_fail (uri != NULL);
-	g_return_if_fail (mime != NULL);
-
-	iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_CACHE);
-
-	time (&time_now);
-
-	i = atoi (counter);
-
-	if (i == 0) {
-		time_str = tracker_int_to_string (i);
-	} else {
-		time_str = tracker_int_to_string (time_now + i);
-	}
-
-	if (is_new) {
-		str_new = "1";
-	} else {
-		str_new = "0";
-	}
-
-	str_service_type_id = tracker_int_to_string (service_type_id);
-
-	tracker_db_exec_proc (iface, 
-			      "InsertPendingFile", 
-			      id, 
-			      action, 
-			      time_str, 
-			      uri, 
-			      mime, 
-			      is_dir ? "1" : "0", 
-			      str_new, 
-			      "1", 
-			      "1", 
-			      str_service_type_id, 
-			      NULL);
-
-	g_free (str_service_type_id);
-	g_free (time_str);
-}
-
-*/
-
-/*
-void
-tracker_db_uri_update_pending (const gchar *counter, 
-			       const gchar *action, 
-			       const gchar *uri)
-{
-	TrackerDBInterface *iface;
-	gchar              *time_str;
-	time_t              time_now;
-	gint                i;
-
-	g_return_if_fail (counter != NULL);
-	g_return_if_fail (action != NULL);
-	g_return_if_fail (uri != NULL);
-
-	iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_CACHE);
-	
-	time (&time_now);
-
-	i = atoi (counter);
-
-	time_str = tracker_int_to_string (time_now + i);
-
-	tracker_db_exec_proc (iface, 
-			      "UpdatePendingFile", 
-			      time_str, 
-			      action, 
-			      uri, 
-			      NULL);
-
-	g_free (time_str);
-}
-*/
-
 gchar **
 tracker_db_files_get (TrackerDBInterface *iface, 
 		      const gchar        *uri)
@@ -3428,242 +2822,6 @@ tracker_db_metadata_get_types (TrackerDBInterface *iface,
 	}
 }
 
-/*
-TrackerDBResultSet *
-tracker_db_uri_sub_watches_get (const gchar *dir)
-{
-	TrackerDBInterface *iface;
-	TrackerDBResultSet *result_set;
-	gchar              *folder;
-
-	g_return_val_if_fail (dir != NULL, NULL);
-
-	iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_CACHE);
-
-	folder = g_build_filename (dir, "*", NULL);
-	result_set = tracker_db_exec_proc (iface, 
-					   "GetSubWatches", 
-					   folder, 
-					   NULL);
-	g_free (folder);
-
-	return result_set;
-}
-*/
-
-/*
-TrackerDBResultSet *
-tracker_db_uri_sub_watches_delete (const gchar *dir)
-{
-	TrackerDBInterface *iface;
-	TrackerDBResultSet *result_set;
-	gchar              *folder;
-
-	g_return_val_if_fail (dir != NULL, NULL);
-
-	iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_CACHE);
-
-	folder = g_build_filename (dir, "*", NULL);
-	result_set = tracker_db_exec_proc (iface, 
-					   "DeleteSubWatches", 
-					   folder, 
-					   NULL);
-
-	g_free (folder);
-
-	return result_set;
-}
-*/
-/*
-void
-tracker_db_file_move (TrackerDBInterface *iface, 
-		      const gchar        *moved_from_uri, 
-		      const gchar        *moved_to_uri)
-{
-	gchar              *str_file_id;
-	gchar              *name;
-	gchar              *path;
-	gchar              *old_name;
-	gchar              *old_path;
-	gchar              *ext;
-	guint32             id;
-
-	g_return_if_fail (TRACKER_IS_DB_INTERFACE (iface));
-	g_return_if_fail (moved_from_uri != NULL);
-	g_return_if_fail (moved_to_uri != NULL);
-
-	g_message ("Moving file:'%s' to:'%s'", 
-		   moved_from_uri, 
-		   moved_to_uri);
-
-	* If orig file not in DB, treat it asa create action *
-	id = tracker_db_file_get_id (iface, moved_from_uri);
-
-	if (id == 0) {
-		g_warning ("Original file:'%s' not found in database", 
-			   moved_from_uri);
-		tracker_db_interface_end_transaction (iface);
-		return;
-	}
-
-	str_file_id = tracker_uint_to_string (id);
-	name = g_path_get_basename (moved_to_uri);
-	path = g_path_get_dirname (moved_to_uri);
-	old_name = g_path_get_basename (moved_from_uri);
-	old_path = g_path_get_dirname (moved_from_uri);
-
-	* Update db so that fileID reflects new uri *
-	tracker_db_exec_proc (iface, 
-			      "UpdateFileMove", 
-			      path, 
-			      name, 
-			      str_file_id, 
-			      NULL);
-
-	db_create_event (iface, str_file_id, "Update");
-
-	* update File:Path and File:Filename metadata *
-	tracker_db_metadata_set_single (iface,
-					"Files", str_file_id, 
-					"File:Path", path,
-					FALSE);
-	tracker_db_metadata_set_single (iface, 
-					"Files", str_file_id,
-					"File:Name", name, 
-					FALSE);
-
-	ext = strrchr (moved_to_uri, '.');
-	if (ext) {
-		ext++;
-		tracker_db_metadata_set_single (iface, 
-						"Files", str_file_id, 
-						"File:Ext", ext, 
-						FALSE);
-	}
-
-	* Update backup service if necessary *
-	tracker_db_exec_proc (iface, 
-			      "UpdateBackupService", 
-			      path, 
-			      name, 
-			      old_path, 
-			      old_name, 
-			      NULL);
-
-	g_free (str_file_id);
-	g_free (name);
-	g_free (path);
-	g_free (old_name);
-	g_free (old_path);
-}
-*/
-
-/*
-void
-tracker_db_directory_move (TrackerDBInterface *iface, 
-			   const gchar        *moved_from_uri, 
-			   const gchar        *moved_to_uri)
-{
-	TrackerDBResultSet *result_set;
-	gchar              *old_path;
-
-	g_return_if_fail (TRACKER_IS_DB_INTERFACE (iface));
- 	g_return_if_fail (moved_from_uri != NULL);
- 	g_return_if_fail (moved_to_uri != NULL);
-
-	old_path = g_strconcat (moved_from_uri, G_DIR_SEPARATOR_S, NULL);
-
-	* Get all sub folders that were moved and add watches *
-	result_set = tracker_db_uri_get_subfolders (iface, moved_from_uri);
-
-	if (result_set) {
-		gboolean valid = TRUE;
-
-		while (valid) {
-			gchar *prefix, *name;
-			gchar *dir_name, *sep, *new_path;
-
-			tracker_db_result_set_get (result_set,
-						   1, &prefix,
-						   2, &name,
-						   -1);
-
-			dir_name = g_build_filename (prefix, name, NULL);
-
-			* Get string after prefix *
-			if (!old_path) {
-				sep = g_strdup (dir_name);
-			} else { 
-				gchar *prefix_start;
-
-				prefix_start = strstr (dir_name, old_path);
-				
-				if (!prefix_start) {
-					sep = NULL;
-				} else {
-					gchar *str;
-
-					str = prefix_start + strlen (old_path);
-					sep = g_strdup (str);
-				}
-			}
-			
-			if (!sep) {
-				g_free (dir_name);
-				continue;
-			}
-
-			new_path = g_build_filename (moved_to_uri, sep, NULL);
-			g_free (sep);
-
-			g_message ("Moving subfolder:'%s' to:'%s'", 
-				   dir_name, 
-				   new_path);
-
-			directory_move (iface, dir_name, new_path);
-
-			* FIXME: Why? *
-			g_usleep (1000);
-
-			g_free (prefix);
-			g_free (name);
-			g_free (new_path);
-			g_free (dir_name);
-
-			valid = tracker_db_result_set_iter_next (result_set);
-		}
-
-		g_object_unref (result_set);
-	}
-
-	directory_move (iface, moved_from_uri, moved_to_uri);
-
-	g_free (old_path);
-}
-*/
-/*
-TrackerDBResultSet *
-tracker_db_uri_get_subfolders (TrackerDBInterface *iface, 
-			       const gchar        *uri)
-{
-	TrackerDBResultSet *result_set;
-	gchar              *folder;
-
-	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
- 	g_return_val_if_fail (uri != NULL, NULL);
-
-	folder = g_strconcat (uri, G_DIR_SEPARATOR_S, "*", NULL);
-	result_set = tracker_db_exec_proc (iface, 
-					   "SelectFileSubFolders", 
-					   uri, 
-					   folder, 
-					   NULL);
-	g_free (folder);
-
-	return result_set;
-}
-*/
-
 TrackerDBResultSet *
 tracker_db_keywords_get_list (TrackerDBInterface *iface, 
 			      const gchar        *service)
@@ -3809,47 +2967,6 @@ tracker_db_get_metadata_field (TrackerDBInterface *iface,
 
 	return field_data;
 }
-
-/*
-gchar *
-tracker_db_get_option_string (const gchar *option)
-{
-	TrackerDBInterface *iface;
-	TrackerDBResultSet *result_set;
-	gchar              *value = NULL;
-
-	g_return_val_if_fail (option != NULL, NULL);
-
-	iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_COMMON);
-	result_set = tracker_db_exec_proc (iface, "GetOption", option, NULL);
-
-	if (result_set) {
-		tracker_db_result_set_get (result_set, 0, &value, -1);
-		g_object_unref (result_set);
-	}
-
-	return value;
-}
-
-
-void
-tracker_db_set_option_string (const gchar *option, 
-			      const gchar *value)
-{
-	TrackerDBInterface *iface;
-	TrackerDBResultSet *result_set;
-
-	g_return_if_fail (option != NULL);
-	g_return_if_fail (value != NULL);
-
-	iface = tracker_db_manager_get_db_interfaceX (TRACKER_DB_COMMON);
-	result_set = tracker_db_exec_proc (iface, "SetOption", value, option, NULL);
-	
-	if (result_set) {
-		g_object_unref (result_set);
-	}
-}
-*/
 
 gint
 tracker_db_get_option_int (const gchar *option)

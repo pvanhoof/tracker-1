@@ -37,10 +37,10 @@
 #include <libtracker-common/tracker-ontology.h>
 #include <libtracker-common/tracker-index-item.h>
 
-#include "tracker-query-tree.h"
+#include "tracker-index-searcher.h"
 #include "tracker-utils.h"
 
-#define TRACKER_QUERY_TREE_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_QUERY_TREE, TrackerQueryTreePrivate))
+#define TRACKER_INDEX_SEARCHER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_INDEX_SEARCHER, TrackerIndexSearcherPrivate))
 
 #define MAX_HIT_BUFFER 480000
 #define SCORE_MULTIPLIER 100000
@@ -48,7 +48,7 @@
 typedef enum   OperationType OperationType;
 typedef enum   TreeNodeType TreeNodeType;
 typedef struct TreeNode TreeNode;
-typedef struct TrackerQueryTreePrivate TrackerQueryTreePrivate;
+typedef struct TrackerIndexSearcherPrivate TrackerIndexSearcherPrivate;
 typedef struct ComposeHitsData ComposeHitsData;
 typedef struct SearchHitData SearchHitData;
 
@@ -65,7 +65,7 @@ struct TreeNode {
 	gchar         *term;
 };
 
-struct TrackerQueryTreePrivate {
+struct TrackerIndexSearcherPrivate {
 	gchar           *query_str;
 	TreeNode        *tree;
 	TrackerIndex    *index;
@@ -94,28 +94,28 @@ enum {
 	PROP_SERVICES
 };
 
-static void tracker_query_tree_class_init   (TrackerQueryTreeClass *class);
-static void tracker_query_tree_init         (TrackerQueryTree      *tree);
-static void tracker_query_tree_finalize     (GObject               *object);
-static void tracker_query_tree_set_property (GObject               *object,
+static void tracker_index_searcher_class_init   (TrackerIndexSearcherClass *class);
+static void tracker_index_searcher_init         (TrackerIndexSearcher      *tree);
+static void tracker_index_searcher_finalize     (GObject               *object);
+static void tracker_index_searcher_set_property (GObject               *object,
                                              guint                  prop_id,
                                              const GValue          *value,
                                              GParamSpec            *pspec);
-static void tracker_query_tree_get_property (GObject               *object,
+static void tracker_index_searcher_get_property (GObject               *object,
                                              guint                  prop_id,
                                              GValue                *value,
                                              GParamSpec            *pspec);
 
-G_DEFINE_TYPE (TrackerQueryTree, tracker_query_tree, G_TYPE_OBJECT)
+G_DEFINE_TYPE (TrackerIndexSearcher, tracker_index_searcher, G_TYPE_OBJECT)
 
 static void
-tracker_query_tree_class_init (TrackerQueryTreeClass *klass)
+tracker_index_searcher_class_init (TrackerIndexSearcherClass *klass)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-	object_class->finalize = tracker_query_tree_finalize;
-	object_class->set_property = tracker_query_tree_set_property;
-	object_class->get_property = tracker_query_tree_get_property;
+	object_class->finalize = tracker_index_searcher_finalize;
+	object_class->set_property = tracker_index_searcher_set_property;
+	object_class->get_property = tracker_index_searcher_get_property;
 
 	g_object_class_install_property (object_class,
 					 PROP_QUERY,
@@ -152,11 +152,11 @@ tracker_query_tree_class_init (TrackerQueryTreeClass *klass)
 							       "GArray of services",
 							       G_PARAM_READWRITE));
 	g_type_class_add_private (object_class,
-				  sizeof (TrackerQueryTreePrivate));
+				  sizeof (TrackerIndexSearcherPrivate));
 }
 
 static void
-tracker_query_tree_init (TrackerQueryTree *tree)
+tracker_index_searcher_init (TrackerIndexSearcher *tree)
 {
 }
 
@@ -200,43 +200,43 @@ tree_node_free (TreeNode *node)
 }
 
 static void
-tracker_query_tree_finalize (GObject *object)
+tracker_index_searcher_finalize (GObject *object)
 {
-	TrackerQueryTreePrivate *priv;
+	TrackerIndexSearcherPrivate *priv;
 
-	priv = TRACKER_QUERY_TREE_GET_PRIVATE (object);
+	priv = TRACKER_INDEX_SEARCHER_GET_PRIVATE (object);
 
 	tree_node_free (priv->tree);
 	g_free (priv->query_str);
 
-	G_OBJECT_CLASS (tracker_query_tree_parent_class)->finalize (object);
+	G_OBJECT_CLASS (tracker_index_searcher_parent_class)->finalize (object);
 }
 
 static void
-tracker_query_tree_set_property (GObject      *object,
+tracker_index_searcher_set_property (GObject      *object,
 				 guint         prop_id,
 				 const GValue *value,
 				 GParamSpec   *pspec)
 {
 	switch (prop_id) {
 	case PROP_QUERY:
-		tracker_query_tree_set_query (TRACKER_QUERY_TREE (object),
+		tracker_index_searcher_set_query (TRACKER_INDEX_SEARCHER (object),
 					      g_value_get_string (value));
 		break;
 	case PROP_INDEX:
-		tracker_query_tree_set_index (TRACKER_QUERY_TREE (object),
+		tracker_index_searcher_set_index (TRACKER_INDEX_SEARCHER (object),
                                               g_value_get_object (value));
 		break;
 	case PROP_CONFIG:
-		tracker_query_tree_set_config (TRACKER_QUERY_TREE (object),
+		tracker_index_searcher_set_config (TRACKER_INDEX_SEARCHER (object),
                                                g_value_get_object (value));
 		break;
 	case PROP_LANGUAGE:
-		tracker_query_tree_set_language (TRACKER_QUERY_TREE (object),
+		tracker_index_searcher_set_language (TRACKER_INDEX_SEARCHER (object),
 						 g_value_get_object (value));
 		break;
 	case PROP_SERVICES:
-		tracker_query_tree_set_services (TRACKER_QUERY_TREE (object),
+		tracker_index_searcher_set_services (TRACKER_INDEX_SEARCHER (object),
 						 g_value_get_pointer (value));
 		break;
 	default:
@@ -245,14 +245,14 @@ tracker_query_tree_set_property (GObject      *object,
 }
 
 static void
-tracker_query_tree_get_property (GObject      *object,
+tracker_index_searcher_get_property (GObject      *object,
 				 guint         prop_id,
 				 GValue       *value,
 				 GParamSpec   *pspec)
 {
-	TrackerQueryTreePrivate *priv;
+	TrackerIndexSearcherPrivate *priv;
 
-	priv = TRACKER_QUERY_TREE_GET_PRIVATE (object);
+	priv = TRACKER_INDEX_SEARCHER_GET_PRIVATE (object);
 
 	switch (prop_id) {
 	case PROP_QUERY:
@@ -275,8 +275,8 @@ tracker_query_tree_get_property (GObject      *object,
 	}
 }
 
-TrackerQueryTree *
-tracker_query_tree_new (const gchar     *query_str,
+TrackerIndexSearcher *
+tracker_index_searcher_new (const gchar     *query_str,
 			TrackerIndex    *index,
                         TrackerConfig   *config,
                         TrackerLanguage *language,
@@ -292,7 +292,7 @@ tracker_query_tree_new (const gchar     *query_str,
          * uses the priv->config and priv->language settings.
          * Changing this order results in warnings.
          */
-	return g_object_new (TRACKER_TYPE_QUERY_TREE,
+	return g_object_new (TRACKER_TYPE_INDEX_SEARCHER,
 			     "index", index,
                              "config", config,
                              "language", language,
@@ -328,16 +328,16 @@ print_tree (TreeNode *node)
 #endif
 
 static void
-create_query_tree (TrackerQueryTree *tree)
+create_index_searcher (TrackerIndexSearcher *tree)
 {
-	TrackerQueryTreePrivate *priv;
+	TrackerIndexSearcherPrivate *priv;
 	TreeNode *node, *stack_node;
 	GQueue *queue, *stack;
 	gboolean last_element_is_term = FALSE;
 	gchar *parsed_str, **strings;
 	gint i;
 
-	priv = TRACKER_QUERY_TREE_GET_PRIVATE (tree);
+	priv = TRACKER_INDEX_SEARCHER_GET_PRIVATE (tree);
 
 	strings = g_strsplit (priv->query_str, " ", -1);
 	queue = g_queue_new ();
@@ -450,48 +450,48 @@ create_query_tree (TrackerQueryTree *tree)
 }
 
 void
-tracker_query_tree_set_query (TrackerQueryTree *tree,
+tracker_index_searcher_set_query (TrackerIndexSearcher *tree,
 			      const gchar      *query_str)
 {
-	TrackerQueryTreePrivate *priv;
+	TrackerIndexSearcherPrivate *priv;
 	gchar *str;
 
-	g_return_if_fail (TRACKER_IS_QUERY_TREE (tree));
+	g_return_if_fail (TRACKER_IS_INDEX_SEARCHER (tree));
 	g_return_if_fail (query_str != NULL);
 
-	priv = TRACKER_QUERY_TREE_GET_PRIVATE (tree);
+	priv = TRACKER_INDEX_SEARCHER_GET_PRIVATE (tree);
 
 	str = g_strdup (query_str);
 	g_free (priv->query_str);
 	priv->query_str = str;
 
 	/* construct the parse tree */
-	create_query_tree (tree);
+	create_index_searcher (tree);
 
 	g_object_notify (G_OBJECT (tree), "query");
 }
 
 G_CONST_RETURN gchar *
-tracker_query_tree_get_query (TrackerQueryTree *tree)
+tracker_index_searcher_get_query (TrackerIndexSearcher *tree)
 {
-	TrackerQueryTreePrivate *priv;
+	TrackerIndexSearcherPrivate *priv;
 
-	g_return_val_if_fail (TRACKER_IS_QUERY_TREE (tree), NULL);
+	g_return_val_if_fail (TRACKER_IS_INDEX_SEARCHER (tree), NULL);
 
-	priv = TRACKER_QUERY_TREE_GET_PRIVATE (tree);
+	priv = TRACKER_INDEX_SEARCHER_GET_PRIVATE (tree);
 	return priv->query_str;
 }
 
 void
-tracker_query_tree_set_index (TrackerQueryTree *tree,
+tracker_index_searcher_set_index (TrackerIndexSearcher *tree,
                               TrackerIndex     *index)
 {
-	TrackerQueryTreePrivate *priv;
+	TrackerIndexSearcherPrivate *priv;
 
-	g_return_if_fail (TRACKER_IS_QUERY_TREE (tree));
+	g_return_if_fail (TRACKER_IS_INDEX_SEARCHER (tree));
 	g_return_if_fail (TRACKER_IS_INDEX (index));
 
-	priv = TRACKER_QUERY_TREE_GET_PRIVATE (tree);
+	priv = TRACKER_INDEX_SEARCHER_GET_PRIVATE (tree);
 
 	if (index) {
 		g_object_ref (index);
@@ -507,27 +507,27 @@ tracker_query_tree_set_index (TrackerQueryTree *tree,
 }
 
 TrackerIndex *
-tracker_query_tree_get_index (TrackerQueryTree *tree)
+tracker_index_searcher_get_index (TrackerIndexSearcher *tree)
 {
-	TrackerQueryTreePrivate *priv;
+	TrackerIndexSearcherPrivate *priv;
 
-	g_return_val_if_fail (TRACKER_IS_QUERY_TREE (tree), NULL);
+	g_return_val_if_fail (TRACKER_IS_INDEX_SEARCHER (tree), NULL);
 
-	priv = TRACKER_QUERY_TREE_GET_PRIVATE (tree);
+	priv = TRACKER_INDEX_SEARCHER_GET_PRIVATE (tree);
 
 	return priv->index;
 }
 
 void
-tracker_query_tree_set_config (TrackerQueryTree *tree,
+tracker_index_searcher_set_config (TrackerIndexSearcher *tree,
 			       TrackerConfig    *config)
 {
-	TrackerQueryTreePrivate *priv;
+	TrackerIndexSearcherPrivate *priv;
 
-	g_return_if_fail (TRACKER_IS_QUERY_TREE (tree));
+	g_return_if_fail (TRACKER_IS_INDEX_SEARCHER (tree));
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
-	priv = TRACKER_QUERY_TREE_GET_PRIVATE (tree);
+	priv = TRACKER_INDEX_SEARCHER_GET_PRIVATE (tree);
 
 	if (config) {
 		g_object_ref (config);
@@ -543,27 +543,27 @@ tracker_query_tree_set_config (TrackerQueryTree *tree,
 }
 
 TrackerConfig *
-tracker_query_tree_get_config (TrackerQueryTree *tree)
+tracker_index_searcher_get_config (TrackerIndexSearcher *tree)
 {
-	TrackerQueryTreePrivate *priv;
+	TrackerIndexSearcherPrivate *priv;
 
-	g_return_val_if_fail (TRACKER_IS_QUERY_TREE (tree), NULL);
+	g_return_val_if_fail (TRACKER_IS_INDEX_SEARCHER (tree), NULL);
 
-	priv = TRACKER_QUERY_TREE_GET_PRIVATE (tree);
+	priv = TRACKER_INDEX_SEARCHER_GET_PRIVATE (tree);
 
 	return priv->config;
 }
 
 void
-tracker_query_tree_set_language (TrackerQueryTree *tree,
+tracker_index_searcher_set_language (TrackerIndexSearcher *tree,
                                  TrackerLanguage  *language)
 {
-	TrackerQueryTreePrivate *priv;
+	TrackerIndexSearcherPrivate *priv;
 
-	g_return_if_fail (TRACKER_IS_QUERY_TREE (tree));
+	g_return_if_fail (TRACKER_IS_INDEX_SEARCHER (tree));
 	g_return_if_fail (language != NULL);
 
-	priv = TRACKER_QUERY_TREE_GET_PRIVATE (tree);
+	priv = TRACKER_INDEX_SEARCHER_GET_PRIVATE (tree);
 
 	if (language) {
 		g_object_ref (language);
@@ -579,27 +579,27 @@ tracker_query_tree_set_language (TrackerQueryTree *tree,
 }
 
 TrackerLanguage *
-tracker_query_tree_get_language (TrackerQueryTree *tree)
+tracker_index_searcher_get_language (TrackerIndexSearcher *tree)
 {
-	TrackerQueryTreePrivate *priv;
+	TrackerIndexSearcherPrivate *priv;
 
-	g_return_val_if_fail (TRACKER_IS_QUERY_TREE (tree), NULL);
+	g_return_val_if_fail (TRACKER_IS_INDEX_SEARCHER (tree), NULL);
 
-	priv = TRACKER_QUERY_TREE_GET_PRIVATE (tree);
+	priv = TRACKER_INDEX_SEARCHER_GET_PRIVATE (tree);
 
 	return priv->language;
 }
 
 void
-tracker_query_tree_set_services (TrackerQueryTree *tree,
+tracker_index_searcher_set_services (TrackerIndexSearcher *tree,
 				 GArray           *services)
 {
-	TrackerQueryTreePrivate *priv;
+	TrackerIndexSearcherPrivate *priv;
 	GArray *copy = NULL;
 
-	g_return_if_fail (TRACKER_IS_QUERY_TREE (tree));
+	g_return_if_fail (TRACKER_IS_INDEX_SEARCHER (tree));
 
-	priv = TRACKER_QUERY_TREE_GET_PRIVATE (tree);
+	priv = TRACKER_INDEX_SEARCHER_GET_PRIVATE (tree);
 
 	if (priv->services != services) {
 		if (services) {
@@ -616,13 +616,13 @@ tracker_query_tree_set_services (TrackerQueryTree *tree,
 }
 
 GArray *
-tracker_query_tree_get_services (TrackerQueryTree *tree)
+tracker_index_searcher_get_services (TrackerIndexSearcher *tree)
 {
-	TrackerQueryTreePrivate *priv;
+	TrackerIndexSearcherPrivate *priv;
 
-	g_return_val_if_fail (TRACKER_IS_QUERY_TREE (tree), NULL);
+	g_return_val_if_fail (TRACKER_IS_INDEX_SEARCHER (tree), NULL);
 
-	priv = TRACKER_QUERY_TREE_GET_PRIVATE (tree);
+	priv = TRACKER_INDEX_SEARCHER_GET_PRIVATE (tree);
 
 	return priv->services;
 }
@@ -642,14 +642,14 @@ get_tree_words (TreeNode *node, GSList **list)
 }
 
 GSList *
-tracker_query_tree_get_words (TrackerQueryTree *tree)
+tracker_index_searcher_get_words (TrackerIndexSearcher *tree)
 {
-	TrackerQueryTreePrivate *priv;
+	TrackerIndexSearcherPrivate *priv;
 	GSList *list = NULL;
 
-	g_return_val_if_fail (TRACKER_IS_QUERY_TREE (tree), NULL);
+	g_return_val_if_fail (TRACKER_IS_INDEX_SEARCHER (tree), NULL);
 
-	priv = TRACKER_QUERY_TREE_GET_PRIVATE (tree);
+	priv = TRACKER_INDEX_SEARCHER_GET_PRIVATE (tree);
 	get_tree_words (priv->tree, &list);
 
 	return list;
@@ -691,15 +691,15 @@ search_hit_data_free (SearchHitData *search_hit)
 }
 
 static GHashTable *
-get_search_term_hits (TrackerQueryTree *tree,
+get_search_term_hits (TrackerIndexSearcher *tree,
 		      const gchar      *term)
 {
-	TrackerQueryTreePrivate *priv;
+	TrackerIndexSearcherPrivate *priv;
 	TrackerIndexItem *details;
 	GHashTable *result;
 	guint count, i;
 
-	priv = TRACKER_QUERY_TREE_GET_PRIVATE (tree);
+	priv = TRACKER_INDEX_SEARCHER_GET_PRIVATE (tree);
 	result = g_hash_table_new_full (NULL, NULL, NULL,
 					(GDestroyNotify) search_hit_data_free);
 
@@ -792,7 +792,7 @@ compose_hits (OperationType  op,
 }
 
 static GHashTable *
-get_node_hits (TrackerQueryTree *tree,
+get_node_hits (TrackerIndexSearcher *tree,
 	       TreeNode         *node)
 {
 	GHashTable *left_table, *right_table, *result;
@@ -852,17 +852,17 @@ compare_search_hits (gconstpointer a,
 }
 
 GArray *
-tracker_query_tree_get_hits (TrackerQueryTree *tree,
+tracker_index_searcher_get_hits (TrackerIndexSearcher *tree,
 			     guint             offset,
 			     guint             limit)
 {
-	TrackerQueryTreePrivate *priv;
+	TrackerIndexSearcherPrivate *priv;
 	GHashTable *table;
 	GArray *array;
 
-	g_return_val_if_fail (TRACKER_IS_QUERY_TREE (tree), NULL);
+	g_return_val_if_fail (TRACKER_IS_INDEX_SEARCHER (tree), NULL);
 
-	priv = TRACKER_QUERY_TREE_GET_PRIVATE (tree);
+	priv = TRACKER_INDEX_SEARCHER_GET_PRIVATE (tree);
 
 	g_return_val_if_fail (priv->tree != NULL, NULL);
 
@@ -885,15 +885,15 @@ tracker_query_tree_get_hits (TrackerQueryTree *tree,
 }
 
 gint
-tracker_query_tree_get_hit_count (TrackerQueryTree *tree)
+tracker_index_searcher_get_hit_count (TrackerIndexSearcher *tree)
 {
-	TrackerQueryTreePrivate *priv;
+	TrackerIndexSearcherPrivate *priv;
 	GHashTable *table;
 	gint count;
 
-	g_return_val_if_fail (TRACKER_IS_QUERY_TREE (tree), 0);
+	g_return_val_if_fail (TRACKER_IS_INDEX_SEARCHER (tree), 0);
 
-	priv = TRACKER_QUERY_TREE_GET_PRIVATE (tree);
+	priv = TRACKER_INDEX_SEARCHER_GET_PRIVATE (tree);
 	table = get_node_hits (tree, priv->tree);
 
 	if (!table)
@@ -920,16 +920,16 @@ get_hit_count_foreach (gpointer key,
 }
 
 GArray *
-tracker_query_tree_get_hit_counts (TrackerQueryTree *tree)
+tracker_index_searcher_get_hit_counts (TrackerIndexSearcher *tree)
 {
 	GHashTable *table;
 	GArray *hits, *counts;
 	guint i;
 
-	g_return_val_if_fail (TRACKER_IS_QUERY_TREE (tree), NULL);
+	g_return_val_if_fail (TRACKER_IS_INDEX_SEARCHER (tree), NULL);
 
 	table = g_hash_table_new (NULL, NULL);
-	hits = tracker_query_tree_get_hits (tree, 0, 0);
+	hits = tracker_index_searcher_get_hits (tree, 0, 0);
 	counts = g_array_sized_new (TRUE, TRUE, sizeof (TrackerHitCount), 10);
 
 	for (i = 0; i < hits->len; i++) {

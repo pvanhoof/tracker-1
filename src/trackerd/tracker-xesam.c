@@ -34,7 +34,7 @@
 #include "tracker-status.h"
 #include "tracker-xesam-manager.h"
 #include "tracker-rdf-query.h"
-#include "tracker-query-tree.h"
+#include "tracker-index-searcher.h"
 #include "tracker-index.h"
 #include "tracker-marshal.h"
 

@@ -1,3 +1,14 @@
+2008-08-04  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/trackerd/Makefile.am
+	* src/trackerd/tracker-index-searcher.[ch]: Added
+	* src/trackerd/tracker-query-tree.[ch]: Removed
+	* src/trackerd/tracker-index.c
+	* src/trackerd/tracker-search.c
+	* src/trackerd/tracker-xesam.c	
+	* src/trackerd/tracker-db.c:
+	Renamed tracker-query-tree to tracker-index-searcher
+	
 2008-08-01  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/trackerd/tracker-keywords.c:

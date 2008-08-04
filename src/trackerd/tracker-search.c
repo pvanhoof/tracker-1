@@ -38,7 +38,7 @@
 #include "tracker-dbus.h"
 #include "tracker-search.h"
 #include "tracker-rdf-query.h"
-#include "tracker-query-tree.h"
+#include "tracker-index-searcher.h"
 #include "tracker-index.h"
 #include "tracker-marshal.h"
 
@@ -441,7 +441,7 @@ tracker_search_get_hit_count (TrackerSearch          *object,
 {
 	GError            *actual_error = NULL;
 	TrackerSearchPriv *priv;
-	TrackerQueryTree  *tree;
+	TrackerIndexSearcher  *tree;
 	GArray            *array;
 	guint              request_id;
 	gint               services[12];
@@ -504,13 +504,13 @@ tracker_search_get_hit_count (TrackerSearch          *object,
 
 	array = g_array_new (TRUE, TRUE, sizeof (gint));
 	g_array_append_vals (array, services, G_N_ELEMENTS (services));
-	tree = tracker_query_tree_new (search_text, 
-				       priv->file_index, 
-				       priv->config,
-				       priv->language,
-				       array);
+	tree = tracker_index_searcher_new (search_text, 
+					   priv->file_index, 
+					   priv->config,
+					   priv->language,
+					   array);
 
-	dbus_g_method_return (context, tracker_query_tree_get_hit_count (tree));
+	dbus_g_method_return (context, tracker_index_searcher_get_hit_count (tree));
 
 	g_object_unref (tree);
 	g_array_free (array, TRUE);
@@ -527,7 +527,7 @@ tracker_search_get_hit_count_all (TrackerSearch          *object,
 	GError             *actual_error = NULL;
 	TrackerSearchPriv  *priv;
 	TrackerDBResultSet *result_set = NULL;
-	TrackerQueryTree   *tree;
+	TrackerIndexSearcher   *tree;
 	GArray             *hit_counts;
 	GArray             *mail_hit_counts;
 	guint               request_id;
@@ -555,15 +555,15 @@ tracker_search_get_hit_count_all (TrackerSearch          *object,
 
 	priv = GET_PRIV (object);
 
-	tree = tracker_query_tree_new (search_text, 
+	tree = tracker_index_searcher_new (search_text, 
 				       priv->file_index, 
 				       priv->config,
 				       priv->language,
 				       NULL);
 
-	hit_counts = tracker_query_tree_get_hit_counts (tree);
-	tracker_query_tree_set_index (tree, priv->email_index);
-	mail_hit_counts = tracker_query_tree_get_hit_counts (tree);
+	hit_counts = tracker_index_searcher_get_hit_counts (tree);
+	tracker_index_searcher_set_index (tree, priv->email_index);
+	mail_hit_counts = tracker_index_searcher_get_hit_counts (tree);
 	g_array_append_vals (hit_counts, mail_hit_counts->data, mail_hit_counts->len);
 	g_array_free (mail_hit_counts, TRUE);
 

@@ -40,7 +40,7 @@
 #include <libtracker-db/tracker-db-manager.h>
 
 #include "tracker-db.h"
-#include "tracker-query-tree.h"
+#include "tracker-index-searcher.h"
 #include "tracker-monitor.h"
 #include "tracker-xesam-manager.h"
 #include "tracker-main.h"
@@ -740,7 +740,7 @@ tracker_db_search_text (TrackerDBInterface *iface,
 			gboolean            save_results, 
 			gboolean            detailed)
 {
-	TrackerQueryTree    *tree;
+	TrackerIndexSearcher    *tree;
 	TrackerDBResultSet  *result_set, *result;
 	gchar 		   **array;
 	GArray              *hits;
@@ -786,12 +786,12 @@ tracker_db_search_text (TrackerDBInterface *iface,
 		g_object_unref (result_set);
 	}
 
-	tree = tracker_query_tree_new (search_string, 
+	tree = tracker_index_searcher_new (search_string, 
 				       file_index, 
 				       config,
 				       language,
 				       services);
-	hits = tracker_query_tree_get_hits (tree, offset, limit);
+	hits = tracker_index_searcher_get_hits (tree, offset, limit);
 	result = NULL;
 
 	if (save_results) {
@@ -898,8 +898,8 @@ tracker_db_search_text (TrackerDBInterface *iface,
 		TrackerIndex *indexer;
 		GSList       *words, *w;
 
-		words = tracker_query_tree_get_words (tree);
-		indexer = tracker_query_tree_get_index (tree);
+		words = tracker_index_searcher_get_words (tree);
+		indexer = tracker_index_searcher_get_index (tree);
 
 		for (w = words; w; w = w->next) {
 			tracker_index_remove_dud_hits (indexer, 
@@ -933,7 +933,7 @@ tracker_db_search_text_and_mime (TrackerDBInterface  *iface,
 				 const gchar         *text, 
 				 gchar              **mime_array)
 {
-	TrackerQueryTree   *tree;
+	TrackerIndexSearcher   *tree;
 	TrackerDBResultSet *result_set1;
 	GArray             *hits;
 	GArray             *services;
@@ -947,12 +947,12 @@ tracker_db_search_text_and_mime (TrackerDBInterface  *iface,
 	result_set1 = NULL;
 	services = db_create_array_of_services ();
 
-	tree = tracker_query_tree_new (text, 
+	tree = tracker_index_searcher_new (text, 
 				       file_index, 
 				       config,
 				       language,
 				       services);
-	hits = tracker_query_tree_get_hits (tree, 0, 0);
+	hits = tracker_index_searcher_get_hits (tree, 0, 0);
 
 	for (i = 0, count = 0; i < hits->len; i++) {
 		TrackerDBResultSet *result_set2;
@@ -1028,7 +1028,7 @@ tracker_db_search_text_and_location (TrackerDBInterface *iface,
 				     const gchar        *location)
 {
 	TrackerDBResultSet *result_set1;
-	TrackerQueryTree   *tree;
+	TrackerIndexSearcher   *tree;
 	GArray             *hits;
 	GArray             *services;
 	gchar	           *location_prefix;
@@ -1043,12 +1043,12 @@ tracker_db_search_text_and_location (TrackerDBInterface *iface,
 	location_prefix = g_strconcat (location, G_DIR_SEPARATOR_S, NULL);
 	services = db_create_array_of_services ();
 
-	tree = tracker_query_tree_new (text, 
+	tree = tracker_index_searcher_new (text, 
 				       file_index, 
 				       config,
 				       language,
 				       services);
-	hits = tracker_query_tree_get_hits (tree, 0, 0);
+	hits = tracker_index_searcher_get_hits (tree, 0, 0);
 
 	for (i = 0, count = 0; i < hits->len; i++) {
 		TrackerDBResultSet *result_set2;
@@ -1126,7 +1126,7 @@ tracker_db_search_text_and_mime_and_location (TrackerDBInterface  *iface,
 					      const gchar         *location)
 {
 	TrackerDBResultSet *result_set1;
-	TrackerQueryTree   *tree;
+	TrackerIndexSearcher   *tree;
 	GArray             *hits;
 	GArray             *services;
 	gchar	           *location_prefix;
@@ -1141,12 +1141,12 @@ tracker_db_search_text_and_mime_and_location (TrackerDBInterface  *iface,
 	location_prefix = g_strconcat (location, G_DIR_SEPARATOR_S, NULL);
 	services = db_create_array_of_services ();
 
-	tree = tracker_query_tree_new (text, 
+	tree = tracker_index_searcher_new (text, 
 				       file_index, 
 				       config,
 				       language,
 				       services);
-	hits = tracker_query_tree_get_hits (tree, 0, 0);
+	hits = tracker_index_searcher_get_hits (tree, 0, 0);
 
 	for (i = 0, count = 0; i < hits->len; i++) {
 		TrackerDBResultSet *result_set2;

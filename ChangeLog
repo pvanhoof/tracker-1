@@ -1,5 +1,11 @@
 2008-08-04  Ivan Frade  <ivan.frade@nokia.com>
 
+	* data/services/audio.metadata: The embedded properties cannot be
+	written by the user. Marked "PlayCount" and "Last play date" as
+	not embedded.
+	
+2008-08-04  Ivan Frade  <ivan.frade@nokia.com>
+
 	* src/libtracker-common/tracker-type-utils.[ch]
 	(tracker_string_to_string_list): new helper function.
 	

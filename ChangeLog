@@ -1,4 +1,14 @@
-2008-08-04  Ivan frade  <ivan.frade@nokia.com>
+2008-08-04  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/libtracker-common/tracker-dbus.c
+	(tracker_dbus_request_failed): If the format of the message is
+	null and the error is set, we log the existing message. This
+	allows tracker to log the errors coming from the indexer.
+	
+	* tests/libtracker-common/tracker-dbus-test.c: Unit test to the
+	implementation.	
+	
+2008-08-04  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/trackerd/tracker-metadata.c: Now uses the indexer to write
 	metadata in the database.

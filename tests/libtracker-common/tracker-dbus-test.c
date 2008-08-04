@@ -127,6 +127,41 @@ test_results_ptr_array_free (void)
 	g_assert (array == NULL);
 }
 
+static void
+test_dbus_request_failed (void) 
+{
+	GError *error = NULL;
+
+	/* Default case: we set the error */
+        if (g_test_trap_fork (0, G_TEST_TRAP_SILENCE_STDERR)) {
+		tracker_dbus_request_failed (1, &error, "Test Error message");
+	}
+	g_test_trap_assert_stderr ("*Test Error message*");
+
+	/* Second common case: we have already the error and want only the log line */
+	error = g_error_new (1000, -1, "The indexer founded an error");
+        if (g_test_trap_fork (0, G_TEST_TRAP_SILENCE_STDERR)) {
+		tracker_dbus_request_failed (1, &error, NULL);
+	}
+	g_test_trap_assert_stderr ("*The indexer founded an error*");
+	g_error_free (error);
+
+
+	/* Wrong use: error set and we add a new message */
+	error = g_error_new (1000, -1, "The indexer founded an error");
+        if (g_test_trap_fork (0, G_TEST_TRAP_SILENCE_STDERR)) {
+		tracker_dbus_request_failed (1, &error, "Dont do this");
+	}
+	g_test_trap_assert_stderr ("*GError set over the top of a previous GError or uninitialized memory*");
+	g_error_free (error);
+
+	error = NULL;
+	/* Wrong use: no error, no message */
+        if (g_test_trap_fork (0, G_TEST_TRAP_SILENCE_STDERR)) {
+		tracker_dbus_request_failed (1, &error, NULL);
+	}
+	g_test_trap_assert_stderr ("*Unset error and no error message*");
+}
 
 int
 main (int argc, char **argv) {
@@ -142,6 +177,7 @@ main (int argc, char **argv) {
         g_test_add_func ("/libtracker-common/tracker-dbus/async_queue_to_strv_ok", test_async_queue_to_strv);
         g_test_add_func ("/libtracker-common/tracker-dbus/async_queue_to_strv_nonutf8", test_async_queue_to_strv_nonutf8);
 	g_test_add_func ("/libtracker-common/tracker-dbus/free_ptr_array", test_results_ptr_array_free);
+	g_test_add_func ("/libtracker-common/tracker-dbus/dbus_request_failed", test_dbus_request_failed);
 
         result = g_test_run ();
         

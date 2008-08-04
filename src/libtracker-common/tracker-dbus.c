@@ -294,11 +294,18 @@ tracker_dbus_request_failed (gint          request_id,
 
 	request_handler_call_for_done (request_id);
 
-	va_start (args, format);
-	str = g_strdup_vprintf (format, args);
-	va_end (args);
-
-	g_set_error (error, TRACKER_DBUS_ERROR, 0, str);
+	if (format) {
+		va_start (args, format);
+		str = g_strdup_vprintf (format, args);
+		va_end (args);
+		
+		g_set_error (error, TRACKER_DBUS_ERROR, 0, str);
+		
+	} else if (*error != NULL) {
+		str = g_strdup ((*error)->message);
+	} else {
+		g_critical ("Unset error and no error message.");
+	}
 
 	g_message ("---> [%d] Failed, %s",
 		   request_id,

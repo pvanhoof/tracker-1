@@ -72,7 +72,7 @@
 	
 	* data/dbus/tracker-indexer.xml
 	* src/tracker-indexer/tracker-indexer-db.[ch]
-	* src/tracker-indexer/tracker-indexer.[ch]
+	* src/tracker-indexer/tracker-indexer.[ch]:
 	New methods ("PropertySet" and "PropertyRemove") in
 	tracker-indexer. 
 	

@@ -12,7 +12,6 @@
 	service type of an uri. Implementation in the files module and
 	explanation in "dummy" module.
 	
-	
 2008-08-04  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-crawler.[ch]: Make the is_path_ignored()

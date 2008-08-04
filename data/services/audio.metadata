@@ -127,11 +127,13 @@ DisplayName=Last Played
 Description=The date and time the track was last played
 DataType=date
 Parent=DC:Date
+Embedded=false
 
 [Audio:PlayCount]
 DisplayName=Play Count
 Description=Number of times the track has been played
 DataType=integer
+Embedded=false
 
 [Audio:DateAdded]
 DisplayName=Date Added

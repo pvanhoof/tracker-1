@@ -48,6 +48,19 @@ tracker_module_get_name (void)
 	return "Files";
 }
 
+gchar *
+tracker_module_file_get_service_type (const gchar *uri) 
+{
+        gchar *mimetype;
+        gchar *service_type;
+
+        mimetype = tracker_file_get_mime_type (uri);
+        service_type = tracker_ontology_get_service_type_for_mime (mimetype);
+        g_free (mimetype);
+        
+        return service_type;
+}
+
 static void
 tracker_metadata_get_embedded (const char      *path,
 			       const char      *mimetype,

@@ -42,9 +42,10 @@ typedef gchar **          (* TrackerModuleGetDirectoriesFunc) (void);
 typedef gpointer          (* TrackerModuleFileGetDataFunc)  (const gchar *path);
 typedef void              (* TrackerModuleFileFreeDataFunc) (gpointer     data);
 
-typedef void              (* TrackerModuleFileGetUriFunc)   (TrackerFile  *file,
-                                                             gchar       **dirname,
-                                                             gchar       **basename);
+typedef gchar *           (* TrackerModuleFileGetServiceTypeFunc) (const gchar *path);
+typedef void              (* TrackerModuleFileGetUriFunc)         (TrackerFile  *file,
+                                                                   gchar       **dirname,
+                                                                   gchar       **basename);
 
 typedef TrackerMetadata * (* TrackerModuleFileGetMetadataFunc) (TrackerFile *file);
 typedef gchar *           (* TrackerModuleFileGetText)         (TrackerFile *path);
@@ -59,6 +60,7 @@ G_CONST_RETURN gchar * tracker_module_get_name               (void);
 gpointer               tracker_module_file_get_data  (const gchar *path);
 void                   tracker_module_file_free_data (gpointer     file_data);
 
+gchar *                tracker_module_file_get_service_type  (const gchar *path);
 void                   tracker_module_file_get_uri   (TrackerFile  *file,
                                                       gchar       **dirname,
                                                       gchar       **basename);

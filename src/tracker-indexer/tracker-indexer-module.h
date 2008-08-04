@@ -45,6 +45,8 @@ gboolean                tracker_indexer_module_file_get_uri           (GModule  
 								       TrackerFile  *file,
 								       gchar       **dirname,
 								       gchar       **basename);
+gchar *                 tracker_indexer_module_file_get_service_type  (GModule      *module,
+								       const gchar   *path);
 TrackerMetadata *       tracker_indexer_module_file_get_metadata      (GModule      *module,
 								       TrackerFile  *file);
 gchar *                 tracker_indexer_module_file_get_text          (GModule      *module,

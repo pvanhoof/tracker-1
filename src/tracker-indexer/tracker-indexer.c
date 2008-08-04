@@ -916,16 +916,7 @@ create_update_item (TrackerIndexer  *indexer,
 	gchar *text;
 	guint32 id;
 
-	service_type = g_strdup (tracker_module_config_get_index_service (info->file->module_name));
-
-	if (!service_type || !service_type[0]) {
-		gchar *mimetype;
-
-		g_free (service_type);
-		mimetype = tracker_file_get_mime_type (info->file->path);
-		service_type = tracker_ontology_get_service_type_for_mime (mimetype);
-		g_free (mimetype);
-	}
+	service_type = tracker_indexer_module_file_get_service_type (info->module, info->file->path);
 
 	service_def = tracker_ontology_get_service_type_by_name (service_type);
 	g_free (service_type);
@@ -1116,7 +1107,7 @@ handle_metadata_remove (TrackerIndexer *indexer,
 
 	field_def = tracker_ontology_get_field_def (property);
 	if (!field_def) {
-		g_message ("Unknow field %d", property);
+		g_message ("Unknow field %s", property);
 		return FALSE;
 	}
 
@@ -1571,7 +1562,6 @@ tracker_indexer_property_set (TrackerIndexer         *indexer,
 			      GError                **error) {
 
 	guint     request_id;
-	gboolean  result;
 	GError   *actual_error = NULL;
 	request_id = tracker_dbus_get_next_request_id ();
 

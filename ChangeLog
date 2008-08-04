@@ -1,3 +1,18 @@
+2008-08-04  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/tracker-indexer/tracker-indexer-module.[ch]
+	(tracker_indexer_module_file_get_service_type): Call the function
+	tracker_module_file_get_service_type in the module. If this
+	function doesnt exist, use the module name as service type of the uri.
+	* src/tracker-indexer/tracker-indexer.c
+	* src/tracker-indexer/tracker-module.h
+	* src/tracker-indexer/modules/dummy.c
+	* src/tracker-indexer/modules/files.c
+	(tracker_module_file_get_service_type): New function to obtain the
+	service type of an uri. Implementation in the files module and
+	explanation in "dummy" module.
+	
+	
 2008-08-04  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-crawler.[ch]: Make the is_path_ignored()

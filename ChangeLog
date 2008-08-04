@@ -1,3 +1,9 @@
+2008-08-04  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-crawler.[ch]:
+	* src/trackerd/tracker-processor.c: Removed TrackerHal
+	dependency, it is unused in this module now.
+
 2008-08-04  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/tracker-indexer/tracker-indexer-module.[ch]

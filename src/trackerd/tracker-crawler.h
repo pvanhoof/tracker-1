@@ -24,7 +24,6 @@
 #include <glib-object.h>
 
 #include <libtracker-common/tracker-config.h>
-#include <libtracker-common/tracker-hal.h>
 
 G_BEGIN_DECLS
 
@@ -50,7 +49,6 @@ struct _TrackerCrawlerClass {
 
 GType           tracker_crawler_get_type             (void);
 TrackerCrawler *tracker_crawler_new                  (TrackerConfig  *config,
-						      TrackerHal     *hal,
 						      const gchar    *module_name);
 gboolean        tracker_crawler_start                (TrackerCrawler *crawler);
 void            tracker_crawler_stop                 (TrackerCrawler *crawler);

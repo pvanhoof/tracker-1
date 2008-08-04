@@ -1261,9 +1261,7 @@ tracker_processor_new (TrackerConfig *config,
 
 	/* Set up the crawlers now we have config and hal */
 	for (l = priv->modules; l; l = l->next) {
-		crawler = tracker_crawler_new (priv->config,
-					       priv->hal,
-					       l->data);
+		crawler = tracker_crawler_new (priv->config, l->data);
 		
 		g_signal_connect (crawler, "processing-file",
 				  G_CALLBACK (crawler_processing_file_cb),

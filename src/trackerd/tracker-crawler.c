@@ -216,16 +216,11 @@ tracker_crawler_finalize (GObject *object)
 
 	g_object_unref (priv->config);
 
-	if (priv->hal) {
-		g_object_unref (priv->hal);
-	}
-
 	G_OBJECT_CLASS (tracker_crawler_parent_class)->finalize (object);
 }
 
 TrackerCrawler *
 tracker_crawler_new (TrackerConfig *config,
-		     TrackerHal    *hal,
 		     const gchar   *module_name)
 {
 	TrackerCrawler *crawler;
@@ -233,17 +228,9 @@ tracker_crawler_new (TrackerConfig *config,
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 	g_return_val_if_fail (module_name != NULL, NULL);
 
-#ifdef HAVE_HAL
-	g_return_val_if_fail (TRACKER_IS_HAL (hal), NULL);
-#endif /* HAVE_HAL */
-
 	crawler = g_object_new (TRACKER_TYPE_CRAWLER, NULL);
 
 	crawler->private->config = g_object_ref (config);
-
-#ifdef HAVE_HAL
-	crawler->private->hal = g_object_ref (hal);
-#endif /* HAVE_HAL */
 
 	crawler->private->module_name = g_strdup (module_name);
 

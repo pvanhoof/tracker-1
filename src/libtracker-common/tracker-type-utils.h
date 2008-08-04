@@ -42,6 +42,7 @@ GSList * tracker_string_list_to_gslist     (gchar               **strv,
 gchar *  tracker_string_list_to_string     (gchar               **strv,
 					    gsize                 length,
 					    gchar                 sep);
+gchar ** tracker_string_to_string_list     (const gchar          *str);
 
 /* "true" -> "1"; "false" -> "0" */
 gchar *  tracker_boolean_as_text_to_number (const gchar          *value);

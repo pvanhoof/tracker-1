@@ -678,6 +678,20 @@ tracker_string_list_to_string (gchar **strv,
 	return g_string_free (string, FALSE);
 }
 
+gchar ** 
+tracker_string_to_string_list (const gchar *str)
+{
+	gchar **result;
+
+	result = g_new0 (gchar *, 2);
+
+	result [0] = g_strdup (str);
+	result [1] = NULL;
+
+	return result;
+}
+
+
 gchar *  
 tracker_boolean_as_text_to_number  (const gchar *value)
 {

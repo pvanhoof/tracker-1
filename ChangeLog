@@ -1,3 +1,8 @@
+2008-08-04  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/libtracker-common/tracker-type-utils.[ch]
+	(tracker_string_to_string_list): new helper function.
+	
 2008-08-04  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-monitor.c: Added black listing. This works

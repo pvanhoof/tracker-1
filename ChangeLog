@@ -1,3 +1,8 @@
+2008-08-04  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/tracker-indexer/tracker-indexer.c: Using GError in the
+	metadata handlers to report proper error to the daemon.
+	
 2008-08-04  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer.c (delete_item): Do not try to

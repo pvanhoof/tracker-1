@@ -87,6 +87,9 @@
 #define THROTTLE_DEFAULT            0
 #define THROTTLE_DEFAULT_ON_BATTERY 5
 
+#define TRACKER_INDEXER_ERROR      "tracker-indexer-error-domain"
+#define TRACKER_INDEXER_ERROR_CODE  0
+
 typedef struct PathInfo PathInfo;
 typedef struct MetadataForeachData MetadataForeachData;
 typedef struct MetadataRequest MetadataRequest;
@@ -1038,20 +1041,31 @@ handle_metadata_add (TrackerIndexer *indexer,
 		     const gchar    *service_type,
 		     const gchar    *uri,
 		     const gchar    *property,
-		     GStrv           values)
+		     GStrv           values,
+		     GError        **error)
 {
 	TrackerService *service_def;
 	TrackerField *field_def;
 	guint service_id, i;
 	gchar *joined, *dirname, *basename;
 
+	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+
 	service_def = tracker_ontology_get_service_type_by_name (service_type);
 	if (!service_def) {
+		g_set_error (error, 
+			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
+			     TRACKER_INDEXER_ERROR_CODE,
+			     "Unknown service type: '%s'", service_type);
 		return FALSE;
 	}
 
 	field_def = tracker_ontology_get_field_def (property);
 	if (!field_def) {
+		g_set_error (error, 
+			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
+			     TRACKER_INDEXER_ERROR_CODE,
+			     "Unknown field type: '%s'", property);
 		return FALSE;
 	}
 
@@ -1064,7 +1078,10 @@ handle_metadata_add (TrackerIndexer *indexer,
 	g_free (basename);
 
 	if (service_id < 1) {
-		g_message ("Cannot delete file: it doesnt exist in DB");
+		g_set_error (error, 
+			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
+			     TRACKER_INDEXER_ERROR_CODE,
+			     "File '%s' doesnt exist in the DB", uri);
 		return FALSE;
 	}
 
@@ -1098,7 +1115,8 @@ handle_metadata_remove (TrackerIndexer *indexer,
 			const gchar    *service_type,
 			const gchar    *uri,
 			const gchar    *property,
-			GStrv           values)
+			GStrv           values,
+			GError        **error)
 {
 	TrackerService *service_def;
 	TrackerField *field_def;
@@ -1107,12 +1125,19 @@ handle_metadata_remove (TrackerIndexer *indexer,
 
 	service_def = tracker_ontology_get_service_type_by_name (service_type);
 	if (!service_def) {
+		g_set_error (error, 
+			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
+			     TRACKER_INDEXER_ERROR_CODE,
+			     "Unknown service type: '%s'", service_type);
 		return FALSE;
 	}
 
 	field_def = tracker_ontology_get_field_def (property);
 	if (!field_def) {
-		g_message ("Unknow field %s", property);
+		g_set_error (error, 
+			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
+			     TRACKER_INDEXER_ERROR_CODE,
+			     "Unknown field type: '%s'", property);
 		return FALSE;
 	}
 
@@ -1125,7 +1150,10 @@ handle_metadata_remove (TrackerIndexer *indexer,
 	g_free (basename);
 
 	if (service_id < 1) {
-		g_message ("Cannot delete file: it doesnt exist in DB");
+		g_set_error (error, 
+			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
+			     TRACKER_INDEXER_ERROR_CODE,
+			     "File '%s' doesnt exist in the DB", uri);
 		return FALSE;
 	}
 
@@ -1583,10 +1611,10 @@ tracker_indexer_property_set (TrackerIndexer         *indexer,
 				  property,
 				  uri);
 
-	if (!handle_metadata_add (indexer, service_type, uri, property, values)) {
+	if (!handle_metadata_add (indexer, service_type, uri, property, values, &actual_error)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
-					     "Unespecified error adding metadata");
+					     NULL);
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
 		return;
@@ -1608,7 +1636,7 @@ tracker_indexer_property_remove (TrackerIndexer         *indexer,
 				 GError                **error) {
 
 	guint   request_id;
-	GError *actual_error;
+	GError *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -1624,10 +1652,10 @@ tracker_indexer_property_remove (TrackerIndexer         *indexer,
 				  property,
 				  uri);
 
-	if (!handle_metadata_remove (indexer, service_type, uri, property, values)) {
+	if (!handle_metadata_remove (indexer, service_type, uri, property, values, &actual_error)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
-					     "Unespecified error deleting metadata");
+					     NULL);
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
 		return;

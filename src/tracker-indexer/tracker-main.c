@@ -201,19 +201,18 @@ quit_timeout_cb (gpointer user_data)
 
 static void
 indexer_finished_cb (TrackerIndexer *indexer,
-                     gdouble seconds_elapsed,
-                     guint items_indexed,
-		     gpointer user_data)
+                     gdouble         seconds_elapsed,
+                     guint           items_indexed,
+		     gpointer        user_data)
 {
-        if (items_indexed > 0) {
-                g_main_loop_quit (main_loop);
-                return;
+        g_message ("Finished indexing sent items");
+
+        if (quit_timeout_id) {
+                g_message ("Cancelling previous quit timeout");
+                g_source_remove (quit_timeout_id);
         }
 
-        /* If we didn't index anything yet, wait for a minimum of 10
-         * seconds or so before quitting. 
-         */
-        g_message ("Nothing was indexed, waiting %d seconds before quitting...",
+        g_message ("Waiting another %d seconds for more items before quitting...",
                    QUIT_TIMEOUT);
 
         quit_timeout_id = g_timeout_add_seconds_full (G_PRIORITY_DEFAULT,

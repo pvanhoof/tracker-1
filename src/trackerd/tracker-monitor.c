@@ -486,7 +486,7 @@ black_list_check_items_cb (gpointer data)
 		}
 
 		path = g_file_get_path (key);
-		g_message ("Removing '%s' from black list count", path);
+		g_debug ("Removing '%s' from black list count", path);
 		g_free (path);
 
 		/* Only signal if count >= BLACK_LIST_MAX_HITS, since
@@ -528,7 +528,7 @@ black_list_check_items_cb (gpointer data)
 	 * timeout again when we need it instead.
 	 */
 	if (g_hash_table_size (monitor->private->black_list_count) < 1) {
-		g_message ("No further items on the black list, removing check timeout");
+		g_debug ("No further items on the black list, removing check timeout");
 		monitor->private->black_list_timeout_id = 0;
 		return FALSE;
 	}
@@ -582,10 +582,10 @@ black_list_file_increment (TrackerMonitor *monitor,
 	}
 
 	path = g_file_get_path (file);
-	g_message ("Adding '%s' to black list count:%d (MAX is %d)", 
-		   path,
-		   count,
-		   BLACK_LIST_MAX_HITS);
+	g_debug ("Adding '%s' to black list count:%d (MAX is %d)", 
+		 path,
+		 count,
+		 BLACK_LIST_MAX_HITS);
 	g_free (path);
 }
 

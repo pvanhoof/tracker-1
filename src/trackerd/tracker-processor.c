@@ -549,6 +549,9 @@ item_queue_handlers_cb (gpointer user_data)
 
 	processor = user_data;
 
+	/* Now we try to send items to the indexer */
+	tracker_status_set_and_signal (TRACKER_STATUS_INDEXING);
+
 	/* This is here so we don't try to send something if we are
 	 * still waiting for a response from the last send.
 	 */ 
@@ -645,9 +648,6 @@ item_queue_handlers_set_up (TrackerProcessor *processor)
 	if (processor->private->item_queues_handler_id != 0) {
 		return;
 	}
-
-	/* Now we try to send all items to the indexer */
-	tracker_status_set_and_signal (TRACKER_STATUS_INDEXING);
 
 	processor->private->item_queues_handler_id = 
 		g_timeout_add (ITEMS_QUEUE_PROCESS_INTERVAL, 

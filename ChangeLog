@@ -1,5 +1,19 @@
 2008-08-05  Martyn Russell  <martyn@imendio.com>
 
+	* src/tracker-indexer/tracker-main.c: Make sure we don't just exit
+	when we have processed items. ALWAYS wait at least 10 seconds
+	before quitting after EVERY "finished" signal. The indexer was
+	being started/stopped constantly for small monitor event groups.
+	Now it runs constantly.
+	
+	* src/trackerd/tracker-monitor.c: Make some of the logging debug
+	level so we don't spam the console so much.
+	
+	* src/trackerd/tracker-processor.c: Set state as indexing in the
+	queue handler callback.
+
+2008-08-05  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-monitor.[ch]: Add property to enable and
 	disable monitor events from being processed. 
 

@@ -1,9 +1,17 @@
+2008-08-05  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/Makefile.am:
+	* src/tracker-indexer/tracker-metadata-utils.[ch]: Added files,
+	generic utility functions for extracting metadata from a file.
+	* src/tracker-indexer/modules/files.c: Use these functions to get
+	metadata from files.
+
 2008-08-05  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/libtracker-db/tracker-db-dbus.[ch]: Added new method
 	(tracker_dbus_result_set_numeric_to_strv) needed to retrieve data
 	from the numeric metadata table.
-	
+
 2008-08-05  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-processor.c: Don't send items to the

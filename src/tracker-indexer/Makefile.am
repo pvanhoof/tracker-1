@@ -29,6 +29,8 @@ tracker_indexer_SOURCES =						\
 	tracker-marshal-main.c						\
 	tracker-metadata.c						\
 	tracker-metadata.h						\
+	tracker-metadata-utils.c					\
+	tracker-metadata-utils.h					\
 	tracker-module.h
 
 tracker_indexer_LDADD =							\

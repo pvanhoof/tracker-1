@@ -1,5 +1,11 @@
 2008-08-05  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/modules/evolution.c: Add attachments indexing
+	for mboxes. Now the module iterates through messages, and through the
+	contained identifiable mime parts (if any).
+
+2008-08-05  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/Makefile.am:
 	* src/tracker-indexer/tracker-metadata-utils.[ch]: Added files,
 	generic utility functions for extracting metadata from a file.

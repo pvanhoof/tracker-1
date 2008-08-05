@@ -28,6 +28,7 @@
 #include <gconf/gconf-client.h>
 #include <tracker-indexer/tracker-module.h>
 #include <tracker-indexer/tracker-metadata.h>
+#include <tracker-indexer/tracker-metadata-utils.h>
 #include <libtracker-common/tracker-utils.h>
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-type-utils.h>
@@ -59,6 +60,9 @@ struct EvolutionLocalData {
         GMimeStream *stream;
         GMimeParser *parser;
         GMimeMessage *message;
+
+        GList *mime_parts;
+        GList *current_mime_part;
 };
 
 struct EvolutionImapData {
@@ -534,6 +538,11 @@ free_imap_data (EvolutionImapData *data)
 static void
 free_local_data (EvolutionLocalData *data)
 {
+        if (data->mime_parts) {
+                g_list_foreach (data->mime_parts, (GFunc) g_object_unref, NULL);
+                g_list_free (data->mime_parts);
+        }
+
         if (data->message) {
                 g_object_unref (data->message);
         }
@@ -610,6 +619,24 @@ get_mbox_uri (TrackerFile   *file,
         g_free (dir);
 }
 
+static void
+get_mbox_attachment_uri (TrackerFile   *file,
+                         GMimeMessage  *message,
+                         GMimePart     *part,
+                         gchar        **dirname,
+                         gchar        **basename)
+{
+        gchar *dir;
+
+        dir = tracker_string_replace (file->path, local_dir, NULL);
+
+        *dirname = g_strdup_printf ("email://local@local/%s;uid=%d",
+                                    dir, get_mbox_message_id (message));
+        *basename = g_strdup (g_mime_part_get_filename (part));
+
+        g_free (dir);
+}
+
 static GList *
 get_mbox_recipient_list (GMimeMessage *message,
                          const gchar  *type)
@@ -641,6 +668,52 @@ get_mbox_recipient_list (GMimeMessage *message,
 }
 
 TrackerMetadata *
+get_metadata_for_mbox_attachment (TrackerFile  *file,
+                                  GMimeMessage *message,
+                                  GMimePart    *part)
+{
+        TrackerMetadata *metadata;
+        GMimeDataWrapper *content;
+        GMimeStream *stream;
+        gchar *path;
+        gint fd;
+
+        content = g_mime_part_get_content_object (part);
+        metadata = NULL;
+
+        if (!content) {
+                return NULL;
+        }
+
+        path = g_build_filename (g_get_tmp_dir (), "tracker-evolution-module-XXXXXX", NULL);
+        fd = g_mkstemp (path);
+
+        stream = g_mime_stream_fs_new (fd);
+
+        if (g_mime_data_wrapper_write_to_stream (content, stream) != -1) {
+                gchar *dirname, *basename;
+
+                g_mime_stream_flush (stream);
+
+                metadata = tracker_metadata_utils_get_data (path);
+                get_mbox_attachment_uri (file, message, part,
+                                         &dirname, &basename);
+
+                tracker_metadata_insert (metadata, METADATA_FILE_PATH, dirname);
+                tracker_metadata_insert (metadata, METADATA_FILE_NAME, basename);
+
+                g_unlink (path);
+        }
+
+        g_mime_stream_close (stream);
+        g_object_unref (stream);
+        g_object_unref (content);
+        g_free (path);
+
+        return metadata;
+}
+
+TrackerMetadata *
 get_metadata_for_mbox (TrackerFile *file)
 {
         EvolutionLocalData *data;
@@ -666,6 +739,11 @@ get_metadata_for_mbox (TrackerFile *file)
                 return NULL;
         }
 
+        if (data->current_mime_part) {
+                /* We're processing an attachment */
+                return get_metadata_for_mbox_attachment (file, message, data->current_mime_part->data);
+        }
+
         metadata = tracker_metadata_new ();
 
         get_mbox_uri (file, message, &dirname, &basename);
@@ -689,8 +767,6 @@ get_metadata_for_mbox (TrackerFile *file)
 
         body = g_mime_message_get_body (message, TRUE, &is_html);
         tracker_metadata_insert (metadata, METADATA_EMAIL_BODY, body);
-
-        /* FIXME: Missing attachments handling */
 
         return metadata;
 }
@@ -982,7 +1058,15 @@ tracker_module_file_get_uri (TrackerFile  *file,
                         return;
                 }
 
-                get_mbox_uri (file, data->message, dirname, basename);
+                if (data->current_mime_part) {
+                        /* We're currently on an attachment */
+                        get_mbox_attachment_uri (file, data->message,
+                                                 data->current_mime_part->data,
+                                                 dirname, basename);
+                } else {
+                        get_mbox_uri (file, data->message, dirname, basename);
+                }
+
                 break;
         }
         case MAIL_STORAGE_IMAP: {
@@ -1019,6 +1103,50 @@ tracker_module_file_get_metadata (TrackerFile *file)
         return NULL;
 }
 
+static void
+extract_mime_parts (GMimeObject *object,
+                    gpointer     user_data)
+{
+        GList **list = (GList **) user_data;
+        GMimePart *part;
+        const gchar *disposition, *filename;
+
+        if (GMIME_IS_MESSAGE_PART (object)) {
+                GMimeMessage *message;
+
+                message = g_mime_message_part_get_message (GMIME_MESSAGE_PART (object));
+
+                if (message) {
+                        g_mime_message_foreach_part (message, extract_mime_parts, user_data);
+                        g_object_unref (message);
+                }
+
+                return;
+        } else if (GMIME_IS_MULTIPART (object)) {
+                g_mime_multipart_foreach (GMIME_MULTIPART (object), extract_mime_parts, user_data);
+                return;
+        }
+
+        part = GMIME_PART (object);
+        disposition = g_mime_part_get_content_disposition (part);
+
+        if (!disposition ||
+            (strcmp (disposition, GMIME_DISPOSITION_ATTACHMENT) != 0 &&
+             strcmp (disposition, GMIME_DISPOSITION_INLINE) != 0)) {
+                return;
+        }
+
+        filename = g_mime_part_get_filename (GMIME_PART (object));
+
+        if (!filename ||
+            strcmp (filename, "signature.asc") == 0 ||
+            strcmp (filename, "signature.pgp") == 0) {
+                return;
+        }
+
+        *list = g_list_prepend (*list, g_object_ref (object));
+}
+
 gboolean
 tracker_module_file_iter_contents (TrackerFile *file)
 {
@@ -1040,7 +1168,26 @@ tracker_module_file_iter_contents (TrackerFile *file)
                 }
 
                 if (local_data->message) {
+                        /* Iterate through mime parts, if any */
+                        if (!local_data->mime_parts) {
+                                g_mime_message_foreach_part (local_data->message,
+                                                             extract_mime_parts,
+                                                             &local_data->mime_parts);
+                                local_data->current_mime_part = local_data->mime_parts;
+                        } else {
+                                local_data->current_mime_part = local_data->current_mime_part->next;
+                        }
+
+                        if (local_data->current_mime_part) {
+                                return TRUE;
+                        }
+
+                        /* all possible mime parts have been already iterated, move on */
                         g_object_unref (local_data->message);
+
+                        g_list_foreach (local_data->mime_parts, (GFunc) g_object_unref, NULL);
+                        g_list_free (local_data->mime_parts);
+                        local_data->mime_parts = NULL;
                 }
 
                 local_data->message = g_mime_parser_construct_message (local_data->parser);

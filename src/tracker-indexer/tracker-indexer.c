@@ -1007,7 +1007,7 @@ delete_item (TrackerIndexer *indexer,
 	g_free (basename);
 
 	if (service_id < 1) {
-		g_message ("Cannot delete file: it doesnt exist in DB");
+		g_message ("Can not delete file, it doesnt exist in DB");
 		return;
 	}
 

@@ -186,7 +186,10 @@ read_summary (FILE *summary,
                                 continue;
                         }
 
-                        str = g_malloc0 (len);
+                        str = g_try_malloc0 (len);
+                        if (!str) {
+                                return FALSE;
+                        }
 
                         if (fread (str, len - 1, 1, summary) != 1) {
                                 g_free (str);
@@ -826,10 +829,15 @@ get_metadata_for_imap (TrackerFile *file)
                 return NULL;
         }
 
-        read_summary (data->summary,
-                      SUMMARY_TYPE_STRING, &uid, /* message uid */
-                      SUMMARY_TYPE_UINT32, &flags, /* flags */
-                      -1);
+        uid = NULL;
+
+        if (!read_summary (data->summary,
+                           SUMMARY_TYPE_STRING, &uid,   /* message uid */
+                           SUMMARY_TYPE_UINT32, &flags, /* flags */
+                           -1)) {
+                g_free (uid);
+                return NULL;
+        }
 
         if (flags & EVOLUTION_MESSAGE_JUNK ||
             flags & EVOLUTION_MESSAGE_DELETED) {
@@ -837,16 +845,27 @@ get_metadata_for_imap (TrackerFile *file)
                 return NULL;
         }
 
-        read_summary (data->summary,
-                      SUMMARY_TYPE_UINT32, NULL, /* size */
-                      SUMMARY_TYPE_TIME_T, NULL, /* date sent */
-                      SUMMARY_TYPE_TIME_T, &date, /* date received */
-                      SUMMARY_TYPE_STRING, &subject, /* subject */
-                      SUMMARY_TYPE_STRING, &from, /* from */
-                      SUMMARY_TYPE_STRING, &to, /* to */
-                      SUMMARY_TYPE_STRING, &cc, /* cc */
-                      SUMMARY_TYPE_STRING, NULL, /* mlist */
-                      -1);
+        subject = NULL;
+        from = NULL;
+        to = NULL;
+        cc = NULL;
+
+        if (!read_summary (data->summary,
+                           SUMMARY_TYPE_UINT32, NULL,     /* size */
+                           SUMMARY_TYPE_TIME_T, NULL,     /* date sent */
+                           SUMMARY_TYPE_TIME_T, &date,    /* date received */
+                           SUMMARY_TYPE_STRING, &subject, /* subject */
+                           SUMMARY_TYPE_STRING, &from,    /* from */
+                           SUMMARY_TYPE_STRING, &to,      /* to */
+                           SUMMARY_TYPE_STRING, &cc,      /* cc */
+                           SUMMARY_TYPE_STRING, NULL,     /* mlist */
+                           -1)) {
+                g_free (subject);
+                g_free (from);
+                g_free (to);
+                g_free (cc);
+                return NULL;
+        }
 
 	metadata = tracker_metadata_new ();
         get_imap_uri (file, &dirname, &basename);
@@ -874,45 +893,70 @@ get_metadata_for_imap (TrackerFile *file)
         g_free (to);
         g_free (cc);
 
-        read_summary (data->summary,
-                      SUMMARY_TYPE_INT32, NULL,
-                      SUMMARY_TYPE_INT32, NULL,
-                      SUMMARY_TYPE_UINT32, &count,
-                      -1);
+        if (!read_summary (data->summary,
+                           SUMMARY_TYPE_INT32, NULL,
+                           SUMMARY_TYPE_INT32, NULL,
+                           SUMMARY_TYPE_UINT32, &count,
+                           -1)) {
+                goto corruption;
+        }
 
         /* references */
         for (i = 0; i < count; i++) {
-                read_summary (data->summary,
-                              SUMMARY_TYPE_INT32, NULL,
-                              SUMMARY_TYPE_INT32, NULL,
-                              -1);
+                if (read_summary (data->summary,
+                                  SUMMARY_TYPE_INT32, NULL,
+                                  SUMMARY_TYPE_INT32, NULL,
+                                  -1)) {
+                        continue;
+                }
+
+                goto corruption;
         }
 
-        read_summary (data->summary, SUMMARY_TYPE_UINT32, &count, -1);
+        if (!read_summary (data->summary, SUMMARY_TYPE_UINT32, &count, -1)) {
+                goto corruption;
+        }
 
         /* user flags */
         for (i = 0; i < count; i++) {
-                read_summary (data->summary, SUMMARY_TYPE_STRING, NULL, -1);
+                if (read_summary (data->summary, SUMMARY_TYPE_STRING, NULL, -1)) {
+                        continue;
+                }
+
+                goto corruption;
         }
 
-        read_summary (data->summary, SUMMARY_TYPE_UINT32, &count, -1);
+        if (!read_summary (data->summary, SUMMARY_TYPE_UINT32, &count, -1)) {
+                goto corruption;
+        }
 
         /* user tags */
         for (i = 0; i < count; i++) {
-                read_summary (data->summary,
-                              SUMMARY_TYPE_STRING, NULL,
-                              SUMMARY_TYPE_STRING, NULL,
-                              -1);
+                if (read_summary (data->summary,
+                                  SUMMARY_TYPE_STRING, NULL,
+                                  SUMMARY_TYPE_STRING, NULL,
+                                  -1)) {
+                        continue;
+                }
+
+                goto corruption;
         }
 
         /* server flags */
-        read_summary (data->summary,
-                      SUMMARY_TYPE_UINT32, NULL,
-                      -1);
+        if (!read_summary (data->summary,
+                           SUMMARY_TYPE_UINT32, NULL,
+                           -1)) {
+                goto corruption;
+        }
 
         skip_content_info (data->summary);
 
         return metadata;
+
+corruption:
+        /* assume corruption */
+        tracker_metadata_free (metadata);
+        return NULL;
 }
 
 void

@@ -322,14 +322,14 @@ tracker_keywords_remove (TrackerKeywords        *object,
 {
 	TrackerDBInterface  *iface;
 	guint                request_id;
-	gchar               *id;
+	gchar               *service_id, *service_result = NULL;
 	GError              *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_async_return_if_fail (service_type != NULL, FALSE);
 	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (keywords != NULL && *keywords != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (keywords != NULL && g_strv_length (keywords) > 0, FALSE);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to remove keywords, "
@@ -356,9 +356,10 @@ tracker_keywords_remove (TrackerKeywords        *object,
 		return;
         }
 
+	/* Check the uri exists, so we dont start the indexer in vain */
 	iface = tracker_db_manager_get_db_interface_by_service (service_type);
-	id = tracker_db_file_get_id_as_string (iface, service_type, uri);
-	if (!id) {
+	service_id = tracker_db_file_get_id_as_string (iface, service_type, uri);
+	if (!service_id) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
 					     "Entity '%s' was not found", 
@@ -368,9 +369,8 @@ tracker_keywords_remove (TrackerKeywords        *object,
 		return;
 	}
 
-
 	org_freedesktop_Tracker_Indexer_property_remove (tracker_dbus_indexer_get_proxy (),
-							 service_type,
+							 service_result,
 							 uri,
 							 "User:Keywords",
 							 (const gchar **)keywords,
@@ -385,7 +385,7 @@ tracker_keywords_remove (TrackerKeywords        *object,
 		return;
 	}
 	
-	g_free (id);
+	g_free (service_id);
 
 	dbus_g_method_return (context);
 
@@ -400,10 +400,9 @@ tracker_keywords_remove_all (TrackerKeywords        *object,
 			     GError                **error)
 {
 	TrackerDBInterface *iface;
-	TrackerDBResultSet *result_set;
 	guint               request_id;
-	gchar              *id;
 	gchar             **values;
+	gchar              *service_id;
 	GError             *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
@@ -436,9 +435,10 @@ tracker_keywords_remove_all (TrackerKeywords        *object,
 		return;
         }
 
+	/* Check the uri exists, so we dont start the indexer in vain */
 	iface = tracker_db_manager_get_db_interface_by_service (service_type);
-	id = tracker_db_file_get_id_as_string (iface, service_type, uri);
-	if (!id) {
+	service_id = tracker_db_file_get_id_as_string (iface, service_type, uri);
+	if (!service_id) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
 					     "Entity '%s' was not found", 
@@ -448,11 +448,8 @@ tracker_keywords_remove_all (TrackerKeywords        *object,
 		return;
 	}
 
-	result_set = tracker_db_metadata_get (iface, 
-					      id, 
-					      "User:Keywords");
-	values = tracker_dbus_query_result_to_strv (result_set, 0, NULL);
-
+	values = g_new0 (gchar *, 1);
+	values[0] = NULL;
 	org_freedesktop_Tracker_Indexer_property_remove (tracker_dbus_indexer_get_proxy (),
 							 service_type,
 							 uri,
@@ -460,6 +457,7 @@ tracker_keywords_remove_all (TrackerKeywords        *object,
 							 (const gchar **)values,
 							 &actual_error);
 
+	g_strfreev (values);
 	if (actual_error) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
@@ -469,8 +467,6 @@ tracker_keywords_remove_all (TrackerKeywords        *object,
 		return;
 	}
 
-	g_strfreev (values);
-	g_free (id);
 
 	dbus_g_method_return (context);
 

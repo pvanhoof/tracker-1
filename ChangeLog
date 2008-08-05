@@ -1,3 +1,28 @@
+2008-08-05  Ivan Frade  <ivan.frade@nokia.com>
+
+	* data/services/default.metadata: User:Keywords is not filtered.
+	
+	* src/tracker-indexer/tracker-indexer-db.[ch]:
+	(tracker_db_get_property_values): Implemented new method to obtain
+	the values of a property. Needed to unindex those values before
+	remove the property.
+	(tracker_db_set_metadata): Handle deletion of keyword properties
+	without specified value (for instance, to remove all User:Keyword
+	properties of a file.
+	
+	* src/tracker-indexer/tracker-indexer.c: Now takes into acount if
+	the field has multiple values. Set a field with no-multiple values
+	remove the old value and set the new one.
+	
+	* src/trackerd/tracker-keywords.c
+	(tracker_keywords_remove_all): Implemented calling to the indexer
+	directly, instead retrieving the old values from the DB and
+	calling the indexer for each one.
+	
+	* src/trackerd/tracker-metadata.c
+	(tracker_metadata_set_property): Removed useless service type
+	check.
+
 2008-08-05  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/modules/evolution.c: Add attachments indexing
@@ -11,7 +36,7 @@
 	generic utility functions for extracting metadata from a file.
 	* src/tracker-indexer/modules/files.c: Use these functions to get
 	metadata from files.
-
+	
 2008-08-05  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/libtracker-db/tracker-db-dbus.[ch]: Added new method

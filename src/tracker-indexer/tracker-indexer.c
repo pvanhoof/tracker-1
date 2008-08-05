@@ -851,6 +851,10 @@ send_text_to_index (TrackerIndexer *indexer,
 	GList      *words = NULL, *iter;
 	gint        weight;
 
+	if (!text) {
+		return;
+	}
+
 	if (full_parsing) {
 		parsed = tracker_parser_text (parsed,
 					      text,
@@ -1069,6 +1073,23 @@ handle_metadata_add (TrackerIndexer *indexer,
 		return FALSE;
 	}
 
+	if (tracker_field_get_embedded (field_def)) {
+		g_set_error (error, 
+			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
+			     TRACKER_INDEXER_ERROR_CODE,
+			     "Field type: '%s' is embedded and not writable", property);
+		return FALSE;
+	}
+
+	if (!tracker_field_get_multiple_values (field_def) && g_strv_length (values) > 1) {
+		g_set_error (error, 
+			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
+			     TRACKER_INDEXER_ERROR_CODE,
+			     "Field type: '%s' doesnt support multiple values (trying to set %d)", 
+			     property, g_strv_length (values));
+		return FALSE;
+	}
+
 	dirname = tracker_file_get_vfs_path (uri);
 	basename = tracker_file_get_vfs_name (uri);
 
@@ -1085,12 +1106,43 @@ handle_metadata_add (TrackerIndexer *indexer,
 		return FALSE;
 	}
 
+	if (!tracker_field_get_multiple_values (field_def)) {
+
+		/* Remove old value from DB and index */
+		gchar **old_contents;
+
+		old_contents = tracker_db_get_property_values (service_def, service_id, field_def);
+		if (old_contents && g_strv_length (old_contents) > 1) {
+			g_critical ("Seems to be multiple values in a field that doesn allow that ('%s')",
+				    tracker_field_get_name (field_def));
+
+		} else if (old_contents && g_strv_length (old_contents) == 1) {
+		
+			if (tracker_field_get_filtered (field_def)) {
+				unindex_text_with_parsing (indexer,
+							   service_id,
+							   tracker_service_get_id (service_def),
+							   old_contents[0],
+							   tracker_field_get_weight (field_def));
+			} else {
+				unindex_text_no_parsing (indexer,
+							 service_id,
+							 tracker_service_get_id (service_def),
+							 old_contents[0],
+							 tracker_field_get_weight (field_def));
+			}
+			tracker_db_delete_metadata (service_def, service_id, field_def, old_contents[0]);
+			g_strfreev (old_contents);
+		}
+	}
+
 	for (i = 0; values[i] != NULL; i++) {
 		g_debug ("Setting metadata: service_type '%s' id '%d' field '%s' value '%s'",
 			 tracker_service_get_name (service_def),
 			 service_id,
 			 tracker_field_get_name (field_def),
 			 values[i]);
+
 		tracker_db_set_metadata (service_def,
 					 service_id,
 					 field_def,
@@ -1099,11 +1151,19 @@ handle_metadata_add (TrackerIndexer *indexer,
 	}
 
 	joined = g_strjoinv (" ", values);
-	index_text_no_parsing (indexer,
-			       service_id,
-			       tracker_service_get_id (service_def),
-			       joined,
-			       tracker_field_get_weight (field_def));
+	if (tracker_field_get_filtered (field_def)) {
+		index_text_no_parsing (indexer,
+				       service_id,
+				       tracker_service_get_id (service_def),
+				       joined,
+				       tracker_field_get_weight (field_def));
+	} else {
+		index_text_with_parsing (indexer,
+					 service_id,
+					 tracker_service_get_id (service_def),
+					 joined,
+					 tracker_field_get_weight (field_def));
+	}
 	g_free (joined);
 
 	return TRUE;
@@ -1121,7 +1181,7 @@ handle_metadata_remove (TrackerIndexer *indexer,
 	TrackerService *service_def;
 	TrackerField *field_def;
 	guint service_id, i;
-	gchar *joined, *dirname, *basename;
+	gchar *joined = NULL, *dirname, *basename;
 
 	service_def = tracker_ontology_get_service_type_by_name (service_type);
 	if (!service_def) {
@@ -1141,6 +1201,14 @@ handle_metadata_remove (TrackerIndexer *indexer,
 		return FALSE;
 	}
 
+	if (tracker_field_get_embedded (field_def)) {
+		g_set_error (error, 
+			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
+			     TRACKER_INDEXER_ERROR_CODE,
+			     "Field type: '%s' is embedded and cannot be deleted", property);
+		return FALSE;
+	}
+
 	dirname = tracker_file_get_vfs_path (uri);
 	basename = tracker_file_get_vfs_name (uri);
 
@@ -1157,21 +1225,50 @@ handle_metadata_remove (TrackerIndexer *indexer,
 		return FALSE;
 	}
 
-
-
-	for (i = 0; values[i] != NULL; i++) {
-		tracker_db_delete_metadata (service_def,
-					    service_id,
-					    field_def,
-					    values[i]);
+	/*
+	 * If we receive concrete values, we delete those rows in the db
+	 * Otherwise, retrieve the old values of the property and remove all their instances for the file
+	 */
+	if (g_strv_length (values) > 0) {
+		for (i = 0; values[i] != NULL; i++) {
+			tracker_db_delete_metadata (service_def,
+						    service_id,
+						    field_def,
+						    values[i]);
+		}
+		joined = g_strjoinv (" ", values);
+	} else {
+		gchar **old_contents;
+		
+		old_contents = tracker_db_get_property_values (service_def, service_id, field_def);
+		if (old_contents) {
+			tracker_db_delete_metadata (service_def,
+						    service_id,
+						    field_def,
+						    NULL);
+			
+			joined = g_strjoinv (" ", old_contents);
+			g_strfreev (old_contents);
+		}
 	}
 
-	joined = g_strjoinv (" ", values);
-	unindex_text_no_parsing (indexer,
-				 service_id,
-				 tracker_service_get_id (service_def),
-				 joined,
-				 tracker_field_get_weight (field_def));
+	/*
+	 * Now joined contains the words to unindex
+	 */
+	if (tracker_field_get_filtered (field_def)) {
+		unindex_text_with_parsing (indexer,
+					   service_id,
+					   tracker_service_get_id (service_def),
+					   joined,
+					   tracker_field_get_weight (field_def));
+	} else {
+		unindex_text_no_parsing (indexer,
+					 service_id,
+					 tracker_service_get_id (service_def),
+					 joined,
+					 tracker_field_get_weight (field_def));
+	}
+
 	g_free (joined);
 
 	return TRUE;
@@ -1644,11 +1741,11 @@ tracker_indexer_property_remove (TrackerIndexer         *indexer,
 	tracker_dbus_async_return_if_fail (service_type != NULL, FALSE);
 	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
 	tracker_dbus_async_return_if_fail (property != NULL, FALSE);
-	/* Values can be NULL */
+	tracker_dbus_async_return_if_fail (values != NULL, FALSE);
 
 	tracker_dbus_request_new (request_id,
-                                  "DBus request to remove %s values in property '%s' for file '%s' ",
-				  ( values == NULL ? "all" : g_strdup_printf ("%d", g_strv_length (values))),
+                                  "DBus request to remove %d values in property '%s' for file '%s' ",
+				  g_strv_length (values),
 				  property,
 				  uri);
 

@@ -59,13 +59,15 @@ gchar   *tracker_db_get_parsed_metadata   (TrackerService     *service,
 					   guint32             id);
 gchar   *tracker_db_get_unparsed_metadata (TrackerService     *service,
 					   guint32             id);
+gchar  **tracker_db_get_property_values   (TrackerService     *service_def,
+					   guint32             id,
+					   TrackerField       *field_def);
 void     tracker_db_delete_all_metadata   (TrackerService     *service,
 					   guint32             id);
 void     tracker_db_delete_metadata       (TrackerService *service,
 					   guint32         id,
 					   TrackerField   *field,
 					   const gchar    *value);
-
 /* Contents */
 void     tracker_db_set_text              (TrackerService     *service,
 					   guint32             id,

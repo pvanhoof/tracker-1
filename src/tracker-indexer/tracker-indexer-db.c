@@ -25,7 +25,7 @@
 
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-db/tracker-db-manager.h>
-
+#include <libtracker-db/tracker-db-dbus.h>
 #include "tracker-indexer-db.h"
 
 
@@ -338,6 +338,89 @@ tracker_db_get_parsed_metadata (TrackerService *service,
 	return db_get_metadata (service, service_id, FALSE);
 }
 
+gchar **
+tracker_db_get_property_values (TrackerService     *service_def,
+				guint32             id,
+				TrackerField       *field_def)
+{
+	TrackerDBInterface *iface;
+	TrackerDBResultSet *result_set;
+	gint                metadata_key;
+	gchar             **final_result = NULL;
+	gboolean            is_numeric = FALSE;
+
+	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service_def),
+							     TRACKER_DB_CONTENT_TYPE_METADATA);
+
+	metadata_key = tracker_ontology_metadata_key_in_service (tracker_service_get_name (service_def),
+								 tracker_field_get_name (field_def));
+	if (metadata_key > 0) {
+		gchar *query = g_strdup_printf ("SELECT KeyMetadata%d FROM Services WHERE id = '%d'", 
+						metadata_key, id);
+		result_set = tracker_db_interface_execute_query (iface, NULL, query, NULL);
+		g_free (query);
+	} else {
+		gchar *id_str;
+
+		id_str = tracker_guint32_to_string (id);
+		
+		switch (tracker_field_get_data_type (field_def)) {
+		case TRACKER_FIELD_TYPE_KEYWORD:
+			result_set = tracker_db_interface_execute_procedure (iface, NULL,
+									     "GetMetadataKeyword",
+									     id_str,
+									     tracker_field_get_id (field_def),
+									     NULL);
+			break;
+		case TRACKER_FIELD_TYPE_INDEX:
+		case TRACKER_FIELD_TYPE_STRING:
+		case TRACKER_FIELD_TYPE_DOUBLE:
+			result_set = tracker_db_interface_execute_procedure (iface, NULL,
+									     "GetMetadata",
+									     id_str,
+									     tracker_field_get_id (field_def),
+									     NULL);
+			break;
+		case TRACKER_FIELD_TYPE_INTEGER:
+		case TRACKER_FIELD_TYPE_DATE:
+			result_set = tracker_db_interface_execute_procedure (iface, NULL,
+									     "GetMetadataNumeric",
+									     id_str,
+									     tracker_field_get_id (field_def),
+									     NULL);
+			is_numeric = TRUE;
+			break;
+		case TRACKER_FIELD_TYPE_FULLTEXT:
+			tracker_db_get_text (service_def, id);
+			break;
+		case TRACKER_FIELD_TYPE_BLOB:
+		case TRACKER_FIELD_TYPE_STRUCT:
+		case TRACKER_FIELD_TYPE_LINK:
+			/* not handled */
+		default:
+			break;
+		}
+		g_free (id_str);
+	}
+
+	if (result_set) {
+
+		if (tracker_db_result_set_get_n_rows (result_set) > 1) {
+			g_warning ("More than one result in tracker_db_get_property_value");
+		}
+
+		if (!is_numeric) {
+			final_result = tracker_dbus_query_result_to_strv (result_set, 0, NULL);
+		} else {
+			final_result = tracker_dbus_query_result_numeric_to_strv (result_set, 0, NULL);			
+		}
+
+		g_object_unref (result_set);
+	} 
+
+	return final_result;
+}
+
 
 void
 tracker_db_set_metadata (TrackerService *service,
@@ -422,7 +505,12 @@ tracker_db_delete_metadata (TrackerService *service,
 	switch (tracker_field_get_data_type (field)) {
 	case TRACKER_FIELD_TYPE_KEYWORD:
 		if (!value) {
-			g_warning ("Trying to remove keyword field with no specific value");
+			g_debug ("Trying to remove keyword field with no specific value");
+			tracker_db_interface_execute_procedure (iface, NULL,
+								"DeleteMetadataKeyword",
+								id_str,
+								tracker_field_get_id (field),
+								NULL);
 		} else {
 			tracker_db_interface_execute_procedure (iface, NULL,
 								"DeleteMetadataKeywordValue",

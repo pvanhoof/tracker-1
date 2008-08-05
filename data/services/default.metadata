@@ -109,5 +109,6 @@ DataType=keyword
 Weight=50
 Embedded=false
 MultipleValues=true
+Filtered=false
 
 

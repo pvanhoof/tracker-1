@@ -127,6 +127,8 @@ tracker_metadata_get (TrackerMetadata        *object,
 	
 	/* The parameter service_type can be "Files" 
 	 * and the actual service type of the uri "Video" 
+	 *
+	 * Note: Does this matter?
 	 */
 	service_result = tracker_db_service_get_by_entity (iface, service_id);
 	if (!service_result) {
@@ -171,7 +173,7 @@ tracker_metadata_set (TrackerMetadata        *object,
 {
 	TrackerDBInterface *iface;
 	guint               request_id;
-	gchar              *service_id, *service_result;
+	gchar              *service_id; 
 	guint               i;
 	GError             *actual_error = NULL;
 
@@ -201,6 +203,7 @@ tracker_metadata_set (TrackerMetadata        *object,
 
 	iface = tracker_db_manager_get_db_interface_by_service (service_type);
 
+	/* Check the uri exists, so we dont start the indexer in vain */
 	service_id = tracker_db_file_get_id_as_string (iface, service_type, uri);
         if (!service_id) {
 		tracker_dbus_request_failed (request_id,
@@ -211,21 +214,6 @@ tracker_metadata_set (TrackerMetadata        *object,
 		g_error_free (actual_error);
                 return;
         }
-
-	/* The parameter service_type can be "Files" 
-	 * and the actual service type of the uri "Video" 
-	 */
-	service_result = tracker_db_service_get_by_entity (iface, service_id);
-	if (!service_result) {
-               g_free (service_id);
-               tracker_dbus_request_failed (request_id,
-                                            &actual_error, 
-                                            "Service type can not be found for entity '%s'", 
-                                            uri);
-               dbus_g_method_return_error (context, actual_error);
-               g_error_free (actual_error);
-               return;
-	}
 
 	/* Checking keys */
 	for (i = 0; i < g_strv_length (keys); i++) {
@@ -256,14 +244,14 @@ tracker_metadata_set (TrackerMetadata        *object,
 
 		value = tracker_string_to_string_list (values[i]);
 		org_freedesktop_Tracker_Indexer_property_set (tracker_dbus_indexer_get_proxy (),
-							      service_result,
+							      service_type,
 							      uri,
 							      keys[i],
-							      (const gchar **)value, //As gchar **
+							      (const gchar **)value, 
 							      &actual_error);
 		g_strfreev (value);
 		if (actual_error) {
-			/* tracker_dbus_request_failes -> find a way to propagate the error */
+			tracker_dbus_request_failed (request_id, &actual_error, NULL);
 			dbus_g_method_return_error (context, actual_error);
 			g_error_free (actual_error);
 			return;

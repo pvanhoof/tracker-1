@@ -1078,6 +1078,29 @@ tracker_module_file_get_uri (TrackerFile  *file,
         }
 }
 
+gchar *
+tracker_module_file_get_service_type (TrackerFile *file)
+{
+        EvolutionFileData *data;
+
+        data = file->data;
+
+        if (!data) {
+                /* It isn't any of the files the module handles */
+                return NULL;
+        }
+
+        if (data->type == MAIL_STORAGE_LOCAL) {
+                EvolutionLocalData *data = file->data;
+
+                if (data->current_mime_part) {
+                        return g_strdup ("EvolutionAttachments");
+                }
+        }
+
+        return g_strdup ("EvolutionEmails");
+}
+
 TrackerMetadata *
 tracker_module_file_get_metadata (TrackerFile *file)
 {

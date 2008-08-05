@@ -1,3 +1,16 @@
+2008-08-05  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/tracker-module.h
+	(tracker_module_file_get_service_type):
+	* src/tracker-indexer/tracker-indexer-module.[ch]
+	(tracker_indexer_module_file_get_service_type): Modify to receive a
+	TrackerFile.
+	* src/tracker-indexer/tracker-indexer.c:
+	* src/tracker-indexer/modules/dummy.c:
+	* src/tracker-indexer/modules/files.c: Adapt to this change.
+	* src/tracker-indexer/modules/evolution.c: Implement this method to
+	get the correct service type for attachments.
+
 2008-08-05  Ivan Frade  <ivan.frade@nokia.com>
 
 	* data/services/default.metadata: User:Keywords is not filtered.

@@ -152,12 +152,13 @@ tracker_indexer_module_file_get_uri (GModule      *module,
 }
 
 gchar *
-tracker_indexer_module_file_get_service_type  (GModule      *module,
-					       const gchar   *path)
+tracker_indexer_module_file_get_service_type (GModule     *module,
+					      TrackerFile *file)
 {
 	TrackerModuleFileGetServiceTypeFunc func;
+
 	if (g_module_symbol (module, "tracker_module_file_get_service_type", (gpointer *) &func)) {
-		return (func) (path);
+		return (func) (file);
 	} else {
 		return g_strdup (tracker_indexer_module_get_name (module));
 	}

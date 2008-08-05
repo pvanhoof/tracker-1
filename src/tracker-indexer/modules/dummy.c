@@ -61,7 +61,7 @@ tracker_module_file_get_data (const gchar *path)
 }
 
 gchar *
-tracker_module_file_get_service_type (const gchar *path)
+tracker_module_file_get_service_type (TrackerFile *file)
 {
         /* Implementing this function is optional.
          *

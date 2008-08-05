@@ -49,15 +49,15 @@ tracker_module_get_name (void)
 }
 
 gchar *
-tracker_module_file_get_service_type (const gchar *uri) 
+tracker_module_file_get_service_type (TrackerFile *file)
 {
         gchar *mimetype;
         gchar *service_type;
 
-        mimetype = tracker_file_get_mime_type (uri);
+        mimetype = tracker_file_get_mime_type (file->path);
         service_type = tracker_ontology_get_service_type_for_mime (mimetype);
         g_free (mimetype);
-        
+
         return service_type;
 }
 

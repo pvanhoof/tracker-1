@@ -923,7 +923,7 @@ create_update_item (TrackerIndexer  *indexer,
 	gchar *text;
 	guint32 id;
 
-	service_type = tracker_indexer_module_file_get_service_type (info->module, info->file->path);
+	service_type = tracker_indexer_module_file_get_service_type (info->module, info->file);
 
 	service_def = tracker_ontology_get_service_type_by_name (service_type);
 	g_free (service_type);

@@ -860,7 +860,9 @@ tracker_crawler_is_path_ignored (TrackerCrawler *crawler,
 	/* We have an internal function here we call. The reason for
 	 * this is that it is expensive to type check the Crawler
 	 * object for EVERY file we process. Internally, we don't do
-	 * that. Externally we do.
+	 * that. Externally we do. Externally this is used by the
+	 * processor when we get new monitor events to know if we
+	 * should be sending new files to the indexer.
 	 */
 	return is_path_ignored (crawler, path, is_directory);
 }

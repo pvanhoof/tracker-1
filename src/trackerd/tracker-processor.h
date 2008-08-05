@@ -35,15 +35,17 @@ G_BEGIN_DECLS
 #define TRACKER_IS_PROCESSOR_CLASS(c)  (G_TYPE_CHECK_CLASS_TYPE ((c),    TRACKER_TYPE_PROCESSOR))
 #define TRACKER_PROCESSOR_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o),  TRACKER_TYPE_PROCESSOR, TrackerProcessorClass))
 
-typedef struct TrackerProcessor      TrackerProcessor;
-typedef struct TrackerProcessorClass TrackerProcessorClass;
+typedef struct TrackerProcessor        TrackerProcessor;
+typedef struct TrackerProcessorClass   TrackerProcessorClass;
+typedef struct TrackerProcessorPrivate TrackerProcessorPrivate;
 
 struct TrackerProcessor {
-	GObject parent_instance;
+	GObject                  parent;
+	TrackerProcessorPrivate *private;
 };
 
 struct TrackerProcessorClass {
-	GObjectClass parent_class;
+	GObjectClass             parent;
 
 	void (*finished) (TrackerProcessor *processor);
 };

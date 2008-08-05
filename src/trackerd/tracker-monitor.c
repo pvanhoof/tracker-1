@@ -139,7 +139,9 @@ tracker_monitor_init (TrackerMonitor *object)
 	GList                 *all_modules, *l;
 	const gchar           *name;
 
-	priv = TRACKER_MONITOR_GET_PRIVATE (object);
+	object->private = TRACKER_MONITOR_GET_PRIVATE (object);
+
+	priv = object->private;
 
 	/* For each module we create a hash table for monitors */
 	priv->modules =
@@ -296,7 +298,7 @@ tracker_monitor_new (TrackerConfig *config)
 
 	monitor = g_object_new (TRACKER_TYPE_MONITOR, NULL);
 
-	priv = TRACKER_MONITOR_GET_PRIVATE (monitor);
+	priv = monitor->private;
 
 	priv->config = g_object_ref (config);
 
@@ -360,10 +362,7 @@ get_module_name_from_gfile (TrackerMonitor *monitor,
 			    GFile          *file,
 			    gboolean       *is_directory)
 {
-	TrackerMonitorPrivate *priv;
-	const gchar           *module_name;
-
-	priv = TRACKER_MONITOR_GET_PRIVATE (monitor);
+	const gchar *module_name;
 
 	if (is_directory) {
 		*is_directory = TRUE;
@@ -372,7 +371,7 @@ get_module_name_from_gfile (TrackerMonitor *monitor,
 	/* First try to get the module name from the file, this will
 	 * only work if the event we received is for a directory.
 	 */
-	module_name = get_queue_from_gfile (priv->modules, file);
+	module_name = get_queue_from_gfile (monitor->private->modules, file);
 	if (!module_name) {
 		GFile *parent;
 
@@ -380,7 +379,7 @@ get_module_name_from_gfile (TrackerMonitor *monitor,
 		 * name of the file. 
 		 */
 		parent = g_file_get_parent (file);
-		module_name = get_queue_from_gfile (priv->modules, parent);
+		module_name = get_queue_from_gfile (monitor->private->modules, parent);
 
 		if (!module_name) {
 			gchar *child_path;
@@ -410,23 +409,23 @@ get_module_name_from_gfile (TrackerMonitor *monitor,
 static gboolean
 black_list_check_items_cb (gpointer data)
 {
-	TrackerMonitorPrivate *priv;
-	GHashTableIter         iter;
-	GTimeVal               t;
-	gchar                 *path;
-	gpointer               key;
-	gpointer               value;
-	gsize                  seconds;
-	gsize                  seconds_now;
-	gsize                  seconds_diff;
-	guint                  count;
+	TrackerMonitor *monitor;
+	GHashTableIter  iter;
+	GTimeVal        t;
+	gchar          *path;
+	gpointer        key;
+	gpointer        value;
+	gsize           seconds;
+	gsize           seconds_now;
+	gsize           seconds_diff;
+	guint           count;
 
-	priv = TRACKER_MONITOR_GET_PRIVATE (data);
+	monitor = data;
 
 	g_get_current_time (&t);
 	seconds_now = t.tv_sec;
 
-	g_hash_table_iter_init (&iter, priv->black_list_timestamps);
+	g_hash_table_iter_init (&iter, monitor->private->black_list_timestamps);
 	while (g_hash_table_iter_next (&iter, &key, &value)) {
 		seconds = GPOINTER_TO_SIZE (value);
 		seconds_diff = seconds_now - seconds;
@@ -447,7 +446,7 @@ black_list_check_items_cb (gpointer data)
 		 * make sure that we signal the indexer that this
 		 * file needs a check.
 		 */
-		value = g_hash_table_lookup (priv->black_list_count, key);
+		value = g_hash_table_lookup (monitor->private->black_list_count, key);
 		count = GPOINTER_TO_UINT (value);
 
 		if (count >= BLACK_LIST_MAX_HITS) {
@@ -469,20 +468,20 @@ black_list_check_items_cb (gpointer data)
 		}
 
 		/* Remove from hash tables (i.e. white list it) */
-		g_hash_table_remove (priv->black_list_count, key);
-		g_hash_table_remove (priv->black_list_timestamps, key);
+		g_hash_table_remove (monitor->private->black_list_count, key);
+		g_hash_table_remove (monitor->private->black_list_timestamps, key);
 		
 		/* Reset iterators */
-		g_hash_table_iter_init (&iter, priv->black_list_timestamps);
+		g_hash_table_iter_init (&iter, monitor->private->black_list_timestamps);
 	}
 
 	/* If the hash tables are empty, don't keep calling this
 	 * callback, this interrupts and wastes battery. Set up the
 	 * timeout again when we need it instead.
 	 */
-	if (g_hash_table_size (priv->black_list_count) < 1) {
+	if (g_hash_table_size (monitor->private->black_list_count) < 1) {
 		g_message ("No further items on the black list, removing check timeout");
-		priv->black_list_timeout_id = 0;
+		monitor->private->black_list_timeout_id = 0;
 		return FALSE;
 	}
 
@@ -493,13 +492,10 @@ static gboolean
 black_list_file_check (TrackerMonitor *monitor,
 		       GFile          *file)
 {
-	TrackerMonitorPrivate *priv;
-	gpointer               data;
-	guint                  count;
+	gpointer data;
+	guint    count;
 
-	priv = TRACKER_MONITOR_GET_PRIVATE (monitor);
-	
-	data = g_hash_table_lookup (priv->black_list_count, file);
+	data = g_hash_table_lookup (monitor->private->black_list_count, file);
 	count = GPOINTER_TO_UINT (data);
 
 	return count >= BLACK_LIST_MAX_HITS;
@@ -509,15 +505,12 @@ static void
 black_list_file_increment (TrackerMonitor *monitor,
 			   GFile          *file)
 {
-	TrackerMonitorPrivate *priv;
-	GTimeVal               t;
-	gchar                 *path;
-	gpointer               data;
-	guint                  count;
+	GTimeVal  t;
+	gchar    *path;
+	gpointer  data;
+	guint     count;
 
-	priv = TRACKER_MONITOR_GET_PRIVATE (monitor);
-	
-	data = g_hash_table_lookup (priv->black_list_count, file);
+	data = g_hash_table_lookup (monitor->private->black_list_count, file);
 	count = GPOINTER_TO_UINT (data);
 
 	/* Replace the black listed item with the updated count for
@@ -526,15 +519,15 @@ black_list_file_increment (TrackerMonitor *monitor,
 	count++;
 	g_get_current_time (&t);
 
-	g_hash_table_replace (priv->black_list_count, 
+	g_hash_table_replace (monitor->private->black_list_count, 
 			      g_object_ref (file), 
 			      GUINT_TO_POINTER (count));
-	g_hash_table_replace (priv->black_list_timestamps, 
+	g_hash_table_replace (monitor->private->black_list_timestamps, 
 			      g_object_ref (file), 
 			      GSIZE_TO_POINTER (t.tv_sec));
 	
-	if (priv->black_list_timeout_id == 0) {
-		priv->black_list_timeout_id =
+	if (monitor->private->black_list_timeout_id == 0) {
+		monitor->private->black_list_timeout_id =
 			g_timeout_add_seconds (1, 
 					       black_list_check_items_cb,
 					       monitor);
@@ -551,20 +544,17 @@ black_list_file_increment (TrackerMonitor *monitor,
 static void 
 black_list_print_all (TrackerMonitor *monitor)
 {
-	TrackerMonitorPrivate *priv;
-	GHashTableIter         iter;
-	gchar                 *path;
-	gpointer               key;
-	gpointer               value;
-	guint                  count;
-	gboolean               none = TRUE;
+	GHashTableIter  iter;
+	gchar          *path;
+	gpointer        key;
+	gpointer        value;
+	guint           count;
+	gboolean        none = TRUE;
 
 	g_message ("Summary of black list: (with >= %d events)",
 		   BLACK_LIST_MAX_HITS);
 
-	priv = TRACKER_MONITOR_GET_PRIVATE (monitor);
-
-	g_hash_table_iter_init (&iter, priv->black_list_count);
+	g_hash_table_iter_init (&iter, monitor->private->black_list_count);
 	while (g_hash_table_iter_next (&iter, &key, &value)) {
 		count = GPOINTER_TO_UINT (value);
 		
@@ -614,15 +604,13 @@ monitor_event_cb (GFileMonitor      *file_monitor,
 		  GFileMonitorEvent  event_type,
 		  gpointer           user_data)  
 {
-	TrackerMonitor        *monitor;
-	TrackerMonitorPrivate *priv;
-	const gchar           *module_name;
-	gchar                 *str1;
-	gchar                 *str2;
-	gboolean               is_directory;
+	TrackerMonitor *monitor;
+	const gchar    *module_name;
+	gchar          *str1;
+	gchar          *str2;
+	gboolean        is_directory;
 
-	monitor = TRACKER_MONITOR (user_data);
-	priv = TRACKER_MONITOR_GET_PRIVATE (monitor);
+	monitor = user_data;
 
 	module_name = get_module_name_from_gfile (monitor, 
 						  file, 
@@ -705,25 +693,22 @@ tracker_monitor_add (TrackerMonitor *monitor,
 		     const gchar    *module_name,
 		     GFile          *file)
 {
-	TrackerMonitorPrivate *priv;
-	GFileMonitor          *file_monitor;
-	GHashTable            *monitors;
-	GSList                *ignored_roots;
-	GSList                *l;
-	GError                *error = NULL;
-	gchar                 *path;
+	GFileMonitor *file_monitor;
+	GHashTable   *monitors;
+	GSList       *ignored_roots;
+	GSList       *l;
+	GError       *error = NULL;
+	gchar        *path;
 
 	g_return_val_if_fail (TRACKER_IS_MONITOR (monitor), FALSE);
 	g_return_val_if_fail (module_name != NULL, FALSE);
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
 
-	priv = TRACKER_MONITOR_GET_PRIVATE (monitor);
-	
-	if (!tracker_config_get_enable_watches (priv->config)) {
+	if (!tracker_config_get_enable_watches (monitor->private->config)) {
 		return TRUE;
 	}
 
-	monitors = g_hash_table_lookup (priv->modules, module_name);
+	monitors = g_hash_table_lookup (monitor->private->modules, module_name);
 	if (!monitors) {
 		g_warning ("No monitor hash table for module:'%s'", 
 			   module_name);
@@ -735,14 +720,14 @@ tracker_monitor_add (TrackerMonitor *monitor,
 	}
 
 	/* Cap the number of monitors */
-	if (g_hash_table_size (monitors) >= priv->monitor_limit) {
-		priv->monitors_ignored++;
+	if (g_hash_table_size (monitors) >= monitor->private->monitor_limit) {
+		monitor->private->monitors_ignored++;
 
-		if (!priv->monitor_limit_warned) {
+		if (!monitor->private->monitor_limit_warned) {
 			g_warning ("The maximum number of monitors to set (%d) "
 				   "has been reached, not adding any new ones",
-				   priv->monitor_limit);
-			priv->monitor_limit_warned = TRUE;
+				   monitor->private->monitor_limit);
+			monitor->private->monitor_limit_warned = TRUE;
 		}
 
 		return FALSE;
@@ -750,7 +735,7 @@ tracker_monitor_add (TrackerMonitor *monitor,
 
 	path = g_file_get_path (file);
 
-	ignored_roots = tracker_config_get_no_watch_directory_roots (priv->config);
+	ignored_roots = tracker_config_get_no_watch_directory_roots (monitor->private->config);
 
 	/* Check this location isn't excluded in the config */
 	for (l = ignored_roots; l; l = l->next) {
@@ -804,22 +789,19 @@ tracker_monitor_remove (TrackerMonitor *monitor,
 			const gchar    *module_name,
 			GFile          *file)
 {
-	TrackerMonitorPrivate *priv;
-	GFileMonitor          *file_monitor;
-	GHashTable            *monitors;
-	gchar                 *path;
+	GFileMonitor *file_monitor;
+	GHashTable   *monitors;
+	gchar        *path;
 
 	g_return_val_if_fail (TRACKER_IS_MONITOR (monitor), FALSE);
 	g_return_val_if_fail (module_name != NULL, FALSE);
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
 
-	priv = TRACKER_MONITOR_GET_PRIVATE (monitor);
-
-	if (!tracker_config_get_enable_watches (priv->config)) {
+	if (!tracker_config_get_enable_watches (monitor->private->config)) {
 		return TRUE;
 	}
 
-	monitors = g_hash_table_lookup (priv->modules, module_name);
+	monitors = g_hash_table_lookup (monitor->private->modules, module_name);
 	if (!monitors) {
 		g_warning ("No monitor hash table for module:'%s'", 
 			   module_name);
@@ -832,7 +814,7 @@ tracker_monitor_remove (TrackerMonitor *monitor,
 	}
 
 	/* We reset this because now it is possible we have limit - 1 */
-	priv->monitor_limit_warned = FALSE;
+	monitor->private->monitor_limit_warned = FALSE;
 
 	g_hash_table_remove (monitors, file);
 
@@ -853,16 +835,13 @@ tracker_monitor_is_watched (TrackerMonitor *monitor,
 			    const gchar    *module_name,
 			    GFile          *file)
 {
-	TrackerMonitorPrivate *priv;
-	GHashTable            *monitors;
+	GHashTable *monitors;
 
 	g_return_val_if_fail (TRACKER_IS_MONITOR (monitor), FALSE);
 	g_return_val_if_fail (module_name != NULL, FALSE);
 	g_return_val_if_fail (G_IS_FILE (file), FALSE);
 
-	priv = TRACKER_MONITOR_GET_PRIVATE (monitor);
-
-	monitors = g_hash_table_lookup (priv->modules, module_name);
+	monitors = g_hash_table_lookup (monitor->private->modules, module_name);
 	if (!monitors) {
 		g_warning ("No monitor hash table for module:'%s'", 
 			   module_name);
@@ -877,18 +856,15 @@ tracker_monitor_is_watched_by_string (TrackerMonitor *monitor,
 				      const gchar    *module_name,
 				      const gchar    *path)
 {
-	TrackerMonitorPrivate *priv;
-	GFile                 *file;
-	GHashTable            *monitors;
-	gboolean               watched;
+	GFile      *file;
+	GHashTable *monitors;
+	gboolean    watched;
 
 	g_return_val_if_fail (TRACKER_IS_MONITOR (monitor), FALSE);
 	g_return_val_if_fail (module_name != NULL, FALSE);
 	g_return_val_if_fail (path != NULL, FALSE);
 
-	priv = TRACKER_MONITOR_GET_PRIVATE (monitor);
-
-	monitors = g_hash_table_lookup (priv->modules, module_name);
+	monitors = g_hash_table_lookup (monitor->private->modules, module_name);
 	if (!monitors) {
 		g_warning ("No monitor hash table for module:'%s'", 
 			   module_name);
@@ -906,17 +882,14 @@ guint
 tracker_monitor_get_count (TrackerMonitor *monitor,
 			   const gchar    *module_name)
 {
-	TrackerMonitorPrivate *priv;
-	guint                  count;
+	guint count;
 
 	g_return_val_if_fail (TRACKER_IS_MONITOR (monitor), 0);
-
-	priv = TRACKER_MONITOR_GET_PRIVATE (monitor);
 
 	if (module_name) {
 		GHashTable *monitors;
 
-		monitors = g_hash_table_lookup (priv->modules, module_name);
+		monitors = g_hash_table_lookup (monitor->private->modules, module_name);
 		if (!monitors) {
 			g_warning ("No monitor hash table for module:'%s'", 
 				   module_name);
@@ -927,7 +900,7 @@ tracker_monitor_get_count (TrackerMonitor *monitor,
 	} else {
 		GList *all_modules, *l;
 
-		all_modules = g_hash_table_get_values (priv->modules);
+		all_modules = g_hash_table_get_values (monitor->private->modules);
 		
 		for (l = all_modules, count = 0; l; l = l->next) {
 			count += g_hash_table_size (l->data);
@@ -942,11 +915,7 @@ tracker_monitor_get_count (TrackerMonitor *monitor,
 guint
 tracker_monitor_get_ignored (TrackerMonitor *monitor)
 {
-	TrackerMonitorPrivate *priv;
-
 	g_return_val_if_fail (TRACKER_IS_MONITOR (monitor), 0);
 
-	priv = TRACKER_MONITOR_GET_PRIVATE (monitor);
-
-	return priv->monitors_ignored;
+	return monitor->private->monitors_ignored;
 }

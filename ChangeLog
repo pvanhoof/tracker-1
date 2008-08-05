@@ -1,5 +1,19 @@
 2008-08-05  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-crawler.c:
+	(tracker_crawler_is_path_ignored): Add to the comment in this
+	function so people know why we have an internal function and an
+	external function doing the same thing.
+	
+	* src/trackerd/tracker-monitor.c:
+	* src/trackerd/tracker-processor.[ch]: Changed the way we get
+	*Private data in these modules so we don't do type checking on the
+	GObjects for every function just to get the private struct.
+	This should improve speed slightly. This is exactly what the
+	crawler does.
+
+2008-08-05  Martyn Russell  <martyn@imendio.com>
+
 	* src/tracker-indexer/modules/evolution.c: Use g_try_malloc0
 	instead of just g_malloc0 so we don't try to allocate rediculous
 	lengths of memory and abort. Also, if we can't parse the file, we

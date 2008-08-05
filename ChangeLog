@@ -1,3 +1,9 @@
+2008-08-05  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/libtracker-db/tracker-db-dbus.[ch]: Added new method
+	(tracker_dbus_result_set_numeric_to_strv) needed to retrieve data
+	from the numeric metadata table.
+	
 2008-08-05  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-processor.c: Don't send items to the

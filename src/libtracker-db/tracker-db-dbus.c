@@ -23,10 +23,13 @@
 
 #include "tracker-db-dbus.h"
 
-gchar **
-tracker_dbus_query_result_to_strv (TrackerDBResultSet *result_set, 
-				   gint                column,
-                                   gint               *count)
+
+static gchar **
+dbus_query_result_to_strv (TrackerDBResultSet *result_set, 
+			   gint                column,
+			   gint               *count,
+			   gboolean            numeric)
+
 {
 	gchar **strv = NULL;
         gint    rows = 0;
@@ -35,6 +38,7 @@ tracker_dbus_query_result_to_strv (TrackerDBResultSet *result_set,
 	if (result_set) {
 		gchar    *str;
 		gboolean  valid = TRUE;
+		gint      value;
 
 		/* Make sure we rewind before iterating the result set */
 		tracker_db_result_set_rewind (result_set);
@@ -44,7 +48,12 @@ tracker_dbus_query_result_to_strv (TrackerDBResultSet *result_set,
 		
 		while (valid) {
 
-			tracker_db_result_set_get (result_set, column, &str, -1);
+			if (numeric) {
+				tracker_db_result_set_get (result_set, column, &value, -1);
+				str = g_strdup_printf ("%d", value);
+			} else {
+				tracker_db_result_set_get (result_set, column, &str, -1);
+			}
 			
 			if (!str) {
 				valid = tracker_db_result_set_iter_next (result_set);
@@ -72,7 +81,21 @@ tracker_dbus_query_result_to_strv (TrackerDBResultSet *result_set,
 	return strv;
 }
 
+gchar **
+tracker_dbus_query_result_to_strv (TrackerDBResultSet *result_set, 
+				   gint                column,
+                                   gint               *count)
+{
+	return dbus_query_result_to_strv (result_set, column, count, FALSE);
+}
 
+gchar **
+tracker_dbus_query_result_numeric_to_strv (TrackerDBResultSet *result_set, 
+					   gint                column,
+					   gint               *count)
+{
+	return dbus_query_result_to_strv (result_set, column, count, TRUE);
+}
 
 gchar **
 tracker_dbus_query_result_columns_to_strv (TrackerDBResultSet *result_set, 

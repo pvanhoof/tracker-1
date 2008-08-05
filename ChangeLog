@@ -1,5 +1,18 @@
 2008-08-05  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-monitor.[ch]: Add property to enable and
+	disable monitor events from being processed. 
+
+	* src/trackerd/tracker-processor.c: Make sure we disable monitor
+	events while crawling the file system and enable then once done.
+	This way we can't get monitor events causing the daemon to signal
+	"indexing" state up before we have finished processing each module
+	for crawling. Also, when we start processing new files from
+	monitor events, put us into "indexing" state instead of staying
+	"idle". 
+
+2008-08-05  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-crawler.c:
 	(tracker_crawler_is_path_ignored): Add to the comment in this
 	function so people know why we have an internal function and an

@@ -51,6 +51,9 @@ struct _TrackerMonitorClass {
 
 GType           tracker_monitor_get_type             (void);
 TrackerMonitor *tracker_monitor_new                  (TrackerConfig  *config);
+gboolean        tracker_monitor_get_enabled          (TrackerMonitor *monitor);
+void            tracker_monitor_set_enabled          (TrackerMonitor *monitor,
+						      gboolean        enabled);
 gboolean        tracker_monitor_add                  (TrackerMonitor *monitor,
 						      const gchar    *module_name,
 						      GFile          *file);

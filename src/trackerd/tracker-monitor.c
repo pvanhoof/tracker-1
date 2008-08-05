@@ -54,6 +54,8 @@ struct _TrackerMonitorPrivate {
 
 	GHashTable    *modules;
 	
+	gboolean       enabled;
+
 	guint          black_list_timeout_id;
 	GHashTable    *black_list_count;
 	GHashTable    *black_list_timestamps;
@@ -72,10 +74,23 @@ enum {
 	LAST_SIGNAL
 };
 
-static void     tracker_monitor_finalize  (GObject        *object);
-static gboolean black_list_check_items_cb (gpointer        data);
-static void     black_list_print_all      (TrackerMonitor *monitor);
-static guint    get_inotify_limit         (void);
+enum {
+	PROP_0,
+	PROP_ENABLED
+};
+
+static void     tracker_monitor_finalize     (GObject        *object);
+static void     tracker_monitor_set_property (GObject        *object,
+					      guint           prop_id,
+					      const GValue   *value,
+					      GParamSpec     *pspec);
+static void     tracker_monitor_get_property (GObject        *object,
+					      guint           prop_id,
+					      GValue         *value,
+					      GParamSpec     *pspec);
+static gboolean black_list_check_items_cb    (gpointer        data);
+static void     black_list_print_all         (TrackerMonitor *monitor);
+static guint    get_inotify_limit            (void);
 
 static guint signals[LAST_SIGNAL] = { 0, };
 
@@ -89,6 +104,8 @@ tracker_monitor_class_init (TrackerMonitorClass *klass)
 	object_class = G_OBJECT_CLASS (klass);
 
 	object_class->finalize = tracker_monitor_finalize;
+	object_class->set_property = tracker_monitor_set_property;
+	object_class->get_property = tracker_monitor_get_property;
 
 	signals[ITEM_CREATED] = 
 		g_signal_new ("item-created",
@@ -127,6 +144,14 @@ tracker_monitor_class_init (TrackerMonitorClass *klass)
 			      G_TYPE_OBJECT,
 			      G_TYPE_BOOLEAN);
 
+	g_object_class_install_property (object_class,
+					 PROP_ENABLED,
+					 g_param_spec_boolean ("enabled",
+							       "Enabled",
+							       "Enabled",
+							       TRUE,
+							       G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
+
 	g_type_class_add_private (object_class, sizeof (TrackerMonitorPrivate));
 }
 
@@ -142,6 +167,9 @@ tracker_monitor_init (TrackerMonitor *object)
 	object->private = TRACKER_MONITOR_GET_PRIVATE (object);
 
 	priv = object->private;
+
+	/* By default we enable monitoring */
+	priv->enabled = TRUE;
 
 	/* For each module we create a hash table for monitors */
 	priv->modules =
@@ -288,21 +316,41 @@ tracker_monitor_finalize (GObject *object)
 	G_OBJECT_CLASS (tracker_monitor_parent_class)->finalize (object);
 }
 
-TrackerMonitor *
-tracker_monitor_new (TrackerConfig *config)
+static void
+tracker_monitor_set_property (GObject      *object,
+			      guint         prop_id,
+			      const GValue *value,
+			      GParamSpec   *pspec)
 {
-	TrackerMonitor        *monitor;
+	switch (prop_id) {
+	case PROP_ENABLED:
+		tracker_monitor_set_enabled (TRACKER_MONITOR (object),
+					     g_value_get_boolean (value));
+		break;
+
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+	}
+}
+
+static void
+tracker_monitor_get_property (GObject      *object,
+			      guint         prop_id,
+			      GValue       *value,
+			      GParamSpec   *pspec)
+{
 	TrackerMonitorPrivate *priv;
 
-	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
+	priv = TRACKER_MONITOR_GET_PRIVATE (object);
 
-	monitor = g_object_new (TRACKER_TYPE_MONITOR, NULL);
+	switch (prop_id) {
+	case PROP_ENABLED:
+		g_value_set_boolean (value, priv->enabled);
+		break;
 
-	priv = monitor->private;
-
-	priv->config = g_object_ref (config);
-
-	return monitor;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+	}
 }
 
 static guint
@@ -612,6 +660,11 @@ monitor_event_cb (GFileMonitor      *file_monitor,
 
 	monitor = user_data;
 
+	if (G_UNLIKELY (!monitor->private->enabled)) {
+		g_debug ("Silently dropping monitor event, monitor disabled for now");
+		return;
+	}
+
 	module_name = get_module_name_from_gfile (monitor, 
 						  file, 
 						  &is_directory);
@@ -686,6 +739,43 @@ monitor_event_cb (GFileMonitor      *file_monitor,
 
 	g_free (str1);
 	g_free (str2);
+}
+
+
+TrackerMonitor *
+tracker_monitor_new (TrackerConfig *config)
+{
+	TrackerMonitor        *monitor;
+	TrackerMonitorPrivate *priv;
+
+	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
+
+	monitor = g_object_new (TRACKER_TYPE_MONITOR, NULL);
+
+	priv = monitor->private;
+
+	priv->config = g_object_ref (config);
+
+	return monitor;
+}
+
+gboolean
+tracker_monitor_get_enabled (TrackerMonitor *monitor)
+{
+	g_return_val_if_fail (TRACKER_IS_MONITOR (monitor), FALSE);
+
+	return monitor->private->enabled;
+}
+
+void
+tracker_monitor_set_enabled (TrackerMonitor *monitor,
+			     gboolean        enabled)
+{
+	g_return_if_fail (TRACKER_IS_MONITOR (monitor));
+
+	monitor->private->enabled = enabled;
+
+	g_object_notify (G_OBJECT (monitor), "enabled");
 }
 
 gboolean
@@ -919,3 +1009,4 @@ tracker_monitor_get_ignored (TrackerMonitor *monitor)
 
 	return monitor->private->monitors_ignored;
 }
+

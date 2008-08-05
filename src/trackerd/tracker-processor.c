@@ -447,8 +447,6 @@ crawler_destroy_notify (gpointer data)
 								NULL,
 								G_CALLBACK (crawler_processing_file_cb),
 								NULL);
-		g_return_if_fail (signals > 0);
-
 		signals = g_signal_handlers_disconnect_matched (crawler, 
 								G_SIGNAL_MATCH_FUNC,
 								0,
@@ -456,8 +454,6 @@ crawler_destroy_notify (gpointer data)
 								NULL,
 								G_CALLBACK (crawler_processing_directory_cb),
 								NULL);
-		g_return_if_fail (signals > 0);
-
 		signals = g_signal_handlers_disconnect_matched (crawler, 
 								G_SIGNAL_MATCH_FUNC,
 								0,
@@ -465,7 +461,6 @@ crawler_destroy_notify (gpointer data)
 								NULL,
 								G_CALLBACK (crawler_finished_cb),
 								NULL);
-		g_return_if_fail (signals > 0);
 
 		g_object_unref (crawler);
 	}
@@ -650,6 +645,9 @@ item_queue_handlers_set_up (TrackerProcessor *processor)
 	if (processor->private->item_queues_handler_id != 0) {
 		return;
 	}
+
+	/* Now we try to send all items to the indexer */
+	tracker_status_set_and_signal (TRACKER_STATUS_INDEXING);
 
 	processor->private->item_queues_handler_id = 
 		g_timeout_add (ITEMS_QUEUE_PROCESS_INTERVAL, 
@@ -1248,6 +1246,9 @@ tracker_processor_new (TrackerConfig *config,
 	/* Set up the monitor */
 	priv->monitor = tracker_monitor_new (config);
 
+	g_message ("Disabling monitor events until we have crawled the file system");
+	tracker_monitor_set_enabled (priv->monitor, FALSE);
+
 	g_signal_connect (priv->monitor, "item-created",
 			  G_CALLBACK (monitor_item_created_cb),
 			  processor);
@@ -1306,7 +1307,12 @@ tracker_processor_stop (TrackerProcessor *processor)
 		crawler = g_hash_table_lookup (processor->private->crawlers, 
 					       processor->private->current_module->data);
 		tracker_crawler_stop (crawler);
+
 	}
+
+	/* Now we have finished crawling, we enable monitor events */
+	g_message ("Enabling monitor events");
+	tracker_monitor_set_enabled (processor->private->monitor, TRUE);
 
 	g_message ("Process %s\n",
 		   processor->private->finished ? "has finished" : "been stopped");
@@ -1338,9 +1344,6 @@ tracker_processor_stop (TrackerProcessor *processor)
 		processor->private->finished = TRUE;
 		g_signal_emit (processor, signals[FINISHED], 0);
 	} else {
-		/* Now we try to send all items to the indexer */
-		tracker_status_set_and_signal (TRACKER_STATUS_INDEXING);
-
 		item_queue_handlers_set_up (processor);
 	}
 }

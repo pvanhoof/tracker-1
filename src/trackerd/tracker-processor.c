@@ -38,6 +38,7 @@
 #include "tracker-index.h"
 #include "tracker-index-manager.h"
 #include "tracker-indexer-client.h"
+#include "tracker-main.h"
 #include "tracker-monitor.h"
 #include "tracker-status.h"
 
@@ -548,6 +549,15 @@ item_queue_handlers_cb (gpointer user_data)
 	gchar                   *module_name;
 
 	processor = user_data;
+
+	/* This way we don't send anything to the indexer from monitor
+	 * events but we still queue them ready to send when we are
+	 * unpaused. 
+	 */
+	if (tracker_get_is_paused_manually ()) {
+		g_message ("We are paused, sending nothing to the index until we are unpaused");
+		return TRUE;
+	}
 
 	/* Now we try to send items to the indexer */
 	tracker_status_set_and_signal (TRACKER_STATUS_INDEXING);

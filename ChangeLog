@@ -1,5 +1,12 @@
 2008-08-05  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-processor.c: Don't send items to the
+	indexer if we are manually paused. This was caused by receiving
+	monitor events and just blindly sending them without checking if
+	we should or not.
+
+2008-08-05  Martyn Russell  <martyn@imendio.com>
+
 	* src/tracker-indexer/tracker-main.c: Make sure we don't just exit
 	when we have processed items. ALWAYS wait at least 10 seconds
 	before quitting after EVERY "finished" signal. The indexer was

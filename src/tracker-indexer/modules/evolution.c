@@ -71,6 +71,10 @@ struct EvolutionImapData {
         FILE *summary;
         guint n_messages;
         guint cur_message;
+        gchar *cur_message_uid;
+
+        GList *mime_parts;
+        GList *current_mime_part;
 };
 
 union EvolutionFileData {
@@ -668,47 +672,60 @@ get_mbox_recipient_list (GMimeMessage *message,
 }
 
 TrackerMetadata *
+get_metadata_for_data_wrapper (GMimeDataWrapper *wrapper)
+{
+        TrackerMetadata *metadata;
+        GMimeStream *stream;
+        gchar *path;
+        gint fd;
+
+        path = g_build_filename (g_get_tmp_dir (), "tracker-evolution-module-XXXXXX", NULL);
+        fd = g_mkstemp (path);
+        metadata = NULL;
+
+        stream = g_mime_stream_fs_new (fd);
+
+        if (g_mime_data_wrapper_write_to_stream (wrapper, stream) != -1) {
+                g_mime_stream_flush (stream);
+
+                metadata = tracker_metadata_utils_get_data (path);
+                g_unlink (path);
+        }
+
+        g_mime_stream_close (stream);
+        g_object_unref (stream);
+        g_free (path);
+
+        return metadata;
+}
+
+TrackerMetadata *
 get_metadata_for_mbox_attachment (TrackerFile  *file,
                                   GMimeMessage *message,
                                   GMimePart    *part)
 {
         TrackerMetadata *metadata;
         GMimeDataWrapper *content;
-        GMimeStream *stream;
-        gchar *path;
-        gint fd;
 
         content = g_mime_part_get_content_object (part);
-        metadata = NULL;
 
         if (!content) {
                 return NULL;
         }
 
-        path = g_build_filename (g_get_tmp_dir (), "tracker-evolution-module-XXXXXX", NULL);
-        fd = g_mkstemp (path);
+        metadata = get_metadata_for_data_wrapper (content);
 
-        stream = g_mime_stream_fs_new (fd);
-
-        if (g_mime_data_wrapper_write_to_stream (content, stream) != -1) {
+        if (metadata) {
                 gchar *dirname, *basename;
 
-                g_mime_stream_flush (stream);
-
-                metadata = tracker_metadata_utils_get_data (path);
                 get_mbox_attachment_uri (file, message, part,
                                          &dirname, &basename);
 
                 tracker_metadata_insert (metadata, METADATA_FILE_PATH, dirname);
                 tracker_metadata_insert (metadata, METADATA_FILE_NAME, basename);
-
-                g_unlink (path);
         }
 
-        g_mime_stream_close (stream);
-        g_object_unref (stream);
         g_object_unref (content);
-        g_free (path);
 
         return metadata;
 }
@@ -809,8 +826,113 @@ skip_content_info (FILE *summary)
         }
 }
 
+gboolean
+get_imap_attachment_info (const gchar            *mime_file,
+                          gchar                 **name,
+                          GMimePartEncodingType  *encoding)
+{
+        GMimeContentType *mime;
+	gchar *tmp, *mime_content;
+        const gchar *pos_content_type, *pos_encoding, *pos_end_encoding;
+
+        if (name) {
+                *name = NULL;
+        }
+
+        if (encoding) {
+                *encoding = GMIME_PART_ENCODING_DEFAULT;
+        }
+
+	if (!g_file_get_contents (mime_file, &tmp, NULL, NULL)) {
+		return FALSE;
+	}
+
+        /* all text content in lower case for comparisons */
+	mime_content = g_ascii_strdown (tmp, -1);
+        g_free (tmp);
+
+	pos_content_type = strstr (mime_content, "content-type:");
+
+        if (pos_content_type) {
+                pos_encoding = strstr (pos_content_type, "content-transfer-encoding:");
+        }
+
+        if (!pos_content_type || !pos_encoding) {
+                g_free (mime_content);
+                return FALSE;
+        }
+
+        pos_content_type += strlen ("content-type:");
+        pos_encoding += strlen ("content-transfer-encoding:");
+
+        /* ignore spaces, tab or line returns */
+        while (*pos_content_type != '\0' && (*pos_content_type == ' ' || *pos_content_type == '\t' || *pos_content_type == '\n')) {
+                pos_content_type++;
+        }
+
+        while (*pos_encoding != '\0' && *pos_encoding == ' ') {
+                pos_encoding++;
+        }
+
+        if (*pos_content_type == '\0' ||
+            *pos_encoding == '\0') {
+                g_free (mime_content);
+                return FALSE;
+        }
+
+        mime = g_mime_content_type_new_from_string (pos_content_type);
+
+        if (mime) {
+                if (name) {
+                        *name = g_strdup (g_mime_content_type_get_parameter (mime, "name"));
+                }
+
+                g_mime_content_type_destroy (mime);
+        }
+
+        if (name && !*name) {
+                g_free (mime_content);
+                return FALSE;
+        }
+
+        /* Find end of encoding */
+        pos_end_encoding = pos_encoding;
+
+        while (*pos_end_encoding != '\0' &&
+               *pos_end_encoding != ' ' &&
+               *pos_end_encoding != '\n' &&
+               *pos_end_encoding != '\t') {
+                pos_end_encoding++;
+        }
+
+        if (encoding && pos_encoding != pos_end_encoding) {
+                gchar *encoding_str = g_strndup (pos_encoding, pos_end_encoding - pos_encoding);
+
+                if (strcmp (encoding_str, "7bit") == 0) {
+                        *encoding = GMIME_PART_ENCODING_7BIT;
+                } else if (strcmp (encoding_str, "8bit") == 0) {
+                        *encoding = GMIME_PART_ENCODING_7BIT;
+                } else if (strcmp (encoding_str, "binary") == 0) {
+                        *encoding = GMIME_PART_ENCODING_BINARY;
+                } else if (strcmp (encoding_str, "base64") == 0) {
+                        *encoding = GMIME_PART_ENCODING_BASE64;
+                } else if (strcmp (encoding_str, "quoted-printable") == 0) {
+                        *encoding = GMIME_PART_ENCODING_QUOTEDPRINTABLE;
+                } else if (strcmp (encoding_str, "x-uuencode") == 0) {
+                        *encoding = GMIME_PART_ENCODING_UUENCODE;
+                }
+
+                g_free (encoding_str);
+        }
+
+	g_free (mime_content);
+
+        return TRUE;
+}
+
 void
 get_imap_uri (TrackerFile  *file,
+              const gchar  *uid,
               gchar       **uri_base,
               gchar       **basename)
 {
@@ -834,8 +956,9 @@ get_imap_uri (TrackerFile  *file,
                         subdirs = tracker_string_remove (subdirs, "/subfolders");
                         subdirs = tracker_string_remove (subdirs, "/summary");
 
-                        *basename = subdirs;
+                        *basename = g_strdup_printf ("%s;uid=%s", subdirs, uid);
 
+                        g_free (subdirs);
                         g_free (dir);
 
                         break;
@@ -845,6 +968,28 @@ get_imap_uri (TrackerFile  *file,
         g_list_free (keys);
 
         return;
+}
+
+static void
+get_imap_attachment_uri (TrackerFile  *file,
+                         gchar       **dirname,
+                         gchar       **basename)
+{
+        EvolutionImapData *data;
+        gchar *message_dirname, *message_basename, *name;
+
+        data = file->data;
+
+        if (!get_imap_attachment_info (data->current_mime_part->data, &name, NULL)) {
+                return;
+        }
+
+        get_imap_uri (file, data->cur_message_uid, &message_dirname, &message_basename);
+        *dirname = g_strdup_printf ("%s/%s", message_dirname, message_basename);
+        *basename = name;
+
+        g_free (message_dirname);
+        g_free (message_basename);
 }
 
 static GList *
@@ -871,21 +1016,88 @@ get_imap_recipient_list (const gchar *str)
 }
 
 static gchar *
+get_imap_message_path (TrackerFile *file,
+                       const gchar *uid)
+{
+        gchar *prefix, *message_path;
+
+        prefix = g_strndup (file->path, strlen (file->path) - strlen ("summary"));
+        message_path = g_strconcat (prefix, uid, ".", NULL);
+        g_free (prefix);
+
+        return message_path;
+}
+
+static gchar *
 get_imap_message_body (TrackerFile *file,
                        const gchar *uid)
 {
-        gchar *prefix, *body_path;
+        gchar *message_path;
         gchar *body = NULL;
 
-        prefix = g_strndup (file->path, strlen (file->path) - strlen ("summary"));
-        body_path = g_strconcat (prefix, uid, ".", NULL);
-
-        g_file_get_contents (body_path, &body, NULL, NULL);
-
-        g_free (prefix);
-        g_free (body_path);
+        message_path = get_imap_message_path (file, uid);
+        g_file_get_contents (message_path, &body, NULL, NULL);
+        g_free (message_path);
 
         return body;
+}
+
+TrackerMetadata *
+get_metadata_for_imap_attachment (TrackerFile *file,
+                                  const gchar *mime_file)
+{
+        TrackerMetadata *metadata;
+        GMimeStream *stream;
+        GMimeDataWrapper *wrapper;
+        GMimePartEncodingType encoding;
+        gchar *path, *name;
+
+        if (!get_imap_attachment_info (mime_file, &name, &encoding)) {
+                return NULL;
+        }
+
+        path = g_strdup (mime_file);
+        path = tracker_string_remove (path, ".MIME");
+
+#if defined(__linux__)
+        stream = email_get_stream (path, O_RDONLY | O_NOATIME, 0);
+#else
+        stream = email_get_stream (path, O_RDONLY, 0);
+#endif
+
+        if (!stream) {
+                g_free (name);
+                g_free (path);
+                return NULL;
+        }
+
+        wrapper = g_mime_data_wrapper_new_with_stream (stream, encoding);
+        metadata = get_metadata_for_data_wrapper (wrapper);
+
+        if (metadata) {
+                EvolutionImapData *data;
+                gchar *dirname, *basename;
+
+                data = file->data;
+
+                get_imap_uri (file,
+                              data->cur_message_uid,
+                              &dirname, &basename);
+
+                tracker_metadata_insert (metadata, METADATA_FILE_NAME, g_strdup (name));
+                tracker_metadata_insert (metadata, METADATA_FILE_PATH,
+                                         g_strdup_printf ("%s/%s", dirname, basename));
+
+                g_free (dirname);
+                g_free (basename);
+        }
+
+        g_object_unref (wrapper);
+        g_object_unref (stream);
+        g_free (name);
+        g_free (path);
+
+        return metadata;
 }
 
 TrackerMetadata *
@@ -904,6 +1116,11 @@ get_metadata_for_imap (TrackerFile *file)
         if (data->cur_message > data->n_messages) {
                 return NULL;
         }
+
+        if (data->current_mime_part) {
+                return get_metadata_for_imap_attachment (file, data->current_mime_part->data);
+        }
+
 
         uid = NULL;
 
@@ -943,12 +1160,14 @@ get_metadata_for_imap (TrackerFile *file)
                 return NULL;
         }
 
-	metadata = tracker_metadata_new ();
-        get_imap_uri (file, &dirname, &basename);
+        /* save current message uid */
+        data->cur_message_uid = g_strdup (uid);
+
+        metadata = tracker_metadata_new ();
+        get_imap_uri (file, uid, &dirname, &basename);
 
         tracker_metadata_insert (metadata, METADATA_FILE_PATH, dirname);
-        tracker_metadata_insert (metadata, METADATA_FILE_NAME, g_strdup_printf ("%s;uid=%s", basename, uid));
-        g_free (basename);
+        tracker_metadata_insert (metadata, METADATA_FILE_NAME, basename);
 
 	tracker_metadata_insert (metadata, METADATA_EMAIL_DATE,
                                  tracker_uint_to_string (date));
@@ -1070,7 +1289,15 @@ tracker_module_file_get_uri (TrackerFile  *file,
                 break;
         }
         case MAIL_STORAGE_IMAP: {
-                get_imap_uri (file, dirname, basename);
+                EvolutionImapData *data = file->data;
+
+                if (data->current_mime_part) {
+                        /* We're currently on an attachment */
+                        get_imap_attachment_uri (file, dirname, basename);
+                } else {
+                        get_imap_uri (file, data->cur_message_uid, dirname, basename);
+                }
+
                 break;
         }
         default:
@@ -1091,9 +1318,15 @@ tracker_module_file_get_service_type (TrackerFile *file)
         }
 
         if (data->type == MAIL_STORAGE_LOCAL) {
-                EvolutionLocalData *data = file->data;
+                EvolutionLocalData *local_data = file->data;
 
-                if (data->current_mime_part) {
+                if (local_data->current_mime_part) {
+                        return g_strdup ("EvolutionAttachments");
+                }
+        } else if (data->type == MAIL_STORAGE_IMAP) {
+                EvolutionImapData *imap_data = file->data;
+
+                if (imap_data->current_mime_part) {
                         return g_strdup ("EvolutionAttachments");
                 }
         }
@@ -1126,9 +1359,40 @@ tracker_module_file_get_metadata (TrackerFile *file)
         return NULL;
 }
 
+static GList *
+extract_imap_mime_parts (TrackerFile *file)
+{
+        EvolutionImapData *data;
+        gboolean has_attachment = TRUE;
+        gint n_attachment = 0;
+        gchar *message_path;
+        GList *mime_parts = NULL;
+
+        data = file->data;
+        message_path = get_imap_message_path (file, data->cur_message_uid);
+
+        while (has_attachment) {
+                gchar *mime_file;
+
+                n_attachment++;
+                mime_file = g_strdup_printf ("%s%d.MIME", message_path, n_attachment);
+
+                if (g_file_test (mime_file, G_FILE_TEST_EXISTS)) {
+                        mime_parts = g_list_prepend (mime_parts, mime_file);
+                } else {
+                        g_free (mime_file);
+                        has_attachment = FALSE;
+                }
+        }
+
+        g_free (message_path);
+
+        return g_list_reverse (mime_parts);;
+}
+
 static void
-extract_mime_parts (GMimeObject *object,
-                    gpointer     user_data)
+extract_mbox_mime_parts (GMimeObject *object,
+                         gpointer     user_data)
 {
         GList **list = (GList **) user_data;
         GMimePart *part;
@@ -1140,13 +1404,13 @@ extract_mime_parts (GMimeObject *object,
                 message = g_mime_message_part_get_message (GMIME_MESSAGE_PART (object));
 
                 if (message) {
-                        g_mime_message_foreach_part (message, extract_mime_parts, user_data);
+                        g_mime_message_foreach_part (message, extract_mbox_mime_parts, user_data);
                         g_object_unref (message);
                 }
 
                 return;
         } else if (GMIME_IS_MULTIPART (object)) {
-                g_mime_multipart_foreach (GMIME_MULTIPART (object), extract_mime_parts, user_data);
+                g_mime_multipart_foreach (GMIME_MULTIPART (object), extract_mbox_mime_parts, user_data);
                 return;
         }
 
@@ -1180,6 +1444,25 @@ tracker_module_file_iter_contents (TrackerFile *file)
         if (data->type == MAIL_STORAGE_IMAP) {
                 EvolutionImapData *imap_data = file->data;
 
+                /* Iterate through mime parts, if any */
+                if (!imap_data->mime_parts) {
+                        imap_data->mime_parts = extract_imap_mime_parts (file);
+                        imap_data->current_mime_part = imap_data->mime_parts;
+                } else {
+                        imap_data->current_mime_part = imap_data->current_mime_part->next;
+                }
+
+                if (imap_data->current_mime_part) {
+                        return TRUE;
+                }
+
+                g_list_foreach (imap_data->mime_parts, (GFunc) g_free, NULL);
+                g_list_free (imap_data->mime_parts);
+                imap_data->mime_parts = NULL;
+
+                g_free (imap_data->cur_message_uid);
+                imap_data->cur_message_uid = NULL;
+
                 imap_data->cur_message++;
 
                 return (imap_data->cur_message < imap_data->n_messages);
@@ -1194,7 +1477,7 @@ tracker_module_file_iter_contents (TrackerFile *file)
                         /* Iterate through mime parts, if any */
                         if (!local_data->mime_parts) {
                                 g_mime_message_foreach_part (local_data->message,
-                                                             extract_mime_parts,
+                                                             extract_mbox_mime_parts,
                                                              &local_data->mime_parts);
                                 local_data->current_mime_part = local_data->mime_parts;
                         } else {

@@ -1,3 +1,8 @@
+2008-08-06  Martyn Russell  <martyn@imendio.com>
+
+	* AUTHORS: Sorted the AUTHORS file alphabetically and added Me,
+	Carlos, Ivan, Mikael and Phillip.
+
 2008-08-05  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-module.h

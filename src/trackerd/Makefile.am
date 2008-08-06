@@ -38,8 +38,6 @@ trackerd_SOURCES =							\
 	tracker-keywords.h						\
 	tracker-index.c							\
 	tracker-index.h							\
-	tracker-index-manager.c						\
-	tracker-index-manager.h						\
 	tracker-processor.c						\
 	tracker-processor.h						\
 	tracker-main.c							\

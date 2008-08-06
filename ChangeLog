@@ -1,5 +1,13 @@
 2008-08-06  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-db/Makefile.am: 
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-index-manager.c:
+	* src/trackerd/tracker-index-manager.h: Moved index manager to the
+	libtracker-db. 
+
+2008-08-06  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-dbus.[ch]:
 	* src/trackerd/tracker-index-manager.[ch]:
 	* src/trackerd/tracker-main.c:

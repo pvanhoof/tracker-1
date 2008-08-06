@@ -31,9 +31,8 @@
 #define MIN_BUCKET_DEFAULT 10
 #define MAX_BUCKET_DEFAULT 20
 
-#define TRACKER_INDEX_FILE_INDEX_FILENAME         "file-index.db"
-#define TRACKER_INDEX_EMAIL_INDEX_FILENAME        "email-index.db"
-#define TRACKER_INDEX_FILE_UPDATE_INDEX_FILENAME  "file-update-index.db"
+#define TRACKER_INDEX_FILENAME         "index.db"
+#define TRACKER_INDEX_UPDATE_FILENAME  "index-update.db"
 
 #define MAX_INDEX_FILE_SIZE 2000000000
 
@@ -48,20 +47,15 @@ typedef struct {
 static gboolean               initialized;
 
 static TrackerIndexDefinition indexes[] = {
-        { TRACKER_INDEX_TYPE_FILES, 
+        { TRACKER_INDEX_TYPE_INDEX, 
 	  NULL,
-          TRACKER_INDEX_FILE_INDEX_FILENAME,
-          "file-index",
+          TRACKER_INDEX_FILENAME,
+          "index",
           NULL },
-        { TRACKER_INDEX_TYPE_EMAILS, 
+        { TRACKER_INDEX_TYPE_INDEX_UPDATE, 
 	  NULL,
-          TRACKER_INDEX_EMAIL_INDEX_FILENAME,
-          "email-index",
-          NULL },
-        { TRACKER_INDEX_TYPE_FILES_UPDATE, 
-	  NULL,
-          TRACKER_INDEX_FILE_UPDATE_INDEX_FILENAME,
-          "file-update-index",
+          TRACKER_INDEX_UPDATE_FILENAME,
+          "index-update",
           NULL }
 };
 
@@ -72,10 +66,16 @@ has_tmp_merge_files (TrackerIndexType type)
 	GFileEnumerator *enumerator;
 	GFileInfo       *info;
 	GError          *error = NULL;
-	const gchar     *prefix;
+	gchar           *prefix;
 	const gchar     *data_dir;
 	gchar           *dirname;
 	gboolean         found;
+
+	if (type != TRACKER_INDEX_TYPE_INDEX) {
+		return FALSE;
+	}
+
+	prefix = g_strconcat (indexes[TRACKER_INDEX_TYPE_INDEX].name, ".tmp", NULL);
 
 	dirname = g_path_get_dirname (indexes[type].abs_filename);
 	file = g_file_new_for_path (dirname);
@@ -94,18 +94,13 @@ has_tmp_merge_files (TrackerIndexType type)
 			   error->message);
 
 		g_error_free (error);
-		g_free (dirname);
 		g_object_unref (file);
+		g_free (dirname);
+		g_free (prefix);
 
 		return FALSE;
 	}
 	
-	if (type == TRACKER_INDEX_TYPE_FILES) {
-		prefix = "file-index.tmp.";
-	} else {
-		prefix = "email-index.tmp.";
-	}
-
 	found = FALSE;
 
 	for (info = g_file_enumerator_next_file (enumerator, NULL, &error);
@@ -130,6 +125,7 @@ has_tmp_merge_files (TrackerIndexType type)
 	g_object_unref (enumerator);
 	g_object_unref (file);
 	g_free (dirname);
+	g_free (prefix);
 
 	return found;
 }
@@ -141,6 +137,7 @@ tracker_index_manager_init (TrackerIndexManagerFlags flags,
                             gint                     max_bucket)
 {
 	gchar    *final_index_filename;
+	gchar    *name;
 	gboolean  need_reindex = FALSE;
 	guint     i;
 
@@ -172,9 +169,10 @@ tracker_index_manager_init (TrackerIndexManagerFlags flags,
 	
 	g_message ("Merging old temporary indexes");
 	
-	/* Files */
-	i = TRACKER_INDEX_TYPE_FILES;
-	final_index_filename = g_build_filename (data_dir, "file-index-final", NULL);
+	i = TRACKER_INDEX_TYPE_INDEX;
+	name = g_strconcat (indexes[i].name, "-final", NULL);
+	final_index_filename = g_build_filename (data_dir, name, NULL);
+	g_free (name);
 	
 	if (g_file_test (final_index_filename, G_FILE_TEST_EXISTS) && 
 	    !has_tmp_merge_files (i)) {
@@ -187,21 +185,6 @@ tracker_index_manager_init (TrackerIndexManagerFlags flags,
 	
 	g_free (final_index_filename);
 	
-	/* Emails */
-	i = TRACKER_INDEX_TYPE_EMAILS;
-	final_index_filename = g_build_filename (data_dir, "email-index-final", NULL);
-	
-	if (g_file_test (final_index_filename, G_FILE_TEST_EXISTS) && 
-	    !has_tmp_merge_files (i)) {
-		g_message ("  Overwriting '%s' with '%s'", 
-			   indexes[i].abs_filename, 
-			   final_index_filename);	
-		
-		g_rename (final_index_filename, indexes[i].abs_filename);
-	}
-	
-	g_free (final_index_filename);
-
 	/* Now we have cleaned up merge files, see if we are supposed
 	 * to be reindexing.
 	 */ 

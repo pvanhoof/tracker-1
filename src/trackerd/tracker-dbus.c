@@ -301,16 +301,14 @@ tracker_dbus_shutdown (void)
 gboolean
 tracker_dbus_register_objects (TrackerConfig    *config,
 			       TrackerLanguage  *language,
-			       TrackerIndex     *file_index,
-			       TrackerIndex     *email_index,
+			       TrackerIndex     *index,
 			       TrackerProcessor *processor)
 {
 	gpointer object;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), FALSE);
 	g_return_val_if_fail (TRACKER_IS_LANGUAGE (language), FALSE);
-	g_return_val_if_fail (TRACKER_IS_INDEX (file_index), FALSE);
-	g_return_val_if_fail (TRACKER_IS_INDEX (email_index), FALSE);
+	g_return_val_if_fail (TRACKER_IS_INDEX (index), FALSE);
 
 	if (!connection || !proxy) {
 		g_critical ("DBus support must be initialized before registering objects!");
@@ -374,7 +372,7 @@ tracker_dbus_register_objects (TrackerConfig    *config,
         objects = g_slist_prepend (objects, object);
 
         /* Add org.freedesktop.Tracker.Search */
-	object = tracker_search_new (config, language, file_index, email_index);
+	object = tracker_search_new (config, language, index);
 	if (!object) {
 		g_critical ("Could not create TrackerSearch object to register");
 		return FALSE;

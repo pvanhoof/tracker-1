@@ -51,8 +51,7 @@ typedef struct {
 
 	TrackerConfig   *config;
 	TrackerLanguage *language;
-        TrackerIndex    *file_index;
-        TrackerIndex    *email_index;
+        TrackerIndex    *index;
 } TrackerSearchPriv;
 
 static void search_finalize (GObject *object);
@@ -87,8 +86,7 @@ search_finalize (GObject *object)
 		g_object_unref (priv->fd_proxy);
 	}
 
-	g_object_unref (priv->email_index);
-	g_object_unref (priv->file_index);
+	g_object_unref (priv->index);
 	g_object_unref (priv->language);
 	g_object_unref (priv->config);
 
@@ -98,16 +96,14 @@ search_finalize (GObject *object)
 TrackerSearch *
 tracker_search_new (TrackerConfig   *config,
 		    TrackerLanguage *language,
-		    TrackerIndex    *file_index,
-		    TrackerIndex    *email_index)
+		    TrackerIndex    *index)
 {
 	TrackerSearch     *object;
 	TrackerSearchPriv *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 	g_return_val_if_fail (TRACKER_IS_LANGUAGE (language), NULL);
-	g_return_val_if_fail (TRACKER_IS_INDEX (file_index), NULL);
-	g_return_val_if_fail (TRACKER_IS_INDEX (email_index), NULL);
+	g_return_val_if_fail (TRACKER_IS_INDEX (index), NULL);
 
 	object = g_object_new (TRACKER_TYPE_SEARCH, NULL); 
 
@@ -115,8 +111,7 @@ tracker_search_new (TrackerConfig   *config,
 
 	priv->config = g_object_ref (config);
 	priv->language = g_object_ref (language);
-	priv->file_index = g_object_ref (file_index);
-	priv->email_index = g_object_ref (email_index);
+	priv->index = g_object_ref (index);
 
 	return object;
 }
@@ -505,7 +500,7 @@ tracker_search_get_hit_count (TrackerSearch          *object,
 	array = g_array_new (TRUE, TRUE, sizeof (gint));
 	g_array_append_vals (array, services, G_N_ELEMENTS (services));
 	tree = tracker_query_tree_new (search_text, 
-				       priv->file_index, 
+				       priv->index, 
 				       priv->config,
 				       priv->language,
 				       array);
@@ -529,7 +524,6 @@ tracker_search_get_hit_count_all (TrackerSearch          *object,
 	TrackerDBResultSet *result_set = NULL;
 	TrackerQueryTree   *tree;
 	GArray             *hit_counts;
-	GArray             *mail_hit_counts;
 	guint               request_id;
 	guint               i;
 	GPtrArray          *values = NULL;
@@ -556,16 +550,12 @@ tracker_search_get_hit_count_all (TrackerSearch          *object,
 	priv = GET_PRIV (object);
 
 	tree = tracker_query_tree_new (search_text, 
-				       priv->file_index, 
+				       priv->index, 
 				       priv->config,
 				       priv->language,
 				       NULL);
 
 	hit_counts = tracker_query_tree_get_hit_counts (tree);
-	tracker_query_tree_set_index (tree, priv->email_index);
-	mail_hit_counts = tracker_query_tree_get_hit_counts (tree);
-	g_array_append_vals (hit_counts, mail_hit_counts->data, mail_hit_counts->len);
-	g_array_free (mail_hit_counts, TRUE);
 
 	for (i = 0; i < hit_counts->len; i++) {
 		TrackerHitCount count;
@@ -1248,7 +1238,7 @@ tracker_search_suggest (TrackerSearch          *object,
 
 	priv = GET_PRIV (object);
 
-	value = tracker_index_get_suggestion (priv->file_index, search_text, max_dist);
+	value = tracker_index_get_suggestion (priv->index, search_text, max_dist);
 
 	if (!value) {
 		g_set_error (&actual_error,

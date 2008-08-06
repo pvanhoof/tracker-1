@@ -1,3 +1,10 @@
+2008-08-06  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/trackerd/tracker-index-manager.c
+	(tracker_index_manager_init): Dont force reindex if one file is
+	missing. It was removing file-index.db every time we started
+	trackerd.
+	
 2008-08-06  Martyn Russell  <martyn@imendio.com>
 
 	* AUTHORS: Sorted the AUTHORS file alphabetically and added Me,

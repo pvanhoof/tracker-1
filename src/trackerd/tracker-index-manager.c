@@ -167,8 +167,6 @@ tracker_index_manager_init (TrackerIndexManagerFlags flags,
 
 		if (!g_file_test (indexes[i].abs_filename, G_FILE_TEST_EXISTS)) { 
 			g_message ("Could not find index file:'%s'", indexes[i].abs_filename);
-			g_message ("One or more index files are missing, a reindex will be forced");
-			need_reindex = TRUE;
 		}
 	}
 	

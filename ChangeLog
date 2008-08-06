@@ -1,5 +1,11 @@
 2008-08-06  Ivan Frade  <ivan.frade@nokia.com>
 
+	* data/services/default.service: Set HasMetadata to False in
+	Folder category. It is not necessary to call tracker-extractor
+	for folders.
+
+2008-08-06  Ivan Frade  <ivan.frade@nokia.com>
+
 	* src/trackerd/tracker-index-manager.c
 	(tracker_index_manager_init): Dont force reindex if one file is
 	missing. It was removing file-index.db every time we started

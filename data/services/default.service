@@ -18,6 +18,8 @@ Icon=folder
 ShowServiceFiles=true
 ShowServiceDirectories=true
 HasFullText=false
+HasMetadata=false
+HasThumbs=false
 
 [Documents]
 DisplayName=Documents

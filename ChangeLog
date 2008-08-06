@@ -1,5 +1,11 @@
 2008-08-06  Ivan Frade  <ivan.frade@nokia.com>
 
+	* src/trackerd/tracker-index.c: Using g_param_spec_boolean to set
+	a boolean parameter.
+	* tests/trackerd/tracker-index-test.c: Updated test.
+	
+2008-08-06  Ivan Frade  <ivan.frade@nokia.com>
+
 	* data/services/default.service: Set HasMetadata to False in
 	Folder category. It is not necessary to call tracker-extractor
 	for folders.

@@ -18,7 +18,8 @@ test_get_suggestion ()
         index = tracker_index_new ("./example.index", 
                                      DEFAULT_MIN_BUCKET_COUNT,
                                      DEFAULT_MAX_BUCKET_COUNT);
-        g_assert (!tracker_index_get_reload (index));
+        
+        g_assert (tracker_index_get_reload (index));
         
         suggestion = tracker_index_get_suggestion (index, "Thiz", 9);
         
@@ -48,7 +49,7 @@ test_reloading ()
                 g_free (hits);
         }
 
-        g_test_trap_assert_stderr ("*Reloading the index ./example.index*");
+        g_test_trap_assert_stderr ("*Opening index:'./example.index'*");
 }
 
 static void
@@ -61,7 +62,7 @@ test_bad_index ()
                                    DEFAULT_MIN_BUCKET_COUNT,
                                    DEFAULT_MAX_BUCKET_COUNT);
 
-        /* Reload true: it cannot open the index */
+        /* Reload true: lazy opening */
         g_assert (tracker_index_get_reload (index));
 
         /* Return NULL, the index cannot reload the file */
@@ -83,7 +84,7 @@ test_created_file_in_the_mean_time ()
                                        DEFAULT_MIN_BUCKET_COUNT,
                                        DEFAULT_MAX_BUCKET_COUNT);
 
-        /* Reload true: it cannot open the index */
+        /* Reload true: Lazy opening */
         g_assert (tracker_index_get_reload (index));
 
         good = g_file_new_for_path ("./example.index");

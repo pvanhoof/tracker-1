@@ -115,13 +115,11 @@ tracker_index_class_init (TrackerIndexClass *klass)
 							   G_PARAM_READWRITE));
 	g_object_class_install_property (object_class,
 					 PROP_RELOAD,
-					 g_param_spec_int ("reload",
-							   "Reload the index file before read",
-							   "Reload the index file before read",
-							   0,
-							   1000000, /* FIXME MAX_GUINT ?? */
-							   0,
-							   G_PARAM_READWRITE));
+					 g_param_spec_boolean ("reload",
+							       "Reload the index file before read",
+							       "Reload the index file before read",
+							       TRUE,
+							       G_PARAM_READWRITE));
 
 	g_type_class_add_private (object_class, sizeof (TrackerIndexPrivate));
 }

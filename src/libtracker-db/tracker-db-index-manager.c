@@ -26,7 +26,7 @@
 
 #include <libtracker-common/tracker-file-utils.h>
 
-#include "tracker-index-manager.h"
+#include "tracker-db-index-manager.h"
 
 #define MIN_BUCKET_DEFAULT 10
 #define MAX_BUCKET_DEFAULT 20

@@ -10,14 +10,16 @@ INCLUDES =								\
 noinst_LTLIBRARIES = libtracker-db.la
 
 libtracker_db_la_SOURCES = 						\
-	tracker-index-manager.c						\
-	tracker-index-manager.h						\
 	tracker-db-action.c						\
 	tracker-db-action.h						\
 	tracker-db-dbus.c						\
 	tracker-db-dbus.h						\
 	tracker-db-file-info.c						\
 	tracker-db-file-info.h						\
+	tracker-db-index.c						\
+	tracker-db-index.h						\
+	tracker-db-index-manager.c					\
+	tracker-db-index-manager.h					\
 	tracker-db-interface.c						\
 	tracker-db-interface.h						\
 	tracker-db-interface-sqlite.c					\

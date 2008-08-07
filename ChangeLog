@@ -1,3 +1,13 @@
+2008-08-07  Ivan Frade  <ivan.frade@nokia.com>
+
+	* tests/libtracker-db/tracker-db-manager-test-attach.c: 
+	(test_always_same_iface_no_reindex): Removed. It was testing just
+	an implementation detail.
+	
+	* tests/libtracker-db/tracker-index-reader-test.c
+	* tests/libtracker-db/tracker-index-writer-test.c: Fixed namespace
+	of the tests.
+	
 2008-08-07  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer.c (check_disk_space_start)

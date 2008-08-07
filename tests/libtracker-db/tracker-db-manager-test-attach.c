@@ -81,22 +81,6 @@ test_assert_tables_in_db (TrackerDB db, gchar *query)
 }
 
 static void
-test_always_same_iface_no_reindex () 
-{
-        TrackerDBInterface *common, *xesam;
-        
-        ensure_db_manager_is_reindex (FALSE);
- 
-        common = tracker_db_manager_get_db_interface (TRACKER_DB_COMMON);
-        xesam = tracker_db_manager_get_db_interface (TRACKER_DB_XESAM);
-
-        /* The pointer must be the same */
-        g_assert (common == xesam);
-        
-
-}
-
-static void
 test_creation_common_db_no_reindex () 
 {
         ensure_db_manager_is_reindex (FALSE);
@@ -130,14 +114,14 @@ static void
 test_creation_file_meta_db_no_reindex ()
 {
         ensure_db_manager_is_reindex (FALSE);
-        test_assert_tables_in_db (TRACKER_DB_COMMON, "SELECT * FROM 'file-meta'.ServiceMetaData");
+        test_assert_tables_in_db (TRACKER_DB_FILE_METADATA, "SELECT * FROM ServiceMetaData");
 }
 
 static void
 test_creation_file_contents_db_no_reindex ()
 {
         ensure_db_manager_is_reindex (FALSE);
-        test_assert_tables_in_db (TRACKER_DB_FILE_CONTENTS, "SELECT * FROM 'file-contents'.ServiceContents");
+        test_assert_tables_in_db (TRACKER_DB_FILE_CONTENTS, "SELECT * FROM ServiceContents");
 }
 
 
@@ -152,9 +136,6 @@ main (int argc, char **argv) {
 
 
         // Tests with attach and no-reindex
-        g_test_add_func ("/libtrakcer-db/tracker-db-manager/attach/no-reindex/equal_iface",
-                         test_always_same_iface_no_reindex);
-
         g_test_add_func ("/libtracker-db/tracker-db-manager/attach/no-reindex/common_db_tables",
                         test_creation_common_db_no_reindex);
 

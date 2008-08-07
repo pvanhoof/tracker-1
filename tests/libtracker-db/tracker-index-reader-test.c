@@ -117,13 +117,13 @@ main (int argc, char **argv) {
 
         /* Init */
 
-        g_test_add_func ("/trackerd/tracker-indexer/get_suggestion",
+        g_test_add_func ("/libtracker-db/tracker-index/get_suggestion",
                          test_get_suggestion );
-        g_test_add_func ("/trackerd/tracker-indexer/reloading",
+        g_test_add_func ("/libtracker-db/tracker-index/reloading",
                          test_reloading );
-        g_test_add_func ("/trackerd/tracker-indexer/bad_index",
+        g_test_add_func ("/libtracker-db/tracker-index/bad_index",
                          test_bad_index );
-        g_test_add_func ("/trackerd/tracker-indexer/created_file_in_the_mean_time",
+        g_test_add_func ("/libtracker-db/tracker-index/created_file_in_the_mean_time",
                          test_created_file_in_the_mean_time);
         result = g_test_run ();
         

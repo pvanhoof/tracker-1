@@ -342,25 +342,25 @@ main (int argc, char **argv) {
 
 	g_test_init (&argc, &argv, NULL);
 
-        g_test_add_func ("/tracker/tracker-indexer/tracker-index/add_word",
+        g_test_add_func ("/libtracker-db/tracker-index/add_word",
                          test_add_one_word);
 
-        g_test_add_func ("/tracker/tracker-indexer/tracker-index/add_n_words",
+        g_test_add_func ("/libtracker-db/tracker-index/add_n_words",
                          test_add_n_words);
 
-        g_test_add_func ("/tracker/tracker-indexer/tracker-index/add_word_n_times",
+        g_test_add_func ("/libtracker-db/tracker-index/add_word_n_times",
                          test_add_word_n_times);
 
-        g_test_add_func ("/tracker/tracker-indexer/tracker-index/add_word_multiple_occurrences",
+        g_test_add_func ("/libtracker-db/tracker-index/add_word_multiple_occurrences",
                          test_add_word_multiple_occurrences);
 
-        g_test_add_func ("/tracker/tracker-indexer/tracker-index/add_with_flush",
+        g_test_add_func ("/libtracker-db/tracker-index/add_with_flush",
                          test_add_with_flushs);
 
-        g_test_add_func ("/tracker/tracker-indexer/tracker-index/remove_document",
+        g_test_add_func ("/libtracker-db/tracker-index/remove_document",
                          test_remove_document);
 
-        g_test_add_func ("/tracker/tracker-indexer/tracker-index/remove_before_flush",
+        g_test_add_func ("/libtracker-db/tracker-index/remove_before_flush",
                          test_remove_before_flush);
 
         result = g_test_run ();

@@ -6,7 +6,9 @@ TEST_PROGS += tracker-db-manager-unattach \
 	tracker-db-manager-attach         \
 	tracker-db-manager-custom         \
 	tracker-db-dbus			\
-	union-performance
+	union-performance		\
+	tracker-index-reader		\
+	tracker-index-writer
 
 INCLUDES = 				\
 	-g 				\
@@ -98,3 +100,31 @@ tracker_db_dbus_LDADD =							\
 	$(GTHREAD_LIBS)							\
 	$(GLIB2_LIBS)							\
 	-lz
+
+
+tracker_index_writer_SOURCES = \
+	tracker-index-writer-test.c
+
+tracker_index_writer_LDADD =							\
+	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
+	$(top_builddir)/src/libtracker-db/libtracker-db.la	 	\
+	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
+	$(QDBM_LIBS)							\
+	$(GMODULE_LIBS)							\
+	$(GTHREAD_LIBS)							\
+	$(GLIB2_LIBS)							
+
+
+tracker_index_reader_SOURCES = \
+	tracker-index-reader-test.c 
+
+tracker_index_reader_LDADD = \
+	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
+	$(top_builddir)/src/libtracker-db/libtracker-db.la 		\
+	$(GMODULE_LIBS) \
+	$(GTHREAD_LIBS) \
+	$(GLIB2_LIBS) \
+	$(DBUS_LIBS) \
+	$(GIO_LIBS) \
+	$(QDBM_LIBS) 
+

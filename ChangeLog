@@ -1,5 +1,27 @@
 2008-08-07  Ivan Frade  <ivan.frade@nokia.com>
 
+	* tests/trackerd/example.index
+	* tests/trackerd/tracker-index-test.c
+	* tests/trackerd/Makefile.am: Moved trackerd index tests to
+	libtracker-db as tracker-index-reader-test
+		
+	* tests/tracker-indexer
+	* tests/tracker-indexer/Makefile.am
+	* tests/tracker-indexer/tracker-index-test.c: Moved
+	tracker-indexer tests to libtracker-db as
+	tracker-index-writer-test. They were the only test for
+	tracker-indexer so we also remove the folder.
+
+	* tests/libtracker-db/example.index
+	* tests/libtracker-db/tracker-index-writer-test.c
+	* tests/libtracker-db/Makefile.am
+	* tests/libtracker-db/tracker-index-reader-test.c
+	* tests/Makefile.am
+	* configure.ac: The index code is now merged in libtracker-db, so
+	we move the unit tests to libtracker-db. 
+	
+2008-08-07  Ivan Frade  <ivan.frade@nokia.com>
+
 	* tests/trackerd/Makefile.am
 	* tests/trackerd/tracker-index-test.c: Fixed tests and linked with
 	new code.

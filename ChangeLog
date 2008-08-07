@@ -1,5 +1,11 @@
 2008-08-07  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-db/tracker-db-index.c: Don't free the
+	priv->filename before closing the index, causes weird debug
+	messages which depend on that pointer.
+
+2008-08-07  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-db/tracker-db-index.c: Make sure we close the
 	index after flushing it and then reopen it.
 	

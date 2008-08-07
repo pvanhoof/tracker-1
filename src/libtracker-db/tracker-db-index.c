@@ -159,19 +159,18 @@ tracker_db_index_init (TrackerDBIndex *index)
 static void
 tracker_db_index_finalize (GObject *object)
 {
+	TrackerDBIndex        *index;
 	TrackerDBIndexPrivate *priv;
 
-	priv = TRACKER_DB_INDEX_GET_PRIVATE (object);
+	index = TRACKER_DB_INDEX (object);
+	priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
 
-	g_free (priv->filename);
-
-	if (g_hash_table_size (priv->cache) > 0) {
-		tracker_db_index_flush (TRACKER_DB_INDEX (object));
-	}
+	tracker_db_index_flush (index);
+	tracker_db_index_close (index);
 
 	g_hash_table_destroy (priv->cache);
 
-	tracker_db_index_close (TRACKER_DB_INDEX (object));
+	g_free (priv->filename);
 
 	g_mutex_free (priv->mutex);
 

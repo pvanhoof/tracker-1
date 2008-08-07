@@ -700,7 +700,6 @@ tracker_db_index_open (TrackerDBIndex *index)
 	gint                   flags;
 	gint                   bucket_count;
         gint                   rec_count;
-	gboolean               retval = FALSE;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INDEX (index), FALSE);
 
@@ -710,7 +709,9 @@ tracker_db_index_open (TrackerDBIndex *index)
 
 	g_mutex_lock (priv->mutex);
 
-	g_debug ("Opening index:'%s'", priv->filename);
+	g_debug ("Opening index:'%s' (%s)", 
+		 priv->filename,
+		 priv->readonly ? "readonly" : "read/write");
 
 	if (priv->readonly) {
 		flags = DP_OREADER | DP_ONOLCK;
@@ -752,15 +753,13 @@ tracker_db_index_open (TrackerDBIndex *index)
 			 rec_count);
 
 		priv->reload = FALSE;
-
-		retval = TRUE;
+	} else {
+		priv->reload = TRUE;
 	}
-
-	priv->reload = TRUE;
 	
 	g_mutex_unlock (priv->mutex);
 
-	return retval;
+	return !priv->reload;
 }
 
 gboolean

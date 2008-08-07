@@ -1,5 +1,18 @@
 2008-08-07  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-db/Makefile.am: Make sure we compile with debug
+	symbols for gdb.
+	
+	* src/libtracker-db/tracker-db-index.c: (tracker_db_index_open):
+	Don't set priv->reload incorrectly, this meant we wouldn't get
+	stats because we thought we couldn't open the file. This means
+	t-s-t is now working again.
+
+	* src/trackerd/tracker-query-tree.c: Use TRACKER_IS_LANGUAGE for
+	TrackerLanguage now it is a GObject.
+
+2008-08-07  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-db/tracker-db-index.c: Don't free the
 	priv->filename before closing the index, causes weird debug
 	messages which depend on that pointer.

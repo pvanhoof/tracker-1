@@ -286,7 +286,7 @@ tracker_query_tree_new (const gchar     *query_str,
 	g_return_val_if_fail (query_str != NULL, NULL);
 	g_return_val_if_fail (TRACKER_IS_DB_INDEX (index), NULL);
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
-	g_return_val_if_fail (language != NULL, NULL);
+	g_return_val_if_fail (TRACKER_IS_LANGUAGE (language), NULL);
 
         /* NOTE: The "query" has to come AFTER the "config" and
          * "language" properties since setting the query actually

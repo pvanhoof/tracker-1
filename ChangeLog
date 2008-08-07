@@ -1,3 +1,9 @@
+2008-08-07  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/modules/evolution.c (get_metadata_for_imap):
+	Ensure we parse the whole message if it was deleted/junk, so we keep
+	parsing from the correct position for the next message.
+
 2008-08-07  Ivan Frade  <ivan.frade@nokia.com>
 
 	* tests/libtracker-db/tracker-db-manager-test-attach.c: 
@@ -7,7 +13,7 @@
 	* tests/libtracker-db/tracker-index-reader-test.c
 	* tests/libtracker-db/tracker-index-writer-test.c: Fixed namespace
 	of the tests.
-	
+
 2008-08-07  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer.c (check_disk_space_start)

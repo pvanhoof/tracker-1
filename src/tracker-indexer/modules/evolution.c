@@ -1121,19 +1121,12 @@ get_metadata_for_imap (TrackerFile *file)
                 return get_metadata_for_imap_attachment (file, data->current_mime_part->data);
         }
 
-
         uid = NULL;
 
         if (!read_summary (data->summary,
                            SUMMARY_TYPE_STRING, &uid,   /* message uid */
                            SUMMARY_TYPE_UINT32, &flags, /* flags */
                            -1)) {
-                g_free (uid);
-                return NULL;
-        }
-
-        if (flags & EVOLUTION_MESSAGE_JUNK ||
-            flags & EVOLUTION_MESSAGE_DELETED) {
                 g_free (uid);
                 return NULL;
         }
@@ -1245,6 +1238,12 @@ get_metadata_for_imap (TrackerFile *file)
         }
 
         skip_content_info (data->summary);
+
+        if (flags & EVOLUTION_MESSAGE_JUNK ||
+            flags & EVOLUTION_MESSAGE_DELETED) {
+                tracker_metadata_free (metadata);
+                return NULL;
+        }
 
         return metadata;
 

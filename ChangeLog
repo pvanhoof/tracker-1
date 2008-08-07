@@ -1,3 +1,11 @@
+2008-08-07  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-db/tracker-db-index.c: Make sure we close the
+	index after flushing it and then reopen it.
+	
+	* utils/qdbm/Makefile.am: Added -g to CFLAGS here so we have debug
+	symbols.
+
 2008-08-07  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/libtracker-db/tracker-db-index.c: Fixed min_bucket

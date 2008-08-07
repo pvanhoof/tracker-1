@@ -167,6 +167,7 @@ enum {
 };
 
 static gboolean process_func (gpointer data);
+static void     check_disk_space_start (TrackerIndexer *indexer);
 
 static guint signals[LAST_SIGNAL] = { 0, };
 
@@ -620,9 +621,47 @@ check_disk_space_cb (TrackerIndexer *indexer)
 	gboolean disk_space_low;
 
 	disk_space_low = check_disk_space_low (indexer);
-	tracker_indexer_set_running (indexer, !disk_space_low);
+
+	if (disk_space_low) {
+		tracker_indexer_set_running (indexer, FALSE);
+
+		/* The function above stops the low disk check, restart it */
+		check_disk_space_start (indexer);
+	} else {
+		tracker_indexer_set_running (indexer, TRUE);
+	}
 
 	return TRUE;
+}
+
+static void
+check_disk_space_start (TrackerIndexer *indexer)
+{
+	TrackerIndexerPrivate *priv;
+	gint low_disk_space_limit;
+
+	priv = indexer->private;
+	low_disk_space_limit = tracker_config_get_low_disk_space_limit (priv->config);
+
+	if (low_disk_space_limit != -1 &&
+	    priv->disk_space_check_id == 0) {
+		priv->disk_space_check_id = g_timeout_add_seconds (LOW_DISK_CHECK_FREQUENCY,
+								   (GSourceFunc) check_disk_space_cb,
+								   indexer);
+	}
+}
+
+static void
+check_disk_space_stop (TrackerIndexer *indexer)
+{
+	TrackerIndexerPrivate *priv;
+
+	priv = indexer->private;
+
+	if (priv->disk_space_check_id != 0) {
+		g_source_remove (priv->disk_space_check_id);
+		priv->disk_space_check_id = 0;
+	}
 }
 
 static void
@@ -630,7 +669,6 @@ tracker_indexer_init (TrackerIndexer *indexer)
 {
 	TrackerIndexerPrivate *priv;
 	TrackerDBIndex *index;
-	gint low_disk_space_limit;
 	GList *l;
 
 	priv = indexer->private = TRACKER_INDEXER_GET_PRIVATE (indexer);
@@ -703,14 +741,7 @@ tracker_indexer_init (TrackerIndexer *indexer)
 
 	/* Set up idle handler to process files/directories */
 	check_started (indexer);
-
-	low_disk_space_limit = tracker_config_get_low_disk_space_limit (priv->config);
-
-	if (low_disk_space_limit != -1) {
-		priv->disk_space_check_id = g_timeout_add_seconds (LOW_DISK_CHECK_FREQUENCY,
-								   (GSourceFunc) check_disk_space_cb,
-								   indexer);
-	}
+	check_disk_space_start (indexer);
 }
 
 static void
@@ -1427,6 +1458,7 @@ process_func (gpointer data)
 
 			/* Signal stopped and clean up */
 			check_stopped (indexer);
+			check_disk_space_stop (indexer);
 
 			return FALSE;
 		}
@@ -1473,6 +1505,7 @@ tracker_indexer_set_running (TrackerIndexer *indexer,
 
 	if (!running) {
 		schedule_flush (indexer, TRUE);
+		check_disk_space_stop (indexer);
 
 		g_source_remove (indexer->private->idle_id);
 		indexer->private->idle_id = 0;
@@ -1481,6 +1514,8 @@ tracker_indexer_set_running (TrackerIndexer *indexer,
 		tracker_db_index_close (indexer->private->index);
 		g_signal_emit (indexer, signals[PAUSED], 0);
 	} else {
+		check_disk_space_start (indexer);
+
 		indexer->private->is_paused = FALSE;
 		indexer->private->idle_id = g_idle_add (process_func, indexer);
 

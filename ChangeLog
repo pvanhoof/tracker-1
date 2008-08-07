@@ -1,3 +1,15 @@
+2008-08-07  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer.c (check_disk_space_start)
+	(check_disk_space_stop): New functions.
+	(tracker_indexer_init): start the low disk check through these
+	functions.
+	(process_func): 
+	(tracker_indexer_set_running): Stop low disk check when the indexer 
+	finishes or is paused.
+	(check_disk_space_cb): Pause the indexer if there's not enough disk
+	space, but keep running the check.
+
 2008-08-07  Ivan Frade  <ivan.frade@nokia.com>
 
 	* tests/trackerd/example.index

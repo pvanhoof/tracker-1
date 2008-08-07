@@ -139,6 +139,8 @@ tracker_db_index_manager_init (TrackerDBIndexManagerFlags  flags,
 	gchar    *final_index_filename;
 	gchar    *name;
 	gboolean  need_reindex = FALSE;
+	gboolean  force_reindex;
+	gboolean  readonly;
 	guint     i;
 
 	g_return_val_if_fail (min_bucket >= 0, FALSE);
@@ -193,7 +195,10 @@ tracker_db_index_manager_init (TrackerDBIndexManagerFlags  flags,
 	/* Now we have cleaned up merge files, see if we are supposed
 	 * to be reindexing.
 	 */ 
-	if (flags & TRACKER_DB_INDEX_MANAGER_FORCE_REINDEX || need_reindex) {
+
+	force_reindex = (flags & TRACKER_DB_INDEX_MANAGER_FORCE_REINDEX) != 0;
+
+	if (force_reindex || need_reindex) {
 		g_message ("Cleaning up index files for reindex");
 
 		for (i = 0; i < G_N_ELEMENTS (indexes); i++) {
@@ -203,11 +208,13 @@ tracker_db_index_manager_init (TrackerDBIndexManagerFlags  flags,
 
 	g_message ("Creating index files, this may take a few moments...");
 	
+	readonly = (flags & TRACKER_DB_INDEX_MANAGER_READONLY) != 0;
+
 	for (i = 0; i < G_N_ELEMENTS (indexes); i++) {
 		indexes[i].index = tracker_db_index_new (indexes[i].abs_filename,
 							 min_bucket, 
 							 max_bucket, 
-							 flags & TRACKER_DB_INDEX_MANAGER_READONLY);
+							 readonly);
 	}
 
         initialized = TRUE;

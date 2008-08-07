@@ -538,8 +538,8 @@ main (gint argc, gchar *argv[])
         TrackerDBIndex             *index;
         TrackerDBIndex             *index_update;
 	TrackerRunningLevel         runtime_level;
-	TrackerDBManagerFlags       flags;
-	TrackerDBIndexManagerFlags  index_flags;
+	TrackerDBManagerFlags       flags = 0;
+	TrackerDBIndexManagerFlags  index_flags = 0;
 
         g_type_init ();
         
@@ -681,8 +681,8 @@ main (gint argc, gchar *argv[])
 
         tracker_module_config_init ();
 
-	flags = TRACKER_DB_MANAGER_REMOVE_CACHE;
-	index_flags = 0;
+	flags |= TRACKER_DB_MANAGER_REMOVE_CACHE;
+	index_flags |= TRACKER_DB_INDEX_MANAGER_READONLY;
 
 	if (force_reindex) {
 		flags |= TRACKER_DB_MANAGER_FORCE_REINDEX;

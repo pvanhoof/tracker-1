@@ -1,5 +1,14 @@
 2008-08-07  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-main.c: (main): Fix the flag setting here.
+
+2008-08-07  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-main.c: (main): Make sure we open the db
+	index in READONLY mode not READ/WRITE.
+
+2008-08-07  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-db/Makefile.am: Make sure we compile with debug
 	symbols for gdb.
 	

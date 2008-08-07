@@ -1467,14 +1467,12 @@ tracker_indexer_set_running (TrackerIndexer *indexer,
 
 	was_running = tracker_indexer_get_running (indexer);
 
-	if (was_running == was_running) {
+	if (running == was_running) {
 		return;
 	}
 
 	if (!running) {
-		if (indexer->private->in_transaction) {
-			stop_transaction (indexer);
-		}
+		schedule_flush (indexer, TRUE);
 
 		g_source_remove (indexer->private->idle_id);
 		indexer->private->idle_id = 0;

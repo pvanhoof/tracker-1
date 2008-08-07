@@ -48,12 +48,12 @@
 #include <libtracker-common/tracker-nfs-lock.h>
 
 #include <libtracker-db/tracker-db-manager.h>
+#include <libtracker-db/tracker-db-index.h>
+#include <libtracker-db/tracker-db-index-manager.h>
 
 #include "tracker-crawler.h"
 #include "tracker-dbus.h"
-#include "tracker-index.h"
 #include "tracker-indexer-client.h"
-#include "tracker-index-manager.h"
 #include "tracker-main.h"
 #include "tracker-monitor.h"
 #include "tracker-processor.h"
@@ -528,18 +528,18 @@ start_cb (gpointer user_data)
 gint
 main (gint argc, gchar *argv[])
 {
-	GOptionContext          *context = NULL;
-	GOptionGroup            *group;
-	GError                  *error = NULL;
-        TrackerConfig           *config;
-        TrackerLanguage         *language;
-        TrackerHal              *hal;
-	TrackerProcessor        *processor;
-        TrackerIndex            *index;
-        TrackerIndex            *index_update;
-	TrackerRunningLevel      runtime_level;
-	TrackerDBManagerFlags    flags;
-	TrackerIndexManagerFlags iflags = 0;
+	GOptionContext             *context = NULL;
+	GOptionGroup               *group;
+	GError                     *error = NULL;
+        TrackerConfig              *config;
+        TrackerLanguage            *language;
+        TrackerHal                 *hal;
+	TrackerProcessor           *processor;
+        TrackerDBIndex             *index;
+        TrackerDBIndex             *index_update;
+	TrackerRunningLevel         runtime_level;
+	TrackerDBManagerFlags       flags;
+	TrackerDBIndexManagerFlags  index_flags;
 
         g_type_init ();
         
@@ -682,10 +682,11 @@ main (gint argc, gchar *argv[])
         tracker_module_config_init ();
 
 	flags = TRACKER_DB_MANAGER_REMOVE_CACHE;
+	index_flags = 0;
 
 	if (force_reindex) {
 		flags |= TRACKER_DB_MANAGER_FORCE_REINDEX;
-		iflags |= TRACKER_INDEX_MANAGER_FORCE_REINDEX;
+		index_flags |= TRACKER_DB_INDEX_MANAGER_FORCE_REINDEX;
 	}
 
 	if (tracker_config_get_low_memory_mode (config)) {
@@ -693,9 +694,9 @@ main (gint argc, gchar *argv[])
 	}
 
 	tracker_db_manager_init (flags, &is_first_time_index);
-	if (!tracker_index_manager_init (iflags, tracker_get_data_dir (), 
-					 tracker_config_get_min_bucket_count (config),
-					 tracker_config_get_max_bucket_count (config))) {
+	if (!tracker_db_index_manager_init (index_flags, 
+					    tracker_config_get_min_bucket_count (config),
+					    tracker_config_get_max_bucket_count (config))) {
 		return EXIT_FAILURE;
 	}
 
@@ -721,11 +722,11 @@ main (gint argc, gchar *argv[])
 		return EXIT_FAILURE;
 	}
 
-	index = tracker_index_manager_get_index (TRACKER_INDEX_TYPE_INDEX);
-	index_update = tracker_index_manager_get_index (TRACKER_INDEX_TYPE_INDEX_UPDATE);
+	index = tracker_db_index_manager_get_index (TRACKER_DB_INDEX_TYPE_INDEX);
+	index_update = tracker_db_index_manager_get_index (TRACKER_DB_INDEX_TYPE_INDEX_UPDATE);
 
-	if (!TRACKER_IS_INDEX (index) || 
-	    !TRACKER_IS_INDEX (index_update)) {
+	if (!TRACKER_IS_DB_INDEX (index) || 
+	    !TRACKER_IS_DB_INDEX (index_update)) {
 		g_critical ("Could not create indexer for all indexes (index, index-update)");
 		return EXIT_FAILURE;
 	}
@@ -804,7 +805,7 @@ main (gint argc, gchar *argv[])
 	tracker_xesam_manager_shutdown ();
 	tracker_dbus_shutdown ();
 	tracker_db_manager_shutdown ();
-	tracker_index_manager_shutdown ();
+	tracker_db_index_manager_shutdown ();
 	tracker_db_shutdown ();
         tracker_module_config_shutdown ();
 	tracker_nfs_lock_shutdown ();
@@ -831,12 +832,6 @@ tracker_shutdown (void)
 	/* FIXME: Should we stop the crawler? */
 
 	g_main_loop_quit (main_loop);
-}
-
-const gchar *
-tracker_get_data_dir (void)
-{
-	return data_dir;
 }
 
 const gchar *

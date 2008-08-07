@@ -29,7 +29,8 @@
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-language.h>
 
-#include "tracker-index.h"
+#include <libtracker-db/tracker-db-index.h>
+
 #include "tracker-processor.h"
 
 G_BEGIN_DECLS
@@ -38,7 +39,7 @@ gboolean    tracker_dbus_init              (TrackerConfig    *config);
 void        tracker_dbus_shutdown          (void);
 gboolean    tracker_dbus_register_objects  (TrackerConfig    *config,
 					    TrackerLanguage  *language,
-					    TrackerIndex     *file,
+					    TrackerDBIndex   *file,
 					    TrackerProcessor *processor);
 GObject    *tracker_dbus_get_object        (GType             type);
 DBusGProxy *tracker_dbus_indexer_get_proxy (void);

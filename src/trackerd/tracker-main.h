@@ -29,7 +29,6 @@ G_BEGIN_DECLS
 
 void         tracker_shutdown                (void);
 
-const gchar *tracker_get_data_dir            (void);
 const gchar *tracker_get_sys_tmp_dir         (void);
 
 gboolean     tracker_get_is_readonly         (void);

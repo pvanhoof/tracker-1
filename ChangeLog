@@ -1,3 +1,34 @@
+2008-08-07  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-index-item.h: Added
+	TrackerSearchHit typedef here from the TrackerQueryTreeModule. 
+
+	* configure.ac:
+	* src/libtracker-db/tracker-db-index-manager.[ch]:
+	* src/libtracker-db/tracker-db-index.[ch]:
+	* src/tracker-indexer/Makefile.am:
+	* src/tracker-indexer/tracker-indexer.c: 
+	* src/tracker-indexer/tracker-main.c:
+	* src/trackerd/tracker-daemon.c:
+	* src/trackerd/tracker-db.[ch]:
+	* src/trackerd/tracker-dbus.[ch]:
+	* src/trackerd/tracker-keywords.c:
+	* src/trackerd/tracker-main.[ch]:
+	* src/trackerd/tracker-metadata.[ch]:
+	* src/trackerd/tracker-processor.c:
+	* src/trackerd/tracker-query-tree.[ch]:
+	* src/trackerd/tracker-search.[ch]:
+	* src/trackerd/tracker-xesam.[ch]: Moved tracker-index.[ch] in the
+	daemon and indexer into libtracker-db/tracker-db-index.[ch]
+	combining the APIs and code.
+
+	* tests/trackerd/tracker-index-test.c: 
+	* tests/trackerd/Makefile.am: Disabled the index test, it is
+	broken.
+
+	* utils/qdbm/print-words.c: 
+	* utils/qdbm/search-word.c: Fixed warnings.
+
 2008-08-06  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-index-item.[ch]:

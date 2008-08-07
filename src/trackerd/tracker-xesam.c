@@ -29,13 +29,14 @@
 #include <libtracker-common/tracker-ontology.h>
 #include <libtracker-common/tracker-utils.h>
 
+#include <libtracker-db/tracker-db-index.h>
+
 #include "tracker-dbus.h"
 #include "tracker-xesam.h"
 #include "tracker-status.h"
 #include "tracker-xesam-manager.h"
 #include "tracker-rdf-query.h"
 #include "tracker-query-tree.h"
-#include "tracker-index.h"
 #include "tracker-marshal.h"
 
 enum {

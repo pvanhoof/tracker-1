@@ -3,7 +3,7 @@
 #include <tracker-test-helpers.h>
 #include <gio/gio.h>
 
-#include "tracker-index.h"
+#include "tracker-db-index.h"
 
 /* From libtracker-common/tracker-config.c */
 #define DEFAULT_MAX_BUCKET_COUNT		 524288
@@ -12,16 +12,17 @@
 static void
 test_get_suggestion ()
 {
-        TrackerIndex *index;
-        gchar        *suggestion;
+        TrackerDBIndex *index;
+        gchar          *suggestion;
 
-        index = tracker_index_new ("./example.index", 
-                                     DEFAULT_MIN_BUCKET_COUNT,
-                                     DEFAULT_MAX_BUCKET_COUNT);
+        index = tracker_db_index_new ("./example.index", 
+                                      DEFAULT_MIN_BUCKET_COUNT,
+                                      DEFAULT_MAX_BUCKET_COUNT,
+                                      TRUE);
         
-        g_assert (tracker_index_get_reload (index));
+        g_assert (tracker_db_index_get_reload (index));
         
-        suggestion = tracker_index_get_suggestion (index, "Thiz", 9);
+        suggestion = tracker_db_index_get_suggestion (index, "Thiz", 9);
         
         g_assert (tracker_test_helpers_cmpstr_equal (suggestion, "this"));
         
@@ -33,19 +34,20 @@ test_get_suggestion ()
 static void
 test_reloading ()
 {
-        TrackerIndex     *index;
+        TrackerDBIndex   *index;
         TrackerIndexItem *hits;
         guint             count;
 
-        index = tracker_index_new ("./example.index", 
-                                   DEFAULT_MIN_BUCKET_COUNT,
-                                   DEFAULT_MAX_BUCKET_COUNT);
+        index = tracker_db_index_new ("./example.index", 
+                                      DEFAULT_MIN_BUCKET_COUNT,
+                                      DEFAULT_MAX_BUCKET_COUNT,
+                                      TRUE);
         
-        tracker_index_set_reload (index, TRUE);
-        g_assert (tracker_index_get_reload (index)); /* Trivial check of get/set */
+        tracker_db_index_set_reload (index, TRUE);
+        g_assert (tracker_db_index_get_reload (index)); /* Trivial check of get/set */
 
         if (g_test_trap_fork (0, G_TEST_TRAP_SILENCE_STDERR)) {
-                hits = tracker_index_get_word_hits (index, "this", &count);
+                hits = tracker_db_index_get_word_hits (index, "this", &count);
                 g_free (hits);
         }
 
@@ -55,37 +57,39 @@ test_reloading ()
 static void
 test_bad_index ()
 {
-        TrackerIndex *index;
-        guint         count;
+        TrackerDBIndex *index;
+        guint           count;
 
-        index = tracker_index_new ("unknown-index",
-                                   DEFAULT_MIN_BUCKET_COUNT,
-                                   DEFAULT_MAX_BUCKET_COUNT);
+        index = tracker_db_index_new ("unknown-index",
+                                      DEFAULT_MIN_BUCKET_COUNT,
+                                      DEFAULT_MAX_BUCKET_COUNT,
+                                      TRUE);
 
         /* Reload true: lazy opening */
-        g_assert (tracker_index_get_reload (index));
+        g_assert (tracker_db_index_get_reload (index));
 
         /* Return NULL, the index cannot reload the file */
-        g_assert (!tracker_index_get_word_hits (index, "this", &count));
+        g_assert (!tracker_db_index_get_word_hits (index, "this", &count));
 
         /* Return NULL, the index cannot reload the file */
-        g_assert (!tracker_index_get_suggestion (index, "Thiz", 9));
+        g_assert (!tracker_db_index_get_suggestion (index, "Thiz", 9));
 
 }
 
 static void
 test_created_file_in_the_mean_time ()
 {
-        TrackerIndex *index;
+        TrackerDBIndex *index;
         GFile          *good, *bad;
         guint           count;
 
-        index = tracker_index_new ("./unknown-index",
-                                       DEFAULT_MIN_BUCKET_COUNT,
-                                       DEFAULT_MAX_BUCKET_COUNT);
+        index = tracker_db_index_new ("./unknown-index",
+                                      DEFAULT_MIN_BUCKET_COUNT,
+                                      DEFAULT_MAX_BUCKET_COUNT,
+                                      TRUE);
 
         /* Reload true: Lazy opening */
-        g_assert (tracker_index_get_reload (index));
+        g_assert (tracker_db_index_get_reload (index));
 
         good = g_file_new_for_path ("./example.index");
         bad = g_file_new_for_path ("./unknown-index");
@@ -93,10 +97,10 @@ test_created_file_in_the_mean_time ()
         g_file_copy (good, bad, G_FILE_COPY_OVERWRITE, NULL, NULL, NULL, NULL);
 
         /* Now the first operation reload the index */
-        g_assert (tracker_index_get_word_hits (index, "this", &count));
+        g_assert (tracker_db_index_get_word_hits (index, "this", &count));
         
         /* Reload false: It is already reloaded */
-        g_assert (!tracker_index_get_reload (index));
+        g_assert (!tracker_db_index_get_reload (index));
 
         g_file_delete (bad, NULL, NULL);
 }

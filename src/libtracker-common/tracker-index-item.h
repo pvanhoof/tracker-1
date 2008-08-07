@@ -25,7 +25,7 @@
 
 G_BEGIN_DECLS
 
-typedef struct  {                         
+typedef struct {                         
 	/* Service ID number of the document */
 	guint32 id;              
 
@@ -34,6 +34,12 @@ typedef struct  {
 	 */
 	gint    amalgamated;     
 } TrackerIndexItem;
+
+typedef struct {
+	guint32 service_id;      /* Service ID of the document */
+	guint32 service_type_id; /* Service type ID of the document */
+	guint32 score;           /* Ranking score */
+} TrackerSearchHit;
 
 guint32 tracker_index_item_calc_amalgamated (gint              service_type,
                                              gint              score);

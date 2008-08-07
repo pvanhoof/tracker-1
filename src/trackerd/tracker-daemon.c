@@ -30,6 +30,7 @@
 #include <libtracker-common/tracker-dbus.h>
 
 #include <libtracker-db/tracker-db-dbus.h>
+#include <libtracker-db/tracker-db-index.h>
 #include <libtracker-db/tracker-db-manager.h>
 
 #include "tracker-dbus.h"
@@ -39,7 +40,6 @@
 #include "tracker-main.h"
 #include "tracker-status.h"
 #include "tracker-marshal.h"
-#include "tracker-index.h"
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DAEMON, TrackerDaemonPriv))
 

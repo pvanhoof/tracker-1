@@ -26,13 +26,13 @@
 #include <libtracker-common/tracker-utils.h>
 
 #include <libtracker-db/tracker-db-dbus.h>
+#include <libtracker-db/tracker-db-index.h>
 #include <libtracker-db/tracker-db-manager.h>
 
 #include "tracker-dbus.h"
 #include "tracker-keywords.h"
 #include "tracker-db.h"
 #include "tracker-marshal.h"
-#include "tracker-index.h"
 #include "tracker-indexer-client.h"
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_KEYWORDS, TrackerKeywordsPriv))

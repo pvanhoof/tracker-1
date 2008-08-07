@@ -26,7 +26,7 @@
 
 G_BEGIN_DECLS
 
-#include "tracker-index.h"
+#include "tracker-db-index.h"
 
 typedef enum {
 	TRACKER_DB_INDEX_TYPE_INDEX,
@@ -35,16 +35,16 @@ typedef enum {
 
 typedef enum {
 	TRACKER_DB_INDEX_MANAGER_FORCE_REINDEX = 1 << 1,
+	TRACKER_DB_INDEX_MANAGER_READONLY      = 1 << 2
 } TrackerDBIndexManagerFlags;
 
-gboolean      tracker_db_index_manager_init                (TrackerDBIndexManagerFlags  flags,
-							    const gchar                *data_dir,
-							    gint                        min_bucket,
-							    gint                        max_bucket);
-void          tracker_db_index_manager_shutdown            (void);
-const gchar * tracker_db_index_manager_get_filename        (TrackerDBIndexType          index);
-TrackerIndex *tracker_db_index_manager_get_index           (TrackerDBIndexType          index);
-gboolean      tracker_db_index_manager_are_indexes_too_big (void);
+gboolean        tracker_db_index_manager_init                (TrackerDBIndexManagerFlags  flags,
+							      gint                        min_bucket,
+							      gint                        max_bucket);
+void            tracker_db_index_manager_shutdown            (void);
+const gchar *   tracker_db_index_manager_get_filename        (TrackerDBIndexType          index);
+TrackerDBIndex *tracker_db_index_manager_get_index           (TrackerDBIndexType          index);
+gboolean        tracker_db_index_manager_are_indexes_too_big (void);
 
 G_END_DECLS
 

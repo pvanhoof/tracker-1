@@ -34,7 +34,9 @@
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-ontology.h>
 #include <libtracker-common/tracker-module-config.h>
+
 #include <libtracker-db/tracker-db-manager.h>
+#include <libtracker-db/tracker-db-index-manager.h>
 
 #include "tracker-dbus.h"
 #include "tracker-indexer.h"
@@ -292,6 +294,12 @@ main (gint argc, gchar *argv[])
         }
 
 	tracker_db_manager_init (flags, NULL);
+	if (!tracker_db_index_manager_init (0, 
+					    tracker_config_get_min_bucket_count (config),
+					    tracker_config_get_max_bucket_count (config))) {
+		return EXIT_FAILURE;
+	}
+
         tracker_module_config_init ();
 
 #ifdef HAVE_IOPRIO

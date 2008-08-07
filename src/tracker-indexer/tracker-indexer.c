@@ -64,6 +64,7 @@
 #include <libtracker-common/tracker-utils.h>
 
 #include <libtracker-db/tracker-db-manager.h>
+#include <libtracker-db/tracker-db-index-manager.h>
 #include <libtracker-db/tracker-db-interface-sqlite.h>
 
 #include "tracker-indexer.h"
@@ -105,7 +106,7 @@ struct TrackerIndexerPrivate {
 
 	gchar *db_dir;
 
-	TrackerIndex *index;
+	TrackerDBIndex *index;
 
 	TrackerDBInterface *file_metadata;
 	TrackerDBInterface *file_contents;
@@ -142,7 +143,7 @@ struct PathInfo {
 };
 
 struct MetadataForeachData {
-	TrackerIndex *index;
+	TrackerDBIndex *index;
 
 	TrackerLanguage *language;
 	TrackerConfig *config;
@@ -275,7 +276,7 @@ flush_data (TrackerIndexer *indexer)
 		stop_transaction (indexer);
 	}
 
-	tracker_index_flush (indexer->private->index);
+	tracker_db_index_flush (indexer->private->index);
 	signal_status (indexer, "flush");
 
 	return FALSE;
@@ -400,7 +401,7 @@ tracker_indexer_finalize (GObject *object)
 	g_object_unref (priv->language);
 	g_object_unref (priv->config);
 
-	tracker_index_free (priv->index);
+	g_object_unref (priv->index);
 
 	g_free (priv->db_dir);
 
@@ -629,8 +630,8 @@ static void
 tracker_indexer_init (TrackerIndexer *indexer)
 {
 	TrackerIndexerPrivate *priv;
+	TrackerDBIndex *index;
 	gint low_disk_space_limit;
-	gchar *index_file;
 	GList *l;
 
 	priv = indexer->private = TRACKER_INDEXER_GET_PRIVATE (indexer);
@@ -683,10 +684,8 @@ tracker_indexer_init (TrackerIndexer *indexer)
 	}
 
 	/* Set up indexer */
-	index_file = g_build_filename (priv->db_dir, "file-index.db", NULL);
-	priv->index = tracker_index_new (index_file,
-					 tracker_config_get_max_bucket_count (priv->config));
-	g_free (index_file);
+	index = tracker_db_index_manager_get_index (TRACKER_DB_INDEX_TYPE_INDEX);
+	priv->index = g_object_ref (index);
 
 	/* Set up databases, these pointers are mostly used to
 	 * start/stop transactions, since TrackerDBManager treats
@@ -773,11 +772,11 @@ index_metadata_item (TrackerField        *field,
 	arr = g_strsplit (parsed_value, " ", -1);
 
 	for (i = 0; arr[i]; i++) {
-		tracker_index_add_word (data->index,
-					arr[i],
-					data->id,
-					tracker_service_get_id (data->service),
-					tracker_field_get_weight (field));
+		tracker_db_index_add_word (data->index,
+					   arr[i],
+					   data->id,
+					   tracker_service_get_id (data->service),
+					   tracker_field_get_weight (field));
 	}
 
 	tracker_db_set_metadata (data->service, data->id, field, (gchar *) value, parsed_value);
@@ -876,11 +875,11 @@ send_text_to_index (TrackerIndexer *indexer,
 	for (iter = words; iter != NULL; iter = iter->next) {
 		weight = GPOINTER_TO_INT (g_hash_table_lookup (parsed, (gchar *)iter->data));
 
-		tracker_index_add_word (indexer->private->index,
-					(gchar *)iter->data,
-					service_id,
-					service_type,
-					weight);
+		tracker_db_index_add_word (indexer->private->index,
+					   (gchar *)iter->data,
+					   service_id,
+					   service_type,
+					   weight);
 	}
 
 	tracker_parser_text_free (parsed);
@@ -1482,13 +1481,13 @@ tracker_indexer_set_running (TrackerIndexer *indexer,
 		indexer->private->idle_id = 0;
 		indexer->private->is_paused = TRUE;
 
-		tracker_index_close (indexer->private->index);
+		tracker_db_index_close (indexer->private->index);
 		g_signal_emit (indexer, signals[PAUSED], 0);
 	} else {
 		indexer->private->is_paused = FALSE;
 		indexer->private->idle_id = g_idle_add (process_func, indexer);
 
-		tracker_index_open (indexer->private->index);
+		tracker_db_index_open (indexer->private->index);
 		g_signal_emit (indexer, signals[CONTINUED], 0);
 	}
 }

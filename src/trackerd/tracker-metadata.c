@@ -30,6 +30,7 @@
 #include <libtracker-common/tracker-type-utils.h>
 
 #include <libtracker-db/tracker-db-dbus.h>
+#include <libtracker-db/tracker-db-index.h>
 #include <libtracker-db/tracker-db-manager.h>
 
 #include "tracker-indexer-client.h"
@@ -37,7 +38,6 @@
 #include "tracker-metadata.h"
 #include "tracker-db.h"
 #include "tracker-marshal.h"
-#include "tracker-index.h"
 
 G_DEFINE_TYPE(TrackerMetadata, tracker_metadata, G_TYPE_OBJECT)
 

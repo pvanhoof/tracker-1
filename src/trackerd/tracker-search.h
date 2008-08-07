@@ -26,7 +26,7 @@
 
 #include <libtracker-common/tracker-language.h>
 
-#include "tracker-index.h"
+#include <libtracker-db/tracker-db-index.h>
 
 #define TRACKER_SEARCH_SERVICE         "org.freedesktop.Tracker"
 #define TRACKER_SEARCH_PATH            "/org/freedesktop/Tracker/Search"
@@ -55,7 +55,7 @@ struct TrackerSearchClass {
 GType          tracker_search_get_type          (void);
 TrackerSearch *tracker_search_new               (TrackerConfig          *config,
 						 TrackerLanguage        *language,
-						 TrackerIndex           *index);
+						 TrackerDBIndex         *index);
 void           tracker_search_get_hit_count     (TrackerSearch          *object,
 						 const gchar            *service,
 						 const gchar            *search_text,

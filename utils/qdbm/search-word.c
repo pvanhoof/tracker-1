@@ -73,7 +73,6 @@ void
 show_term_in_index (const gchar* filename, const gchar *word){
 
     DEPOT *depot;
-    int counter = 0, start_time, total_time;
     gint hits, i;
     TrackerIndexerWordDetails *results;
 

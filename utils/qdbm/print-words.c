@@ -51,11 +51,10 @@ tracker_indexer_get_word_hits (DEPOT          *index,
 }
 
 void
-load_terms_from_index (gchar* filename){
-
+load_terms_from_index (gchar* filename)
+{
     DEPOT *depot;
     char *key;
-    int counter = 0, start_time, total_time;
     guint hits, i;
     TrackerIndexItem *results;
 

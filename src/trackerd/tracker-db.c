@@ -36,6 +36,7 @@
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-utils.h>
 
+#include <libtracker-db/tracker-db-index.h>
 #include <libtracker-db/tracker-db-interface-sqlite.h>
 #include <libtracker-db/tracker-db-manager.h>
 
@@ -51,7 +52,7 @@ static gboolean         initialized;
 
 static TrackerConfig   *config;
 static TrackerLanguage *language;
-static TrackerIndex    *file_index;
+static TrackerDBIndex  *db_index;
 
 static gchar *
 compress_string (const gchar *ptr, 
@@ -493,11 +494,11 @@ db_create_array_of_services (void)
 void
 tracker_db_init (TrackerConfig   *this_config,
 		 TrackerLanguage *this_language,
-		 TrackerIndex    *this_file_index)
+		 TrackerDBIndex  *this_index)
 {
 	g_return_if_fail (TRACKER_IS_CONFIG (this_config));
 	g_return_if_fail (TRACKER_IS_LANGUAGE (this_language));
-	g_return_if_fail (TRACKER_IS_INDEX (this_file_index));
+	g_return_if_fail (TRACKER_IS_DB_INDEX (this_index));
 	
 	if (initialized) {
 		return;
@@ -505,7 +506,7 @@ tracker_db_init (TrackerConfig   *this_config,
 
 	config = g_object_ref (this_config);
 	language = g_object_ref (this_language);
-	file_index = g_object_ref (this_file_index);
+	db_index = g_object_ref (this_index);
 }
 
 void
@@ -515,8 +516,8 @@ tracker_db_shutdown (void)
 		return;
 	}
 
-	g_object_unref (file_index);
-	file_index = NULL;
+	g_object_unref (db_index);
+	db_index = NULL;
 
 	g_object_unref (language);
 	language = NULL;
@@ -676,7 +677,7 @@ tracker_db_search_text (TrackerDBInterface *iface,
 	}
 
 	tree = tracker_query_tree_new (search_string, 
-				       file_index, 
+				       db_index, 
 				       config,
 				       language,
 				       services);
@@ -784,16 +785,16 @@ tracker_db_search_text (TrackerDBInterface *iface,
 
 	/* Delete duds */
 	if (duds) {
-		TrackerIndex *indexer;
-		GSList       *words, *w;
+		TrackerDBIndex *index;
+		GSList         *words, *w;
 
 		words = tracker_query_tree_get_words (tree);
-		indexer = tracker_query_tree_get_index (tree);
+		index = tracker_query_tree_get_index (tree);
 
 		for (w = words; w; w = w->next) {
-			tracker_index_remove_dud_hits (indexer, 
-						       (const gchar *) w->data, 
-						       duds);
+			tracker_db_index_remove_dud_hits (index, 
+							  (const gchar *) w->data, 
+							  duds);
 		}
 
 		g_slist_free (words);
@@ -837,7 +838,7 @@ tracker_db_search_text_and_mime (TrackerDBInterface  *iface,
 	services = db_create_array_of_services ();
 
 	tree = tracker_query_tree_new (text, 
-				       file_index, 
+				       db_index, 
 				       config,
 				       language,
 				       services);
@@ -933,7 +934,7 @@ tracker_db_search_text_and_location (TrackerDBInterface *iface,
 	services = db_create_array_of_services ();
 
 	tree = tracker_query_tree_new (text, 
-				       file_index, 
+				       db_index, 
 				       config,
 				       language,
 				       services);
@@ -1031,7 +1032,7 @@ tracker_db_search_text_and_mime_and_location (TrackerDBInterface  *iface,
 	services = db_create_array_of_services ();
 
 	tree = tracker_query_tree_new (text, 
-				       file_index, 
+				       db_index, 
 				       config,
 				       language,
 				       services);

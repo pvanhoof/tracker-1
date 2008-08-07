@@ -68,7 +68,7 @@ struct TreeNode {
 struct TrackerQueryTreePrivate {
 	gchar           *query_str;
 	TreeNode        *tree;
-	TrackerIndex    *index;
+	TrackerDBIndex  *index;
         TrackerConfig   *config;
         TrackerLanguage *language;
 	GArray          *services;
@@ -129,7 +129,7 @@ tracker_query_tree_class_init (TrackerQueryTreeClass *klass)
 					 g_param_spec_object ("index",
                                                               "Index",
                                                               "Index",
-                                                              tracker_index_get_type (),
+                                                              tracker_db_index_get_type (),
                                                               G_PARAM_READWRITE));
 	g_object_class_install_property (object_class,
 					 PROP_CONFIG,
@@ -277,13 +277,13 @@ tracker_query_tree_get_property (GObject      *object,
 
 TrackerQueryTree *
 tracker_query_tree_new (const gchar     *query_str,
-			TrackerIndex    *index,
+			TrackerDBIndex  *index,
                         TrackerConfig   *config,
                         TrackerLanguage *language,
 			GArray          *services)
 {
 	g_return_val_if_fail (query_str != NULL, NULL);
-	g_return_val_if_fail (TRACKER_IS_INDEX (index), NULL);
+	g_return_val_if_fail (TRACKER_IS_DB_INDEX (index), NULL);
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 	g_return_val_if_fail (language != NULL, NULL);
 
@@ -484,12 +484,12 @@ tracker_query_tree_get_query (TrackerQueryTree *tree)
 
 void
 tracker_query_tree_set_index (TrackerQueryTree *tree,
-                              TrackerIndex     *index)
+                              TrackerDBIndex   *index)
 {
 	TrackerQueryTreePrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_QUERY_TREE (tree));
-	g_return_if_fail (TRACKER_IS_INDEX (index));
+	g_return_if_fail (TRACKER_IS_DB_INDEX (index));
 
 	priv = TRACKER_QUERY_TREE_GET_PRIVATE (tree);
 
@@ -506,7 +506,7 @@ tracker_query_tree_set_index (TrackerQueryTree *tree,
 	g_object_notify (G_OBJECT (tree), "index");
 }
 
-TrackerIndex *
+TrackerDBIndex *
 tracker_query_tree_get_index (TrackerQueryTree *tree)
 {
 	TrackerQueryTreePrivate *priv;
@@ -703,7 +703,7 @@ get_search_term_hits (TrackerQueryTree *tree,
 	result = g_hash_table_new_full (NULL, NULL, NULL,
 					(GDestroyNotify) search_hit_data_free);
 
-	details = tracker_index_get_word_hits (priv->index, term, &count);
+	details = tracker_db_index_get_word_hits (priv->index, term, &count);
 
 	if (!details)
 		return result;

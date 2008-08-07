@@ -301,14 +301,14 @@ tracker_dbus_shutdown (void)
 gboolean
 tracker_dbus_register_objects (TrackerConfig    *config,
 			       TrackerLanguage  *language,
-			       TrackerIndex     *index,
+			       TrackerDBIndex   *index,
 			       TrackerProcessor *processor)
 {
 	gpointer object;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), FALSE);
 	g_return_val_if_fail (TRACKER_IS_LANGUAGE (language), FALSE);
-	g_return_val_if_fail (TRACKER_IS_INDEX (index), FALSE);
+	g_return_val_if_fail (TRACKER_IS_DB_INDEX (index), FALSE);
 
 	if (!connection || !proxy) {
 		g_critical ("DBus support must be initialized before registering objects!");

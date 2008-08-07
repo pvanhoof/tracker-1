@@ -34,15 +34,15 @@
 
 #include <libtracker-db/tracker-db-interface.h>
 #include <libtracker-db/tracker-db-file-info.h>
+#include <libtracker-db/tracker-db-index.h>
 
-#include "tracker-index.h"
 #include "tracker-utils.h"
 
 G_BEGIN_DECLS
 
 void                tracker_db_init                              (TrackerConfig       *this_config,
 								  TrackerLanguage     *this_language,
-								  TrackerIndex        *this_file_index);
+								  TrackerDBIndex      *this_file_index);
 void                tracker_db_shutdown                          (void);
 
 /* Operations for TrackerDBInterface */

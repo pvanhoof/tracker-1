@@ -32,6 +32,7 @@
 #include <libtracker-common/tracker-utils.h>
 
 #include <libtracker-db/tracker-db-dbus.h>
+#include <libtracker-db/tracker-db-index.h>
 #include <libtracker-db/tracker-db-manager.h>
 
 #include "tracker-db.h"
@@ -39,7 +40,6 @@
 #include "tracker-search.h"
 #include "tracker-rdf-query.h"
 #include "tracker-query-tree.h"
-#include "tracker-index.h"
 #include "tracker-marshal.h"
 
 #define DEFAULT_SEARCH_MAX_HITS 1024
@@ -51,7 +51,7 @@ typedef struct {
 
 	TrackerConfig   *config;
 	TrackerLanguage *language;
-        TrackerIndex    *index;
+        TrackerDBIndex  *index;
 } TrackerSearchPriv;
 
 static void search_finalize (GObject *object);
@@ -96,14 +96,14 @@ search_finalize (GObject *object)
 TrackerSearch *
 tracker_search_new (TrackerConfig   *config,
 		    TrackerLanguage *language,
-		    TrackerIndex    *index)
+		    TrackerDBIndex  *index)
 {
 	TrackerSearch     *object;
 	TrackerSearchPriv *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 	g_return_val_if_fail (TRACKER_IS_LANGUAGE (language), NULL);
-	g_return_val_if_fail (TRACKER_IS_INDEX (index), NULL);
+	g_return_val_if_fail (TRACKER_IS_DB_INDEX (index), NULL);
 
 	object = g_object_new (TRACKER_TYPE_SEARCH, NULL); 
 
@@ -1238,7 +1238,7 @@ tracker_search_suggest (TrackerSearch          *object,
 
 	priv = GET_PRIV (object);
 
-	value = tracker_index_get_suggestion (priv->index, search_text, max_dist);
+	value = tracker_db_index_get_suggestion (priv->index, search_text, max_dist);
 
 	if (!value) {
 		g_set_error (&actual_error,

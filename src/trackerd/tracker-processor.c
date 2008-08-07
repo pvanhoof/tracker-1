@@ -31,12 +31,13 @@
 #include <libtracker-common/tracker-module-config.h>
 #include <libtracker-common/tracker-utils.h>
 
+#include <libtracker-db/tracker-db-index.h>
+#include <libtracker-db/tracker-db-index-manager.h>
+
 #include "tracker-processor.h"
 #include "tracker-crawler.h"
 #include "tracker-daemon.h"
 #include "tracker-dbus.h"
-#include "tracker-index.h"
-#include "tracker-index-manager.h"
 #include "tracker-indexer-client.h"
 #include "tracker-main.h"
 #include "tracker-monitor.h"
@@ -866,7 +867,7 @@ indexer_status_cb (DBusGProxy  *proxy,
 		   gpointer     user_data)
 {
 	TrackerProcessor *processor;
-	TrackerIndex     *index;
+	TrackerDBIndex   *index;
 	GQueue           *queue;
 	GFile            *file;
 	gchar            *path = NULL;
@@ -904,8 +905,8 @@ indexer_status_cb (DBusGProxy  *proxy,
 	 * module_name->index type so we don't do this for both
 	 * every time:
 	 */
-	index = tracker_index_manager_get_index (TRACKER_INDEX_TYPE_INDEX);
-	tracker_index_set_reload (index, TRUE);
+	index = tracker_db_index_manager_get_index (TRACKER_DB_INDEX_TYPE_INDEX);
+	tracker_db_index_set_reload (index, TRUE);
 
 	/* Message to the console about state */
 	str1 = tracker_seconds_estimate_to_string (seconds_elapsed, 
@@ -932,7 +933,7 @@ indexer_finished_cb (DBusGProxy  *proxy,
 		     gpointer     user_data)
 {
 	TrackerProcessor *processor;
-	TrackerIndex     *index;
+	TrackerDBIndex   *index;
 	gchar            *str;
 
 	processor = user_data;
@@ -950,8 +951,8 @@ indexer_finished_cb (DBusGProxy  *proxy,
 	 * module_name->index type so we don't do this for both
 	 * every time:
 	 */
-	index = tracker_index_manager_get_index (TRACKER_INDEX_TYPE_INDEX);
-	tracker_index_set_reload (index, TRUE);
+	index = tracker_db_index_manager_get_index (TRACKER_DB_INDEX_TYPE_INDEX);
+	tracker_db_index_set_reload (index, TRUE);
 
 	/* Message to the console about state */
 	str = tracker_seconds_to_string (seconds_elapsed, FALSE);

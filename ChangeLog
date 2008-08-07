@@ -1,3 +1,10 @@
+2008-08-07  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/libtracker-db/tracker-db-index.c: Fixed min_bucket
+	condition. It should be bigger than 0.
+
+	* tests/tracker-indexer/tracker-index-test.c: Updated tests.
+
 2008-08-07  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer.c (tracker_indexer_set_running):

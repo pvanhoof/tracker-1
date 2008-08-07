@@ -8,7 +8,8 @@
 #include <libtracker-db/tracker-db-index.h>
 #include <libtracker-db/tracker-db-index-item.h>
 
-#define BUCKET_COUNT 100
+#define MIN_BUCKET_COUNT 1
+#define MAX_BUCKET_COUNT 100
 
 /* Helper functions to read the index */
 gint
@@ -17,7 +18,7 @@ get_number_words_in_index (const gchar *index_file)
         DEPOT *index;
         gint   words;
 
-        index = dpopen (index_file, DP_OREADER, BUCKET_COUNT);
+        index = dpopen (index_file, DP_OREADER, MAX_BUCKET_COUNT);
 
         words = dprnum (index);
 
@@ -32,7 +33,7 @@ get_results_for_word (const gchar *index_file, const gchar *word)
         DEPOT *index;
         gint result;
 
-        index = dpopen (index_file, DP_OREADER, BUCKET_COUNT);
+        index = dpopen (index_file, DP_OREADER, MAX_BUCKET_COUNT);
 
         result = dpvsiz (index, word, -1);
 
@@ -49,7 +50,7 @@ get_score_for_word (const gchar *index_file, const gchar *word)
         TrackerDBIndexItem *results;
         gint score;
 
-        index = dpopen (index_file, DP_OREADER, BUCKET_COUNT);
+        index = dpopen (index_file, DP_OREADER, MAX_BUCKET_COUNT);
 
         results = (TrackerDBIndexItem *)dpget (index, word, -1, 0, -1, &tsiz);
 
@@ -74,7 +75,7 @@ debug_print_index (const gchar *index_file) {
 
         g_print ("Contents of %s\n", index_file);
 
-        index = dpopen (index_file, DP_OREADER, BUCKET_COUNT);
+        index = dpopen (index_file, DP_OREADER, MAX_BUCKET_COUNT);
 
         dpiterinit (index);
         
@@ -108,7 +109,7 @@ test_add_one_word ()
         const gchar *indexname = "test-add-one-word.index";
 
         g_remove (indexname);
-        index = tracker_db_index_new (indexname, 0, BUCKET_COUNT, FALSE);
+        index = tracker_db_index_new (indexname, MIN_BUCKET_COUNT, MAX_BUCKET_COUNT, FALSE);
         
         tracker_db_index_add_word (index, "word1", 1, 1, 1);
         tracker_db_index_flush (index);
@@ -132,7 +133,7 @@ test_add_n_words ()
         g_remove (indexname);
 
         g_remove (indexname);
-        index = tracker_db_index_new (indexname, 0, BUCKET_COUNT, FALSE);
+        index = tracker_db_index_new (indexname, MIN_BUCKET_COUNT, MAX_BUCKET_COUNT, FALSE);
         
         for ( i = 0; i < 20; i++) {
                 word = g_strdup_printf ("word%d", i);
@@ -156,7 +157,7 @@ test_add_word_n_times ()
         const gchar *indexname = "test-add-word-n-times.index";
 
         g_remove (indexname);
-        index = tracker_db_index_new (indexname, 0, BUCKET_COUNT, FALSE);
+        index = tracker_db_index_new (indexname, MIN_BUCKET_COUNT, MAX_BUCKET_COUNT, FALSE);
         
         for ( i = 0; i < 20; i++) {
                 tracker_db_index_add_word (index, "test-word", i, 1, 1);
@@ -179,7 +180,7 @@ test_add_word_multiple_occurrences ()
         const gchar *indexname = "test-word-multiple-ocurrences.index";
 
         g_remove (indexname);
-        index = tracker_db_index_new (indexname, 0, BUCKET_COUNT, FALSE);
+        index = tracker_db_index_new (indexname, MIN_BUCKET_COUNT, MAX_BUCKET_COUNT, FALSE);
         
         for ( i = 0; i < 20; i++) {
                 tracker_db_index_add_word (index, "test-word", 1, 1, 1);
@@ -227,7 +228,7 @@ test_add_with_flushs ()
         const gchar *text2 = "this is another text with some common words";
         
         g_remove (indexname);
-        index = tracker_db_index_new (indexname, 0, BUCKET_COUNT, FALSE);
+        index = tracker_db_index_new (indexname, MIN_BUCKET_COUNT, MAX_BUCKET_COUNT, FALSE);
 
         /* Text 1 */
         insert_in_index (index, text1);
@@ -276,7 +277,7 @@ test_remove_document ()
         
         g_remove (indexname);
 
-        index = tracker_db_index_new (indexname, 0, BUCKET_COUNT, FALSE);
+        index = tracker_db_index_new (indexname, MIN_BUCKET_COUNT, MAX_BUCKET_COUNT, FALSE);
 
         /* Doc 1 */
         id1 = insert_in_index (index, doc1);
@@ -290,7 +291,7 @@ test_remove_document ()
 
         g_assert_cmpint (get_number_words_in_index (indexname), ==, 18);
 
-        index = tracker_db_index_new (indexname, 0, BUCKET_COUNT, FALSE);
+        index = tracker_db_index_new (indexname, MIN_BUCKET_COUNT, MAX_BUCKET_COUNT, FALSE);
         
         /* Remove doc1 */
         remove_in_index (index, doc1, id1);
@@ -314,7 +315,7 @@ test_remove_before_flush (void)
         
         g_remove (indexname);
 
-        index = tracker_db_index_new (indexname, 0, BUCKET_COUNT, FALSE);
+        index = tracker_db_index_new (indexname, MIN_BUCKET_COUNT, MAX_BUCKET_COUNT, FALSE);
 
         /* Doc 1 */
         id1 = insert_in_index (index, doc1);
@@ -337,6 +338,8 @@ main (int argc, char **argv) {
         int result;
 
 	g_type_init ();
+        g_thread_init (NULL);
+
 	g_test_init (&argc, &argv, NULL);
 
         g_test_add_func ("/tracker/tracker-indexer/tracker-index/add_word",

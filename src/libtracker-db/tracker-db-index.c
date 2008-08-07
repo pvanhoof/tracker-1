@@ -261,8 +261,8 @@ tracker_db_index_new (const gchar *filename,
         TrackerDBIndex *index;
 
 	g_return_val_if_fail (filename != NULL, NULL);
-	g_return_val_if_fail (min_bucket > 1, NULL);
-	g_return_val_if_fail (min_bucket > 1, NULL);
+	g_return_val_if_fail (min_bucket > 0, NULL);
+	g_return_val_if_fail (max_bucket > 0, NULL);
 	g_return_val_if_fail (min_bucket < max_bucket, NULL);
 
 	index = g_object_new (TRACKER_TYPE_DB_INDEX,

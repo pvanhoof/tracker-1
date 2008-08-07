@@ -18,7 +18,6 @@
  * Boston, MA  02110-1301, USA.
  */
 
-
 #include <depot.h>
 
 #include <glib.h>
@@ -27,10 +26,10 @@
 
 #define USAGE "Usage: print -f qdbm-file\n"
 
-static gchar    *filename;
-static gboolean  print_services;
+static gchar        *filename;
+static gboolean      print_services;
 
-static GOptionEntry   entries_qdbm[] = {
+static GOptionEntry  entries[] = {
 	{ "index-file", 'f', 0, 
 	  G_OPTION_ARG_STRING, &filename, 
 	  "QDBM index file", 
@@ -121,32 +120,40 @@ int
 main (gint argc, gchar** argv)
 {
         GOptionContext *context;
-        GOptionGroup   *group;
         GError         *error = NULL;
+
 	context = g_option_context_new ("- QDBM index printer");
-
-	/* Daemon group */
-	group = g_option_group_new ("qdbm", 
-				    "QDBM printer Options",
-                                    "Show daemon options", 
-				    NULL, 
-				    NULL);
-	g_option_group_add_entries (group, entries_qdbm);
-	g_option_context_add_group (context, group);
-
+	g_option_context_add_main_entries (context, entries, NULL);
 	g_option_context_parse (context, &argc, &argv, &error);
-	g_option_context_free (context);
 
 	if (error) {
+                gchar *help;
+
 		g_printerr ("Invalid arguments, %s\n", error->message);
+
+                help = g_option_context_get_help (context, TRUE, NULL);
+                g_printerr (help);
+
+                g_free (help);
 		g_clear_error (&error);
+                g_option_context_free (context);
+
 		return EXIT_FAILURE;
 	}
 
-        if (!filename) {
-                g_printerr (USAGE);
+        if (!filename) { 
+                gchar *help;
+                
+                help = g_option_context_get_help (context, TRUE, NULL);
+                g_printerr (help);
+
+                g_free (help);
+                g_option_context_free (context);
+
                 return EXIT_FAILURE;
         }
+
+	g_option_context_free (context);
 
         load_terms_from_index (filename);
 

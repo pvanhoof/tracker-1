@@ -121,9 +121,17 @@ main (gint argc, gchar** argv)
 	g_option_context_parse (context, &argc, &argv, &error);
 
 	if (error) {
+                gchar *help;
+
 		g_printerr ("Invalid arguments, %s\n", error->message);
-                g_option_context_free (context);
+
+                help = g_option_context_get_help (context, TRUE, NULL);
+                g_printerr (help);
+
+                g_free (help);
 		g_clear_error (&error);
+                g_option_context_free (context);
+
 		return EXIT_FAILURE;
 	}
 
@@ -131,9 +139,10 @@ main (gint argc, gchar** argv)
                 gchar *help;
                 
                 help = g_option_context_get_help (context, TRUE, NULL);
-                g_option_context_free (context);
-                g_free (help);
                 g_printerr (help);
+
+                g_free (help);
+                g_option_context_free (context);
 
                 return EXIT_FAILURE;
         }

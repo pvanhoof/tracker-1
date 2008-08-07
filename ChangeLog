@@ -1,5 +1,11 @@
 2008-08-07  Martyn Russell  <martyn@imendio.com>
 
+	* utils/qdbm/print-words.c: (main):
+	* utils/qdbm/search-word.c: (main): Fixed printing help when args
+	are broken.
+
+2008-08-07  Martyn Russell  <martyn@imendio.com>
+
 	* configure.ac: 
 	* tests/libtracker-common/tracker-type-utils-test.c:
 	* tests/tracker-indexer/Makefile.am:

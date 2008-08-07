@@ -70,7 +70,6 @@
 #include "tracker-indexer.h"
 #include "tracker-indexer-module.h"
 #include "tracker-indexer-db.h"
-#include "tracker-index.h"
 #include "tracker-module.h"
 #include "tracker-marshal.h"
 

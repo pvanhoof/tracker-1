@@ -694,15 +694,15 @@ tracker_db_search_text (TrackerDBInterface *iface,
 	count = 0;
 
 	for (i = 0; i < hits->len; i++) {
-		TrackerSearchHit hit;
-		char	  *str_id;
+		TrackerDBIndexItemRank  rank;
+		gchar                  *str_id;
 
 		if (count >= limit) {
 			break;
 		}
 
-		hit = g_array_index (hits, TrackerSearchHit, i);
-		str_id = tracker_uint_to_string (hit.service_id);
+		rank = g_array_index (hits, TrackerDBIndexItemRank, i);
+		str_id = tracker_uint_to_string (rank.service_id);
 
 		/* We save results into SearchResults table instead of
 		 * returing an array of array of strings 
@@ -710,7 +710,7 @@ tracker_db_search_text (TrackerDBInterface *iface,
 		if (save_results) {
 			gchar *str_score;
 
-			str_score = tracker_int_to_string (hit.score);
+			str_score = tracker_int_to_string (rank.score);
 			tracker_db_exec_proc (iface, 
 					      "InsertSearchResult1", 
 					      str_id, 
@@ -775,7 +775,7 @@ tracker_db_search_text (TrackerDBInterface *iface,
 			g_object_unref (result_set);
 		} else {
 			g_message ("Dud hit for search detected");
-			duds = g_slist_prepend (duds, &hit);
+			duds = g_slist_prepend (duds, &rank);
 		}
 	}
 
@@ -845,13 +845,13 @@ tracker_db_search_text_and_mime (TrackerDBInterface  *iface,
 	hits = tracker_query_tree_get_hits (tree, 0, 0);
 
 	for (i = 0, count = 0; i < hits->len; i++) {
-		TrackerDBResultSet *result_set2;
-		TrackerSearchHit    hit;
-		gchar              *str_id, *mimetype;
+		TrackerDBResultSet     *result_set2;
+		TrackerDBIndexItemRank  rank;
+		gchar                  *str_id, *mimetype;
 
-		hit = g_array_index (hits, TrackerSearchHit, i);
+		rank = g_array_index (hits, TrackerDBIndexItemRank, i);
 
-		str_id = tracker_uint_to_string (hit.service_id);
+		str_id = tracker_uint_to_string (rank.service_id);
 		result_set2 = tracker_db_exec_proc (iface, 
 						    "GetFileByID", 
 						    str_id, 
@@ -941,13 +941,13 @@ tracker_db_search_text_and_location (TrackerDBInterface *iface,
 	hits = tracker_query_tree_get_hits (tree, 0, 0);
 
 	for (i = 0, count = 0; i < hits->len; i++) {
-		TrackerDBResultSet *result_set2;
-		TrackerSearchHit    hit;
-		gchar              *str_id, *path;
+		TrackerDBResultSet     *result_set2;
+		TrackerDBIndexItemRank  rank;
+		gchar                  *str_id, *path;
 
-		hit = g_array_index (hits, TrackerSearchHit, i);
+		rank = g_array_index (hits, TrackerDBIndexItemRank, i);
 
-		str_id = tracker_uint_to_string (hit.service_id);
+		str_id = tracker_uint_to_string (rank.service_id);
 		result_set2 = tracker_db_exec_proc (iface, 
 						   "GetFileByID", 
 						   str_id, 
@@ -1039,17 +1039,17 @@ tracker_db_search_text_and_mime_and_location (TrackerDBInterface  *iface,
 	hits = tracker_query_tree_get_hits (tree, 0, 0);
 
 	for (i = 0, count = 0; i < hits->len; i++) {
-		TrackerDBResultSet *result_set2;
-		TrackerSearchHit    hit;
-		gchar              *str_id, *path, *mimetype;
+		TrackerDBResultSet     *result_set2;
+		TrackerDBIndexItemRank  rank;
+		gchar                  *str_id, *path, *mimetype;
 
-		hit = g_array_index (hits, TrackerSearchHit, i);
+		rank = g_array_index (hits, TrackerDBIndexItemRank, i);
 
-		str_id = tracker_uint_to_string (hit.service_id);
+		str_id = tracker_uint_to_string (rank.service_id);
 		result_set2 = tracker_db_exec_proc (iface, 
-						   "GetFileByID", 
-						   str_id, 
-						   NULL);
+						    "GetFileByID", 
+						    str_id, 
+						    NULL);
 		g_free (str_id);
 
 		if (result_set2) {

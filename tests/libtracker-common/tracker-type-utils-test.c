@@ -17,13 +17,16 @@
  * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  * Boston, MA  02110-1301, USA. 
  */  
-#include <glib.h>
-#include <glib/gtestutils.h>
 
 #include <time.h>
 #include <string.h>
 
+#include <glib.h>
+#include <glib-object.h>
+#include <glib/gtestutils.h>
+
 #include <libtracker-common/tracker-type-utils.h>
+
 #include <tracker-test-helpers.h>
 
 static void

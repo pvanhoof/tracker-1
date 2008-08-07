@@ -18,11 +18,11 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#include "tracker-index-item.h"
+#include "tracker-db-index-item.h"
 
 guint32 
-tracker_index_item_calc_amalgamated (gint service_type, 
-                                     gint score)
+tracker_db_index_item_calc_amalgamated (gint service_type, 
+					gint score)
 {
 	unsigned char a[4];
 	gint16        score16;
@@ -48,28 +48,30 @@ tracker_index_item_calc_amalgamated (gint service_type,
 }
 
 guint8  
-tracker_index_item_get_service_type (TrackerIndexItem *details)
+tracker_db_index_item_get_service_type (TrackerDBIndexItem *item)
 {
-        g_return_val_if_fail (details != NULL, 0);
+        g_return_val_if_fail (item != NULL, 0);
 
-	return (details->amalgamated >> 24) & 0xFF;
+	return (item->amalgamated >> 24) & 0xFF;
 }
 
 gint16  
-tracker_index_item_get_score (TrackerIndexItem *details)
+tracker_db_index_item_get_score (TrackerDBIndexItem *item)
 {
 	unsigned char a[2];
 
-        g_return_val_if_fail (details != NULL, 0);
+        g_return_val_if_fail (item != NULL, 0);
 
-	a[0] = (details->amalgamated >> 16) & 0xFF;
-	a[1] = (details->amalgamated >> 8) & 0xFF;
+	a[0] = (item->amalgamated >> 16) & 0xFF;
+	a[1] = (item->amalgamated >> 8) & 0xFF;
 
 	return (gint16) (a[0] << 8) | (a[1]);	
 }
 
 guint32 
-tracker_index_item_get_id (TrackerIndexItem *item)
+tracker_db_index_item_get_id (TrackerDBIndexItem *item)
 { 
+	g_return_val_if_fail (item != NULL, 0);
+
         return item->id;
 }

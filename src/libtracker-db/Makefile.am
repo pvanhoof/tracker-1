@@ -18,6 +18,8 @@ libtracker_db_la_SOURCES = 						\
 	tracker-db-file-info.h						\
 	tracker-db-index.c						\
 	tracker-db-index.h						\
+	tracker-db-index-item.c						\
+	tracker-db-index-item.h						\
 	tracker-db-index-manager.c					\
 	tracker-db-index-manager.h					\
 	tracker-db-interface.c						\

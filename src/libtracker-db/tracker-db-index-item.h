@@ -18,8 +18,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __TRACKER_INDEX_ITEM_H__
-#define __TRACKER_INDEX_ITEM_H__
+#ifndef __TRACKER_DB_INDEX_ITEM_H__
+#define __TRACKER_DB_INDEX_ITEM_H__
 
 #include <glib.h>
 
@@ -33,20 +33,20 @@ typedef struct {
 	 * document's metadata.
 	 */
 	gint    amalgamated;     
-} TrackerIndexItem;
+} TrackerDBIndexItem;
 
 typedef struct {
 	guint32 service_id;      /* Service ID of the document */
 	guint32 service_type_id; /* Service type ID of the document */
 	guint32 score;           /* Ranking score */
-} TrackerSearchHit;
+} TrackerDBIndexItemRank;
 
-guint32 tracker_index_item_calc_amalgamated (gint              service_type,
-                                             gint              score);
-guint8  tracker_index_item_get_service_type (TrackerIndexItem *details);
-gint16  tracker_index_item_get_score        (TrackerIndexItem *details);
-guint32 tracker_index_item_get_id           (TrackerIndexItem *details);
+guint32 tracker_db_index_item_calc_amalgamated (gint                service_type,
+						gint                score);
+guint8  tracker_db_index_item_get_service_type (TrackerDBIndexItem *details);
+gint16  tracker_db_index_item_get_score        (TrackerDBIndexItem *details);
+guint32 tracker_db_index_item_get_id           (TrackerDBIndexItem *details);
 
 G_END_DECLS
 
-#endif /* __TRACKER_INDEX_ITEM_H__ */
+#endif /* __TRACKER_DB_INDEX_ITEM_H__ */

@@ -516,11 +516,11 @@ count_hits_for_word (TrackerDBIndex *index,
         tsiz = count_hit_size_for_word (index, str);
 
         if (tsiz == -1 ||
-            tsiz % sizeof (TrackerIndexItem) != 0) {
+            tsiz % sizeof (TrackerDBIndexItem) != 0) {
                 return -1;
         }
 
-        hits = tsiz / sizeof (TrackerIndexItem);
+        hits = tsiz / sizeof (TrackerDBIndexItem);
 
         return hits;
 }
@@ -564,32 +564,40 @@ indexer_update_word (DEPOT       *index,
 		     const gchar *word, 
 		     GArray      *new_hits)
 {					
-	TrackerIndexItem *new_hit, *previous_hits;
-	gboolean          write_back = FALSE, edited = FALSE;
-	gint              old_hit_count = 0;
-	GArray           *pending_hits = NULL;
-	gboolean          result;
-	gint              tsiz, i, score;
-	guint             j;
-	gint              k;
+	TrackerDBIndexItem *new_hit;
+	TrackerDBIndexItem *previous_hits;
+	GArray             *pending_hits;
+	gboolean            write_back;
+	gboolean            edited;
+	gboolean            result;
+	gint                old_hit_count;
+	gint                score;
+	gint                tsiz;
+	guint               j;
+	gint                i, k;
 
 	g_return_val_if_fail (index != NULL, FALSE);
 	g_return_val_if_fail (word != NULL, FALSE);
 	g_return_val_if_fail (new_hits != NULL, FALSE);
 
-	previous_hits = (TrackerIndexItem *) dpget (index, 
-						    word, 
-						    -1, 
-						    0, 
-						    MAX_HIT_BUFFER, 
-						    &tsiz);
+	write_back = FALSE;
+	edited = FALSE;
+	old_hit_count = 0;
+	pending_hits = NULL;
+
+	previous_hits = (TrackerDBIndexItem *) dpget (index, 
+						      word, 
+						      -1, 
+						      0, 
+						      MAX_HIT_BUFFER, 
+						      &tsiz);
 	
 	/* New word in the index */
 	if (previous_hits == NULL) {
 		result = dpput (index, 
 				word, -1, 
 				(char *) new_hits->data, 
-				new_hits->len * sizeof (TrackerIndexItem), 
+				new_hits->len * sizeof (TrackerDBIndexItem), 
 				DP_DCAT);
 
 		if (!result) {
@@ -601,10 +609,10 @@ indexer_update_word (DEPOT       *index,
 	}
 
 	/* Word already exists */
-	old_hit_count = tsiz / sizeof (TrackerIndexItem);
+	old_hit_count = tsiz / sizeof (TrackerDBIndexItem);
 
 	for (j = 0; j < new_hits->len; j++) {
-		new_hit = &g_array_index (new_hits, TrackerIndexItem, j); 
+		new_hit = &g_array_index (new_hits, TrackerDBIndexItem, j); 
 		edited = FALSE;
 
 		for (i = 0; i < old_hit_count; i++) {
@@ -612,8 +620,8 @@ indexer_update_word (DEPOT       *index,
 				write_back = TRUE;
 				
 				/* NB the paramter score can be negative */
-				score =  tracker_index_item_get_score (&previous_hits[i]);
-				score += tracker_index_item_get_score (new_hit);
+				score =  tracker_db_index_item_get_score (&previous_hits[i]);
+				score += tracker_db_index_item_get_score (new_hit);
 		
 				/* Check for deletion */		
 				if (score < 1) {
@@ -626,9 +634,11 @@ indexer_update_word (DEPOT       *index,
 				} else {
 					guint32 service_type;
 
-					service_type = tracker_index_item_get_service_type (&previous_hits[i]);
+					service_type = 
+						tracker_db_index_item_get_service_type (&previous_hits[i]);
 					previous_hits[i].amalgamated = 
-						tracker_index_item_calc_amalgamated (service_type, score);
+						tracker_db_index_item_calc_amalgamated (service_type, 
+											score);
 				}
 				
 				edited = TRUE;
@@ -641,7 +651,7 @@ indexer_update_word (DEPOT       *index,
 		 */
 		if (!edited) {
 			if (!pending_hits) {
-				pending_hits = g_array_new (FALSE, TRUE, sizeof (TrackerIndexItem));
+				pending_hits = g_array_new (FALSE, TRUE, sizeof (TrackerDBIndexItem));
 			}
 
 			g_array_append_val (pending_hits, *new_hit);
@@ -659,7 +669,7 @@ indexer_update_word (DEPOT       *index,
 			dpput (index, 
 			       word, -1, 
 			       (char *) previous_hits, 
-			       old_hit_count * sizeof (TrackerIndexItem), 
+			       old_hit_count * sizeof (TrackerDBIndexItem), 
 			       DP_DOVER);
 		}
 	}
@@ -669,7 +679,7 @@ indexer_update_word (DEPOT       *index,
 		dpput (index, 
 		       word, -1, 
 		       (char*) pending_hits->data, 
-		       pending_hits->len * sizeof (TrackerIndexItem), 
+		       pending_hits->len * sizeof (TrackerDBIndexItem), 
 		       DP_DCAT);
 		g_array_free (pending_hits, TRUE);
 	}
@@ -904,15 +914,15 @@ tracker_db_index_get_suggestion (TrackerDBIndex *index,
         return winner_str;
 }
 
-TrackerIndexItem *
+TrackerDBIndexItem *
 tracker_db_index_get_word_hits (TrackerDBIndex *index,
 				const gchar    *word,
 				guint          *count)
 {
         TrackerDBIndexPrivate *priv;
-	TrackerIndexItem    *details;
-	gint                 tsiz;
-	gchar               *tmp;
+	TrackerDBIndexItem    *details;
+	gint                   tsiz;
+	gchar                 *tmp;
 
         g_return_val_if_fail (TRACKER_IS_DB_INDEX (index), NULL);
         g_return_val_if_fail (word != NULL, NULL);
@@ -932,11 +942,11 @@ tracker_db_index_get_word_hits (TrackerDBIndex *index,
         }
 
 	if ((tmp = dpget (priv->index, word, -1, 0, MAX_HIT_BUFFER, &tsiz)) != NULL) {
-		if (tsiz >= (gint) sizeof (TrackerIndexItem)) {
-			details = (TrackerIndexItem *) tmp;
+		if (tsiz >= (gint) sizeof (TrackerDBIndexItem)) {
+			details = (TrackerDBIndexItem *) tmp;
 
                         if (count) {
-                                *count = tsiz / sizeof (TrackerIndexItem);
+                                *count = tsiz / sizeof (TrackerDBIndexItem);
                         }
 		}
 	}
@@ -954,8 +964,8 @@ tracker_db_index_add_word (TrackerDBIndex *index,
 			   gint            weight)
 {
 	TrackerDBIndexPrivate *priv;
-	TrackerIndexItem       elem;
-	TrackerIndexItem      *current;
+	TrackerDBIndexItem     elem;
+	TrackerDBIndexItem    *current;
 	GArray                *array;
 	guint                  i, new_score;
 
@@ -965,7 +975,7 @@ tracker_db_index_add_word (TrackerDBIndex *index,
 	priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
 
 	elem.id = service_id;
-	elem.amalgamated = tracker_index_item_calc_amalgamated (service_type, weight);
+	elem.amalgamated = tracker_db_index_item_calc_amalgamated (service_type, weight);
 
 	array = g_hash_table_lookup (priv->cache, word);
 
@@ -973,7 +983,7 @@ tracker_db_index_add_word (TrackerDBIndex *index,
 		/* Create the array if it didn't exist (first time we
 		 * find the word)
 		 */
-		array = g_array_new (FALSE, TRUE, sizeof (TrackerIndexItem));
+		array = g_array_new (FALSE, TRUE, sizeof (TrackerDBIndexItem));
 		g_hash_table_insert (priv->cache, g_strdup (word), array);
 		g_array_append_val (array, elem);
 		return;
@@ -981,13 +991,13 @@ tracker_db_index_add_word (TrackerDBIndex *index,
 
 	/* It is not the first time we find the word */
 	for (i = 0; i < array->len; i++) {
-		current = &g_array_index (array, TrackerIndexItem, i);
+		current = &g_array_index (array, TrackerDBIndexItem, i);
 
 		if (current->id == service_id) {
 			/* The word was already found in the same
 			 * service_id (file), increase score 
 			 */
-			new_score = tracker_index_item_get_score (current) + weight;
+			new_score = tracker_db_index_item_get_score (current) + weight;
 			if (new_score < 1) {
 				array = g_array_remove_index (array, i);
 				if (array->len == 0) {
@@ -996,8 +1006,11 @@ tracker_db_index_add_word (TrackerDBIndex *index,
 			} else {
 				guint32 service_type;
 				
-				service_type = tracker_index_item_get_service_type (current);
-				current->amalgamated = tracker_index_item_calc_amalgamated (service_type, new_score);
+				service_type = 
+					tracker_db_index_item_get_service_type (current);
+				current->amalgamated = 
+					tracker_db_index_item_calc_amalgamated (service_type, 
+										new_score);
 			}
 
 			return;
@@ -1048,36 +1061,38 @@ tracker_db_index_remove_dud_hits (TrackerDBIndex *index,
                 return FALSE;
         }
 
-        if (tsiz >= (int) sizeof (TrackerIndexItem)) {
-                TrackerIndexItem *details;
-                gint              wi, i, pnum;
+        if (tsiz >= (int) sizeof (TrackerDBIndexItem)) {
+                TrackerDBIndexItem *details;
+                gint                wi, i, pnum;
 
-                details = (TrackerIndexItem *) tmp;
-                pnum = tsiz / sizeof (TrackerIndexItem);
+                details = (TrackerDBIndexItem *) tmp;
+                pnum = tsiz / sizeof (TrackerDBIndexItem);
                 wi = 0;
 
                 for (i = 0; i < pnum; i++) {
                         GSList *lst;
 
                         for (lst = dud_list; lst; lst = lst->next) {
-                                TrackerSearchHit *hit = lst->data;
+                                TrackerDBIndexItemRank *rank = lst->data;
 
-                                if (hit) {
-                                        if (details[i].id == hit->service_id) {
-                                                gint k;
+                                if (!rank) {
+					continue;
+				}
 
-                                                /* Shift all subsequent records in array down one place */
-                                                for (k = i + 1; k < pnum; k++) {
-                                                        details[k - 1] = details[k];
-                                                }
-
-                                                /* Make size of array one size smaller */
-                                                tsiz -= sizeof (TrackerIndexItem);
-                                                pnum--;
-
-                                                break;
-                                        }
-                                }
+				if (details[i].id == rank->service_id) {
+					gint k;
+					
+					/* Shift all subsequent records in array down one place */
+					for (k = i + 1; k < pnum; k++) {
+						details[k - 1] = details[k];
+					}
+					
+					/* Make size of array one size smaller */
+					tsiz -= sizeof (TrackerDBIndexItem);
+					pnum--;
+					
+					break;
+				}
                         }
                 }
 

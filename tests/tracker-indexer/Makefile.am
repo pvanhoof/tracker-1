@@ -17,11 +17,11 @@ INCLUDES = 				\
 
 
 tracker_index_SOURCES = \
-	tracker-index-test.c \
-	$(top_srcdir)/src/tracker-indexer/tracker-index.c
+	tracker-index-test.c
 
-tracker_index_LDADD =						\
+tracker_index_LDADD =							\
 	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
+	$(top_builddir)/src/libtracker-db/libtracker-db.la	 	\
 	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
 	$(QDBM_LIBS)							\
 	$(GMODULE_LIBS)							\

@@ -35,7 +35,8 @@
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-parser.h>
 #include <libtracker-common/tracker-ontology.h>
-#include <libtracker-common/tracker-index-item.h>
+
+#include <libtracker-db/tracker-db-index-item.h>
 
 #include "tracker-query-tree.h"
 #include "tracker-utils.h"
@@ -656,13 +657,13 @@ tracker_query_tree_get_words (TrackerQueryTree *tree)
 }
 
 static gint
-get_idf_score (TrackerIndexItem *details,
-               gfloat            idf)
+get_idf_score (TrackerDBIndexItem *details,
+               gfloat              idf)
 {
 	guint32 score;
 	gfloat  f;
 
-        score = tracker_index_item_get_score (details);
+        score = tracker_db_index_item_get_score (details);
         f = idf * score * SCORE_MULTIPLIER;
 
         return (f > 1.0) ? lrintf (f) : 1;
@@ -695,7 +696,7 @@ get_search_term_hits (TrackerQueryTree *tree,
 		      const gchar      *term)
 {
 	TrackerQueryTreePrivate *priv;
-	TrackerIndexItem *details;
+	TrackerDBIndexItem *details;
 	GHashTable *result;
 	guint count, i;
 
@@ -712,7 +713,7 @@ get_search_term_hits (TrackerQueryTree *tree,
 		SearchHitData *data;
 		gint service;
 
-		service = tracker_index_item_get_service_type (&details[i]);
+		service = tracker_db_index_item_get_service_type (&details[i]);
 
 		if (in_array (priv->services, service)) {
 			data = g_slice_new (SearchHitData);
@@ -826,27 +827,27 @@ get_hits_foreach (gpointer key,
 		  gpointer user_data)
 {
 	GArray *array;
-	TrackerSearchHit hit;
+	TrackerDBIndexItemRank rank;
 	SearchHitData *hit_data;
 
 	array = (GArray *) user_data;
 	hit_data = (SearchHitData *) value;
 
-	hit.service_id = GPOINTER_TO_UINT (key);
-	hit.service_type_id = hit_data->service_type_id;
-	hit.score = hit_data->score;
+	rank.service_id = GPOINTER_TO_UINT (key);
+	rank.service_type_id = hit_data->service_type_id;
+	rank.score = hit_data->score;
 
-	g_array_append_val (array, hit);
+	g_array_append_val (array, rank);
 }
 
 static gint
 compare_search_hits (gconstpointer a,
 		     gconstpointer b)
 {
-	TrackerSearchHit *ap, *bp;
+	TrackerDBIndexItemRank *ap, *bp;
 
-	ap = (TrackerSearchHit *) a;
-	bp = (TrackerSearchHit *) b;
+	ap = (TrackerDBIndexItemRank *) a;
+	bp = (TrackerDBIndexItemRank *) b;
 
 	return (bp->score - ap->score);
 }
@@ -867,7 +868,7 @@ tracker_query_tree_get_hits (TrackerQueryTree *tree,
 	g_return_val_if_fail (priv->tree != NULL, NULL);
 
 	table = get_node_hits (tree, priv->tree);
-	array = g_array_sized_new (TRUE, TRUE, sizeof (TrackerSearchHit),
+	array = g_array_sized_new (TRUE, TRUE, sizeof (TrackerDBIndexItemRank),
 				   g_hash_table_size (table));
 
 	g_hash_table_foreach (table, (GHFunc) get_hits_foreach, array);
@@ -933,23 +934,33 @@ tracker_query_tree_get_hit_counts (TrackerQueryTree *tree)
 	counts = g_array_sized_new (TRUE, TRUE, sizeof (TrackerHitCount), 10);
 
 	for (i = 0; i < hits->len; i++) {
-		TrackerSearchHit hit;
+		TrackerDBIndexItemRank rank;
+                gpointer p;
 		gint count, parent_id;
 
-		hit = g_array_index (hits, TrackerSearchHit, i);
-		count = GPOINTER_TO_INT (g_hash_table_lookup (table, GINT_TO_POINTER (hit.service_type_id)));
+		rank = g_array_index (hits, TrackerDBIndexItemRank, i);
+                p = g_hash_table_lookup (table, 
+                                         GINT_TO_POINTER (rank.service_type_id));
+		count = GPOINTER_TO_INT (p);
 		count++;
 
-		g_hash_table_insert (table, GINT_TO_POINTER (hit.service_type_id), GINT_TO_POINTER (count));
+		g_hash_table_insert (table, 
+                                     GINT_TO_POINTER (rank.service_type_id), 
+                                     GINT_TO_POINTER (count));
 
-		/* update service's parent count too (if it has a parent) */
-		parent_id = tracker_ontology_get_parent_id_for_service_id (hit.service_type_id);
+		/* Update service's parent count too (if it has a
+                 * parent).
+                 */
+		parent_id = tracker_ontology_get_parent_id_for_service_id (rank.service_type_id);
 
 		if (parent_id != -1) {
-			count = GPOINTER_TO_INT (g_hash_table_lookup (table, GINT_TO_POINTER (parent_id)));
+                        p = g_hash_table_lookup (table, GINT_TO_POINTER (parent_id));
+			count = GPOINTER_TO_INT (p);
 			count++;
 
-			g_hash_table_insert (table, GINT_TO_POINTER (parent_id), GINT_TO_POINTER (count));
+			g_hash_table_insert (table, 
+                                             GINT_TO_POINTER (parent_id), 
+                                             GINT_TO_POINTER (count));
 		}
 	}
 

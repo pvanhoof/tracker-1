@@ -1,12 +1,33 @@
-#include <depot.h>
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
+ * Copyright (C) 2008, Nokia
+
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public
+ * License along with this library; if not, write to the
+ * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ * Boston, MA  02110-1301, USA.
+ */
+
 #include <glib.h>
 
-#define USAGE "Usage: print -f qdbm-file -w word\n"
+#include <depot.h>
 
-static gchar *filename = NULL;
-static gchar *word  = NULL;
+#include <libtracker-db/tracker-db-index-item.h>
 
-static GOptionEntry   entries_qdbm[] = {
+static gchar        *filename;
+static gchar        *word;
+
+static GOptionEntry  entries[] = {
 	{ "index-file", 'f', 0, 
 	  G_OPTION_ARG_STRING, &filename, 
 	  "QDBM index file", 
@@ -18,86 +39,68 @@ static GOptionEntry   entries_qdbm[] = {
 	{ NULL }
 };
 
-
-typedef struct  {                         
-	/* Service ID number of the document */
-	guint32 id;              
-
-	/* Amalgamation of service_type and score of the word in the
-	 * document's metadata.
-	 */
-	gint    amalgamated;     
-} TrackerIndexerWordDetails;
-
-TrackerIndexerWordDetails *
-tracker_indexer_get_word_hits (DEPOT          *index,
-			       const gchar    *word,
-			       guint          *count)
+TrackerDBIndexItem *
+get_word_hits (DEPOT       *index,
+               const gchar *word,
+               guint       *count)
 {
-	TrackerIndexerWordDetails *details;
-	gint                       tsiz;
-	gchar                     *tmp;
-
+	TrackerDBIndexItem *items;
+	gchar              *tmp;
+	gint                tsiz;
+        
         g_return_val_if_fail (word != NULL, NULL);
 
-	details = NULL;
+	items = NULL;
 
         if (count) {
                 *count = 0;
         }
 
 	if ((tmp = dpget (index, word, -1, 0, 1000000, &tsiz)) != NULL) {
-		if (tsiz >= (gint) sizeof (TrackerIndexerWordDetails)) {
-			details = (TrackerIndexerWordDetails *) tmp;
+		if (tsiz >= (gint) sizeof (TrackerDBIndexItem)) {
+			items = (TrackerDBIndexItem *) tmp;
 
                         if (count) {
-                                *count = tsiz / sizeof (TrackerIndexerWordDetails);
+                                *count = tsiz / sizeof (TrackerDBIndexItem);
                         }
 		}
 	}
 
-	return details;
+	return items;
 }
-
-
-guint8
-tracker_indexer_word_details_get_service_type (TrackerIndexerWordDetails *details)
-{
-        g_return_val_if_fail (details != NULL, 0);
-
-	return (details->amalgamated >> 24) & 0xFF;
-}
-
 
 void
-show_term_in_index (const gchar* filename, const gchar *word){
-
-    DEPOT *depot;
-    gint hits, i;
-    TrackerIndexerWordDetails *results;
+show_term_in_index (const gchar *filename, 
+                    const gchar *word)
+{
+    TrackerDBIndexItem *items;
+    DEPOT              *depot;
+    guint               hits, i;
 
     depot = dpopen (filename, DP_OREADER, -1);
 
-    if ( depot == NULL ) {
-	   g_print ("Unable to open file: %s (Could be a lock problem: is tracker running?)\n", filename);
-	   g_print ("Using version %s of qdbm\n", dpversion);
+    if (depot == NULL) {
+	   g_print ("Unable to open file: %s "
+                    "(Could be a lock problem: is tracker running?)\n", 
+                    filename);
+	   g_print ("Using version %s of qdbm\n", 
+                    dpversion);
 	   return;
     }
 
-
-    results = tracker_indexer_get_word_hits (depot, word, &hits);
+    items = get_word_hits (depot, word, &hits);
 
     if (hits < 1 ) {
             g_print ("No results for %s\n", word);
             return;
     }
-    g_print (" - %s ", word);
 
+    g_print (" - %s ", word);
 
     for (i = 0; i < hits; i++) {
             g_print (" (id:%d  t:%d) ", 
-                     results[i].id,
-                     tracker_indexer_word_details_get_service_type (&results[i]));
+                     items[i].id,
+                     tracker_db_index_item_get_service_type (&items[i]));
     }
     
     g_print ("\n");
@@ -107,41 +110,39 @@ show_term_in_index (const gchar* filename, const gchar *word){
 
 }
 
-
 int
 main (gint argc, gchar** argv)
 {
-
         GOptionContext *context;
-        GOptionGroup *group;
-        GError       *error = NULL;
+        GError         *error = NULL;
+
 	context = g_option_context_new ("- QDBM index searcher");
-
-	/* Daemon group */
-	group = g_option_group_new ("qdbm", 
-				    "QDBM searcher Options",
-                                    "Show searcher options", 
-				    NULL, 
-				    NULL);
-	g_option_group_add_entries (group, entries_qdbm);
-	g_option_context_add_group (context, group);
-
+	g_option_context_add_main_entries (context, entries, NULL);
 	g_option_context_parse (context, &argc, &argv, &error);
-	g_option_context_free (context);
 
 	if (error) {
 		g_printerr ("Invalid arguments, %s\n", error->message);
+                g_option_context_free (context);
 		g_clear_error (&error);
 		return EXIT_FAILURE;
 	}
 
-        if (!filename || !word) {
-                g_printerr (USAGE);
+        if (!filename || !word) { 
+                gchar *help;
+                
+                help = g_option_context_get_help (context, TRUE, NULL);
+                g_option_context_free (context);
+                g_free (help);
+                g_printerr (help);
+
                 return EXIT_FAILURE;
         }
 
+	g_option_context_free (context);
+
         show_term_in_index (filename, word);
 
-        g_print ("ok\n");
+        g_print ("OK\n");
+
         return 0;
 }

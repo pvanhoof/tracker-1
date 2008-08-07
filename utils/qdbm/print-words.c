@@ -1,11 +1,34 @@
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
+ * Copyright (C) 2008, Nokia
+
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public
+ * License along with this library; if not, write to the
+ * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ * Boston, MA  02110-1301, USA.
+ */
+
+
 #include <depot.h>
+
 #include <glib.h>
-#include <libtracker-common/tracker-index-item.h>
+
+#include <libtracker-db/tracker-db-index-item.h>
 
 #define USAGE "Usage: print -f qdbm-file\n"
 
-static gchar *filename = NULL;
-static gboolean print_services = FALSE;
+static gchar    *filename;
+static gboolean  print_services;
 
 static GOptionEntry   entries_qdbm[] = {
 	{ "index-file", 'f', 0, 
@@ -19,15 +42,14 @@ static GOptionEntry   entries_qdbm[] = {
 	{ NULL }
 };
 
-
-TrackerIndexItem *
-tracker_indexer_get_word_hits (DEPOT          *index,
-			       const gchar    *word,
-			       guint          *count)
+TrackerDBIndexItem *
+get_word_hits (DEPOT       *index,
+               const gchar *word,
+               guint       *count)
 {
-	TrackerIndexItem *details;
-	gint              tsiz;
-	gchar            *tmp;
+	TrackerDBIndexItem *details;
+	gint                tsiz;
+	gchar              *tmp;
 
         g_return_val_if_fail (word != NULL, NULL);
 
@@ -38,11 +60,11 @@ tracker_indexer_get_word_hits (DEPOT          *index,
         }
 
 	if ((tmp = dpget (index, word, -1, 0, 100, &tsiz)) != NULL) {
-		if (tsiz >= (gint) sizeof (TrackerIndexItem)) {
-			details = (TrackerIndexItem *) tmp;
+		if (tsiz >= (gint) sizeof (TrackerDBIndexItem)) {
+			details = (TrackerDBIndexItem *) tmp;
 
                         if (count) {
-                                *count = tsiz / sizeof (TrackerIndexItem);
+                                *count = tsiz / sizeof (TrackerDBIndexItem);
                         }
 		}
 	}
@@ -51,37 +73,38 @@ tracker_indexer_get_word_hits (DEPOT          *index,
 }
 
 void
-load_terms_from_index (gchar* filename)
+load_terms_from_index (gchar *filename)
 {
-    DEPOT *depot;
-    char *key;
-    guint hits, i;
-    TrackerIndexItem *results;
+    DEPOT              *depot;
+    gchar              *key;
+    guint               hits, i;
+    TrackerDBIndexItem *results;
 
     depot = dpopen (filename, DP_OREADER | DP_ONOLCK, -1);
 
-    if ( depot == NULL ) {
-	   g_print ("Unable to open file: %s (Could be a lock problem: is tracker running?)\n", filename);
-	   g_print ("Using version %s of qdbm\n", dpversion);
+    if (depot == NULL) {
+	   g_print ("Unable to open file: %s "
+                    "(Could be a lock problem: is tracker running?)\n", 
+                    filename);
+	   g_print ("Using version %s of qdbm\n", 
+                    dpversion);
 	   return;
     }
-
 
     dpiterinit (depot);
     
     key = dpiternext (depot, NULL);
 
-    while ( key != NULL ) {
-
+    while (key != NULL) {
             g_print (" - %s ", key);
 
             if (print_services) {
-                    results = tracker_indexer_get_word_hits (depot, key, &hits);
+                    results = get_word_hits (depot, key, &hits);
                     for (i = 0; i < hits; i++) {
                             g_print (" (id:%d  t:%d s:%d) ", 
-                                     tracker_index_item_get_id (&results[i]),
-                                     tracker_index_item_get_service_type (&results[i]),
-                                     tracker_index_item_get_score (&results[i]));
+                                     tracker_db_index_item_get_id (&results[i]),
+                                     tracker_db_index_item_get_service_type (&results[i]),
+                                     tracker_db_index_item_get_score (&results[i]));
                     }
             }
 
@@ -92,17 +115,14 @@ load_terms_from_index (gchar* filename)
 
     g_print ("Total: %d terms.\n", dprnum (depot));
     dpclose (depot);
-
 }
-
 
 int
 main (gint argc, gchar** argv)
 {
-
         GOptionContext *context;
-        GOptionGroup *group;
-        GError       *error = NULL;
+        GOptionGroup   *group;
+        GError         *error = NULL;
 	context = g_option_context_new ("- QDBM index printer");
 
 	/* Daemon group */
@@ -130,6 +150,7 @@ main (gint argc, gchar** argv)
 
         load_terms_from_index (filename);
 
-        g_print ("ok\n");
-        return 0;
+        g_print ("OK\n");
+
+        return EXIT_SUCCESS;
 }

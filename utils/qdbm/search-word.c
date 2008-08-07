@@ -107,7 +107,6 @@ show_term_in_index (const gchar *filename,
 
     g_print ("Total: %d terms.\n", dprnum (depot));
     dpclose (depot);
-
 }
 
 int
@@ -150,8 +149,6 @@ main (gint argc, gchar** argv)
 	g_option_context_free (context);
 
         show_term_in_index (filename, word);
-
-        g_print ("OK\n");
 
         return 0;
 }

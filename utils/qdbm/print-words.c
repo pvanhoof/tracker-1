@@ -157,7 +157,5 @@ main (gint argc, gchar** argv)
 
         load_terms_from_index (filename);
 
-        g_print ("OK\n");
-
         return EXIT_SUCCESS;
 }

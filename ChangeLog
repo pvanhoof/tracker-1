@@ -1,3 +1,9 @@
+2008-08-07  Ivan Frade  <ivan.frade@nokia.com>
+
+	* tests/trackerd/Makefile.am
+	* tests/trackerd/tracker-index-test.c: Fixed tests and linked with
+	new code.
+
 2008-08-07  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-main.c: (main): Fix the flag setting here.

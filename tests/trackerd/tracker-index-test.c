@@ -3,7 +3,8 @@
 #include <tracker-test-helpers.h>
 #include <gio/gio.h>
 
-#include "tracker-db-index.h"
+#include <libtracker-db/tracker-db-index.h>
+#include <libtracker-db/tracker-db-index-item.h>
 
 /* From libtracker-common/tracker-config.c */
 #define DEFAULT_MAX_BUCKET_COUNT		 524288
@@ -20,7 +21,7 @@ test_get_suggestion ()
                                       DEFAULT_MAX_BUCKET_COUNT,
                                       TRUE);
         
-        g_assert (tracker_db_index_get_reload (index));
+        g_assert (!tracker_db_index_get_reload (index));
         
         suggestion = tracker_db_index_get_suggestion (index, "Thiz", 9);
         
@@ -35,7 +36,7 @@ static void
 test_reloading ()
 {
         TrackerDBIndex   *index;
-        TrackerIndexItem *hits;
+        TrackerDBIndexItem *hits = NULL;
         guint             count;
 
         index = tracker_db_index_new ("./example.index", 
@@ -46,12 +47,11 @@ test_reloading ()
         tracker_db_index_set_reload (index, TRUE);
         g_assert (tracker_db_index_get_reload (index)); /* Trivial check of get/set */
 
-        if (g_test_trap_fork (0, G_TEST_TRAP_SILENCE_STDERR)) {
-                hits = tracker_db_index_get_word_hits (index, "this", &count);
-                g_free (hits);
-        }
+        hits = tracker_db_index_get_word_hits (index, "this", &count);
+        g_assert (hits);
+        g_free (hits);
 
-        g_test_trap_assert_stderr ("*Opening index:'./example.index'*");
+        g_assert (!tracker_db_index_get_reload (index)); /* Trivial check of get/set */
 }
 
 static void
@@ -65,7 +65,7 @@ test_bad_index ()
                                       DEFAULT_MAX_BUCKET_COUNT,
                                       TRUE);
 
-        /* Reload true: lazy opening */
+        /* Reload true: the index doesnt exists */
         g_assert (tracker_db_index_get_reload (index));
 
         /* Return NULL, the index cannot reload the file */
@@ -88,7 +88,7 @@ test_created_file_in_the_mean_time ()
                                       DEFAULT_MAX_BUCKET_COUNT,
                                       TRUE);
 
-        /* Reload true: Lazy opening */
+        /* Reload true: the index doesnt exists */
         g_assert (tracker_db_index_get_reload (index));
 
         good = g_file_new_for_path ("./example.index");
@@ -123,7 +123,8 @@ main (int argc, char **argv) {
                          test_reloading );
         g_test_add_func ("/trackerd/tracker-indexer/bad_index",
                          test_bad_index );
-
+        g_test_add_func ("/trackerd/tracker-indexer/created_file_in_the_mean_time",
+                         test_created_file_in_the_mean_time);
         result = g_test_run ();
         
         /* End */

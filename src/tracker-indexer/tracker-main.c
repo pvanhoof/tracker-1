@@ -302,10 +302,8 @@ main (gint argc, gchar *argv[])
 
         tracker_module_config_init ();
 
-#ifdef HAVE_IOPRIO
 	/* Set IO priority */
 	tracker_ioprio_init ();
-#endif
 
         /* nice() uses attribute "warn_unused_result" and so complains
 	 * if we do not check its returned value. But it seems that

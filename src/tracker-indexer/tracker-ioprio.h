@@ -23,11 +23,7 @@
 
 G_BEGIN_DECLS
 
-#ifdef HAVE_IOPRIO
-
 void tracker_ioprio_init (void);
-
-#endif /* HAVE_IOPRIO */
 
 G_END_DECLS
 

@@ -1,5 +1,11 @@
 2008-08-08  Martyn Russell  <martyn@imendio.com>
 
+	* src/tracker-indexer/tracker-ioprio.[ch]:
+	* src/tracker-indexer/tracker-main.c: Don't require #ifdefs around
+	the ioprio init, do it in the module instead.
+
+2008-08-08  Martyn Russell  <martyn@imendio.com>
+
 	* configure.ac: Improved the check for ioprio. Patch by Laurent
 	Aguerreche. 
 

@@ -139,4 +139,11 @@ tracker_ioprio_init (void)
 	}
 }
 
+#else  /* HAVE_IOPRIO */
+
+void
+tracker_ioprio_init (void)
+{
+}
+
 #endif /* HAVE_IOPRIO */

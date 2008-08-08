@@ -43,15 +43,15 @@
 #include "tracker-indexer.h"
 #include "tracker-indexer-db.h"
 
-#define ABOUT								\
-	"Tracker " VERSION "\n"						\
+#define ABOUT								  \
+	"Tracker " VERSION "\n"						  \
 	"Copyright (c) 2005-2008 Jamie McCracken (jamiemcc@gnome.org)\n" 
 
-#define LICENSE								\
+#define LICENSE								  \
 	"This program is free software and comes without any warranty.\n" \
-	"It is licensed under version 2 or later of the General Public " \
-	"License which can be viewed at:\n"				\
-        "\n"								\
+	"It is licensed under version 2 or later of the General Public "  \
+	"License which can be viewed at:\n"				  \
+        "\n"								  \
 	"  http://www.gnu.org/licenses/gpl.txt\n" 
 
 #define QUIT_TIMEOUT 10 /* Seconds */

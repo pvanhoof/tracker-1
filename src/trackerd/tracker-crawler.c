@@ -52,7 +52,6 @@
 
 struct _TrackerCrawlerPrivate {
 	TrackerConfig  *config;
-	TrackerHal     *hal;
 
 	gchar          *module_name;
 
@@ -421,6 +420,9 @@ process_func (gpointer data)
 	if (tracker_get_is_paused_manually ()) {
 		return TRUE;
 	}
+
+	/* Make sure we throttle the processing */
+	tracker_throttle (priv->config, 100);
 
 	/* Crawler files */
 	file = g_queue_pop_head (priv->files);

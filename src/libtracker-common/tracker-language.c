@@ -25,7 +25,7 @@
 
 #include <glib.h>
 
-#include "../libstemmer/include/libstemmer.h"
+#include <libstemmer/include/libstemmer.h>
 
 #include "tracker-log.h" 
 #include "tracker-language.h"

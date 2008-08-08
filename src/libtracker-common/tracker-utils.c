@@ -217,3 +217,24 @@ tracker_seconds_to_string (gdouble  seconds_elapsed,
 
 	return str;
 }
+
+void
+tracker_throttle (TrackerConfig *config,
+		  gint           multiplier)
+{
+        gint throttle;
+
+	g_return_if_fail (TRACKER_IS_CONFIG (config));
+
+        throttle = tracker_config_get_throttle (config);
+
+        if (throttle < 1) {
+                return;
+        }
+
+        throttle *= multiplier;
+
+        if (throttle > 0) {
+                g_usleep (throttle);
+        }
+}

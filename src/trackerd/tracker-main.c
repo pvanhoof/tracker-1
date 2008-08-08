@@ -78,6 +78,10 @@
         "\n"								  \
 	"  http://www.gnu.org/licenses/gpl.txt\n" 
 
+/* Throttle defaults */
+#define THROTTLE_DEFAULT            0
+#define THROTTLE_DEFAULT_ON_BATTERY 5
+
 typedef enum {
 	TRACKER_RUNNING_NON_ALLOWED,
 	TRACKER_RUNNING_READ_ONLY,
@@ -289,6 +293,8 @@ sanity_check_option_values (TrackerConfig *config)
 
 	
 	g_message ("Daemon options:");
+	g_message ("  Throttle level  .......................  %d",
+		   tracker_config_get_throttle (config));
  	g_message ("  Indexing enabled  .....................  %s", 
 		   tracker_config_get_enable_indexing (config) ? "yes" : "no");
  	g_message ("  Monitoring enabled  ...................  %s", 
@@ -514,6 +520,60 @@ shutdown_directories (void)
 	}
 }
 
+#ifdef HAVE_HAL 
+
+static void
+set_up_throttle (TrackerHal    *hal,
+		 TrackerConfig *config)
+{
+	gint throttle;
+
+	/* If on a laptop battery and the throttling is default (i.e.
+	 * 0), then set the throttle to be higher so we don't kill
+	 * the laptop battery.
+	 */
+	throttle = tracker_config_get_throttle (config);
+
+	if (tracker_hal_get_battery_in_use (hal)) {
+		g_message ("We are running on battery");
+
+		if (throttle == THROTTLE_DEFAULT) {
+			tracker_config_set_throttle (config,
+						     THROTTLE_DEFAULT_ON_BATTERY);
+			g_message ("Setting throttle from %d to %d",
+				   throttle,
+				   THROTTLE_DEFAULT_ON_BATTERY);
+		} else {
+			g_message ("Not setting throttle, it is currently set to %d",
+				   throttle);
+		}
+	} else {
+		g_message ("We are not running on battery");
+
+		if (throttle == THROTTLE_DEFAULT_ON_BATTERY) {
+			tracker_config_set_throttle (config,
+						     THROTTLE_DEFAULT);
+			g_message ("Setting throttle from %d to %d",
+				   throttle,
+				   THROTTLE_DEFAULT);
+		} else {
+			g_message ("Not setting throttle, it is currently set to %d",
+				   throttle);
+		}
+	}
+}
+
+static void
+notify_battery_in_use_cb (GObject *gobject,
+			  GParamSpec *arg1,
+			  gpointer user_data)
+{
+	set_up_throttle (TRACKER_HAL (gobject),
+			 TRACKER_CONFIG (user_data));
+}
+
+#endif /* HAVE_HAL */
+
 static gboolean
 start_cb (gpointer user_data)
 {
@@ -627,6 +687,12 @@ main (gint argc, gchar *argv[])
 
 #ifdef HAVE_HAL
         hal = tracker_hal_new ();
+
+	g_signal_connect (hal, "notify::battery-in-use",
+			  G_CALLBACK (notify_battery_in_use_cb),
+			  config);
+
+	set_up_throttle (hal, config);
 #endif /* HAVE_HAL */
 
 	/* Daemon command line arguments */
@@ -817,6 +883,10 @@ main (gint argc, gchar *argv[])
 	tracker_log_shutdown ();
 
 #ifdef HAVE_HAL
+	g_signal_handlers_disconnect_by_func (hal,
+					      notify_battery_in_use_cb,
+					      config);
+
 	g_object_unref (hal);
 #endif /* HAVE_HAL */
 

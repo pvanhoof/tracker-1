@@ -1,5 +1,27 @@
 2008-08-08  Martyn Russell  <martyn@imendio.com>
 
+	* src/libstemmer/Makefile.am: 
+	* src/trackerd/Makefile.am:
+	* src/tracker-indexer/Makefile.am: 
+	* tests/libtracker-common/Makefile.am: Renamed .la to just
+	libstemmer from libstemmer-private. 
+
+	* src/libtracker-common/Makefile.am: Added libstemmer to the .la
+	files we need so the tests don't fail to build.
+ 	
+	* src/libtracker-common/tracker-language.c: Fixed include path for
+	libstemmer. 
+	
+	* src/libtracker-common/tracker-utils.[ch]: 
+	* src/trackerd/tracker-crawler.c:
+	* src/tracker-indexer/tracker-indexer.c: Added throttle function
+	we use in the indexer to a common place for the daemon to use too.
+
+	* src/trackerd/tracker-main.c: Add the throttle value to the
+	sanity check for variables.
+
+2008-08-08  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-crawler.c: (process_func): Make sure we
 	pause the crawling too when the user manually pauses.
 

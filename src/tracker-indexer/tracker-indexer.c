@@ -117,9 +117,7 @@ struct TrackerIndexerPrivate {
 	TrackerConfig *config;
 	TrackerLanguage *language;
 
-#ifdef HAVE_HAL
 	TrackerHal *hal;
-#endif /* HAVE_HAL */
 
 	GTimer *timer;
 
@@ -765,25 +763,6 @@ add_directory (TrackerIndexer *indexer,
 }
 
 static void
-indexer_throttle (TrackerConfig *config,
-		  gint multiplier)
-{
-        gint throttle;
-
-        throttle = tracker_config_get_throttle (config);
-
-        if (throttle < 1) {
-                return;
-        }
-
-        throttle *= multiplier;
-
-        if (throttle > 0) {
-                g_usleep (throttle);
-        }
-}
-
-static void
 index_metadata_item (TrackerField        *field,
 		     const gchar         *value,
 		     MetadataForeachData *data)
@@ -832,7 +811,7 @@ index_metadata_foreach (TrackerField *field,
 	/* Throttle indexer, value 9 is from older code, why 9? */
 	throttle = tracker_config_get_throttle (data->config);
 	if (throttle > 9) {
-		indexer_throttle (data->config, throttle * 100);
+		tracker_throttle (data->config, throttle * 100);
 	}
 
 	if (!tracker_field_get_multiple_values (field)) {
@@ -1316,7 +1295,7 @@ process_file (TrackerIndexer *indexer,
 	indexer->private->current_module_name = g_strdup (info->file->module_name);
 
 	/* Sleep to throttle back indexing */
-	indexer_throttle (indexer->private->config, 100);
+	tracker_throttle (indexer->private->config, 100);
 
 	metadata = tracker_indexer_module_file_get_metadata (info->module, info->file);
 

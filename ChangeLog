@@ -1,3 +1,8 @@
+2008-08-08  Martyn Russell  <martyn@imendio.com>
+
+	* configure.ac: Improved the check for ioprio. Patch by Laurent
+	Aguerreche. 
+
 2008-08-07  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/modules/evolution.c (get_metadata_for_imap):

@@ -668,21 +668,27 @@ test "$have_libgsf" = "yes" && AC_DEFINE(HAVE_LIBGSF, [], [Define if we have lib
 # Check ioprio support
 ####################################################################
 
-AC_MSG_CHECKING([[checking ioprio support]])
+AC_MSG_CHECKING([[ioprio support]])
 have_ioprio=no
-AC_RUN_IFELSE([ AC_LANG_PROGRAM([[
+AC_RUN_IFELSE([ AC_LANG_PROGRAM(
+   [[
 #include <stdlib.h>
 #include <errno.h> 
 #include <sys/syscall.h>
 #include <unistd.h>
+   ]],
+   [[
 inline int ioprio_get (int which, int who)
 {
 	return syscall (__NR_ioprio_get, which, who);
 }
-   ]], [[
-exit(ioprio_get(1,0));
-   ]]) ], 
-   [ AC_DEFINE(HAVE_IOPRIO,[],[Define ioprio support]) have_ioprio=yes ])
+int main ()
+{
+        return ioprio_get (1, 0);
+}
+   ]]) ],
+   [ AC_DEFINE(HAVE_IOPRIO,[],[Define ioprio support]) have_ioprio=yes ],
+   [])
 AC_MSG_RESULT([$have_ioprio])
 
 ##################################################################

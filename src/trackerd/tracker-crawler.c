@@ -44,6 +44,11 @@
 #define FILES_QUEUE_PROCESS_INTERVAL 2000
 #define FILES_QUEUE_PROCESS_MAX      5000
 
+/* This is the number of files to be called back with from GIO at a
+ * time so we don't get called back for every file.
+ */
+#define FILES_GROUP_SIZE             100
+
 struct _TrackerCrawlerPrivate {
 	TrackerConfig  *config;
 	TrackerHal     *hal;
@@ -548,7 +553,7 @@ file_enumerate_next_cb (GObject      *object,
 	GFileEnumerator *enumerator;
 	GFile           *parent, *child;
 	GFileInfo       *info;
-	GList           *files;
+	GList           *files, *l;
 
 	enumerator = G_FILE_ENUMERATOR (object);
 
@@ -580,29 +585,30 @@ file_enumerate_next_cb (GObject      *object,
 		return;
 	}
 
-	/* Files should only have 1 item in it */
-	info = files->data;
-	child = g_file_get_child (parent, g_file_info_get_name (info));
-
-	if (g_file_info_get_file_type (info) == G_FILE_TYPE_DIRECTORY) {
-		/* This is a bit of a hack, but we assume this is a
-		 * recursive lookup because the current non-recursive
-		 * path is NULL, meaning they have all been traversed
-		 * already.
-		 */
-		if (crawler->private->handled_paths) {
-			add_directory (crawler, child);
+	for (l = files; l; l = l->next) {
+		info = l->data;
+		child = g_file_get_child (parent, g_file_info_get_name (info));
+		
+		if (g_file_info_get_file_type (info) == G_FILE_TYPE_DIRECTORY) {
+			/* This is a bit of a hack, but we assume this is a
+			 * recursive lookup because the current non-recursive
+			 * path is NULL, meaning they have all been traversed
+			 * already.
+			 */
+			if (crawler->private->handled_paths) {
+				add_directory (crawler, child);
+			}
+		} else {
+			add_file (crawler, child);
 		}
-	} else {
-		add_file (crawler, child);
+
+		g_object_unref (child);
+		g_object_unref (info);
 	}
 
-	g_object_unref (child);
-
-	g_list_foreach (files, (GFunc) g_object_unref, NULL);
 	g_list_free (files);
 
-	/* Get next file */
+	/* Get next files */
 	file_enumerate_next (enumerator, ed);
 }
 
@@ -611,8 +617,8 @@ file_enumerate_next (GFileEnumerator *enumerator,
 		     EnumeratorData  *ed)
 {
 	g_file_enumerator_next_files_async (enumerator,
-					    1,
-					    G_PRIORITY_DEFAULT,
+					    FILES_GROUP_SIZE,
+					    G_PRIORITY_LOW,
 					    NULL,
 					    file_enumerate_next_cb,
 					    ed);

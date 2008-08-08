@@ -1,5 +1,13 @@
 2008-08-08  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-crawler.c: (file_enumerate_next_cb),
+	(file_enumerate_next): Now we get 100 files at a time from GIO
+	instead of 1 at a time. This should reduce overheads when crawling
+	the file system. Performance seems to be slightly better now too
+	especially with the ioprio calls.
+
+2008-08-08  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/Makefile.am:
 	* src/libtracker-common/tracker-ioprio.[ch]:
 	* src/tracker-indexer/Makefile.am:

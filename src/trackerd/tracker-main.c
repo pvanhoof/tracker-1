@@ -39,13 +39,14 @@
 #include <glib/gpattern.h>
 
 #include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-file-utils.h>
+#include <libtracker-common/tracker-hal.h>
+#include <libtracker-common/tracker-ioprio.h>
 #include <libtracker-common/tracker-language.h>
 #include <libtracker-common/tracker-log.h>
-#include <libtracker-common/tracker-hal.h>
 #include <libtracker-common/tracker-module-config.h>
-#include <libtracker-common/tracker-ontology.h>
-#include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-nfs-lock.h>
+#include <libtracker-common/tracker-ontology.h>
 
 #include <libtracker-db/tracker-db-manager.h>
 #include <libtracker-db/tracker-db-index.h>
@@ -594,6 +595,9 @@ main (gint argc, gchar *argv[])
 	g_print ("Initializing trackerd...\n");
 
 	initialize_signal_handler ();
+
+	/* Set IO priority */
+	tracker_ioprio_init ();
 
         /* nice() uses attribute "warn_unused_result" and so complains
 	 * if we do not check its returned value. But it seems that

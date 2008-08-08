@@ -15,8 +15,6 @@ bin_PROGRAMS = tracker-indexer
 tracker_indexer_SOURCES =						\
 	tracker-dbus.c							\
 	tracker-dbus.h							\
-	tracker-ioprio.c						\
-	tracker-ioprio.h						\
 	tracker-indexer.c						\
 	tracker-indexer.h						\
 	tracker-indexer-db.c						\

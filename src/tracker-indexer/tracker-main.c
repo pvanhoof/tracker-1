@@ -31,6 +31,7 @@
 #include <glib-object.h>
 
 #include <libtracker-common/tracker-config.h>
+#include <libtracker-common/tracker-ioprio.h>
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-ontology.h>
 #include <libtracker-common/tracker-module-config.h>
@@ -41,10 +42,6 @@
 #include "tracker-dbus.h"
 #include "tracker-indexer.h"
 #include "tracker-indexer-db.h"
-
-#ifdef HAVE_IOPRIO
-#include "tracker-ioprio.h"
-#endif
 
 #define ABOUT								\
 	"Tracker " VERSION "\n"						\

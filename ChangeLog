@@ -1,5 +1,15 @@
 2008-08-08  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/Makefile.am:
+	* src/libtracker-common/tracker-ioprio.[ch]:
+	* src/tracker-indexer/Makefile.am:
+	* src/tracker-indexer/tracker-ioprio.[ch]:
+	* src/tracker-indexer/tracker-main.c:
+	* src/trackerd/tracker-main.c: (main): Moved tracker_ioprio_init()
+	to libtracker-common and use it in the daemon.
+
+2008-08-08  Martyn Russell  <martyn@imendio.com>
+
 	* src/tracker-indexer/tracker-ioprio.[ch]:
 	* src/tracker-indexer/tracker-main.c: Don't require #ifdefs around
 	the ioprio init, do it in the module instead.

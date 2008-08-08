@@ -32,6 +32,7 @@
 #include "tracker-crawler.h"
 #include "tracker-dbus.h"
 #include "tracker-indexer-client.h"
+#include "tracker-main.h"
 #include "tracker-monitor.h"
 #include "tracker-marshal.h"
 
@@ -415,6 +416,11 @@ process_func (gpointer data)
 
 	crawler = TRACKER_CRAWLER (data);
 	priv = crawler->private;
+
+	/* If manually paused, we hold off until unpaused */
+	if (tracker_get_is_paused_manually ()) {
+		return TRUE;
+	}
 
 	/* Crawler files */
 	file = g_queue_pop_head (priv->files);

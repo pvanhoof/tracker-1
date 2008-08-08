@@ -1,5 +1,10 @@
 2008-08-08  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-crawler.c: (process_func): Make sure we
+	pause the crawling too when the user manually pauses.
+
+2008-08-08  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-crawler.c: (file_enumerate_next_cb),
 	(file_enumerate_next): Now we get 100 files at a time from GIO
 	instead of 1 at a time. This should reduce overheads when crawling

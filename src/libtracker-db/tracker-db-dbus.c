@@ -239,22 +239,24 @@ tracker_dbus_query_result_to_ptr_array (TrackerDBResultSet *result_set)
 
 	while (valid) {
 		GSList  *list = NULL;
-		GValue   transform = { 0, };
 		gchar  **p;
-
-		g_value_init (&transform, G_TYPE_STRING);
 
 		/* Append fields to the array */
 		for (i = 0; i < columns; i++) {
+			GValue   transform = { 0, };
 			GValue  value = { 0, };
 			gchar  *str;
+
+			g_value_init (&transform, G_TYPE_STRING);
 
 			_tracker_db_result_set_get_value (result_set, i, &value);
 			
 			if (g_value_transform (&value, &transform)) {
 				str = g_value_dup_string (&transform);
 
-				if (!g_utf8_validate (str, -1, NULL)) {
+				if (!str) {
+					str = g_strdup ("");
+				} else if (!g_utf8_validate (str, -1, NULL)) {
 					g_warning ("Could not add string:'%s' to GStrv, invalid UTF-8", str);
 					g_free (str);
 					str = g_strdup ("");
@@ -266,12 +268,15 @@ tracker_dbus_query_result_to_ptr_array (TrackerDBResultSet *result_set)
 			list = g_slist_prepend (list, (gchar*) str);
 
 			g_value_unset (&value);
-			g_value_reset (&transform);
+			g_value_unset (&transform);
 		}
-		
+
 		list = g_slist_reverse (list);
 		p = tracker_dbus_slist_to_strv (list);
+
+		g_slist_foreach (list, (GFunc)g_free, NULL);
 		g_slist_free (list);
+
 		g_ptr_array_add (ptr_array, p);
 
 		valid = tracker_db_result_set_iter_next (result_set);

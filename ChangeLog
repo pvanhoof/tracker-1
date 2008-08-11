@@ -1,5 +1,19 @@
 2008-08-11  Ivan Frade  <ivan.frade@nokia.com>
 
+	New methods GetSum, GetCount, GetUniqueValues. Patch by Mikael
+	Ottela.
+
+	* data/dbus/tracker-metadata.xml
+	* src/trackerd/tracker-metadata.[ch]
+	* src/trackerd/tracker-rdf-query.[ch]: Daemon side implementation.
+
+	* src/libtracker/Makefile.am
+	* src/libtracker/tracker.[ch]: Added methods in the library and
+	created a tracker-unique program.
+
+	
+2008-08-11  Ivan Frade  <ivan.frade@nokia.com>
+
 	* src/libtracker-db/tracker-db-dbus.c
 	(tracker_dbus_query_result_to_ptr_array): Fixed memory leak and
 	handle NULL content in a column.

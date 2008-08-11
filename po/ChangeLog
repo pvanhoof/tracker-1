@@ -1,3 +1,7 @@
+2008-08-11  Michael Biebl <mbiebl@gmail.com>
+
+	* POTFILES.in: Add missing files.
+
 2008-04-21  Martyn Russell  <martyn@imendio.com>
 
 	* POTFILES.in: Fixed make distcheck issues.

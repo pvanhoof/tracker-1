@@ -1,5 +1,9 @@
 2008-08-11  Ivan Frade  <ivan.frade@nokia.com>
 
+	* src/libtracker/tracker-unique.c: Added new file.
+	
+2008-08-11  Ivan Frade  <ivan.frade@nokia.com>
+
 	New methods GetSum, GetCount, GetUniqueValues. Patch by Mikael
 	Ottela.
 

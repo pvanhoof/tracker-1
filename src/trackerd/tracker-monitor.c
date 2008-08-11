@@ -695,7 +695,6 @@ monitor_event_cb (GFileMonitor      *file_monitor,
 		   
 	if (!black_list_file_check (monitor, file)) {
 		switch (event_type) {
-		case G_FILE_MONITOR_EVENT_CHANGED:
 		case G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT: 
 		case G_FILE_MONITOR_EVENT_ATTRIBUTE_CHANGED:
 			g_signal_emit (monitor, 
@@ -729,6 +728,7 @@ monitor_event_cb (GFileMonitor      *file_monitor,
 				       is_directory);
 			break;
 			
+		case G_FILE_MONITOR_EVENT_CHANGED:
 		case G_FILE_MONITOR_EVENT_UNMOUNTED:
 			/* Do nothing */
 			break;

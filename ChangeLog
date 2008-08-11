@@ -1,3 +1,9 @@
+2008-08-11  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-monitor.c: (monitor_event_cb): Don't signal
+	files to be reindexed on the _CHANGED event. Only on CHANGES_DONE
+	which is for WRITE_CLOSE events.
+
 2008-08-08  Martyn Russell  <martyn@imendio.com>
 
 	* src/libstemmer/Makefile.am: 

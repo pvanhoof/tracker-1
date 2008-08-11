@@ -1,5 +1,12 @@
 2008-08-11  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-monitor.c: (tracker_monitor_init),
+	(monitor_event_cb): Improve the last commit so we use the _CHANGED
+	event for FAM only because it is dumb and doesn't allow GIO to
+	signal _CHANGES_DONE.
+
+2008-08-11  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-monitor.c: (monitor_event_cb): Don't signal
 	files to be reindexed on the _CHANGED event. Only on CHANGES_DONE
 	which is for WRITE_CLOSE events.

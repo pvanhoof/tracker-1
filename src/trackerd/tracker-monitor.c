@@ -65,6 +65,11 @@ struct _TrackerMonitorPrivate {
 	guint          monitor_limit;
 	gboolean       monitor_limit_warned;
 	guint          monitors_ignored;
+
+	/* For FAM, the _CHANGES_DONE event is not signalled, so we
+	 * have to just use the _CHANGED event instead.
+	 */
+	gboolean       use_changed_event;
 };
 
 enum {
@@ -260,6 +265,7 @@ tracker_monitor_init (TrackerMonitor *object)
 			 * based on testing 
 			 */
 			priv->monitor_limit = 400;
+			priv->use_changed_event = TRUE;
 		}
 		else if (strcmp (name, "GFenDirectoryMonitor") == 0) {
 			/* Using Fen, what is this? */
@@ -695,6 +701,12 @@ monitor_event_cb (GFileMonitor      *file_monitor,
 		   
 	if (!black_list_file_check (monitor, file)) {
 		switch (event_type) {
+		case G_FILE_MONITOR_EVENT_CHANGED:
+			if (!monitor->private->use_changed_event) {
+				/* Do nothing */
+				break;
+			}
+
 		case G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT: 
 		case G_FILE_MONITOR_EVENT_ATTRIBUTE_CHANGED:
 			g_signal_emit (monitor, 
@@ -728,7 +740,6 @@ monitor_event_cb (GFileMonitor      *file_monitor,
 				       is_directory);
 			break;
 			
-		case G_FILE_MONITOR_EVENT_CHANGED:
 		case G_FILE_MONITOR_EVENT_UNMOUNTED:
 			/* Do nothing */
 			break;

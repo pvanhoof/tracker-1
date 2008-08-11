@@ -512,8 +512,47 @@ tracker_metadata_get_registered_classes (TrackerClient *client, GError **error)
 }
 
 
+GPtrArray *	
+tracker_metadata_get_unique_values (TrackerClient *client, ServiceType service, char **meta_types, char *query, gboolean descending, int offset, int max_hits, GError **error)
+{
+        GPtrArray *table;
+ 	char *service_str = tracker_service_types[service];
+  
+ 	if (!org_freedesktop_Tracker_Metadata_get_unique_values (client->proxy_metadata, service_str, (const char **)meta_types, query, descending, offset, max_hits, &table, &*error)) {
+ 		return NULL;
+ 	}
+  
+ 	return table;
+}
 
+int
+tracker_metadata_get_sum (TrackerClient *client, ServiceType service, char *field, char *query, GError **error)
+{
+        int sum;
 
+	char *service_str = tracker_service_types[service];
+  
+ 	if (!org_freedesktop_Tracker_Metadata_get_sum (client->proxy_metadata, service_str, field, query, &sum, &*error)) {
+ 		return -1;
+ 	}
+  
+ 	return sum;
+}
+
+int
+tracker_metadata_get_count (TrackerClient *client, ServiceType service, char *field, char *query, GError **error)
+{
+        int count;
+
+	char *service_str = tracker_service_types[service];
+  
+ 	if (!org_freedesktop_Tracker_Metadata_get_count (client->proxy_metadata, service_str, field, query, &count, &*error)) {
+ 		return -1;
+ 	}
+  
+ 	return count;
+
+}
 
 
 GPtrArray *	
@@ -1093,8 +1132,47 @@ tracker_metadata_get_registered_classes_async (TrackerClient *client, TrackerArr
 }
 
 
+void
+tracker_metadata_get_unique_values_async (TrackerClient *client, ServiceType service, char **meta_types, const char *query, gboolean descending, int offset, int max_hits, TrackerGPtrArrayReply callback, gpointer user_data)
+{
+	
+        GPtrArrayCallBackStruct *callback_struct;
+	char *service_str = tracker_service_types[service];
+
+        callback_struct = g_new (GPtrArrayCallBackStruct, 1);
+        callback_struct->callback = callback;
+        callback_struct->data = user_data;
+	
+        client->last_pending_call = org_freedesktop_Tracker_Metadata_get_unique_values_async (client->proxy_metadata, service_str, (const char **) meta_types, query, descending, offset, max_hits, tracker_GPtrArray_reply, callback_struct);
+	
+}
+
+void
+tracker_metadata_get_sum_async (TrackerClient *client, ServiceType service, char *field, char *query, TrackerIntReply callback, gpointer user_data)
+{
+	IntCallBackStruct *callback_struct;
+	char *service_str = tracker_service_types[service];
+
+	callback_struct = g_new (IntCallBackStruct, 1);
+	callback_struct->callback = callback;
+	callback_struct->data = user_data;
+
+	client->last_pending_call = org_freedesktop_Tracker_Metadata_get_sum_async (client->proxy_metadata, service_str, field, query, tracker_int_reply, callback_struct);
+}
 
 
+void
+tracker_metadata_get_count_async (TrackerClient *client, ServiceType service, char *field, char *query, TrackerIntReply callback, gpointer user_data)
+{
+	IntCallBackStruct *callback_struct;
+	char *service_str = tracker_service_types[service];
+
+	callback_struct = g_new (IntCallBackStruct, 1);
+	callback_struct->callback = callback;
+	callback_struct->data = user_data;
+
+	client->last_pending_call = org_freedesktop_Tracker_Metadata_get_count_async (client->proxy_metadata, service_str, field, query, tracker_int_reply, callback_struct);
+}
 
 
 void

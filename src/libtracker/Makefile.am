@@ -29,7 +29,8 @@ bin_PROGRAMS = 					\
 	tracker-stats				\
 	tracker-tag				\
 	tracker-files				\
-	tracker-status
+	tracker-status				\
+	tracker-unique
 
 tracker_search_SOURCES = tracker-search.c
 tracker_search_LDADD = $(libs) libtrackerclient.la
@@ -51,6 +52,9 @@ tracker_files_LDADD = $(libs) libtrackerclient.la
 
 tracker_status_SOURCES = tracker-status.c
 tracker_status_LDADD = $(libs) libtrackerclient.la
+
+tracker_unique_SOURCES = tracker-unique.c
+tracker_unique_LDADD = $(libs) libtrackerclient.la
 
 # Generate DBus files from XML data.
 dbus_sources = 					\

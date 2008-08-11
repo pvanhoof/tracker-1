@@ -39,6 +39,8 @@
 #include "tracker-db.h"
 #include "tracker-marshal.h"
 
+#include "tracker-rdf-query.h"
+
 G_DEFINE_TYPE(TrackerMetadata, tracker_metadata, G_TYPE_OBJECT)
 
 static void
@@ -60,6 +62,58 @@ tracker_metadata_new (void)
 /*
  * Functions
  */
+
+static TrackerFieldData *
+tracker_metadata_add_metadata_field (TrackerDBInterface *iface,
+		    const gchar        *service,
+		    GSList            **fields, 
+                    const gchar        *field_name, 
+                    gboolean            is_select, 
+                    gboolean            is_condition)
+{
+	TrackerFieldData *field_data;
+	gboolean          field_exists;
+	GSList           *l;
+
+	field_exists = FALSE;
+	field_data = NULL;
+
+	/* Check if field is already in list */
+	for (l = *fields; l; l = l->next) {
+                const gchar *this_field_name;
+
+                this_field_name = tracker_field_data_get_field_name (l->data);
+                if (!this_field_name) {
+                        continue;
+                }
+
+                if (strcasecmp (this_field_name, field_name) == 0) {
+                        field_data = l->data;
+                        field_exists = TRUE;
+
+                        if (is_condition) {
+                                tracker_field_data_set_is_condition (field_data, TRUE);
+                        }
+
+                        break;
+		}
+	}
+	
+	if (!field_exists) {
+		field_data = tracker_db_get_metadata_field (iface, 
+                                                            service, 
+                                                            field_name, 
+                                                            g_slist_length (*fields), 
+                                                            is_select, 
+                                                            is_condition);
+		if (field_data) {
+			*fields = g_slist_prepend (*fields, field_data);
+                } 
+	} 
+	
+	return field_data;
+}
+
 void
 tracker_metadata_get (TrackerMetadata        *object,
 		      const gchar            *service_type,
@@ -394,3 +448,416 @@ tracker_metadata_get_registered_classes (TrackerMetadata        *object,
 
 	tracker_dbus_request_success (request_id);
 }
+
+void
+tracker_metadata_get_unique_values (TrackerMetadata        *object,
+				    const gchar            *service_type,
+				    gchar                 **fields,
+				    const gchar            *query_condition,
+				    gboolean                order_desc,
+				    gint                    offset,
+				    gint                    max_hits,
+				    DBusGMethodInvocation  *context,
+				    GError                **error)
+{
+	TrackerDBInterface *iface;
+	TrackerDBResultSet *result_set = NULL;
+	guint               request_id;
+
+	GPtrArray          *values = NULL;
+	GSList             *field_list = NULL;
+
+	GString            *sql_select;
+	GString            *sql_from;
+	GString            *sql_where;
+	GString            *sql_order;
+	gchar              *sql;
+
+	char               *rdf_where;
+	char               *rdf_from;
+	GError             *actual_error = NULL;
+
+	guint         i;
+
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_async_return_if_fail (service_type != NULL, context);
+	tracker_dbus_async_return_if_fail (fields != NULL, context);
+	tracker_dbus_async_return_if_fail (query_condition != NULL, context);
+
+	tracker_dbus_request_new (request_id,
+				  "DBus request to get unique values, "
+				  "service type:'%s', query '%s'",
+                                  service_type,
+                                  query_condition);
+
+	if (!tracker_ontology_is_valid_service_type (service_type)) {
+		tracker_dbus_request_failed (request_id,
+					     &actual_error, 
+                                             "Service_Type '%s' is invalid or has not been implemented yet", 
+                                             service_type);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
+
+	iface = tracker_db_manager_get_db_interface_by_service (service_type);
+
+	sql_select = g_string_new ("SELECT ");
+	sql_from   = g_string_new ("\nFROM Services S ");
+	sql_where  = g_string_new ("\nWHERE ");
+	sql_order  = g_string_new ("\nORDER BY ");
+
+	for (i=0;i<g_strv_length(fields);i++) {
+		TrackerFieldData   *def = NULL;
+		def = tracker_metadata_add_metadata_field (iface, service_type, &field_list, fields[i], FALSE, TRUE);
+		
+		if (!def) {
+			g_string_free (sql_select, TRUE);
+			g_string_free (sql_from, TRUE);
+			g_string_free (sql_where, TRUE);
+			g_string_free (sql_order, TRUE);
+			
+			tracker_dbus_request_failed (request_id,
+						     &actual_error, 
+						     "Invalid or non-existant metadata type '%s' specified", 
+						     fields[i]);
+			dbus_g_method_return_error (context, actual_error);
+			g_error_free (actual_error);
+			return;
+		}
+
+		if (i) {
+			g_string_append_printf (sql_select, ",");
+			g_string_append_printf (sql_order, ",");
+		}
+
+		g_string_append_printf (sql_select, "DISTINCT %s", tracker_field_data_get_select_field (def));
+		g_string_append_printf (sql_order, " %s %s",
+					tracker_field_data_get_select_field (def),
+					order_desc ? "DESC" : "ASC" );
+	
+	}
+	
+	tracker_rdf_filter_to_sql (iface, query_condition, service_type,
+				   &field_list, &rdf_from, &rdf_where, &actual_error);
+	
+	if (actual_error) {
+
+		g_string_free (sql_select, TRUE);
+		g_string_free (sql_from, TRUE);
+		g_string_free (sql_where, TRUE);
+		g_string_free (sql_order, TRUE);
+
+
+		tracker_dbus_request_failed (request_id,
+					     &actual_error, 
+					     NULL);
+		
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
+
+	g_string_append_printf (sql_from, " %s ", rdf_from);
+	g_string_append_printf (sql_where, " %s ", rdf_where);
+
+	g_free (rdf_from);
+	g_free (rdf_where);
+
+	sql = g_strconcat (sql_select->str, " ", sql_from->str, " ", sql_where->str, " ", sql_order->str, NULL);
+
+	g_string_free (sql_select, TRUE);
+	g_string_free (sql_from, TRUE);
+	g_string_free (sql_where, TRUE);
+	g_string_free (sql_order, TRUE);
+
+	g_slist_foreach (field_list, (GFunc) g_object_unref, NULL);
+	g_slist_free (field_list);
+
+	g_message ("Unique values query executed:\n%s", sql);
+
+	result_set =  tracker_db_interface_execute_query (iface, NULL, sql);
+
+	g_free (sql);
+
+	values = tracker_dbus_query_result_to_ptr_array (result_set);
+
+	dbus_g_method_return (context, values);
+
+	tracker_dbus_results_ptr_array_free (&values);
+
+	if (result_set) {
+		g_object_unref (result_set);
+	}
+
+	tracker_dbus_request_success (request_id);
+
+	return;
+}
+
+static gboolean
+is_data_type_numeric (TrackerFieldType type) {
+	return (type == TRACKER_FIELD_TYPE_INTEGER 
+		|| type == TRACKER_FIELD_TYPE_DOUBLE);
+}
+
+
+void
+tracker_metadata_get_sum (TrackerMetadata        *object,
+			  const gchar            *service_type,
+			  const gchar            *field,
+			  const gchar            *query_condition,
+			  DBusGMethodInvocation  *context,
+			  GError                **error)
+{
+	TrackerDBInterface *iface;
+	TrackerDBResultSet *result_set = NULL;
+	guint               request_id;
+
+	gint                sum;
+	GSList             *fields = NULL;
+	TrackerFieldData   *def = NULL;
+	TrackerFieldType    data_type;
+	GString            *sql_select;
+	GString            *sql_from;
+	GString            *sql_where;
+	gchar              *sql;
+
+	char               *rdf_where;
+	char               *rdf_from;
+	GError             *actual_error = NULL;
+
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_async_return_if_fail (service_type != NULL, context);
+	tracker_dbus_async_return_if_fail (field != NULL, context);
+	tracker_dbus_async_return_if_fail (query_condition != NULL, context);
+
+	tracker_dbus_request_new (request_id,
+				  "DBus request to get sum, "
+				  "service type:'%s', field '%s', query '%s'",
+                                  service_type,
+				  field,
+                                  query_condition);
+
+	if (!tracker_ontology_is_valid_service_type (service_type)) {
+		tracker_dbus_request_failed (request_id,
+					     &actual_error,
+					     "Service '%s' is invalid or has not been implemented yet",
+					     service_type);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
+
+	iface = tracker_db_manager_get_db_interface_by_service (service_type);
+
+	sql_select = g_string_new ("SELECT ");
+	sql_from   = g_string_new ("\nFROM Services S ");
+	sql_where  = g_string_new ("\nWHERE ");
+
+	def = tracker_metadata_add_metadata_field (iface, service_type, &fields, field, FALSE, TRUE);
+	
+	data_type = tracker_field_data_get_data_type (def);
+	if (!is_data_type_numeric (data_type)) {
+		g_string_free (sql_select, TRUE);
+		g_string_free (sql_from, TRUE);
+		g_string_free (sql_where, TRUE);
+		tracker_dbus_request_failed (request_id,
+					     &actual_error,
+					     "Cannot sum '%s': this metadata type is not numeric", 
+					     field);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
+
+
+	if (!def) {
+		g_string_free (sql_select, TRUE);
+		g_string_free (sql_from, TRUE);
+		g_string_free (sql_where, TRUE);
+		tracker_dbus_request_failed (request_id,
+					     &actual_error,
+					     "Invalid or non-existant metadata type '%s' specified", 
+					     field);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
+
+	g_string_append_printf (sql_select, "SUM (%s)", tracker_field_data_get_select_field (def));
+	
+	tracker_rdf_filter_to_sql (iface, query_condition, service_type,
+				   &fields, &rdf_from, &rdf_where, &actual_error);
+	
+	if (actual_error) {
+
+		g_string_free (sql_select, TRUE);
+		g_string_free (sql_from, TRUE);
+		g_string_free (sql_where, TRUE);
+
+		tracker_dbus_request_failed (request_id, &actual_error, NULL);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
+
+	g_string_append_printf (sql_from, " %s ", rdf_from);
+	g_string_append_printf (sql_where, " %s ", rdf_where);
+
+	g_free (rdf_from);
+	g_free (rdf_where);
+
+	sql = g_strconcat (sql_select->str, " ", sql_from->str, " ", sql_where->str, NULL);
+
+	g_string_free (sql_select, TRUE);
+	g_string_free (sql_from, TRUE);
+	g_string_free (sql_where, TRUE);
+
+	g_slist_foreach (fields, (GFunc) g_object_unref, NULL);
+	g_slist_free (fields);
+
+	g_debug ("Sum query executed:\n%s", sql);
+
+	result_set =  tracker_db_interface_execute_query (iface, NULL, sql);
+
+	g_free (sql);
+
+	tracker_db_result_set_get (result_set, 0, &sum, -1);
+
+	if (result_set) {
+		g_object_unref (result_set);
+	}
+
+	dbus_g_method_return (context, sum);
+
+	tracker_dbus_request_success (request_id);
+
+	return;
+}
+
+
+void
+tracker_metadata_get_count (TrackerMetadata        *object,
+			    const gchar            *service_type,
+			    const gchar            *field,
+			    const gchar            *query_condition,
+			    DBusGMethodInvocation  *context,
+			    GError                **error)
+{
+	TrackerDBInterface *iface;
+	TrackerDBResultSet *result_set = NULL;
+	guint               request_id;
+	gint                count;
+	GSList             *fields = NULL;
+	TrackerFieldData   *def = NULL;
+
+	GString            *sql_select;
+	GString            *sql_from;
+	GString            *sql_where;
+	gchar              *sql;
+
+	char               *rdf_where;
+	char               *rdf_from;
+	GError             *actual_error = NULL;
+
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_async_return_if_fail (service_type != NULL, context);
+	tracker_dbus_async_return_if_fail (field != NULL, context);
+	tracker_dbus_async_return_if_fail (query_condition != NULL, context);
+
+	tracker_dbus_request_new (request_id,
+				  "DBus request to get count, "
+				  "service type:'%s', field '%s', query '%s'",
+                                  service_type,
+				  field,
+                                  query_condition);
+
+	if (!tracker_ontology_is_valid_service_type (service_type)) {
+		tracker_dbus_request_failed (request_id,
+					     &actual_error,
+					     "Service '%s' is invalid or has not been implemented yet",
+					     service_type);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
+
+	iface = tracker_db_manager_get_db_interface_by_service (service_type);
+
+	sql_select = g_string_new ("SELECT ");
+	sql_from   = g_string_new ("\nFROM Services S ");
+	sql_where  = g_string_new ("\nWHERE ");
+
+	def = tracker_metadata_add_metadata_field (iface, service_type, &fields, field, FALSE, TRUE);
+
+	if (!def) {
+		g_string_free (sql_select, TRUE);
+		g_string_free (sql_from, TRUE);
+		g_string_free (sql_where, TRUE);
+
+		tracker_dbus_request_failed (request_id,
+					     &actual_error,
+					     "Invalid or non-existant metadata type '%s' specified", 
+					     field);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
+
+	g_string_append_printf (sql_select, "COUNT (DISTINCT %s)", tracker_field_data_get_select_field (def));
+	
+	tracker_rdf_filter_to_sql (iface, query_condition, service_type,
+				   &fields, &rdf_from, &rdf_where, &actual_error);
+	
+	if (actual_error) {
+
+		g_string_free (sql_select, TRUE);
+		g_string_free (sql_from, TRUE);
+		g_string_free (sql_where, TRUE);
+
+		tracker_dbus_request_failed (request_id,
+					     &actual_error,
+					     NULL);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
+
+	g_string_append_printf (sql_from, " %s ", rdf_from);
+	g_string_append_printf (sql_where, " %s ", rdf_where);
+
+	g_free (rdf_from);
+	g_free (rdf_where);
+
+	sql = g_strconcat (sql_select->str, " ", sql_from->str, " ", sql_where->str, NULL);
+
+	g_string_free (sql_select, TRUE);
+	g_string_free (sql_from, TRUE);
+	g_string_free (sql_where, TRUE);
+
+	g_slist_foreach (fields, (GFunc) g_object_unref, NULL);
+	g_slist_free (fields);
+
+	g_message ("Count query executed:\n%s", sql);
+
+	result_set =  tracker_db_interface_execute_query (iface, NULL, sql);
+
+	g_free (sql);
+
+	tracker_db_result_set_get (result_set, 0, &count, -1);
+
+	if (result_set) {
+		g_object_unref (result_set);
+	}
+
+	dbus_g_method_return (context, count);
+
+	tracker_dbus_request_success (request_id);
+
+	return;
+}
+

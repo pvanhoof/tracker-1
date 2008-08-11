@@ -373,6 +373,7 @@ add_metadata_field (ParserData  *data,
                 const gchar *this_field_name;
 
                 this_field_name = tracker_field_data_get_field_name (l->data);
+		
                 if (!this_field_name) {
                         continue;
                 }
@@ -1346,3 +1347,123 @@ tracker_rdf_query_to_sql (TrackerDBInterface  *iface,
 }
 
 
+/* 
+ * The following function turns an rdf query into a filter that can be used for example
+ * for getting unique values of a field with a certain query.
+ * FIXME It is not pretty. The calling function needs to define Services S that is joined in this method.
+ */
+
+void
+tracker_rdf_filter_to_sql (TrackerDBInterface *iface,
+			   const char         *query, 
+			   const char         *service, 
+			   GSList            **fields,
+			   char              **from,
+			   char              **where,
+			   GError            **error)
+{
+	static gboolean inited = FALSE;
+	ParserData      data;
+
+	g_return_if_fail (TRACKER_IS_DB_INTERFACE (iface));
+        g_return_if_fail (service != NULL);
+        g_return_if_fail (from != NULL);
+        g_return_if_fail (where != NULL);
+
+	if (!inited) {
+		error_quark = g_quark_from_static_string ("RDF-parser-error-quark");
+		inited = TRUE;
+	}
+
+	memset (&data, 0, sizeof (data));
+	data.iface = iface;
+	data.statement_count = 0;
+	data.service = (char *) service;
+
+	data.sql_from = g_string_new ("");
+	data.sql_where = g_string_new ("");
+
+	data.fields = *fields;
+
+	if (strlen (query) < 10) {
+		g_string_append_printf (data.sql_where, " (S.ServiceTypeID in (select TypeId from ServiceTypes where TypeName = '%s' or Parent = '%s')) ", service, service);
+	} else {
+		g_string_append_printf (data.sql_where, " (S.ServiceTypeID in (select TypeId from ServiceTypes where TypeName = '%s' or Parent = '%s')) AND ", service, service);
+	}
+
+	data.parser = g_new0 (GMarkupParser, 1);
+	data.parser->start_element = start_element_handler;
+	data.parser->text = text_handler;
+	data.parser->end_element = end_element_handler;
+	data.parser->error = error_handler;
+
+	data.current_operator = OP_NONE;
+	data.current_logic_operator = LOP_NONE;
+	data.query_okay = FALSE;
+
+	data.context = g_markup_parse_context_new (data.parser, 0, &data, NULL);
+
+	push_stack (&data, STATE_START);
+
+	if ( (query != NULL) && (!g_markup_parse_context_parse (data.context, query, -1, error))) {
+
+                *from = NULL;
+		*where = NULL;
+
+		g_string_free (data.sql_from, TRUE);
+		g_string_free (data.sql_where, TRUE);
+
+	} else {
+	        GSList *l;
+	  
+    	        for (l = data.fields; l; l = l->next) {
+			if (!tracker_field_data_get_is_condition (l->data)) {
+				if (tracker_field_data_get_needs_join (l->data)) {
+					g_string_append_printf (data.sql_from, 
+                                                                "\n LEFT OUTER JOIN %s %s ON (S.ID = %s.ServiceID and %s.MetaDataID = %s) ", 
+                                                                tracker_field_data_get_table_name (l->data), 
+                                                                tracker_field_data_get_alias (l->data),
+                                                                tracker_field_data_get_alias (l->data),
+                                                                tracker_field_data_get_alias (l->data),
+                                                                tracker_field_data_get_id_field (l->data));
+				}
+			} else {
+				gchar *related_metadata;
+
+                                related_metadata = tracker_db_metadata_get_related_names (iface, 
+                                                                                          tracker_field_data_get_field_name (l->data));
+				g_string_append_printf (data.sql_from, 
+                                                        "\n INNER JOIN %s %s ON (S.ID = %s.ServiceID and %s.MetaDataID in (%s)) ", 
+                                                        tracker_field_data_get_table_name (l->data), 
+                                                        tracker_field_data_get_alias (l->data),
+                                                        tracker_field_data_get_alias (l->data),
+                                                        tracker_field_data_get_alias (l->data),
+                                                        related_metadata);
+				g_free (related_metadata);
+			}
+		}
+
+		
+		*from  = g_strdup (data.sql_from->str);
+		*where = g_strdup (data.sql_where->str);
+		g_string_free (data.sql_from, TRUE);
+		g_string_free (data.sql_where, TRUE);
+		
+
+	}
+
+	*fields = data.fields;
+
+	g_slist_free (data.stack);
+	g_markup_parse_context_free (data.context);
+
+	if (data.current_field) {
+		g_free (data.current_field);
+	}
+
+	if (data.current_value) {
+		g_free (data.current_value);
+	}
+
+	g_free (data.parser);
+}

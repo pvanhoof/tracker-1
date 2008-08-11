@@ -39,6 +39,14 @@ gchar *tracker_rdf_query_to_sql (TrackerDBInterface  *iface,
 				 gint                 limit,
 				 GError              *error);
 
+void tracker_rdf_filter_to_sql  (TrackerDBInterface  *iface,
+				 const gchar         *query,
+				 const gchar         *service,
+				 GSList             **fields,
+				 gchar              **from,
+				 gchar              **where,
+				 GError             **error);
+
 G_END_DECLS
 
 #endif /* __TRACKERD_RDF_QUERY_H__ */

@@ -1,3 +1,8 @@
+2008-08-12  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/trackerd/tracker-keywords.c: Propagating errors coming from
+	the indexer, instead overwrite them in the daemon.
+	
 2008-08-12  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-daemon.c:

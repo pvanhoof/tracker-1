@@ -299,7 +299,7 @@ tracker_keywords_add (TrackerKeywords        *object,
 	if (actual_error) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
-					     "Error in the indexer");
+					     NULL);
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
 		return;
@@ -379,7 +379,7 @@ tracker_keywords_remove (TrackerKeywords        *object,
 	if (actual_error) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
-					     "Generic error in the indexer");
+					     NULL);
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
 		return;
@@ -461,7 +461,7 @@ tracker_keywords_remove_all (TrackerKeywords        *object,
 	if (actual_error) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
-					     "Generic error in the indexer");
+					     NULL);
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
 		return;

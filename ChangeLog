@@ -1,5 +1,10 @@
 2008-08-12  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/trackerd/tracker-dbus.c (indexer_continue_async_cb): Make error
+	message more helpful.
+
+2008-08-12  Carlos Garnacho  <carlos@imendio.com>
+
 	* data/dbus/tracker-indexer.xml: Add Shutdown method.
 	* src/tracker-indexer/tracker-indexer.[ch] (tracker_indexer_stop)
 	(tracker_indexer_shutdown): Added internal and DBus method. Also added

@@ -162,7 +162,7 @@ indexer_continue_async_cb (DBusGProxy *proxy,
 			   gpointer    user_data)
 {
 	if (error) {
-		g_message ("Couldn't resume the indexer, eeek");
+		g_message ("Couldn't resume the indexer: %s", error->message);
 		g_error_free (error);
 	}
 

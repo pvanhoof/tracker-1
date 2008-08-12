@@ -1,3 +1,9 @@
+2008-08-12  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/libtracker-db/tracker-db-index
+	(tracker_db_index_flush): It is not necessary to close and open
+	the index after flush.
+	
 2008-08-11  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/libtracker/tracker-unique.c: Added new file.

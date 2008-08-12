@@ -820,14 +820,6 @@ tracker_db_index_flush (TrackerDBIndex *index)
 
 	g_mutex_unlock (priv->mutex);
 
-	/* If we had items to flush, close the index to write it to
-	 * disk. 
-	 */
-	if (size > 0) {
-		tracker_db_index_close (index);
-		tracker_db_index_open (index);
-	}
-
 	return size;
 }
 

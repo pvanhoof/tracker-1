@@ -26,6 +26,7 @@ SUBDIRS = 					\
 	libtracker-db				\
 	trackerd				\
 	libtracker				\
+	tracker-utils				\
 	tracker-extract				\
 	tracker-thumbnailer			\
 	tracker-indexer				\

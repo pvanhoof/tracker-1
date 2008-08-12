@@ -36,11 +36,11 @@ main (gint argc, gchar *argv[])
 	TrackerClient *client = NULL;
 	gchar* status;
 
-	bindtextdomain (GETTEXT_PACKAGE, TRACKER_LOCALEDIR);
+	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
 	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
 	textdomain (GETTEXT_PACKAGE);
 
-	client =  tracker_connect (FALSE);
+	client = tracker_connect (FALSE);
 
         if (!client) {
                 g_printerr (_("%s: no connection to tracker daemon"), argv[0]);

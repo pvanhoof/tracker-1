@@ -711,62 +711,63 @@ AM_CONDITIONAL(HAVE_EXEMPI, test "$have_exempi" = "yes")
 test "$have_exempi" = "yes" && AC_DEFINE(HAVE_EXEMPI, [], [Define if we have exempi])
 
 AC_CONFIG_FILES([
-	Makefile
-	tracker.pc
-	trackerd.desktop.in
-	libtracker-gtk.pc
-	docs/Makefile
-	data/Makefile
 	data/dbus/Makefile
-	data/modules/Makefile
-	data/languages/Makefile
-	data/icons/Makefile
 	data/icons/16x16/Makefile
 	data/icons/22x22/Makefile
 	data/icons/24x24/Makefile
 	data/icons/32x32/Makefile
 	data/icons/48x48/Makefile
+	data/icons/Makefile
 	data/icons/scalable/Makefile
+	data/languages/Makefile
+	data/Makefile
+	data/modules/Makefile
 	data/services/Makefile
-	filters/Makefile
+	docs/Makefile
 	filters/application/Makefile
+	filters/Makefile
 	filters/text/Makefile
-	thumbnailers/Makefile
-	thumbnailers/application/Makefile
-	thumbnailers/image/Makefile
-	src/Makefile
-	src/qdbm/Makefile
-	src/tracker-extract/Makefile
-	src/tracker-thumbnailer/Makefile
+	libtracker-gtk.pc
+	Makefile
+	po/Makefile.in
+	python/deskbar-handler/Makefile
+	python/Makefile
 	src/libstemmer/Makefile
 	src/libtracker-common/Makefile
-	src/libtracker/Makefile
 	src/libtracker-db/Makefile
 	src/libtracker-gtk/Makefile
-	src/tracker-indexer/Makefile
-	src/tracker-indexer/modules/Makefile
+	src/libtracker/Makefile
+	src/Makefile
+	src/qdbm/Makefile
 	src/tracker-applet/Makefile
 	src/tracker-applet/tracker-applet.desktop.in
-	src/tracker-search-tool/Makefile
-	src/tracker-search-tool/tracker-search-tool.desktop.in
+	src/trackerd/Makefile
+	src/tracker-extract/Makefile
+	src/tracker-indexer/Makefile
+	src/tracker-indexer/modules/Makefile
 	src/tracker-preferences/Makefile
 	src/tracker-preferences/tracker-preferences.desktop.in	
-	src/trackerd/Makefile
-	tests/Makefile
+	src/tracker-search-tool/Makefile
+	src/tracker-search-tool/tracker-search-tool.desktop.in
+	src/tracker-thumbnailer/Makefile
+	src/tracker-utils/Makefile
+	src/xdgmime/Makefile
 	tests/common/Makefile
 	tests/libtracker-common/Makefile
-	tests/trackerd/Makefile
-	tests/trackerd/xesam/Makefile
 	tests/libtracker-db/Makefile
+	tests/Makefile
 	tests/scripts/dummy_data_start.sh
 	tests/scripts/dummy_data_stop.sh
 	tests/scripts/Makefile
+	tests/trackerd/Makefile
+	tests/trackerd/xesam/Makefile
+	thumbnailers/application/Makefile
+	thumbnailers/image/Makefile
+	thumbnailers/Makefile
+	trackerd.desktop.in
+	tracker.pc
 	utils/Makefile
 	utils/qdbm/Makefile
-	src/xdgmime/Makefile
-	po/Makefile.in
-	python/Makefile
-	python/deskbar-handler/Makefile
 ])
 
 AC_CONFIG_HEADERS([config.h])

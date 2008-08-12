@@ -1,3 +1,25 @@
+2008-08-12  Martyn Russell  <martyn@imendio.com>
+
+	* configure.ac:
+	* src/Makefile.am:
+	* src/libtracker/Makefile.am:
+	* src/libtracker/tracker-files.c:
+	* src/libtracker/tracker-get-meta-for-folder.c:
+	* src/libtracker/tracker-query.c:
+	* src/libtracker/tracker-search.c:
+	* src/libtracker/tracker-stats.c:
+	* src/libtracker/tracker-status.c:
+	* src/libtracker/tracker-tag.c:
+	* src/libtracker/tracker-unique.c:
+	* src/tracker-utils/tracker-files.c:
+	* src/tracker-utils/tracker-query.c:
+	* src/tracker-utils/tracker-search.c:
+	* src/tracker-utils/tracker-stats.c: 
+	* src/tracker-utils/tracker-status.c:
+	* src/tracker-utils/tracker-tag.c: Moved all utilities to a
+	tracker-utils folder instead of mixing them up with the libtracker
+	library. 
+
 2008-08-12  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/trackerd/tracker-dbus.c (indexer_continue_async_cb): Make error

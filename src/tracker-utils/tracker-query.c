@@ -31,7 +31,7 @@
 #include <glib/gstdio.h>
 #include <glib/gi18n.h>
 
-#include <tracker.h>
+#include <src/libtracker/tracker.h>
 
 #include <config.h>
 #ifdef OS_WIN32

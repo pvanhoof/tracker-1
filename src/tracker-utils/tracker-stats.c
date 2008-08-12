@@ -27,13 +27,12 @@
 #include <glib.h>
 #include <glib/gi18n.h>
 
-#include <tracker.h>
+#include <src/libtracker/tracker.h>
 
 #define TOTAL_COUNT _("Total files indexed")
 
 static void
 get_meta_table_data (gpointer value)
-		    
 {
 	char **meta, **meta_p;
 

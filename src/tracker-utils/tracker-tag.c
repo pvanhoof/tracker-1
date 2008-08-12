@@ -26,7 +26,7 @@
 #include <glib.h>
 #include <glib/gi18n.h>
 
-#include <tracker.h>
+#include <src/libtracker/tracker.h>
 
 #ifdef OS_WIN32
 #include "../trackerd/mingw-compat.h"

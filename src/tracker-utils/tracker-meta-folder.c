@@ -22,11 +22,10 @@
 #include <glib.h>
 #include <glib-object.h>
 
-#include <tracker.h>
+#include <src/libtracker/tracker.h>
 
 static void
 get_meta_table_data (gpointer value)
-		    
 {
 	char **meta, **meta_p;
 

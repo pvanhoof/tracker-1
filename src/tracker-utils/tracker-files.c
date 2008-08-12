@@ -30,7 +30,7 @@
 #include <glib.h>
 #include <glib/gi18n.h>
 
-#include <tracker.h>
+#include <src/libtracker/tracker.h>
 
 static gchar       *service;
 static gchar      **mimes;

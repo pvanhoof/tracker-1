@@ -63,6 +63,21 @@ dbus_register_service (DBusGProxy  *proxy,
         return TRUE;
 }
 
+static void
+name_owner_changed_cb (DBusGProxy *proxy,
+		       gchar      *name,
+		       gchar      *old_owner,
+		       gchar      *new_owner,
+		       gpointer    user_data)
+{
+	if (strcmp (name, TRACKER_DAEMON_SERVICE) == 0 && (!new_owner || !*new_owner)) {
+		/* Tracker daemon has dissapeared from
+		 * the bus, shutdown the indexer.
+		 */
+		tracker_indexer_stop (TRACKER_INDEXER (user_data));
+	}
+}
+
 static gboolean
 dbus_register_object (GObject               *object,
 		      DBusGConnection       *connection,
@@ -77,6 +92,13 @@ dbus_register_object (GObject               *object,
         dbus_g_object_type_install_info (G_OBJECT_TYPE (object), info);
         dbus_g_connection_register_g_object (connection, path, object);
 
+	dbus_g_proxy_add_signal (proxy, "NameOwnerChanged",
+				 G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
+				 G_TYPE_INVALID);
+
+	dbus_g_proxy_connect_signal (proxy, "NameOwnerChanged",
+				     G_CALLBACK (name_owner_changed_cb),
+				     object, NULL);
         return TRUE;
 }
 

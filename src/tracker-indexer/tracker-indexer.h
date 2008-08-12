@@ -25,6 +25,7 @@
 #include <glib-object.h>
 #include <dbus/dbus-glib.h>
 
+#define TRACKER_DAEMON_SERVICE       "org.freedesktop.Tracker"
 #define TRACKER_INDEXER_SERVICE      "org.freedesktop.Tracker.Indexer"
 #define TRACKER_INDEXER_PATH         "/org/freedesktop/Tracker/Indexer"
 #define TRACKER_INDEXER_INTERFACE    "org.freedesktop.Tracker.Indexer"
@@ -75,7 +76,10 @@ TrackerIndexer *tracker_indexer_new                (void);
 gboolean        tracker_indexer_get_running        (TrackerIndexer         *indexer);
 void            tracker_indexer_set_running        (TrackerIndexer         *indexer,
 						    gboolean                running);
+void            tracker_indexer_stop               (TrackerIndexer         *indexer);
+void            tracker_indexer_process_all        (TrackerIndexer         *indexer);
 
+/* DBus methods */
 void            tracker_indexer_pause              (TrackerIndexer         *indexer,
 						    DBusGMethodInvocation  *context,
 						    GError                **error);
@@ -86,7 +90,6 @@ void            tracker_indexer_pause_for_duration (TrackerIndexer         *inde
 void            tracker_indexer_continue           (TrackerIndexer         *indexer,
 						    DBusGMethodInvocation  *context,
 						    GError                **error);
-void            tracker_indexer_process_all        (TrackerIndexer         *indexer);
 void            tracker_indexer_files_check        (TrackerIndexer         *indexer,
 						    const gchar            *module,
 						    GStrv                   files,
@@ -114,6 +117,9 @@ void            tracker_indexer_property_remove    (TrackerIndexer         *inde
 						    const gchar            *uri,
 						    const gchar            *property,
 						    GStrv                   values,
+						    DBusGMethodInvocation  *context,
+						    GError                **error);
+void            tracker_indexer_shutdown           (TrackerIndexer         *indexer,
 						    DBusGMethodInvocation  *context,
 						    GError                **error);
 

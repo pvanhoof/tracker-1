@@ -494,11 +494,12 @@ tracker_indexer_class_init (TrackerIndexerClass *class)
 			      G_SIGNAL_RUN_LAST,
 			      G_STRUCT_OFFSET (TrackerIndexerClass, finished),
 			      NULL, NULL,
-			      tracker_marshal_VOID__DOUBLE_UINT,
+			      tracker_marshal_VOID__DOUBLE_UINT_BOOL,
 			      G_TYPE_NONE,
-			      2,
+			      3,
 			      G_TYPE_DOUBLE,
-			      G_TYPE_UINT);
+			      G_TYPE_UINT,
+			      G_TYPE_BOOLEAN);
 	signals[MODULE_STARTED] =
 		g_signal_new ("module-started",
 			      G_OBJECT_CLASS_TYPE (object_class),
@@ -555,14 +556,11 @@ check_started (TrackerIndexer *indexer)
 }
 
 static void
-check_stopped (TrackerIndexer *indexer)
+check_stopped (TrackerIndexer *indexer,
+	       gboolean        interrupted)
 {
 	gchar   *str;
 	gdouble  seconds_elapsed;
-
-	if (indexer->private->idle_id == 0) {
-		return;
-	}
 
 	/* Flush remaining items */
 	schedule_flush (indexer, TRUE);
@@ -572,7 +570,10 @@ check_stopped (TrackerIndexer *indexer)
 	seconds_elapsed = g_timer_elapsed (indexer->private->timer, NULL);
 
 	/* Clean up source ID */
-	indexer->private->idle_id = 0;
+	if (indexer->private->idle_id != 0) {
+		g_source_remove (indexer->private->idle_id);
+		indexer->private->idle_id = 0;
+	}
 
 	/* Print out how long it took us */
 	str = tracker_seconds_to_string (seconds_elapsed, FALSE);
@@ -585,7 +586,8 @@ check_stopped (TrackerIndexer *indexer)
 	/* Finally signal done */
 	g_signal_emit (indexer, signals[FINISHED], 0,
 		       seconds_elapsed,
-		       indexer->private->files_indexed);
+		       indexer->private->files_indexed,
+		       interrupted);
 }
 
 static gboolean
@@ -1442,7 +1444,7 @@ process_func (gpointer data)
 			process_module_emit_signals (indexer, NULL);
 
 			/* Signal stopped and clean up */
-			check_stopped (indexer);
+			check_stopped (indexer, FALSE);
 			check_disk_space_stop (indexer);
 
 			return FALSE;
@@ -1506,6 +1508,14 @@ tracker_indexer_set_running (TrackerIndexer *indexer,
 		tracker_db_index_open (indexer->private->index);
 		g_signal_emit (indexer, signals[CONTINUED], 0);
 	}
+}
+
+void
+tracker_indexer_stop (TrackerIndexer *indexer)
+{
+	g_return_if_fail (TRACKER_IS_INDEXER (indexer));
+
+	check_stopped (indexer, TRUE);
 }
 
 void
@@ -1772,6 +1782,25 @@ tracker_indexer_property_remove (TrackerIndexer         *indexer,
 		g_error_free (actual_error);
 		return;
 	}
+
+	dbus_g_method_return (context);
+	tracker_dbus_request_success (request_id);
+}
+
+void
+tracker_indexer_shutdown (TrackerIndexer         *indexer,
+			  DBusGMethodInvocation  *context,
+			  GError                **error)
+{
+	guint request_id;
+
+	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
+
+	request_id = tracker_dbus_get_next_request_id ();
+	tracker_dbus_request_new (request_id,
+                                  "DBus request to shutdown the indexer");
+
+	tracker_indexer_stop (indexer);
 
 	dbus_g_method_return (context);
 	tracker_dbus_request_success (request_id);

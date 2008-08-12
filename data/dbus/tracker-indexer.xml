@@ -53,6 +53,9 @@
     <method name="Continue">
       <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
     </method>
+    <method name="Shutdown">
+      <annotation name="org.freedesktop.DBus.GLib.Async" value="true"/>
+    </method>
 
     <!-- Signals --> 
     <signal name="Status">

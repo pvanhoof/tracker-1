@@ -1,5 +1,20 @@
 2008-08-12  Carlos Garnacho  <carlos@imendio.com>
 
+	* data/dbus/tracker-indexer.xml: Add Shutdown method.
+	* src/tracker-indexer/tracker-indexer.[ch] (tracker_indexer_stop)
+	(tracker_indexer_shutdown): Added internal and DBus method. Also added
+	a gboolean parameter to ::finished so we know whether the indexing was
+	interrupted.
+	* src/tracker-indexer/tracker-marshal.list: modify marshaller for
+	::finished.
+	* src/tracker-indexer/tracker-main.c (indexer_finished_cb): Quit
+	immediately if the indexing was interrupted.
+	* src/tracker-indexer/tracker-dbus.c (name_owner_changed_cb)
+	(dbus_register_object): Listen for changes in the daemon service
+	ownership. If the daemon dissapears, shut down the indexer.
+
+2008-08-12  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-indexer.c: Change flushing parameters so
 	it's not done that often. Ensure the number of elements left to
 	process is reset to 0 after each flush.

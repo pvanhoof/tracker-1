@@ -202,9 +202,16 @@ static void
 indexer_finished_cb (TrackerIndexer *indexer,
                      gdouble         seconds_elapsed,
                      guint           items_indexed,
+                     gboolean        interrupted,
 		     gpointer        user_data)
 {
         g_message ("Finished indexing sent items");
+
+        if (interrupted) {
+                g_message ("Indexer was told to shutdown");
+                g_main_loop_quit (main_loop);
+                return;
+        }
 
         if (quit_timeout_id) {
                 g_message ("Cancelling previous quit timeout");

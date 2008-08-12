@@ -1,5 +1,12 @@
 2008-08-12  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-indexer.c: Change flushing parameters so
+	it's not done that often. Ensure the number of elements left to
+	process is reset to 0 after each flush.
+	(process_directory): Do not get into hidden files/dirs.
+
+2008-08-12  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/libtracker-db/tracker-db-index.c (indexer_update_word): Improve
 	performance CPU-wise when inserting words into the index. Perform
 	binary searches on previous hits, since insertions are guaranteed to

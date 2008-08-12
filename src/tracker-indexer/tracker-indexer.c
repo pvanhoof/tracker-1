@@ -76,12 +76,12 @@
 #define TRACKER_INDEXER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_INDEXER, TrackerIndexerPrivate))
 
 /* Flush every 'x' seconds */
-#define FLUSH_FREQUENCY             5
+#define FLUSH_FREQUENCY             60
 
 #define LOW_DISK_CHECK_FREQUENCY    10
 
 /* Transaction every 'x' items */
-#define TRANSACTION_MAX             200
+#define TRANSACTION_MAX             2000
 
 /* Throttle defaults */
 #define THROTTLE_DEFAULT            0
@@ -276,6 +276,8 @@ flush_data (TrackerIndexer *indexer)
 
 	tracker_db_index_flush (indexer->private->index);
 	signal_status (indexer, "flush");
+
+	indexer->private->items_processed = 0;
 
 	return FALSE;
 }
@@ -1332,6 +1334,10 @@ process_directory (TrackerIndexer *indexer,
 		PathInfo *new_info;
 		gchar *path;
 
+		if (name[0] == '.') {
+			continue;
+		}
+
 		path = g_build_filename (info->file->path, name, NULL);
 
 		new_info = path_info_new (info->module, info->file->module_name, path);
@@ -1448,7 +1454,6 @@ process_func (gpointer data)
 
 	if (indexer->private->items_processed > TRANSACTION_MAX) {
 		schedule_flush (indexer, TRUE);
-		indexer->private->items_processed = 0;
 	}
 
 	return TRUE;

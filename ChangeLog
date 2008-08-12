@@ -1,3 +1,9 @@
+2008-08-12  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/libtracker-db/tracker-db-indexer.c (indexer_update_word): Behave
+	nicely with 1-2 elements arrays. Use the correct array index when
+	doing operations on the element at hand.
+
 2008-08-12  Martyn Russell  <martyn@imendio.com>
 
 	* configure.ac:

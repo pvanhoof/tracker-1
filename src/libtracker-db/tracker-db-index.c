@@ -559,7 +559,6 @@ indexer_update_word (DEPOT       *index,
 	gint                score;
 	gint                tsiz;
 	guint               j;
-	gint                i;
 
 	g_return_val_if_fail (index != NULL, FALSE);
 	g_return_val_if_fail (word != NULL, FALSE);
@@ -610,32 +609,33 @@ indexer_update_word (DEPOT       *index,
 		 * so the insertion is sorted, perform a binary search.
 		 */
 
-		while (center > 0) {
+		do {
 			center += left;
 
 			if (new_hit->id > previous_hits[center].id) {
 				left = center;
 			} else if (new_hit->id < previous_hits[center].id) {
 				right = center;
-			} else if (previous_hits[i].id == new_hit->id) {
+			} else if (new_hit->id == previous_hits[center].id) {
 				write_back = TRUE;
 				
 				/* NB the paramter score can be negative */
-				score =  tracker_db_index_item_get_score (&previous_hits[i]);
+				score =  tracker_db_index_item_get_score (&previous_hits[center]);
 				score += tracker_db_index_item_get_score (new_hit);
+
 		
 				/* Check for deletion */		
 				if (score < 1) {
 					/* Shift all subsequent records in array down one place */
-					g_memmove (&previous_hits[i], &previous_hits[i + 1],
-						   (old_hit_count - i) * sizeof (TrackerDBIndexItem));
+					g_memmove (&previous_hits[center], &previous_hits[center + 1],
+						   (old_hit_count - center) * sizeof (TrackerDBIndexItem));
 					old_hit_count--;
 				} else {
 					guint32 service_type;
 
 					service_type = 
-						tracker_db_index_item_get_service_type (&previous_hits[i]);
-					previous_hits[i].amalgamated = 
+						tracker_db_index_item_get_service_type (&previous_hits[center]);
+					previous_hits[center].amalgamated = 
 						tracker_db_index_item_calc_amalgamated (service_type, 
 											score);
 				}
@@ -645,7 +645,7 @@ indexer_update_word (DEPOT       *index,
 			}
 
 			center = (right - left) / 2;
-		}
+		} while (center > 0);
 
 		/* Add hits that could not be updated directly here so
 		 * they can be appended later

@@ -404,9 +404,12 @@ tracker_daemon_set_bool_option (TrackerDaemon          *object,
 								     indexer_pause_cb, 
 								     NULL);
 		} else {
-			org_freedesktop_Tracker_Indexer_continue_async (priv->indexer_proxy, 
-									indexer_continue_cb, 
-									NULL);
+			/* Don't continue if we are paused from IO */
+			if (!tracker_status_get_is_paused_for_io ()) {
+				org_freedesktop_Tracker_Indexer_continue_async (priv->indexer_proxy, 
+										indexer_continue_cb, 
+										NULL);
+			}
 		}
 	} else if (strcasecmp (option, "FastMerges") == 0) {
                 tracker_config_set_fast_merges (priv->config, value);

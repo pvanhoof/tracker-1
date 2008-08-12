@@ -224,10 +224,10 @@ tracker_status_signal (void)
 
         if (private->is_first_time_index) {
                 pause_on_battery = 
-			tracker_config_get_disable_indexing_on_battery_init (private->config);
+			!tracker_config_get_disable_indexing_on_battery_init (private->config);
         } else {
 		pause_on_battery = 
-			tracker_config_get_disable_indexing_on_battery (private->config);
+			!tracker_config_get_disable_indexing_on_battery (private->config);
 	}
 
         g_signal_emit_by_name (object, 

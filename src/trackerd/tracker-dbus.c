@@ -176,9 +176,12 @@ indexer_resume_cb (gpointer user_data)
 
 	proxy = user_data;
 
-	org_freedesktop_Tracker_Indexer_continue_async (g_object_ref (proxy), 
-							indexer_continue_async_cb,
-							NULL);
+	if (!tracker_status_get_is_paused_manually () &&
+	    !tracker_status_get_is_paused_for_io ()) {
+		org_freedesktop_Tracker_Indexer_continue_async (g_object_ref (proxy), 
+								indexer_continue_async_cb,
+								NULL);
+	}
 
 	return FALSE;
 }
@@ -198,8 +201,9 @@ dbus_request_new_cb (guint    request_id,
 	GError     *error = NULL;
 	gboolean    set_paused = TRUE;
 
-	if (tracker_status_get () != TRACKER_STATUS_INDEXING)
+	if (tracker_status_get () != TRACKER_STATUS_INDEXING) {
 		return;
+	}
 
 	g_message ("New DBus request, checking indexer is paused...");
 

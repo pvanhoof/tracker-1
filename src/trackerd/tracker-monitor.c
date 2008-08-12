@@ -29,6 +29,7 @@
 #include "tracker-dbus.h"
 #include "tracker-indexer-client.h"
 #include "tracker-marshal.h"
+#include "tracker-status.h"
 
 #define TRACKER_MONITOR_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_MONITOR, TrackerMonitorPrivate))
 
@@ -48,6 +49,12 @@
  * seconds.
  */
 #define BLACK_LIST_MAX_SECONDS 30
+
+/* When we receive IO monitor events, we pause sending information to
+ * the indexer for a few seconds before continuing. We have to receive
+ * NO events for at least a few seconds before unpausing.
+ */
+#define PAUSE_FOR_IO_SECONDS   5
 
 struct _TrackerMonitorPrivate {
 	TrackerConfig *config;
@@ -70,6 +77,9 @@ struct _TrackerMonitorPrivate {
 	 * have to just use the _CHANGED event instead.
 	 */
 	gboolean       use_changed_event;
+
+	/* Timeout id for pausing when we get IO */
+	guint          unpause_timeout_id;
 };
 
 enum {
@@ -305,6 +315,10 @@ tracker_monitor_finalize (GObject *object)
 	TrackerMonitorPrivate *priv;
 
 	priv = TRACKER_MONITOR_GET_PRIVATE (object);
+
+	if (priv->unpause_timeout_id) {
+		g_source_remove (priv->unpause_timeout_id);
+	}
 
 	black_list_print_all (TRACKER_MONITOR (object));
 
@@ -651,6 +665,51 @@ monitor_event_to_string (GFileMonitorEvent event_type)
 	return "unknown";
 }
 
+static void 
+indexer_pause_cb (DBusGProxy *proxy,
+		  GError     *error,
+		  gpointer    user_data)
+{
+	if (error) {
+		g_message ("Could not pause the indexer, %s",
+			   error->message);
+	}
+}
+
+static void 
+indexer_continue_cb (DBusGProxy *proxy,
+		     GError     *error,
+		     gpointer    user_data)
+{
+	if (error) {
+		g_message ("Could not continue the indexer, %s",
+			   error->message);
+	}
+}
+
+static gboolean
+unpause_cb (gpointer data)
+{
+	TrackerMonitor *monitor;
+
+	monitor = data;
+	
+	monitor->private->unpause_timeout_id = 0;
+	tracker_status_set_is_paused_for_io (FALSE);
+
+	g_message ("Resumming indexing now we have stopped "
+		   "receiving monitor events for %d seconds",
+		   PAUSE_FOR_IO_SECONDS);
+
+	if (!tracker_status_get_is_paused_manually ()) {
+		org_freedesktop_Tracker_Indexer_continue_async (tracker_dbus_indexer_get_proxy (), 
+								indexer_continue_cb, 
+								NULL);
+	}
+
+	return FALSE;
+}
+
 static void
 monitor_event_cb (GFileMonitor      *file_monitor,
 		  GFile             *file,
@@ -700,6 +759,24 @@ monitor_event_cb (GFileMonitor      *file_monitor,
 		   str2 ? str2 : "");
 		   
 	if (!black_list_file_check (monitor, file)) {
+		if (monitor->private->unpause_timeout_id != 0) {
+			g_source_remove (monitor->private->unpause_timeout_id);
+		} else {
+			g_message ("Pausing indexing because we are "
+				   "receiving monitor events");
+
+			tracker_status_set_is_paused_for_io (TRUE);
+
+			org_freedesktop_Tracker_Indexer_pause_async (tracker_dbus_indexer_get_proxy (), 
+								     indexer_pause_cb, 
+								     NULL);
+		}
+
+		monitor->private->unpause_timeout_id = 
+			g_timeout_add_seconds (PAUSE_FOR_IO_SECONDS,
+					       unpause_cb,
+					       monitor);
+
 		switch (event_type) {
 		case G_FILE_MONITOR_EVENT_CHANGED:
 			if (!monitor->private->use_changed_event) {

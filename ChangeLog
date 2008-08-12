@@ -1,5 +1,23 @@
 2008-08-12  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-daemon.c:
+	* src/trackerd/tracker-dbus.c: Don't resume indexing after the
+	dbus request without checking if we are manually paused or paused
+	for IO first.
+	
+	* src/trackerd/tracker-monitor.c: Make sure we pause when we get
+	monitor events from the system.
+	
+	* src/trackerd/tracker-crawler.c: 
+	* src/trackerd/tracker-processor.c: Don't send ANYTHING to the
+	indexer or crawl any files while paused from IO as well as manually.
+	
+	* src/trackerd/tracker-status.c: Make sure we send the right state
+	up to the applet about being paused from IO and for being on
+	battery. 
+
+2008-08-12  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-main.c: Use GStaticPrivate for the private
 	data here and make sure we tell the processor to stop now when we
 	are given the shutdown signal.

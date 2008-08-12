@@ -417,7 +417,8 @@ process_func (gpointer data)
 	priv = crawler->private;
 
 	/* If manually paused, we hold off until unpaused */
-	if (tracker_status_get_is_paused_manually ()) {
+	if (tracker_status_get_is_paused_manually () ||
+	    tracker_status_get_is_paused_for_io ()) {
 		return TRUE;
 	}
 

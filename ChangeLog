@@ -1,3 +1,14 @@
+2008-08-12  Martyn Russell  <martyn@imendio.com>
+
+	* src/tracker-utils/Makefile.am: Added.
+	
+	* src/tracker-utils/tracker-files.c: 
+	* src/tracker-utils/tracker-query.c: 
+	* src/tracker-utils/tracker-search.c:
+	* src/tracker-utils/tracker-status.c: Clean up these examples.
+	More importantly make it show the help if the wrong parameters are
+	used or none at all.  
+
 2008-08-12  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/tracker-indexer/tracker-indexer.c: Added differential

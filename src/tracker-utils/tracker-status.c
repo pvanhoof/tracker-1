@@ -1,4 +1,5 @@
-/* Tracker - indexer and metadata database engine
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2008, Nokia
  *
@@ -18,12 +19,13 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#include <config.h>
+#include "config.h"
 
-#include <locale.h>
+#include <string.h>
 #include <stdlib.h>
 #include <time.h>
-#include <string.h>
+#include <locale.h>
+
 #include <glib.h>
 #include <glib/gi18n.h>
 
@@ -32,9 +34,9 @@
 gint
 main (gint argc, gchar *argv[])
 {
-	GError *error = NULL;
-	TrackerClient *client = NULL;
-	gchar* status;
+	TrackerClient *client;
+	GError        *error = NULL;
+	gchar         *status;
 
 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
 	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
@@ -42,26 +44,24 @@ main (gint argc, gchar *argv[])
 
 	client = tracker_connect (FALSE);
 
-        if (!client) {
-                g_printerr (_("%s: no connection to tracker daemon"), argv[0]);
-                g_printerr ("\n");
-                g_printerr (_("Ensure \"trackerd\" is running before launch this command."));
-                g_printerr ("\n");
-                return EXIT_FAILURE;
-        }
+	if (!client) {
+		g_printerr (_("Could not establish a DBus connection to Tracker"));
+		return EXIT_FAILURE;
+	}
 
         status = tracker_get_status (client, &error);
 
 	if (error) {
-		g_printerr (_("%s: internal tracker error: %s"), 
-			    argv[0], error->message);
-		g_printerr ("\n");
+		g_printerr ("%s, %s\n",
+                            _("Could not get Tracker status"), 
+			    error->message);
 		g_error_free (error);
+
 		return EXIT_FAILURE;
 	}
 
 	if (status) {
-		g_print ("Tracker daemon's status is %s\n", status);
+		g_print ("Tracker status is '%s'\n", status);
 	}
 
 	tracker_disconnect (client);

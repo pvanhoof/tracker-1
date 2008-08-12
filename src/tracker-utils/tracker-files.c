@@ -1,4 +1,5 @@
-/* Tracker - indexer and metadata database engine
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/* 
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2008, Nokia
  *
@@ -18,29 +19,41 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#include <config.h>
+#include "config.h"
 
 #include <locale.h>
 #include <stdlib.h>
 #include <string.h>
-#include <glib.h>
 #include <time.h>
 #include <locale.h>
+
+#include <glib.h>
 #include <glib/gi18n.h>
 
 #include <tracker.h>
 
-static gchar *service = NULL;
-static gchar **mimes = NULL;
-static gint limit = 512;
-static gint offset = 0;
+static gchar       *service;
+static gchar      **mimes;
+static gint         limit = 512;
+static gint         offset;
 
-static GOptionEntry entries[] = 
-{
-	{ "service", 's', 0, G_OPTION_ARG_STRING, &service, N_("Search from a specific service"), "service" },
-	{ "limit", 'l', 0, G_OPTION_ARG_INT, &limit, N_("Limit the number of results showed to N"), N_("512") },
-	{ "offset", 'o', 0, G_OPTION_ARG_INT, &offset, N_("Offset the results at O"), N_("0") },
-	{ "add-mime", 'm', 0, G_OPTION_ARG_STRING_ARRAY, &mimes, N_("MIME types (can be used multiple times)"), N_("M") },
+static GOptionEntry entries[] = {
+	{ "service", 's', 0, G_OPTION_ARG_STRING, &service, 
+          N_("Search from a specific service"), 
+          NULL 
+        },
+	{ "limit", 'l', 0, G_OPTION_ARG_INT, &limit, 
+          N_("Limit the number of results shown"), 
+          N_("512") 
+        },
+	{ "offset", 'o', 0, G_OPTION_ARG_INT, &offset, 
+          N_("Offset the results"), 
+          N_("0") 
+        },
+	{ "add-mime", 'm', 0, G_OPTION_ARG_STRING_ARRAY, &mimes, 
+          N_("MIME types (can be used multiple times)"), 
+          NULL
+        },
 	{ NULL }
 };
 
@@ -59,23 +72,30 @@ main (int argc, char **argv)
 
 	context = g_option_context_new (_("- Search for files by service or by MIME type"));
 	g_option_context_add_main_entries (context, entries, "tracker-files");
+	g_option_context_parse (context, &argc, &argv, NULL);
 
-	if (!g_option_context_parse (context, &argc, &argv, &error)) {
-		g_print ("option parsing failed: %s\n", error->message);
-		exit (1);
-	}
+        if (!service && !mimes) {
+                gchar *help;
+
+                help = g_option_context_get_help (context, TRUE, NULL);
+                g_option_context_free (context);
+                g_printerr (help);
+                g_free (help);
+
+                return EXIT_FAILURE;
+        }
 
 	g_option_context_free (context);
 
 	client = tracker_connect (FALSE);
 
 	if (!client) {
-		g_print (_("Could not initialize Tracker - exiting...\n"));
+		g_printerr (_("Could not establish a DBus connection to Tracker"));
 		return EXIT_FAILURE;
 	}
 
 	if (service) {
-		gchar **array = NULL;
+		gchar **array;
 		gchar **p_strarray;
 
 		type = tracker_service_name_to_type (service);
@@ -88,13 +108,14 @@ main (int argc, char **argv)
 							   &error);
 
 		if (error) {
-			g_warning ("An error has occurred : %s", error->message);
+			g_warning ("Could not get files by service type, %s", 
+                                   error->message);
 			g_error_free (error);
 			return EXIT_FAILURE;
 		}
 
 		if (!array) {
-			g_print ("no results were found matching your query\n");
+			g_print ("No results were found matching your query\n");
 			return EXIT_FAILURE;
 		}
 
@@ -106,7 +127,7 @@ main (int argc, char **argv)
 	}
 
 	if (mimes) {
-		gchar **array = NULL;
+		gchar **array;
 		gchar **p_strarray;
 
 		array = tracker_files_get_by_mime_type (client, 
@@ -117,13 +138,14 @@ main (int argc, char **argv)
 							&error);
 
 		if (error) {
-			g_warning ("An error has occurred : %s", error->message);
+			g_warning ("Could not get files by mime type, %s", 
+                                   error->message);
 			g_error_free (error);
-			return 1;
+			return EXIT_FAILURE;
 		}
 
 		if (!array) {
-			g_print ("no results were found matching your query\n");
+			g_print ("No results were found matching your query\n");
 			return EXIT_FAILURE;
 		}
 

@@ -93,6 +93,7 @@
 typedef struct PathInfo PathInfo;
 typedef struct MetadataForeachData MetadataForeachData;
 typedef struct MetadataRequest MetadataRequest;
+typedef struct UpdateWordsForeachData UpdateWordsForeachData;
 
 struct TrackerIndexerPrivate {
 	GQueue *dir_queue;
@@ -146,6 +147,13 @@ struct MetadataForeachData {
 	TrackerConfig *config;
 	TrackerService *service;
 	guint32 id;
+};
+
+struct UpdateWordsForeachData {
+	TrackerDBIndex *index;
+
+	guint32 service_id;
+	guint32 service_type_id;
 };
 
 enum {
@@ -925,6 +933,70 @@ unindex_text_no_parsing (TrackerIndexer *indexer, gint service_id, gint service_
 }
 
 static void
+update_word_foreach (gpointer key, gpointer value, gpointer user_data)
+{
+	gchar                  *word;
+	UpdateWordsForeachData *data;
+	gint                    score;
+
+	word = (gchar *)key;
+	score = GPOINTER_TO_INT (value);
+	
+	data = (UpdateWordsForeachData *)user_data;
+
+	tracker_db_index_add_word (data->index,
+				   word,
+				   data->service_id,
+				   data->service_type_id,
+				   score);
+}
+
+static void
+update_words_no_parsing (TrackerIndexer *indexer, gint service_id, gint service_type_id, GHashTable *words)
+{
+
+	UpdateWordsForeachData user_data;
+
+	user_data.index = indexer->private->index;
+	user_data.service_id = service_id;
+	user_data.service_type_id = service_type_id;
+
+	g_hash_table_foreach (words, update_word_foreach, &user_data);
+
+
+}
+
+
+static void
+merge_word_table (gpointer key,
+		  gpointer value,
+		  gpointer user_data)
+{
+	char	   *word;
+	int	    score;
+	GHashTable *new_table;
+
+	gpointer k=0, v=0;
+
+	word = (char *) key;
+	score = GPOINTER_TO_INT (value);
+	new_table = user_data;
+
+	if (!g_hash_table_lookup_extended (new_table, word, &k, &v)) {
+		g_hash_table_insert (new_table, g_strdup (word), GINT_TO_POINTER (0 - score));
+	} else {
+                if ((GPOINTER_TO_INT (v) - score) != 0) {
+                        g_hash_table_insert (new_table, 
+                                             (gchar *) word, 
+                                             GINT_TO_POINTER (GPOINTER_TO_INT (v) - score));
+                } else {
+                        /* The word is the same in old and new text */
+                        g_hash_table_remove (new_table, word);
+                }
+	}
+}
+
+static void
 create_update_item (TrackerIndexer  *indexer,
 		    PathInfo        *info,
 		    TrackerMetadata *metadata)
@@ -976,6 +1048,56 @@ create_update_item (TrackerIndexer  *indexer,
 			/* Save in the DB */
 			tracker_db_set_text (service_def, id, text);
 			g_free (text);
+		}
+
+	} else {
+
+		gchar *old_text = NULL, *new_text = NULL;
+		GHashTable *old_words = NULL, *new_words = NULL;
+
+		/* Update case */
+		g_debug ("Updating file '%s'", info->file->path);
+
+		/* TODO: Take the old metadata -> the new one, calculate difference and add the words 
+		 * 
+		 */
+		
+		/* Take the old text -> the new one, calculate difference and add the words */
+		old_text = tracker_db_get_text (service_def, id);
+		new_text = tracker_indexer_module_file_get_text (info->module, info->file);
+		
+		if (old_text || new_text) {
+			/* Service has/had full text */
+
+			old_words = tracker_parser_text (NULL, 
+							 old_text, 
+							 1, 
+							 indexer->private->language,
+							 tracker_config_get_max_words_to_index (indexer->private->config),
+							 tracker_config_get_max_word_length (indexer->private->config),
+							 tracker_config_get_min_word_length (indexer->private->config),
+							 tracker_config_get_enable_stemmer (indexer->private->config),
+							 FALSE);
+
+			new_words = tracker_parser_text (NULL,
+							 new_text,
+							 1, 
+							 indexer->private->language,
+							 tracker_config_get_max_words_to_index (indexer->private->config),
+							 tracker_config_get_max_word_length (indexer->private->config),
+							 tracker_config_get_min_word_length (indexer->private->config),
+							 tracker_config_get_enable_stemmer (indexer->private->config),
+							 FALSE);
+
+			/* Merge the score of the words from one and other file 
+			 * new_table contains the words with the updated scores
+			 */
+			g_hash_table_foreach (old_words, merge_word_table, new_words);
+
+			update_words_no_parsing (indexer, id, tracker_service_get_id (service_def), new_words);
+
+			tracker_parser_text_free (old_words);
+			tracker_parser_text_free (new_words);
 		}
 	}
 

@@ -1,5 +1,10 @@
 2008-08-12  Ivan Frade  <ivan.frade@nokia.com>
 
+	* src/tracker-indexer/tracker-indexer.c: Added differential
+	indexing of text contents when a file is updated.
+	
+2008-08-12  Ivan Frade  <ivan.frade@nokia.com>
+
 	* tests/libtracker-db/Makefile.am: Commented out some tests that
 	need to run with an script. This fixes make distcheck.
 	

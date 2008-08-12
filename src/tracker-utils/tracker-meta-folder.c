@@ -17,12 +17,13 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#include <locale.h>
 #include <time.h>
+#include <locale.h>
+
 #include <glib.h>
 #include <glib-object.h>
 
-#include <src/libtracker/tracker.h>
+#include <libtracker/tracker.h>
 
 static void
 get_meta_table_data (gpointer value)

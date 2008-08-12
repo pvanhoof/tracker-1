@@ -27,11 +27,9 @@
 #include <locale.h>
 
 #include <glib.h>
-#include <glib-object.h>
-#include <glib/gstdio.h>
 #include <glib/gi18n.h>
 
-#include <src/libtracker/tracker.h>
+#include <libtracker/tracker.h>
 
 #include <config.h>
 #ifdef OS_WIN32

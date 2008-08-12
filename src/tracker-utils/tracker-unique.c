@@ -1,5 +1,7 @@
-/* Tracker - indexer and metadata database engine
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2008, Nokia
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -17,174 +19,214 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#include <locale.h>
+#include "config.h"
+
 #include <sys/param.h>
 #include <stdlib.h>
+#include <locale.h>
+
 #include <glib.h>
-#include <glib-object.h>
-#include <glib/gstdio.h>
+#include <glib/gi18n.h>
 
-#include "../libtracker/tracker.h" 
+#include <libtracker/tracker.h>
 
-#include <config.h>
 #ifdef OS_WIN32
 #include "../trackerd/mingw-compat.h"
 #endif
 
-static char **fields = NULL;
-static gchar *service = NULL;
-static gchar *rdf = NULL;
-static gchar *count = NULL;
-static gchar *sum = NULL;
-static gboolean descending = FALSE;
+static gchar        **fields;
+static gchar         *service;
+static gchar         *path;
+static gchar         *count;
+static gchar         *sum;
+static gboolean       descending;
 
-static GOptionEntry entries[] = {
-	{"service", 's', 0, G_OPTION_ARG_STRING, &service, "search from a specific service", "service"},
-	{"rdf", 'r', 0, G_OPTION_ARG_STRING, &rdf, "use an rdf query as filter", "file"},
-	{"count", 'c', 0, G_OPTION_ARG_STRING, &count, "count instances of unique fields of this type", "field"},
-	{"sum", 's', 0, G_OPTION_ARG_STRING, &sum, "sum the values of this field", "field"},	
-	{"desc", 'o', 0, G_OPTION_ARG_NONE, &descending, "sort to descending order", NULL},
-	{G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_STRING_ARRAY, &fields, "Required fields", NULL},
-	{NULL}
+static GOptionEntry   entries[] = {
+	{ "path", 'p', 0, G_OPTION_ARG_STRING, &path, 
+          N_("Path to use in query"),
+          NULL
+        },
+	{ "service", 's', 0, G_OPTION_ARG_STRING, &service,
+          N_("Search from a specific service"),
+          NULL
+        },
+	{ "count", 'c', 0, G_OPTION_ARG_STRING, &count, 
+          N_("Count instances of unique fields of this type"), 
+          "e.g. File:Mime"
+        },
+	{ "sum", 'u', 0, G_OPTION_ARG_STRING, &sum, 
+          N_("Sum the values of this field"), 
+          "e.g. File:Mime"
+        },	
+	{ "desc", 'o', 0, G_OPTION_ARG_NONE, &descending, 
+          N_("Sort to descending order"), 
+          NULL},
+	{ G_OPTION_REMAINING, 0, 0, 
+          G_OPTION_ARG_STRING_ARRAY, &fields, 
+          N_("Required fields"), NULL},
+	{ NULL }
 };
-
-
-static char *
-realpath_in_utf8 (const char *path)
-{
-	char *str_path_tmp = NULL, *str_path = NULL;
-
-	str_path_tmp = realpath (path, NULL);
-
-	if (str_path_tmp) {
-		str_path = g_filename_to_utf8 (str_path_tmp, -1, NULL, NULL, NULL);
-
-		g_free (str_path_tmp);
-	}
-
-	if (!str_path) {
-		g_warning ("realpath_in_utf8(): locale to UTF8 failed!");
-		return NULL;
-	}
-
-	return str_path;
-}
 
 static void
 get_meta_table_data (gpointer value)
-		    
 {
-	char **meta, **meta_p;
+	gchar **meta, **p;
+	gint    i = 0;
 
-	meta = (char **)value;
+	meta = value;
 
-	int i = 0;
-	for (meta_p = meta; *meta_p; meta_p++) {
+	for (p = meta, i = 0; *p; p++, i++) {
+		gchar *str;
 
-		char *str;
+		str = g_filename_from_utf8 (*p, -1, NULL, NULL, NULL);
 
-		str = g_filename_from_utf8 (*meta_p, -1, NULL, NULL, NULL);
-
-		if (i == 0) {
-			g_print ("%s : ", str);
-
-		} else {
-			g_print ("%s, ", *meta_p);
-		}
-		i++;
+                switch (i) {
+                case 0:
+                        g_print ("  %s:'%s'", _("Path"), str);
+                        break;
+                case 1:
+			g_print (", %s:'%s'", _("Service"), *p);
+                        break;
+                case 2:
+			g_print (", %s:'%s'", _("MIME-type"), *p);
+                        break;
+                default:
+                        break;
+                }
 	}
+
 	g_print ("\n");
 }
-
-
 
 int
 main (int argc, char **argv) 
 {
-	GOptionContext *context = NULL;
-	ServiceType type;
+	TrackerClient   *client;
+	ServiceType      type;
+	GOptionContext  *context;
+	GError          *error = NULL;
+        gchar           *content;
+	gchar           *buffer = NULL;
+	gsize            size;
+	GPtrArray       *array;
 
-	char *buffer = NULL, *tmp;
-	gsize buffer_length;
-	GPtrArray *out_array = NULL;
-	GError *error = NULL;
-	TrackerClient *client = NULL;
+	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
+	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+	textdomain (GETTEXT_PACKAGE);
 
-	setlocale (LC_ALL, "");
-
-	context = g_option_context_new ("MetaDataField [RDFQueryFile] - Get unique values with an optional rdf query filter");
+	context = g_option_context_new ("- Get unique values with an optional RDF query filter");
 	g_option_context_add_main_entries (context, entries, NULL);
-	g_option_context_parse (context, &argc, &argv, &error);
+	g_option_context_parse (context, &argc, &argv, NULL);
 
-	if (error) {
-		g_printerr ("invalid arguments: %s\n", error->message);
-		return 1;
-	}
+        if (!fields) {
+                gchar *help;
 
-	if (!fields) {
-		g_printerr ("missing metadata type specification, try --help for help\n");
-		return 1;
+ 		g_printerr (_("Fields are missing"));
+ 		g_printerr ("\n"
+                            "\n");
+
+                help = g_option_context_get_help (context, TRUE, NULL);
+                g_option_context_free (context);
+                g_printerr (help);
+                g_free (help);
+
+                return EXIT_FAILURE;
+        }
+
+	g_option_context_free (context);
+
+	client = tracker_connect (FALSE);
+
+	if (!client) {
+		g_printerr (_("Could not establish a DBus connection to Tracker"));
+		return EXIT_FAILURE;
 	}
-	
 
 	if (!service) {
+                g_print (_("Defaulting to 'files' service"));
+                g_print ("\n");
+
 		type = SERVICE_FILES;
 	} else {
 		type = tracker_service_name_to_type (service);
 
 		if (type == SERVICE_OTHER_FILES && g_ascii_strcasecmp (service, "Other")) {
-			g_printerr ("service not recognized, searching in Other Files...\n");
+			g_printerr (_("Service not recognized, searching in other files...\n"));
 		}
 	}
 
-	if (rdf) {
+	if (path) {
+                gchar *path_in_utf8;
 
-	  char *str_path = realpath_in_utf8 (rdf);
-	  
-	  if (!str_path) {
-	    return 1;
-	  }
-	  
-	  if (!g_file_get_contents (str_path, &tmp, &buffer_length, NULL)) {
-	    g_print ("Could not read file %s\n", str_path);
-	    return 1;
-	  }
-	  
-	  g_free (str_path);
-	  
-	  buffer = g_locale_to_utf8 (tmp, buffer_length, NULL, NULL, NULL);
-	  
-	  if (!buffer) {
-	    g_warning ("Cannot convert query file to UTF8!");
-	    g_free (tmp);
-	    return 1;
-	  }
+                path_in_utf8 = g_filename_to_utf8 (path, -1, NULL, NULL, &error);
+                if (error) {
+                        g_printerr ("%s:'%s', %s\n",
+                                    _("Could not get UTF-8 path from path"), 
+                                    path,
+                                    error->message);
+                        g_error_free (error);
+                        tracker_disconnect (client);
+                        
+                        return EXIT_FAILURE;
+                }
+
+                g_file_get_contents (path_in_utf8, &content, &size, &error);
+                if (error) {
+                        g_printerr ("%s:'%s', %s\n",
+                                    _("Could not read file"), 
+                                    path_in_utf8,
+                                    error->message);
+                        g_error_free (error);
+                        g_free (path_in_utf8);
+                        tracker_disconnect (client);
+                        
+                        return EXIT_FAILURE;
+                }
+                
+                g_free (path_in_utf8);
+                
+                buffer = g_locale_to_utf8 (content, size, NULL, NULL, &error);
+                g_free (content);
+                
+                if (error) {
+                        g_printerr ("%s, %s",
+                                    _("Could not convert query file to UTF-8"),
+                                    error->message);
+                        g_error_free (error);
+                        tracker_disconnect (client);
+                        
+                        return EXIT_FAILURE;
+                }
 	}
 
-	client =  tracker_connect (FALSE);
-
-	if (!client) {
-		g_print ("Could not initialise Tracker over dbus connection - exiting...\n");
-		return 1; 
-	}
-
-	out_array = tracker_metadata_get_unique_values (client, type, fields, buffer, descending, 0, 512, &error);
+	array = tracker_metadata_get_unique_values (client, 
+                                                    type, 
+                                                    fields, 
+                                                    buffer, 
+                                                    descending, 
+                                                    0, 
+                                                    512, 
+                                                    &error);
+        g_free (buffer);
 
 	if (error) {
-		g_warning ("An error has occurred : %s\n", error->message);
+		g_printerr ("%s, %s",
+                            _("Could not query search"),
+                            error->message);
 		g_error_free (error);
-		g_free (buffer);
-		return 1;
-	}
 
-	if (out_array) {
-		g_ptr_array_foreach (out_array, (GFunc)get_meta_table_data, NULL);
-		g_ptr_array_free (out_array, TRUE);
-	}
+		return EXIT_FAILURE;
+	} 
+        
+        if (!array) {
+                g_print (_("No results found matching your query"));
+                g_print ("\n");
+        } else {
+                g_ptr_array_foreach (array, (GFunc) get_meta_table_data, NULL);
+                g_ptr_array_free (array, TRUE);
+        }
 
-	tracker_disconnect (client);	
+	tracker_disconnect (client);
 
-	g_free (buffer);
-
-	return 0;
+	return EXIT_SUCCESS;
 }

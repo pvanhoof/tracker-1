@@ -18,16 +18,17 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#include <config.h>
+#include "config.h"
 
-#include <locale.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <locale.h>
+
 #include <glib.h>
 #include <glib/gi18n.h>
 
-#include <src/libtracker/tracker.h>
+#include <libtracker/tracker.h>
 
 #define TOTAL_COUNT _("Total files indexed")
 

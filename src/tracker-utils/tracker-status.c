@@ -29,7 +29,7 @@
 #include <glib.h>
 #include <glib/gi18n.h>
 
-#include <src/libtracker/tracker.h>
+#include <libtracker/tracker.h>
 
 gint
 main (gint argc, gchar *argv[])
@@ -46,6 +46,7 @@ main (gint argc, gchar *argv[])
 
 	if (!client) {
 		g_printerr (_("Could not establish a DBus connection to Tracker"));
+
 		return EXIT_FAILURE;
 	}
 

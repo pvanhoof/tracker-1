@@ -29,7 +29,7 @@
 #include <glib.h>
 #include <glib/gi18n.h>
 
-#include <src/libtracker/tracker.h>
+#include <libtracker/tracker.h>
 
 static gint           limit = 512;
 static gint           offset;

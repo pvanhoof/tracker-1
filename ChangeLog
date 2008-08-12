@@ -1,3 +1,8 @@
+2008-08-12  Ivan Frade  <ivan.frade@nokia.com>
+
+	* tests/libtracker-db/Makefile.am: Commented out some tests that
+	need to run with an script. This fixes make distcheck.
+	
 2008-08-12  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/libtracker-db/tracker-db-indexer.c (indexer_update_word): Behave

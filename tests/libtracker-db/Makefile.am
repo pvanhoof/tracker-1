@@ -2,9 +2,14 @@ include $(top_srcdir)/Makefile.decl
 
 noinst_PROGRAMS = $(TEST_PROGS)
 
-TEST_PROGS += tracker-db-manager-unattach \
-	tracker-db-manager-attach         \
-	tracker-db-manager-custom         \
+##      These programs need to be run with a script, not directly. This
+##        make them fail with make distcheck
+##
+##	tracker-db-manager-unattach \
+##	tracker-db-manager-attach         \
+##	tracker-db-manager-custom         \
+
+TEST_PROGS += \
 	tracker-db-dbus			\
 	union-performance		\
 	tracker-index-reader		\

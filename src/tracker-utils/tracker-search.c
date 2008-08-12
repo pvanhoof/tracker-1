@@ -65,19 +65,19 @@ static GOptionEntry   entries[] = {
 static void
 get_meta_table_data (gpointer value)
 {
-	gchar **meta, **p;
+	gchar **meta;
+	gchar **p;
+	gchar  *str;
 	gint    i = 0;
 
 	meta = value;
 
 	for (p = meta, i = 0; *p; p++, i++) {
-		gchar *str;
-
-		str = g_filename_from_utf8 (*p, -1, NULL, NULL, NULL);
-
                 switch (i) {
                 case 0:
+			str = g_filename_from_utf8 (*p, -1, NULL, NULL, NULL);
                         g_print ("  %s:'%s'", _("Path"), str);
+			g_free (str);
                         break;
                 case 1:
 			g_print (", %s:'%s'", _("Service"), *p);

@@ -1,5 +1,13 @@
 2008-08-12  Martyn Russell  <martyn@imendio.com>
 
+	* src/tracker-utils/tracker-query.c:
+	* src/tracker-utils/tracker-search.c:
+	* src/tracker-utils/tracker-unique.c: Fixed a memory leak.
+
+	* src/tracker-utils/tracker-stats.c: Clean up.
+	
+2008-08-12  Martyn Russell  <martyn@imendio.com>
+
 	* src/tracker-utils/tracker-files.c:
 	* src/tracker-utils/tracker-meta-folder.c:
 	* src/tracker-utils/tracker-query.c:

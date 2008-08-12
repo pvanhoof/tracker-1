@@ -1,5 +1,10 @@
 2008-08-12  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-main.c: (initialize_databases), (main):
+	Fixed some errors in the last commit.
+
+2008-08-12  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-crawler.c:
 	* src/trackerd/tracker-daemon.c:
 	* src/trackerd/tracker-dbus.c: 

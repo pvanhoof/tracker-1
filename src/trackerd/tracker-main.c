@@ -443,7 +443,7 @@ initialize_databases (void)
 	if (!tracker_status_get_is_readonly () && force_reindex) {
 		TrackerDBInterface *iface;
 		
-		tracker_status_set_is_readonly (TRUE);
+		tracker_status_set_is_first_time_index (TRUE);
 		
 		/* Reset stats for embedded services if they are being reindexed */
 
@@ -804,11 +804,6 @@ main (gint argc, gchar *argv[])
 
 	processor = tracker_processor_new (config, hal);
 
-	/* Set our status as running, if this is FALSE, threads stop
-	 * doing what they do and shutdown.
-	 */
-	tracker_status_set_is_readonly (TRUE);
-
 	/* Make Tracker available for introspection */
 	if (!tracker_dbus_register_objects (config,
 					    language,
@@ -818,6 +813,11 @@ main (gint argc, gchar *argv[])
 	}
 
 	g_message ("Waiting for DBus requests...");
+
+	/* Set our status as running, if this is FALSE, threads stop
+	 * doing what they do and shutdown.
+	 */
+	tracker_status_set_is_running (TRUE);
 
 	if (!tracker_status_get_is_readonly ()) {
 		gint seconds;

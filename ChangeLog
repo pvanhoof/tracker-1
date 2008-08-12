@@ -1,3 +1,10 @@
+2008-08-12  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/libtracker-db/tracker-db-index.c (indexer_update_word): Improve
+	performance CPU-wise when inserting words into the index. Perform
+	binary searches on previous hits, since insertions are guaranteed to
+	be ordered. Shift array over deleted values with g_memmove().
+
 2008-08-12  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/trackerd/tracker-keywords.c: Propagating errors coming from

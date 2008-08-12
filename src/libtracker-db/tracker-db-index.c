@@ -559,7 +559,7 @@ indexer_update_word (DEPOT       *index,
 	gint                score;
 	gint                tsiz;
 	guint               j;
-	gint                i, k;
+	gint                i;
 
 	g_return_val_if_fail (index != NULL, FALSE);
 	g_return_val_if_fail (word != NULL, FALSE);
@@ -583,7 +583,7 @@ indexer_update_word (DEPOT       *index,
 				word, -1, 
 				(char *) new_hits->data, 
 				new_hits->len * sizeof (TrackerDBIndexItem), 
-				DP_DCAT);
+				DP_DOVER);
 
 		if (!result) {
 			g_warning ("Could not store word:'%s'", word);
@@ -597,11 +597,27 @@ indexer_update_word (DEPOT       *index,
 	old_hit_count = tsiz / sizeof (TrackerDBIndexItem);
 
 	for (j = 0; j < new_hits->len; j++) {
+		guint left, right, center;
+
 		new_hit = &g_array_index (new_hits, TrackerDBIndexItem, j); 
 		edited = FALSE;
 
-		for (i = 0; i < old_hit_count; i++) {
-			if (previous_hits[i].id == new_hit->id) {
+		left = 0;
+		right = old_hit_count;
+		center = (right - left) / 2;
+
+		/* New items are going to have always a higher service ID,
+		 * so the insertion is sorted, perform a binary search.
+		 */
+
+		while (center > 0) {
+			center += left;
+
+			if (new_hit->id > previous_hits[center].id) {
+				left = center;
+			} else if (new_hit->id < previous_hits[center].id) {
+				right = center;
+			} else if (previous_hits[i].id == new_hit->id) {
 				write_back = TRUE;
 				
 				/* NB the paramter score can be negative */
@@ -611,10 +627,8 @@ indexer_update_word (DEPOT       *index,
 				/* Check for deletion */		
 				if (score < 1) {
 					/* Shift all subsequent records in array down one place */
-					for (k = i + 1; k < old_hit_count; k++) {
-						previous_hits[k - 1] = previous_hits[k];
-					}
-					
+					g_memmove (&previous_hits[i], &previous_hits[i + 1],
+						   (old_hit_count - i) * sizeof (TrackerDBIndexItem));
 					old_hit_count--;
 				} else {
 					guint32 service_type;
@@ -629,8 +643,10 @@ indexer_update_word (DEPOT       *index,
 				edited = TRUE;
 				break;
 			}
+
+			center = (right - left) / 2;
 		}
-		
+
 		/* Add hits that could not be updated directly here so
 		 * they can be appended later
 		 */
@@ -808,7 +824,7 @@ tracker_db_index_flush (TrackerDBIndex *index)
 	if (priv->index) {
 		size = g_hash_table_size (priv->cache);
 		g_debug ("Flushing index with %d items in cache", size);
-		
+
 		g_hash_table_foreach_remove (priv->cache, 
 					     cache_flush_foreach, 
 					     priv->index);

@@ -1,5 +1,10 @@
 2008-08-12  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-main.c: (main): Now shutdown the indexer
+	when we shutdown. 
+
+2008-08-12  Martyn Russell  <martyn@imendio.com>
+
 	* src/tracker-utils/tracker-query.c:
 	* src/tracker-utils/tracker-search.c:
 	* src/tracker-utils/tracker-unique.c: Fixed a memory leak.

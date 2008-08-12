@@ -896,23 +896,34 @@ main (gint argc, gchar *argv[])
 		g_main_loop_run (private->main_loop);
 	}
 
+#if 0
 	/* We can block on this since we are likely to block on
 	 * shutting down otherwise anyway.
 	 */
 	org_freedesktop_Tracker_Indexer_pause_for_duration (tracker_dbus_indexer_get_proxy (),
 							    2,
 							    NULL);
-
-	g_message ("Shutting down...\n");
+#endif
 
 	/* 
 	 * Shutdown the daemon
 	 */
+	g_message ("Shutdown started");
+
 	tracker_status_set_and_signal (TRACKER_STATUS_SHUTDOWN);
 
-	/* Set kill timeout */
 	g_timeout_add_full (G_PRIORITY_LOW, 5000, shutdown_timeout_cb, NULL, NULL);
 
+	g_message ("Waiting for indexer to finish");
+	org_freedesktop_Tracker_Indexer_shutdown (tracker_dbus_indexer_get_proxy (), &error);
+	
+	if (error) {
+		g_message ("Could not shutdown the indexer, %s", error->message);
+		g_message ("Continuing anyway...");
+		g_error_free (error);
+	}
+
+	g_message ("Cleaning up");
 	if (private->processor) {
 		/* We do this instead of let the private data free
 		 * itself later so we can clean up references to this
@@ -949,6 +960,8 @@ main (gint argc, gchar *argv[])
 	g_object_unref (config);
 
 	shutdown_locations ();
+
+	g_print ("\nOK\n\n");
 
 	return EXIT_SUCCESS;
 }

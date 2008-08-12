@@ -26,18 +26,58 @@
 #include "tracker-daemon.h"
 #include "tracker-main.h"
 
-static TrackerStatus  status = TRACKER_STATUS_INITIALIZING;
-static TrackerConfig *status_config;
-static gpointer       status_type_class;
+typedef struct {
+	TrackerStatus  status;
+	gpointer       type_class;
+
+	TrackerConfig *config;
+
+	gboolean       is_running; 
+	gboolean       is_readonly;
+	gboolean       is_first_time_index; 
+	gboolean       is_paused_manually;
+	gboolean       is_paused_for_io;
+	gboolean       in_merge; 
+} TrackerStatusPrivate;
+
+static GStaticPrivate private_key = G_STATIC_PRIVATE_INIT;
+
+static void
+private_free (gpointer data)
+{
+	TrackerStatusPrivate *private;
+
+	private = data;
+
+	if (private->config) {
+		g_object_unref (private->config);
+	}
+
+	if (private->type_class) {
+		g_type_class_unref (private->type_class);
+	}
+
+	g_free (private);
+}
 
 gboolean
 tracker_status_init (TrackerConfig *config)
 {
-	GType type;
+	GType                 type;
+	TrackerStatusPrivate *private;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), FALSE);
 
-	status = TRACKER_STATUS_INITIALIZING;
+	private = g_static_private_get (&private_key);
+	if (private) {
+		g_warning ("Already initialized (%s)", 
+			   __FUNCTION__);
+		return FALSE;
+	}
+
+	private = g_new0 (TrackerStatusPrivate, 1);
+
+	private->status = TRACKER_STATUS_INITIALIZING;
 
 	/* Since we don't reference this enum anywhere, we do
 	 * it here to make sure it exists when we call
@@ -49,9 +89,20 @@ tracker_status_init (TrackerConfig *config)
 	 * this is acceptable. 
 	 */
 	type = tracker_status_get_type ();
-	status_type_class = g_type_class_ref (type);
+	private->type_class = g_type_class_ref (type);
 
-	status_config = g_object_ref (config);
+	private->config = g_object_ref (config);
+
+	private->is_running = FALSE;
+	private->is_readonly = FALSE;
+	private->is_first_time_index = FALSE;
+	private->is_paused_manually = FALSE;
+	private->is_paused_for_io = FALSE;
+	private->in_merge = FALSE;
+
+	g_static_private_set (&private_key, 
+			      private, 
+			      private_free);
 
 	return TRUE;
 }
@@ -59,13 +110,16 @@ tracker_status_init (TrackerConfig *config)
 void
 tracker_status_shutdown (void)
 {
-	g_object_unref (status_config);
-	status_config = NULL;
+	TrackerStatusPrivate *private;
 
-	g_type_class_unref (status_type_class);
-	status_type_class = NULL;
+	private = g_static_private_get (&private_key);
+	if (!private) {
+		g_warning ("Not initialized (%s)", 
+			   __FUNCTION__);
+		return;
+	}
 
-	status = TRACKER_STATUS_INITIALIZING;
+	g_static_private_free (&private_key);
 }
 
 GType
@@ -126,90 +180,284 @@ tracker_status_to_string (TrackerStatus status)
 TrackerStatus
 tracker_status_get (void)
 {
-        return status;
+	TrackerStatusPrivate *private;
+
+	private = g_static_private_get (&private_key);
+	g_return_val_if_fail (private != NULL, TRACKER_STATUS_INITIALIZING);
+
+        return private->status;
 }
 
 const gchar *
 tracker_status_get_as_string (void)
 {
-        return tracker_status_to_string (status);
+	TrackerStatusPrivate *private;
+
+	private = g_static_private_get (&private_key);
+	g_return_val_if_fail (private != NULL, tracker_status_to_string (TRACKER_STATUS_INITIALIZING));
+
+        return tracker_status_to_string (private->status);
 }
 
 void
 tracker_status_set (TrackerStatus new_status)
 {
-        status = new_status;
+	TrackerStatusPrivate *private;
+
+	private = g_static_private_get (&private_key);
+	g_return_if_fail (private != NULL);
+
+        private->status = new_status;
 }
 
 void
 tracker_status_signal (void)
 {
-        GObject  *object;
-	gboolean  pause_io;
-	gboolean  pause_on_battery;
+	TrackerStatusPrivate *private;
+        GObject              *object;
+	gboolean              pause_on_battery;
+
+	private = g_static_private_get (&private_key);
+	g_return_if_fail (private != NULL);
 
         object = tracker_dbus_get_object (TRACKER_TYPE_DAEMON);
 
-	/* Pause IO is basically here to know when we are crawling
-	 * instead of indexing the file system. The point being that
-	 * we tell the indexer to pause while we crawl new files
-	 * created. This is redundant now since we don't do both in
-	 * the daemon. Should this be added back?
-	 */
-	pause_io = status == TRACKER_STATUS_PENDING ? TRUE : FALSE;
-
-	/* Pause on battery is a config option, not sure how to get
-	 * that from here or the point of passing it in the state
-	 * change either. This signal is going to change because we
-	 * shouldn't send all this crap just for a simple state
-	 * change. This is passed as FALSE for now.
-	 */
-	pause_on_battery = FALSE;
-
-#if 0
-	/* According to the old code, we always used:
-	 *  
-	 * if (!tracker->pause_battery) 
-	 *     pause_on_battery = FALSE;  
-	 *
-	 * Which means this code was never used and FALSE was ALWAYS
-	 * passed because tracker->pause_battery wasn't ever set to
-	 * anything other than FALSE.
-	 */
-        if (tracker->first_time_index) {
-                pause_on_battery = tracker_config_get_disable_indexing_on_battery_init (status_config);
+        if (private->is_first_time_index) {
+                pause_on_battery = 
+			tracker_config_get_disable_indexing_on_battery_init (private->config);
         } else {
-		pause_on_battery = tracker_config_get_disable_indexing_on_battery (status_config);
+		pause_on_battery = 
+			tracker_config_get_disable_indexing_on_battery (private->config);
 	}
-#endif
 
         g_signal_emit_by_name (object, 
                                "index-state-change", 
-                               tracker_status_to_string (status),
-                               tracker_get_is_first_time_index (),
-                               tracker_get_in_merge (),
-                               tracker_get_is_paused_manually (),
-                               pause_on_battery, /* Pause on battery */
-                               pause_io,         /* Pause IO */
-			       !tracker_get_is_readonly ());
+                               tracker_status_to_string (private->status),
+                               private->is_first_time_index,
+                               private->in_merge,
+                               private->is_paused_manually,
+                               pause_on_battery, 
+                               private->is_paused_for_io, 
+			       !private->is_readonly);
 }
 
 void
 tracker_status_set_and_signal (TrackerStatus new_status)
 {
-        gboolean emit;
+	TrackerStatusPrivate *private;
+        gboolean              emit;
 
-        emit = new_status != status;
+	private = g_static_private_get (&private_key);
+	g_return_if_fail (private != NULL);
+
+        emit = private->status != new_status;
         
         if (!emit) {
                 return;
         }
 
 	g_message ("State change from '%s' --> '%s'",
-		   tracker_status_to_string (status),
+		   tracker_status_to_string (private->status),
 		   tracker_status_to_string (new_status));
 
         tracker_status_set (new_status);
 	tracker_status_signal ();
 }
 
+gboolean
+tracker_status_get_is_readonly (void)
+{
+	TrackerStatusPrivate *private;
+
+	private = g_static_private_get (&private_key);
+	g_return_val_if_fail (private != NULL, FALSE);
+
+	return private->is_readonly;
+}
+
+void
+tracker_status_set_is_readonly (gboolean value)
+{
+	TrackerStatusPrivate *private;
+	gboolean              emit;
+
+	private = g_static_private_get (&private_key);
+	g_return_if_fail (private != NULL);
+
+	emit = private->is_readonly != value;
+
+	if (!emit) {
+		return;
+	}
+
+	/* Set value */
+	private->is_readonly = value;
+
+	/* Signal the status change */
+	tracker_status_signal ();
+}
+
+gboolean
+tracker_status_get_is_running (void)
+{
+	TrackerStatusPrivate *private;
+
+	private = g_static_private_get (&private_key);
+	g_return_val_if_fail (private != NULL, FALSE);
+
+	return private->is_running;
+}
+
+void
+tracker_status_set_is_running (gboolean value)
+{
+	TrackerStatusPrivate *private;
+	gboolean              emit;
+
+	private = g_static_private_get (&private_key);
+	g_return_if_fail (private != NULL);
+
+	emit = private->is_running != value;
+
+	if (!emit) {
+		return;
+	}
+
+	/* Set value */
+	private->is_running = value;
+
+	/* Signal the status change */
+	tracker_status_signal ();
+}
+
+gboolean
+tracker_status_get_is_first_time_index (void)
+{
+	TrackerStatusPrivate *private;
+
+	private = g_static_private_get (&private_key);
+	g_return_val_if_fail (private != NULL, FALSE);
+
+	return private->is_first_time_index;
+}
+
+void
+tracker_status_set_is_first_time_index (gboolean value)
+{
+	TrackerStatusPrivate *private;
+	gboolean              emit;
+
+	private = g_static_private_get (&private_key);
+	g_return_if_fail (private != NULL);
+
+	emit = private->is_first_time_index != value;
+
+	if (!emit) {
+		return;
+	}
+
+	/* Set value */
+	private->is_first_time_index = value;
+
+	/* Signal the status change */
+	tracker_status_signal ();
+}
+
+gboolean
+tracker_status_get_in_merge (void)
+{
+	TrackerStatusPrivate *private;
+
+	private = g_static_private_get (&private_key);
+	g_return_val_if_fail (private != NULL, FALSE);
+
+	return private->in_merge;
+}
+
+void
+tracker_status_set_in_merge (gboolean value)
+{
+	TrackerStatusPrivate *private;
+	gboolean              emit;
+
+	private = g_static_private_get (&private_key);
+	g_return_if_fail (private != NULL);
+
+	emit = private->in_merge != value;
+
+	if (!emit) {
+		return;
+	}
+
+	/* Set value */
+	private->in_merge = value;
+
+	/* Signal the status change */
+	tracker_status_signal ();
+}
+
+gboolean
+tracker_status_get_is_paused_manually (void)
+{
+	TrackerStatusPrivate *private;
+
+	private = g_static_private_get (&private_key);
+	g_return_val_if_fail (private != NULL, FALSE);
+
+	return private->is_paused_manually;
+}
+
+void
+tracker_status_set_is_paused_manually (gboolean value)
+{
+	TrackerStatusPrivate *private;
+	gboolean              emit;
+
+	private = g_static_private_get (&private_key);
+	g_return_if_fail (private != NULL);
+
+	emit = private->is_paused_manually != value;
+
+	if (!emit) {
+		return;
+	}
+	
+	/* Set value */
+	private->is_paused_manually = value;
+
+	/* Signal the status change */
+	tracker_status_signal ();
+}
+
+gboolean
+tracker_status_get_is_paused_for_io (void)
+{
+	TrackerStatusPrivate *private;
+
+	private = g_static_private_get (&private_key);
+	g_return_val_if_fail (private != NULL, FALSE);
+
+	return private->is_paused_for_io;
+}
+
+void
+tracker_status_set_is_paused_for_io (gboolean value)
+{
+	TrackerStatusPrivate *private;
+	gboolean              emit;
+
+	private = g_static_private_get (&private_key);
+	g_return_if_fail (private != NULL);
+
+	emit = private->is_paused_for_io != value;
+
+	if (!emit) {
+		return;
+	}
+	
+	/* Set value */
+	private->is_paused_for_io = value;
+
+	/* Signal the status change */
+	tracker_status_signal ();
+}

@@ -1,3 +1,14 @@
+2008-08-12  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-crawler.c:
+	* src/trackerd/tracker-daemon.c:
+	* src/trackerd/tracker-dbus.c: 
+	* src/trackerd/tracker-main.[ch]: 
+	* src/trackerd/tracker-processor.c: 
+	* src/trackerd/tracker-status.[ch]: Hold all valuable states in
+	the status module, like is_readonly, is_first_time_index,
+	is_running, etc.
+
 2008-08-12  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/libtracker-db/tracker-db-index
@@ -21,7 +32,6 @@
 	* src/libtracker/tracker.[ch]: Added methods in the library and
 	created a tracker-unique program.
 
-	
 2008-08-11  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/libtracker-db/tracker-db-dbus.c

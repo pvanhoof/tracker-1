@@ -41,17 +41,34 @@ typedef enum {
 } TrackerStatus;
 
 
-gboolean      tracker_status_init           (TrackerConfig *config);
-void          tracker_status_shutdown       (void);
+gboolean      tracker_status_init                    (TrackerConfig *config);
+void          tracker_status_shutdown                (void);
 
-GType         tracker_status_get_type       (void) G_GNUC_CONST;
+GType         tracker_status_get_type                (void) G_GNUC_CONST;
+const gchar * tracker_status_to_string               (TrackerStatus  status);
+TrackerStatus tracker_status_get                     (void);
+const gchar * tracker_status_get_as_string           (void);
+void          tracker_status_set                     (TrackerStatus  new_status);
+void          tracker_status_set_and_signal          (TrackerStatus  new_status);
+void          tracker_status_signal                  (void);
 
-const gchar * tracker_status_to_string      (TrackerStatus status);
-TrackerStatus tracker_status_get            (void);
-const gchar * tracker_status_get_as_string  (void);
-void          tracker_status_set            (TrackerStatus new_status);
-void          tracker_status_set_and_signal (TrackerStatus new_status);
-void          tracker_status_signal         (void);
+gboolean      tracker_status_get_is_readonly         (void);
+void          tracker_status_set_is_readonly         (gboolean       value);
+
+gboolean      tracker_status_get_is_running          (void);
+void          tracker_status_set_is_running          (gboolean       value);
+
+void          tracker_status_set_is_first_time_index (gboolean       value);
+gboolean      tracker_status_get_is_first_time_index (void);
+
+gboolean      tracker_status_get_in_merge            (void);
+void          tracker_status_set_in_merge            (gboolean       value);
+
+gboolean      tracker_status_get_is_paused_manually  (void);
+void          tracker_status_set_is_paused_manually  (gboolean       value);
+
+gboolean      tracker_status_get_is_paused_for_io    (void);
+void          tracker_status_set_is_paused_for_io    (gboolean       value);
 
 G_END_DECLS
 

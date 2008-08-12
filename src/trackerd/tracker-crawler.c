@@ -32,9 +32,9 @@
 #include "tracker-crawler.h"
 #include "tracker-dbus.h"
 #include "tracker-indexer-client.h"
-#include "tracker-main.h"
 #include "tracker-monitor.h"
 #include "tracker-marshal.h"
+#include "tracker-status.h"
 
 #define TRACKER_CRAWLER_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_CRAWLER, TrackerCrawlerPrivate))
 
@@ -417,7 +417,7 @@ process_func (gpointer data)
 	priv = crawler->private;
 
 	/* If manually paused, we hold off until unpaused */
-	if (tracker_get_is_paused_manually ()) {
+	if (tracker_status_get_is_paused_manually ()) {
 		return TRUE;
 	}
 

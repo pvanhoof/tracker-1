@@ -31,15 +31,6 @@ void         tracker_shutdown                (void);
 
 const gchar *tracker_get_sys_tmp_dir         (void);
 
-gboolean     tracker_get_is_readonly         (void);
-void         tracker_set_is_readonly         (gboolean value);
-
-gboolean     tracker_get_is_first_time_index (void);
-gboolean     tracker_get_in_merge            (void);
-
-gboolean     tracker_get_is_paused_manually  (void);
-void         tracker_set_is_paused_manually  (gboolean value);
-
 void         tracker_set_reindex_on_shutdown (gboolean value);
       
 G_END_DECLS

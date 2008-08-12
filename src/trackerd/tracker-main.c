@@ -96,11 +96,6 @@ static gchar         *data_dir;
 static gchar         *user_data_dir;
 static gchar         *sys_tmp_dir;
 
-static gboolean       is_running; 
-static gboolean       is_readonly;
-static gboolean       is_first_time_index; 
-static gboolean       is_paused_manually;
-static gboolean       in_merge; 
 static gboolean       reindex_on_shutdown;
 
 /* Private command line parameters */
@@ -237,7 +232,7 @@ check_runtime_level (TrackerConfig *config,
 			return TRACKER_RUNNING_MAIN_INSTANCE;
 		}
 
-		if (!is_first_time_index && 
+		if (!tracker_status_get_is_first_time_index () && 
 		    tracker_config_get_disable_indexing_on_battery (config)) { 
 			g_message ("Battery in use");
 			g_message ("Config is set to not index on battery");
@@ -249,7 +244,7 @@ check_runtime_level (TrackerConfig *config,
 		 * overwritten by the config option to disable or not
 		 * indexing on battery initially. 
 		 */
-		if (is_first_time_index &&
+		if (tracker_status_get_is_first_time_index () &&
 		    tracker_config_get_disable_indexing_on_battery_init (config)) {
 			g_message ("Battery in use & reindex is needed");
 			g_message ("Config is set to not index on battery for initial index");
@@ -445,10 +440,10 @@ initialize_databases (void)
 	/*
 	 * Create SQLite databases 
 	 */
-	if (!is_readonly && force_reindex) {
+	if (!tracker_status_get_is_readonly () && force_reindex) {
 		TrackerDBInterface *iface;
 		
-		is_first_time_index = TRUE;
+		tracker_status_set_is_readonly (TRUE);
 		
 		/* Reset stats for embedded services if they are being reindexed */
 
@@ -468,18 +463,18 @@ initialize_databases (void)
 	}
 
 	/* Check db integrity if not previously shut down cleanly */
-	if (!is_readonly && 
-	    !is_first_time_index && 
+	if (!tracker_status_get_is_readonly () && 
+	    !tracker_status_get_is_first_time_index () && 
 	    tracker_db_get_option_int ("IntegrityCheck") == 1) {
 		g_message ("Performing integrity check as the daemon was not shutdown cleanly");
 		/* FIXME: Finish */
 	} 
 
-	if (!is_readonly) {
+	if (!tracker_status_get_is_readonly ()) {
 		tracker_db_set_option_int ("IntegrityCheck", 1);
 	} 
 
-	if (is_first_time_index) {
+	if (tracker_status_get_is_first_time_index ()) {
 		tracker_db_set_option_int ("InitialIndex", 1);
 	}
 
@@ -577,7 +572,7 @@ notify_battery_in_use_cb (GObject *gobject,
 static gboolean
 start_cb (gpointer user_data)
 {
-	if (!is_running) {
+	if (!tracker_status_get_is_running ()) {
 		return FALSE;
 	}
 
@@ -601,6 +596,7 @@ main (gint argc, gchar *argv[])
 	TrackerRunningLevel         runtime_level;
 	TrackerDBManagerFlags       flags = 0;
 	TrackerDBIndexManagerFlags  index_flags = 0;
+	gboolean                    is_first_time_index;
 
         g_type_init ();
         
@@ -764,6 +760,8 @@ main (gint argc, gchar *argv[])
 	}
 
 	tracker_db_manager_init (flags, &is_first_time_index);
+	tracker_status_set_is_first_time_index (is_first_time_index);
+
 	if (!tracker_db_index_manager_init (index_flags, 
 					    tracker_config_get_min_bucket_count (config),
 					    tracker_config_get_max_bucket_count (config))) {
@@ -780,11 +778,11 @@ main (gint argc, gchar *argv[])
 		return EXIT_FAILURE;
 
 	case TRACKER_RUNNING_READ_ONLY:     
-		is_readonly = TRUE;
+		tracker_status_set_is_readonly (TRUE);
 		break;
 
 	case TRACKER_RUNNING_MAIN_INSTANCE: 
-		is_readonly = FALSE;
+		tracker_status_set_is_readonly (FALSE);
 		break;
 	}
 
@@ -809,7 +807,7 @@ main (gint argc, gchar *argv[])
 	/* Set our status as running, if this is FALSE, threads stop
 	 * doing what they do and shutdown.
 	 */
-	is_running = TRUE;
+	tracker_status_set_is_readonly (TRUE);
 
 	/* Make Tracker available for introspection */
 	if (!tracker_dbus_register_objects (config,
@@ -821,7 +819,7 @@ main (gint argc, gchar *argv[])
 
 	g_message ("Waiting for DBus requests...");
 
-	if (!is_readonly) {
+	if (!tracker_status_get_is_readonly ()) {
 		gint seconds;
 		
 		seconds = tracker_config_get_initial_sleep (config);
@@ -843,7 +841,7 @@ main (gint argc, gchar *argv[])
 		tracker_status_set_and_signal (TRACKER_STATUS_IDLE);
 	}
 
-	if (is_running) {
+	if (tracker_status_get_is_running ()) {
 		main_loop = g_main_loop_new (NULL, FALSE);
 		g_main_loop_run (main_loop);
 	}
@@ -901,7 +899,7 @@ main (gint argc, gchar *argv[])
 void
 tracker_shutdown (void)
 {
-	is_running = FALSE;
+	tracker_status_set_is_running (FALSE);
 
 	/* FIXME: Should we stop the crawler? */
 
@@ -912,66 +910,6 @@ const gchar *
 tracker_get_sys_tmp_dir (void)
 {
 	return sys_tmp_dir;
-}
-
-gboolean
-tracker_get_is_readonly (void)
-{
-	return is_readonly;
-}
-
-void
-tracker_set_is_readonly (gboolean value)
-{
-	gboolean emit;
-
-	emit = is_readonly != value;
-
-	if (!emit) {
-		return;
-	}
-
-	/* Set value */
-	is_readonly = value;
-
-	/* Signal the status change */
-	tracker_status_signal ();
-}
-
-gboolean
-tracker_get_is_first_time_index (void)
-{
-	return is_first_time_index;
-}
-
-gboolean
-tracker_get_in_merge (void)
-{
-	return in_merge;
-}
-
-gboolean
-tracker_get_is_paused_manually (void)
-{
-	return is_paused_manually;
-}
-
-void
-tracker_set_is_paused_manually (gboolean value)
-{
-	gboolean emit;
-
-	emit = is_paused_manually != value;
-
-	if (!emit) {
-		return;
-	}
-	
-	/* Set value */
-	is_paused_manually = value;
-
-	/* Signal the status change */
-	tracker_status_signal ();
 }
 
 void

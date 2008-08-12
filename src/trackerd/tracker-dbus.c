@@ -225,7 +225,7 @@ dbus_request_new_cb (guint    request_id,
 	/* Third check if we are already paused, if we are there is
 	 * no need to tell the indexer.
 	 */
-	if (tracker_get_is_paused_manually ()) {
+	if (tracker_status_get_is_paused_manually ()) {
 		g_message ("Tracker is already manually paused, doing nothing");
 		return;
 	}

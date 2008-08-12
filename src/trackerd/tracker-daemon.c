@@ -397,7 +397,7 @@ tracker_daemon_set_bool_option (TrackerDaemon          *object,
 		 * don't know if something else paused us or if it
 		 * was the signal from our request.
 		 */
-		tracker_set_is_paused_manually (value);
+		tracker_status_set_is_paused_manually (value);
 
 		if (value) {
 			org_freedesktop_Tracker_Indexer_pause_async (priv->indexer_proxy, 
@@ -419,7 +419,7 @@ tracker_daemon_set_bool_option (TrackerDaemon          *object,
 		 * readonly mode.
 		 */
                 tracker_config_set_enable_indexing (priv->config, value);
-		tracker_set_is_readonly (value);
+		tracker_status_set_is_readonly (value);
 		g_message ("Enable indexing set to %d", value);
 	} else if (strcasecmp (option, "EnableWatching") == 0) {
                 tracker_config_set_enable_watches (priv->config, value);

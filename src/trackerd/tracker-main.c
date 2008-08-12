@@ -88,30 +88,36 @@ typedef enum {
 	TRACKER_RUNNING_MAIN_INSTANCE
 } TrackerRunningLevel;
 
+typedef struct {
+	GMainLoop        *main_loop;
+	gchar            *log_filename;
+	
+	gchar            *data_dir;
+	gchar            *user_data_dir;
+	gchar            *sys_tmp_dir;
+ 
+	gboolean          reindex_on_shutdown;
+
+	TrackerProcessor *processor;
+} TrackerMainPrivate;
+
 /* Private */
-static GMainLoop     *main_loop;
-static gchar         *log_filename;
-
-static gchar         *data_dir;
-static gchar         *user_data_dir;
-static gchar         *sys_tmp_dir;
-
-static gboolean       reindex_on_shutdown;
+static GStaticPrivate   private_key = G_STATIC_PRIVATE_INIT;
 
 /* Private command line parameters */
-static gint           verbosity = -1;
-static gint           initial_sleep = -1;
-static gboolean       low_memory;
-static gchar        **monitors_to_exclude;
-static gchar        **monitors_to_include;
-static gchar        **crawl_dirs;
-static gchar        **disable_modules;
+static gint             verbosity = -1;
+static gint             initial_sleep = -1;
+static gboolean         low_memory;
+static gchar          **monitors_to_exclude;
+static gchar          **monitors_to_include;
+static gchar          **crawl_dirs;
+static gchar          **disable_modules;
 
-static gboolean       force_reindex;
-static gboolean       disable_indexing;
-static gchar         *language_code;
+static gboolean         force_reindex;
+static gboolean         disable_indexing;
+static gchar           *language_code;
 
-static GOptionEntry   entries_daemon[] = {
+static GOptionEntry     entries_daemon[] = {
 	{ "verbosity", 'v', 0, 
 	  G_OPTION_ARG_INT, &verbosity, 
 	  N_("Logging, 0 = errors only, "
@@ -160,15 +166,40 @@ static GOptionEntry   entries_indexer[] = {
 	{ NULL }
 };
 
+static void
+private_free (gpointer data)
+{
+	TrackerMainPrivate *private;
+
+	private = data;
+
+	if (private->processor) {
+		g_object_unref (private->processor);
+	}
+
+	g_free (private->sys_tmp_dir);
+	g_free (private->user_data_dir);
+	g_free (private->data_dir);
+
+	g_free (private->log_filename);
+
+	g_main_loop_unref (private->main_loop);
+
+	g_free (private);
+}
+
 static gchar *
 get_lock_file (void) 
 {
-	gchar *lock_filename;
-	gchar *filename;
+	TrackerMainPrivate *private;
+	gchar              *lock_filename;
+	gchar              *filename;
+
+	private = g_static_private_get (&private_key);
 	
 	filename = g_strconcat (g_get_user_name (), "_tracker_lock", NULL);
 
-	lock_filename = g_build_filename (sys_tmp_dir, 
+	lock_filename = g_build_filename (private->sys_tmp_dir, 
 					  filename, 
 					  NULL);
 	g_free (filename);
@@ -378,43 +409,55 @@ initialize_signal_handler (void)
 static void
 initialize_locations (void)
 {
-	gchar *filename;
+	TrackerMainPrivate *private;
+	gchar              *filename;
+
+	private = g_static_private_get (&private_key);
 	
 	/* Public locations */
-	user_data_dir = g_build_filename (g_get_user_data_dir (), 
-                                          "tracker", 
-                                          "data", 
-                                          NULL);
+	private->user_data_dir = 
+		g_build_filename (g_get_user_data_dir (), 
+				  "tracker", 
+				  "data", 
+				  NULL);
 
-	data_dir = g_build_filename (g_get_user_cache_dir (), 
-				     "tracker", 
-				     NULL);
-
+	private->data_dir = 
+		g_build_filename (g_get_user_cache_dir (), 
+				  "tracker", 
+				  NULL);
+	
 	filename = g_strdup_printf ("tracker-%s", g_get_user_name ());
-	sys_tmp_dir = g_build_filename (g_get_tmp_dir (), filename, NULL);
+	private->sys_tmp_dir = 
+		g_build_filename (g_get_tmp_dir (), 
+				  filename, 
+				  NULL);
 	g_free (filename);
 
 	/* Private locations */
-	log_filename = g_build_filename (g_get_user_data_dir (), 
-					 "tracker", 
-					 "trackerd.log", 
-					 NULL);
+	private->log_filename = 
+		g_build_filename (g_get_user_data_dir (), 
+				  "tracker", 
+				  "trackerd.log", 
+				  NULL);
 }
 
 static void
 initialize_directories (void)
 {
-	gchar *filename;
+	TrackerMainPrivate *private;
+	gchar              *filename;
+
+	private = g_static_private_get (&private_key);
 
 	/* NOTE: We don't create the database directories here, the
 	 * tracker-db-manager does that for us.
 	 */ 
 
-	g_message ("Checking directory exists:'%s'", user_data_dir);
-	g_mkdir_with_parents (user_data_dir, 00755);
+	g_message ("Checking directory exists:'%s'", private->user_data_dir);
+	g_mkdir_with_parents (private->user_data_dir, 00755);
 
-	g_message ("Checking directory exists:'%s'", data_dir);
-	g_mkdir_with_parents (data_dir, 00755);
+	g_message ("Checking directory exists:'%s'", private->data_dir);
+	g_mkdir_with_parents (private->data_dir, 00755);
 
 	/* Remove old tracker dirs */
         filename = g_build_filename (g_get_home_dir (), ".Tracker", NULL);
@@ -426,12 +469,12 @@ initialize_directories (void)
 	g_free (filename);
 
 	/* Remove database if we are reindexing */
-        filename = g_build_filename (sys_tmp_dir, "Attachments", NULL);
+        filename = g_build_filename (private->sys_tmp_dir, "Attachments", NULL);
 	g_mkdir_with_parents (filename, 00700);
 	g_free (filename);
 
 	/* Remove existing log files */
-	tracker_file_unlink (log_filename);
+	tracker_file_unlink (private->log_filename);
 }
 
 static gboolean
@@ -497,20 +540,18 @@ shutdown_databases (void)
 static void
 shutdown_locations (void)
 {
-	/* Public locations */
-	g_free (data_dir);
-	g_free (user_data_dir);
-	g_free (sys_tmp_dir);
-
-	/* Private locations */
-	g_free (log_filename);
+	/* Nothing to do here, this is done by the private free func */
 }
 
 static void
 shutdown_directories (void)
 {
+	TrackerMainPrivate *private;
+
+	private = g_static_private_get (&private_key);
+
 	/* If we are reindexing, just remove the databases */
-	if (reindex_on_shutdown) {
+	if (private->reindex_on_shutdown) {
 		tracker_db_manager_remove_all ();
 	}
 }
@@ -572,11 +613,17 @@ notify_battery_in_use_cb (GObject *gobject,
 static gboolean
 start_cb (gpointer user_data)
 {
+	TrackerMainPrivate *private;
+
 	if (!tracker_status_get_is_running ()) {
 		return FALSE;
 	}
 
-	tracker_processor_start (user_data);
+	private = g_static_private_get (&private_key);
+
+	if (private->processor) {
+		tracker_processor_start (private->processor);
+	}
 	
 	return FALSE;
 }
@@ -587,10 +634,10 @@ main (gint argc, gchar *argv[])
 	GOptionContext             *context = NULL;
 	GOptionGroup               *group;
 	GError                     *error = NULL;
+	TrackerMainPrivate         *private;
         TrackerConfig              *config;
         TrackerLanguage            *language;
         TrackerHal                 *hal;
-	TrackerProcessor           *processor;
         TrackerDBIndex             *index;
         TrackerDBIndex             *index_update;
 	TrackerRunningLevel         runtime_level;
@@ -599,7 +646,12 @@ main (gint argc, gchar *argv[])
 	gboolean                    is_first_time_index;
 
         g_type_init ();
-        
+
+	private = g_new0 (TrackerMainPrivate, 1);
+	g_static_private_set (&private_key, 
+			      private, 
+			      private_free);
+      
 	if (!g_thread_supported ())
 		g_thread_init (NULL);
 
@@ -734,8 +786,8 @@ main (gint argc, gchar *argv[])
 	/* Initialize other subsystems */
 	tracker_status_init (config);
 
-	tracker_log_init (log_filename, tracker_config_get_verbosity (config));
-	g_print ("Starting log:\n  File:'%s'\n", log_filename);
+	tracker_log_init (private->log_filename, tracker_config_get_verbosity (config));
+	g_print ("Starting log:\n  File:'%s'\n", private->log_filename);
 
 	sanity_check_option_values (config);
 
@@ -802,13 +854,13 @@ main (gint argc, gchar *argv[])
 	tracker_db_init (config, language, index);
 	tracker_xesam_manager_init ();
 
-	processor = tracker_processor_new (config, hal);
+	private->processor = tracker_processor_new (config, hal);
 
 	/* Make Tracker available for introspection */
 	if (!tracker_dbus_register_objects (config,
 					    language,
 					    index,
-					    processor)) {
+					    private->processor)) {
 		return EXIT_FAILURE;
 	}
 
@@ -827,11 +879,9 @@ main (gint argc, gchar *argv[])
 		if (seconds > 0) {
 			g_message ("Waiting %d seconds before starting",
 				   seconds);
-			g_timeout_add (seconds * 1000, 
-				       start_cb,
-				       processor);
+			g_timeout_add (seconds * 1000, start_cb, NULL);
 		} else {
-			g_idle_add (start_cb, processor);
+			g_idle_add (start_cb, NULL);
 		}
 	} else {
 		/* We set the state here because it is not set in the
@@ -842,8 +892,8 @@ main (gint argc, gchar *argv[])
 	}
 
 	if (tracker_status_get_is_running ()) {
-		main_loop = g_main_loop_new (NULL, FALSE);
-		g_main_loop_run (main_loop);
+		private->main_loop = g_main_loop_new (NULL, FALSE);
+		g_main_loop_run (private->main_loop);
 	}
 
 	/* We can block on this since we are likely to block on
@@ -863,7 +913,14 @@ main (gint argc, gchar *argv[])
 	/* Set kill timeout */
 	g_timeout_add_full (G_PRIORITY_LOW, 5000, shutdown_timeout_cb, NULL, NULL);
 
-	g_object_unref (processor);
+	if (private->processor) {
+		/* We do this instead of let the private data free
+		 * itself later so we can clean up references to this
+		 * elsewhere.
+		 */
+		g_object_unref (private->processor);
+		private->processor = NULL;
+	}
 
 	shutdown_indexer ();
 	shutdown_databases ();
@@ -899,21 +956,33 @@ main (gint argc, gchar *argv[])
 void
 tracker_shutdown (void)
 {
+	TrackerMainPrivate *private;
+
+	private = g_static_private_get (&private_key);
+
 	tracker_status_set_is_running (FALSE);
 
-	/* FIXME: Should we stop the crawler? */
+	tracker_processor_stop (private->processor);
 
-	g_main_loop_quit (main_loop);
+	g_main_loop_quit (private->main_loop);
 }
 
 const gchar *
 tracker_get_sys_tmp_dir (void)
 {
-	return sys_tmp_dir;
+	TrackerMainPrivate *private;
+
+	private = g_static_private_get (&private_key);
+
+	return private->sys_tmp_dir;
 }
 
 void
 tracker_set_reindex_on_shutdown (gboolean value)
 {
-	reindex_on_shutdown = value;
+	TrackerMainPrivate *private;
+
+	private = g_static_private_get (&private_key);
+
+	private->reindex_on_shutdown = value;
 }

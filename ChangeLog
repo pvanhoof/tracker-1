@@ -1,5 +1,11 @@
 2008-08-12  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-main.c: Use GStaticPrivate for the private
+	data here and make sure we tell the processor to stop now when we
+	are given the shutdown signal.
+
+2008-08-12  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-main.c: (initialize_databases), (main):
 	Fixed some errors in the last commit.
 

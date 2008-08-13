@@ -1104,12 +1104,13 @@ TrackerMetadata *
 get_metadata_for_imap (TrackerFile *file)
 {
         EvolutionImapData *data;
-        TrackerMetadata *metadata;
+        TrackerMetadata *metadata = NULL;
         gchar *dirname, *basename;
         gchar *uid, *subject, *from, *to, *cc, *body;
         gint32 i, count, flags;
         time_t date;
         GList *list;
+        gboolean deleted;
 
         data = file->data;
 
@@ -1130,6 +1131,9 @@ get_metadata_for_imap (TrackerFile *file)
                 g_free (uid);
                 return NULL;
         }
+
+        deleted = ((flags & EVOLUTION_MESSAGE_JUNK) != 0 ||
+                   (flags & EVOLUTION_MESSAGE_DELETED) != 0);
 
         subject = NULL;
         from = NULL;
@@ -1156,26 +1160,28 @@ get_metadata_for_imap (TrackerFile *file)
         /* save current message uid */
         data->cur_message_uid = g_strdup (uid);
 
-        metadata = tracker_metadata_new ();
-        get_imap_uri (file, uid, &dirname, &basename);
+        if (!deleted) {
+                metadata = tracker_metadata_new ();
+                get_imap_uri (file, uid, &dirname, &basename);
 
-        tracker_metadata_insert (metadata, METADATA_FILE_PATH, dirname);
-        tracker_metadata_insert (metadata, METADATA_FILE_NAME, basename);
+                tracker_metadata_insert (metadata, METADATA_FILE_PATH, dirname);
+                tracker_metadata_insert (metadata, METADATA_FILE_NAME, basename);
 
-	tracker_metadata_insert (metadata, METADATA_EMAIL_DATE,
-                                 tracker_uint_to_string (date));
+                tracker_metadata_insert (metadata, METADATA_EMAIL_DATE,
+                                         tracker_uint_to_string (date));
 
-        tracker_metadata_insert (metadata, METADATA_EMAIL_SENDER, from);
-        tracker_metadata_insert (metadata, METADATA_EMAIL_SUBJECT, subject);
+                tracker_metadata_insert (metadata, METADATA_EMAIL_SENDER, from);
+                tracker_metadata_insert (metadata, METADATA_EMAIL_SUBJECT, subject);
 
-        list = get_imap_recipient_list (to);
-        tracker_metadata_insert_multiple_values (metadata, METADATA_EMAIL_SENT_TO, list);
+                list = get_imap_recipient_list (to);
+                tracker_metadata_insert_multiple_values (metadata, METADATA_EMAIL_SENT_TO, list);
 
-        list = get_imap_recipient_list (cc);
-        tracker_metadata_insert_multiple_values (metadata, METADATA_EMAIL_CC, list);
+                list = get_imap_recipient_list (cc);
+                tracker_metadata_insert_multiple_values (metadata, METADATA_EMAIL_CC, list);
 
-        body = get_imap_message_body (file, uid);
-        tracker_metadata_insert (metadata, METADATA_EMAIL_BODY, body);
+                body = get_imap_message_body (file, uid);
+                tracker_metadata_insert (metadata, METADATA_EMAIL_BODY, body);
+        }
 
         g_free (uid);
         g_free (to);
@@ -1239,17 +1245,14 @@ get_metadata_for_imap (TrackerFile *file)
 
         skip_content_info (data->summary);
 
-        if (flags & EVOLUTION_MESSAGE_JUNK ||
-            flags & EVOLUTION_MESSAGE_DELETED) {
-                tracker_metadata_free (metadata);
-                return NULL;
-        }
-
         return metadata;
 
 corruption:
         /* assume corruption */
-        tracker_metadata_free (metadata);
+        if (metadata) {
+                tracker_metadata_free (metadata);
+        }
+
         return NULL;
 }
 

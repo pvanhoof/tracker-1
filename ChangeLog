@@ -1,3 +1,8 @@
+2008-08-12  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/modules/evolution.c (get_metadata_for_imap): Do
+	not perform any extra processing than just reading over mail when the
+	message is junk/deleted.
 
 2008-08-13  Mikael Ottela   <mikael.ottela@ixonos.com>
 	* src/tracker-extract/tracker-extract-jpeg.c:

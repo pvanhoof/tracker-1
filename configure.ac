@@ -777,6 +777,38 @@ fi
 AM_CONDITIONAL(HAVE_EXEMPI, test "$have_exempi" = "yes")
 test "$have_exempi" = "yes" && AC_DEFINE(HAVE_EXEMPI, [], [Define if we have exempi])
 
+#Check for binaries
+##################################################################
+# Check for Imagemagick
+##################################################################
+
+AC_ARG_ENABLE(imagemagick, AS_HELP_STRING([--disable-imagemagick], [Disable Imagemagick thumbnailer]),,[enable_imagemagick=yes])
+if test "x$enable_imagemagick" = "xyes"; then
+   	AC_CHECK_PROG(HAVE_IMAGEMAGICK,convert,"yes","no",)
+	have_imagemagick="$HAVE_IMAGEMAGICK"
+else
+	have_imagemagick="no (disabled)"
+fi
+
+AM_CONDITIONAL(HAVE_IMAGEMAGICK, test "$have_imagemagick" = "yes")
+test "$have_imagemagick" = "yes" && AC_DEFINE(HAVE_IMAGEMAGICK, [], [Define if we have imagemagick])
+
+##################################################################
+# Check for Hildon-thumbnail
+##################################################################
+
+AC_ARG_ENABLE(hildon-thumbnail, AS_HELP_STRING([--disable-hildon-thumbnail], [Disable Hildon thumbnail]),,[enable_hildon_thumbnail=yes])
+if test "x$enable_hildon_thumbnail" = "xyes"; then
+   	AC_CHECK_PROG(HAVE_HILDON_THUMBNAIL,hildon-thumb-gdk-pixbuf,"yes","no",)
+	have_hildon_thumbnail="$HAVE_HILDON_THUMBNAIL"
+else
+	have_hildon_thumbnail="no (disabled)"
+fi
+
+AM_CONDITIONAL(HAVE_HILDON_THUMBNAIL, test "$have_hildon_thumbnail" = "yes")
+test "$have_hildon_thumbnail" = "yes" && AC_DEFINE(HAVE_HILDON_THUMBNAIL, [], [Define if we have hildon-thumbnail])
+
+
 AC_CONFIG_FILES([
 	data/dbus/Makefile
 	data/icons/16x16/Makefile
@@ -877,6 +909,11 @@ Metadata Extractors:
 	xml / html formats:			$have_libxml2
 	embedded / sidecar xmp:			$have_exempi
 	video files:				$videos_are_handled ($videos_handler)
+
+Thumbnailers:
+
+	Imagemagick				$have_imagemagick
+	Hildon-thumbnail			$have_hildon_thumbnail
 
 Warning:
 

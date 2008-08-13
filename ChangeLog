@@ -1,3 +1,15 @@
+2008-08-13  Martyn Russell  <martyn@imendio.com>
+
+	* src/tracker-utils/tracker-files.c: 
+	* src/tracker-utils/tracker-query.c: 
+	* src/tracker-utils/tracker-search.c:
+	* src/tracker-utils/tracker-stats.c: 
+	* src/tracker-utils/tracker-status.c: 
+	* src/tracker-utils/tracker-tag.c:
+	* src/tracker-utils/tracker-unique.c: Fixed some of the printing
+	where \n was omitted. Also fixed the includes for the Win32
+	compatibility. 
+
 2008-08-12  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-main.c: (main): Now shutdown the indexer

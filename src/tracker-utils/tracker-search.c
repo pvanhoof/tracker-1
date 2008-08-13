@@ -148,9 +148,8 @@ main (int argc, char **argv)
         if (!terms) {
                 gchar *help;
 
- 		g_printerr (_("Search terms are missing"));
- 		g_printerr ("\n"
-                            "\n");
+ 		g_printerr ("%s\n\n",
+			    _("Search terms are missing"));
 
                 help = g_option_context_get_help (context, TRUE, NULL);
                 g_option_context_free (context);
@@ -165,7 +164,8 @@ main (int argc, char **argv)
 	client = tracker_connect (FALSE);
 
 	if (!client) {
-		g_printerr (_("Could not establish a DBus connection to Tracker"));
+		g_printerr ("%s\n",
+			    _("Could not establish a DBus connection to Tracker"));
 		return EXIT_FAILURE;
 	}
 
@@ -174,15 +174,16 @@ main (int argc, char **argv)
         }
 
 	if (!service) {
-                g_print (_("Defaulting to 'files' service"));
-                g_print ("\n");
+                g_print ("%s\n",
+			 _("Defaulting to 'files' service"));
 
 		type = SERVICE_FILES;
 	} else {
 		type = tracker_service_name_to_type (service);
 
 		if (type == SERVICE_OTHER_FILES && g_ascii_strcasecmp (service, "Other")) {
-			g_printerr (_("Service not recognized, searching in other files...\n"));
+			g_printerr ("%s\n",
+				    _("Service not recognized, searching in other files..."));
 		}
 	}
 
@@ -199,8 +200,9 @@ main (int argc, char **argv)
                 g_free (search);
 
                 if (error) {
-                        g_printerr (_("Could not get find detailed results by text"));
-                        g_printerr (", %s\n", error->message);
+                        g_printerr ("%s, %s\n",
+				    _("Could not get find detailed results by text"),
+				    error->message);
 
                         g_error_free (error);
                         tracker_disconnect (client);
@@ -209,11 +211,11 @@ main (int argc, char **argv)
                 }
 
                 if (!array) {
-                        g_print (_("No results found matching your query"));
-                        g_print ("\n");
+                        g_print ("%s\n",
+				 _("No results found matching your query"));
                 } else {
-                        g_print (_("Results:"));
-                        g_print ("\n");
+                        g_print ("%s\n",
+				 _("Results:"));
 
                         g_ptr_array_foreach (array, (GFunc) get_meta_table_data, NULL);
                         g_ptr_array_free (array, TRUE);
@@ -229,8 +231,9 @@ main (int argc, char **argv)
                 g_free (search);
 
                 if (error) {
-                        g_printerr (_("Could not get find results by text"));
-                        g_printerr (", %s\n", error->message);
+                        g_printerr ("%s, %s\n",
+				    _("Could not get find results by text"),
+				    error->message);
 
                         g_error_free (error);
                         tracker_disconnect (client);
@@ -239,8 +242,8 @@ main (int argc, char **argv)
                 }
 
                 if (!strv) {
-                        g_print (_("No results found matching your query"));
-                        g_print ("\n");
+                        g_print ("%s\n",
+				 _("No results found matching your query"));
                 } else {
                         for (p = strv; *p; p++) {
                                 gchar *s;

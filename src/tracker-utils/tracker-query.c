@@ -31,10 +31,9 @@
 
 #include <libtracker/tracker.h>
 
-#include <config.h>
-#ifdef OS_WIN32
-#include "../trackerd/mingw-compat.h"
-#endif
+#ifdef G_OS_WIN32
+#include <trackerd/mingw-compat.h>
+#endif /* G_OS_WIN32 */
 
 static gchar         *path;
 static gchar         *search;
@@ -135,9 +134,8 @@ main (int argc, char **argv)
         if (!fields || !path) {
                 gchar *help;
 
- 		g_printerr (_("Path or fields are missing"));
- 		g_printerr ("\n"
-                            "\n");
+ 		g_printerr ("%s\n\n",
+			    _("Path or fields are missing"));
 
                 help = g_option_context_get_help (context, TRUE, NULL);
                 g_option_context_free (context);
@@ -152,7 +150,8 @@ main (int argc, char **argv)
 	client = tracker_connect (FALSE);
 
 	if (!client) {
-		g_printerr (_("Could not establish a DBus connection to Tracker"));
+		g_printerr ("%s\n",
+			    _("Could not establish a DBus connection to Tracker"));
 		return EXIT_FAILURE;
 	}
 
@@ -161,15 +160,16 @@ main (int argc, char **argv)
         }
 
 	if (!service) {
-                g_print (_("Defaulting to 'files' service"));
-                g_print ("\n");
+                g_print ("%s\n",
+			 _("Defaulting to 'files' service"));
 
 		type = SERVICE_FILES;
 	} else {
 		type = tracker_service_name_to_type (service);
 
 		if (type == SERVICE_OTHER_FILES && g_ascii_strcasecmp (service, "Other")) {
-			g_printerr (_("Service not recognized, searching in other files...\n"));
+			g_printerr ("%s\n",
+				    _("Service not recognized, searching in other files..."));
 		}
 	}
 
@@ -204,7 +204,7 @@ main (int argc, char **argv)
         g_free (content);
 
         if (error) {
-		g_printerr ("%s, %s",
+		g_printerr ("%s, %s\n",
                             _("Could not convert query file to UTF-8"),
                             error->message);
                 g_error_free (error);
@@ -227,7 +227,7 @@ main (int argc, char **argv)
         g_free (buffer);
 
 	if (error) {
-		g_printerr ("%s, %s",
+		g_printerr ("%s, %s\n",
                             _("Could not query search"),
                             error->message);
 		g_error_free (error);
@@ -236,8 +236,8 @@ main (int argc, char **argv)
 	} 
         
         if (!array) {
-                g_print (_("No results found matching your query"));
-                g_print ("\n");
+                g_print ("%s\n", 
+			 _("No results found matching your query"));
         } else {
                 g_ptr_array_foreach (array, (GFunc) get_meta_table_data, NULL);
                 g_ptr_array_free (array, TRUE);

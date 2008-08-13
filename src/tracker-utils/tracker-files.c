@@ -90,7 +90,8 @@ main (int argc, char **argv)
 	client = tracker_connect (FALSE);
 
 	if (!client) {
-		g_printerr (_("Could not establish a DBus connection to Tracker"));
+		g_printerr ("%s\n",
+			    _("Could not establish a DBus connection to Tracker"));
 		return EXIT_FAILURE;
 	}
 
@@ -115,7 +116,8 @@ main (int argc, char **argv)
 		}
 
 		if (!array) {
-			g_print ("No results were found matching your query\n");
+			g_print ("%s\n",
+				 _("No results were found matching your query"));
 			return EXIT_FAILURE;
 		}
 
@@ -145,7 +147,8 @@ main (int argc, char **argv)
 		}
 
 		if (!array) {
-			g_print ("No results were found matching your query\n");
+			g_print ("%s\n",
+				 _("No results were found matching your query"));
 			return EXIT_FAILURE;
 		}
 

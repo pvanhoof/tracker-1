@@ -1,4 +1,5 @@
-/* Tracker - indexer and metadata database engine
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2008, Nokia
  *
@@ -29,9 +30,9 @@
 
 #include <libtracker/tracker.h>
 
-#ifdef OS_WIN32
-#include "../trackerd/mingw-compat.h"
-#endif
+#ifdef G_OS_WIN32
+#include <trackerd/mingw-compat.h>
+#endif /* G_OS_WIN32 */
 
 static gint limit = 512;
 static gint offset = 0;

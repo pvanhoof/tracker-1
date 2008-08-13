@@ -45,7 +45,8 @@ main (gint argc, gchar *argv[])
 	client = tracker_connect (FALSE);
 
 	if (!client) {
-		g_printerr (_("Could not establish a DBus connection to Tracker"));
+		g_printerr ("%s\n",
+			    _("Could not establish a DBus connection to Tracker"));
 
 		return EXIT_FAILURE;
 	}
@@ -62,7 +63,11 @@ main (gint argc, gchar *argv[])
 	}
 
 	if (status) {
-		g_print ("Tracker status is '%s'\n", status);
+		gchar *str;
+
+		str = g_strdup_printf (_("Tracker status is '%s'"), status);
+		g_print ("%s\n", str);
+		g_free (str);
 	}
 
 	tracker_disconnect (client);

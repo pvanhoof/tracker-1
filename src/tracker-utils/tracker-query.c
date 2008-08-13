@@ -81,27 +81,16 @@ get_meta_table_data (gpointer value)
 {
 	gchar **meta;
 	gchar **p;
-	gchar  *str;
-	gint    i = 0;
+	gint    i;
 
 	meta = value;
 
 	for (p = meta, i = 0; *p; p++, i++) {
-                switch (i) {
-                case 0:
-			str = g_filename_from_utf8 (*p, -1, NULL, NULL, NULL);
-                        g_print ("  %s:'%s'", _("Path"), str);
-			g_free (str);
-                        break;
-                case 1:
-			g_print (", %s:'%s'", _("Service"), *p);
-                        break;
-                case 2:
-			g_print (", %s:'%s'", _("MIME-type"), *p);
-                        break;
-                default:
-                        break;
-                }
+		if (i == 0) {
+			g_print ("  %s", *p);
+		} else {
+			g_print (", %s", *p);
+		}
 	}
 
 	g_print ("\n");

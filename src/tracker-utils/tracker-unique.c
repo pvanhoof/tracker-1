@@ -72,7 +72,7 @@ get_meta_table_data (gpointer value)
 {
 	gchar **meta;
         gchar **p;
-	gint    i = 0;
+	gint    i;
 
 	meta = value;
 

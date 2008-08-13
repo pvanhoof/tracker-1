@@ -1,5 +1,12 @@
 2008-08-13  Martyn Russell  <martyn@imendio.com>
 
+	* src/tracker-utils/tracker-query.c: (get_meta_table_data):
+	* src/tracker-utils/tracker-search.c: (get_meta_table_data):
+	* src/tracker-utils/tracker-unique.c: (get_meta_table_data): Fix
+	for these implementations.
+
+2008-08-13  Martyn Russell  <martyn@imendio.com>
+
 	* src/tracker-utils/tracker-files.c: 
 	* src/tracker-utils/tracker-query.c: 
 	* src/tracker-utils/tracker-search.c:

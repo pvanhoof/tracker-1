@@ -664,6 +664,73 @@ fi
 AM_CONDITIONAL(HAVE_LIBGSF, test "$have_libgsf" = "yes")
 test "$have_libgsf" = "yes" && AC_DEFINE(HAVE_LIBGSF, [], [Define if we have libgsf])
 
+
+##################################################################
+# Check for libjpeg
+##################################################################
+
+#
+# FIXME This should be package based. Unfortunately in several main
+# distros, it is not.
+#
+
+OLD_CFLAGS="$CFLAGS"
+OLD_LIBS="$LIBS"
+CFLAGS=""
+LIBS=""
+
+AC_ARG_ENABLE(jpeg, AS_HELP_STRING([--disable-jpeg],[Disable jpeg extractor]),,[enable_jpeg=yes])
+if test "x$enable_jpeg" = "xyes"; then
+   	AC_CHECK_HEADER(jpeglib.h,
+	AC_CHECK_LIB(jpeg, jpeg_CreateCompress))
+  	have_libjpeg=${ac_cv_lib_jpeg_jpeg_CreateCompress:-no}
+	LIBJPEG_CFLAGS="$CFLAGS"
+	LIBJPEG_LIBS="$LIBS"
+	AC_SUBST(LIBJPEG_CFLAGS)
+	AC_SUBST(LIBJPEG_LIBS)
+else
+	have_libjpeg="no (disabled)"
+fi
+
+AM_CONDITIONAL(HAVE_LIBJPEG, test "$have_libjpeg" = "yes")
+test "$have_libjpeg" = "yes" && AC_DEFINE(HAVE_LIBJPEG, [], [Define if we have libjpeg])
+
+CFLAGS="$OLD_CFLAGS"
+LIBS="$OLD_LIBS"
+
+##################################################################
+# Check for libtiff
+##################################################################
+
+#
+# FIXME This should be package based. Unfortunately in several main
+# distros, it is not.
+#
+
+OLD_CFLAGS="$CFLAGS"
+OLD_LIBS="$LIBS"
+CFLAGS=""
+LIBS=""
+
+AC_ARG_ENABLE(tiff, AS_HELP_STRING([--disable-tiff],[Disable tiff extractor]),,[enable_tiff=yes])
+if test "x$enable_tiff" = "xyes"; then
+   	AC_CHECK_HEADER(tiff.h,
+	AC_CHECK_LIB(tiff, TIFFOpen))
+	have_libtiff=${ac_cv_lib_tiff_TIFFOpen:-no}
+	LIBTIFF_CFLAGS="$CFLAGS"
+	LIBTIFF_LIBS="$LIBS"
+	AC_SUBST(LIBTIFF_CFLAGS)
+	AC_SUBST(LIBTIFF_LIBS)
+else
+	have_libtiff="no (disabled)"
+fi
+
+AM_CONDITIONAL(HAVE_LIBTIFF, test "$have_libtiff" = "yes")
+test "$have_libtiff" = "yes" && AC_DEFINE(HAVE_LIBTIFF, [], [Define if we have libtiff])
+
+CFLAGS="$OLD_CFLAGS"
+LIBS="$OLD_LIBS"
+
 ####################################################################
 # Check ioprio support
 ####################################################################
@@ -804,7 +871,8 @@ Metadata Extractors:
 
 	png:					yes
 	pdf:					$have_poppler
-	exif (jpeg):				$have_libexif
+	jpeg:					$have_libjpeg (xmp: $have_exempi exif: $have_libexif)
+	tiff:					$have_libtiff (xmp: $have_exempi exif: yes)
 	ms & openoffice (gsf):		        $have_libgsf
 	xml / html formats:			$have_libxml2
 	embedded / sidecar xmp:			$have_exempi

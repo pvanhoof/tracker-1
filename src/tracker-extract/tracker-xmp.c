@@ -159,11 +159,48 @@ tracker_xmp_iter_simple (GHashTable *metadata,
 		else if (strcmp (name, "keywords") == 0) {
 			tracker_append_string_to_hash_table (metadata, "Image:Keywords", value, append);
 		}
+		else if (strcmp (name, "subject") == 0) {
+			tracker_append_string_to_hash_table (metadata, "DC:Subject", value, append);
+		}
+		else if (strcmp (name, "publisher") == 0) {
+			tracker_append_string_to_hash_table (metadata, "DC:Publisher", value, append);
+		}
+		else if (strcmp (name, "contributor") == 0) {
+			tracker_append_string_to_hash_table (metadata, "DC:Contributor", value, append);
+		}
+		else if (strcmp (name, "type") == 0) {
+			tracker_append_string_to_hash_table (metadata, "DC:Type", value, append);
+		}
+		else if (strcmp (name, "format") == 0) {
+			tracker_append_string_to_hash_table (metadata, "DC:Format", value, append);
+		}
+		else if (strcmp (name, "identifier") == 0) {
+			tracker_append_string_to_hash_table (metadata, "DC:Identifier", value, append);
+		}
+		else if (strcmp (name, "source") == 0) {
+			tracker_append_string_to_hash_table (metadata, "DC:Source", value, append);
+		}
+		else if (strcmp (name, "language") == 0) {
+			tracker_append_string_to_hash_table (metadata, "DC:Language", value, append);
+		}
+		else if (strcmp (name, "relation") == 0) {
+			tracker_append_string_to_hash_table (metadata, "DC:Relation", value, append);
+		}
+		else if (strcmp (name, "coverage") == 0) {
+			tracker_append_string_to_hash_table (metadata, "DC:Coverage", value, append);
+		}
+
 	}
 	/* Creative Commons */
 	else if (strcmp (schema, NS_CC) == 0) {
 		if (strcmp (name, "license") == 0) {
 			tracker_append_string_to_hash_table (metadata, "File:License", value, append);
+		}
+	}
+	/* Exif basic scheme */
+	else if (strcmp (schema, NS_EXIF) == 0) {
+		if (strcmp (name, "title") == 0) {
+			tracker_append_string_to_hash_table (metadata, "Image:Title", value, append);
 		}
 	}
 

@@ -5,6 +5,8 @@ INCLUDES = \
 	$(GLIB2_CFLAGS) \
 	$(GMODULE_CFLAGS) \
 	$(EXEMPI_CFLAGS) \
+	$(LIBJPEG_CFLAGS) \
+	$(LIBTIFF_CFLAGS) \
 	$(LIBEXIF_CFLAGS) \
 	$(LIBGSF_CFLAGS) \
 	$(LIBXML2_CFLAGS) \
@@ -28,8 +30,12 @@ if HAVE_EXEMPI
 modules_LTLIBRARIES += libextract-xmp.la
 endif
 
-if HAVE_LIBEXIF
-modules_LTLIBRARIES += libextract-exif.la
+if HAVE_LIBJPEG
+modules_LTLIBRARIES += libextract-jpeg.la
+endif
+
+if HAVE_LIBTIFF
+modules_LTLIBRARIES += libextract-tiff.la
 endif
 
 if HAVE_LIBXML2
@@ -94,10 +100,6 @@ libextract_xmp_la_SOURCES = \
 libextract_xmp_la_LDFLAGS = $(module_flags)
 libextract_xmp_la_LIBADD = $(GLIB2_LIBS) $(EXEMPI_LIBS)
 
-libextract_exif_la_SOURCES = tracker-extract-exif.c
-libextract_exif_la_LDFLAGS = $(module_flags)
-libextract_exif_la_LIBADD = $(GLIB2_LIBS) $(LIBEXIF_LIBS)
-
 libextract_html_la_SOURCES = tracker-extract-html.c
 libextract_html_la_LDFLAGS = $(module_flags)
 libextract_html_la_LIBADD = $(GLIB2_LIBS) $(LIBXML2_LIBS)
@@ -120,6 +122,17 @@ libextract_xine_la_SOURCES = tracker-extract-libxine.c
 libextract_xine_la_LDFLAGS = $(module_flags)
 libextract_xine_la_LIBADD = $(GLIB2_LIBS) $(XINE_LIBS)
 
+libextract_jpeg_la_SOURCES = \
+	tracker-extract-jpeg.c \
+	tracker-xmp.c tracker-xmp.h
+libextract_jpeg_la_LDFLAGS = $(module_flags)
+libextract_jpeg_la_LIBADD = $(GLIB2_LIBS) $(LIBJPEG_LIBS) $(LIBEXIF_LIBS) $(EXEMPI_LIBS)
+
+libextract_tiff_la_SOURCES = \
+	tracker-extract-tiff.c \
+	tracker-xmp.c tracker-xmp.h
+libextract_tiff_la_LDFLAGS = $(module_flags)
+libextract_tiff_la_LIBADD = $(GLIB2_LIBS) $(LIBTIFF_LIBS) $(EXEMPI_LIBS)
 
 bin_PROGRAMS = tracker-extract
 

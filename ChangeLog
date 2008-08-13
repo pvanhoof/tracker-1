@@ -1,5 +1,12 @@
 2008-08-13  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-status.c: (tracker_status_signal): If we
+	are told to signal but there is no TrackerDaemon object created
+	yet, don't error, instead drop the signal request. This occurs
+	when we start up the daemon with a reindex or first time index.
+
+2008-08-13  Martyn Russell  <martyn@imendio.com>
+
 	* src/tracker-utils/Makefile.am: Added GLib and GIO to the CFLAGS
 	and LDFLAGS.
 

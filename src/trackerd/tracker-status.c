@@ -222,6 +222,13 @@ tracker_status_signal (void)
 
         object = tracker_dbus_get_object (TRACKER_TYPE_DAEMON);
 
+	/* There are times on startup whe we haven't initialized the
+	 * DBus objects yet so signalling status is not practical.
+	 */
+	if (!object) {
+		return;
+	}
+
         if (private->is_first_time_index) {
                 pause_on_battery = 
 			!tracker_config_get_disable_indexing_on_battery_init (private->config);

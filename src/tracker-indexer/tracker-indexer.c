@@ -790,6 +790,11 @@ index_metadata_item (TrackerField        *field,
 						      tracker_field_get_filtered (field),
 						      tracker_field_get_filtered (field),
 						      tracker_field_get_delimited (field));
+
+	if (!parsed_value) {
+		return;
+	}
+
 	arr = g_strsplit (parsed_value, " ", -1);
 
 	for (i = 0; arr[i]; i++) {
@@ -1019,6 +1024,8 @@ create_update_item (TrackerIndexer  *indexer,
 	tracker_indexer_module_file_get_uri (info->module, info->file, &dirname, &basename);
 	id = tracker_db_check_service (service_def, dirname, basename);
 
+	g_debug ("Processing item:'%s/%s'", dirname, basename);
+
 	/* FIXME: should check mtime and reindex if necessary */
 
 	if (id == 0) {
@@ -1120,6 +1127,8 @@ delete_item (TrackerIndexer *indexer,
 		return;
 	}
 
+	g_debug ("Deleting item:'%s/%s'", dirname, basename);
+
 	if (!service_type || !service_type[0]) {
 		gchar *name;
 
@@ -1145,7 +1154,7 @@ delete_item (TrackerIndexer *indexer,
 	g_free (basename);
 
 	if (service_id < 1) {
-		g_message ("Can not delete file, it doesnt exist in DB");
+		g_debug ("Can not delete file, it doesnt exist in DB");
 		return;
 	}
 
@@ -1413,8 +1422,6 @@ process_file (TrackerIndexer *indexer,
 	      PathInfo       *info)
 {
 	TrackerMetadata *metadata;
-
-	g_debug ("Processing file:'%s'", info->file->path);
 
 	/* Set the current module */
 	g_free (indexer->private->current_module_name);

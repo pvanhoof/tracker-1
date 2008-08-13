@@ -353,10 +353,18 @@ tracker_parser_text_to_string (const gchar     *txt,
 	gchar       *parsed_text;
 	gchar       *word = NULL;
 	guint32      i = 0;
+        gint         len;
 
         g_return_val_if_fail (language != NULL, NULL);
 
 	if (!txt) {
+                return NULL;
+        }
+
+        len = strlen (txt);
+        len = MIN (len, 500);
+
+        if (!g_utf8_validate (txt, len, NULL)) {
                 return NULL;
         }
 

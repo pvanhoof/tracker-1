@@ -1,3 +1,13 @@
+2008-08-12  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/libtracker-common/tracker-parser.c
+	(tracker_parser_text_to_string): Check we're dealing with sane UTF8.
+	* src/tracker-indexer/tracker-indexer.c	(index_metadata_item): Handle
+	the case where tracker_parser_text_to_string() returns NULL.
+	(delete_item) (create_update_item): Add debug messages that give a
+	better clue about what is it doing at that moment.
+	(process_file): Remove debug message from here.
+
 2008-08-13  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-status.c: (tracker_status_signal): If we

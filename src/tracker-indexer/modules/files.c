@@ -23,6 +23,7 @@
 
 #include <glib.h>
 #include <glib/gstdio.h>
+#include <gio/gio.h>
 
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-file-utils.h>
@@ -182,6 +183,64 @@ tracker_metadata_call_text_filter (const gchar *path,
 }
 
 gchar *
+get_file_content (const gchar *path)
+{
+        GFile            *file;
+        GFileInputStream *stream;
+        GError           *error = NULL;
+        gssize            bytes_read;
+        gssize            bytes_remaining;
+        gchar             buf[1048576];
+
+        file = g_file_new_for_path (path);
+        stream = g_file_read (file, NULL, &error);
+
+        if (error) {
+                g_message ("Couldn't get file file:'%s', %s",
+                           path,
+                           error->message);
+                g_error_free (error);
+                g_object_unref (file);
+
+                return NULL;
+        }
+
+        /* bytes_max = tracker_config_get_max_text_to_index (config); */
+        bytes_remaining = sizeof (buf);
+        memset (buf, 0, bytes_remaining);
+
+        /* NULL termination */
+        bytes_remaining--;
+
+        for (bytes_read = -1; bytes_read != 0 && !error; ) {
+                bytes_read = g_input_stream_read (G_INPUT_STREAM (stream),
+                                                  buf,
+                                                  bytes_remaining,
+                                                  NULL,
+                                                  &error);
+                bytes_remaining -= bytes_read;
+        }
+        
+        if (error) {
+                g_message ("Couldn't get read input stream for:'%s', %s",
+                           path,
+                           error->message);
+                g_error_free (error);
+                g_object_unref (file);
+
+                return NULL;
+        }
+
+        g_object_unref (file);
+
+        g_debug ("Read %d bytes from file:'%s'\n",
+                 sizeof (buf) - bytes_remaining,
+                 path);
+
+        return g_strdup (buf);
+}
+
+gchar *
 tracker_module_file_get_text (TrackerFile *file)
 {
 	gchar *mimetype, *service_type;
@@ -194,16 +253,7 @@ tracker_module_file_get_text (TrackerFile *file)
 	if (service_type && 
             (strcmp (service_type, "Text") == 0 ||
              strcmp (service_type, "Development") == 0)) {
-                GError *error = NULL;
-
-                g_file_get_contents (file->path, &text, NULL, &error);
-
-                if (error) {
-                        g_message ("Couldn't get file contents for:'%s', %s",
-                                   file->path,
-                                   error->message);
-                        g_error_free (error);
-                }
+                text = get_file_content (file->path);
 	} else {
 		text = tracker_metadata_call_text_filter (file->path, mimetype);
 	}

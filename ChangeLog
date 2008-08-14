@@ -1,3 +1,10 @@
+2008-08-14  Martyn Russell  <martyn@imendio.com>
+
+	* src/tracker-indexer/modules/files.c: Don't just use
+	g_file_get_contents() because some files might be quite big.
+	Instead only get the maximum size we would normally index for each
+	file which is "Text" or a "Development" file.
+
 2008-08-14  Carlos Garnacho  <carlos@imendio.com>
 
 	Add FileMove DBus method to tracker-indexer.

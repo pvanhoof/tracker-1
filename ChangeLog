@@ -1,3 +1,21 @@
+2008-08-14  Carlos Garnacho  <carlos@imendio.com>
+
+	Add FileMove DBus method to tracker-indexer.
+
+	* data/dbus/tracker-indexer.xml: Define new method.
+	* data/sqlite-stored-procs.sql: Add MoveService and
+	MoveServiceChildren, stored procedures that actually switch paths in
+	the DB.
+	* src/libtracker-common/tracker-utils.[ch] (tracker_string_replace):
+	Misc fix, that function should take const strings.
+	* src/libtracker-db/tracker-db-manager.c (function_replace): Add a SQL
+	function to replace a substring with other.
+	* src/tracker-indexer/tracker-indexer-db.[ch]
+	(tracker_db_move_service):
+	* src/tracker-indexer/tracker-indexer.[ch]
+	(tracker_indexer_file_move): Implement moving files in
+	tracker-indexer.
+
 2008-08-14  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-parser.[ch]: Fixed the way we

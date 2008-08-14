@@ -328,6 +328,32 @@ tracker_db_delete_service (TrackerService *service,
 }
 
 void
+tracker_db_move_service (TrackerService *service,
+			 const gchar    *from,
+			 const gchar    *to)
+{
+	TrackerDBInterface *iface;
+	GError *error = NULL;
+	gchar *from_dirname, *from_basename, *to_dirname, *to_basename;
+
+	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service),
+							     TRACKER_DB_CONTENT_TYPE_METADATA);
+
+	from_dirname = tracker_file_get_vfs_path (from);
+	from_basename = tracker_file_get_vfs_name (from);
+	to_dirname = tracker_file_get_vfs_path (to);
+	to_basename = tracker_file_get_vfs_name (to);
+
+	tracker_db_interface_execute_procedure (iface, NULL, "MoveService",
+						from_dirname, from_basename,
+						to_dirname, to_basename,
+						NULL);
+
+	/* FIXME: This procedure should use LIKE statement */
+	tracker_db_interface_execute_procedure (iface, &error, "MoveServiceChildren", from, to, from, NULL);
+}
+
+void
 tracker_db_delete_all_metadata (TrackerService *service,
 				guint32         service_id)
 {

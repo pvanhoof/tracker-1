@@ -1472,6 +1472,24 @@ function_compress (TrackerDBInterface *interface,
 	return result;
 }
 
+static GValue
+function_replace (TrackerDBInterface *interface,
+		  gint                argc,
+		  GValue              values[])
+{
+	GValue result = { 0, };
+	gchar *str;
+
+	str = tracker_string_replace (g_value_get_string (&values[0]),
+				      g_value_get_string (&values[1]),
+				      g_value_get_string (&values[2]));
+
+	g_value_init (&result, G_TYPE_STRING);
+	g_value_take_string (&result, str);
+
+	return result;
+}
+
 static void
 db_set_params (TrackerDBInterface *iface,
 	       gint                cache_size,
@@ -1531,7 +1549,10 @@ db_set_params (TrackerDBInterface *iface,
 							     "compress",
 							     function_compress,
 							     1);
-
+		tracker_db_interface_sqlite_create_function (iface,
+							     "replace",
+							     function_replace,
+							     3);
 	}
 }
 

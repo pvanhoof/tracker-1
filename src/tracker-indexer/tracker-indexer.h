@@ -105,6 +105,12 @@ void            tracker_indexer_files_delete       (TrackerIndexer         *inde
 						    GStrv                   files,
 						    DBusGMethodInvocation  *context,
 						    GError                **error);
+void            tracker_indexer_file_move          (TrackerIndexer         *indexer,
+						    const gchar            *module_name,
+						    gchar                  *from,
+						    gchar                  *to,
+						    DBusGMethodInvocation  *context,
+						    GError                **error);
 void            tracker_indexer_property_set       (TrackerIndexer         *indexer,
 						    const gchar            *service_type,
 						    const gchar            *uri,

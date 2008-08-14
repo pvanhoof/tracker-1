@@ -1935,6 +1935,58 @@ tracker_indexer_files_delete (TrackerIndexer *indexer,
 }
 
 void
+tracker_indexer_file_move (TrackerIndexer         *indexer,
+			   const gchar            *module_name,
+			   gchar                  *from,
+			   gchar                  *to,
+			   DBusGMethodInvocation  *context,
+			   GError                **error)
+{
+	GModule *module;
+	TrackerService *service;
+	gchar *service_type;
+	guint request_id;
+	GError *actual_error;
+	PathInfo *info;
+
+	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
+	tracker_dbus_async_return_if_fail (from != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (to != NULL, FALSE);
+
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_request_new (request_id,
+                                  "DBus request to move '%s' to '%s'",
+				  from, to);
+
+	module = g_hash_table_lookup (indexer->private->indexer_modules, module_name);
+
+	if (!module) {
+		tracker_dbus_request_failed (request_id,
+					     &actual_error,
+					     "The module '%s' is not loaded",
+					     module_name);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
+
+	/* FIXME: This should be probably queued up somewhere */
+	info = path_info_new (module, module_name, to);
+
+	service_type = tracker_indexer_module_file_get_service_type (module, info->file);
+	service = tracker_ontology_get_service_type_by_name (service_type);
+	g_free (service_type);
+
+	tracker_db_move_service (service, from, to);
+
+	dbus_g_method_return (context);
+	tracker_dbus_request_success (request_id);
+
+	path_info_free (info);
+}
+
+void
 tracker_indexer_property_set (TrackerIndexer         *indexer,
 			      const gchar            *service_type,
 			      const gchar            *uri,

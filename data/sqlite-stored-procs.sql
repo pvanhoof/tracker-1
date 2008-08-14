@@ -48,6 +48,8 @@ SetOption REPLACE into Options (OptionKey, OptionValue) values (?,?);
 
 CreateService INSERT INTO Services (ID, Path, Name, ServiceTypeID, Mime, Size, IsDirectory, IsLink, Offset, IndexTime, AuxilaryID) VALUES (?,?,?,?,?,?,?,?,?,?,?); 
 
+MoveService UPDATE Services SET Path = ?, Name = ? WHERE Path = ? AND Name = ?;
+MoveServiceChildren UPDATE Services SET Path = replace (Path, ?, ?);
 
 GetServiceID SELECT ID, IndexTime, IsDirectory, ServiceTypeID FROM Services WHERE Path = ? AND Name = ?;
 
@@ -75,7 +77,6 @@ DeleteService8 Delete FROM ServiceLinks Where (SourcePath = ?) or (SourcePath gl
 DeleteService9 Delete FROM ServiceLinks Where (DestPath = ? and DestName = ?);
 DeleteService10 Delete FROM ServiceLinks Where (DestPath = ?) or (DestPath glob ?); 
 DeleteService11 DELETE FROM ServiceContents where ServiceID = ?;
-
 
 DeleteServiceMetadata DELETE FROM ServiceMetaData WHERE ServiceID = ?;
 DeleteServiceKeywordMetadata DELETE FROM ServiceMetaData WHERE ServiceID = ?;

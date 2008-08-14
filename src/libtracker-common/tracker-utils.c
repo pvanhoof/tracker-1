@@ -71,9 +71,9 @@ tracker_string_remove (gchar       *haystack,
 }
 
 gchar *
-tracker_string_replace (const gchar *haystack, 
-			gchar       *needle, 
-			gchar       *replacement)
+tracker_string_replace (const gchar *haystack,
+			const gchar *needle,
+			const gchar *replacement)
 {
         GString *str;
         gint     pos, needle_len;
@@ -85,6 +85,7 @@ tracker_string_replace (const gchar *haystack,
 
         str = g_string_new ("");
 
+	/* FIXME: should use strstr */
         for (pos = 0; haystack[pos]; pos++) {
                 if (strncmp (&haystack[pos], needle, needle_len) == 0) {
 			if (replacement) {

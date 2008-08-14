@@ -28,8 +28,8 @@
 
 gboolean tracker_is_empty_string            (const char    *str);
 gchar *  tracker_string_replace             (const gchar   *haystack,
-					     gchar         *needle,
-					     gchar         *replacement);
+					     const gchar   *needle,
+					     const gchar   *replacement);
 gchar *  tracker_string_remove              (gchar         *haystack,
 					     const gchar   *needle);
 gchar *  tracker_escape_string              (const gchar   *in);

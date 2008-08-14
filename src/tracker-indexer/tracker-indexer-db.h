@@ -48,6 +48,9 @@ gboolean tracker_db_create_service        (TrackerService     *service,
 void     tracker_db_delete_service        (TrackerService     *service,
 					   guint32             id);
 
+void     tracker_db_move_service          (TrackerService     *service,
+					   const gchar        *from,
+					   const gchar        *to);
 
 /* Metadata */
 void     tracker_db_set_metadata          (TrackerService     *service,

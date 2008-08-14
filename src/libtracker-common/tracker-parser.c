@@ -166,7 +166,7 @@ analyze_text (const gchar      *text,
               gboolean          filter_words, 
               gboolean          filter_numbers, 
               gboolean          delimit_hyphen,
-              const gchar     **index_word)
+              gchar           **index_word)
 {
         TrackerParserWordType word_type;
         gunichar              word[64];
@@ -286,58 +286,57 @@ analyze_text (const gchar      *text,
                 word[length -1] = c;
         }
         
-        if (is_valid) {
-                if (word_type == TRACKER_PARSER_WORD_NUM) {
-                        if (!filter_numbers || length >= INDEX_NUMBER_MIN_LENGTH) {
-                                *index_word = g_ucs4_to_utf8 (word, length, NULL, NULL, NULL);
-                        } 
-                } else {
-                        if (length >= min_word_length) {
-                                gchar 	*str = NULL;
-                                gchar   *tmp;
-                                guint32  len;
-                                gchar   *utf8;
-                                
-                                utf8 = g_ucs4_to_utf8 (word, length, NULL, &bytes, NULL);
-                                
-                                if (!utf8) {
-                                        return p;
-                                }
-				
-                                if (do_strip) {
-                                        str = strip_word (utf8, bytes, &len);
-                                }
-                                
-                                if (!str) {
-                                        tmp = g_utf8_normalize (utf8, bytes, G_NORMALIZE_NFC);
-                                } else {
-                                        tmp = g_utf8_normalize (str, len, G_NORMALIZE_NFC);
-                                        g_free (str);
-                                }
-                                
-                                g_free (utf8);
-                                
-                                *index_word = tracker_language_stem_word (language, 
-                                                                          tmp, 
-                                                                          strlen (tmp));
-                                g_free (tmp);
-                                
-                                if (filter_words && is_stop_word (language, *index_word)) {
-                                        *index_word = NULL;
-                                }
-                        }
+        if (!is_valid) {
+                return p;
+        }
+
+        if (word_type == TRACKER_PARSER_WORD_NUM) {
+                if (!filter_numbers || length >= INDEX_NUMBER_MIN_LENGTH) {
+                        *index_word = g_ucs4_to_utf8 (word, length, NULL, NULL, NULL);
+                } 
+        } else if (length >= min_word_length) {
+                const gchar *stem_word;
+                gchar       *stripped_word;
+                gchar       *str;
+                gchar       *utf8;
+                guint32      len;
+                
+                utf8 = g_ucs4_to_utf8 (word, length, NULL, &bytes, NULL);
+                
+                if (!utf8) {
+                        return p;
                 }
-        } 
+		
+                if (do_strip) {
+                        stripped_word = strip_word (utf8, bytes, &len);
+                } else {
+                        stripped_word = NULL;
+                }
+                
+                if (!stripped_word) {
+                        str = g_utf8_normalize (utf8, 
+                                                bytes, 
+                                                G_NORMALIZE_NFC);
+                } else {
+                        str = g_utf8_normalize (stripped_word, 
+                                                len, 
+                                                G_NORMALIZE_NFC);
+                        g_free (stripped_word);
+                }
+                
+                g_free (utf8);
+                               
+                stem_word = tracker_language_stem_word (language, 
+                                                        str, 
+                                                        strlen (str));
+                g_free (str);
+               
+                if (!filter_words || !is_stop_word (language, stem_word)) {
+                        *index_word = g_strdup (stem_word);
+                }
+        }
         
         return p;	
-}
-
-static void
-delete_words (gpointer key,
-              gpointer value,
-              gpointer user_data)
-{
-	g_free (key);
 }
 
 gchar *
@@ -425,8 +424,8 @@ tracker_parser_text_to_string (const gchar     *txt,
 		parsed_text = g_string_free (strs, FALSE);
 		return g_strstrip (parsed_text);
         } else {
-                GString     *str;
-                const gchar *word;
+                GString *str;
+                gchar   *word;
 
                 str = g_string_new (" ");
                 
@@ -444,6 +443,7 @@ tracker_parser_text_to_string (const gchar     *txt,
                         if (word) {
                                 g_string_append (str, word);
                                 g_string_append_c (str, ' ');
+                                g_free (word);
                         }
                         
                         if (!p || !*p) {
@@ -494,7 +494,10 @@ tracker_parser_text_fast (GHashTable  *word_table,
 
         /* Use this for already processed text only */
 	if (!word_table) {
-		word_table = g_hash_table_new (g_str_hash, g_str_equal);
+		word_table = g_hash_table_new_full (g_str_hash, 
+                                                    g_str_equal,
+                                                    g_free,
+                                                    NULL);
 	} 
 
 	if (!txt || weight == 0) {
@@ -525,11 +528,11 @@ tracker_parser_text_fast (GHashTable  *word_table,
 }
 
 static gboolean
-word_table_increment (GHashTable  *word_table,
-                      const gchar *index_word, 
-                      gint         weight,
-                      gint         total_words,
-                      gint         max_words_to_index) 
+word_table_increment (GHashTable *word_table,
+                      gchar      *index_word, 
+                      gint        weight,
+                      gint        total_words,
+                      gint        max_words_to_index) 
 {
         gboolean update_count;
 
@@ -542,10 +545,11 @@ word_table_increment (GHashTable  *word_table,
                 p = g_hash_table_lookup (word_table, index_word);
                 count = GPOINTER_TO_INT (p);
 
-                /* Take a copy the first time */
-                g_hash_table_insert (word_table, 
-                                     count == 0 ? g_strdup (index_word) : (gchar*) index_word, 
-                                     GINT_TO_POINTER (count + weight));
+                g_hash_table_replace (word_table, 
+                                      index_word,
+                                      GINT_TO_POINTER (count + weight));
+        } else {
+                g_free (index_word);
         }
 
         return update_count;
@@ -571,7 +575,10 @@ tracker_parser_text (GHashTable      *word_table,
         g_return_val_if_fail (language != NULL, NULL);
 
 	if (!word_table) {
-		word_table = g_hash_table_new (g_str_hash, g_str_equal);
+		word_table = g_hash_table_new_full (g_str_hash, 
+                                                    g_str_equal,
+                                                    g_free,
+                                                    NULL);
 		total_words = 0;
 	} else {
 		total_words = g_hash_table_size (word_table);
@@ -612,31 +619,29 @@ tracker_parser_text (GHashTable      *word_table,
 				end_word = g_utf8_offset_to_pointer (txt, i);
 
 				if (start_word != end_word) {
-					gchar    *s;
+					gchar    *str;
 					gchar    *index_word;
                                         gboolean  was_updated;
 
 					/* Normalize word */
-                                        s = g_utf8_casefold (start_word, end_word - start_word);
-					if (!s) {
+                                        str = g_utf8_casefold (start_word, end_word - start_word);
+					if (!str) {
                                                 continue;
                                         }
 
-                                        index_word = g_utf8_normalize (s, -1, G_NORMALIZE_NFC);
-					g_free (s);
+                                        index_word = g_utf8_normalize (str, -1, G_NORMALIZE_NFC);
+					g_free (str);
 
 					if (!index_word) {
                                                 continue;
                                         }
-					
-					total_words++;
 
+					total_words++;
                                         was_updated = word_table_increment (word_table, 
                                                                             index_word,        
                                                                             weight, 
                                                                             total_words,
                                                                             max_words_to_index);
-                                        g_free (index_word);
 
                                         if (!was_updated) {
                                                 break;
@@ -653,7 +658,7 @@ tracker_parser_text (GHashTable      *word_table,
 
 		g_free (attrs);		
 	} else {
-                const gchar *word;
+                gchar *word;
 
 		while (TRUE) {
 			i++;
@@ -685,13 +690,4 @@ tracker_parser_text (GHashTable      *word_table,
 	}
 
 	return word_table;
-}
-
-void
-tracker_parser_text_free (GHashTable *table)
-{
-	if (table) {
-		g_hash_table_foreach (table, delete_words, NULL);		
-		g_hash_table_destroy (table);
-	}
 }

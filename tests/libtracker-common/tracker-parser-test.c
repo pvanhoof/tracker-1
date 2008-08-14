@@ -51,7 +51,7 @@ test_parser_text_max_words_to_index (void)
         
         g_assert_cmpint (g_hash_table_size (result), ==, 5);
 
-        tracker_parser_text_free (result);
+        g_hash_table_unref (result);
 }
 
 /*
@@ -75,7 +75,7 @@ test_parser_text_max_length (void)
         g_hash_table_foreach (result, assert_key_length, GINT_TO_POINTER (max_length));
         g_assert_cmpint (g_hash_table_size (result), ==, 8);
 
-        tracker_parser_text_free (result);        
+        g_hash_table_unref (result);
 }
 
 /*
@@ -100,7 +100,7 @@ test_parser_text_filter_numbers_stop_words (void)
 
         g_assert_cmpint (g_hash_table_size (result), ==, 4);
 
-        tracker_parser_text_free (result);        
+        g_hash_table_unref (result);
         result = NULL;
 
         /* No filter */
@@ -117,7 +117,7 @@ test_parser_text_filter_numbers_stop_words (void)
 
         g_assert (g_hash_table_lookup (result, "12345678"));
 
-        tracker_parser_text_free (result);        
+        g_hash_table_unref (result);
         result = NULL;
 }
 

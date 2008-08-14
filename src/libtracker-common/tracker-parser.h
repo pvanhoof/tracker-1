@@ -66,7 +66,6 @@ gchar **    tracker_parser_text_into_array (const gchar     *text,
 					    TrackerLanguage *language,
 					    gint             max_word_length,
 					    gint             min_word_length);
-void        tracker_parser_text_free       (GHashTable      *table);
 
 G_END_DECLS
 

@@ -111,7 +111,7 @@ main (int argc, char **argv)
 		if (error) {
 			g_printerr ("%s:'%s', %s\n",
 				    _("Could not get files by service type"), 
-				    type,
+				    service,
 				    error->message);
 			g_error_free (error);
 

@@ -1,5 +1,40 @@
 2008-08-14  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-parser.[ch]: Fixed the way we
+	handle memory with the hash words table here. We now also don't
+	create the index word in memory before checking if we are
+	filtering words and if it is a stop word only to then free it
+	again which we were doing.
+	
+	* src/libtracker-db/tracker-db-index.c: (tracker_db_index_flush):
+	If the index is not open when we try to flush, try and open it
+	first. 
+	
+	* src/tracker-extract/tracker-extract-tiff.c:
+	(tracker_extract_tiff): 
+	* tests/libtracker-db/tracker-db-dbus-test.c:
+	(test_dbus_query_result_to_ptr_array):  Fixed compiler warnings.
+	
+	* src/tracker-indexer/tracker-indexer.c: Fixed a nasty crash I
+	introduced last commit and clean up the merge function for words
+	tables. Plus make sure we free basename and dirname in
+	delete_item(), this was quite a leak.
+	
+	* src/tracker-utils/tracker-files.c: (main): Fixed printing a %d
+	as a %s.
+	
+	* src/trackerd/tracker-db.c: (update_metadata_index): 
+	* tests/libtracker-common/tracker-parser-test.c: Use
+	g_hash_table_unref() instead of the custom function we had for the
+	parser for freeing hash tables.
+	
+	* src/trackerd/tracker-processor.c: (tracker_processor_stop):
+	Fixed a warning where the trackerd would stop before it started
+	processing (due to Ctrl+C) and the private->timer was NULL, so
+	using it caused warnings.
+
+2008-08-14  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/Makefile.am:
 	* src/tracker-indexer/Makefile.am:
 	* src/tracker-indexer/modules/Makefile.am: Include -g so we get

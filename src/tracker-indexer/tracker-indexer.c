@@ -881,7 +881,7 @@ send_text_to_index (TrackerIndexer *indexer,
 	}
 
 	if (full_parsing) {
-		parsed = tracker_parser_text (parsed,
+		parsed = tracker_parser_text (NULL,
 					      text,
 					      weight_factor,
 					      indexer->private->language,
@@ -894,13 +894,13 @@ send_text_to_index (TrackerIndexer *indexer,
 		/* We dont know the exact property weight. 
 		   Big value works.
 		 */
-		parsed = tracker_parser_text_fast (parsed,
+		parsed = tracker_parser_text_fast (NULL,
 						   text,
 						   weight_factor); 
 	}
 
 	g_hash_table_iter_init (&iter, parsed);
-
+	
 	while (g_hash_table_iter_next (&iter, &key, &value)) {
 		tracker_db_index_add_word (indexer->private->index,
 					   key,
@@ -908,8 +908,8 @@ send_text_to_index (TrackerIndexer *indexer,
 					   service_type,
 					   GPOINTER_TO_INT (value));
 	}
-
-	tracker_parser_text_free (parsed);
+	
+	g_hash_table_unref (parsed);
 }
 
 static void
@@ -1014,28 +1014,34 @@ merge_word_table (gpointer key,
 		  gpointer user_data)
 {
 	GHashTable *new_table;
-	gpointer    k = NULL;
-	gpointer    v = NULL;
+	gpointer    k;
+	gpointer    v;
 	gchar      *word;
-	gint	    score;
+	gint	    new_score;
 
 	word = key;
-	score = GPOINTER_TO_INT (value);
+	new_score = GPOINTER_TO_INT (value);
 	new_table = user_data;
 
-	if (!g_hash_table_lookup_extended (new_table, word, &k, &v)) {
-		g_hash_table_insert (new_table, 
-				     g_strdup (word), 
-				     GINT_TO_POINTER (0 - score));
-	} else {
-                if ((GPOINTER_TO_INT (v) - score) != 0) {
+	if (g_hash_table_lookup_extended (new_table, word, &k, &v)) {
+		gint old_score;
+		gint calculated_score;
+		
+		old_score = GPOINTER_TO_INT (v);
+		calculated_score = old_score - new_score;
+
+		if (calculated_score != 0) {
                         g_hash_table_insert (new_table, 
-                                             (gchar *) word, 
-                                             GINT_TO_POINTER (GPOINTER_TO_INT (v) - score));
+                                             g_strdup (word), 
+                                             GINT_TO_POINTER (calculated_score));
                 } else {
                         /* The word is the same in old and new text */
                         g_hash_table_remove (new_table, word);
-                }
+		}
+	} else {
+		g_hash_table_insert (new_table, 
+				     g_strdup (word), 
+				     GINT_TO_POINTER (0 - new_score));
 	}
 }
 
@@ -1152,8 +1158,8 @@ create_update_item (TrackerIndexer  *indexer,
 						 tracker_service_get_id (service_def), 
 						 new_words);
 
-			tracker_parser_text_free (old_words);
-			tracker_parser_text_free (new_words);
+			g_hash_table_unref (old_words);
+			g_hash_table_unref (new_words);
 		}
 
 		g_free (old_text);
@@ -1198,6 +1204,8 @@ delete_item (TrackerIndexer *indexer,
 
 		if (service_type_id == 0) {
 			/* File didn't exist, nothing to delete */
+			g_free (dirname);
+			g_free (basename);
 			return;
 		}
 

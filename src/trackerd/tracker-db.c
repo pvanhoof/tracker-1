@@ -261,8 +261,8 @@ update_metadata_index (const gchar  *id,
 	tracker_db_update_differential_index (old_table, new_table, id, sid);
 #endif
 
-	tracker_parser_text_free (old_table);
-	tracker_parser_text_free (new_table);
+	g_hash_table_unref (old_table);
+	g_hash_table_unref (new_table);
 }
 
 static gchar *

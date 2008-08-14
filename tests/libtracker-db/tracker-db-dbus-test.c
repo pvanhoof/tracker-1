@@ -120,7 +120,6 @@ test_dbus_query_result_to_ptr_array ()
 {
         TrackerDBResultSet *result_set = NULL;
         GPtrArray *result = NULL;
-        gint       count;
 
         /* NULL */
         result = tracker_dbus_query_result_to_ptr_array (result_set);

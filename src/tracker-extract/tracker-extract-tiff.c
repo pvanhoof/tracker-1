@@ -99,8 +99,6 @@ tracker_extract_tiff (const gchar *filename, GHashTable *metadata)
 {
 	TIFF     *image;
 	long      exifOffset;
-	gchar    *xmpOffset;
-	uint32    size;
 
 	TiffTag  *tag;
 

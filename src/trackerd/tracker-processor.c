@@ -1305,6 +1305,8 @@ tracker_processor_start (TrackerProcessor *processor)
 void
 tracker_processor_stop (TrackerProcessor *processor)
 {
+	gdouble elapsed;
+
 	g_return_if_fail (TRACKER_IS_PROCESSOR (processor));
 
 	if (processor->private->interrupted) {
@@ -1323,10 +1325,15 @@ tracker_processor_stop (TrackerProcessor *processor)
 	g_message ("Process %s\n",
 		   processor->private->finished ? "has finished" : "been stopped");
 
-	g_timer_stop (processor->private->timer);
+	if (processor->private->timer) {
+		g_timer_stop (processor->private->timer);
+		elapsed = g_timer_elapsed (processor->private->timer, NULL);
+	} else {
+		elapsed = 0;
+	}
 
 	g_message ("Total time taken : %4.4f seconds",
-		   g_timer_elapsed (processor->private->timer, NULL));
+		   elapsed);
 	g_message ("Total directories: %d (%d ignored)", 
 		   processor->private->directories_found,
 		   processor->private->directories_ignored);

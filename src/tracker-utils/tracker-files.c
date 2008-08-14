@@ -61,10 +61,10 @@ int
 main (int argc, char **argv) 
 {
 
-	TrackerClient *client = NULL;
-	ServiceType type;
-	GError *error = NULL;
+	TrackerClient  *client;
+	ServiceType     type;
 	GOptionContext *context;
+	GError         *error = NULL;
 
 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
 	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
@@ -102,27 +102,34 @@ main (int argc, char **argv)
 		type = tracker_service_name_to_type (service);
 
 		array = tracker_files_get_by_service_type (client, 
-							   time(NULL), 
+							   time (NULL), 
 							   type, 
 							   offset, 
 							   limit, 
 							   &error);
 
 		if (error) {
-			g_warning ("Could not get files by service type, %s", 
-                                   error->message);
+			g_printerr ("%s:'%s', %s\n",
+				    _("Could not get files by service type"), 
+				    type,
+				    error->message);
 			g_error_free (error);
+
 			return EXIT_FAILURE;
 		}
 
 		if (!array) {
 			g_print ("%s\n",
-				 _("No results were found matching your query"));
+				 _("No files found by that service type"));
+
 			return EXIT_FAILURE;
 		}
 
+		g_print ("%s:\n",
+			 _("Results"));
+
 		for (p_strarray = array; *p_strarray; p_strarray++) {
-			g_print ("%s\n", *p_strarray);
+			g_print ("  %s\n", *p_strarray);
 		}
 
 		g_strfreev (array);
@@ -130,30 +137,36 @@ main (int argc, char **argv)
 
 	if (mimes) {
 		gchar **array;
-		gchar **p_strarray;
+		gchar **p;
 
 		array = tracker_files_get_by_mime_type (client, 
-							time(NULL), 
+							time (NULL), 
 							mimes, 
 							offset, 
 							limit, 
 							&error);
 
 		if (error) {
-			g_warning ("Could not get files by mime type, %s", 
-                                   error->message);
+			g_printerr ("%s, %s\n",
+				    _("Could not get files by MIME type"), 
+				    error->message);
 			g_error_free (error);
+
 			return EXIT_FAILURE;
 		}
 
 		if (!array) {
 			g_print ("%s\n",
-				 _("No results were found matching your query"));
+				 _("No files found by those MIME types"));
+
 			return EXIT_FAILURE;
 		}
 
-		for (p_strarray = array; *p_strarray; p_strarray++) {
-			g_print ("%s\n", *p_strarray);
+		g_print ("%s:\n",
+			 _("Results"));
+
+		for (p = array; *p; p++) {
+			g_print ("  %s\n", *p);
 		}
 
 		g_strfreev (array);

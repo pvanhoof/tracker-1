@@ -245,6 +245,9 @@ main (int argc, char **argv)
                         g_print ("%s\n",
 				 _("No results found matching your query"));
                 } else {
+			g_print ("%s:\n",
+				 _("Results"));
+
                         for (p = strv; *p; p++) {
                                 gchar *s;
                                 
@@ -254,7 +257,7 @@ main (int argc, char **argv)
                                         continue;
                                 }
                                 
-                                g_print ("%s\n", s);
+                                g_print ("  %s\n", s);
                                 g_free (s);
                         }
 

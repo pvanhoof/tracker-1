@@ -122,7 +122,8 @@ tracker_indexer_module_file_get_uri (GModule      *module,
 				     gchar       **basename)
 {
 	TrackerModuleFileGetUriFunc func;
-	gchar *tmp_dirname, *tmp_basename;
+	gchar *tmp_dirname;
+	gchar *tmp_basename;
 
 	tmp_dirname = tmp_basename = NULL;
 
@@ -136,10 +137,14 @@ tracker_indexer_module_file_get_uri (GModule      *module,
 	if (tmp_dirname && tmp_basename) {
 		if (dirname) {
 			*dirname = tmp_dirname;
+		} else {
+			g_free (tmp_dirname);
 		}
 
 		if (basename) {
 			*basename = tmp_basename;
+		} else {
+			g_free (tmp_basename);
 		}
 
 		return TRUE;

@@ -174,12 +174,11 @@ main (int argc, char **argv)
 	}
 
 	if (files) {
-                /* gchar *path; */
-
                 files_resolved = g_new0 (gchar*, g_strv_length (files) + 1);
 
 		for (i = 0, j = 0; files[i] != NULL; i++) {
                         /* GFile *file; */
+			/* gchar *path; */
                         
                         /* file = g_file_new_for_commandline_arg (files[i]); */
                         /* path = g_file_get_path (file); */
@@ -297,8 +296,8 @@ main (int argc, char **argv)
                         g_print ("%s\n",
 				 _("No tags found"));
                 } else {
-                        g_print ("%s\n",
-				 _("All tags:"));
+                        g_print ("%s:\n",
+				 _("All tags"));
 
                         g_ptr_array_foreach (array, (GFunc) get_meta_table_data, NULL);
                         g_ptr_array_free (array, TRUE);
@@ -307,8 +306,8 @@ main (int argc, char **argv)
 
 	if ((files && list) || 
             (files && (!add && !remove && !remove_all))) {
-                g_print ("%s\n",
-                         _("Tags found:"));
+                g_print ("%s:\n",
+                         _("Tags found"));
 
 		for (i = 0, j = 0; files_resolved[i] != NULL; i++) {
 			gchar **tags;

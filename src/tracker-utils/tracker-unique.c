@@ -212,6 +212,9 @@ main (int argc, char **argv)
                 g_print ("%s\n",
 			 _("No results found matching your query"));
         } else {
+		g_print ("%s:\n",
+			 _("Results"));
+
                 g_ptr_array_foreach (array, (GFunc) get_meta_table_data, NULL);
                 g_ptr_array_free (array, TRUE);
         }

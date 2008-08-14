@@ -1,4 +1,62 @@
+2008-08-14  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/Makefile.am:
+	* src/tracker-indexer/Makefile.am:
+	* src/tracker-indexer/modules/Makefile.am: Include -g so we get
+	debugging symbols to use in gdb.
+	
+	* src/libtracker-common/tracker-language.[ch]: Change the
+	_get_stem_word() API to return a const gchar*.
+	
+	* src/libtracker-common/tracker-ontology.c:
+	(tracker_ontology_shutdown): Use g_hash_table_unref() instead of
+	_destroy() in case the table is referenced somewhere else.
+	
+	* src/libtracker-common/tracker-parser.c: Use const strings from
+	tracker_language_get_stem_word() instead of dups and modularise
+	the code a bit more to make it clearer what is going.
+	
+	* src/tracker-indexer/modules/files.c:
+	(tracker_module_file_get_text): Dont't use
+	g_mapped_file_get_contents() with g_strdup() since the first call
+	can return a NON-NULL-terminated string. Instead use
+	g_file_get_contents(). We might want to improve this by using GIO
+	functions later.
+	
+	* src/tracker-indexer/tracker-dbus.c: Fix compiler warning.
+	
+	* src/tracker-indexer/tracker-indexer-db.c: 
+	* src/tracker-indexer/tracker-indexer.c: Cleaned up the code,
+	removed unnecessary parenthesis and casting. 
+	
+	* src/tracker-indexer/tracker-indexer-module.c:
+	(tracker_indexer_module_file_get_uri): If either basename or
+	dirname pointers are NULL, make sure we free either one when they
+	are. 
+
+	* src/tracker-indexer/tracker-indexer.c: Fixed a nasty memory leak
+	in create_update_item() when calling tracker_db_get_text() and
+	tracker_indexer_module_file_get_text() we now free the return
+	values. Other memory improvements made here, like using the
+	GHashTableIter instead of getting all keys and going through the
+	list for after parsing text in send_text_to_index().
+	
+	* src/tracker-indexer/tracker-main.c: (main): Actually call the
+	shutdown functions for dbus, log and db_index_manager. Now objects
+	should all finalize properly.
+	
+	* src/tracker-utils/tracker-meta-folder.c: Refactored and made to
+	use GOption now.
+	
+	* src/tracker-utils/tracker-files.c: 
+	* src/tracker-utils/tracker-search.c:
+	* src/tracker-utils/tracker-tag.c: 
+	* src/tracker-utils/tracker-unique.c: Improved print formatting
+	and don't use warnings for errors reported to us from DBus about
+	the Tracker service.
+
 2008-08-13  Mikael Ottela   <mikael.ottela@ixonos.com>
+
 	* thumbnailers/image/Makefile.am:
 	* thumbnailers/image/hildon:
 	* thumbnailers/image/hildon/jpeg_thumbnailer:

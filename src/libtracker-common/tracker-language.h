@@ -53,7 +53,7 @@ TrackerConfig *  tracker_language_get_config       (TrackerLanguage *language);
 GHashTable *     tracker_language_get_stop_words   (TrackerLanguage *language);
 void             tracker_language_set_config       (TrackerLanguage *language,
 						    TrackerConfig   *config);
-gchar *          tracker_language_stem_word        (TrackerLanguage *language,
+const gchar *    tracker_language_stem_word        (TrackerLanguage *language,
 						    const gchar     *word,
 						    gint             word_length);
 

@@ -172,7 +172,7 @@ enum {
 	LAST_SIGNAL
 };
 
-static gboolean process_func (gpointer data);
+static gboolean process_func           (gpointer        data);
 static void     check_disk_space_start (TrackerIndexer *indexer);
 
 static guint signals[LAST_SIGNAL] = { 0, };
@@ -836,7 +836,7 @@ index_metadata_foreach (TrackerField *field,
 	} else {
 		GList *list;
 
-		list = (GList *) value;
+		list = value;
 
 		while (list) {
 			index_metadata_item (field, list->data, data);
@@ -866,15 +866,15 @@ index_metadata (TrackerIndexer  *indexer,
 
 static void
 send_text_to_index (TrackerIndexer *indexer,
-		    gint service_id,
-		    gint service_type,
-		    const gchar *text,
-		    gboolean full_parsing,
-		    gint weight_factor)
+		    gint            service_id,
+		    gint            service_type,
+		    const gchar    *text,
+		    gboolean        full_parsing,
+		    gint            weight_factor)
 {
-	GHashTable *parsed = NULL;
-	GList      *words = NULL, *iter;
-	gint        weight;
+	GHashTable     *parsed;
+	GHashTableIter  iter;
+	gpointer        key, value;
 
 	if (!text) {
 		return;
@@ -891,63 +891,100 @@ send_text_to_index (TrackerIndexer *indexer,
 					      tracker_config_get_enable_stemmer (indexer->private->config),
 					      FALSE);
 	} else {
+		/* We dont know the exact property weight. 
+		   Big value works.
+		 */
 		parsed = tracker_parser_text_fast (parsed,
 						   text,
-						   weight_factor); /* We dont know the exact property weight. Big value works */
+						   weight_factor); 
 	}
 
-	words = g_hash_table_get_keys (parsed);
+	g_hash_table_iter_init (&iter, parsed);
 
-	for (iter = words; iter != NULL; iter = iter->next) {
-		weight = GPOINTER_TO_INT (g_hash_table_lookup (parsed, (gchar *)iter->data));
-
+	while (g_hash_table_iter_next (&iter, &key, &value)) {
 		tracker_db_index_add_word (indexer->private->index,
-					   (gchar *)iter->data,
+					   key,
 					   service_id,
 					   service_type,
-					   weight);
+					   GPOINTER_TO_INT (value));
 	}
 
 	tracker_parser_text_free (parsed);
-	g_list_free (words);
 }
 
-
 static void
-index_text_with_parsing (TrackerIndexer *indexer, gint service_id, gint service_type_id, const gchar *content, gint weight_factor)
+index_text_with_parsing (TrackerIndexer *indexer, 
+			 gint            service_id, 
+			 gint            service_type_id, 
+			 const gchar    *content, 
+			 gint            weight_factor)
 {
-	send_text_to_index (indexer, service_id, service_type_id, content, TRUE, weight_factor);
+	send_text_to_index (indexer, 
+			    service_id, 
+			    service_type_id, 
+			    content, 
+			    TRUE, 
+			    weight_factor);
 }
 
 static void
-unindex_text_with_parsing (TrackerIndexer *indexer, gint service_id, gint service_type_id, const gchar *content, gint weight_factor)
+unindex_text_with_parsing (TrackerIndexer *indexer, 
+			   gint            service_id, 
+			   gint            service_type_id, 
+			   const gchar    *content, 
+			   gint            weight_factor)
 {
-	send_text_to_index (indexer, service_id, service_type_id, content, TRUE, -1 * weight_factor);
+	send_text_to_index (indexer, 
+			    service_id, 
+			    service_type_id, 
+			    content, 
+			    TRUE, 
+			    weight_factor * -1);
 }
 
 static void
-index_text_no_parsing (TrackerIndexer *indexer, gint service_id, gint service_type_id, const gchar *content, gchar weight_factor)
+index_text_no_parsing (TrackerIndexer *indexer, 
+		       gint            service_id, 
+		       gint            service_type_id, 
+		       const gchar    *content, 
+		       gchar           weight_factor)
 {
-	send_text_to_index (indexer, service_id, service_type_id, content, FALSE, weight_factor);
+	send_text_to_index (indexer, 
+			    service_id, 
+			    service_type_id, 
+			    content, 
+			    FALSE, 
+			    weight_factor);
 }
 
 static void
-unindex_text_no_parsing (TrackerIndexer *indexer, gint service_id, gint service_type_id, const gchar *content, gint weight_factor)
+unindex_text_no_parsing (TrackerIndexer *indexer, 
+			 gint            service_id, 
+			 gint            service_type_id, 
+			 const gchar    *content, 
+			 gint            weight_factor)
 {
-	send_text_to_index (indexer, service_id, service_type_id, content, FALSE, -1 * weight_factor);
+	send_text_to_index (indexer, 
+			    service_id, 
+			    service_type_id, 
+			    content, 
+			    FALSE,
+			    weight_factor * -1);
 }
 
 static void
-update_word_foreach (gpointer key, gpointer value, gpointer user_data)
+update_word_foreach (gpointer key,
+		     gpointer value, 
+		     gpointer user_data)
 {
 	gchar                  *word;
 	UpdateWordsForeachData *data;
 	gint                    score;
 
-	word = (gchar *)key;
+	word = key;
 	score = GPOINTER_TO_INT (value);
-	
-	data = (UpdateWordsForeachData *)user_data;
+
+	data = user_data;
 
 	tracker_db_index_add_word (data->index,
 				   word,
@@ -957,9 +994,11 @@ update_word_foreach (gpointer key, gpointer value, gpointer user_data)
 }
 
 static void
-update_words_no_parsing (TrackerIndexer *indexer, gint service_id, gint service_type_id, GHashTable *words)
+update_words_no_parsing (TrackerIndexer *indexer,
+			 gint            service_id, 
+			 gint            service_type_id, 
+			 GHashTable     *words)
 {
-
 	UpdateWordsForeachData user_data;
 
 	user_data.index = indexer->private->index;
@@ -967,28 +1006,27 @@ update_words_no_parsing (TrackerIndexer *indexer, gint service_id, gint service_
 	user_data.service_type_id = service_type_id;
 
 	g_hash_table_foreach (words, update_word_foreach, &user_data);
-
-
 }
-
 
 static void
 merge_word_table (gpointer key,
 		  gpointer value,
 		  gpointer user_data)
 {
-	char	   *word;
-	int	    score;
 	GHashTable *new_table;
+	gpointer    k = NULL;
+	gpointer    v = NULL;
+	gchar      *word;
+	gint	    score;
 
-	gpointer k=0, v=0;
-
-	word = (char *) key;
+	word = key;
 	score = GPOINTER_TO_INT (value);
 	new_table = user_data;
 
 	if (!g_hash_table_lookup_extended (new_table, word, &k, &v)) {
-		g_hash_table_insert (new_table, g_strdup (word), GINT_TO_POINTER (0 - score));
+		g_hash_table_insert (new_table, 
+				     g_strdup (word), 
+				     GINT_TO_POINTER (0 - score));
 	} else {
                 if ((GPOINTER_TO_INT (v) - score) != 0) {
                         g_hash_table_insert (new_table, 
@@ -1013,7 +1051,6 @@ create_update_item (TrackerIndexer  *indexer,
 	guint32 id;
 
 	service_type = tracker_indexer_module_file_get_service_type (info->module, info->file);
-
 	service_def = tracker_ontology_get_service_type_by_name (service_type);
 	g_free (service_type);
 
@@ -1021,8 +1058,13 @@ create_update_item (TrackerIndexer  *indexer,
 		return;
 	}
 
-	tracker_indexer_module_file_get_uri (info->module, info->file, &dirname, &basename);
-	id = tracker_db_check_service (service_def, dirname, basename);
+	tracker_indexer_module_file_get_uri (info->module, 
+					     info->file, 
+					     &dirname, 
+					     &basename);
+	id = tracker_db_check_service (service_def, 
+				       dirname, 
+				       basename);
 
 	g_debug ("Processing item:'%s/%s'", dirname, basename);
 
@@ -1052,30 +1094,33 @@ create_update_item (TrackerIndexer  *indexer,
 						 tracker_service_get_id (service_def),
 						 text,
 						 1);
+
 			/* Save in the DB */
 			tracker_db_set_text (service_def, id, text);
 			g_free (text);
 		}
-
 	} else {
-
-		gchar *old_text = NULL, *new_text = NULL;
-		GHashTable *old_words = NULL, *new_words = NULL;
+		gchar *old_text;
+		gchar *new_text;
 
 		/* Update case */
 		g_debug ("Updating file '%s'", info->file->path);
 
-		/* TODO: Take the old metadata -> the new one, calculate difference and add the words 
-		 * 
+		/* TODO: Take the old metadata -> the new one,
+		 * calculate difference and add the words.
 		 */
 		
-		/* Take the old text -> the new one, calculate difference and add the words */
+		/* Take the old text -> the new one, calculate
+		 * difference and add the words.
+		 */
 		old_text = tracker_db_get_text (service_def, id);
 		new_text = tracker_indexer_module_file_get_text (info->module, info->file);
 		
 		if (old_text || new_text) {
-			/* Service has/had full text */
+			GHashTable *old_words;
+			GHashTable *new_words;
 
+			/* Service has/had full text */
 			old_words = tracker_parser_text (NULL, 
 							 old_text, 
 							 1, 
@@ -1096,16 +1141,23 @@ create_update_item (TrackerIndexer  *indexer,
 							 tracker_config_get_enable_stemmer (indexer->private->config),
 							 FALSE);
 
-			/* Merge the score of the words from one and other file 
-			 * new_table contains the words with the updated scores
+			/* Merge the score of the words from one and
+			 * other file new_table contains the words
+			 * with the updated scores 
 			 */
 			g_hash_table_foreach (old_words, merge_word_table, new_words);
 
-			update_words_no_parsing (indexer, id, tracker_service_get_id (service_def), new_words);
+			update_words_no_parsing (indexer, 
+						 id, 
+						 tracker_service_get_id (service_def), 
+						 new_words);
 
 			tracker_parser_text_free (old_words);
 			tracker_parser_text_free (new_words);
 		}
+
+		g_free (old_text);
+		g_free (new_text);
 	}
 
 	g_free (dirname);
@@ -1117,13 +1169,20 @@ delete_item (TrackerIndexer *indexer,
 	     PathInfo       *info)
 {
 	TrackerService *service_def;
-	gchar *dirname, *basename, *content, *metadata;
-	const gchar *service_type = NULL;
-	guint service_id, service_type_id;
+	gchar *dirname;
+	gchar *basename;
+	gchar *content;
+	gchar *metadata;
+	const gchar *service_type;
+	guint service_id;
+	guint service_type_id;
 
 	service_type = tracker_module_config_get_index_service (info->file->module_name);
 
-	if (!tracker_indexer_module_file_get_uri (info->module, info->file, &dirname, &basename)) {
+	if (!tracker_indexer_module_file_get_uri (info->module,
+						  info->file, 
+						  &dirname, 
+						  &basename)) {
 		return;
 	}
 
@@ -1132,7 +1191,9 @@ delete_item (TrackerIndexer *indexer,
 	if (!service_type || !service_type[0]) {
 		gchar *name;
 
-		/* The file is not anymore in the filesystem. Obtain the service type from the DB */
+		/* The file is not anymore in the filesystem. Obtain
+		 * the service type from the DB.
+		 */
 		service_type_id = tracker_db_get_service_type (dirname, basename);
 
 		if (service_type_id == 0) {
@@ -1161,22 +1222,38 @@ delete_item (TrackerIndexer *indexer,
 	/* Get content, unindex the words and delete the contents */
 	content = tracker_db_get_text (service_def, service_id);
 	if (content) {
-		unindex_text_with_parsing (indexer, service_id, service_type_id, content, 1);
+		unindex_text_with_parsing (indexer, 
+					   service_id, 
+					   service_type_id, 
+					   content, 
+					   1);
 		g_free (content);
 		tracker_db_delete_text (service_def, service_id);
 	}
 
 	/* Get metadata from DB to remove it from the index */
-	metadata = tracker_db_get_parsed_metadata (service_def, service_id);
-	unindex_text_no_parsing (indexer, service_id, service_type_id, metadata, 1000);
+	metadata = tracker_db_get_parsed_metadata (service_def, 
+						   service_id);
+	unindex_text_no_parsing (indexer, 
+				 service_id, 
+				 service_type_id, 
+				 metadata, 
+				 1000);
 	g_free (metadata);
 
-	/* the weight depends on metadata, but a number high enough force deletion  */
-	metadata = tracker_db_get_unparsed_metadata (service_def, service_id);
-	unindex_text_with_parsing (indexer, service_id, service_type_id, metadata, 1000);
+	/* The weight depends on metadata, but a number high enough
+	 * force deletion.
+	 */
+	metadata = tracker_db_get_unparsed_metadata (service_def, 
+						     service_id);
+	unindex_text_with_parsing (indexer, 
+				   service_id, 
+				   service_type_id, 
+				   metadata, 
+				   1000);
 	g_free (metadata);
 
-	/* delete service */
+	/* Delete service */
         tracker_db_delete_service (service_def, service_id);
 	tracker_db_delete_all_metadata (service_def, service_id);
 
@@ -1195,15 +1272,18 @@ handle_metadata_add (TrackerIndexer *indexer,
 	TrackerField *field_def;
 	guint service_id, i;
 	gchar *joined, *dirname, *basename;
+	gint len;
 
-	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+	g_return_val_if_fail (error == NULL, FALSE);
+	g_return_val_if_fail (*error == NULL, FALSE);
 
 	service_def = tracker_ontology_get_service_type_by_name (service_type);
 	if (!service_def) {
 		g_set_error (error, 
 			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
 			     TRACKER_INDEXER_ERROR_CODE,
-			     "Unknown service type: '%s'", service_type);
+			     "Unknown service type: '%s'", 
+			     service_type);
 		return FALSE;
 	}
 
@@ -1212,7 +1292,8 @@ handle_metadata_add (TrackerIndexer *indexer,
 		g_set_error (error, 
 			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
 			     TRACKER_INDEXER_ERROR_CODE,
-			     "Unknown field type: '%s'", property);
+			     "Unknown field type: '%s'",
+			     property);
 		return FALSE;
 	}
 
@@ -1220,23 +1301,29 @@ handle_metadata_add (TrackerIndexer *indexer,
 		g_set_error (error, 
 			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
 			     TRACKER_INDEXER_ERROR_CODE,
-			     "Field type: '%s' is embedded and not writable", property);
+			     "Field type: '%s' is embedded and not writable",
+			     property);
 		return FALSE;
 	}
 
-	if (!tracker_field_get_multiple_values (field_def) && g_strv_length (values) > 1) {
+	len = g_strv_length (values);
+
+	if (!tracker_field_get_multiple_values (field_def) && len > 1) {
 		g_set_error (error, 
 			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
 			     TRACKER_INDEXER_ERROR_CODE,
 			     "Field type: '%s' doesnt support multiple values (trying to set %d)", 
-			     property, g_strv_length (values));
+			     property, 
+			     len);
 		return FALSE;
 	}
 
 	dirname = tracker_file_get_vfs_path (uri);
 	basename = tracker_file_get_vfs_name (uri);
 
-	service_id = tracker_db_check_service (service_def, dirname, basename);
+	service_id = tracker_db_check_service (service_def,
+					       dirname, 
+					       basename);
 
 	g_free (dirname);
 	g_free (basename);
@@ -1250,17 +1337,18 @@ handle_metadata_add (TrackerIndexer *indexer,
 	}
 
 	if (!tracker_field_get_multiple_values (field_def)) {
-
 		/* Remove old value from DB and index */
 		gchar **old_contents;
 
-		old_contents = tracker_db_get_property_values (service_def, service_id, field_def);
-		if (old_contents && g_strv_length (old_contents) > 1) {
-			g_critical ("Seems to be multiple values in a field that doesn allow that ('%s')",
-				    tracker_field_get_name (field_def));
+		old_contents = tracker_db_get_property_values (service_def, 
+							       service_id, 
+							       field_def);
+		len = g_strv_length (old_contents);
 
-		} else if (old_contents && g_strv_length (old_contents) == 1) {
-		
+		if (old_contents && len > 1) {
+			g_critical ("Seems to be multiple values in field:'%s' that doesn allow that",
+				    tracker_field_get_name (field_def));
+		} else if (old_contents && len == 1) {
 			if (tracker_field_get_filtered (field_def)) {
 				unindex_text_with_parsing (indexer,
 							   service_id,
@@ -1312,7 +1400,6 @@ handle_metadata_add (TrackerIndexer *indexer,
 	return TRUE;
 }
 
-
 static gboolean
 handle_metadata_remove (TrackerIndexer *indexer,
 			const gchar    *service_type,
@@ -1331,7 +1418,8 @@ handle_metadata_remove (TrackerIndexer *indexer,
 		g_set_error (error, 
 			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
 			     TRACKER_INDEXER_ERROR_CODE,
-			     "Unknown service type: '%s'", service_type);
+			     "Unknown service type: '%s'", 
+			     service_type);
 		return FALSE;
 	}
 
@@ -1340,7 +1428,8 @@ handle_metadata_remove (TrackerIndexer *indexer,
 		g_set_error (error, 
 			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
 			     TRACKER_INDEXER_ERROR_CODE,
-			     "Unknown field type: '%s'", property);
+			     "Unknown field type: '%s'",
+			     property);
 		return FALSE;
 	}
 
@@ -1348,7 +1437,8 @@ handle_metadata_remove (TrackerIndexer *indexer,
 		g_set_error (error, 
 			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
 			     TRACKER_INDEXER_ERROR_CODE,
-			     "Field type: '%s' is embedded and cannot be deleted", property);
+			     "Field type: '%s' is embedded and cannot be deleted",
+			     property);
 		return FALSE;
 	}
 
@@ -1368,9 +1458,9 @@ handle_metadata_remove (TrackerIndexer *indexer,
 		return FALSE;
 	}
 
-	/*
-	 * If we receive concrete values, we delete those rows in the db
-	 * Otherwise, retrieve the old values of the property and remove all their instances for the file
+	/* If we receive concrete values, we delete those rows in the
+	 * db. Otherwise, retrieve the old values of the property and
+	 * remove all their instances for the file 
 	 */
 	if (g_strv_length (values) > 0) {
 		for (i = 0; values[i] != NULL; i++) {
@@ -1383,7 +1473,9 @@ handle_metadata_remove (TrackerIndexer *indexer,
 	} else {
 		gchar **old_contents;
 		
-		old_contents = tracker_db_get_property_values (service_def, service_id, field_def);
+		old_contents = tracker_db_get_property_values (service_def, 
+							       service_id, 
+							       field_def);
 		if (old_contents) {
 			tracker_db_delete_metadata (service_def,
 						    service_id,
@@ -1395,9 +1487,7 @@ handle_metadata_remove (TrackerIndexer *indexer,
 		}
 	}
 
-	/*
-	 * Now joined contains the words to unindex
-	 */
+	/* Now joined contains the words to unindex */
 	if (tracker_field_get_filtered (field_def)) {
 		unindex_text_with_parsing (indexer,
 					   service_id,
@@ -1843,10 +1933,11 @@ tracker_indexer_property_set (TrackerIndexer         *indexer,
 			      const gchar            *property,
 			      GStrv                   values,
 			      DBusGMethodInvocation  *context,
-			      GError                **error) {
+			      GError                **error) 
+{
+	guint   request_id;
+	GError *actual_error = NULL;
 
-	guint     request_id;
-	GError   *actual_error = NULL;
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
@@ -1862,7 +1953,12 @@ tracker_indexer_property_set (TrackerIndexer         *indexer,
 				  property,
 				  uri);
 
-	if (!handle_metadata_add (indexer, service_type, uri, property, values, &actual_error)) {
+	if (!handle_metadata_add (indexer,
+				  service_type, 
+				  uri, 
+				  property, 
+				  values, 
+				  &actual_error)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
 					     NULL);
@@ -1884,8 +1980,8 @@ tracker_indexer_property_remove (TrackerIndexer         *indexer,
 				 const gchar            *property,
 				 GStrv                   values,
 				 DBusGMethodInvocation  *context,
-				 GError                **error) {
-
+				 GError                **error)
+{
 	guint   request_id;
 	GError *actual_error = NULL;
 
@@ -1903,7 +1999,12 @@ tracker_indexer_property_remove (TrackerIndexer         *indexer,
 				  property,
 				  uri);
 
-	if (!handle_metadata_remove (indexer, service_type, uri, property, values, &actual_error)) {
+	if (!handle_metadata_remove (indexer, 
+				     service_type, 
+				     uri, 
+				     property, 
+				     values, 
+				     &actual_error)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
 					     NULL);

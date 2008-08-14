@@ -194,14 +194,16 @@ tracker_module_file_get_text (TrackerFile *file)
 	if (service_type && 
             (strcmp (service_type, "Text") == 0 ||
              strcmp (service_type, "Development") == 0)) {
-		GMappedFile *mapped_file;
+                GError *error = NULL;
 
-		mapped_file = g_mapped_file_new (file->path, FALSE, NULL);
+                g_file_get_contents (file->path, &text, NULL, &error);
 
-		if (mapped_file) {
-			text = g_strdup (g_mapped_file_get_contents (mapped_file));
-			g_mapped_file_free (mapped_file);
-		}
+                if (error) {
+                        g_message ("Couldn't get file contents for:'%s', %s",
+                                   file->path,
+                                   error->message);
+                        g_error_free (error);
+                }
 	} else {
 		text = tracker_metadata_call_text_filter (file->path, mimetype);
 	}

@@ -412,7 +412,7 @@ tracker_language_set_config (TrackerLanguage *language,
 	g_object_notify (G_OBJECT (language), "config");
 }
 
-gchar *
+const gchar *
 tracker_language_stem_word (TrackerLanguage *language,
 			    const gchar     *word,
 			    gint             word_length)
@@ -436,7 +436,7 @@ tracker_language_stem_word (TrackerLanguage *language,
 
 	g_mutex_unlock (priv->stemmer_mutex);
 
-	return g_strdup (stem_word);
+	return stem_word;
 }
 
 gboolean

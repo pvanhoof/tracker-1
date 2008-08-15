@@ -107,6 +107,11 @@ tracker_extract_tiff (const gchar *filename, GHashTable *metadata)
 	guint32 varui32;
 	float vardouble;
 
+#ifdef HAVE_EXEMPI
+	gchar    *xmpOffset;
+	uint32    size;
+#endif /* HAVE_EXEMPI */
+
 
 	if((image = TIFFOpen(filename, "r")) == NULL){
 		g_error("Could not open image\n");
@@ -167,7 +172,7 @@ tracker_extract_tiff (const gchar *filename, GHashTable *metadata)
 				  metadata);
 	}
 
-#endif
+#endif /* HAVE_EXEMPI */
 
 	if (TIFFGetField(image, TIFFTAG_EXIFIFD, &exifOffset)) {
 

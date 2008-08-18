@@ -770,9 +770,7 @@ build_sql (ParserData *data)
 		gint   cvalue;
 
 		bvalue = tracker_date_format (avalue);
-		g_debug (bvalue);
 		cvalue = tracker_string_to_date (bvalue);
-		g_debug ("%d", cvalue);
 		value = tracker_int_to_string (cvalue);
 		g_free (bvalue);
 	} else {
@@ -1206,9 +1204,6 @@ tracker_rdf_query_to_sql (TrackerDBInterface  *iface,
 	table_name = "Services";
 
 	data.sql_from = g_string_new ("");
-
-	g_debug ("search term is %s", search_text);
-
 
 	if (!tracker_is_empty_string (search_text)) {
 		do_search = TRUE;

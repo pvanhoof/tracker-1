@@ -1,3 +1,6 @@
+2008-08-18  Mikael Ottela    <mikael.ottela@ixonos.com>
+	* src/trackerd/tracker-rdf-query.c: Minor bug fix to rdf-queries.
+
 2008-08-18  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer-module.[ch]:

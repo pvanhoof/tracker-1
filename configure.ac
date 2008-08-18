@@ -199,7 +199,7 @@ AC_ARG_ENABLE([debug_code],
               [enable_debug_code=no])
 
 if test "x$enable_debug_code" = "xyes"; then
-	CFLAGS="-g $CFLAGS"
+	CFLAGS="-g -O0 $CFLAGS"
 fi
 
 ####################################################################

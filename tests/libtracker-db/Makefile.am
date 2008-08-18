@@ -16,7 +16,6 @@ TEST_PROGS += \
 	tracker-index-writer
 
 INCLUDES = 				\
-	-g 				\
 	-DG_LOG_DOMAIN=\"Tracker\"	\
 	-I$(top_srcdir)/src		\
 	-I$(top_srcdir)/tests/common	\

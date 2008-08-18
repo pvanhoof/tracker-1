@@ -9,7 +9,6 @@ TEST_PROGS += tracker-ontology \
 	tracker-parser
 
 INCLUDES = 				\
-	-g 				\
 	-DG_LOG_DOMAIN=\"Tracker\"	\
 	-I$(top_srcdir)/src		\
 	-I$(top_srcdir)/tests/common	\

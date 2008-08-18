@@ -1,5 +1,4 @@
 INCLUDES =								\
-	-g								\
 	-DSHAREDIR=\""$(datadir)"\"					\
 	-DG_LOG_DOMAIN=\"Tracker\"					\
 	-I$(top_srcdir)/src						\

@@ -1,7 +1,6 @@
 noinst_PROGRAMS = print search
 
 INCLUDES = 								\
-	-g						 		\
 	-DG_LOG_DOMAIN=\"Tracker\"					\
 	-I$(top_srcdir)/src						\
 	$(QDBM_CFLAGS) 							\

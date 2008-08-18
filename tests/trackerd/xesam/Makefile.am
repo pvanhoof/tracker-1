@@ -5,7 +5,6 @@ if HAVE_XESAM_GLIB
 noinst_LTLIBRARIES = libxesamhelper.la
 
 INCLUDES = \
-        -g \
         -DG_LOG_DOMAIN=\"Tracker\" \
         -I$(top_srcdir)/src \
         $(GMODULE_CFLAGS) \

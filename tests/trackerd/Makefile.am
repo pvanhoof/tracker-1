@@ -5,7 +5,6 @@ include $(top_srcdir)/Makefile.decl
 noinst_PROGRAMS = $(TEST_PROGS)
 
 INCLUDES = \
-	-g \
 	-DG_LOG_DOMAIN=\"Tracker\" \
 	-I$(top_srcdir)/src \
 	-I$(top_srcdir)/src/trackerd \

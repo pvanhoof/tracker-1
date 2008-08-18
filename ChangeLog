@@ -1,5 +1,23 @@
 2008-08-18  Martyn Russell  <martyn@imendio.com>
 
+	* configure.ac:
+	* src/libtracker-common/Makefile.am:
+	* src/libtracker-db/Makefile.am:
+	* src/libtracker/Makefile.am:
+	* src/tracker-indexer/Makefile.am:
+	* src/tracker-indexer/modules/Makefile.am:
+	* src/tracker-utils/Makefile.am:
+	* src/trackerd/Makefile.am:
+	* tests/libtracker-common/Makefile.am:
+	* tests/libtracker-db/Makefile.am:
+	* tests/trackerd/Makefile.am:
+	* tests/trackerd/xesam/Makefile.am:
+	* utils/qdbm/Makefile.am: Don't use -g in every Makefile.am, it is
+	added to CFLAGS with --enable-debug-code. Changed the CFLAGS to
+	include -O0 too.
+	
+2008-08-18  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-status.c: (tracker_status_signal):
 	Incorrect state sent in status signal about pausing on battery.
 

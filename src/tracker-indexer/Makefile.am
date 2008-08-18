@@ -1,7 +1,6 @@
 SUBDIRS = modules
 
 INCLUDES =								\
-	-g								\
 	-DSHAREDIR=\""$(datadir)"\"					\
 	-DLIBDIR=\""$(libdir)"\"					\
 	-DLOCALEDIR=\""$(localedir)"\" 					\

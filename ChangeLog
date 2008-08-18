@@ -1,5 +1,10 @@
 2008-08-18  Martyn Russell  <martyn@imendio.com>
 
+	* configure.ac: Add more warnings when they are enabled and clean
+	up the summary of the configure script.
+
+2008-08-18  Martyn Russell  <martyn@imendio.com>
+
 	* configure.ac:
 	* src/libtracker-common/Makefile.am:
 	* src/libtracker-db/Makefile.am:

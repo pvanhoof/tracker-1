@@ -182,7 +182,10 @@ if test "x$GCC" = "xyes"; then
   if test "x$enable_warnings" = "xyes"; then
      CFLAGS="\
      -Wall \
+     -Wunused \
      -Wchar-subscripts \
+     -Wmissing-declarations \
+     -Wmissing-prototypes \
      -Wnested-externs \
      -Wpointer-arith \
      -Wsign-compare \
@@ -876,48 +879,48 @@ AC_OUTPUT
 echo "
 Build Configuration:
 
-	prefix:					${prefix}
-	source code location:			${srcdir}
-	compiler:				${CC}
+	Prefix:					${prefix}
+	Source code location:			${srcdir}
+	Compiler:				${CC}
 
-	win32:					$native_win32
+	Win32:					$native_win32
 
-	enable warnings:			$enable_warnings
-	enable debug symbols:    		$enable_debug_code
-	enable unit tests:			$have_unit_tests
-	enable unac accent stripper:	  	$enable_unac
+	Enable warnings:			$enable_warnings
+	Enable debug symbols:    		$enable_debug_code
+	Enable unit tests:			$have_unit_tests
+	Enable unac accent stripper:	  	$enable_unac
 
-	support for file monitoring:           	gio
-	support for ioprio:			$have_ioprio
-	support for HAL:                    	$have_hal
+	Support for file monitoring:           	gio
+	Support for ioprio:			$have_ioprio
+	Support for HAL:                    	$have_hal
 
 Applications:
 
-	build deskbar-applet:			$enable_deskbar_applet
-	build tracker-search-tool:	        $have_gnome
-	build tracker-preferences:		$enable_preferences
-	build tracker-applet:	                $enable_trackerapplet
-	build libtracker-gtk:			$enable_libtrackergtk
+	Build deskbar-applet:			$enable_deskbar_applet
+	Build tracker-search-tool:	        $have_gnome
+	Build tracker-preferences:		$enable_preferences
+	Build tracker-applet:	                $enable_trackerapplet
+	Build libtracker-gtk:			$enable_libtrackergtk
 
 Metadata Extractors:
 
-	png:					yes
-	pdf:					$have_poppler
-	jpeg:					$have_libjpeg (xmp: $have_exempi exif: $have_libexif)
-	tiff:					$have_libtiff (xmp: $have_exempi exif: yes)
-	ms & openoffice (gsf):		        $have_libgsf
-	xml / html formats:			$have_libxml2
-	embedded / sidecar xmp:			$have_exempi
-	video files:				$videos_are_handled ($videos_handler)
+	Support png:				yes
+	Support pdf:				$have_poppler
+	Support jpeg:				$have_libjpeg (xmp: $have_exempi exif: $have_libexif)
+	Support tiff:				$have_libtiff (xmp: $have_exempi exif: yes)
+	Support ms & openoffice (gsf):	        $have_libgsf
+	Support xml / html formats:		$have_libxml2
+	Support embedded / sidecar xmp:		$have_exempi
+	Support video files:			$videos_are_handled ($videos_handler)
 
 Thumbnailers:
 
-	Imagemagick				$have_imagemagick
-	Hildon-thumbnail			$have_hildon_thumbnail
+	Have Imagemagick			$have_imagemagick
+	Have hildon-thumbnail			$have_hildon_thumbnail
 
 Warning:
 
         You must make sure SQLite is compiled with --enable-threadsafe
-	otherwise expect pain!
+	Otherwise expect pain!
 
 "

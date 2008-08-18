@@ -82,14 +82,12 @@ tracker_indexer_module_get_name (GModule *module)
 
 TrackerFile *
 tracker_indexer_module_file_new (GModule     *module,
-				 const gchar *module_name,
 				 const gchar *path)
 {
 	TrackerModuleFileGetDataFunc func;
 	TrackerFile *file = NULL;
 
 	file = g_slice_new0 (TrackerFile);
-	file->module_name = g_strdup (module_name);
 	file->path = g_strdup (path);
 
 	if (g_module_symbol (module, "tracker_module_file_get_data", (gpointer *) &func)) {
@@ -110,7 +108,6 @@ tracker_indexer_module_file_free (GModule     *module,
 		(func) (file->data);
 	}
 
-	g_free (file->module_name);
 	g_free (file->path);
 	g_slice_free (TrackerFile, file);
 }
@@ -149,18 +146,8 @@ tracker_indexer_module_file_get_uri (GModule      *module,
 
 		return TRUE;
 	} else {
-		g_warning ("Could not get URI for '%s'", file->path);
-
 		g_free (tmp_dirname);
 		g_free (tmp_basename);
-
-		if (dirname) {
-			*dirname = NULL;
-		}
-
-		if (basename) {
-			*basename = NULL;
-		}
 
 		return FALSE;
 	}

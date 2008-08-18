@@ -29,7 +29,6 @@ typedef struct TrackerFile TrackerFile;
 
 struct TrackerFile {
 	gchar    *path;
-        gchar    *module_name;
 	gpointer  data;
 };
 

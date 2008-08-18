@@ -1,5 +1,13 @@
 2008-08-18  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-indexer-module.[ch]:
+	* src/tracker-indexer/tracker-indexer.c:
+	* src/tracker-indexer/tracker-module.h: Move the module_name parameter
+	from TrackerFile to PathInfo, such information is internal to the
+	indexer, and modules shouldn't have to care about their own name.
+
+2008-08-18  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-indexer-module.c
 	(tracker_indexer_module_file_get_uri): Set dirname/basename to NULL if
 	the function is going to return FALSE.

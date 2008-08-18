@@ -138,6 +138,7 @@ struct TrackerIndexerPrivate {
 struct PathInfo {
 	GModule *module;
 	TrackerFile *file;
+	gchar *module_name;
 };
 
 struct MetadataForeachData {
@@ -188,7 +189,8 @@ path_info_new (GModule *module,
 
 	info = g_slice_new (PathInfo);
 	info->module = module;
-	info->file = tracker_indexer_module_file_new (module, module_name, path);
+	info->module_name = g_strdup (module_name);
+	info->file = tracker_indexer_module_file_new (module, path);
 
 	return info;
 }
@@ -197,6 +199,7 @@ static void
 path_info_free (PathInfo *info)
 {
 	tracker_indexer_module_file_free (info->module, info->file);
+	g_free (info->module_name);
 	g_slice_free (PathInfo, info);
 }
 
@@ -1064,13 +1067,10 @@ create_update_item (TrackerIndexer  *indexer,
 		return;
 	}
 
-	if (!tracker_indexer_module_file_get_uri (info->module,
-						  info->file,
-						  &dirname,
-						  &basename)) {
-		return;
-	}
-
+	tracker_indexer_module_file_get_uri (info->module, 
+					     info->file, 
+					     &dirname, 
+					     &basename);
 	id = tracker_db_check_service (service_def, 
 				       dirname, 
 				       basename);
@@ -1186,7 +1186,7 @@ delete_item (TrackerIndexer *indexer,
 	guint service_id;
 	guint service_type_id;
 
-	service_type = tracker_module_config_get_index_service (info->file->module_name);
+	service_type = tracker_module_config_get_index_service (info->module_name);
 
 	if (!tracker_indexer_module_file_get_uri (info->module,
 						  info->file, 
@@ -1525,7 +1525,7 @@ process_file (TrackerIndexer *indexer,
 
 	/* Set the current module */
 	g_free (indexer->private->current_module_name);
-	indexer->private->current_module_name = g_strdup (info->file->module_name);
+	indexer->private->current_module_name = g_strdup (info->module_name);
 
 	/* Sleep to throttle back indexing */
 	tracker_throttle (indexer->private->config, 100);
@@ -1571,11 +1571,11 @@ process_directory (TrackerIndexer *indexer,
 
 		path = g_build_filename (info->file->path, name, NULL);
 
-		new_info = path_info_new (info->module, info->file->module_name, path);
+		new_info = path_info_new (info->module, info->module_name, path);
 		add_file (indexer, new_info);
 
 		if (recurse && g_file_test (path, G_FILE_TEST_IS_DIR)) {
-			new_info = path_info_new (info->module, info->file->module_name, path);
+			new_info = path_info_new (info->module, info->module_name, path);
 			add_directory (indexer, new_info);
 		}
 

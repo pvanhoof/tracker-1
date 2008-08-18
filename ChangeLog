@@ -1,5 +1,10 @@
 2008-08-18  Martyn Russell  <martyn@imendio.com>
 
+	* src/trackerd/tracker-status.c: (tracker_status_signal):
+	Incorrect state sent in status signal about pausing on battery.
+
+2008-08-18  Martyn Russell  <martyn@imendio.com>
+
 	* data/modules/files.module: Remove $HOME from the files module.
 	It is not needed since it is in the user config already and it
 	means users would have to change two places, IF they could change

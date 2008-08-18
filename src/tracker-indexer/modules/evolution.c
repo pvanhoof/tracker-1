@@ -417,6 +417,7 @@ get_mail_storage_type_from_path (const gchar *path)
             strcasestr (path, "spam") ||
             strcasestr (path, "trash") ||
             strcasestr (path, "drafts") ||
+            strcasestr (path, "sent") ||
             strcasestr (path, "outbox")) {
                 type = MAIL_STORAGE_NONE;
         }
@@ -615,6 +616,8 @@ get_mbox_uri (TrackerFile   *file,
         gchar *dir, *name;
 
         dir = tracker_string_replace (file->path, local_dir, NULL);
+        dir = tracker_string_remove (dir, ".sbd");
+
         name = g_strdup_printf ("%s;uid=%d", dir, get_mbox_message_id (message));
 
         *dirname = g_strdup ("email://local@local");

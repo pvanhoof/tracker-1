@@ -1,3 +1,10 @@
+2008-08-18  Carlos Garnacho  <carlos@imendio.com>
+
+        * src/tracker-indexer/modules/evolution.c
+        (get_mail_storage_type_from_path): Ignore "Sent" folders.
+        (get_mbox_uri): Remove ".sbd" from directory names, Evolution won't
+        recognize that.
+
 2008-8-18   Mikael Ottela    <mikael.ottela@ixonos.com>
 	* src/trackerd/tracker-search.c:
 	* src/trackerd/tracker-search.h:

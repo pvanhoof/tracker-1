@@ -22,9 +22,6 @@
 
 #include <string.h>
 
-#include <glib.h>
-#include <gio/gio.h>
-
 #include <libtracker-common/tracker-dbus.h>
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-hal.h>
@@ -544,10 +541,10 @@ item_queue_processed_cb (DBusGProxy *proxy,
 static gboolean
 item_queue_handlers_cb (gpointer user_data)
 {
-	TrackerProcessor        *processor;	
-	GQueue                  *queue;
-	GStrv                    files; 
-	gchar                   *module_name;
+	TrackerProcessor *processor;	
+	GQueue           *queue;
+	GStrv             files; 
+	gchar            *module_name;
 
 	processor = user_data;
 
@@ -990,25 +987,21 @@ indexer_finished_cb (DBusGProxy  *proxy,
 }
 
 static void
-monitor_item_created_cb (TrackerMonitor *monitor,
-			 const gchar    *module_name,
-			 GFile          *file,
- 			 gboolean        is_directory,
-			 gpointer        user_data)
+processor_files_check (TrackerProcessor *processor,
+		       const gchar      *module_name,
+		       GFile            *file,
+		       gboolean          is_directory)
 {
-	TrackerProcessor *processor;
-	TrackerCrawler   *crawler;
-	GQueue           *queue;
-	gboolean          ignored;
-	gchar            *path;
-
-	processor = user_data;
+	TrackerCrawler *crawler;
+	GQueue         *queue;
+	gboolean        ignored;
+	gchar          *path;
 
 	path = g_file_get_path (file);
 	crawler = g_hash_table_lookup (processor->private->crawlers, module_name);
 	ignored = tracker_crawler_is_path_ignored (crawler, path, is_directory);
 
-	g_debug ("%s:'%s' (created monitor event)",
+	g_debug ("%s:'%s' (create monitor event or user request)",
 		 ignored ? "Ignored" : "Found ",
 		 path);
 
@@ -1021,29 +1014,25 @@ monitor_item_created_cb (TrackerMonitor *monitor,
 	queue = g_hash_table_lookup (processor->private->items_created_queues, module_name);
 	g_queue_push_tail (queue, g_object_ref (file));
 
-	item_queue_handlers_set_up (user_data);
+	item_queue_handlers_set_up (processor);
 }
 
 static void
-monitor_item_updated_cb (TrackerMonitor *monitor,
-			 const gchar    *module_name,
-			 GFile          *file,
- 			 gboolean        is_directory,
-			 gpointer        user_data)
+processor_files_update (TrackerProcessor *processor,
+			const gchar      *module_name,
+			GFile            *file,
+			gboolean          is_directory)
 {
-	TrackerProcessor *processor;
-	TrackerCrawler   *crawler;
-	GQueue           *queue;
-	gchar            *path;
-	gboolean          ignored;
-
-	processor = user_data;
+	TrackerCrawler *crawler;
+	GQueue         *queue;
+	gchar          *path;
+	gboolean        ignored;
 
 	path = g_file_get_path (file);
 	crawler = g_hash_table_lookup (processor->private->crawlers, module_name);
 	ignored = tracker_crawler_is_path_ignored (crawler, path, is_directory);
 
-	g_debug ("%s:'%s' (updated monitor event)",
+	g_debug ("%s:'%s' (update monitor event or user request)",
 		 ignored ? "Ignored" : "Found ",
 		 path);
 
@@ -1056,29 +1045,25 @@ monitor_item_updated_cb (TrackerMonitor *monitor,
 	queue = g_hash_table_lookup (processor->private->items_updated_queues, module_name);
 	g_queue_push_tail (queue, g_object_ref (file));
 
-	item_queue_handlers_set_up (user_data);
+	item_queue_handlers_set_up (processor);
 }
 
 static void
-monitor_item_deleted_cb (TrackerMonitor *monitor,
-			 const gchar    *module_name,
-			 GFile          *file,
- 			 gboolean        is_directory,
-			 gpointer        user_data)
+processor_files_delete (TrackerProcessor *processor,
+			const gchar      *module_name,
+			GFile            *file,
+			gboolean          is_directory)
 {
-	TrackerProcessor *processor;
-	TrackerCrawler   *crawler;
-	GQueue           *queue;
-	gchar            *path;
-	gboolean          ignored;
-
-	processor = user_data;
+	TrackerCrawler *crawler;
+	GQueue         *queue;
+	gchar          *path;
+	gboolean        ignored;
 
 	path = g_file_get_path (file);
 	crawler = g_hash_table_lookup (processor->private->crawlers, module_name);
 	ignored = tracker_crawler_is_path_ignored (crawler, path, is_directory);
 
-	g_debug ("%s:'%s' (updated monitor event)",
+	g_debug ("%s:'%s' (delete monitor event or user request)",
 		 ignored ? "Ignored" : "Found ",
 		 path);
 
@@ -1091,7 +1076,37 @@ monitor_item_deleted_cb (TrackerMonitor *monitor,
 	queue = g_hash_table_lookup (processor->private->items_deleted_queues, module_name);
 	g_queue_push_tail (queue, g_object_ref (file));
 
-	item_queue_handlers_set_up (user_data);
+	item_queue_handlers_set_up (processor);
+}
+
+static void
+monitor_item_created_cb (TrackerMonitor *monitor,
+			 const gchar    *module_name,
+			 GFile          *file,
+ 			 gboolean        is_directory,
+			 gpointer        user_data)
+{
+	tracker_processor_files_check (user_data, module_name, file, is_directory);
+}
+
+static void
+monitor_item_updated_cb (TrackerMonitor *monitor,
+			 const gchar    *module_name,
+			 GFile          *file,
+ 			 gboolean        is_directory,
+			 gpointer        user_data)
+{
+	processor_files_update (user_data, module_name, file, is_directory);
+}
+
+static void
+monitor_item_deleted_cb (TrackerMonitor *monitor,
+			 const gchar    *module_name,
+			 GFile          *file,
+ 			 gboolean        is_directory,
+			 gpointer        user_data)
+{
+	processor_files_delete (user_data, module_name, file, is_directory);
 }
 
 static void
@@ -1374,6 +1389,45 @@ tracker_processor_stop (TrackerProcessor *processor)
 	} else {
 		item_queue_handlers_set_up (processor);
 	}
+}
+
+void
+tracker_processor_files_check (TrackerProcessor *processor,
+			       const gchar      *module_name,
+			       GFile            *file,
+			       gboolean          is_directory)
+{
+	g_return_if_fail (TRACKER_IS_PROCESSOR (processor));
+	g_return_if_fail (module_name != NULL);
+	g_return_if_fail (G_IS_FILE (file));
+
+	processor_files_check (processor, module_name, file, is_directory);
+}
+
+void
+tracker_processor_files_update (TrackerProcessor *processor,
+				const gchar      *module_name,
+				GFile            *file,
+				gboolean          is_directory)
+{
+	g_return_if_fail (TRACKER_IS_PROCESSOR (processor));
+	g_return_if_fail (module_name != NULL);
+	g_return_if_fail (G_IS_FILE (file));
+
+	processor_files_update (processor, module_name, file, is_directory);
+}
+
+void
+tracker_processor_files_delete (TrackerProcessor *processor,
+				const gchar      *module_name,
+				GFile            *file,
+				gboolean          is_directory)
+{
+	g_return_if_fail (TRACKER_IS_PROCESSOR (processor));
+	g_return_if_fail (module_name != NULL);
+	g_return_if_fail (G_IS_FILE (file));
+
+	processor_files_delete (processor, module_name, file, is_directory);
 }
 
 guint 

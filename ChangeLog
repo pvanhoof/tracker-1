@@ -1,4 +1,24 @@
+2008-08-18  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-daemon.c: Use TrackerDaemonPrivate not Priv.
+	* src/trackerd/tracker-db.c: Removed commented out code.
+
+	* src/trackerd/tracker-dbus.c: 
+	* src/trackerd/tracker-files.[ch]: Use the processor for the
+	org.freedesktop.Tracker.Files.{Create|Delete} interfaces so we
+	make use of the processor's queues and do things all one way. This
+	includes checking ignore lists, etc.
+	
+	* src/trackerd/tracker-keywords.c: Use TrackerKeywordsPrivate not Priv.
+	* src/trackerd/tracker-processor.[ch]: Add public functions to
+	check/update/delete files. This simply makes the functions we
+	already have public which send files to the indexer to
+	check/update/delete. 
+
+	* src/trackerd/tracker-search.c: Use TrackerSearchPrivate not Priv.
+
 2008-08-18  Mikael Ottela    <mikael.ottela@ixonos.com>
+
 	* src/trackerd/tracker-rdf-query.c: Minor bug fix to rdf-queries.
 
 2008-08-18  Carlos Garnacho  <carlos@imendio.com>
@@ -19,12 +39,13 @@
 
 2008-08-18  Carlos Garnacho  <carlos@imendio.com>
 
-        * src/tracker-indexer/modules/evolution.c
-        (get_mail_storage_type_from_path): Ignore "Sent" folders.
-        (get_mbox_uri): Remove ".sbd" from directory names, Evolution won't
-        recognize that.
+	* src/tracker-indexer/modules/evolution.c
+	(get_mail_storage_type_from_path): Ignore "Sent" folders.
+	(get_mbox_uri): Remove ".sbd" from directory names, Evolution won't
+	recognize that.
 
 2008-8-18   Mikael Ottela    <mikael.ottela@ixonos.com>
+
 	* src/trackerd/tracker-search.c:
 	* src/trackerd/tracker-search.h:
 	* src/trackerd/tracker-rdf-query.c:
@@ -36,7 +57,6 @@
 
 	* src/trackerd/tracker-metadata.c: Fixed limit and offset in unique
 	values queries.
-	
 
 2008-08-18  Philip Van Hoof  <philip@codeminded.be>
 

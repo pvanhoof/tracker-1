@@ -49,7 +49,7 @@ struct TrackerFilesClass {
 };
 
 GType         tracker_files_get_type                             (void);
-TrackerFiles *tracker_files_new                                  (void);
+TrackerFiles *tracker_files_new                                  (TrackerProcessor       *processor);
 void          tracker_files_exist                                (TrackerFiles           *object,
 								  const gchar            *uri,
 								  gboolean                auto_create,

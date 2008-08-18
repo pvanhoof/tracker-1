@@ -35,11 +35,11 @@
 #include "tracker-marshal.h"
 #include "tracker-indexer-client.h"
 
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_KEYWORDS, TrackerKeywordsPriv))
+#define TRACKER_KEYWORDS_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_KEYWORDS, TrackerKeywordsPrivate))
 
 typedef struct {
 	DBusGProxy *fd_proxy;
-} TrackerKeywordsPriv;
+} TrackerKeywordsPrivate;
 
 enum {
         KEYWORD_ADDED,
@@ -47,7 +47,7 @@ enum {
         LAST_SIGNAL
 };
 
-static void keywords_finalize     (GObject      *object);
+static void tracker_keywords_finalize (GObject      *object);
 
 static guint signals[LAST_SIGNAL] = {0};
 
@@ -60,7 +60,7 @@ tracker_keywords_class_init (TrackerKeywordsClass *klass)
 
 	object_class = G_OBJECT_CLASS (klass);
 
-	object_class->finalize = keywords_finalize;
+	object_class->finalize = tracker_keywords_finalize;
 
         signals[KEYWORD_ADDED] =
                 g_signal_new ("keyword-added",
@@ -81,7 +81,7 @@ tracker_keywords_class_init (TrackerKeywordsClass *klass)
                               G_TYPE_NONE,
                               3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
 
-	g_type_class_add_private (object_class, sizeof (TrackerKeywordsPriv));
+	g_type_class_add_private (object_class, sizeof (TrackerKeywordsPrivate));
 }
 
 static void
@@ -90,11 +90,11 @@ tracker_keywords_init (TrackerKeywords *object)
 }
 
 static void
-keywords_finalize (GObject *object)
+tracker_keywords_finalize (GObject *object)
 {
-	TrackerKeywordsPriv *priv;
+	TrackerKeywordsPrivate *priv;
 	
-	priv = GET_PRIV (object);
+	priv = TRACKER_KEYWORDS_GET_PRIVATE (object);
 
 	if (priv->fd_proxy) {
 		g_object_unref (priv->fd_proxy);

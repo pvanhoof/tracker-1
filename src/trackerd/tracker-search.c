@@ -42,19 +42,17 @@
 #include "tracker-query-tree.h"
 #include "tracker-marshal.h"
 
+#define TRACKER_SEARCH_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_SEARCH, TrackerSearchPrivate))
+
 #define DEFAULT_SEARCH_MAX_HITS 1024
 
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_SEARCH, TrackerSearchPriv))
-
 typedef struct {
-	DBusGProxy      *fd_proxy;
-
 	TrackerConfig   *config;
 	TrackerLanguage *language;
         TrackerDBIndex  *index;
-} TrackerSearchPriv;
+} TrackerSearchPrivate;
 
-static void search_finalize (GObject *object);
+static void tracker_search_finalize (GObject *object);
 
 G_DEFINE_TYPE(TrackerSearch, tracker_search, G_TYPE_OBJECT)
 
@@ -65,9 +63,9 @@ tracker_search_class_init (TrackerSearchClass *klass)
 
 	object_class = G_OBJECT_CLASS (klass);
 
-	object_class->finalize = search_finalize;
+	object_class->finalize = tracker_search_finalize;
 
-	g_type_class_add_private (object_class, sizeof (TrackerSearchPriv));
+	g_type_class_add_private (object_class, sizeof (TrackerSearchPrivate));
 }
 
 static void
@@ -76,15 +74,11 @@ tracker_search_init (TrackerSearch *object)
 }
 
 static void
-search_finalize (GObject *object)
+tracker_search_finalize (GObject *object)
 {
-	TrackerSearchPriv *priv;
+	TrackerSearchPrivate *priv;
 	
-	priv = GET_PRIV (object);
-
-	if (priv->fd_proxy) {
-		g_object_unref (priv->fd_proxy);
-	}
+	priv = TRACKER_SEARCH_GET_PRIVATE (object);
 
 	g_object_unref (priv->index);
 	g_object_unref (priv->language);
@@ -98,8 +92,8 @@ tracker_search_new (TrackerConfig   *config,
 		    TrackerLanguage *language,
 		    TrackerDBIndex  *index)
 {
-	TrackerSearch     *object;
-	TrackerSearchPriv *priv;
+	TrackerSearch        *object;
+	TrackerSearchPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 	g_return_val_if_fail (TRACKER_IS_LANGUAGE (language), NULL);
@@ -107,7 +101,7 @@ tracker_search_new (TrackerConfig   *config,
 
 	object = g_object_new (TRACKER_TYPE_SEARCH, NULL); 
 
-	priv = GET_PRIV (object);
+	priv = TRACKER_SEARCH_GET_PRIVATE (object);
 
 	priv->config = g_object_ref (config);
 	priv->language = g_object_ref (language);
@@ -434,13 +428,13 @@ tracker_search_get_hit_count (TrackerSearch          *object,
 			      DBusGMethodInvocation  *context,
 			      GError                **error)
 {
-	GError            *actual_error = NULL;
-	TrackerSearchPriv *priv;
-	TrackerQueryTree  *tree;
-	GArray            *array;
-	guint              request_id;
-	gint               services[12];
-	gint               count = 0;
+	TrackerSearchPrivate *priv;
+	TrackerQueryTree     *tree;
+	GError               *actual_error = NULL;
+	GArray               *array;
+	guint                 request_id;
+	gint                  services[12];
+	gint                  count = 0;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -474,7 +468,7 @@ tracker_search_get_hit_count (TrackerSearch          *object,
 		return;
 	}
 
-	priv = GET_PRIV (object);
+	priv = TRACKER_SEARCH_GET_PRIVATE (object);
 
 	services[count++] = tracker_ontology_get_id_for_service_type (service);
 
@@ -519,14 +513,14 @@ tracker_search_get_hit_count_all (TrackerSearch          *object,
 				  DBusGMethodInvocation  *context,
 				  GError                **error)
 {
-	GError             *actual_error = NULL;
-	TrackerSearchPriv  *priv;
-	TrackerDBResultSet *result_set = NULL;
-	TrackerQueryTree   *tree;
-	GArray             *hit_counts;
-	guint               request_id;
-	guint               i;
-	GPtrArray          *values = NULL;
+	TrackerSearchPrivate  *priv;
+	TrackerDBResultSet    *result_set = NULL;
+	TrackerQueryTree      *tree;
+	GError                *actual_error = NULL;
+	GArray                *hit_counts;
+	guint                  request_id;
+	guint                  i;
+	GPtrArray             *values = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -547,7 +541,7 @@ tracker_search_get_hit_count_all (TrackerSearch          *object,
 		return;
 	}
 
-	priv = GET_PRIV (object);
+	priv = TRACKER_SEARCH_GET_PRIVATE (object);
 
 	tree = tracker_query_tree_new (search_text, 
 				       priv->index, 
@@ -846,11 +840,11 @@ tracker_search_get_snippet (TrackerSearch          *object,
 	g_free (service_id);
 
 	if (result_set) {
-		TrackerSearchPriv  *priv;
-		gchar             **strv;
-		gchar              *text;
+		TrackerSearchPrivate  *priv;
+		gchar                **strv;
+		gchar                 *text;
 
-		priv = GET_PRIV (object);
+		priv = TRACKER_SEARCH_GET_PRIVATE (object);
 
 		tracker_db_result_set_get (result_set, 0, &text, -1);
 		strv = tracker_parser_text_into_array (text, 
@@ -1225,10 +1219,10 @@ tracker_search_suggest (TrackerSearch          *object,
 			DBusGMethodInvocation  *context,
 			GError                **error)
 {
-	GError            *actual_error = NULL;
-	TrackerSearchPriv *priv;
-	guint              request_id;
-	gchar             *value;
+	GError               *actual_error = NULL;
+	TrackerSearchPrivate *priv;
+	guint                 request_id;
+	gchar                *value;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -1240,7 +1234,7 @@ tracker_search_suggest (TrackerSearch          *object,
 				  search_text,
 				  max_dist);
 
-	priv = GET_PRIV (object);
+	priv = TRACKER_SEARCH_GET_PRIVATE (object);
 
 	value = tracker_db_index_get_suggestion (priv->index, search_text, max_dist);
 

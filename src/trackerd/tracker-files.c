@@ -39,11 +39,26 @@
 #include "tracker-marshal.h"
 #include "tracker-indexer-client.h"
 
+#define TRACKER_FILES_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_FILES, TrackerFilesPrivate))
+
+typedef struct {
+        TrackerProcessor *processor;
+} TrackerFilesPrivate;
+
+static void tracker_files_finalize (GObject *object);
+
 G_DEFINE_TYPE(TrackerFiles, tracker_files, G_TYPE_OBJECT)
 
 static void
 tracker_files_class_init (TrackerFilesClass *klass)
 {
+	GObjectClass *object_class;
+
+	object_class = G_OBJECT_CLASS (klass);
+
+	object_class->finalize = tracker_files_finalize;
+
+	g_type_class_add_private (object_class, sizeof (TrackerFilesPrivate));
 }
 
 static void
@@ -51,10 +66,33 @@ tracker_files_init (TrackerFiles *object)
 {
 }
 
-TrackerFiles *
-tracker_files_new (void)
+static void
+tracker_files_finalize (GObject *object)
 {
-	return g_object_new (TRACKER_TYPE_FILES, NULL);
+	TrackerFilesPrivate *priv;
+	
+	priv = TRACKER_FILES_GET_PRIVATE (object);
+
+	g_object_unref (priv->processor);
+
+	G_OBJECT_CLASS (tracker_files_parent_class)->finalize (object);
+}
+
+TrackerFiles *
+tracker_files_new (TrackerProcessor *processor)
+{
+	TrackerFiles        *object;
+	TrackerFilesPrivate *priv;
+
+	g_return_val_if_fail (TRACKER_IS_PROCESSOR (processor), NULL);
+
+	object = g_object_new (TRACKER_TYPE_FILES, NULL);
+
+	priv = TRACKER_FILES_GET_PRIVATE (object);
+
+	priv->processor = g_object_ref (processor);
+
+	return object;
 }
 
 /*
@@ -80,39 +118,35 @@ tracker_files_exist (TrackerFiles           *object,
 				  "DBus request to see if files exist, "
                                   "uri:'%s' auto-create:'%d'",
 				  uri, auto_create);
+
+	/* This API is broken. The Daemon doesn't do anything in the
+	 * database except read from it.
+	 */
+	if (auto_create) {
+		GError *actual_error = NULL;
+
+		tracker_dbus_request_failed (request_id,
+					     &actual_error, 
+					     "Request to check existence of file '%s' failed, "
+					     "the 'auto-create' variable can not be TRUE, "
+					     "this feature is no longer supported.",
+					     uri);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+
+		return;
+	}
 	
 	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 	file_id = tracker_db_file_get_id (iface, uri);
 	exists = file_id > 0;
 
-	if (!exists && auto_create) {
-		TrackerDBFileInfo *info;
-		gchar             *service;
-		    
-		info = tracker_db_file_info_new (uri, 1, 0, 0);
-		
-		if (!tracker_file_is_valid (uri)) {
-			info->mime = g_strdup ("unknown");
-			/* FIXME Shouldn't it be "other"? */
-			service = g_strdup ("Files");
-		} else {
-			info->mime = tracker_file_get_mime_type (uri);
-			service = tracker_ontology_get_service_type_for_mime (info->mime);
-			info = tracker_db_file_info_get (info);
-		}
-		
-		tracker_db_service_create (iface, service, info);
-		tracker_db_file_info_free (info);
-		g_free (service);
-	}
-
 	dbus_g_method_return (context, exists);
 
         tracker_dbus_request_success (request_id);
 }
 
-/* You should deprecate this API */
 void
 tracker_files_create (TrackerFiles           *object,
 		      const gchar            *uri,
@@ -123,14 +157,10 @@ tracker_files_create (TrackerFiles           *object,
 		      DBusGMethodInvocation  *context,
 		      GError                **error)
 {
-	TrackerDBInterface *iface;
-	TrackerDBFileInfo  *info;
-	guint               request_id;
-	gchar              *name;
-	gchar              *path;
-	gchar              *service;
-	guint32             file_id;
-	gboolean            created;
+	TrackerFilesPrivate *priv;
+	GFile               *file;
+	const gchar         *module_name = "files";
+	guint                request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -149,98 +179,15 @@ tracker_files_create (TrackerFiles           *object,
                                   size,
                                   mtime);
 
-	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
-
-	/* Create structure */
-	info = tracker_db_file_info_new (uri, 1, 0, 0);
-
-	info->mime = g_strdup (mime);
-	info->is_directory = is_directory;
-	info->file_size = size;
-	info->mtime = mtime;
-
-	if (info->uri[0] == G_DIR_SEPARATOR) {
-		name = g_path_get_basename (info->uri);
-		path = g_path_get_dirname (info->uri);
-	} else {
-		name = tracker_file_get_vfs_name (info->uri);
-		path = tracker_file_get_vfs_path (info->uri);
-	}
-
-	service = tracker_ontology_get_service_type_for_mime (mime);
-	file_id = tracker_db_service_create (iface, service, info);
-	tracker_db_file_info_free (info);
-
-	created = file_id != 0;
-
-	if (created) {
-		gchar *file_id_str;
-		gchar *mtime_str;
-		gchar *size_str;
-
-		tracker_dbus_request_comment (request_id, 
-					      "File or directory has been created in database, uri:'%s'",
-					      uri);
-
-		file_id_str = tracker_uint_to_string (file_id);
-		mtime_str = tracker_int_to_string (mtime);
-		size_str = tracker_int_to_string (size);
+	priv = TRACKER_FILES_GET_PRIVATE (object);
 	
-		tracker_db_metadata_set_single (iface, 
-						service, 
-						file_id_str, 
-						"File:Modified", 
-						mtime_str, 
-						FALSE);
-		tracker_db_metadata_set_single (iface, 
-						service, 
-						file_id_str, 
-						"File:Size", 
-						size_str, 
-						FALSE);
-		tracker_db_metadata_set_single (iface, 
-						service, 
-						file_id_str, 
-						"File:Name", 
-						name, 
-						FALSE);
-		tracker_db_metadata_set_single (iface, 
-						service, 
-						file_id_str, 
-						"File:Path", 
-						path, 
-						FALSE);
-		tracker_db_metadata_set_single (iface, 
-						service, 
-						file_id_str,
-						"File:Format",
-						mime, 
-						FALSE);
-
-		g_free (size_str);
-		g_free (mtime_str);
-		g_free (file_id_str);
-
-	} else {
-		tracker_dbus_request_comment (request_id, 
-					      "File/directory was already in the database, uri:'%s'",
-					      uri);
-	}
-
-	g_free (path);
-	g_free (name);
-	g_free (service);
+	file = g_file_new_for_path (uri);
+	tracker_processor_files_check (priv->processor, module_name, file, is_directory);
+	g_object_unref (file);
 
 	dbus_g_method_return (context);
 
 	tracker_dbus_request_success (request_id);
-}
-
-static void
-on_indexer_deleted (DBusGProxy *proxy, GError *error, gpointer user_data)
-{
-	GStrv files = user_data;
-	g_strfreev (files);
 }
 
 void
@@ -249,13 +196,10 @@ tracker_files_delete (TrackerFiles           *object,
 		      DBusGMethodInvocation  *context,
 		      GError                **error)
 {
-	TrackerDBInterface *iface;
-	guint               request_id;
-	guint32             file_id;
-	gchar              *full;
-	gchar              *path;
-	gchar              *name;
-	GStrv               files;
+	TrackerFilesPrivate *priv;
+	GFile               *file;
+	const gchar         *module_name = "files";
+	guint                request_id;
 	
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -266,45 +210,16 @@ tracker_files_delete (TrackerFiles           *object,
 				  "uri:'%s'",
 				  uri);
 
-	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
+	priv = TRACKER_FILES_GET_PRIVATE (object);
 
-	file_id = tracker_db_file_get_id (iface, uri);
-
-	if (file_id == 0) {
-		tracker_dbus_request_comment (request_id, 
-					      "File or directory was not in database to delete, uri:'%s'",
-					      uri);
-		
-		dbus_g_method_return (context);
-		tracker_dbus_request_success (request_id);
-		return;
-	}
-
-	if (uri[0] == G_DIR_SEPARATOR) {
-		name = g_path_get_basename (uri);
-		path = g_path_get_dirname (uri);
-		full = g_strdup (uri);
-	} else {
-		name = tracker_file_get_vfs_name (uri);
-		path = tracker_file_get_vfs_path (uri);
-		full = g_build_filename (G_DIR_SEPARATOR_S, path, name, NULL);
-	}
-
-	files = (GStrv) g_malloc0 (sizeof (gchar*) * 1);
-
-	/* full is freed as part of the GStrv in the callback */
-	files[0] = full;
-
-	org_freedesktop_Tracker_Indexer_files_delete_async (tracker_dbus_indexer_get_proxy (),
-							    "files", 
-							    (const char **) files, 
-							    on_indexer_deleted, 
-							    files);
-
-	/* When we refactor to use async DBus api implementations, we can start
-	 * caring about errors that happen in on_indexer_deleted and only 
-	 * dbus_g_method_return_error or dbus_g_method_return in the callback 
-	 * on_indexer_deleted */
+	/* Check the file exists, if not delete, this is broken, we
+	 * really don't know with the API if it is a file or
+	 * directory we are dealing with so we check both.
+	 */
+	file = g_file_new_for_path (uri);
+	tracker_processor_files_check (priv->processor, module_name, file, TRUE);
+	tracker_processor_files_check (priv->processor, module_name, file, FALSE);
+	g_object_unref (file);
 
 	dbus_g_method_return (context);
 

@@ -2434,11 +2434,6 @@ tracker_db_service_create (TrackerDBInterface *iface,
 		path = tracker_file_get_vfs_path (info->uri);
 	}
 
-	/* Using GetNewUID is deprecated, use 
-
-	SELECT MAX(ID) from files-meta.Services followed by 
-	SELECT MAX(ID) from email-meta.Services instead !!! */
-
 	/* Get a new unique ID for the service - use mutex to prevent race conditions */
 	result_set = tracker_db_exec_proc (iface, "GetNewID", NULL);
 
@@ -2490,7 +2485,6 @@ tracker_db_service_create (TrackerDBInterface *iface,
         }
 
 	str_service_type_id = tracker_int_to_string (service_type_id);
-
 	str_aux = tracker_int_to_string (info->aux_id);
 
 	if (service_type_id != -1) {
@@ -2514,21 +2508,6 @@ tracker_db_service_create (TrackerDBInterface *iface,
 		if (result_set_proc) {
 			g_object_unref (result_set_proc);
 		} 
-
-		/*
-		  Undetectable error
-			tracker_error ("ERROR: CreateService uri is %s/%s", path, name);
-			g_free (name);
-			g_free (path);
-			g_free (str_aux);
-			g_free (str_service_type_id);
-			g_free (sid);
-			g_free (str_filesize);
-			g_free (str_mtime);
-			g_free (str_offset);
-			g_static_rec_mutex_unlock (&events_table_lock);
-			return 0;
-		*/
 
 		id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (iface));
 

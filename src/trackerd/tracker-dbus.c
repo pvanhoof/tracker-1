@@ -334,7 +334,7 @@ tracker_dbus_register_objects (TrackerConfig    *config,
         objects = g_slist_prepend (objects, object);
 
         /* Add org.freedesktop.Tracker.Files */
-	object = tracker_files_new ();
+	object = tracker_files_new (processor);
 	if (!object) {
 		g_critical ("Could not create TrackerFiles object to register");
 		return FALSE;

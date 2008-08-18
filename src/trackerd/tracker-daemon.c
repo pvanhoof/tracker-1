@@ -41,13 +41,13 @@
 #include "tracker-status.h"
 #include "tracker-marshal.h"
 
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DAEMON, TrackerDaemonPriv))
+#define TRACKER_DAEMON_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_DAEMON, TrackerDaemonPrivate))
 
 typedef struct {
 	TrackerConfig    *config;
 	TrackerProcessor *processor;
 	DBusGProxy       *indexer_proxy;
-} TrackerDaemonPriv;
+} TrackerDaemonPrivate;
 
 enum {
         DAEMON_INDEX_STATE_CHANGE,
@@ -56,19 +56,19 @@ enum {
         LAST_SIGNAL
 };
 
-static void daemon_finalize       (GObject    *object);
-static void indexer_pause_cb      (DBusGProxy *proxy,
-				   GError     *error,
-				   gpointer    user_data);
-static void indexer_continue_cb   (DBusGProxy *proxy,
-				   GError     *error,
-				   gpointer    user_data);
-static void indexer_paused_cb     (DBusGProxy *proxy,
-				   GError     *error,
-				   gpointer    user_data);
-static void indexer_continued_cb  (DBusGProxy *proxy,
-				   GError     *error,
-				   gpointer    user_data);
+static void tracker_daemon_finalize (GObject    *object);
+static void indexer_pause_cb        (DBusGProxy *proxy,
+				     GError     *error,
+				     gpointer    user_data);
+static void indexer_continue_cb     (DBusGProxy *proxy,
+				     GError     *error,
+				     gpointer    user_data);
+static void indexer_paused_cb       (DBusGProxy *proxy,
+				     GError     *error,
+				     gpointer    user_data);
+static void indexer_continued_cb    (DBusGProxy *proxy,
+				     GError     *error,
+				     gpointer    user_data);
 
 static guint signals[LAST_SIGNAL] = {0};
 
@@ -81,7 +81,7 @@ tracker_daemon_class_init (TrackerDaemonClass *klass)
 
 	object_class = G_OBJECT_CLASS (klass);
 
-	object_class->finalize = daemon_finalize;
+	object_class->finalize = tracker_daemon_finalize;
 
         signals[DAEMON_INDEX_STATE_CHANGE] =
                 g_signal_new ("index-state-change",
@@ -124,7 +124,7 @@ tracker_daemon_class_init (TrackerDaemonClass *klass)
 			      G_TYPE_INT,
 			      G_TYPE_INT);
 
-	g_type_class_add_private (object_class, sizeof (TrackerDaemonPriv));
+	g_type_class_add_private (object_class, sizeof (TrackerDaemonPrivate));
 }
 
 static void
@@ -133,13 +133,13 @@ tracker_daemon_init (TrackerDaemon *object)
 }
 
 static void
-daemon_finalize (GObject *object)
+tracker_daemon_finalize (GObject *object)
 {
-	TrackerDaemon     *daemon;
-	TrackerDaemonPriv *priv;
+	TrackerDaemon        *daemon;
+	TrackerDaemonPrivate *priv;
 
 	daemon = TRACKER_DAEMON (object);
-	priv = GET_PRIV (daemon);
+	priv = TRACKER_DAEMON_GET_PRIVATE (daemon);
 
 	dbus_g_proxy_disconnect_signal (priv->indexer_proxy, "Continued",
 					G_CALLBACK (indexer_continued_cb),
@@ -159,16 +159,16 @@ TrackerDaemon *
 tracker_daemon_new (TrackerConfig    *config,
 		    TrackerProcessor *processor)
 {
-	TrackerDaemon     *object;
-	TrackerDaemonPriv *priv;
-	DBusGProxy        *proxy;
+	TrackerDaemon        *object;
+	TrackerDaemonPrivate *priv;
+	DBusGProxy           *proxy;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 	g_return_val_if_fail (TRACKER_IS_PROCESSOR (processor), NULL);
 
 	object = g_object_new (TRACKER_TYPE_DAEMON, NULL);
 
-	priv = GET_PRIV (object);
+	priv = TRACKER_DAEMON_GET_PRIVATE (object);
 
 	priv->config = g_object_ref (config);
 	priv->processor = g_object_ref (processor);
@@ -262,13 +262,13 @@ tracker_daemon_get_status (TrackerDaemon          *object,
 			   DBusGMethodInvocation  *context,
 			   GError                **error)
 {
-	TrackerDaemonPriv *priv;
-	gchar             *status;
-	guint              request_id;
+	TrackerDaemonPrivate *priv;
+	gchar                *status;
+	guint                 request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	priv = GET_PRIV (object);
+	priv = TRACKER_DAEMON_GET_PRIVATE (object);
 
         tracker_dbus_request_new (request_id,
 				  "DBus request to get daemon status");
@@ -371,9 +371,9 @@ tracker_daemon_set_bool_option (TrackerDaemon          *object,
 				DBusGMethodInvocation  *context,
 				GError                **error)
 {
-	TrackerDaemonPriv *priv;
-	guint              request_id;
-	GError            *actual_error = NULL;
+	TrackerDaemonPrivate *priv;
+	guint                 request_id;
+	GError               *actual_error = NULL;
 
 	/* FIXME: Shouldn't we just make the TrackerConfig module a
 	 * DBus object instead so values can be tweaked in real time
@@ -384,7 +384,7 @@ tracker_daemon_set_bool_option (TrackerDaemon          *object,
 
 	tracker_dbus_async_return_if_fail (option != NULL, FALSE);
 
-	priv = GET_PRIV (object);
+	priv = TRACKER_DAEMON_GET_PRIVATE (object);
 
         tracker_dbus_request_new (request_id,
 				  "DBus request to set daemon boolean option, "
@@ -472,9 +472,9 @@ tracker_daemon_set_int_option (TrackerDaemon          *object,
 			       DBusGMethodInvocation  *context,
 			       GError                **error)
 {
-	TrackerDaemonPriv *priv;
-	guint              request_id;
-	GError            *actual_error = NULL;
+	TrackerDaemonPrivate *priv;
+	guint                 request_id;
+	GError               *actual_error = NULL;
 
 	/* FIXME: Shouldn't we just make the TrackerConfig module a
 	 * DBus object instead so values can be tweaked in real time
@@ -485,7 +485,7 @@ tracker_daemon_set_int_option (TrackerDaemon          *object,
 
 	tracker_dbus_async_return_if_fail (option != NULL, FALSE);
 
-	priv = GET_PRIV (object);
+	priv = TRACKER_DAEMON_GET_PRIVATE (object);
 
         tracker_dbus_request_new (request_id,
 				  "DBus request to set daemon integer option, "
@@ -525,8 +525,8 @@ tracker_daemon_shutdown (TrackerDaemon          *object,
 			 DBusGMethodInvocation  *context,
 			 GError                **error)
 {
-	TrackerDaemonPriv *priv;
-	guint              request_id;
+	TrackerDaemonPrivate *priv;
+	guint                 request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -535,7 +535,7 @@ tracker_daemon_shutdown (TrackerDaemon          *object,
 				  "reindex:%s",
 				  reindex ? "yes" : "no");
 
-	priv = GET_PRIV (object);
+	priv = TRACKER_DAEMON_GET_PRIVATE (object);
 
 	g_message ("Tracker daemon attempting to shutdown");
 
@@ -553,15 +553,15 @@ tracker_daemon_prompt_index_signals (TrackerDaemon          *object,
 				     DBusGMethodInvocation  *context,
 				     GError                **error)
 {
-	TrackerDaemonPriv *priv;
-	guint              request_id;
+	TrackerDaemonPrivate *priv;
+	guint                 request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to daemon to signal progress/state");
 
-	priv = GET_PRIV (object);
+	priv = TRACKER_DAEMON_GET_PRIVATE (object);
 
 	/* Signal state change */
 	tracker_status_signal ();

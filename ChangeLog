@@ -57,8 +57,6 @@
 	recurse non-existing paths when we start for paths NOT in the
 	module config. Module config paths were already checked. 
 	
-=======
->>>>>>> 2008-08-18  Carlos Garnacho  <carlos@imendio.com>:ChangeLog
 2008-08-14  Mikael Ottela   <mikael.ottela@ixonos.com>
 
 	* src/tracker-extract/tracker-extract-tiff.c:

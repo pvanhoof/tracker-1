@@ -1,3 +1,17 @@
+2008-8-18   Mikael Ottela    <mikael.ottela@ixonos.com>
+	* src/trackerd/tracker-search.c:
+	* src/trackerd/tracker-search.h:
+	* src/trackerd/tracker-rdf-query.c:
+	* src/trackerd/tracker-rdf-query.h:
+	* src/libtracker/tracker.h:
+	* src/libtracker/tracker.c:
+	* data/dbus/tracker-search.xml: Added sorting fields to rdf-queries.
+	Fixed some problems with error reporting.
+
+	* src/trackerd/tracker-metadata.c: Fixed limit and offset in unique
+	values queries.
+	
+
 2008-08-18  Philip Van Hoof  <philip@codeminded.be>
 
 	* src/libtracker-db/tracker-db-index.c: Added a FIXME comment

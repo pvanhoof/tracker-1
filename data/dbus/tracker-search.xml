@@ -105,6 +105,8 @@
       <arg type="s" name="keyword" direction="in" />
       <arg type="s" name="query_condition" direction="in" />
       <arg type="b" name="sort_by_service" direction="in" />
+      <arg type="as" name="sort_fields" direction="in" />
+      <arg type="b" name="sort_descending" direction="in" />
       <arg type="i" name="offset" direction="in" />
       <arg type="i" name="max_hits" direction="in" />
       <arg type="aas" name="result" direction="out" />

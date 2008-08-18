@@ -41,6 +41,8 @@
 
 #include "tracker-rdf-query.h"
 
+#define DEFAULT_METADATA_MAX_HITS 1024
+
 G_DEFINE_TYPE(TrackerMetadata, tracker_metadata, G_TYPE_OBJECT)
 
 static void
@@ -62,6 +64,16 @@ tracker_metadata_new (void)
 /*
  * Functions
  */
+
+static gint
+metadata_sanity_check_max_hits (gint max_hits)
+{
+        if (max_hits < 1) {
+                return DEFAULT_METADATA_MAX_HITS;
+        }
+
+        return max_hits;
+}
 
 static TrackerFieldData *
 tracker_metadata_add_metadata_field (TrackerDBInterface *iface,
@@ -466,6 +478,7 @@ tracker_metadata_get_unique_values (TrackerMetadata        *object,
 
 	GPtrArray          *values = NULL;
 	GSList             *field_list = NULL;
+	gchar	           *str_offset, *str_limit;
 
 	GString            *sql_select;
 	GString            *sql_from;
@@ -477,7 +490,7 @@ tracker_metadata_get_unique_values (TrackerMetadata        *object,
 	char               *rdf_from;
 	GError             *actual_error = NULL;
 
-	guint         i;
+	guint               i;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -565,7 +578,15 @@ tracker_metadata_get_unique_values (TrackerMetadata        *object,
 	g_free (rdf_from);
 	g_free (rdf_where);
 
+	str_offset = tracker_int_to_string (offset);
+	str_limit = tracker_int_to_string (metadata_sanity_check_max_hits (max_hits));
+
+	g_string_append_printf (sql_order, " LIMIT %s,%s", str_offset, str_limit);
+
 	sql = g_strconcat (sql_select->str, " ", sql_from->str, " ", sql_where->str, " ", sql_order->str, NULL);
+
+	g_free (str_offset);
+	g_free (str_limit);
 
 	g_string_free (sql_select, TRUE);
 	g_string_free (sql_from, TRUE);

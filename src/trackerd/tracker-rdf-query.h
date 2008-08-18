@@ -35,9 +35,12 @@ gchar *tracker_rdf_query_to_sql (TrackerDBInterface  *iface,
 				 const gchar         *search_text,
 				 const gchar         *keyword,
 				 gboolean             sort_by_service,
+				 gchar              **sort_fields,
+				 gint                 sort_field_count,
+				 gboolean             sort_desc,
 				 gint                 offset,
 				 gint                 limit,
-				 GError              *error);
+				 GError             **error);
 
 void tracker_rdf_filter_to_sql  (TrackerDBInterface  *iface,
 				 const gchar         *query,

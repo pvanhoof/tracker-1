@@ -1146,9 +1146,12 @@ tracker_rdf_query_to_sql (TrackerDBInterface  *iface,
                           const gchar         *search_text,
                           const gchar         *keyword,
                           gboolean             sort_by_service,
+			  gchar              **sort_fields,
+			  gint                 sort_field_count,
+			  gboolean             sort_desc,
                           gint                 offset,
                           gint                 limit,
-                          GError              *error)
+                          GError             **error)
 {
 	static gboolean  inited = FALSE;
 	ParserData       data;
@@ -1183,8 +1186,12 @@ tracker_rdf_query_to_sql (TrackerDBInterface  *iface,
 			field_data = add_metadata_field (&data, fields[i], TRUE, FALSE);
 
 			if (!field_data) {
-				g_critical ("RDF Query failed, field:'%s' not found", 
-                                            fields[i]);
+			        g_set_error (error,
+					     error_quark, 
+					     PARSE_ERROR,
+					     "RDF Query failed, field:'%s' not found", 
+					     sort_fields[i]);
+
 				g_slist_foreach (data.fields, 
                                                  (GFunc) g_object_unref, 
                                                  NULL);
@@ -1244,20 +1251,63 @@ tracker_rdf_query_to_sql (TrackerDBInterface  *iface,
 		limit = 1024;
 	}
 
+	data.sql_order = g_string_new ("");
+
 	if (sort_by_service) {
 		if (do_search) {
-			data.sql_order = g_string_new ("\n ORDER BY M.Score desc, S.ServiceTypeID, uri LIMIT ");
+		        g_string_append_printf (data.sql_order,"M.Score desc, S.ServiceTypeID, uri ");
 		} else {
-			data.sql_order = g_string_new ("\n ORDER BY S.ServiceTypeID, uri LIMIT ");
+			g_string_append_printf (data.sql_order,"S.ServiceTypeID, uri ");
 		}
 	} else {
 		if (do_search) {
-			data.sql_order = g_string_new ("\n ORDER BY M.Score desc LIMIT ");
+			g_string_append_printf (data.sql_order,"M.Score desc ");
 		} else {
-			data.sql_order = g_string_new ("\n  LIMIT ");
+			/* Nothing */
 		}
 
 	}
+
+	if (sort_field_count>0) {
+	        gint i;
+
+		for (i = 0; i < sort_field_count; i++) {
+			TrackerFieldData *field_data;
+
+			field_data = add_metadata_field (&data, sort_fields[i], FALSE, FALSE);
+
+			if (!field_data) {
+			        g_set_error (error,
+					     error_quark, 
+					     PARSE_ERROR,
+					     "RDF Query failed, sort field:'%s' not found", 
+					     sort_fields[i]);
+				g_slist_foreach (data.fields, 
+                                                 (GFunc) g_object_unref, 
+                                                 NULL);
+				g_slist_free (data.fields);
+				g_string_free (data.sql_select, TRUE);
+				g_string_free (data.sql_where, TRUE);
+				g_string_free (data.sql_order, TRUE);
+
+				return NULL;
+			}
+
+			if (i) {
+				g_string_append_printf (data.sql_order, ", ");
+			}
+
+			g_string_append_printf (data.sql_order, "%s %s", 
+						tracker_field_data_get_select_field (field_data),
+						sort_desc ? "DESC" : "ASC");
+		}
+ 	}
+ 
+	if (!tracker_is_empty_string (data.sql_order->str)) {
+		g_string_prepend (data.sql_order, "\n ORDER BY ");
+	}
+
+	g_string_append_printf (data.sql_order, " LIMIT ");	
 
 	g_string_append_printf (data.sql_order, "%d,%d ", offset, limit);
 
@@ -1277,7 +1327,7 @@ tracker_rdf_query_to_sql (TrackerDBInterface  *iface,
 
 	result = NULL;
 
-	if (!g_markup_parse_context_parse (data.context, query, -1, &error)) {
+	if (!g_markup_parse_context_parse (data.context, query, -1, error)) {
 		g_string_free (data.sql_select, TRUE);
 		g_string_free (data.sql_from, TRUE);
 		g_string_free (data.sql_where, TRUE);

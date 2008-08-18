@@ -1091,6 +1091,8 @@ tracker_search_query (TrackerSearch          *object,
 		      const gchar            *keyword,
 		      const gchar            *query_condition,
 		      gboolean                sort_by_service,
+		      gchar                 **sort_fields,
+		      gboolean                sort_desc,
 		      gint                    offset,
 		      gint                    max_hits,
 		      DBusGMethodInvocation  *context,
@@ -1114,7 +1116,7 @@ tracker_search_query (TrackerSearch          *object,
 				  "DBus request to search query, "
 				  "query id:%d, service:'%s', search text '%s', "
 				  "keyword:'%s', query condition:'%s', offset:%d, "
-				  "max hits:%d, sort by service:'%s'",
+				  "max hits:%d, sort by service:'%s', sort descending'%s'",
 				  live_query_id,
 				  service,
 				  search_text,
@@ -1122,14 +1124,15 @@ tracker_search_query (TrackerSearch          *object,
 				  query_condition,
 				  offset,
 				  max_hits, 
-				  sort_by_service ? "yes" : "no");
+				  sort_by_service ? "yes" : "no",
+				  sort_desc ? "yes" : "no");
 
 	if (!tracker_ontology_is_valid_service_type (service)) {
-		g_set_error (&actual_error,
-			     TRACKER_DBUS_ERROR,
-			     0,
-			     "Service '%s' is invalid or has not been implemented yet",
-			     service);
+		tracker_dbus_request_failed (request_id,
+					     &actual_error,
+					     0,
+					     "Service '%s' is invalid or has not been implemented yet",
+					     service);
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
 		return;
@@ -1157,25 +1160,26 @@ tracker_search_query (TrackerSearch          *object,
 							     g_strv_length (fields), 
 							     search_text, 
 							     keyword, 
-							     sort_by_service, 
+							     sort_by_service,
+							     sort_fields,
+							     g_strv_length (sort_fields),
+							     sort_desc,
 							     offset, 
 							     search_sanity_check_max_hits (max_hits), 
-							     query_error);
+							     &query_error);
 
 		if (query_error) {
-			g_set_error (&actual_error,
-				     TRACKER_DBUS_ERROR,
-				     0,
-				     query_error->message);
-			dbus_g_method_return_error (context, actual_error);
-			g_error_free (actual_error);
+			tracker_dbus_request_failed (request_id,
+						     &query_error, 
+						     NULL);
+			dbus_g_method_return_error (context, query_error);
 			g_error_free (query_error);
 			return;
 		} else if (!query_translated) {
-			g_set_error (&actual_error,
-				     TRACKER_DBUS_ERROR,
-				     0,
-				     "Invalid rdf query, no error given");
+			tracker_dbus_request_failed (request_id,
+						     &actual_error,
+						     0,
+						     "Invalid rdf query, no error given");
 			dbus_g_method_return_error (context, actual_error);
 			g_error_free (actual_error);
 			return;

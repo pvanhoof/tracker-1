@@ -714,7 +714,7 @@ cache_flush_foreach (gpointer key,
 	 * That's because the only thing we'll achieve is letting this queue
 	 * grow until it starts succeeding again. Which might end up being
 	 * never. Making tracker-indexer both becoming increasingly slow and
-	 * start consuming increasingly insane amounts of memory. 
+	 * start consuming increasing amounts of memory. 
 	 **/
 
 	return indexer_update_word (index, word, array);

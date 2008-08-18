@@ -1064,10 +1064,13 @@ create_update_item (TrackerIndexer  *indexer,
 		return;
 	}
 
-	tracker_indexer_module_file_get_uri (info->module, 
-					     info->file, 
-					     &dirname, 
-					     &basename);
+	if (!tracker_indexer_module_file_get_uri (info->module,
+						  info->file,
+						  &dirname,
+						  &basename)) {
+		return;
+	}
+
 	id = tracker_db_check_service (service_def, 
 				       dirname, 
 				       basename);

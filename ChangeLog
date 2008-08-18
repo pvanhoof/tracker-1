@@ -1,5 +1,13 @@
 2008-08-18  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-indexer-module.c
+	(tracker_indexer_module_file_get_uri): Set dirname/basename to NULL if
+	the function is going to return FALSE.
+	* src/tracker-indexer/tracker-indexer.c (create_update_item): Check
+	that the module could get the URI for the element being processed.
+
+2008-08-18  Carlos Garnacho  <carlos@imendio.com>
+
         * src/tracker-indexer/modules/evolution.c
         (get_mail_storage_type_from_path): Ignore "Sent" folders.
         (get_mbox_uri): Remove ".sbd" from directory names, Evolution won't

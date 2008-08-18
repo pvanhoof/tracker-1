@@ -1,5 +1,10 @@
 2008-08-18  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-indexer.c (handle_metadata_add): Correct
+	check for GError.
+
+2008-08-18  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/modules/files.c (get_file_content): Plug a leak.
 
 2008-08-18  Carlos Garnacho  <carlos@imendio.com>

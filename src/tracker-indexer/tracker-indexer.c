@@ -1282,8 +1282,7 @@ handle_metadata_add (TrackerIndexer *indexer,
 	gchar *joined, *dirname, *basename;
 	gint len;
 
-	g_return_val_if_fail (error == NULL, FALSE);
-	g_return_val_if_fail (*error == NULL, FALSE);
+	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
 	service_def = tracker_ontology_get_service_type_by_name (service_type);
 	if (!service_def) {

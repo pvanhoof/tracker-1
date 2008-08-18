@@ -673,6 +673,49 @@ file_enumerate_children (TrackerCrawler *crawler,
 					 crawler);
 }
 
+static void
+prune_none_existing_paths (TrackerCrawler *crawler)
+{
+	TrackerCrawlerPrivate *priv;
+
+	priv = crawler->private;
+
+	if (priv->recurse_paths) {
+		GSList   *new_list;
+		GSList   *l;
+		GFile    *file;
+		gchar    *path;
+		gboolean  exists;
+
+		new_list = NULL;
+
+		/* Check the currently set recurse paths are real */
+		for (l = priv->recurse_paths; l; l = l->next) {
+			path = l->data;
+			
+			/* Check location exists before we do anything */
+			file = g_file_new_for_path (path);
+			exists = g_file_query_exists (file, NULL);
+			
+			if (exists) {
+				g_message ("  Directory:'%s' added to list to crawl (recursively)",
+					   path);
+				new_list = g_slist_prepend (new_list, g_strdup (path));
+			} else {
+				g_message ("  Directory:'%s' does not exist",
+					   path);
+			}
+
+			g_object_unref (file);
+		}
+		
+		new_list = g_slist_reverse (new_list);
+		g_slist_foreach (priv->recurse_paths, (GFunc) g_free, NULL);
+		g_slist_free (priv->recurse_paths);
+		priv->recurse_paths = new_list;
+	}
+}
+
 gboolean
 tracker_crawler_start (TrackerCrawler *crawler)
 {
@@ -692,6 +735,8 @@ tracker_crawler_start (TrackerCrawler *crawler)
 
 	g_message ("Crawling directories for module:'%s'",
 		   crawler->private->module_name);
+
+	prune_none_existing_paths (crawler);
 
 	if (priv->use_module_paths) {
 		recurse_directories =

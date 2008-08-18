@@ -729,18 +729,23 @@ static void
 process_module_files_add_legacy_options (TrackerProcessor *processor) 
 {
 	TrackerCrawler *crawler;
-	GSList         *roots;
+	GSList         *watch_roots;
+	GSList         *crawl_roots;
 	GSList         *l;
 	const gchar    *module_name = "files";
 
 	crawler = g_hash_table_lookup (processor->private->crawlers, module_name);
 
+	watch_roots = tracker_config_get_watch_directory_roots (processor->private->config);
+	crawl_roots = tracker_config_get_crawl_directory_roots (processor->private->config);
+
 	/* This module get special treatment to make sure legacy
 	 * options are supported.
 	 */
+
+	/* Add monitors, from WatchDirectoryRoots config key */
 	g_message ("  User monitors being added:");
-	roots = tracker_config_get_watch_directory_roots (processor->private->config);
-	for (l = roots; l; l = l->next) {
+	for (l = watch_roots; l; l = l->next) {
 		GFile *file;
 		
 		g_message ("    %s", (gchar*) l->data);
@@ -750,19 +755,29 @@ process_module_files_add_legacy_options (TrackerProcessor *processor)
 		g_object_unref (file);
 	}
 
-	if (g_slist_length (roots) == 0) {
+	if (g_slist_length (watch_roots) == 0) {
 		g_message ("    NONE");
 	}
 	
+	/* Add crawls, from WatchDirectoryRoots and
+	 * CrawlDirectoryRoots config keys. 
+	 */
 	g_message ("  User crawls being added:");
-	roots = tracker_config_get_crawl_directory_roots (processor->private->config);
-	for (l = roots; l; l = l->next) {
+
+	for (l = watch_roots; l; l = l->next) {
 		g_message ("    %s", (gchar*) l->data);
 		
 		tracker_crawler_add_path (crawler, l->data);		
 	}
 
-	if (g_slist_length (roots) == 0) {
+	for (l = crawl_roots; l; l = l->next) {
+		g_message ("    %s", (gchar*) l->data);
+		
+		tracker_crawler_add_path (crawler, l->data);		
+	}
+
+	if (g_slist_length (watch_roots) == 0 && 
+	    g_slist_length (crawl_roots) == 0) {
 		g_message ("    NONE");
 	}
 }

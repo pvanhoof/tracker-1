@@ -227,12 +227,11 @@ tracker_throttle (TrackerConfig *config,
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
-        throttle = tracker_config_get_throttle (config);
-
-        if (throttle < 1) {
-                return;
-        }
-
+	/* Get the throttle, add 5 (minimum value) so we don't do
+	 * nothing and then multiply it by the factor given
+	 */
+        throttle  = tracker_config_get_throttle (config);
+	throttle += 5;
         throttle *= multiplier;
 
         if (throttle > 0) {

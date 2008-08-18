@@ -1,3 +1,24 @@
+2008-08-18  Martyn Russell  <martyn@imendio.com>
+
+	* data/modules/files.module: Remove $HOME from the files module.
+	It is not needed since it is in the user config already and it
+	means users would have to change two places, IF they could change
+	/usr/share at all anyway.
+	
+	* src/libtracker-common/tracker-utils.c: (tracker_throttle): If
+	throttle is 0, don't return, always have a minimum of 5 for
+	throttle added to whatever the config throttle value is. If we
+	don't want to throttle, don't call the throttle function.
+
+	* src/trackerd/tracker-crawler.c: (file_enumerate_children),
+	(prune_none_existing_paths), (tracker_crawler_start):
+	* src/trackerd/tracker-processor.c:
+	(process_module_files_add_legacy_options):  Make sure that the
+	legacy config option WatchDirectoryRoots ALSO crawls the file
+	system, not just adds monitors. Plus check that we don't try to
+	recurse non-existing paths when we start for paths NOT in the
+	module config. Module config paths were already checked. 
+	
 2008-08-14  Mikael Ottela   <mikael.ottela@ixonos.com>
 
 	* src/tracker-extract/tracker-extract-tiff.c:

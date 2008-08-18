@@ -350,17 +350,15 @@ main (gint argc, gchar *argv[])
                 g_source_remove (quit_timeout_id);
         }
 
+        g_main_loop_unref (main_loop);
+        g_object_unref (indexer);
+        g_object_unref (config);
+
         tracker_dbus_shutdown ();
         tracker_db_index_manager_shutdown ();
-	tracker_db_manager_shutdown ();
+        tracker_db_manager_shutdown ();
         tracker_module_config_shutdown ();
         tracker_log_shutdown ();
-
-	g_main_loop_unref (main_loop);
-	g_object_unref (indexer);
-	g_object_unref (config);
-
-	g_print ("\nOK\n\n");
 
 	return EXIT_SUCCESS;
 }

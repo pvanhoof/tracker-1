@@ -13,18 +13,10 @@
  */
 #define SAMPLE_TEXT "Here a good collection of various words to parse 12345678 after"
 
-TrackerConfig *config;
-TrackerLanguage *language;
+static TrackerConfig *config;
+static TrackerLanguage *language;
 
-const gchar *text = "";
-
-void
-print_key (gpointer key, gpointer value, gpointer user_data)
-{
-        g_print ("word: %s\n", (gchar *)key);
-}
-
-void
+static void
 assert_key_length (gpointer key, gpointer value, gpointer user_data)
 {
         gint max_length = GPOINTER_TO_INT (user_data);

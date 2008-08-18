@@ -168,23 +168,6 @@ location_to_directory (TrackerDBLocation location)
 	return NULL;
 }
 
-void 
-set_up_databases (void)
-{
-        const gchar *dir;
-        guint        i;
-
-	g_message ("Setting up all databases");
-
-        for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
-                /* Fill absolute path for the database */
-                dir = location_to_directory (dbs[i].location);
-		dbs[i].abs_filename = g_build_filename (dir, dbs[i].file, NULL);
-        }
-
-	g_message ("Setting up all databases completed");
-}
-
 static void
 load_sql_file (TrackerDBInterface *iface,
 	       const gchar        *file,

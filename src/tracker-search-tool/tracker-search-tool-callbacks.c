@@ -455,10 +455,10 @@ select_changed_cb (GtkTreeSelection *treeselection,
 #endif
 }
 
-GdkPixbuf *
-tracker_get_large_icon (const gchar * local_uri,
-			gboolean is_local_file,
-			GSearchWindow * gsearch)
+static GdkPixbuf *
+get_large_icon (const gchar * local_uri,
+		gboolean is_local_file,
+		GSearchWindow * gsearch)
 {
 	gchar	  * thumb_name = NULL;
 	GdkPixbuf * temp = NULL;
@@ -535,7 +535,7 @@ tracker_update_metadata_tile (GSearchWindow *gsearch)
 		/* get large icon for documents, images and videos only */
 		GdkPixbuf *large_icon = NULL;
 		if (type == SERVICE_DOCUMENTS || type == SERVICE_IMAGES || type == SERVICE_VIDEOS) {
-			large_icon = tracker_get_large_icon (uri, (gsearch->type < 10), gsearch);
+			large_icon = get_large_icon (uri, (gsearch->type < 10), gsearch);
 		}
 
 

@@ -671,7 +671,7 @@ get_mbox_recipient_list (GMimeMessage *message,
         return g_list_reverse (list);
 }
 
-TrackerMetadata *
+static TrackerMetadata *
 get_metadata_for_data_wrapper (GMimeDataWrapper *wrapper)
 {
         TrackerMetadata *metadata;
@@ -699,7 +699,7 @@ get_metadata_for_data_wrapper (GMimeDataWrapper *wrapper)
         return metadata;
 }
 
-TrackerMetadata *
+static TrackerMetadata *
 get_metadata_for_mbox_attachment (TrackerFile  *file,
                                   GMimeMessage *message,
                                   GMimePart    *part)
@@ -730,7 +730,7 @@ get_metadata_for_mbox_attachment (TrackerFile  *file,
         return metadata;
 }
 
-TrackerMetadata *
+static TrackerMetadata *
 get_metadata_for_mbox (TrackerFile *file)
 {
         EvolutionLocalData *data;
@@ -788,7 +788,7 @@ get_metadata_for_mbox (TrackerFile *file)
         return metadata;
 }
 
-void
+static void
 skip_content_info (FILE *summary)
 {
         guint32 count, i;
@@ -826,7 +826,7 @@ skip_content_info (FILE *summary)
         }
 }
 
-gboolean
+static gboolean
 get_imap_attachment_info (const gchar            *mime_file,
                           gchar                 **name,
                           GMimePartEncodingType  *encoding)
@@ -930,7 +930,7 @@ get_imap_attachment_info (const gchar            *mime_file,
         return TRUE;
 }
 
-void
+static void
 get_imap_uri (TrackerFile  *file,
               const gchar  *uid,
               gchar       **uri_base,
@@ -1042,7 +1042,7 @@ get_imap_message_body (TrackerFile *file,
         return body;
 }
 
-TrackerMetadata *
+static TrackerMetadata *
 get_metadata_for_imap_attachment (TrackerFile *file,
                                   const gchar *mime_file)
 {
@@ -1100,7 +1100,7 @@ get_metadata_for_imap_attachment (TrackerFile *file,
         return metadata;
 }
 
-TrackerMetadata *
+static TrackerMetadata *
 get_metadata_for_imap (TrackerFile *file)
 {
         EvolutionImapData *data;

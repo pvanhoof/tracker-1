@@ -70,7 +70,7 @@ ontology_mime_prefix_foreach (gpointer data,
 	g_free (mime_prefix);
 }
 
-gpointer
+static gpointer
 ontology_hash_lookup_by_str (GHashTable  *hash_table, 
 			     const gchar *str)
 {
@@ -84,7 +84,7 @@ ontology_hash_lookup_by_str (GHashTable  *hash_table,
 	return data;
 }
 
-gpointer
+static gpointer
 ontology_hash_lookup_by_id (GHashTable  *hash_table, 
 			    gint         id)
 {

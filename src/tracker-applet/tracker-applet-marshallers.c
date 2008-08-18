@@ -1,5 +1,5 @@
-
 #include	<glib-object.h>
+#include "tracker-applet-marshallers.h"
 
 
 #ifdef G_ENABLE_DEBUG

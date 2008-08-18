@@ -1,12 +1,34 @@
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/* 
+ * Copyright (C) 2008, Nokia (urho.konttori@nokia.com)
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public
+ * License along with this library; if not, write to the
+ * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ * Boston, MA  02110-1301, USA. 
+ */  
+
+#include <string.h>
+
 #include <glib.h>
 #include <glib/gtestutils.h>
 #include <gio/gio.h>
 
 #include <libtracker-common/tracker-file-utils.h>
-#include <tracker-test-helpers.h>
-#include <string.h>
 
-GSList *
+#include <tracker-test-helpers.h>
+
+static GSList *
 array_as_list (gchar **array) 
 {
         gint i;
@@ -20,9 +42,9 @@ array_as_list (gchar **array)
         return result;
 }
 
-gboolean
-string_in_list (GSList *list, const gchar *string) {
-
+static gboolean
+string_in_list (GSList *list, const gchar *string) 
+{
         GSList *it;
         for ( it = list; it != NULL; it = it->next) {
                 if (strcmp (it->data, string) == 0) {
@@ -33,29 +55,28 @@ string_in_list (GSList *list, const gchar *string) {
 }
 
 static void
-test_path_list_filter_duplicates ()
+test_path_list_filter_duplicates (void)
 {
         gchar *input_roots [] = {"/home", "/home/ivan", "/tmp", "/usr/", "/usr/share/local", NULL};
 
         GSList *input_as_list = NULL;
         GSList *result;
+
         input_as_list = array_as_list (input_roots);
 
 
         result = tracker_path_list_filter_duplicates (input_as_list);
-        // Expected /home /tmp /usr
         g_assert_cmpint (3, ==, g_slist_length (result));
         
         g_assert (string_in_list (result, "/home/"));
         g_assert (string_in_list (result, "/tmp/"));
         g_assert (string_in_list (result, "/usr/"));
 
-
         g_slist_foreach (input_as_list, (GFunc) g_free, NULL);
 }
 
 static void
-test_path_evaluate_name ()
+test_path_evaluate_name (void)
 {
         gchar *result;
         
@@ -72,9 +93,8 @@ test_path_evaluate_name ()
         tracker_test_helpers_cmpstr_equal (result, "/home/user/all/ok");
         g_free (result);
 
-        /* 
-           The result of this test and the next one are not consistent! 
-           Must it remove the end '/' or not?
+        /* The result of this test and the next one are not consistent! 
+         * Must it remove the end '/' or not?
          */
         result = tracker_path_evaluate_name ("/home/user/all/dir/");
         tracker_test_helpers_cmpstr_equal (result, "/home/user/all/dir");
@@ -113,7 +133,6 @@ test_path_evaluate_name ()
         g_free (result);
         g_free (parent_dir);
 
-
         result = tracker_path_evaluate_name ("");
         g_assert (!result);
 
@@ -130,7 +149,6 @@ test_path_evaluate_name ()
 static void
 test_file_get_mime_type (void)
 {
-
         gchar *dir_name, *result;
         GFile *dir;
 
@@ -150,8 +168,8 @@ test_file_get_mime_type (void)
 }
 
 int
-main (int argc, char **argv) {
-
+main (int argc, char **argv) 
+{
         int result;
 
 	g_type_init ();

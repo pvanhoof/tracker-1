@@ -1,3 +1,23 @@
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/* 
+ * Copyright (C) 2008, Nokia (urho.konttori@nokia.com)
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public
+ * License along with this library; if not, write to the
+ * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ * Boston, MA  02110-1301, USA. 
+ */  
+
 #include <qdbm/depot.h>
 
 #include <glib.h>
@@ -12,7 +32,7 @@
 #define MAX_BUCKET_COUNT 100
 
 /* Helper functions to read the index */
-gint
+static gint
 get_number_words_in_index (const gchar *index_file)
 {
         DEPOT *index;
@@ -27,7 +47,7 @@ get_number_words_in_index (const gchar *index_file)
         return words;
 }
 
-gint
+static gint
 get_results_for_word (const gchar *index_file, const gchar *word) 
 {
         DEPOT *index;
@@ -42,7 +62,7 @@ get_results_for_word (const gchar *index_file, const gchar *word)
         return result / sizeof (TrackerDBIndexItem);
 }
 
-gint
+static gint
 get_score_for_word (const gchar *index_file, const gchar *word)
 {
         DEPOT *index;
@@ -65,45 +85,8 @@ get_score_for_word (const gchar *index_file, const gchar *word)
         return score;
 }
 
-void
-debug_print_index (const gchar *index_file) {
-
-        DEPOT *index;
-        gint rsiz, elements, i;
-        gchar *iter; 
-        TrackerDBIndexItem *results;
-
-        g_print ("Contents of %s\n", index_file);
-
-        index = dpopen (index_file, DP_OREADER, MAX_BUCKET_COUNT);
-
-        dpiterinit (index);
-        
-        while ((iter = dpiternext (index, NULL)) != NULL) {
-                g_print ("word: %s doc_ids:", iter);
-                results = (TrackerDBIndexItem *)dpget (index, iter, -1, 0, -1, &rsiz);
-
-                if (!results) {
-                        g_print ("[No results]\n");
-                        continue;
-                } else {
-                        elements = rsiz / sizeof (TrackerDBIndexItem);
-                        for (i = 0; i < elements; i++) {
-                                g_print ("%d ", results[i].id);
-                        }
-                        g_print ("\n");
-                }
-                g_free (results);
-                g_free (iter);
-        }
-
-        dpclose (index);
-}
-
-/* Actual tests */
-
 static void
-test_add_one_word ()
+test_add_one_word (void)
 {
         TrackerDBIndex *index;
         const gchar *indexname = "test-add-one-word.index";
@@ -199,7 +182,7 @@ test_add_word_multiple_occurrences ()
         
 }
 
-gint
+static gint
 insert_in_index (TrackerDBIndex *index, const gchar *text) 
 {
         gchar **pieces;
@@ -248,7 +231,7 @@ test_add_with_flushs ()
 
 }
 
-void
+static void
 remove_in_index (TrackerDBIndex *index, const gchar *text, gint docid) 
 {
         gchar **pieces;
@@ -264,9 +247,8 @@ remove_in_index (TrackerDBIndex *index, const gchar *text, gint docid)
         doc += 1;
 }
 
-
 static void
-test_remove_document ()
+test_remove_document (void)
 {
         TrackerDBIndex *index;
         const gchar *indexname = "test-remove-document.index";
@@ -333,8 +315,8 @@ test_remove_before_flush (void)
 }
 
 int
-main (int argc, char **argv) {
-
+main (int argc, char **argv) 
+{
         int result;
 
 	g_type_init ();

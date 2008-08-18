@@ -17,47 +17,48 @@
  * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  * Boston, MA  02110-1301, USA. 
  */  
+
+#include <string.h>
+
+#include <glib.h>
+#include <glib/gtestutils.h>
+
 #include <libtracker-common/tracker-service.h>
 #include <libtracker-common/tracker-field.h>
 #include <libtracker-common/tracker-ontology.h>
-#include <glib.h>
-#include <glib/gtestutils.h>
-#include <tracker-test-helpers.h>
-#include <string.h>
 
-gboolean
+#include <tracker-test-helpers.h>
+
+static gboolean
 test_cmp_servicedef_equals (TrackerService *one, 
                             TrackerService *two)
 {
-	
-	if ( one && !two) {
-		return FALSE; // one is null and two not
-	}
-
-	if ( !one && two ) {
+	if (one && !two) {
 		return FALSE;
 	}
 
-	if ( !one && one == two ) {
-		return TRUE; // Both null
+	if (!one && two) {
+		return FALSE;
 	}
 
-	return ( tracker_service_get_id (one) == tracker_service_get_id (two) 
-		 && tracker_test_helpers_cmpstr_equal ( tracker_service_get_name (one), 
-                                               tracker_service_get_name (two))
-                 && tracker_test_helpers_cmpstr_equal ( tracker_service_get_parent (one),
-                                         tracker_service_get_parent (two))
-		 && tracker_service_get_db_type (one) == tracker_service_get_db_type (two)
-		 && tracker_service_get_embedded (one) == tracker_service_get_embedded (two));
+	if (!one && one == two) {
+		return TRUE; 
+	}
 
+	return (tracker_service_get_id (one) == tracker_service_get_id (two) &&
+		tracker_test_helpers_cmpstr_equal (tracker_service_get_name (one), 
+						   tracker_service_get_name (two)) &&
+		tracker_test_helpers_cmpstr_equal (tracker_service_get_parent (one),
+						   tracker_service_get_parent (two)) &&
+		tracker_service_get_db_type (one) == tracker_service_get_db_type (two) &&
+		tracker_service_get_embedded (one) == tracker_service_get_embedded (two));
 }
 
 static gboolean
 element_in_list (GSList *list, gchar *element) 
 {
-	return (g_slist_find_custom (list, element, (GCompareFunc)strcmp) != NULL);
+	return (g_slist_find_custom (list, element, (GCompareFunc) strcmp) != NULL);
 }
-
 
 static GSList *
 array_to_list (char **array)                                                                          
@@ -67,12 +68,12 @@ array_to_list (char **array)
 
         for (i = 0; array[i] != NULL; i++) {
 		list = g_slist_prepend (list, g_strdup (array[i]));
-        }                                                                                                      
+        }            
+                                                                                          
         return list; 
 }
 
-
-TrackerField *
+static TrackerField *
 create_field_definition (const gchar *id, 
                          const gchar *name, 
                          TrackerFieldType data_type,
@@ -94,13 +95,19 @@ create_field_definition (const gchar *id,
         return field;
 }
 
-TrackerService *
-create_service_definition (int id, const char *name, const char *parent, gboolean embedded) {
-
+static TrackerService *
+create_service_definition (gint        id, 
+			   const char *name, 
+			   const char *parent, 
+			   gboolean    embedded) 
+{
         TrackerService *def;
 	/* array_to_list use prepend, so use reverse order here  */
-	gchar * key_metadata [] = {"Key:Metadata2", "Key:MetaData1", NULL};
-	
+	gchar *key_metadata [] = { 
+		"Key:Metadata2", 
+		"Key:MetaData1", 
+		NULL
+	};
         
         def = tracker_service_new ();
         tracker_service_set_id (def, id);
@@ -131,7 +138,7 @@ tracker_services_general_setup ()
         TrackerService *conv_def, *gaim_def, *gossip_def, *new_gaim_def;
         TrackerField *field_title;
 
-	GSList *mimes, *mime_prefixes; //, *app_dirs_list, *app_extension_list;
+	GSList *mimes, *mime_prefixes;
 
 	def = create_service_definition (0, "Test service", "Parent service", TRUE);
 	parent_def = create_service_definition (1, "Parent service", NULL, FALSE);
@@ -175,7 +182,7 @@ tracker_services_general_setup ()
 }
 
 static void
-test_get_id_for_service ()
+test_get_id_for_service (void)
 {
 	gint result_int;
 
@@ -187,7 +194,7 @@ test_get_id_for_service ()
 
 
 static void
-test_get_service_by_id ()
+test_get_service_by_id (void)
 {
 	gchar *result_string;
 
@@ -200,7 +207,7 @@ test_get_service_by_id ()
 
 
 static void
-test_get_parent_service_by_id ()
+test_get_parent_service_by_id (void)
 {
 	gchar *result_string;
 
@@ -212,7 +219,7 @@ test_get_parent_service_by_id ()
 }
 
 static void
-test_get_parent_id_for_service_id ()
+test_get_parent_id_for_service_id (void)
 {
 	gint result_int;
 
@@ -223,7 +230,7 @@ test_get_parent_id_for_service_id ()
 }
 
 static void
-test_get_parent_service ()
+test_get_parent_service (void)
 {
 	gchar *result_string;
 
@@ -234,9 +241,8 @@ test_get_parent_service ()
 	g_assert (!result_string);
 }
 
-
 static void
-test_get_service_type_for_mime ()
+test_get_service_type_for_mime (void)
 {
 	gchar *value;
 
@@ -253,11 +259,8 @@ test_get_service_type_for_mime ()
 	g_free (value);
 }
 
-
-
-
 static void
-test_get_service ()
+test_get_service (void)
 {
 	TrackerService *result_def;
 
@@ -269,9 +272,8 @@ test_get_service ()
 	g_assert (test_cmp_servicedef_equals (result_def, expected_results->parent_def));
 }
 
-
 static void
-test_get_db_for_service ()
+test_get_db_for_service (void)
 {
 	TrackerDBType result_db;
 
@@ -281,9 +283,8 @@ test_get_db_for_service ()
 	g_assert (result_db == TRACKER_DB_TYPE_FILES);
 }
 
-
 static void
-test_is_service_embedded ()
+test_is_service_embedded (void)
 {
 	g_assert (tracker_ontology_service_type_has_embedded ("Test service"));
 	g_assert (!tracker_ontology_service_type_has_embedded ("Parent service"));
@@ -291,29 +292,28 @@ test_is_service_embedded ()
 }
 
 static void
-test_has_thumbnails (
-		     )
+test_has_thumbnails (void)
 {
 	g_assert (tracker_ontology_service_type_has_thumbnails ("Test service"));
 	g_assert (!tracker_ontology_service_type_has_thumbnails ("trash"));
 }
 
 static void
-test_has_text ()
+test_has_text (void)
 {
 	g_assert (tracker_ontology_service_type_has_text ("Test service"));
 	g_assert (!tracker_ontology_service_type_has_text ("trash"));
 }
 
 static void
-test_has_metadata ()
+test_has_metadata (void)
 {
 	g_assert (!tracker_ontology_service_type_has_metadata ("Test service"));
 	g_assert (!tracker_ontology_service_type_has_metadata ("trash"));
 }
 
 static void
-test_field_in_ontology ()
+test_field_in_ontology (void)
 {
         TrackerField *field;
 
@@ -335,7 +335,6 @@ test_get_registered_service_types (void)
 
 	g_slist_foreach (service_types, (GFunc)g_free, NULL);
 	g_slist_free (service_types);
-
 }
 
 static void
@@ -358,7 +357,6 @@ test_get_registered_field_types (void)
 
 	g_assert (!field_types);
 
-
 	/* App field types */
 	field_types = tracker_ontology_registered_field_types ("App");
 
@@ -368,9 +366,7 @@ test_get_registered_field_types (void)
 
 	g_slist_foreach (field_types, (GFunc)g_free, NULL);
 	g_slist_free (field_types);
-
 }
-
 
 static void
 test_metadata_key_in_service (void)
@@ -384,14 +380,11 @@ test_metadata_key_in_service (void)
 	key = tracker_ontology_metadata_key_in_service ("Applications",
 							"Key:MetaDataUnknown");
 	g_assert_cmpint (key, ==, 0);
-
-
 }
 
-
 int
-main (int argc, char **argv) {
-
+main (int argc, char **argv) 
+{
         int result;
 
 	g_type_init ();
@@ -437,5 +430,6 @@ main (int argc, char **argv) {
         result = g_test_run ();
         
         tracker_ontology_shutdown ();
+
         return result;
 }

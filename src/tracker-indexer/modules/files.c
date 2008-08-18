@@ -182,7 +182,7 @@ tracker_metadata_call_text_filter (const gchar *path,
 	return text;
 }
 
-gchar *
+static gchar *
 get_file_content (const gchar *path)
 {
         GFile            *file;

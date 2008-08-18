@@ -1466,9 +1466,9 @@ tracker_search_get_columns_order (GtkTreeView * treeview)
 	return order;
 }
 
-GtkTreeViewColumn *
-tracker_search_gtk_tree_view_get_column_with_sort_column_id (GtkTreeView * treeview,
-                                                          gint id)
+static GtkTreeViewColumn *
+get_column_with_sort_column_id (GtkTreeView * treeview,
+				gint id)
 {
 	GtkTreeViewColumn * col = NULL;
 	GList * columns;
@@ -1504,7 +1504,7 @@ tracker_search_set_columns_order (GtkTreeView * treeview)
 
 		if (id >= 0 && id < NUM_COLUMNS) {
 
-			cur = tracker_search_gtk_tree_view_get_column_with_sort_column_id (treeview, id);
+			cur = get_column_with_sort_column_id (treeview, id);
 
 			if (cur && cur != last) {
 				gtk_tree_view_move_column_after (treeview, cur, last);

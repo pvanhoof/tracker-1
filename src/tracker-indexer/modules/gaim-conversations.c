@@ -26,10 +26,3 @@ tracker_module_get_name (void)
 	/* Return module name here */
 	return "GaimConversations";
 }
-
-TrackerMetadata *
-tracker_module_get_file_metadata (const gchar *file)
-{
-	/* Return a hashtable filled with metadata for the file */
-	return NULL;
-}

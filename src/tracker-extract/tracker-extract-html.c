@@ -34,8 +34,7 @@ typedef struct {
 	tag_type current;
 } HTMLParseInfo;
 
-
-gboolean
+static gboolean
 has_attribute (const xmlChar **atts, const char *attr, const char *val)
 {
 	if (!(atts && attr && val)) {
@@ -55,7 +54,7 @@ has_attribute (const xmlChar **atts, const char *attr, const char *val)
 }
 
 
-const xmlChar *
+static const xmlChar *
 lookup_attribute (const xmlChar **atts, const char *attr)
 {
 	if (!atts || !attr) {
@@ -127,7 +126,6 @@ startElement (void *info, const xmlChar *name, const xmlChar **atts)
 		}
 	}
 }
-
 
 void
 characters (void *info, const xmlChar *ch, int len)

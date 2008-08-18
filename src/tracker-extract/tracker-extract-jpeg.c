@@ -37,6 +37,7 @@
 #define XMP_NAMESPACE_LENGTH 29
 
 #ifdef HAVE_LIBEXIF
+
 #include <libexif/exif-data.h>
 
 #define EXIF_DATE_FORMAT "%Y:%m:%d %H:%M:%S"
@@ -51,13 +52,11 @@ date_to_iso8601 (gchar *exif_date)
         return tracker_generic_date_to_iso8601 (exif_date, EXIF_DATE_FORMAT);
 }
 
-
 static gchar *
 fix_focal_length (gchar *fl)
 {
 	return g_strndup (fl, (strstr (fl, "mm") - fl));
 }
-
 
 static gchar *
 fix_flash (gchar *flash)
@@ -68,7 +67,6 @@ fix_flash (gchar *flash)
 		return g_strdup ("1");
         }
 }
-
 
 static gchar *
 fix_fnumber (gchar *fn)
@@ -85,7 +83,6 @@ fix_fnumber (gchar *fn)
 
 	return fn;
 }
-
 
 static gchar *
 fix_exposure_time (gchar *et)
@@ -115,7 +112,6 @@ typedef struct {
 	PostProcessor post;
 } TagType;
 
-
 TagType tags[] = {
 	{ EXIF_TAG_PIXEL_Y_DIMENSION, "Image:Height", NULL },
 	{ EXIF_TAG_PIXEL_X_DIMENSION, "Image:Width", NULL },
@@ -143,14 +139,12 @@ TagType tags[] = {
 	{ -1, NULL, NULL }
 };
 
+#endif /* HAVE_LIBEXIF */
 
-#endif
-
-void
+static void
 tracker_read_exif (const unsigned char *buffer, size_t len, GHashTable *metadata)
 {
 #ifdef HAVE_LIBEXIF
-
 	ExifData *exif;
 	TagType  *p;
 
@@ -173,9 +167,8 @@ tracker_read_exif (const unsigned char *buffer, size_t len, GHashTable *metadata
                         }
 		}
 	}
-#endif
+#endif /* HAVE_LIBEXIF */
 }
-
 
 static void
 tracker_extract_jpeg (const gchar *filename, GHashTable *metadata)
@@ -230,19 +223,19 @@ tracker_extract_jpeg (const gchar *filename, GHashTable *metadata)
 				break;
 				
 			case JPEG_APP0+1:
-                                #if defined(HAVE_LIBEXIF)
+#if defined(HAVE_LIBEXIF)
 				if (strncmp ("Exif", (gchar *)(marker->data),5) == 0) {
 					tracker_read_exif ((unsigned char *)marker->data, marker->data_length, metadata);
 				}
-                                #endif /* HAVE_LIBEXIF */
+#endif /* HAVE_LIBEXIF */
 				
-                                #if defined(HAVE_EXEMPI)
+#if defined(HAVE_EXEMPI)
 				if (strncmp ("http://ns.adobe.com/xap/1.0/\x00", (char *)(marker->data),XMP_NAMESPACE_LENGTH) == 0) {
 					tracker_read_xmp ((char *)marker->data+XMP_NAMESPACE_LENGTH,
 							  marker->data_length-XMP_NAMESPACE_LENGTH,
 							  metadata);
 				}
-                                #endif /* HAVE_EXEMPI */
+#endif /* HAVE_EXEMPI */
 
 				break;
 				
@@ -256,8 +249,6 @@ tracker_extract_jpeg (const gchar *filename, GHashTable *metadata)
 			marker = marker->next;
 		}
 		
-		
-		
 		jpeg_destroy_decompress(&cinfo);
 		
 		fclose (jpeg);
@@ -266,12 +257,10 @@ tracker_extract_jpeg (const gchar *filename, GHashTable *metadata)
 	}
 }
 
-
 TrackerExtractorData data[] = {
 	{ "image/jpeg", tracker_extract_jpeg },
 	{ NULL, NULL }
 };
-
 
 TrackerExtractorData *
 tracker_get_extractor_data (void)

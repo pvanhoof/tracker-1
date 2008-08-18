@@ -43,7 +43,7 @@
 #define LIBDIR "/usr/lib"
 #endif
 
-guint
+static guint
 create_thumbnails_dir (const gchar * const subdir)
 {
 	gchar *thumbnails_dir = NULL;

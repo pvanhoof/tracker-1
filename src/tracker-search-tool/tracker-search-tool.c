@@ -1785,8 +1785,7 @@ start_new_search (GSearchWindow * gsearch,
 	tracker_search_text_get_hit_count_all_async (tracker_client, query, (TrackerGPtrArrayReply) get_hit_count, gsearch);
 }
 
-
-void
+static void
 end_refresh_count (int count, GError * error, gpointer user_data)
 {
 	GSearchWindow *gsearch = user_data;
@@ -1802,7 +1801,6 @@ end_refresh_count (int count, GError * error, gpointer user_data)
 	update_page_count_label (gsearch);
 
 }
-
 
 void
 end_search (GPtrArray * out_array,

@@ -20,21 +20,24 @@
 
 #include "config.h"
 
+#define _XOPEN_SOURCE
+#include <time.h>
+
+#include <string.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <locale.h>
-#include <string.h>
 #include <sys/types.h>
+
 #ifndef OS_WIN32
 #include <sys/resource.h>
 #endif
+
 #include <sys/time.h>
 #include <unistd.h>
+
 #include <glib.h>
 #include <gmodule.h>
-
-#define _XOPEN_SOURCE
-#include <time.h>
 
 #include "tracker-extract.h"
 
@@ -44,7 +47,6 @@
 #define ISO8601_FORMAT "%Y-%m-%dT%H:%M:%S%z"
 
 GArray *extractors = NULL;
-
 
 gchar *
 tracker_generic_date_to_iso8601 (const gchar *date, const gchar *format)
@@ -57,7 +59,6 @@ tracker_generic_date_to_iso8601 (const gchar *date, const gchar *format)
         memset (&date_tm, 0, sizeof (struct tm));
 
         processed = strptime (date, format, &date_tm);
-        
         if (processed == NULL) {
                 // Unable to parse the input
                 return NULL;
@@ -69,7 +70,6 @@ tracker_generic_date_to_iso8601 (const gchar *date, const gchar *format)
 
         return result;
 }
-
 
 gboolean
 tracker_is_empty_string (const gchar *s)
@@ -111,9 +111,8 @@ set_memory_rlimits (void)
 #endif
 }
 
-
-void
-tracker_child_cb (gpointer user_data)
+static void
+child_cb (gpointer user_data)
 {
 #ifndef OS_WIN32
 	struct 	rlimit cpu_limit;
@@ -152,7 +151,7 @@ tracker_spawn (gchar **argv, gint timeout, gchar **tmp_stdout, gint *exit_status
                              argv,
                              NULL,
                              G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL,
-                             tracker_child_cb,
+                             child_cb,
                              GINT_TO_POINTER (timeout),
                              tmp_stdout,
                              NULL,

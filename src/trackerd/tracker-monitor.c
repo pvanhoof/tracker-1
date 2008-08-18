@@ -425,7 +425,7 @@ get_queue_from_gfile (GHashTable *modules,
 	return module_name;
 }
 
-const gchar *
+static const gchar *
 get_module_name_from_gfile (TrackerMonitor *monitor,
 			    GFile          *file,
 			    gboolean       *is_directory)

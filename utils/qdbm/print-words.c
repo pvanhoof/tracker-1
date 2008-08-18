@@ -41,7 +41,7 @@ static GOptionEntry  entries[] = {
 	{ NULL }
 };
 
-TrackerDBIndexItem *
+static TrackerDBIndexItem *
 get_word_hits (DEPOT       *index,
                const gchar *word,
                guint       *count)
@@ -71,7 +71,7 @@ get_word_hits (DEPOT       *index,
 	return details;
 }
 
-void
+static void
 load_terms_from_index (gchar *filename)
 {
     DEPOT              *depot;

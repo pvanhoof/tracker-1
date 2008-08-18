@@ -2837,60 +2837,6 @@ tracker_db_keywords_get_list (TrackerDBInterface *iface,
 				     NULL);
 }
 
-GSList *
-tracker_db_mime_query (TrackerDBInterface *iface, 
-                       const gchar        *stored_proc, 
-                       gint                service_id)
-{
-	TrackerDBResultSet *result_set;
-	GSList             *result = NULL;
-	gchar              *service_id_str;
-
-	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
- 	g_return_val_if_fail (stored_proc != NULL, NULL);
-
-	service_id_str = g_strdup_printf ("%d", service_id);
-	result_set = tracker_db_exec_proc (iface, stored_proc, service_id_str, NULL);
-	g_free (service_id_str);
-
-	if (result_set) {
-		gchar    *str;
-		gboolean  valid = TRUE;
-
-		while (valid) {
-			tracker_db_result_set_get (result_set, 0, &str, -1);
-			result = g_slist_prepend (result, str);
-			valid = tracker_db_result_set_iter_next (result_set);
-		}
-
-		g_object_unref (result_set);
-	}
-
-	return result;
-}
-
-GSList *
-tracker_db_get_mimes_for_service_id (TrackerDBInterface *iface, 
-                                     gint                service_id) 
-{
-	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
-
-	return tracker_db_mime_query (iface,
-				      "GetMimeForServiceId", 
-				      service_id);
-}
-
-GSList *
-tracker_db_get_mime_prefixes_for_service_id (TrackerDBInterface *iface,
-                                             gint          service_id) 
-{
-	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
-
-	return tracker_db_mime_query (iface, 
-				      "GetMimePrefixForServiceId", 
-				      service_id);
-}
-
 TrackerFieldData *
 tracker_db_get_metadata_field (TrackerDBInterface *iface,
 			       const gchar        *service, 

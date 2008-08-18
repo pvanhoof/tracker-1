@@ -1,3 +1,37 @@
+2008-08-18  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-ontology.c:
+	* src/libtracker-common/tracker-type-utils.c:
+	* src/libtracker-db/tracker-db-file-info.c:
+	* src/libtracker-db/tracker-db-manager.c: 
+	* src/libtracker-gtk/tracker-metadata-tile.c:
+	* src/tracker-extract/tracker-extract-html.c:
+	* src/tracker-extract/tracker-extract-jpeg.c:
+	* src/tracker-extract/tracker-extract-mp3.c:
+	* src/tracker-extract/tracker-extract.[ch]:
+	* src/tracker-indexer/modules/evolution.c:
+	* src/tracker-indexer/modules/files.c:
+	* src/tracker-indexer/modules/gaim-conversations.c:
+	* src/tracker-indexer/tracker-indexer-db.c:
+	* src/tracker-search-tool/tracker-search-tool-callbacks.c:
+	* src/tracker-search-tool/tracker-search-tool-support.c:
+	* src/tracker-search-tool/tracker-search-tool.c:
+	* src/tracker-thumbnailer/tracker-thumbnailer.c:
+	* src/trackerd/tracker-db.c:
+	* src/trackerd/tracker-monitor.c:
+	* src/trackerd/tracker-search.c: 
+	* tests/common/Makefile.am:
+	* tests/common/tracker-test-helpers.[ch]:
+	* tests/libtracker-common/tracker-file-utils-test.c:
+	* tests/libtracker-common/tracker-ontology-test.c:
+	* tests/libtracker-common/tracker-parser-test.c:
+	* tests/libtracker-db/tracker-index-writer-test.c:
+	* utils/qdbm/print-words.c: 
+	* utils/qdbm/search-word.c: Added -Wmissing-declarations
+	-Wmissing-prototypes -Wunused warnings to the CFLAGS when using
+	--enable-warnings. These files all had incorrect declarations or
+	unused code which has been removed.
+
 2008-08-18  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer.c (handle_metadata_add): Correct

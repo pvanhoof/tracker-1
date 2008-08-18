@@ -301,7 +301,7 @@ search_highlight_terms (const gchar  *text,
 	return text_copy;
 }
 
-gchar *
+static gchar *
 search_get_snippet (const gchar  *text, 
 		    gchar       **terms, 
 		    gint          length)

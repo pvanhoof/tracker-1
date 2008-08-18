@@ -19,17 +19,19 @@
  */  
 #include "tracker-test-helpers.h"
 
+static gchar *nonutf8_str = NULL;
+
 gboolean
-tracker_test_helpers_cmpstr_equal (const gchar *obtained, const gchar *expected) 
+tracker_test_helpers_cmpstr_equal (const gchar *obtained,
+				   const gchar *expected) 
 {
         gboolean result;
 
-	// NULL pointers are equals at the eyes of Godpiler
-	if ( expected == obtained ) { 
+	if (expected == obtained) { 
 		return TRUE;
 	}
 
-	if ( expected && obtained ) {
+	if (expected && obtained) {
 		result = !g_utf8_collate (expected, obtained);
                 if (!result) {
                         g_warning ("Expected %s - obtained %s", expected, obtained);
@@ -41,10 +43,8 @@ tracker_test_helpers_cmpstr_equal (const gchar *obtained, const gchar *expected)
 	}
 }
 
-static gchar *nonutf8_str = NULL;
-
 const gchar *  
-tracker_test_helpers_get_nonutf8 ()
+tracker_test_helpers_get_nonutf8 (void)
 {
         GMappedFile *file = NULL;
 
@@ -59,7 +59,7 @@ tracker_test_helpers_get_nonutf8 ()
 }
 
 void
-tracker_test_helpers_free_nonutf8 ()
+tracker_test_helpers_free_nonutf8 (void)
 {
 	if (nonutf8_str) {
 		g_free (nonutf8_str);

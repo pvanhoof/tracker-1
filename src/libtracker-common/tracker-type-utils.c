@@ -26,12 +26,12 @@
 
 #include "tracker-log.h"
 #include "tracker-utils.h"
+#include "tracker-type-utils.h"
 
 static const char *months[] = {
 	"Jan", "Feb", "Mar", "Apr", "May", "Jun",
 	"Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 };
-
 
 static const char imonths[] = {
 	'1', '2', '3', '4', '5',

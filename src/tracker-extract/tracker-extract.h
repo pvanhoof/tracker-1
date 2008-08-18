@@ -17,10 +17,12 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef _TRACKER_EXTRACT_H_
-#define _TRACKER_EXTRACT_H_
+#ifndef __TRACKER_EXTRACT_H__
+#define __TRACKER_EXTRACT_H__
 
 #include <glib.h>
+
+G_BEGIN_DECLS
 
 typedef struct TrackerExtractorData TrackerExtractorData;
 typedef TrackerExtractorData * (* TrackerExtractorDataFunc) (void);
@@ -32,11 +34,15 @@ struct TrackerExtractorData {
 			    GHashTable  *metadata);
 };
 
+gchar *               tracker_generic_date_to_iso8601 (const gchar  *date,
+                                                       const gchar  *format);
+gboolean              tracker_is_empty_string         (const gchar  *s);
+gboolean              tracker_spawn                   (gchar       **argv,
+                                                       int           timeout,
+                                                       gchar       **tmp_stdout,
+                                                       gint         *exit_status);
+TrackerExtractorData *tracker_get_extractor_data      (void);
 
-gchar *         tracker_generic_date_to_iso8601 (const gchar *date, const gchar *format);
+G_END_DECLS
 
-gboolean        tracker_is_empty_string (const gchar *s);
-
-gboolean	tracker_spawn (gchar **argv, int timeout, gchar **tmp_stdout, gint *exit_status);
-
-#endif
+#endif /* __TRACKER_EXTRACT_H__ */

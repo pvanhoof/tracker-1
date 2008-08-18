@@ -40,7 +40,7 @@ static gint deallocated;
  * TrackerDBWatch 
  */
 GType
-tracker_action_get_type (void)
+tracker_db_watch_get_type (void)
 {
         static GType etype = 0;
 
@@ -92,7 +92,7 @@ tracker_db_watch_to_string (TrackerDBWatch watch)
         GEnumClass *enum_class;
         GEnumValue *enum_value;
 
-        type = tracker_action_get_type ();
+        type = tracker_db_action_get_type ();
         enum_class = G_ENUM_CLASS (g_type_class_peek (type));
         enum_value = g_enum_get_value (enum_class, watch);
         

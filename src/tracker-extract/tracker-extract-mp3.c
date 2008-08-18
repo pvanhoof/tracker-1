@@ -45,6 +45,7 @@ typedef struct {
 	char * type;
 } Matches;
 
+#if 0  /* Unused */
 
 static struct {
 	char * name;
@@ -83,6 +84,7 @@ static struct {
 	 {NULL, NULL, FALSE},
 };
 
+#endif /* Unused */
 
 typedef struct {
 	char * title;
@@ -349,8 +351,9 @@ static int get_id3 (const char * data,
 	return OK;
 }
 
+#if 0  /* Unused */
 
-gboolean
+static gboolean
 tracker_metadata_mp3_is_writable (const char *meta)
 {
 	int i;
@@ -369,15 +372,14 @@ tracker_metadata_mp3_is_writable (const char *meta)
 
 }
 
-
-gboolean
+static gboolean
 tracker_metadata_mp3_write (const char *meta_name, const char *value) 
 {
 	/* to do */
 	return FALSE;
 }
 
-
+#endif /* Unused */
 
 static void
 mp3_parse (const char *data, size_t size, GHashTable *metadata) 

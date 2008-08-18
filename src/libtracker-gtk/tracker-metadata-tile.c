@@ -763,8 +763,8 @@ _dimensions_to_label (GtkWidget *label, const char *width, const char *height, c
 }
 
 /* taken from gnome_vfs, formats a file size to something normal */
-gchar*
-tracker_vfs_format_file_size_for_display (gulong size)
+static gchar *
+format_file_size_for_display (gulong size)
 {
 	if (size < KILOBYTE_FACTOR) {
 		//return g_strdup_printf (dngettext(GETTEXT_PACKAGE, "%u byte", "%u bytes",(guint) size), (guint) size);
@@ -797,7 +797,7 @@ _size_to_label (GtkWidget *label, const char *prop, const char *string)
 	char *temp;
 	
 	size = atol (prop);
-	format = tracker_vfs_format_file_size_for_display (size);
+	format = format_file_size_for_display (size);
 	
 	temp = g_strdup_printf (string, format);
 	gtk_label_set_markup (GTK_LABEL (label), temp);

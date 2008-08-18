@@ -103,7 +103,6 @@ main (int argc, char **argv)
 	ServiceType      type;
 	GOptionContext  *context;
 	GError          *error = NULL;
-	gchar           *search;
 	gchar           *path_in_utf8;
         gchar           *content;
 	gchar           *buffer;
@@ -211,7 +210,9 @@ main (int argc, char **argv)
                                       buffer, 
                                       offset, 
                                       limit, 
-                                      FALSE, 
+                                      FALSE,
+				      NULL,
+				      FALSE,
                                       &error);
         g_free (buffer);
 

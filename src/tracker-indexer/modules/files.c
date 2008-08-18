@@ -227,11 +227,13 @@ get_file_content (const gchar *path)
                            error->message);
                 g_error_free (error);
                 g_object_unref (file);
+                g_object_unref (stream);
 
                 return NULL;
         }
 
         g_object_unref (file);
+        g_object_unref (stream);
 
         g_debug ("Read %d bytes from file:'%s'\n",
                  sizeof (buf) - bytes_remaining,

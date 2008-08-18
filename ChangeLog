@@ -1,5 +1,9 @@
 2008-08-18  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/modules/files.c (get_file_content): Plug a leak.
+
+2008-08-18  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-main.c: Unref the indexer before any
 	manager it could make use of is shutdown. Also, ensure we disable the
 	log handler after any other thing, so we catch any possible warning.

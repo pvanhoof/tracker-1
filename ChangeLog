@@ -1,3 +1,7 @@
+2008-08-18  Philip Van Hoof  <philip@codeminded.be>
+
+	* src/libtracker-db/tracker-db-index.c: Added a FIXME comment
+
 2008-08-18  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-ontology.c:

@@ -706,6 +706,17 @@ cache_flush_foreach (gpointer key,
 	index = (DEPOT *) user_data;
 
 	/* Mark element for removal if succesfull insertion */
+	
+	/**
+	 * FIXME:
+	 *
+	 * Not removing the word from the memory-queue is not a good solution.
+	 * That's because the only thing we'll achieve is letting this queue
+	 * grow until it starts succeeding again. Which might end up being
+	 * never. Making tracker-indexer both becoming increasingly slow and
+	 * start consuming increasingly insane amounts of memory. 
+	 **/
+
 	return indexer_update_word (index, word, array);
 }
 

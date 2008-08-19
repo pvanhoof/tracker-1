@@ -4,7 +4,8 @@ INCLUDES =								\
 	-DSHAREDIR=\""$(datadir)"\"					\
 	-DLIBDIR=\""$(libdir)"\"					\
 	-DLOCALEDIR=\""$(localedir)"\" 					\
-	-DINDEXER_MODULES_DIR=\""$(libdir)"/tracker/indexer-modules\"	\
+	-DINDEXER_MODULES_DIR=\""$(libdir)/tracker/indexer-modules"\"	\
+	-DEXTRACTOR_PATH=\""$(libexecdir)/tracker-extract"\"		\
 	-DG_LOG_DOMAIN=\"Tracker\"					\
 	-I$(top_srcdir)/src						\
 	$(DBUS_CFLAGS)							\

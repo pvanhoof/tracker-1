@@ -1,5 +1,13 @@
 2008-08-19  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-extract/Makefile.am: Install tracker-extract in
+	$prefix/libexec.
+	* src/tracker-indexer/Makefile.am: specify tracker-extract path.
+	* src/tracker-indexer/tracker-metadata-utils.c
+	(create_metadata_context): Use defined tracker-extract path.
+
+2008-08-19  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-indexer.c: Emit the status signal every
 	10 seconds, as flushes now can be more sparse.
 	* src/libtracker-db/tracker-db-index.c (tracker_db_index_flush): Do

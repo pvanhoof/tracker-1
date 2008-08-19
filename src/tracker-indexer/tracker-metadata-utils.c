@@ -116,7 +116,7 @@ static gboolean
 create_metadata_context (void)
 {
 	GIOChannel *stdin_channel, *stdout_channel;
-	const gchar *argv[2] = { "tracker-extract", NULL };
+	const gchar *argv[2] = { EXTRACTOR_PATH, NULL };
 	GIOFlags flags;
 	GPid pid;
 

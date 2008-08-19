@@ -134,7 +134,7 @@ libextract_tiff_la_SOURCES = \
 libextract_tiff_la_LDFLAGS = $(module_flags)
 libextract_tiff_la_LIBADD = $(GLIB2_LIBS) $(LIBTIFF_LIBS) $(EXEMPI_LIBS)
 
-bin_PROGRAMS = tracker-extract
+libexec_PROGRAMS = tracker-extract
 
 tracker_extract_SOURCES = \
 	tracker-extract.c			\

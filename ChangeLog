@@ -1,5 +1,13 @@
 2008-08-19  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-indexer-db.[ch]
+	(tracker_db_check_service): Modify to also get mtime.
+	* src/tracker-indexer/tracker-indexer.c: Update all callers.
+	(should_index_file) (process_file): Check mtimes before reindexing a
+	file.
+
+2008-08-19  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-indexer-module.c: Restore accidental
 	revert of fix in r2093.
 

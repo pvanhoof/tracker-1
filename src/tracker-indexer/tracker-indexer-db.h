@@ -33,9 +33,11 @@ void     tracker_db_increment_stats       (TrackerDBInterface *iface,
 void     tracker_db_decrement_stats       (TrackerDBInterface *iface,
 					   TrackerService     *service);
 /* Using path */
-guint    tracker_db_check_service         (TrackerService     *service,
+gboolean tracker_db_check_service         (TrackerService     *service,
 					   const gchar        *dirname,
-					   const gchar        *basename);
+					   const gchar        *basename,
+					   guint32            *id,
+					   time_t             *mtime);
 guint    tracker_db_get_service_type      (const gchar        *dirname,
 					   const gchar        *basename);
 

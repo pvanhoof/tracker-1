@@ -142,14 +142,19 @@ tracker_db_create_event (TrackerDBInterface *iface,
 	g_free (service_id_str);
 }
 
-guint
-tracker_db_check_service (TrackerService  *service,
-			  const gchar     *dirname,
-			  const gchar     *basename)
+gboolean
+tracker_db_check_service (TrackerService *service,
+			  const gchar    *dirname,
+			  const gchar    *basename,
+			  guint32        *id,
+			  time_t         *mtime)
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
-	guint id;
+	guint db_id, db_mtime;
+	gboolean found = FALSE;
+
+	db_id = db_mtime = 0;
 
 	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service),
 							     TRACKER_DB_CONTENT_TYPE_METADATA);
@@ -159,14 +164,24 @@ tracker_db_check_service (TrackerService  *service,
 							     dirname,
 							     basename,
 							     NULL);
-	if (!result_set) {
-		return 0;
+	if (result_set) {
+		tracker_db_result_set_get (result_set,
+					   0, &db_id,
+					   1, &db_mtime,
+					   -1);
+		g_object_unref (result_set);
+		found = TRUE;
 	}
 
-	tracker_db_result_set_get (result_set, 0, &id, -1);
-	g_object_unref (result_set);
+	if (id) {
+		*id = (guint32) db_id;
+	}
 
-	return id;
+	if (mtime) {
+		*mtime = (time_t) db_mtime;
+	}
+
+	return found;
 }
 
 guint

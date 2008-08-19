@@ -847,8 +847,9 @@ tracker_db_index_flush (TrackerDBIndex *index)
 		g_mutex_lock (priv->mutex);
 	}
 
-	if (priv->index) {
-		size = g_hash_table_size (priv->cache);
+	size = g_hash_table_size (priv->cache);
+
+	if (priv->index && size > 0) {
 		g_debug ("Flushing index with %d items in cache", size);
 
 		g_hash_table_foreach_remove (priv->cache, 

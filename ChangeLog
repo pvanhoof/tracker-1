@@ -1,3 +1,10 @@
+2008-08-19  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer.c: Emit the status signal every
+	10 seconds, as flushes now can be more sparse.
+	* src/libtracker-db/tracker-db-index.c (tracker_db_index_flush): Do
+	not try to flush if there aren't items in the cache.
+
 2008-08-19  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-file-utils.c:

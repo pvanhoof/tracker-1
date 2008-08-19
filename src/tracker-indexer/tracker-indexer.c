@@ -79,6 +79,7 @@
 #define FLUSH_FREQUENCY             60
 
 #define LOW_DISK_CHECK_FREQUENCY    10
+#define SIGNAL_STATUS_FREQUENCY     10
 
 /* Transaction every 'x' items */
 #define TRANSACTION_MAX             2000
@@ -125,6 +126,7 @@ struct TrackerIndexerPrivate {
 	guint idle_id;
 	guint pause_for_duration_id;
 	guint disk_space_check_id;
+	guint signal_status_id;
 	guint flush_id;
 
 	guint files_processed;
@@ -395,6 +397,10 @@ tracker_indexer_finalize (GObject *object)
 
 	if (priv->disk_space_check_id) {
 		g_source_remove (priv->disk_space_check_id);
+	}
+
+	if (priv->signal_status_id) {
+		g_source_remove (priv->signal_status_id);
 	}
 
 	if (priv->timer) {
@@ -677,6 +683,40 @@ check_disk_space_stop (TrackerIndexer *indexer)
 	}
 }
 
+static gboolean
+signal_status_cb (TrackerIndexer *indexer)
+{
+	signal_status (indexer, "");
+	return TRUE;
+}
+
+static void
+signal_status_timeout_start (TrackerIndexer *indexer)
+{
+	TrackerIndexerPrivate *priv;
+
+	priv = indexer->private;
+
+	if (priv->signal_status_id == 0) {
+		priv->signal_status_id = g_timeout_add_seconds (SIGNAL_STATUS_FREQUENCY,
+								(GSourceFunc) signal_status_cb,
+								indexer);
+	}
+}
+
+static void
+signal_status_timeout_stop (TrackerIndexer *indexer)
+{
+	TrackerIndexerPrivate *priv;
+
+	priv = indexer->private;
+
+	if (priv->signal_status_id != 0) {
+		g_source_remove (priv->signal_status_id);
+		priv->signal_status_id = 0;
+	}
+}
+
 static void
 tracker_indexer_init (TrackerIndexer *indexer)
 {
@@ -755,6 +795,7 @@ tracker_indexer_init (TrackerIndexer *indexer)
 	/* Set up idle handler to process files/directories */
 	check_started (indexer);
 	check_disk_space_start (indexer);
+	signal_status_timeout_start (indexer);
 }
 
 static void
@@ -1718,6 +1759,7 @@ tracker_indexer_set_running (TrackerIndexer *indexer,
 	if (!running) {
 		schedule_flush (indexer, TRUE);
 		check_disk_space_stop (indexer);
+		signal_status_timeout_stop (indexer);
 
 		g_source_remove (indexer->private->idle_id);
 		indexer->private->idle_id = 0;
@@ -1727,6 +1769,7 @@ tracker_indexer_set_running (TrackerIndexer *indexer,
 		g_signal_emit (indexer, signals[PAUSED], 0);
 	} else {
 		check_disk_space_start (indexer);
+		signal_status_timeout_start (indexer);
 
 		indexer->private->is_paused = FALSE;
 		indexer->private->idle_id = g_idle_add (process_func, indexer);

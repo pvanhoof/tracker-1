@@ -23,6 +23,7 @@
 #define _XOPEN_SOURCE
 #include <time.h>
 
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -47,6 +48,7 @@
 #define ISO8601_FORMAT "%Y-%m-%dT%H:%M:%S%z"
 
 GArray *extractors = NULL;
+guint   shutdown_timeout_id = 0;
 
 gchar *
 tracker_generic_date_to_iso8601 (const gchar *date, const gchar *format)
@@ -295,9 +297,10 @@ tracker_get_file_metadata (const gchar *uri, const gchar *mime)
 	return NULL;
 }
 
-
 static void
-get_meta_table_data (gpointer pkey, gpointer pvalue, gpointer user_data)
+print_meta_table_data (gpointer pkey,
+                       gpointer pvalue,
+                       gpointer user_data)
 {
 	char *value;
 
@@ -319,66 +322,88 @@ get_meta_table_data (gpointer pkey, gpointer pvalue, gpointer user_data)
 	}
 }
 
-
-static void
-kill_app_timeout (void)
+static gboolean
+shutdown_app_timeout (gpointer user_data)
 {
-	g_usleep (1000 * 1000 * 10);
-	exit (EXIT_FAILURE);
+	GMainLoop *main_loop;
+
+	main_loop = (GMainLoop *) user_data;
+	g_main_loop_quit (main_loop);
+
+	return FALSE;
 }
 
+static void
+reset_shutdown_timeout (GMainLoop *main_loop)
+{
+	if (shutdown_timeout_id != 0) {
+		g_source_remove (shutdown_timeout_id);
+	}
+
+	shutdown_timeout_id = g_timeout_add (30000, shutdown_app_timeout, main_loop);
+}
+
+static gboolean
+process_input_cb (GIOChannel   *channel,
+		  GIOCondition  condition,
+		  gpointer      user_data)
+{
+	GHashTable *meta;
+	gchar *filename, *mimetype;
+
+	reset_shutdown_timeout ((GMainLoop *) user_data);
+
+	g_io_channel_read_line (channel, &filename, NULL, NULL, NULL);
+	g_io_channel_read_line (channel, &mimetype, NULL, NULL, NULL);
+
+	g_strstrip (filename);
+	g_strstrip (mimetype);
+
+	if (mimetype && *mimetype) {
+		meta = tracker_get_file_metadata (filename, mimetype);
+	} else {
+		meta = tracker_get_file_metadata (filename, NULL);
+	}
+
+	if (meta) {
+		g_hash_table_foreach (meta, print_meta_table_data, NULL);
+		g_hash_table_destroy (meta);
+	}
+
+	/* Add an empty line so the indexer
+	 * knows when to stop reading
+	 */
+	g_print ("\n");
+
+	g_free (filename);
+	g_free (mimetype);
+
+	return TRUE;
+}
 
 gint
 main (gint argc, gchar *argv[])
 {
-	GHashTable *meta;
-	gchar	   *filename;
+	GMainLoop  *main_loop;
+	GIOChannel *input;
 
 	set_memory_rlimits ();
 
 	if (!g_thread_supported ())
 		g_thread_init (NULL);
 
-	g_thread_create ((GThreadFunc) kill_app_timeout, NULL, FALSE, NULL);
-
 	g_set_application_name ("tracker-extract");
 
 	setlocale (LC_ALL, "");
 
 	initialize_extractors ();
+	main_loop = g_main_loop_new (NULL, FALSE);
 
-	if (argc == 1 || argc > 3) {
-		g_print ("usage: tracker-extract file [mimetype]\n");
-		return EXIT_FAILURE;
-	}
+	input = g_io_channel_unix_new (0);
+	g_io_add_watch (input, G_IO_IN, process_input_cb, main_loop);
 
-	filename = g_filename_to_utf8 (argv[1], -1, NULL, NULL, NULL);
-
-	if (!filename) {
-		g_warning ("locale to UTF8 failed for filename!");
-		return 1;
-	}
-
-	if (argc == 3) {
-		gchar *mime = g_locale_to_utf8 (argv[2], -1, NULL, NULL, NULL);
-
-		if (!mime) {
-			g_warning ("locale to UTF8 failed for mime!");
-			return EXIT_FAILURE;
-		}
-
-		meta = tracker_get_file_metadata (filename, mime);
-		g_free (mime);
-	} else {
-		meta = tracker_get_file_metadata (filename, NULL);
-	}
-
-	g_free (filename);
-
-	if (meta) {
-		g_hash_table_foreach (meta, get_meta_table_data, NULL);
-		g_hash_table_destroy (meta);
-	}
+	reset_shutdown_timeout (main_loop);
+	g_main_loop_run (main_loop);
 
 	return EXIT_SUCCESS;
 }

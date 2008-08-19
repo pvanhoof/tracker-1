@@ -25,11 +25,18 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 
-gboolean tracker_spawn                    (gchar       **argv,
-                                           gint          timeout,
-                                           gchar       **tmp_stdout,
-                                           gint         *exit_status);
-void     tracker_child_cb                 (gpointer      user_data);
-gchar *  tracker_create_permission_string (struct stat   finfo);
+gboolean tracker_spawn                     (gchar       **argv,
+					    gint          timeout,
+					    gchar       **tmp_stdout,
+					    gint         *exit_status);
+gboolean tracker_spawn_async_with_channels (const gchar **argv,
+					    gint          timeout,
+					    GPid         *pid,
+					    GIOChannel  **stdin_channel,
+					    GIOChannel  **stdout_channel,
+					    GIOChannel  **stderr_channel);
+
+void     tracker_child_cb                  (gpointer      user_data);
+gchar *  tracker_create_permission_string  (struct stat   finfo);
 
 #endif /* __LIBTRACKER_COMMON_OS_DEPENDANT_H__ */

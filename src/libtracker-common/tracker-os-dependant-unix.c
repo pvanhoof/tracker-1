@@ -58,6 +58,50 @@ tracker_spawn (gchar **argv,
                              NULL);
 }
 
+gboolean
+tracker_spawn_async_with_channels (const gchar **argv,
+                                   gint          timeout,
+                                   GPid         *pid,
+                                   GIOChannel  **stdin_channel,
+                                   GIOChannel  **stdout_channel,
+                                   GIOChannel  **stderr_channel)
+{
+        gint stdin, stdout, stderr;
+        gboolean result;
+        GError *error = NULL;
+
+        result = g_spawn_async_with_pipes (NULL,
+                                           (gchar **) argv,
+                                           NULL,
+                                           G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
+                                           tracker_child_cb,
+                                           GINT_TO_POINTER (timeout),
+                                           pid,
+                                           (stdin_channel) ? &stdin : NULL,
+                                           (stdout_channel) ? &stdout : NULL,
+                                           (stderr_channel) ? &stderr : NULL,
+                                           &error);
+
+        if (error) {
+                g_warning ("Could not spawn command: %s", error->message);
+                g_error_free (error);
+        }
+
+        if (stdin_channel) {
+                *stdin_channel = (result) ? g_io_channel_unix_new (stdin) : NULL;
+        }
+
+        if (stdout_channel) {
+                *stdout_channel = (result) ? g_io_channel_unix_new (stdout) : NULL;
+        }
+
+        if (stderr_channel) {
+                *stderr_channel = (result) ? g_io_channel_unix_new (stderr) : NULL;
+        }
+
+        return result;
+}
+
 gchar *
 tracker_create_permission_string (struct stat finfo)
 {

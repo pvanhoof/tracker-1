@@ -36,13 +36,163 @@
 #define METADATA_FILE_MODIFIED       "File:Modified"
 #define METADATA_FILE_ACCESSED       "File:Accessed"
 
+typedef struct {
+	GPid pid;
+	GIOChannel *stdin_channel;
+	GIOChannel *stdout_channel;
+	GMainLoop  *data_incoming_loop;
+} MetadataContext;
+
+static MetadataContext *context = NULL;
+
+static void
+tracker_extract_watch_cb (GPid     pid,
+			  gint     status,
+			  gpointer data)
+{
+	g_debug ("Metadata extractor exited with code: %d\n", status);
+
+	if (!context) {
+		return;
+	}
+
+	g_io_channel_shutdown (context->stdin_channel, FALSE, NULL);
+	g_io_channel_unref (context->stdin_channel);
+
+	g_io_channel_shutdown (context->stdout_channel, FALSE, NULL);
+	g_io_channel_unref (context->stdout_channel);
+
+	if (g_main_loop_is_running (context->data_incoming_loop))
+		g_main_loop_quit (context->data_incoming_loop);
+
+	g_main_loop_unref (context->data_incoming_loop);
+
+	g_spawn_close_pid (context->pid);
+
+	g_free (context);
+	context = NULL;
+}
+
+static gboolean
+tracker_metadata_read (GIOChannel   *channel,
+		       GIOCondition  condition,
+		       gpointer      user_data)
+{
+	GPtrArray *array;
+	GIOStatus status = G_IO_STATUS_NORMAL;
+	gchar *line;
+
+	array = (GPtrArray *) user_data;
+
+	if (!context) {
+		return FALSE;
+	}
+
+	if (condition & G_IO_IN || condition & G_IO_PRI) {
+		do {
+			status = g_io_channel_read_line (context->stdout_channel, &line, NULL, NULL, NULL);
+
+			if (line && *line) {
+				g_strstrip (line);
+				g_ptr_array_add (array, line);
+			}
+		} while (status == G_IO_STATUS_NORMAL && line && *line);
+
+		if (status == G_IO_STATUS_NORMAL && !*line) {
+			/* Empty line, all extractor output has been processed */
+			g_main_loop_quit (context->data_incoming_loop);
+			return FALSE;
+		}
+	}
+
+	if (condition & G_IO_HUP || condition & G_IO_ERR) {
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static gboolean
+create_metadata_context (void)
+{
+	GIOChannel *stdin_channel, *stdout_channel;
+	const gchar *argv[2] = { "tracker-extract", NULL };
+	GIOFlags flags;
+	GPid pid;
+
+	if (!tracker_spawn_async_with_channels (argv, 10, &pid, &stdin_channel, &stdout_channel, NULL))
+		return FALSE;
+
+	g_child_watch_add (pid, tracker_extract_watch_cb, NULL);
+
+	context = g_new0 (MetadataContext, 1);
+	context->pid = pid;
+	context->stdin_channel = stdin_channel;
+	context->stdout_channel = stdout_channel;
+	context->data_incoming_loop = g_main_loop_new (NULL, FALSE);
+
+	flags = g_io_channel_get_flags (context->stdout_channel);
+	flags |= G_IO_FLAG_NONBLOCK;
+
+	g_io_channel_set_flags (context->stdout_channel, flags, NULL);
+
+	return TRUE;
+}
+
+static gchar **
+tracker_metadata_query_file (const gchar *path,
+			     const gchar *mimetype)
+{
+	gchar *utf_path, *str;
+	GPtrArray *array;
+	GIOStatus status;
+
+	if (!path || !mimetype) {
+		return NULL;
+	}
+
+	if (!context && !create_metadata_context ()) {
+		return NULL;
+	}
+
+	utf_path = g_filename_from_utf8 (path, -1, NULL, NULL, NULL);
+
+	if (!utf_path) {
+		g_free (utf_path);
+		return NULL;
+	}
+
+	array = g_ptr_array_sized_new (10);
+
+	g_io_add_watch (context->stdout_channel,
+			G_IO_IN | G_IO_PRI | G_IO_ERR | G_IO_HUP,
+			tracker_metadata_read,
+			array);
+
+	/* write path and mimetype */
+	str = g_strdup_printf ("%s\n%s\n", utf_path, mimetype);
+	status = g_io_channel_write_chars (context->stdin_channel, str, -1, NULL, NULL);
+	g_io_channel_flush (context->stdin_channel, NULL);
+
+	/* It will block here until all incoming
+	 * metadata has been processed
+	 */
+	g_main_loop_run (context->data_incoming_loop);
+
+	g_ptr_array_add (array, NULL);
+
+	g_free (utf_path);
+	g_free (str);
+
+	return (gchar **) g_ptr_array_free (array, FALSE);
+}
+
 static void
 tracker_metadata_utils_get_embedded (const char      *path,
 				     const char      *mimetype,
 				     TrackerMetadata *metadata)
 {
-	gboolean success;
-	gchar **argv, *output, **values, *service_type;
+	gchar **values, *service_type;
 	gint i;
 
 	service_type = tracker_ontology_get_service_type_for_mime (mimetype);
@@ -58,34 +208,19 @@ tracker_metadata_utils_get_embedded (const char      *path,
 
         g_free (service_type);
 
-	/* we extract metadata out of process using pipes */
-	argv = g_new0 (gchar *, 4);
-	argv[0] = g_strdup ("tracker-extract");
-	argv[1] = g_filename_from_utf8 (path, -1, NULL, NULL, NULL);
-	argv[2] = g_strdup (mimetype);
+	values = tracker_metadata_query_file (path, mimetype);
 
-	if (!argv[1] || !argv[2]) {
-		g_critical ("path or mime could not be converted to locale format");
-		g_strfreev (argv);
+	if (!values) {
 		return;
 	}
 
-	success = tracker_spawn (argv, 10, &output, NULL);
-	g_strfreev (argv);
-
-	if (!success || !output)
-		return;
-
-	/* parse returned stdout and extract keys and associated metadata values */
-
-	values = g_strsplit_set (output, ";", -1);
-
+	/* parse returned values and extract keys and associated metadata */
 	for (i = 0; values[i]; i++) {
 		char *meta_data, *sep;
 		const char *name, *value;
 		char *utf_value;
 
-		meta_data = g_strstrip (values[i]);
+		meta_data = values[i];
 		sep = strchr (meta_data, '=');
 
 		if (!sep)
@@ -114,7 +249,6 @@ tracker_metadata_utils_get_embedded (const char      *path,
 	}
 
 	g_strfreev (values);
-	g_free (output);
 }
 
 TrackerMetadata *

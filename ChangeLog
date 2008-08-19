@@ -1,5 +1,21 @@
 2008-08-19  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/libtracker-common/tracker-os-dependant-unix.c:
+	* src/libtracker-common/tracker-os-dependant-win.c:
+	* src/libtracker-common/tracker-os-dependant.h
+	(tracker_spawn_async_with_channels): Added function.
+
+	* src/tracker-extract/tracker-extract.c: Modified to read queried
+	files from stdin and stay alive until it has stopped being asked for
+	metadata. According to sysprof, tracker-metadata spent a long time in
+	initialization due to being respawned once and again.
+
+	* src/tracker-indexer/tracker-metadata-utils.c: Modified to send
+	filename/mimetype pairs to the extractor through a pipe and keep track
+	of the extractor state.
+
+2008-08-19  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/modules/evolution.c (get_mbox_attachment_uri):
 	Also remove ".sbd" from the mbox uris here.
 	* src7tracker-indexer/tracker-indexer.c (struct

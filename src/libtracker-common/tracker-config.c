@@ -32,7 +32,7 @@
 #include "tracker-config.h"
 #include "tracker-file-utils.h"
 
-#define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_CONFIG, TrackerConfigPriv))
+#define TRACKER_CONFIG_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_CONFIG, TrackerConfigPrivate))
 
 /* GKeyFile defines */
 #define GROUP_GENERAL				 "General"
@@ -98,10 +98,9 @@
 #define DEFAULT_MAX_BUCKET_COUNT		 524288
 #define DEFAULT_MIN_BUCKET_COUNT		 65536
 
-/*typedef struct _ConfigLanguages	  ConfigLanguages;*/
-typedef struct _TrackerConfigPriv TrackerConfigPriv;
+typedef struct _TrackerConfigPrivate TrackerConfigPrivate;
 
-struct _TrackerConfigPriv {
+struct _TrackerConfigPrivate {
 	GFile        *file;
 	GFileMonitor *monitor;
 
@@ -458,20 +457,20 @@ tracker_config_class_init (TrackerConfigClass *klass)
 							       DEFAULT_ENABLE_XESAM,
 							       G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
 
-	g_type_class_add_private (object_class, sizeof (TrackerConfigPriv));
+	g_type_class_add_private (object_class, sizeof (TrackerConfigPrivate));
 }
 
 static void
-tracker_config_init (TrackerConfig *config)
+tracker_config_init (TrackerConfig *object)
 {
 }
 
 static void
 config_finalize (GObject *object)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
-	priv = GET_PRIV (object);
+	priv = TRACKER_CONFIG_GET_PRIVATE (object);
 
 	g_slist_foreach (priv->watch_directory_roots, (GFunc) g_free, NULL);
 	g_slist_free (priv->watch_directory_roots);
@@ -504,9 +503,9 @@ config_get_property (GObject	*object,
 		     GValue	*value,
 		     GParamSpec *pspec)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
-	priv = GET_PRIV (object);
+	priv = TRACKER_CONFIG_GET_PRIVATE (object);
 
 	switch (param_id) {
 		/* General */
@@ -618,9 +617,9 @@ config_set_property (GObject	  *object,
 		     const GValue *value,
 		     GParamSpec	  *pspec)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
-	priv = GET_PRIV (object);
+	priv = TRACKER_CONFIG_GET_PRIVATE (object);
 
 	switch (param_id) {
 		/* General */
@@ -1045,11 +1044,11 @@ config_load_string_list (TrackerConfig *config,
 			 const gchar   *group,
 			 const gchar   *key)
 {
-	TrackerConfigPriv  *priv;
-	GSList             *l;
-	gchar		  **value;
+	TrackerConfigPrivate  *priv;
+	GSList                *l;
+	gchar		     **value;
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	value = g_key_file_get_string_list (key_file, group, key, NULL, NULL);
 
@@ -1139,11 +1138,11 @@ config_changed_cb (GFileMonitor     *monitor,
 static void
 config_load (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
-	GKeyFile *key_file;
-	GError	 *error = NULL;
-	gchar	 *filename;
-	gchar	 *directory;
+	TrackerConfigPrivate *priv;
+	GKeyFile             *key_file;
+	GError	             *error = NULL;
+	gchar	             *filename;
+	gchar	             *directory;
 
 	key_file = g_key_file_new ();
 
@@ -1158,7 +1157,7 @@ config_load (TrackerConfig *config)
 	filename = g_build_filename (directory, "tracker.cfg", NULL);
 	g_free (directory);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	/* Add file monitoring for changes */
 	if (!priv->file) {
@@ -1268,11 +1267,11 @@ tracker_config_new (void)
 gint
 tracker_config_get_verbosity (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_VERBOSITY);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->verbosity;
 }
@@ -1280,11 +1279,11 @@ tracker_config_get_verbosity (TrackerConfig *config)
 gint
 tracker_config_get_initial_sleep (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_INITIAL_SLEEP);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->initial_sleep;
 }
@@ -1292,11 +1291,11 @@ tracker_config_get_initial_sleep (TrackerConfig *config)
 gboolean
 tracker_config_get_low_memory_mode (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_LOW_MEMORY_MODE);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->low_memory_mode;
 }
@@ -1304,11 +1303,11 @@ tracker_config_get_low_memory_mode (TrackerConfig *config)
 gboolean
 tracker_config_get_nfs_locking (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_NFS_LOCKING);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->nfs_locking;
 }
@@ -1317,11 +1316,11 @@ tracker_config_get_nfs_locking (TrackerConfig *config)
 GSList *
 tracker_config_get_watch_directory_roots (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->watch_directory_roots;
 }
@@ -1329,11 +1328,11 @@ tracker_config_get_watch_directory_roots (TrackerConfig *config)
 GSList *
 tracker_config_get_crawl_directory_roots (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->crawl_directory_roots;
 }
@@ -1341,11 +1340,11 @@ tracker_config_get_crawl_directory_roots (TrackerConfig *config)
 GSList *
 tracker_config_get_no_watch_directory_roots (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->no_watch_directory_roots;
 }
@@ -1353,11 +1352,11 @@ tracker_config_get_no_watch_directory_roots (TrackerConfig *config)
 gboolean
 tracker_config_get_enable_watches (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_ENABLE_WATCHES);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->enable_watches;
 }
@@ -1365,11 +1364,11 @@ tracker_config_get_enable_watches (TrackerConfig *config)
 gint
 tracker_config_get_throttle (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_THROTTLE);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->throttle;
 }
@@ -1377,11 +1376,11 @@ tracker_config_get_throttle (TrackerConfig *config)
 gboolean
 tracker_config_get_enable_indexing (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_ENABLE_INDEXING);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->enable_indexing;
 }
@@ -1389,11 +1388,11 @@ tracker_config_get_enable_indexing (TrackerConfig *config)
 gboolean
 tracker_config_get_enable_xesam (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_ENABLE_XESAM);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->enable_xesam;
 }
@@ -1401,11 +1400,11 @@ tracker_config_get_enable_xesam (TrackerConfig *config)
 gboolean
 tracker_config_get_enable_content_indexing (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_ENABLE_CONTENT_INDEXING);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->enable_content_indexing;
 }
@@ -1413,11 +1412,11 @@ tracker_config_get_enable_content_indexing (TrackerConfig *config)
 gboolean
 tracker_config_get_enable_thumbnails (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_ENABLE_THUMBNAILS);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->enable_thumbnails;
 }
@@ -1425,11 +1424,11 @@ tracker_config_get_enable_thumbnails (TrackerConfig *config)
 GSList *
 tracker_config_get_disabled_modules (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->disabled_modules;
 }
@@ -1437,11 +1436,11 @@ tracker_config_get_disabled_modules (TrackerConfig *config)
 gboolean
 tracker_config_get_fast_merges (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_FAST_MERGES);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->fast_merges;
 }
@@ -1449,11 +1448,11 @@ tracker_config_get_fast_merges (TrackerConfig *config)
 GSList *
 tracker_config_get_no_index_file_types (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->no_index_file_types;
 }
@@ -1461,11 +1460,11 @@ tracker_config_get_no_index_file_types (TrackerConfig *config)
 gint
 tracker_config_get_min_word_length (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_MIN_WORD_LENGTH);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->min_word_length;
 }
@@ -1473,11 +1472,11 @@ tracker_config_get_min_word_length (TrackerConfig *config)
 gint
 tracker_config_get_max_word_length (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_MAX_WORD_LENGTH);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->max_word_length;
 }
@@ -1485,11 +1484,11 @@ tracker_config_get_max_word_length (TrackerConfig *config)
 const gchar *
 tracker_config_get_language (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), "en");
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->language;
 }
@@ -1497,11 +1496,11 @@ tracker_config_get_language (TrackerConfig *config)
 gboolean
 tracker_config_get_enable_stemmer (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_ENABLE_STEMMER);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->enable_stemmer;
 }
@@ -1509,11 +1508,11 @@ tracker_config_get_enable_stemmer (TrackerConfig *config)
 gboolean
 tracker_config_get_disable_indexing_on_battery (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_DISABLE_INDEXING_ON_BATTERY);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->disable_indexing_on_battery;
 }
@@ -1521,11 +1520,11 @@ tracker_config_get_disable_indexing_on_battery (TrackerConfig *config)
 gboolean
 tracker_config_get_disable_indexing_on_battery_init (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_DISABLE_INDEXING_ON_BATTERY_INIT);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->disable_indexing_on_battery_init;
 }
@@ -1533,11 +1532,11 @@ tracker_config_get_disable_indexing_on_battery_init (TrackerConfig *config)
 gint
 tracker_config_get_low_disk_space_limit (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_LOW_DISK_SPACE_LIMIT);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->low_disk_space_limit;
 }
@@ -1545,11 +1544,11 @@ tracker_config_get_low_disk_space_limit (TrackerConfig *config)
 gboolean
 tracker_config_get_index_mounted_directories (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_INDEX_MOUNTED_DIRECTORIES);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->index_mounted_directories;
 }
@@ -1557,11 +1556,11 @@ tracker_config_get_index_mounted_directories (TrackerConfig *config)
 gboolean
 tracker_config_get_index_removable_devices (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_INDEX_REMOVABLE_DEVICES);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->index_removable_devices;
 }
@@ -1569,11 +1568,11 @@ tracker_config_get_index_removable_devices (TrackerConfig *config)
 gint
 tracker_config_get_max_text_to_index (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_MAX_TEXT_TO_INDEX);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->max_text_to_index;
 }
@@ -1581,11 +1580,11 @@ tracker_config_get_max_text_to_index (TrackerConfig *config)
 gint
 tracker_config_get_max_words_to_index (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_MAX_WORDS_TO_INDEX);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->max_words_to_index;
 }
@@ -1593,11 +1592,11 @@ tracker_config_get_max_words_to_index (TrackerConfig *config)
 gint
 tracker_config_get_max_bucket_count (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_MAX_BUCKET_COUNT);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->max_bucket_count;
 }
@@ -1605,11 +1604,11 @@ tracker_config_get_max_bucket_count (TrackerConfig *config)
 gint
 tracker_config_get_min_bucket_count (TrackerConfig *config)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), DEFAULT_MIN_BUCKET_COUNT);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	return priv->min_bucket_count;
 }
@@ -1618,7 +1617,7 @@ void
 tracker_config_set_verbosity (TrackerConfig *config,
 			      gint	     value)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
@@ -1626,7 +1625,7 @@ tracker_config_set_verbosity (TrackerConfig *config,
 		return;
 	}
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	priv->verbosity = value;
 	g_object_notify (G_OBJECT (config), "verbosity");
@@ -1636,7 +1635,7 @@ void
 tracker_config_set_initial_sleep (TrackerConfig *config,
 				  gint		 value)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
@@ -1644,7 +1643,7 @@ tracker_config_set_initial_sleep (TrackerConfig *config,
 		return;
 	}
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	priv->initial_sleep = value;
 	g_object_notify (G_OBJECT (config), "initial-sleep");
@@ -1654,11 +1653,11 @@ void
 tracker_config_set_low_memory_mode (TrackerConfig *config,
 				    gboolean	   value)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	priv->low_memory_mode = value;
 	g_object_notify (G_OBJECT (config), "low-memory-mode");
@@ -1668,11 +1667,11 @@ void
 tracker_config_set_nfs_locking (TrackerConfig *config,
 				gboolean      value)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	priv->nfs_locking = value;
 	g_object_notify (G_OBJECT (config), "nfs-locking");
@@ -1683,11 +1682,11 @@ void
 tracker_config_set_enable_watches (TrackerConfig *config,
 				   gboolean	  value)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	priv->enable_watches = value;
 	g_object_notify (G_OBJECT (config), "enable-watches");
@@ -1697,7 +1696,7 @@ void
 tracker_config_set_throttle (TrackerConfig *config,
 			     gint	    value)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
@@ -1705,7 +1704,7 @@ tracker_config_set_throttle (TrackerConfig *config,
 		return;
 	}
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	priv->throttle = value;
 	g_object_notify (G_OBJECT (config), "throttle");
@@ -1715,11 +1714,11 @@ void
 tracker_config_set_enable_indexing (TrackerConfig *config,
 				    gboolean	   value)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	priv->enable_indexing = value;
 	g_object_notify (G_OBJECT (config), "enable-indexing");
@@ -1729,11 +1728,11 @@ void
 tracker_config_set_enable_xesam (TrackerConfig *config,
 				 gboolean	   value)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	priv->enable_xesam = value;
 	g_object_notify (G_OBJECT (config), "enable-xesam");
@@ -1743,11 +1742,11 @@ void
 tracker_config_set_enable_content_indexing (TrackerConfig *config,
 					    gboolean	   value)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	priv->enable_content_indexing = value;
 	g_object_notify (G_OBJECT (config), "enable-content-indexing");
@@ -1757,11 +1756,11 @@ void
 tracker_config_set_enable_thumbnails (TrackerConfig *config,
 				      gboolean	     value)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	priv->enable_thumbnails = value;
 	g_object_notify (G_OBJECT (config), "enable-thumbnails");
@@ -1771,11 +1770,11 @@ void
 tracker_config_set_fast_merges (TrackerConfig *config,
 				gboolean       value)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	priv->fast_merges = value;
 	g_object_notify (G_OBJECT (config), "fast-merges");
@@ -1785,7 +1784,7 @@ void
 tracker_config_set_min_word_length (TrackerConfig *config,
 				    gint	   value)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
@@ -1793,7 +1792,7 @@ tracker_config_set_min_word_length (TrackerConfig *config,
 		return;
 	}
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	priv->min_word_length = value;
 	g_object_notify (G_OBJECT (config), "min-word-length");
@@ -1803,7 +1802,7 @@ void
 tracker_config_set_max_word_length (TrackerConfig *config,
 				    gint	   value)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
@@ -1811,7 +1810,7 @@ tracker_config_set_max_word_length (TrackerConfig *config,
 		return;
 	}
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	priv->max_word_length = value;
 	g_object_notify (G_OBJECT (config), "max-word-length");
@@ -1821,12 +1820,12 @@ void
 tracker_config_set_language (TrackerConfig *config,
 			     const gchar   *value)
 {
-	TrackerConfigPriv *priv;
-	gboolean	   use_default = FALSE;
+	TrackerConfigPrivate *priv;
+	gboolean	      use_default = FALSE;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	g_free (priv->language);
 
@@ -1848,11 +1847,11 @@ void
 tracker_config_set_enable_stemmer (TrackerConfig *config,
 				   gboolean	  value)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	priv->enable_stemmer = value;
 	g_object_notify (G_OBJECT (config), "enable-stemmer");
@@ -1862,11 +1861,11 @@ void
 tracker_config_set_disable_indexing_on_battery (TrackerConfig *config,
 						gboolean       value)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	priv->disable_indexing_on_battery = value;
 	g_object_notify (G_OBJECT (config), "disable-indexing-on-battery");
@@ -1876,11 +1875,11 @@ void
 tracker_config_set_disable_indexing_on_battery_init (TrackerConfig *config,
 						     gboolean	    value)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	priv->disable_indexing_on_battery_init = value;
 	g_object_notify (G_OBJECT (config), "disable-indexing-on-battery-init");
@@ -1890,7 +1889,7 @@ void
 tracker_config_set_low_disk_space_limit (TrackerConfig *config,
 					 gint		value)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
@@ -1898,7 +1897,7 @@ tracker_config_set_low_disk_space_limit (TrackerConfig *config,
 		return;
 	}
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	priv->low_disk_space_limit = value;
 	g_object_notify (G_OBJECT (config), "low-disk-space-limit");
@@ -1908,11 +1907,11 @@ void
 tracker_config_set_index_mounted_directories (TrackerConfig *config,
 					      gboolean	     value)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	priv->index_mounted_directories = value;
 	g_object_notify (G_OBJECT (config), "index-mounted-directories");
@@ -1922,11 +1921,11 @@ void
 tracker_config_set_index_removable_devices (TrackerConfig *config,
 					  gboolean       value)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	priv->index_removable_devices = value;
 	g_object_notify (G_OBJECT (config), "index-removable-devices");
@@ -1936,7 +1935,7 @@ void
 tracker_config_set_max_text_to_index (TrackerConfig *config,
 				      gint	     value)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
@@ -1944,7 +1943,7 @@ tracker_config_set_max_text_to_index (TrackerConfig *config,
 		return;
 	}
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	priv->max_text_to_index = value;
 	g_object_notify (G_OBJECT (config), "max-text-to-index");
@@ -1954,7 +1953,7 @@ void
 tracker_config_set_max_words_to_index (TrackerConfig *config,
 				       gint	      value)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
@@ -1962,7 +1961,7 @@ tracker_config_set_max_words_to_index (TrackerConfig *config,
 		return;
 	}
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	priv->max_words_to_index = value;
 	g_object_notify (G_OBJECT (config), "max-words-to-index");
@@ -1972,7 +1971,7 @@ void
 tracker_config_set_max_bucket_count (TrackerConfig *config,
 				     gint	    value)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
@@ -1980,7 +1979,7 @@ tracker_config_set_max_bucket_count (TrackerConfig *config,
 		return;
 	}
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	priv->max_bucket_count = value;
 	g_object_notify (G_OBJECT (config), "max-bucket-count");
@@ -1990,7 +1989,7 @@ void
 tracker_config_set_min_bucket_count (TrackerConfig *config,
 				     gint	    value)
 {
-	TrackerConfigPriv *priv;
+	TrackerConfigPrivate *priv;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
@@ -1998,7 +1997,7 @@ tracker_config_set_min_bucket_count (TrackerConfig *config,
 		return;
 	}
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	priv->min_bucket_count = value;
 	g_object_notify (G_OBJECT (config), "min-bucket-count");
@@ -2008,15 +2007,15 @@ void
 tracker_config_add_watch_directory_roots (TrackerConfig *config,
 					  gchar * const *roots)
 {
-	TrackerConfigPriv *priv;
-	GSList            *l;
-	gchar		  *validated_root;
-	gchar * const	  *p;
+	TrackerConfigPrivate *priv;
+	GSList               *l;
+	gchar		     *validated_root;
+	gchar * const	     *p;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 	g_return_if_fail (roots != NULL);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	for (p = roots; *p; p++) {
 		validated_root = tracker_path_evaluate_name (*p);
@@ -2044,15 +2043,15 @@ void
 tracker_config_add_crawl_directory_roots (TrackerConfig *config,
 					  gchar * const *roots)
 {
-	TrackerConfigPriv *priv;
-	GSList            *l;
-	gchar		  *validated_root;
-	gchar * const	  *p;
+	TrackerConfigPrivate *priv;
+	GSList               *l;
+	gchar		     *validated_root;
+	gchar * const	     *p;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 	g_return_if_fail (roots != NULL);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	for (p = roots; *p; p++) {
 		validated_root = tracker_path_evaluate_name (*p);
@@ -2080,15 +2079,15 @@ void
 tracker_config_add_no_watch_directory_roots (TrackerConfig *config,
 					     gchar * const *roots)
 {
-	TrackerConfigPriv *priv;
-	GSList            *l;
-	gchar             *validated_root;
-	gchar * const	  *p;
+	TrackerConfigPrivate *priv;
+	GSList               *l;
+	gchar                *validated_root;
+	gchar * const	     *p;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 	g_return_if_fail (roots != NULL);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	for (p = roots; *p; p++) {
 		validated_root = tracker_path_evaluate_name (*p);
@@ -2116,14 +2115,14 @@ void
 tracker_config_add_disabled_modules (TrackerConfig *config,
 				     gchar * const *modules)
 {
-	TrackerConfigPriv *priv;
-	GSList            *new_modules;
-	gchar * const	  *p;
+	TrackerConfigPrivate *priv;
+	GSList               *new_modules;
+	gchar * const	     *p;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 	g_return_if_fail (modules != NULL);
 
-	priv = GET_PRIV (config);
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
 
 	new_modules = NULL;
 

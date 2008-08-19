@@ -585,7 +585,7 @@ indexer_update_word (DEPOT       *index,
 				DP_DOVER);
 
 		if (!result) {
-			g_warning ("Could not store word:'%s'", word);
+			g_warning ("Could not store word '%s': %s", word, dperrmsg (dpecode));
 			return FALSE;
 		}
 
@@ -667,24 +667,32 @@ indexer_update_word (DEPOT       *index,
 		 * overwrite the value with the new hits array
 		 */
 		if (old_hit_count < 1) {
-			dpout (index, word, -1);
+			result = dpout (index, word, -1);
 		} else {
-			dpput (index, 
-			       word, -1, 
-			       (char *) previous_hits, 
-			       old_hit_count * sizeof (TrackerDBIndexItem), 
-			       DP_DOVER);
+			result = dpput (index,
+					word, -1,
+					(char *) previous_hits,
+					old_hit_count * sizeof (TrackerDBIndexItem),
+					DP_DOVER);
+		}
+
+		if (!result) {
+			g_warning ("Could not modify word '%s': %s", word, dperrmsg (dpecode));
 		}
 	}
 	
 	/*  Append new occurences */
 	if (pending_hits) {
-		dpput (index, 
-		       word, -1, 
-		       (char*) pending_hits->data, 
-		       pending_hits->len * sizeof (TrackerDBIndexItem), 
-		       DP_DCAT);
+		result = dpput (index,
+				word, -1,
+				(char*) pending_hits->data,
+				pending_hits->len * sizeof (TrackerDBIndexItem),
+				DP_DCAT);
 		g_array_free (pending_hits, TRUE);
+
+		if (!result) {
+			g_warning ("Could not insert pending word '%s': %s", word, dperrmsg (dpecode));
+		}
 	}
 
 	g_free (previous_hits);

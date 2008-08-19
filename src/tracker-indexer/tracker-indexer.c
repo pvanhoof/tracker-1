@@ -1112,9 +1112,6 @@ create_update_item (TrackerIndexer  *indexer,
 		gchar *old_text;
 		gchar *new_text;
 
-		/* Update case */
-		g_debug ("Updating file '%s'", info->file->path);
-
 		/* TODO: Take the old metadata -> the new one,
 		 * calculate difference and add the words.
 		 */

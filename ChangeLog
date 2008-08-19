@@ -1,3 +1,10 @@
+2008-08-19  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/libtracker-db/tracker-db-index.c (indexer_update_word): Print
+	error+cause if any insertion to the index fails.
+	* src/tracker-indexer/tracker-indexer.c (create_update_item): Remove
+	useless message, since there's already a similar one previous to it.
+
 2008-08-18  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-daemon.c: Use TrackerDaemonPrivate not Priv.

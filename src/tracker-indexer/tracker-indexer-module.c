@@ -146,8 +146,18 @@ tracker_indexer_module_file_get_uri (GModule      *module,
 
 		return TRUE;
 	} else {
+		g_warning ("Could not get URI for '%s'\n", file->path);
+
 		g_free (tmp_dirname);
 		g_free (tmp_basename);
+
+		if (dirname) {
+			*dirname = NULL;
+		}
+
+		if (basename) {
+			*basename = NULL;
+		}
 
 		return FALSE;
 	}

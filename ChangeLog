@@ -1,5 +1,10 @@
 2008-08-19  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-indexer-module.c: Restore accidental
+	revert of fix in r2093.
+
+2008-08-19  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-extract/Makefile.am: Install tracker-extract in
 	$prefix/libexec.
 	* src/tracker-indexer/Makefile.am: specify tracker-extract path.

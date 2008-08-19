@@ -664,6 +664,25 @@ item_queue_handlers_set_up (TrackerProcessor *processor)
 			       processor);
 }
 
+static gboolean
+is_path_on_ignore_list (GSList      *ignore_list,
+			const gchar *path)
+{
+	GSList *l;
+	
+	if (!ignore_list || !path) {
+		return FALSE;
+	}
+	
+	for (l = ignore_list; l; l = l->next) {
+		if (strcmp (path, l->data) == 0) {
+			return TRUE;
+		}
+	}
+	
+	return FALSE;
+}
+
 static void
 process_module_files_add_removable_media (TrackerProcessor *processor) 
 {
@@ -726,30 +745,53 @@ static void
 process_module_files_add_legacy_options (TrackerProcessor *processor) 
 {
 	TrackerCrawler *crawler;
+	GSList         *no_watch_roots;
 	GSList         *watch_roots;
 	GSList         *crawl_roots;
 	GSList         *l;
+	guint           watch_root_count;
+	guint           crawl_root_count;
 	const gchar    *module_name = "files";
 
 	crawler = g_hash_table_lookup (processor->private->crawlers, module_name);
 
+	no_watch_roots = tracker_config_get_no_watch_directory_roots (processor->private->config);
 	watch_roots = tracker_config_get_watch_directory_roots (processor->private->config);
 	crawl_roots = tracker_config_get_crawl_directory_roots (processor->private->config);
+
+	watch_root_count = 0;
+	crawl_root_count = 0;
 
 	/* This module get special treatment to make sure legacy
 	 * options are supported.
 	 */
+
+	/* Print ignored locations */
+	g_message ("  User ignored crawls & monitors:");
+	for (l = no_watch_roots; l; l = l->next) {
+		g_message ("    %s", (gchar*) l->data);
+	}
+	
+	if (g_slist_length (no_watch_roots) == 0) {
+		g_message ("    NONE");
+	}
 
 	/* Add monitors, from WatchDirectoryRoots config key */
 	g_message ("  User monitors being added:");
 	for (l = watch_roots; l; l = l->next) {
 		GFile *file;
 		
+		if (is_path_on_ignore_list (no_watch_roots, l->data)) {
+			continue;
+		}
+
 		g_message ("    %s", (gchar*) l->data);
 		
 		file = g_file_new_for_path (l->data);
 		tracker_monitor_add (processor->private->monitor, module_name, file);
 		g_object_unref (file);
+
+		watch_root_count++;
 	}
 
 	if (g_slist_length (watch_roots) == 0) {
@@ -762,15 +804,23 @@ process_module_files_add_legacy_options (TrackerProcessor *processor)
 	g_message ("  User crawls being added:");
 
 	for (l = watch_roots; l; l = l->next) {
+		if (is_path_on_ignore_list (no_watch_roots, l->data)) {
+			continue;
+		}
+
 		g_message ("    %s", (gchar*) l->data);
-		
 		tracker_crawler_add_path (crawler, l->data);		
 	}
 
 	for (l = crawl_roots; l; l = l->next) {
+		if (is_path_on_ignore_list (no_watch_roots, l->data)) {
+			continue;
+		}
+
 		g_message ("    %s", (gchar*) l->data);
-		
-		tracker_crawler_add_path (crawler, l->data);		
+		tracker_crawler_add_path (crawler, l->data);	
+
+		crawl_root_count++;
 	}
 
 	if (g_slist_length (watch_roots) == 0 && 

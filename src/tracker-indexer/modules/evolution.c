@@ -773,7 +773,7 @@ get_metadata_for_mbox (TrackerFile *file)
 
         g_mime_message_get_date (message, &date, NULL);
 	tracker_metadata_insert (metadata, METADATA_EMAIL_DATE,
-                                 tracker_uint_to_string (date));
+                                 tracker_guint_to_string (date));
 
         tracker_metadata_insert (metadata, METADATA_EMAIL_SENDER,
                                  g_strdup (g_mime_message_get_sender (message)));
@@ -1172,7 +1172,7 @@ get_metadata_for_imap (TrackerFile *file)
                 tracker_metadata_insert (metadata, METADATA_FILE_NAME, basename);
 
                 tracker_metadata_insert (metadata, METADATA_EMAIL_DATE,
-                                         tracker_uint_to_string (date));
+                                         tracker_guint_to_string (date));
 
                 tracker_metadata_insert (metadata, METADATA_EMAIL_SENDER, from);
                 tracker_metadata_insert (metadata, METADATA_EMAIL_SUBJECT, subject);

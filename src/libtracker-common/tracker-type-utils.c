@@ -518,19 +518,19 @@ tracker_date_to_string (time_t date_time)
 }
 
 gchar *
-tracker_long_to_string (glong i)
+tracker_glong_to_string (glong i)
 {
         return g_strdup_printf ("%ld", i);
 }
 
 gchar *
-tracker_int_to_string (gint i)
+tracker_gint_to_string (gint i)
 {
 	return g_strdup_printf ("%d", i);
 }
 
 gchar *
-tracker_uint_to_string (guint i)
+tracker_guint_to_string (guint i)
 {
 	return g_strdup_printf ("%u", i);
 }
@@ -551,10 +551,11 @@ gboolean
 tracker_string_to_uint (const gchar *s, 
 			guint       *value)
 {
-	unsigned long int n;
-	char *end;
+	unsigned long int  n;
+	gchar             *end;
 
-	g_return_val_if_fail (s != NULL && value != NULL, FALSE);
+	g_return_val_if_fail (s != NULL, FALSE);
+	g_return_val_if_fail (value != NULL, FALSE);
 
 	n = (guint) strtoul (s, &end, 10);
 
@@ -578,41 +579,21 @@ tracker_string_in_string_list (const gchar  *str,
 			       gchar       **strv)
 {
 	gchar **p;
-	gint    i = 0;
+	gint    i;
 
-	g_return_val_if_fail (str != NULL && strv != NULL, -1);
+	g_return_val_if_fail (str != NULL, -1);
 
-	for (p = strv; *p; p++, i++) {
+	if (!strv) {
+		return -1;
+	}
+
+	for (p = strv, i = 0; *p; p++, i++) {
 		if (strcasecmp (*p, str) == 0) {
 			return i;
 		}
 	}
 
 	return -1;
-}
-
-gchar **
-tracker_gslist_to_string_list (GSList *list)
-{
-	GSList  *l;
-	gchar  **strv;
-	gint     i = 0;
-
-	g_return_val_if_fail (list != NULL, NULL);
-
-	strv = g_new0 (gchar*, g_slist_length (list) + 1);
-
-	for (l = list; l; l = l->next) {
- 		if (!l->data) {
-			continue;
-  		}
-
-		strv[i++] = g_strdup (l->data);
-	}
-
-	strv[i] = NULL;
-
-	return strv;
 }
 
 GSList *
@@ -691,19 +672,61 @@ tracker_string_to_string_list (const gchar *str)
 	return result;
 }
 
+gchar **
+tracker_gslist_to_string_list (GSList *list)
+{
+	GSList  *l;
+	gchar  **strv;
+	gint     i;
 
+	strv = g_new0 (gchar*, g_slist_length (list) + 1);
+
+	for (l = list, i = 0; l; l = l->next) {
+ 		if (!l->data) {
+			continue;
+  		}
+
+		strv[i++] = g_strdup (l->data);
+	}
+
+	strv[i] = NULL;
+
+	return strv;
+}
+
+GSList * 
+tracker_gslist_copy_with_string_data (GSList *list)
+{
+	GSList *l;
+	GSList *new_list;
+
+	if (!list) {
+		return NULL;
+	}
+
+	new_list = NULL;
+
+	for (l = list; l; l = l->next) {
+ 		if (!l->data) {
+			continue;
+  		}
+
+		new_list = g_slist_prepend (new_list, g_strdup (l->data));
+	}
+
+	new_list = g_slist_reverse (new_list);
+
+	return new_list;
+}
 gchar *  
 tracker_boolean_as_text_to_number  (const gchar *value)
 {
-
 	g_return_val_if_fail (value != NULL, NULL);
 
-	if (strcasecmp (value, "true") == 0) {
+	if (g_ascii_strcasecmp (value, "true") == 0) {
 		return g_strdup ("1");
-
-	} else if  (strcasecmp (value, "false") == 0) {
+	} else if (g_ascii_strcasecmp (value, "false") == 0) {
 		return g_strdup ("0");
-
 	} else {
 		return g_strdup (value);
 	}

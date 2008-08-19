@@ -256,7 +256,7 @@ load_metadata_file (TrackerDBInterface *iface,
 			g_error ("Duplicated metadata description %s", groups[i]);
 		}
 
-		str_id = tracker_uint_to_string (id);
+		str_id = tracker_guint_to_string (id);
 		keys = g_key_file_get_keys (key_file, groups[i], NULL, NULL);
 
 		for (j = 0; keys[j]; j++) {
@@ -349,7 +349,7 @@ load_service_file (TrackerDBInterface *iface,
 			id = tracker_service_get_id (service);
 		}
 
-		str_id = tracker_uint_to_string (id);
+		str_id = tracker_guint_to_string (id);
 
 		keys = g_key_file_get_keys (key_file, groups[i], NULL, NULL);
 
@@ -675,7 +675,7 @@ load_service_file_xesam (TrackerDBInterface *iface,
  		}
 		
 		/* Get inserted ID */
-		str_id = tracker_uint_to_string (id);
+		str_id = tracker_guint_to_string (id);
 		keys = g_key_file_get_keys (key_file, groups[i], NULL, NULL);
 		
 		for (j = 0; keys[j]; j++) {
@@ -949,7 +949,7 @@ db_row_to_field_def (TrackerDBResultSet *result_set)
 				   9, &store_metadata,
 				   -1);
 
-	id_str = tracker_int_to_string (id);
+	id_str = tracker_gint_to_string (id);
 
 	tracker_field_set_id (field_def, id_str);
 	tracker_field_set_name (field_def, name);
@@ -1574,7 +1574,7 @@ db_get_static_data (TrackerDBInterface *iface)
 				while (valid) {
 					tracker_db_result_set_get (result_set2, 1, &id, -1);
 					child_ids = g_slist_prepend (child_ids,
-								     tracker_int_to_string (id));
+								     tracker_gint_to_string (id));
 
 					valid = tracker_db_result_set_iter_next (result_set2);
 				}

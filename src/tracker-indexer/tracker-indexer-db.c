@@ -215,7 +215,7 @@ tracker_db_create_service (TrackerService  *service,
 							     TRACKER_DB_CONTENT_TYPE_METADATA);
 
 	id_str = tracker_guint32_to_string (id);
-	service_type_id_str = tracker_int_to_string (tracker_service_get_id (service));
+	service_type_id_str = tracker_gint_to_string (tracker_service_get_id (service));
 
 	path = g_build_filename (dirname, basename, NULL);
 

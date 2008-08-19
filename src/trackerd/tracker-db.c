@@ -279,7 +279,7 @@ format_date (const gchar *avalue)
 		g_free (dvalue);
 
 		if (time != -1) {
-			return tracker_int_to_string (time);
+			return tracker_gint_to_string (time);
 		} 
 	}
 
@@ -311,7 +311,7 @@ get_backup_id (TrackerDBInterface *iface,
 				      id, 
 				      NULL);
 		id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (iface));
-		backup_id = tracker_int_to_string (id);
+		backup_id = tracker_gint_to_string (id);
 	}
 
 	return backup_id;
@@ -438,7 +438,7 @@ db_create_event (TrackerDBInterface *iface,
 	g_free (eid);
 
 	i++;
-	eid = tracker_int_to_string (i);
+	eid = tracker_gint_to_string (i);
 
 	result_set = tracker_db_exec_proc (iface,
 					   "UpdateNewEventID", 
@@ -702,7 +702,7 @@ tracker_db_search_text (TrackerDBInterface *iface,
 		}
 
 		rank = g_array_index (hits, TrackerDBIndexItemRank, i);
-		str_id = tracker_uint_to_string (rank.service_id);
+		str_id = tracker_guint_to_string (rank.service_id);
 
 		/* We save results into SearchResults table instead of
 		 * returing an array of array of strings 
@@ -710,7 +710,7 @@ tracker_db_search_text (TrackerDBInterface *iface,
 		if (save_results) {
 			gchar *str_score;
 
-			str_score = tracker_int_to_string (rank.score);
+			str_score = tracker_gint_to_string (rank.score);
 			tracker_db_exec_proc (iface, 
 					      "InsertSearchResult1", 
 					      str_id, 
@@ -851,7 +851,7 @@ tracker_db_search_text_and_mime (TrackerDBInterface  *iface,
 
 		rank = g_array_index (hits, TrackerDBIndexItemRank, i);
 
-		str_id = tracker_uint_to_string (rank.service_id);
+		str_id = tracker_guint_to_string (rank.service_id);
 		result_set2 = tracker_db_exec_proc (iface, 
 						    "GetFileByID", 
 						    str_id, 
@@ -947,7 +947,7 @@ tracker_db_search_text_and_location (TrackerDBInterface *iface,
 
 		rank = g_array_index (hits, TrackerDBIndexItemRank, i);
 
-		str_id = tracker_uint_to_string (rank.service_id);
+		str_id = tracker_guint_to_string (rank.service_id);
 		result_set2 = tracker_db_exec_proc (iface, 
 						   "GetFileByID", 
 						   str_id, 
@@ -1045,7 +1045,7 @@ tracker_db_search_text_and_mime_and_location (TrackerDBInterface  *iface,
 
 		rank = g_array_index (hits, TrackerDBIndexItemRank, i);
 
-		str_id = tracker_uint_to_string (rank.service_id);
+		str_id = tracker_guint_to_string (rank.service_id);
 		result_set2 = tracker_db_exec_proc (iface, 
 						    "GetFileByID", 
 						    str_id, 
@@ -2447,7 +2447,7 @@ tracker_db_service_create (TrackerDBInterface *iface,
 	g_free (sid);
 	i++;
 
-	sid = tracker_int_to_string (i);
+	sid = tracker_gint_to_string (i);
 	result_set_proc = tracker_db_exec_proc (iface, "UpdateNewID", sid, NULL);
 
 	if (result_set_proc) {
@@ -2484,8 +2484,8 @@ tracker_db_service_create (TrackerDBInterface *iface,
 			 service, service_type_id, sid);
         }
 
-	str_service_type_id = tracker_int_to_string (service_type_id);
-	str_aux = tracker_int_to_string (info->aux_id);
+	str_service_type_id = tracker_gint_to_string (service_type_id);
+	str_aux = tracker_gint_to_string (info->aux_id);
 
 	if (service_type_id != -1) {
 		gchar *parent;
@@ -2646,7 +2646,7 @@ tracker_db_file_get_id_as_string (TrackerDBInterface *iface,
 	id = tracker_db_file_get_id (iface, uri);
 
 	if (id > 0) {
-		return tracker_uint_to_string (id);
+		return tracker_guint_to_string (id);
 	}
 
 	return NULL;
@@ -2706,8 +2706,8 @@ tracker_db_files_get_by_service (TrackerDBInterface *iface,
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
 	g_return_val_if_fail (service != NULL, NULL);
 
-	str_limit = tracker_int_to_string (limit);
-	str_offset = tracker_int_to_string (offset);
+	str_limit = tracker_gint_to_string (limit);
+	str_offset = tracker_gint_to_string (offset);
 
 	result_set = tracker_db_exec_proc (iface,
 					   "GetByServiceType", 
@@ -2948,7 +2948,7 @@ tracker_db_set_option_int (const gchar *option,
 
 	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
-	str = tracker_int_to_string (value);
+	str = tracker_gint_to_string (value);
 	result_set = tracker_db_exec_proc (iface, "SetOption", str, option, NULL);
 	g_free (str);
 	

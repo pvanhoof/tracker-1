@@ -289,11 +289,11 @@ tracker_metadata_utils_get_data (const gchar *path)
 
 	/* FIXME: These should be dealt directly as integer/times/whatever, not strings */
 	tracker_metadata_insert (metadata, METADATA_FILE_SIZE,
-                                 tracker_uint_to_string (st.st_size));
+                                 tracker_guint_to_string (st.st_size));
 	tracker_metadata_insert (metadata, METADATA_FILE_MODIFIED,
-                                 tracker_uint_to_string (st.st_mtime));
+                                 tracker_guint_to_string (st.st_mtime));
 	tracker_metadata_insert (metadata, METADATA_FILE_ACCESSED,
-                                 tracker_uint_to_string (st.st_atime));
+                                 tracker_guint_to_string (st.st_atime));
 
 	tracker_metadata_utils_get_embedded (path, mimetype, metadata);
 

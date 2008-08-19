@@ -26,6 +26,7 @@
 
 #include <libtracker-common/tracker-dbus.h>
 #include <libtracker-common/tracker-file-utils.h>
+#include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-utils.h>
 #include <libtracker-common/tracker-module-config.h>
 
@@ -77,6 +78,11 @@ struct _TrackerCrawlerPrivate {
 	GList          *ignored_directory_patterns;
 	GList          *ignored_file_patterns;
 	GList          *index_file_patterns;
+
+	/* Legacy NoWatchDirectoryRoots */
+	GSList         *no_watch_directory_roots;
+	GSList         *watch_directory_roots;
+	GSList         *crawl_directory_roots;
 
 	/* Statistics */
 	GTimer         *timer;
@@ -186,16 +192,21 @@ tracker_crawler_finalize (GObject *object)
 		g_timer_destroy (priv->timer);
 	}
 
+	g_slist_foreach (priv->no_watch_directory_roots, (GFunc) g_free, NULL);
+	g_slist_free (priv->no_watch_directory_roots);
+	
+	g_slist_foreach (priv->watch_directory_roots, (GFunc) g_free, NULL);
+	g_slist_free (priv->watch_directory_roots);
+
+	g_slist_foreach (priv->crawl_directory_roots, (GFunc) g_free, NULL);
+	g_slist_free (priv->crawl_directory_roots);
+
 	if (priv->index_file_patterns) {
 		g_list_free (priv->index_file_patterns);
 	}
 
 	if (priv->ignored_file_patterns) {
 		g_list_free (priv->ignored_file_patterns);
-	}
-
-	if (priv->ignored_directory_patterns) {
-		g_list_free (priv->ignored_directory_patterns);
 	}
 
 	/* Don't free the 'current_' variant of these, they are just
@@ -269,7 +280,6 @@ is_path_ignored (TrackerCrawler *crawler,
 	gchar    *basename;
         gboolean  ignore;
 
-
 	if (tracker_is_empty_string (path)) {
 		return TRUE;
 	}
@@ -279,42 +289,82 @@ is_path_ignored (TrackerCrawler *crawler,
 		return TRUE;
 	}
 
-	/* Most common things to ignore */
-	if (strcmp (path, "/boot") == 0 ||
-	    strcmp (path, "/dev") == 0 ||
-	    strcmp (path, "/lib") == 0 ||
-	    strcmp (path, "/proc") == 0 ||
-	    strcmp (path, "/sys") == 0 ||
-	    strcmp (path, "/tmp") == 0 ||
-	    strcmp (path, "/var") == 0) {
-		return TRUE;
+	if (is_directory) {
+		GSList *sl;
+
+		/* Most common things to ignore */
+		if (strcmp (path, "/dev") == 0 ||
+		    strcmp (path, "/lib") == 0 ||
+		    strcmp (path, "/proc") == 0 ||
+		    strcmp (path, "/sys") == 0) {
+			return TRUE;
+		}
+		
+		if (g_str_has_prefix (path, g_get_tmp_dir ())) {
+			return TRUE;
+		}
+
+		/* Check ignored directories in config */
+		for (sl = crawler->private->no_watch_directory_roots; sl; sl = sl->next) {
+			if (strcmp (sl->data, path) == 0) {
+				return TRUE;
+			}
+		}
 	}
 
-	if (g_str_has_prefix (path, g_get_tmp_dir ())) {
-		return TRUE;
-	}
-
+	/* Check basename against pattern matches */
 	basename = g_path_get_basename (path);
 	ignore = TRUE;
 
-	if (!basename || basename[0] == '.') {
+	if (!basename) {
 		goto done;
 	}
 
 	/* Test ignore types */
 	if (is_directory) {
+		GSList *sl;
+
+		/* If directory begins with ".", check it isn't one of
+		 * the top level directories to watch/crawl if it
+		 * isn't we ignore it. If it is, we don't.
+		 */
+		if (basename[0] == '.') {
+			for (sl = crawler->private->watch_directory_roots; sl; sl = sl->next) {
+				if (strcmp (sl->data, path) == 0) {
+					ignore = FALSE;
+					goto done;
+				}
+			}
+
+			for (sl = crawler->private->crawl_directory_roots; sl; sl = sl->next) {
+				if (strcmp (sl->data, path) == 0) {
+					ignore = FALSE;
+					goto done;
+				}
+			}
+
+			goto done;
+		}
+
+		/* Check module directory ignore patterns */
 		for (l = crawler->private->ignored_directory_patterns; l; l = l->next) {
 			if (g_pattern_match_string (l->data, basename)) {
 				goto done;
 			}
 		}
 	} else {
+		if (basename[0] == '.') {
+			goto done;
+		}
+
+		/* Check module file ignore patterns */
 		for (l = crawler->private->ignored_file_patterns; l; l = l->next) {
 			if (g_pattern_match_string (l->data, basename)) {
 				goto done;
 			}
 		}
 
+		/* Check module file match patterns */
 		for (l = crawler->private->index_file_patterns; l; l = l->next) {
 			if (!g_pattern_match_string (l->data, basename)) {
 				goto done;
@@ -422,9 +472,12 @@ process_func (gpointer data)
 		return TRUE;
 	}
 
-	/* Make sure we throttle the processing */
-	tracker_throttle (priv->config, 100);
-
+	/* Throttle the crawler, with testing, throttling every item
+	 * took the time to crawl 130k files from 7 seconds up to 68
+	 * seconds. So it is important to get this figure right. 
+	 */
+	tracker_throttle (priv->config, 25); 
+	
 	/* Crawler files */
 	file = g_queue_pop_head (priv->files);
 
@@ -804,6 +857,7 @@ tracker_crawler_start (TrackerCrawler *crawler)
 		return FALSE;
 	}
 	
+	/* Filter duplicates */
 	sl = priv->paths;
 	priv->paths = tracker_path_list_filter_duplicates (priv->paths);
 
@@ -815,6 +869,24 @@ tracker_crawler_start (TrackerCrawler *crawler)
 
 	g_slist_foreach (sl, (GFunc) g_free, NULL);
 	g_slist_free (sl);
+
+	/* Set up legacy NoWatchDirectoryRoots so we don't have to get
+	 * them from the config for EVERY file we traverse.
+	 */
+	g_slist_foreach (priv->no_watch_directory_roots, (GFunc) g_free, NULL);
+	g_slist_free (priv->no_watch_directory_roots);
+	sl = tracker_config_get_no_watch_directory_roots (priv->config);
+	priv->no_watch_directory_roots = tracker_gslist_copy_with_string_data (sl);
+
+	g_slist_foreach (priv->watch_directory_roots, (GFunc) g_free, NULL);
+	g_slist_free (priv->watch_directory_roots);
+	sl = tracker_config_get_watch_directory_roots (priv->config);
+	priv->watch_directory_roots = tracker_gslist_copy_with_string_data (sl);
+	
+	g_slist_foreach (priv->crawl_directory_roots, (GFunc) g_free, NULL);
+	g_slist_free (priv->crawl_directory_roots);
+	sl = tracker_config_get_crawl_directory_roots (priv->config);
+	priv->crawl_directory_roots = tracker_gslist_copy_with_string_data (sl);
 
 	/* Time the event */
 	if (priv->timer) {

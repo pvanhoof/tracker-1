@@ -619,6 +619,17 @@ tracker_path_list_filter_duplicates (GSList *roots)
 		}
 		
 		if (should_add) {
+			gint len;
+
+			/* Don't use the trailing '/' and make sure we
+			 * don't remove '/' if that is the content of
+			 * the string or it is '//'.
+			 */
+			len = strlen (path);
+			if (len > 2) {
+				path[len - 1] = '\0';
+			}
+
 			checked_roots = g_slist_prepend (checked_roots, path);
 			continue;
 		} 

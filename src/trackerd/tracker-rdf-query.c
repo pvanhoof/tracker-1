@@ -771,7 +771,7 @@ build_sql (ParserData *data)
 
 		bvalue = tracker_date_format (avalue);
 		cvalue = tracker_string_to_date (bvalue);
-		value = tracker_int_to_string (cvalue);
+		value = tracker_gint_to_string (cvalue);
 		g_free (bvalue);
 	} else {
 		value = g_strdup (avalue);

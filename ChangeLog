@@ -1,3 +1,46 @@
+2008-08-19  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-file-utils.c:
+	(tracker_path_list_filter_duplicates): Don't append a trailing
+	G_DIR_SEPARATOR_S when we return the list here. This standard is
+	not used in the rest of Tracker and strcmp() was failing to notice
+	ignored paths when checking against the config.
+	
+	* src/libtracker-common/tracker-type-utils.[ch]: 
+	* src/libtracker-db/tracker-db-manager.c:
+	* src/tracker-indexer/modules/evolution.c:
+	* src/tracker-indexer/tracker-indexer-db.c:
+	* src/tracker-indexer/tracker-indexer.c: 
+	* src/tracker-indexer/tracker-metadata-utils.c:
+	* src/trackerd/tracker-db.c:
+	* src/trackerd/tracker-files.c:
+	* src/trackerd/tracker-metadata.c:
+	* src/trackerd/tracker-rdf-query.c:
+	* src/trackerd/tracker-xesam-query.c:
+	* tests/libtracker-common/tracker-type-utils-test.c: Changed all
+	_{uint|int|long}_to_string() functions to rename them to
+	_{guint|gint|glong}_to_string, to remain consistent with other
+	functions. Added tracker_gslist_copy_with_string_data() to copy a
+	list of strings. Also, changed many functions that return if an
+	input parameter is NULL to actually return the proper data type if
+	plausible since sometimes you would want to return an empty string
+	list from NULL (for example).
+	
+	* src/trackerd/tracker-crawler.c: Make sure each directory is
+	checked against the NoWatchDirectoryRoots config option and that
+	each directory prefixed with "." is checked against the config
+	WatchDirectoryRoots and CrawlDirectoryRoots options to know if we
+	should NOT ignore those locations (by default they are). The
+	crawler was also very slow (taking ~68 seconds to crawl my 130k
+	files, so the throttle was decreased from 100 usecs to 25 usecs
+	with the same CPU utilisation making the crawl take ~12 seconds
+	instead). 
+	
+	* src/trackerd/tracker-processor.c: Make sure we check the
+	NoWatchDirectoryRoots config before blindly adding roots to be
+	checked to the crawler. Also print out what we are ignoring so we
+	know why some things might not be crawled/watched.
+
 2008-08-19  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/libtracker-common/tracker-os-dependant-unix.c:

@@ -267,7 +267,7 @@ tracker_files_get_service_type (TrackerFiles           *object,
 	}
 
 	/* Get mime */
-	file_id_str = tracker_uint_to_string (file_id);
+	file_id_str = tracker_guint_to_string (file_id);
 
 	mime = NULL;
 	result_set = tracker_db_metadata_get (iface, 
@@ -369,8 +369,8 @@ tracker_files_get_text_contents (TrackerFiles           *object,
 		} 
 	}
 
-	offset_str = tracker_int_to_string (offset);
-	max_length_str = tracker_int_to_string (max_length);
+	offset_str = tracker_gint_to_string (offset);
+	max_length_str = tracker_gint_to_string (max_length);
 
 	result_set = tracker_db_exec_proc (iface,
 					   "GetFileContents",
@@ -447,7 +447,7 @@ tracker_files_search_text_contents (TrackerFiles           *object,
 		path = tracker_file_get_vfs_path (uri);
 	}
 	
-	max_length_str = tracker_int_to_string (max_length);
+	max_length_str = tracker_gint_to_string (max_length);
 
 	/* result_set = tracker_exec_proc (iface, */
 	/* 				"SearchFileContents", */

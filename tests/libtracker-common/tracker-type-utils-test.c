@@ -137,12 +137,12 @@ test_long_to_string ()
         gchar *result;
 
         n = 10050;
-        result = tracker_long_to_string (n);
+        result = tracker_glong_to_string (n);
         g_assert (tracker_test_helpers_cmpstr_equal (result, "10050"));
         g_free (result);
 
         n = -9950;
-        result = tracker_long_to_string (n);
+        result = tracker_glong_to_string (n);
         g_assert (tracker_test_helpers_cmpstr_equal (result, "-9950"));
         g_free (result);
 }
@@ -154,12 +154,12 @@ test_int_to_string ()
         gchar *result;
 
         n = 654;
-        result = tracker_int_to_string (n);
+        result = tracker_gint_to_string (n);
         g_assert (tracker_test_helpers_cmpstr_equal (result, "654"));
         g_free (result);
 
         n = -963;
-        result = tracker_int_to_string (n);
+        result = tracker_gint_to_string (n);
         g_assert (tracker_test_helpers_cmpstr_equal (result, "-963"));
         g_free (result);
 
@@ -173,7 +173,7 @@ test_uint_to_string ()
         gchar *result;
 
         n = 100;
-        result = tracker_uint_to_string (n);
+        result = tracker_guint_to_string (n);
         g_assert (tracker_test_helpers_cmpstr_equal (result, "100"));
         g_free (result);
 }

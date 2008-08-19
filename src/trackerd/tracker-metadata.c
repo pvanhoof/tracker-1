@@ -578,8 +578,8 @@ tracker_metadata_get_unique_values (TrackerMetadata        *object,
 	g_free (rdf_from);
 	g_free (rdf_where);
 
-	str_offset = tracker_int_to_string (offset);
-	str_limit = tracker_int_to_string (metadata_sanity_check_max_hits (max_hits));
+	str_offset = tracker_gint_to_string (offset);
+	str_limit = tracker_gint_to_string (metadata_sanity_check_max_hits (max_hits));
 
 	g_string_append_printf (sql_order, " LIMIT %s,%s", str_offset, str_limit);
 

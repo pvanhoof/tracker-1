@@ -1004,7 +1004,7 @@ build_sql (ParserData *data)
 			g_debug (bvalue);
 			cvalue = tracker_string_to_date (bvalue);
 			g_debug ("%d", cvalue);
-			value = tracker_int_to_string (cvalue);
+			value = tracker_gint_to_string (cvalue);
 			g_free (bvalue);
 		} else if (state == STATE_END_BOOLEAN) { 
 			/* FIXME We do a state check here, because

@@ -18,12 +18,20 @@
  * Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <string.h>
 #include <stdlib.h>
 
 #include <libtracker-common/tracker-dbus.h>
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-module-config.h>
+
+#ifdef HAVE_INOTIFY
+#include <linux/inotify.h>
+#include <libinotify/libinotify.h>
+#define USE_LIBINOTIFY
+#endif /* HAVE_INOTIFY */
 
 #include "tracker-monitor.h"
 #include "tracker-dbus.h"
@@ -1098,3 +1106,141 @@ tracker_monitor_get_ignored (TrackerMonitor *monitor)
 	return monitor->private->monitors_ignored;
 }
 
+#ifdef USE_LIBINOTIFY
+
+static gchar *
+get_events (guint32 event_type)
+{
+	GString *s;
+
+	s = g_string_new ("");
+
+	if (event_type & IN_ACCESS) {
+		s = g_string_append (s, "IN_ACCESS | ");
+	}	
+	if (event_type & IN_MODIFY) {
+		s = g_string_append (s, "IN_MODIFY | ");
+	}	
+	if (event_type & IN_ATTRIB) {
+		s = g_string_append (s, "IN_ATTRIB | ");
+	}	
+	if (event_type & IN_CLOSE_WRITE) {
+		s = g_string_append (s, "IN_CLOSE_WRITE | ");
+	}	
+	if (event_type & IN_CLOSE_NOWRITE) {
+		s = g_string_append (s, "IN_CLOSE_NOWRITE | ");
+	}	
+	if (event_type & IN_OPEN) {
+		s = g_string_append (s, "IN_OPEN | ");
+	}	
+	if (event_type & IN_MOVED_FROM) {
+		s = g_string_append (s, "IN_MOVED_FROM | ");
+	}	
+	if (event_type & IN_MOVED_TO) {
+		s = g_string_append (s, "IN_MOVED_TO | ");
+	}	
+	if (event_type & IN_CREATE) {
+		s = g_string_append (s, "IN_CREATE | ");
+	}	
+	if (event_type & IN_DELETE) {
+		s = g_string_append (s, "IN_DELETE | ");
+	}	
+	if (event_type & IN_DELETE_SELF) {
+		s = g_string_append (s, "IN_DELETE_SELF | ");
+	}	
+	if (event_type & IN_MOVE_SELF) {
+		s = g_string_append (s, "IN_MOVE_SELF | ");
+	}	
+	if (event_type & IN_UNMOUNT) {
+		s = g_string_append (s, "IN_UNMOUNT | ");
+	}	
+	if (event_type & IN_Q_OVERFLOW) {
+		s = g_string_append (s, "IN_Q_OVERFLOW | ");
+	}	
+	if (event_type & IN_IGNORED) {
+		s = g_string_append (s, "IN_IGNORED | ");
+	}	
+	
+	/* helper events */
+	if (event_type & IN_CLOSE) {
+		s = g_string_append (s, "IN_CLOSE* | ");
+	}	
+	if (event_type & IN_MOVE) {
+		s = g_string_append (s, "IN_MOVE* | ");
+	}
+	
+	/* special flags */	
+	if (event_type & IN_MASK_ADD) {
+		s = g_string_append (s, "IN_MASK_ADD^ | ");
+	}	
+	if (event_type & IN_ISDIR) {
+		s = g_string_append (s, "IN_ISDIR^ | ");
+	}	
+	if (event_type & IN_ONESHOT) {
+		s = g_string_append (s, "IN_ONESHOT^ | ");
+	}	
+
+	s->len -= 3;
+
+	return g_string_free (s, FALSE);	
+}
+
+static void 
+callback (INotifyHandle *handle,
+	  const char    *monitor_name,
+	  const char    *filename,
+	  guint32        event_type,
+	  guint32        cookie,
+	  gpointer       user_data)
+{
+	gchar *event_type_str = get_events (event_type);
+
+	g_message ("Received monitor event:%d->'%s' for file:'%s'",
+		   event_type,
+		   event_type_str,
+		   filename ? filename : "");
+	
+	g_free (event_type_str);
+}
+
+void start (const gchar *path);
+
+void
+start (const gchar *path)
+{
+	INotifyHandle **handle;
+	guint32	        mask;
+	unsigned long   flags;
+	gboolean        is_directory;
+	static gint     i = 0;
+	static gint     count = 0;
+
+	if (!inotify_is_available ()) {
+		return;
+	}
+
+	handle = g_new (INotifyHandle *, 1);
+
+	is_directory = TRUE;
+	flags = 0;
+	mask = IN_ALL_EVENTS;
+
+	/* For files */
+	if (is_directory) {
+		flags &= ~IN_FLAG_FILE_BASED;
+	} else {
+		flags |= IN_FLAG_FILE_BASED;
+	}
+
+	g_message ("Addeding monitor for path:'%s'", path);
+	handle[i] = inotify_monitor_add (path, mask, flags, callback, NULL);
+
+	if (handle[i] == NULL) {
+		g_warning ("failed to add monitor for path:'%s'", path);
+	} else {
+		count++;
+		i++;
+	}
+}
+
+#endif /* USE_LIBINOTIFY */

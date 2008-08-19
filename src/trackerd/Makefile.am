@@ -16,6 +16,9 @@ INCLUDES =								\
 	$(GTHREAD_CFLAGS)						\
 	$(GLIB2_CFLAGS)
 
+if HAVE_INOTIFY
+inotify_libs = $(top_builddir)/src/libinotify/libinotify.la
+endif
 
 #
 # Daemon sources
@@ -74,6 +77,7 @@ trackerd_LDADD =							\
 	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
 	$(top_builddir)/src/libstemmer/libstemmer.la	 		\
 	$(top_builddir)/src/xdgmime/libxdgmime.la 			\
+	$(inotify_libs)							\
 	$(GMIME_LIBS)							\
 	$(FAM_LIBS)							\
 	$(SQLITE3_LIBS)							\

@@ -1,3 +1,25 @@
+2008-08-19  Martyn Russell  <martyn@imendio.com>
+
+	* configure.ac:
+	* src/Makefile.am:
+	* src/libinotify/.cvsignore:
+	* src/libinotify/Makefile.am:
+	* src/libinotify/inotify-handle.c:
+	* src/libinotify/inotify-handle.h:
+	* src/libinotify/inotify-listhash.c:
+	* src/libinotify/inotify-listhash.h:
+	* src/libinotify/inotify-log.h:
+	* src/libinotify/inotify-monitor.c:
+	* src/libinotify/inotify-monitor.h:
+	* src/libinotify/libinotify.h:
+	* src/libinotify/linux-inotify-syscalls.h:
+	* src/trackerd/Makefile.am:
+	* src/trackerd/tracker-monitor.c: Add the initial inotify replacement work
+	while glib upstream is fixed. This is to support MOVE events for
+	files and directories. This is not yet working.
+	
+	* tests/common/Makefile.am: Fixed some small errors.
+
 2008-08-19  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer-db.[ch]

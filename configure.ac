@@ -429,6 +429,27 @@ if test "$native_win32" = "yes" ; then
 fi
 
 ####################################################################
+#  libinotify
+####################################################################
+
+AC_MSG_CHECKING(for inotify)
+AC_TRY_COMPILE(,
+	[
+        #include <sys/inotify.h>
+
+        inotify_init(void);
+	],
+	have_inotify=no; AC_MSG_RESULT(no),
+	have_inotify=yes; AC_MSG_RESULT(yes),
+)
+
+AM_CONDITIONAL(HAVE_INOTIFY, test "$have_inotify" = "yes")
+
+if test "$have_inotify" = "yes" ; then
+   AC_DEFINE(HAVE_INOTIFY, 1, [Define if we have inotify])
+fi
+
+####################################################################
 #  SQLite check
 ####################################################################
 
@@ -834,6 +855,7 @@ AC_CONFIG_FILES([
 	po/Makefile.in
 	python/deskbar-handler/Makefile
 	python/Makefile
+	src/libinotify/Makefile
 	src/libstemmer/Makefile
 	src/libtracker-common/Makefile
 	src/libtracker-db/Makefile

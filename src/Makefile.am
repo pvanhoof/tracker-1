@@ -1,36 +1,41 @@
 if HAVE_GNOME
-tracker_gui_dir = tracker-search-tool
+build_tracker_search_tool = tracker-search-tool
+endif
+
+if HAVE_INOTIFY
+build_libinotify = libinotify
 endif
 
 if !USING_EXTERNAL_QDBM
-qdbm_dir = qdbm
+build_qdbm = qdbm
 endif
 
 if ENABLE_PREFERENCES
-tracker_preferences_dir = tracker-preferences
+build_tracker_preferences = tracker-preferences
 endif
 
 if ENABLE_LIBTRACKERGTK
-libtrackergtk_dir = libtracker-gtk
+build_libtrackergtk = libtracker-gtk
 endif
 
 if ENABLE_TRACKERAPPLET
-trackerapplet_dir = tracker-applet
+build_trackerapplet = tracker-applet
 endif
 
 SUBDIRS = 					\
 	libstemmer				\
 	xdgmime					\
-	$(qdbm_dir)				\
+	$(build_qdbm)				\
+	$(build_libinotify)			\
 	libtracker-common 			\
 	libtracker-db				\
-	trackerd				\
 	libtracker				\
+	trackerd				\
 	tracker-utils				\
 	tracker-extract				\
 	tracker-thumbnailer			\
 	tracker-indexer				\
-	$(libtrackergtk_dir)			\
-	$(tracker_gui_dir)			\
-	$(trackerapplet_dir) 			\
-	$(tracker_preferences_dir)
+	$(build_libtrackergtk)			\
+	$(build_tracker_gui)			\
+	$(build_trackerapplet) 			\
+	$(build_tracker_preferences)

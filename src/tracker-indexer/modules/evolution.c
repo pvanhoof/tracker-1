@@ -636,6 +636,7 @@ get_mbox_attachment_uri (TrackerFile   *file,
         gchar *dir;
 
         dir = tracker_string_replace (file->path, local_dir, NULL);
+        dir = tracker_string_remove (dir, ".sbd");
 
         *dirname = g_strdup_printf ("email://local@local/%s;uid=%d",
                                     dir, get_mbox_message_id (message));

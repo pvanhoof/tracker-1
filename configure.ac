@@ -206,7 +206,7 @@ if test "x$enable_debug_code" = "xyes"; then
 fi
 
 ####################################################################
-# gettext/intltool support 
+# gettext/intltool support
 ####################################################################
 
 GETTEXT_PACKAGE=AC_PACKAGE_NAME
@@ -228,9 +228,9 @@ GLIB_WITH_UNIT_TESTING=2.15.0
 
 have_xesam_glib=no
 
-AC_ARG_ENABLE(unit_tests, 
+AC_ARG_ENABLE(unit_tests,
 	AS_HELP_STRING([--enable-unit-tests=@<:@no/yes/auto@:>@],
-			[Enable unit tests (if available)]), , 
+			[Enable unit tests (if available)]), ,
 			[enable_unit_tests=auto])
 
 if test "x$enable_unit_tests" != "xno" ; then
@@ -245,7 +245,7 @@ if test "x$enable_unit_tests" != "xno" ; then
           AC_MSG_ERROR([Could not find 'sqlite3'])
       fi
 
-      glib_pkgconfig=$glib_pkgconfig_tmp 
+      glib_pkgconfig=$glib_pkgconfig_tmp
       AC_PATH_PROG(GTESTER, [gtester], [no] )
       if test "x$GTESTER" = "xno" ; then
 	 AC_MSG_ERROR([*** Gtester is not in the path])
@@ -274,7 +274,7 @@ AM_CONDITIONAL(HAVE_XESAM_GLIB, test "x$have_xesam_glib" = "xyes")
 
 QDBM_REQUIRED=1.8
 
-AC_ARG_ENABLE(external_qdbm, 
+AC_ARG_ENABLE(external_qdbm,
 	AS_HELP_STRING(
 		[--enable-external-qdbm],
 		[build using system's qdbm]),,
@@ -287,7 +287,7 @@ else
 	QDBM_CFLAGS="-I\$(top_srcdir)/src/qdbm"
 	QDBM_LIBS="\$(top_builddir)/src/qdbm/libqdbm-private.la"
 	AM_CONDITIONAL(USING_EXTERNAL_QDBM, false)
-fi		
+fi
 
 AC_SUBST(QDBM_CFLAGS)
 AC_SUBST(QDBM_LIBS)
@@ -297,7 +297,7 @@ AC_SUBST(QDBM_LIBS)
 ##################################################################
 # Check for libxml2
 ##################################################################
-  
+
 LIBXML2_REQUIRED=0.6
 
 AC_ARG_ENABLE(libxml2, AS_HELP_STRING([--disable-libxml2],[Disable HTML/XML extractors (full-text will still be available)]),,[enable_libxml2=yes])
@@ -320,7 +320,7 @@ AM_CONDITIONAL(HAVE_LIBXML2, test "x$have_libxml2" = "xyes")
 ##################################################################
 # Check for HAL
 ##################################################################
-  
+
 AC_ARG_ENABLE(hal, AS_HELP_STRING([--disable-hal],[Disable HAL support for ac power detection]),,[enable_hal=yes])
 if test "x$enable_hal" = "xyes"; then
 	PKG_CHECK_MODULES(HAL, [hal >= 0.5 hal-storage], [have_hal=yes] , [have_hal=no])
@@ -347,13 +347,13 @@ AC_ARG_ENABLE(video-extractor,
 		[enables one of the (gstreamer, xine, external, auto) video extractor backends]),,
 	[enable_video_extractor=auto])
 
-PKG_CHECK_MODULES(GSTREAMER, 
+PKG_CHECK_MODULES(GSTREAMER,
 	[gstreamer-0.10 >= 0.10.0],
 	[have_libgstreamer=yes] , [have_libgstreamer=no])
 AC_SUBST(GSTREAMER_CFLAGS)
 AC_SUBST(GSTREAMER_LIBS)
 
-PKG_CHECK_MODULES(XINE, 
+PKG_CHECK_MODULES(XINE,
 	[libxine >= 1.0],
 	[have_libxine=yes] , [have_libxine=no])
 AC_SUBST(XINE_CFLAGS)
@@ -460,7 +460,7 @@ if test "x$enable_libtrackergtk" != "xno" ; then
     	AC_SUBST([LIBTRACKERGTK_CFLAGS])
     	AC_SUBST([LIBTRACKERGTK_LIBS])
 
-	
+
 else
 	enable_libtrackergtk="no (disabled)"
 fi
@@ -490,7 +490,7 @@ if test "x$enable_trackerapplet" != "xno" ; then
     	AC_SUBST([TRACKERAPPLET_CFLAGS])
     	AC_SUBST([TRACKERAPPLET_LIBS])
 
-	
+
 else
 	enable_trackerapplet="no (disabled)"
 fi
@@ -509,7 +509,7 @@ if test "x$enable_unac" != "xno" ; then
 
     	AC_SUBST([UNAC_CFLAGS])
     	AC_SUBST([UNAC_LIBS])
-	
+
 else
 	enable_unac="no (disabled)"
 fi
@@ -538,7 +538,7 @@ if test "x$enable_gui" = "xyes"; then
 	        [have_gnome=yes] , [have_gnome=no])
 	#there is the slight possibility to have gnome-vfs and not libgnome for example
 	#so we should check and not overwrite have_gnome
-	if test "$have_gnome" = "yes"; then 
+	if test "$have_gnome" = "yes"; then
 		PKG_CHECK_MODULES(GNOMEVFS, [
         		gnome-vfs-2.0 >= $GNOMEVFS_REQUIRED
 		        gnome-vfs-module-2.0 >= $GNOMEVFS_REQUIRED],
@@ -562,7 +562,7 @@ fi
 
 # do not build if libtracker-gtk is not being built
 if test "x$enable_libtrackergtk" != "xyes"; then
-	have_gnome="no (disabled as libtracker-gtk is not being built)"	
+	have_gnome="no (disabled as libtracker-gtk is not being built)"
 fi
 
 AM_CONDITIONAL(HAVE_GNOME, test "$have_gnome" = "yes")
@@ -588,13 +588,13 @@ if test "x$enable_preferences" != "xno" ; then
    	AC_SUBST([GLIB2_CFLAGS])
    	AC_SUBST([GLIB2_LIBS])
 
-	if test "$enable_preferences" = "yes"; then 
+	if test "$enable_preferences" = "yes"; then
 		PKG_CHECK_MODULES(GTK2, [ gtk+-2.0 >= $PREFERENCES_GTK_REQUIRED ],[enable_preference=yes] , [enable_preference=no])
 		AC_SUBST([GTK2_CFLAGS])
    		AC_SUBST([GTK2_LIBS])
 	fi
 
-	if test "$enable_preferences" = "yes"; then 
+	if test "$enable_preferences" = "yes"; then
 
 	   	PKG_CHECK_MODULES(LIBGLADE, [ libglade-2.0 >= $PREFERENCES_GLADE_REQUIRED ], [enable_preferences=yes], [enable_preferences=no])
 		AC_SUBST([LIBGLADE_CFLAGS])
@@ -743,7 +743,7 @@ have_ioprio=no
 AC_RUN_IFELSE([ AC_LANG_PROGRAM(
    [[
 #include <stdlib.h>
-#include <errno.h> 
+#include <errno.h>
 #include <sys/syscall.h>
 #include <unistd.h>
    ]],
@@ -848,7 +848,7 @@ AC_CONFIG_FILES([
 	src/tracker-indexer/Makefile
 	src/tracker-indexer/modules/Makefile
 	src/tracker-preferences/Makefile
-	src/tracker-preferences/tracker-preferences.desktop.in	
+	src/tracker-preferences/tracker-preferences.desktop.in
 	src/tracker-search-tool/Makefile
 	src/tracker-search-tool/tracker-search-tool.desktop.in
 	src/tracker-thumbnailer/Makefile

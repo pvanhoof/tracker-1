@@ -20,7 +20,7 @@ BuildRequires: dbus-devel, dbus-glib
 
 %description
 Tracker is a powerful desktop-neutral first class object database,
-tag/metadata database, search tool and indexer. 
+tag/metadata database, search tool and indexer.
 
 It consists of a common object database that allows entities to have an
 almost infinte number of properties, metadata (both embedded/harvested as
@@ -30,7 +30,7 @@ links to other entities.
 It provides additional features for file based objects including context
 linking and audit trails for a file object.
 
-It has the ability to index, store, harvest metadata. retrieve and search  
+It has the ability to index, store, harvest metadata. retrieve and search
 all types of files and other first class objects
 
 %package devel
@@ -55,7 +55,7 @@ developing with tracker
 # make %{?_smp_mflags} fails
 make
 
-										
+
 %install
 rm -rf %{buildroot}
 make DESTDIR=%{buildroot} install
@@ -102,10 +102,10 @@ rm -rf %{buildroot}
 - Fix up the RPM group
 
 * Mon Nov 06 2006 Deji Akingunola <dakingun@gmail.com> - 0.5.0-6
-- Explicitly require dbus-devel and dbus-glib (needed for FC < 6) 
+- Explicitly require dbus-devel and dbus-glib (needed for FC < 6)
 
 * Sun Nov 05 2006 Deji Akingunola <dakingun@gmail.com> - 0.5.0-5
-- Remove unneeded BRs (gnome-utils-devel and openssl-devel) 
+- Remove unneeded BRs (gnome-utils-devel and openssl-devel)
 
 * Sun Nov 05 2006 Deji Akingunola <dakingun@gmail.com> - 0.5.0-4
 - Add autostart desktop file.

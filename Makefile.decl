@@ -1,6 +1,6 @@
 #
 # Testing rules for make
-# Original file: http://svn.gnome.org/svn/glib/trunk/Makefile.decl 
+# Original file: http://svn.gnome.org/svn/glib/trunk/Makefile.decl
 #
 # test: run all tests in cwd and subdirs
 # test-report: run tests in subdirs and generate report
@@ -9,7 +9,7 @@
 #
 
 GTESTER = gtester 			# for non-GLIB packages
-GTESTER_REPORT = gtester-report	
+GTESTER_REPORT = gtester-report
 
 # initialize variables for unconditional += appending
 TEST_PROGS =

@@ -7,20 +7,29 @@
 
 2008-08-18  Martyn Russell  <martyn@imendio.com>
 
+	* Makefile.decl:
+	* tracker.spec:
+	* README:
+	* configure.ac:
+	* acinclude.m4:
+	* libtracker-gtk.pc.in: Fixed some trailing whitespace issues.
+
+2008-08-18  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-daemon.c: Use TrackerDaemonPrivate not Priv.
 	* src/trackerd/tracker-db.c: Removed commented out code.
 
-	* src/trackerd/tracker-dbus.c: 
+	* src/trackerd/tracker-dbus.c:
 	* src/trackerd/tracker-files.[ch]: Use the processor for the
 	org.freedesktop.Tracker.Files.{Create|Delete} interfaces so we
 	make use of the processor's queues and do things all one way. This
 	includes checking ignore lists, etc.
-	
+
 	* src/trackerd/tracker-keywords.c: Use TrackerKeywordsPrivate not Priv.
 	* src/trackerd/tracker-processor.[ch]: Add public functions to
 	check/update/delete files. This simply makes the functions we
 	already have public which send files to the indexer to
-	check/update/delete. 
+	check/update/delete.
 
 	* src/trackerd/tracker-search.c: Use TrackerSearchPrivate not Priv.
 
@@ -75,7 +84,7 @@
 	* src/libtracker-common/tracker-ontology.c:
 	* src/libtracker-common/tracker-type-utils.c:
 	* src/libtracker-db/tracker-db-file-info.c:
-	* src/libtracker-db/tracker-db-manager.c: 
+	* src/libtracker-db/tracker-db-manager.c:
 	* src/libtracker-gtk/tracker-metadata-tile.c:
 	* src/tracker-extract/tracker-extract-html.c:
 	* src/tracker-extract/tracker-extract-jpeg.c:
@@ -91,14 +100,14 @@
 	* src/tracker-thumbnailer/tracker-thumbnailer.c:
 	* src/trackerd/tracker-db.c:
 	* src/trackerd/tracker-monitor.c:
-	* src/trackerd/tracker-search.c: 
+	* src/trackerd/tracker-search.c:
 	* tests/common/Makefile.am:
 	* tests/common/tracker-test-helpers.[ch]:
 	* tests/libtracker-common/tracker-file-utils-test.c:
 	* tests/libtracker-common/tracker-ontology-test.c:
 	* tests/libtracker-common/tracker-parser-test.c:
 	* tests/libtracker-db/tracker-index-writer-test.c:
-	* utils/qdbm/print-words.c: 
+	* utils/qdbm/print-words.c:
 	* utils/qdbm/search-word.c: Added -Wmissing-declarations
 	-Wmissing-prototypes -Wunused warnings to the CFLAGS when using
 	--enable-warnings. These files all had incorrect declarations or
@@ -141,7 +150,7 @@
 	* utils/qdbm/Makefile.am: Don't use -g in every Makefile.am, it is
 	added to CFLAGS with --enable-debug-code. Changed the CFLAGS to
 	include -O0 too.
-	
+
 2008-08-18  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-status.c: (tracker_status_signal):
@@ -153,7 +162,7 @@
 	It is not needed since it is in the user config already and it
 	means users would have to change two places, IF they could change
 	/usr/share at all anyway.
-	
+
 	* src/libtracker-common/tracker-utils.c: (tracker_throttle): If
 	throttle is 0, don't return, always have a minimum of 5 for
 	throttle added to whatever the config throttle value is. If we
@@ -166,13 +175,13 @@
 	legacy config option WatchDirectoryRoots ALSO crawls the file
 	system, not just adds monitors. Plus check that we don't try to
 	recurse non-existing paths when we start for paths NOT in the
-	module config. Module config paths were already checked. 
-	
+	module config. Module config paths were already checked.
+
 2008-08-14  Mikael Ottela   <mikael.ottela@ixonos.com>
 
 	* src/tracker-extract/tracker-extract-tiff.c:
 	(tracker_extract_tiff): Restored variables used conditionally by
-	XMP extraction, previously removed because of compiler warnings.	
+	XMP extraction, previously removed because of compiler warnings.
 
 2008-08-14  Martyn Russell  <martyn@imendio.com>
 
@@ -206,29 +215,29 @@
 	create the index word in memory before checking if we are
 	filtering words and if it is a stop word only to then free it
 	again which we were doing.
-	
+
 	* src/libtracker-db/tracker-db-index.c: (tracker_db_index_flush):
 	If the index is not open when we try to flush, try and open it
-	first. 
-	
+	first.
+
 	* src/tracker-extract/tracker-extract-tiff.c:
-	(tracker_extract_tiff): 
+	(tracker_extract_tiff):
 	* tests/libtracker-db/tracker-db-dbus-test.c:
 	(test_dbus_query_result_to_ptr_array):  Fixed compiler warnings.
-	
+
 	* src/tracker-indexer/tracker-indexer.c: Fixed a nasty crash I
 	introduced last commit and clean up the merge function for words
 	tables. Plus make sure we free basename and dirname in
 	delete_item(), this was quite a leak.
-	
+
 	* src/tracker-utils/tracker-files.c: (main): Fixed printing a %d
 	as a %s.
-	
-	* src/trackerd/tracker-db.c: (update_metadata_index): 
+
+	* src/trackerd/tracker-db.c: (update_metadata_index):
 	* tests/libtracker-common/tracker-parser-test.c: Use
 	g_hash_table_unref() instead of the custom function we had for the
 	parser for freeing hash tables.
-	
+
 	* src/trackerd/tracker-processor.c: (tracker_processor_stop):
 	Fixed a warning where the trackerd would stop before it started
 	processing (due to Ctrl+C) and the private->timer was NULL, so
@@ -240,35 +249,35 @@
 	* src/tracker-indexer/Makefile.am:
 	* src/tracker-indexer/modules/Makefile.am: Include -g so we get
 	debugging symbols to use in gdb.
-	
+
 	* src/libtracker-common/tracker-language.[ch]: Change the
 	_get_stem_word() API to return a const gchar*.
-	
+
 	* src/libtracker-common/tracker-ontology.c:
 	(tracker_ontology_shutdown): Use g_hash_table_unref() instead of
 	_destroy() in case the table is referenced somewhere else.
-	
+
 	* src/libtracker-common/tracker-parser.c: Use const strings from
 	tracker_language_get_stem_word() instead of dups and modularise
 	the code a bit more to make it clearer what is going.
-	
+
 	* src/tracker-indexer/modules/files.c:
 	(tracker_module_file_get_text): Dont't use
 	g_mapped_file_get_contents() with g_strdup() since the first call
 	can return a NON-NULL-terminated string. Instead use
 	g_file_get_contents(). We might want to improve this by using GIO
 	functions later.
-	
+
 	* src/tracker-indexer/tracker-dbus.c: Fix compiler warning.
-	
-	* src/tracker-indexer/tracker-indexer-db.c: 
+
+	* src/tracker-indexer/tracker-indexer-db.c:
 	* src/tracker-indexer/tracker-indexer.c: Cleaned up the code,
-	removed unnecessary parenthesis and casting. 
-	
+	removed unnecessary parenthesis and casting.
+
 	* src/tracker-indexer/tracker-indexer-module.c:
 	(tracker_indexer_module_file_get_uri): If either basename or
 	dirname pointers are NULL, make sure we free either one when they
-	are. 
+	are.
 
 	* src/tracker-indexer/tracker-indexer.c: Fixed a nasty memory leak
 	in create_update_item() when calling tracker_db_get_text() and
@@ -276,17 +285,17 @@
 	values. Other memory improvements made here, like using the
 	GHashTableIter instead of getting all keys and going through the
 	list for after parsing text in send_text_to_index().
-	
+
 	* src/tracker-indexer/tracker-main.c: (main): Actually call the
 	shutdown functions for dbus, log and db_index_manager. Now objects
 	should all finalize properly.
-	
+
 	* src/tracker-utils/tracker-meta-folder.c: Refactored and made to
 	use GOption now.
-	
-	* src/tracker-utils/tracker-files.c: 
+
+	* src/tracker-utils/tracker-files.c:
 	* src/tracker-utils/tracker-search.c:
-	* src/tracker-utils/tracker-tag.c: 
+	* src/tracker-utils/tracker-tag.c:
 	* src/tracker-utils/tracker-unique.c: Improved print formatting
 	and don't use warnings for errors reported to us from DBus about
 	the Tracker service.
@@ -299,7 +308,7 @@
 	* thumbnailers/image/hildon/gif_thumbnailer:
 	* thumbnailers/image/hildon/tiff_thumbnailer:
 	* thumbnailers/image/hildon/png_thumbnailer:
-	Added hildon-thumbnail based thumbnailer scripts for images.	
+	Added hildon-thumbnail based thumbnailer scripts for images.
 
 2008-08-12  Carlos Garnacho  <carlos@imendio.com>
 
@@ -348,20 +357,20 @@
 
 2008-08-13  Martyn Russell  <martyn@imendio.com>
 
-	* src/tracker-utils/tracker-files.c: 
-	* src/tracker-utils/tracker-query.c: 
+	* src/tracker-utils/tracker-files.c:
+	* src/tracker-utils/tracker-query.c:
 	* src/tracker-utils/tracker-search.c:
-	* src/tracker-utils/tracker-stats.c: 
-	* src/tracker-utils/tracker-status.c: 
+	* src/tracker-utils/tracker-stats.c:
+	* src/tracker-utils/tracker-status.c:
 	* src/tracker-utils/tracker-tag.c:
 	* src/tracker-utils/tracker-unique.c: Fixed some of the printing
 	where \n was omitted. Also fixed the includes for the Win32
-	compatibility. 
+	compatibility.
 
 2008-08-12  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-main.c: (main): Now shutdown the indexer
-	when we shutdown. 
+	when we shutdown.
 
 2008-08-12  Martyn Russell  <martyn@imendio.com>
 
@@ -370,7 +379,7 @@
 	* src/tracker-utils/tracker-unique.c: Fixed a memory leak.
 
 	* src/tracker-utils/tracker-stats.c: Clean up.
-	
+
 2008-08-12  Martyn Russell  <martyn@imendio.com>
 
 	* src/tracker-utils/tracker-files.c:
@@ -381,7 +390,7 @@
 	* src/tracker-utils/tracker-status.c:
 	* src/tracker-utils/tracker-tag.c: Fix the tracker.h include to
 	omit the "src/" part since we set up the include path in the
-	CFLAGS. 
+	CFLAGS.
 
 	* src/tracker-utils/tracker-unique.c: Clean up.
 
@@ -398,24 +407,24 @@
 2008-08-12  Martyn Russell  <martyn@imendio.com>
 
 	* src/tracker-utils/Makefile.am: Added.
-	
-	* src/tracker-utils/tracker-files.c: 
-	* src/tracker-utils/tracker-query.c: 
+
+	* src/tracker-utils/tracker-files.c:
+	* src/tracker-utils/tracker-query.c:
 	* src/tracker-utils/tracker-search.c:
 	* src/tracker-utils/tracker-status.c: Clean up these examples.
 	More importantly make it show the help if the wrong parameters are
-	used or none at all.  
+	used or none at all.
 
 2008-08-12  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/tracker-indexer/tracker-indexer.c: Added differential
 	indexing of text contents when a file is updated.
-	
+
 2008-08-12  Ivan Frade  <ivan.frade@nokia.com>
 
 	* tests/libtracker-db/Makefile.am: Commented out some tests that
 	need to run with an script. This fixes make distcheck.
-	
+
 2008-08-12  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/libtracker-db/tracker-db-indexer.c (indexer_update_word): Behave
@@ -438,11 +447,11 @@
 	* src/tracker-utils/tracker-files.c:
 	* src/tracker-utils/tracker-query.c:
 	* src/tracker-utils/tracker-search.c:
-	* src/tracker-utils/tracker-stats.c: 
+	* src/tracker-utils/tracker-stats.c:
 	* src/tracker-utils/tracker-status.c:
 	* src/tracker-utils/tracker-tag.c: Moved all utilities to a
 	tracker-utils folder instead of mixing them up with the libtracker
-	library. 
+	library.
 
 2008-08-12  Carlos Garnacho  <carlos@imendio.com>
 
@@ -482,24 +491,24 @@
 
 	* src/trackerd/tracker-keywords.c: Propagating errors coming from
 	the indexer, instead overwrite them in the daemon.
-	
+
 2008-08-12  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-daemon.c:
 	* src/trackerd/tracker-dbus.c: Don't resume indexing after the
 	dbus request without checking if we are manually paused or paused
 	for IO first.
-	
+
 	* src/trackerd/tracker-monitor.c: Make sure we pause when we get
 	monitor events from the system.
-	
-	* src/trackerd/tracker-crawler.c: 
+
+	* src/trackerd/tracker-crawler.c:
 	* src/trackerd/tracker-processor.c: Don't send ANYTHING to the
 	indexer or crawl any files while paused from IO as well as manually.
-	
+
 	* src/trackerd/tracker-status.c: Make sure we send the right state
 	up to the applet about being paused from IO and for being on
-	battery. 
+	battery.
 
 2008-08-12  Martyn Russell  <martyn@imendio.com>
 
@@ -516,9 +525,9 @@
 
 	* src/trackerd/tracker-crawler.c:
 	* src/trackerd/tracker-daemon.c:
-	* src/trackerd/tracker-dbus.c: 
-	* src/trackerd/tracker-main.[ch]: 
-	* src/trackerd/tracker-processor.c: 
+	* src/trackerd/tracker-dbus.c:
+	* src/trackerd/tracker-main.[ch]:
+	* src/trackerd/tracker-processor.c:
 	* src/trackerd/tracker-status.[ch]: Hold all valuable states in
 	the status module, like is_readonly, is_first_time_index,
 	is_running, etc.
@@ -528,11 +537,11 @@
 	* src/libtracker-db/tracker-db-index
 	(tracker_db_index_flush): It is not necessary to close and open
 	the index after flush.
-	
+
 2008-08-11  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/libtracker/tracker-unique.c: Added new file.
-	
+
 2008-08-11  Ivan Frade  <ivan.frade@nokia.com>
 
 	New methods GetSum, GetCount, GetUniqueValues. Patch by Mikael
@@ -553,7 +562,7 @@
 	handle NULL content in a column.
 	* tests/libtracker-db/tracker-db-dbus-test.c: Added tests for
 	tracker_dbus_query_result_to_ptr_array
-	
+
 2008-08-11  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-monitor.c: (tracker_monitor_init),
@@ -569,19 +578,19 @@
 
 2008-08-08  Martyn Russell  <martyn@imendio.com>
 
-	* src/libstemmer/Makefile.am: 
+	* src/libstemmer/Makefile.am:
 	* src/trackerd/Makefile.am:
-	* src/tracker-indexer/Makefile.am: 
+	* src/tracker-indexer/Makefile.am:
 	* tests/libtracker-common/Makefile.am: Renamed .la to just
-	libstemmer from libstemmer-private. 
+	libstemmer from libstemmer-private.
 
 	* src/libtracker-common/Makefile.am: Added libstemmer to the .la
 	files we need so the tests don't fail to build.
- 	
+
 	* src/libtracker-common/tracker-language.c: Fixed include path for
-	libstemmer. 
-	
-	* src/libtracker-common/tracker-utils.[ch]: 
+	libstemmer.
+
+	* src/libtracker-common/tracker-utils.[ch]:
 	* src/trackerd/tracker-crawler.c:
 	* src/tracker-indexer/tracker-indexer.c: Added throttle function
 	we use in the indexer to a common place for the daemon to use too.
@@ -621,7 +630,7 @@
 2008-08-08  Martyn Russell  <martyn@imendio.com>
 
 	* configure.ac: Improved the check for ioprio. Patch by Laurent
-	Aguerreche. 
+	Aguerreche.
 
 2008-08-07  Carlos Garnacho  <carlos@imendio.com>
 
@@ -631,10 +640,10 @@
 
 2008-08-07  Ivan Frade  <ivan.frade@nokia.com>
 
-	* tests/libtracker-db/tracker-db-manager-test-attach.c: 
+	* tests/libtracker-db/tracker-db-manager-test-attach.c:
 	(test_always_same_iface_no_reindex): Removed. It was testing just
 	an implementation detail.
-	
+
 	* tests/libtracker-db/tracker-index-reader-test.c
 	* tests/libtracker-db/tracker-index-writer-test.c: Fixed namespace
 	of the tests.
@@ -645,8 +654,8 @@
 	(check_disk_space_stop): New functions.
 	(tracker_indexer_init): start the low disk check through these
 	functions.
-	(process_func): 
-	(tracker_indexer_set_running): Stop low disk check when the indexer 
+	(process_func):
+	(tracker_indexer_set_running): Stop low disk check when the indexer
 	finishes or is paused.
 	(check_disk_space_cb): Pause the indexer if there's not enough disk
 	space, but keep running the check.
@@ -657,7 +666,7 @@
 	* tests/trackerd/tracker-index-test.c
 	* tests/trackerd/Makefile.am: Moved trackerd index tests to
 	libtracker-db as tracker-index-reader-test
-		
+
 	* tests/tracker-indexer
 	* tests/tracker-indexer/Makefile.am
 	* tests/tracker-indexer/tracker-index-test.c: Moved
@@ -671,8 +680,8 @@
 	* tests/libtracker-db/tracker-index-reader-test.c
 	* tests/Makefile.am
 	* configure.ac: The index code is now merged in libtracker-db, so
-	we move the unit tests to libtracker-db. 
-	
+	we move the unit tests to libtracker-db.
+
 2008-08-07  Ivan Frade  <ivan.frade@nokia.com>
 
 	* tests/trackerd/Makefile.am
@@ -692,7 +701,7 @@
 
 	* src/libtracker-db/Makefile.am: Make sure we compile with debug
 	symbols for gdb.
-	
+
 	* src/libtracker-db/tracker-db-index.c: (tracker_db_index_open):
 	Don't set priv->reload incorrectly, this meant we wouldn't get
 	stats because we thought we couldn't open the file. This means
@@ -711,7 +720,7 @@
 
 	* src/libtracker-db/tracker-db-index.c: Make sure we close the
 	index after flushing it and then reopen it.
-	
+
 	* utils/qdbm/Makefile.am: Added -g to CFLAGS here so we have debug
 	symbols.
 
@@ -735,17 +744,17 @@
 
 2008-08-07  Martyn Russell  <martyn@imendio.com>
 
-	* configure.ac: 
+	* configure.ac:
 	* tests/libtracker-common/tracker-type-utils-test.c:
 	* tests/tracker-indexer/Makefile.am:
 	* tests/tracker-indexer/tracker-index-test.c: Removed dirty hacks
 	for testing the index API and cleaned up the code a little.
-	
+
 	* src/libtracker-common/Makefile.am:
 	* src/libtracker-common/tracker-index-item.[ch]:
 	* src/libtracker-db/Makefile.am:
 	* src/libtracker-db/tracker-db-index-item.[ch]:
-	* src/libtracker-db/tracker-db-index.[ch]: 
+	* src/libtracker-db/tracker-db-index.[ch]:
 	* src/tracker-indexer/tracker-indexer.c:
 	* src/trackerd/tracker-db.c:
 	* src/trackerd/tracker-query-tree.c: Renamed TrackerIndexItem to
@@ -754,7 +763,7 @@
 
 	* src/tracker-indexer/tracker-index.[ch]: Removed in favour of the
 	libtracker-db version.
-	
+
 	* utils/qdbm/Makefile.am:
 	* utils/qdbm/print-words.c:
 	* utils/qdbm/search-word.c: Fixed tools.
@@ -762,13 +771,13 @@
 2008-08-07  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-index-item.h: Added
-	TrackerSearchHit typedef here from the TrackerQueryTreeModule. 
+	TrackerSearchHit typedef here from the TrackerQueryTreeModule.
 
 	* configure.ac:
 	* src/libtracker-db/tracker-db-index-manager.[ch]:
 	* src/libtracker-db/tracker-db-index.[ch]:
 	* src/tracker-indexer/Makefile.am:
-	* src/tracker-indexer/tracker-indexer.c: 
+	* src/tracker-indexer/tracker-indexer.c:
 	* src/tracker-indexer/tracker-main.c:
 	* src/trackerd/tracker-daemon.c:
 	* src/trackerd/tracker-db.[ch]:
@@ -783,11 +792,11 @@
 	daemon and indexer into libtracker-db/tracker-db-index.[ch]
 	combining the APIs and code.
 
-	* tests/trackerd/tracker-index-test.c: 
+	* tests/trackerd/tracker-index-test.c:
 	* tests/trackerd/Makefile.am: Disabled the index test, it is
 	broken.
 
-	* utils/qdbm/print-words.c: 
+	* utils/qdbm/print-words.c:
 	* utils/qdbm/search-word.c: Fixed warnings.
 
 2008-08-06  Martyn Russell  <martyn@imendio.com>
@@ -802,18 +811,18 @@
 
 2008-08-06  Martyn Russell  <martyn@imendio.com>
 
-	* src/libtracker-db/Makefile.am: 
+	* src/libtracker-db/Makefile.am:
 	* src/trackerd/Makefile.am:
 	* src/trackerd/tracker-index-manager.c:
 	* src/trackerd/tracker-index-manager.h: Moved index manager to the
-	libtracker-db. 
+	libtracker-db.
 
 2008-08-06  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-dbus.[ch]:
 	* src/trackerd/tracker-index-manager.[ch]:
 	* src/trackerd/tracker-main.c:
-	* src/trackerd/tracker-processor.c: 
+	* src/trackerd/tracker-processor.c:
 	* src/trackerd/tracker-search.[ch]: Removed the email index since
 	it is unused now.
 
@@ -826,7 +835,7 @@
 	* src/trackerd/tracker-index.c: Using g_param_spec_boolean to set
 	a boolean parameter.
 	* tests/trackerd/tracker-index-test.c: Updated test.
-	
+
 2008-08-06  Ivan Frade  <ivan.frade@nokia.com>
 
 	* data/services/default.service: Set HasMetadata to False in
@@ -839,7 +848,7 @@
 	(tracker_index_manager_init): Dont force reindex if one file is
 	missing. It was removing file-index.db every time we started
 	trackerd.
-	
+
 2008-08-06  Martyn Russell  <martyn@imendio.com>
 
 	* AUTHORS: Sorted the AUTHORS file alphabetically and added Me,
@@ -861,7 +870,7 @@
 2008-08-05  Ivan Frade  <ivan.frade@nokia.com>
 
 	* data/services/default.metadata: User:Keywords is not filtered.
-	
+
 	* src/tracker-indexer/tracker-indexer-db.[ch]:
 	(tracker_db_get_property_values): Implemented new method to obtain
 	the values of a property. Needed to unindex those values before
@@ -869,16 +878,16 @@
 	(tracker_db_set_metadata): Handle deletion of keyword properties
 	without specified value (for instance, to remove all User:Keyword
 	properties of a file.
-	
+
 	* src/tracker-indexer/tracker-indexer.c: Now takes into acount if
 	the field has multiple values. Set a field with no-multiple values
 	remove the old value and set the new one.
-	
+
 	* src/trackerd/tracker-keywords.c
 	(tracker_keywords_remove_all): Implemented calling to the indexer
 	directly, instead retrieving the old values from the DB and
 	calling the indexer for each one.
-	
+
 	* src/trackerd/tracker-metadata.c
 	(tracker_metadata_set_property): Removed useless service type
 	check.
@@ -896,7 +905,7 @@
 	generic utility functions for extracting metadata from a file.
 	* src/tracker-indexer/modules/files.c: Use these functions to get
 	metadata from files.
-	
+
 2008-08-05  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/libtracker-db/tracker-db-dbus.[ch]: Added new method
@@ -917,17 +926,17 @@
 	before quitting after EVERY "finished" signal. The indexer was
 	being started/stopped constantly for small monitor event groups.
 	Now it runs constantly.
-	
+
 	* src/trackerd/tracker-monitor.c: Make some of the logging debug
 	level so we don't spam the console so much.
-	
+
 	* src/trackerd/tracker-processor.c: Set state as indexing in the
 	queue handler callback.
 
 2008-08-05  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-monitor.[ch]: Add property to enable and
-	disable monitor events from being processed. 
+	disable monitor events from being processed.
 
 	* src/trackerd/tracker-processor.c: Make sure we disable monitor
 	events while crawling the file system and enable then once done.
@@ -935,7 +944,7 @@
 	"indexing" state up before we have finished processing each module
 	for crawling. Also, when we start processing new files from
 	monitor events, put us into "indexing" state instead of staying
-	"idle". 
+	"idle".
 
 2008-08-05  Martyn Russell  <martyn@imendio.com>
 
@@ -943,7 +952,7 @@
 	(tracker_crawler_is_path_ignored): Add to the comment in this
 	function so people know why we have an internal function and an
 	external function doing the same thing.
-	
+
 	* src/trackerd/tracker-monitor.c:
 	* src/trackerd/tracker-processor.[ch]: Changed the way we get
 	*Private data in these modules so we don't do type checking on the
@@ -957,14 +966,14 @@
 	instead of just g_malloc0 so we don't try to allocate rediculous
 	lengths of memory and abort. Also, if we can't parse the file, we
 	now return NULL metadata and continue as usual.
-	
+
 	* src/tracker-indexer/tracker-indexer.c: Improved messaging.
 
 2008-08-04  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/tracker-indexer/tracker-indexer.c: Using GError in the
 	metadata handlers to report proper error to the daemon.
-	
+
 2008-08-04  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer.c (delete_item): Do not try to
@@ -976,15 +985,15 @@
 	(tracker_dbus_request_failed): If the format of the message is
 	null and the error is set, we log the existing message. This
 	allows tracker to log the errors coming from the indexer.
-	
+
 	* tests/libtracker-common/tracker-dbus-test.c: Unit test to the
-	implementation.	
-	
+	implementation.
+
 2008-08-04  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/trackerd/tracker-metadata.c: Now uses the indexer to write
 	metadata in the database.
-	
+
 	* src/trackerd/tracker-db.[ch]
 	(tracker_db_metadata_get_array): Added this new method moving code
 	from tracker-metadata.
@@ -995,12 +1004,12 @@
 	* data/services/audio.metadata: The embedded properties cannot be
 	written by the user. Marked "PlayCount" and "Last play date" as
 	not embedded.
-	
+
 2008-08-04  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/libtracker-common/tracker-type-utils.[ch]
 	(tracker_string_to_string_list): new helper function.
-	
+
 2008-08-04  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-monitor.c: Added black listing. This works
@@ -1031,7 +1040,7 @@
 	(tracker_module_file_get_service_type): New function to obtain the
 	service type of an uri. Implementation in the files module and
 	explanation in "dummy" module.
-	
+
 2008-08-04  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-crawler.[ch]: Make the is_path_ignored()
@@ -1039,14 +1048,14 @@
 	processor to call when we get new monitor events. This is to make
 	sure we don't monitor files newly created just because they are in
 	some directory. They too adhear to the filtering.
-	
+
 	* src/trackerd/tracker-daemon.c: Fixed referencing so we now
 	actually finalize the daemon and the processor modules.
-	
-	* src/trackerd/tracker-marshal.list: 
+
+	* src/trackerd/tracker-marshal.list:
 	* src/trackerd/tracker-monitor.c: Added "is_directory" boolean
 	to monitor events.
-	
+
 	* src/trackerd/tracker-processor.c: Now we create a TrackerCrawler
 	for each module and we don't clean them up after the module is
 	processed, we keep them around for the duration of the daemon's
@@ -1056,7 +1065,7 @@
 2008-08-04  Ivan Frade  <ivan.frade@nokia.com>
 
 	Reverted previous commit.
-	
+
 2008-08-04  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/trackerd/Makefile.am
@@ -1064,16 +1073,16 @@
 	* src/trackerd/tracker-query-tree.[ch]: Removed
 	* src/trackerd/tracker-index.c
 	* src/trackerd/tracker-search.c
-	* src/trackerd/tracker-xesam.c	
+	* src/trackerd/tracker-xesam.c
 	* src/trackerd/tracker-db.c:
 	Renamed tracker-query-tree to tracker-index-searcher
-	
+
 2008-08-01  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/trackerd/tracker-keywords.c:
 	Use sync calls to the indexer. Tracker-search-tool query for the
 	tags just after setting them.
-	
+
 2008-08-01  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer.[ch]:
@@ -1085,7 +1094,7 @@
 
 	* src/tracker-indexer/tracker-indexer.c:
 	(tracker_indexer_property_remove)
-	(tracker_indexer_property_add): 
+	(tracker_indexer_property_add):
 	Return a dbus error if something fails.
 
 2008-08-01  Carlos Garnacho  <carlos@imendio.com>
@@ -1094,10 +1103,10 @@
 	instead of getting requests from tracker. This is necessary to delete
 	mails and contents of other container files.
 
-	* src/tracker-indexer/tracker-module.h (tracker_module_file_get_uri): 
-	New method for modules to optionally implement. It will return 
+	* src/tracker-indexer/tracker-module.h (tracker_module_file_get_uri):
+	New method for modules to optionally implement. It will return
 	dirname/basename for the current item.
-	* src/tracker-indexer/tracker-indexer-module.[ch] 
+	* src/tracker-indexer/tracker-indexer-module.[ch]
 	(tracker_indexer_module_file_get_uri): Added wrapping method.
 	* src/tracker-indexer/tracker-indexer.c: Do not pass the ItemAction
 	around, instead take the decision based on whether the module returns
@@ -1120,28 +1129,28 @@
 
 2008-08-01  Ivan Frade  <ivan.frade@nokia.com>
 
-	* src/tracker-indexer/tracker-indexer-db.c: 
+	* src/tracker-indexer/tracker-indexer-db.c:
 	(tracker_db_delete_metadata): It is neccesary to specify the value
 	to remove a keyword property.
-	
+
 	* src/trackerd/tracker-keywords.c:
 	Use the indexer to set and remove tags
-	
+
 2008-07-31  Ivan Frade  <ivan.frade@nokia.com>
-	
+
 	* data/dbus/tracker-indexer.xml
 	* src/tracker-indexer/tracker-indexer-db.[ch]
 	* src/tracker-indexer/tracker-indexer.[ch]:
 	New methods ("PropertySet" and "PropertyRemove") in
-	tracker-indexer. 
-	
+	tracker-indexer.
+
 2008-07-31  Ivan Frade  <ivan.frade@nokia.com>
-	
+
 	* src/tracker-indexer/tracker-index.c
 	* tests/tracker-indexer/tracker-index-test.c:
 	When we added and removed a word before indexing, the word was
 	saved with score 0 (and it is wrong). Test and fix.
-	
+
 2008-07-31  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer.c: Add back some leak fixes, and
@@ -1154,12 +1163,12 @@
 	file to the indexer.
 
 2008-07-31  Ivan Frade  <ivan.frade@nokia.com>
-	
+
 	* data/sqlite-stored-procs.sql
 	* src/tracker-indexer/tracker-indexer-db.[ch]
 	* src/tracker-indexer/tracker-indexer.c:
 	Added deletion superpowers to the indexer.
-	
+
 2008-07-31  Ivan Frade  <ivan.frade@nokia.com>
 
 	* tests/libtracker-common/tracker-parser-test.c:
@@ -1174,7 +1183,7 @@
 	(tracker_index_item_get_id): New method to access id.
 	Using the common tracker-index-item instead a local copy in the
 	utility program.
-	
+
 2008-07-30  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/libtracker-common/tracker-utils.c (tracker_seconds_to_string):
@@ -1187,10 +1196,10 @@
 	strings and lists of strings at the moment, strings are anyways needed
 	to insert values through stored DB procedures, and there are some
 	metadata types that will be difficult to store in a generic way.
-	Since this API will be used from third party code, any failure in 
-	there will be quite hard to debug if we use a generic API, (it will 
-	probably crash inside tracker-indexer code, making things harder). 
-	By using strings we guarantee that at least sloppy third party module 
+	Since this API will be used from third party code, any failure in
+	there will be quite hard to debug if we use a generic API, (it will
+	probably crash inside tracker-indexer code, making things harder).
+	By using strings we guarantee that at least sloppy third party module
 	developers will get compiler warnings, which is safer.
 	* src/tracker-indexer/tracker-indexer.c (index_metadata_item): Adapt
 	to API change.
@@ -1218,11 +1227,11 @@
 
 	* tests/libtracker-common/tracker-ontology-test.c:
 	Test for the previous fix.
-	
+
 2008-07-29  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/libtracker-common/tracker-ontology.c
-	(tracker_ontology_metadata_key_in_service): Valid metadata keys start 
+	(tracker_ontology_metadata_key_in_service): Valid metadata keys start
 	from number 1.
 	* src/tracker-indexer/tracker-indexer-db.c (tracker_db_set_metadata):
 	Store corresponding metadata into the Services table.
@@ -1262,13 +1271,13 @@
 	(g_search_app_create): Remove hardcoding in the category ->
 	service description hash table. This fixes the categories in
 	tracker-search-tool.
-	
+
 2008-07-28  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/tracker-indexer/tracker-indexer.c:
 	(index_text_contents): Added function to add the contents of the
 	file into QDBM.
-	
+
 2008-07-28  Philip Van Hoof  <philip@codeminded.be>
 
 	* src/trackerd/tracker-index-manager.c:
@@ -1278,24 +1287,24 @@
 	Removing the QDBM indexes in case of force-reindex
 
 2008-07-28  Ivan Frade  <ivan.frade@nokia.com>
-	
+
 	* src/libtracker-common/tracker-language.c:
 	(tracker_language_stem_word): Return always a valid word, the
 	input or the stemmed one.
-	
-	* src/libtracker-common/tracker-parser.c: 
+
+	* src/libtracker-common/tracker-parser.c:
 	(analyze_text): Added stop words checking
-	
+
 	* tests/libtracker-common/tracker-parser-test.c: Updated tests
 	with stop words.
-	
+
 2008-07-28  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/libtracker-common/tracker-language.c:
 	(tracker_language_new): Set stop words on creation.
 	(language_get_stopword_filename): Build correct filename.
 	(language_add_stopwords): Dont free contents of g_mapped_file
-	
+
 	* tests/libtracker-common/Makefile.am
 	* tests/libtracker-common/tracker-parser-test.c: Added tests to
 	tracker_parser_
@@ -1308,7 +1317,7 @@
 
 	* src/libtracker-common/tracker-parser.c:
 	(tracker_parser_text): Fixed max words to index
-	
+
 2008-07-28  Philip Van Hoof  <philip@codeminded.be>
 
 	* src/libtracker-db/tracker-db-manager.c: Added compress and
@@ -1370,22 +1379,22 @@
 	pointers from them. This means the tracker-search-tool now shows a
 	list of categories with the indexed count next to them - still not
 	sure why the content is not listed but the service types are all
-	wrong. 
+	wrong.
 
 2008-07-25  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-db.c: Finding a dud hit is no longer a
 	warning, just a regular message.
-	
+
 	* src/trackerd/tracker-index-manager.c: Reworked the way we get
 	indexes so we remember them to avoid creating too many
 	TrackerIndex objects. Also fixed a nasty bug here which was
 	getting one for EVERY time the status callback was triggered by
 	the indexer :O
-	
+
 	* src/trackerd/tracker-index.c: Cleaned up the code a bit and put
 	some more locking in place. This is redundant for now since we
-	don't have a multithreaded approach at the moment. 
+	don't have a multithreaded approach at the moment.
 
 2008-07-25  Martyn Russell  <martyn@imendio.com>
 
@@ -1398,7 +1407,7 @@
 	* src/trackerd/tracker-processor.c: (indexer_status_cb),
 	(indexer_finished_cb): Call the index reload function when we get
 	status updates from the indexer.
-	
+
 	* tests/trackerd/tracker-indexer-test.c: Renamed to reflect new
 	TrackerIndex name.
 
@@ -1412,7 +1421,7 @@
 	* src/trackerd/tracker-query-tree.[ch]:
 	* src/trackerd/tracker-search.[ch]: Renamed
 	TrackerIndexer->TrackerIndex, since it is the index not the
-	indexer. 
+	indexer.
 
 2008-07-25  Martyn Russell  <martyn@imendio.com>
 
@@ -1430,25 +1439,25 @@
 	* src/trackerd/tracker-query-tree.h:
 	* src/trackerd/tracker-search.[ch]:
 	* src/trackerd/tracker-xesam.[ch]: Renamed tracker-indexer to
-	tracker-index. 
+	tracker-index.
 
 2008-07-25  Martyn Russell  <martyn@imendio.com>
 
-	* src/trackerd/tracker-index-manager.[ch]: 
+	* src/trackerd/tracker-index-manager.[ch]:
 	* src/trackerd/tracker-indexer.h: Code clean ups.
 
 2008-07-25  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/trackerd/tracker-indexer.[ch]: Added "reload" capabilities
 	to the indexer.
-	
+
 	* tests/trackerd/Makefile.am
 	* tests/trackerd/tracker-indexer-test.c: Tests to the new
-	functionality. This tests use GIO to copy a file. 
-	
+	functionality. This tests use GIO to copy a file.
+
 2008-07-25  Philip Van Hoof  <philip@codeminded.be>
 
-	* src/trackerd/tracker-dbus.c: Don't try to pause the indexer if 
+	* src/trackerd/tracker-dbus.c: Don't try to pause the indexer if
 	it's not running
 
 2008-07-25  Philip Van Hoof  <philip@codeminded.be>
@@ -1470,7 +1479,7 @@
 	property for a device that no longer exists, then don't make that
 	a critical, just set the device as unmounted and print a regular
 	message.
-	
+
 	* src/trackerd/tracker-crawler.[ch]: Move the removable media path
 	check to the processor since we should be filtering paths before
 	the crawler even starts. Also, make it possible to crawl special
@@ -1479,7 +1488,7 @@
 	* src/trackerd/tracker-monitor.c: (monitor_event_cb): On unmount,
 	tell the indexer that the directories has gone. Not sure yet if
 	the indexer will be clever enough to remove all files below it.
-	
+
 	* src/trackerd/tracker-processor.c: Handle removable media now.
 	This work is working on a basic level, there are some issues still
 	to be ironed out.
@@ -1514,10 +1523,10 @@
 	on the command line.
 
 2008-07-24  Ivan Frade  <ivan.frade@nokia.com>
-	
+
 	* src/tracker-extract/tracker-extract-mp3.c: Property names with
 	":" instead of ".". Fixed mime. Mp3 are audio/mpeg and not audio/mp3.
-	
+
 2008-07-24  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-processor.c: Fixed some warnings.
@@ -1529,23 +1538,23 @@
 	* utils/Makefile.am
 	* utils/qdbm/Makefile.am: Using autotools to build helper
 	programs.
-	
+
 	* utils/qdbm/Makefile: Removed.
 
 2008-07-24  Martyn Russell  <martyn@imendio.com>
 
-	* data/dbus/tracker-daemon.xml: 
+	* data/dbus/tracker-daemon.xml:
 	* src/tracker-applet/tracker-applet.c: Signal how many items are
 	done/remaining/total instead of files/folders. This is much more
 	generic for whatever is being indexed.
-	
+
 	* src/trackerd/tracker-daemon.c: Don't set the daemon/indexer as
 	"manually paused" if we get paused/continued state from the
-	indexer, only set that when the user sets it using DBus. 
-	
+	indexer, only set that when the user sets it using DBus.
+
 	* src/trackerd/tracker-dbus.c:  Don't synchronously continue the
-	indexer, do it asynchronously.  
-	
+	indexer, do it asynchronously.
+
 	* src/trackerd/tracker-processor.c: When we get state from the
 	indexer, signal it up the stack so the applet knows how many items
 	have been indexed as we are doing it. This was completely
@@ -1570,7 +1579,7 @@
 
 	Small programs to show and search in the contests of QDBM file.
 	Useful for testing.
-	
+
 	* utils/qdbm/Makefile
 	* utils/qdbm/search-word.c: search a word in the QDBM file
 	* utils/qdbm/print-words.c: print all words in the file and also
@@ -1579,16 +1588,16 @@
 2008-07-23  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-config.c: Don't leak from calling
-	tracker_path_list_filter_duplicates(). 
-	
+	tracker_path_list_filter_duplicates().
+
 	* src/trackerd/tracker-crawler.[ch]: Don't just iterate the FIRST
 	path in the list of paths and recurse paths, make sure we iterate
 	2,3,4,etc. too. Also make it possible to add paths to be iterated
 	as a public API.
-	
+
 	* src/trackerd/tracker-monitor.[ch]: Put the module_name parameter
 	before the GFile since that's how it is done everywhere else.
-	
+
 	* src/trackerd/tracker-processor.c: Implemented the old config
 	option WatchDirectoryRoots and CrawlDirectoryRoots.
 
@@ -1622,13 +1631,13 @@
 
 2008-07-23  Martyn Russell  <martyn@imendio.com>
 
-	* data/dbus/tracker-indexer.xml: 
+	* data/dbus/tracker-indexer.xml:
 	* src/tracker-indexer/tracker-indexer.[ch]: Changed _set_paused()
 	API to have _pause(), _continue() and _pause_for_duration().
-	
-	* src/libtracker-common/tracker-dbus.[ch]: 
+
+	* src/libtracker-common/tracker-dbus.[ch]:
 	* src/trackerd/tracker-daemon.c:
-	* src/trackerd/tracker-dbus.[ch]: 
+	* src/trackerd/tracker-dbus.[ch]:
 	* src/trackerd/tracker-files.c:
 	* src/trackerd/tracker-keywords.c:
 	* src/trackerd/tracker-metadata.c:
@@ -1640,12 +1649,12 @@
 	functions so we know when a request starts and ends. We then
 	simply pause the indexer and wait for at least 10 seconds of
 	DBus request inactivity before allowing the indexer to continue as
-	normal. 
+	normal.
 
 	* src/trackerd/tracker-main.c: Used the new _pause_for_duration()
 	API when shutting down because sometimes the daemon has to wait
 	because the indexer has the lock on the database.
-	
+
 2008-07-23  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-main.c: (main): Call nice() to try and
@@ -1661,15 +1670,15 @@
 
 	* src/trackerd/tracker-crawler.c:
 	* src/trackerd/tracker-monitor.c: Code clean ups.
-	
+
 	* src/trackerd/tracker-processor.c: Improved efficiency of the get
 	queue function we use in each timeout to send files to the indexer.
 
 2008-07-23  Martyn Russell  <martyn@imendio.com>
 
-	* src/trackerd/tracker-crawler.c: 
+	* src/trackerd/tracker-crawler.c:
 	* src/trackerd/tracker-marshal.list:
-	* src/trackerd/tracker-monitor.c: 
+	* src/trackerd/tracker-monitor.c:
 	* src/trackerd/tracker-processor.c: Don't create a gchar* for
 	EVERY file we crawl just to move it from one queue to another,
 	instead, just make the queue use GFile pointers and ref the one we
@@ -1685,7 +1694,7 @@
 
 	* src/tracker-indexer/tracker-index.c:
 	Use the new TrackerIndexItem instead old duplicate code.
-	
+
 2008-07-22  Philip Van Hoof  <philip@codeminded.be>
 
 	* src/trackerd/tracker-dbus.c:
@@ -1698,11 +1707,11 @@
 2008-06-22  Ivan Frade  <ivan.frade@nokia.com>
 
 	* tests/trackerd/example.index: Small QDBM index to use in tests.
-	
+
 	* tests/trackerd/run-tests.sh (removed)
 	* configure.ac: Create symbolic links in autoconf instead a bash
 	script.
-	
+
 2008-07-22  Philip Van Hoof  <philip@codeminded.be>
 
 	* src/tracker-indexer/tracker-indexer.c:
@@ -1712,8 +1721,8 @@
 	* src/trackerd/tracker-daemon.c:
 	* src/trackerd/tracker-utils.c:
 
-	Wrapped all database access in the DBus implementations with two 
-	convenient functions. 
+	Wrapped all database access in the DBus implementations with two
+	convenient functions.
 
 2008-07-22  Ivan Frade  <ivan.frade@nokia.com>
 
@@ -1724,33 +1733,33 @@
 	* src/trackerd/tracker-query-tree.c
 	* tests/tracker-indexer/tracker-index-test.c: Updated to use the
 	new index-item struct.
-	
+
 	* src/libtracker-db/tracker-db-manager.[ch]:
 	(tracker_db_manager_are_db_too_big): Moved code here. It looks
 	like nobody uses this function.
-	
+
 	* src/trackerd/Makefile.am
 	* src/trackerd/tracker-index-manager.[ch]:
 	New module to handle indexes and their directories.
-	
+
 	* src/trackerd/tracker-indexer.[ch]
 	Refactored GObject representing one index.
-	
+
 	* src/trackerd/tracker-main.c: added _init and _shutdown to the
 	new index manager.
 
 	* tests/trackerd/Makefile.am
 	* tests/trackerd/run-tests.sh: Script to compile the test for
 	trackerd modules. Ugly but the only fast and easy solution.
-	* tests/trackerd/tracker-indexer-test.c: Test for the new object	
-	
+	* tests/trackerd/tracker-indexer-test.c: Test for the new object
+
 2008-07-22  Martyn Russell  <martyn@imendio.com>
 
 	* data/dbus/tracker-indexer.xml:
 	* src/tracker-indexer/tracker-indexer.c: Fixed HAL warning when it
 	isn't compiled in. Fixed the indexer pausing so it works properly
 	and has proper debugging so we know when it is called like all
-	other DBus functions. 
+	other DBus functions.
 
 	* src/trackerd/tracker-daemon.c: Connected the "Paused" and
 	"Continued" signals of the indexer so we know when to signal it
@@ -1758,7 +1767,7 @@
 
 	* src/trackerd/tracker-dbus.c: Add the prototypes for "Paused" and
 	"Continued" for the indexer proxy.
-	
+
 	* src/trackerd/tracker-main.c: Removed some debugging which was
 	duplicated when we changed state between paused/resumed.
 
@@ -1822,7 +1831,7 @@
 	* src/trackerd/tracker-processor.c: (process_module): Make it
 	possible to disable modules from the user's config, not just in
 	the module files which are owned by root. Added config option
-	"disabled-modules". 
+	"disabled-modules".
 
 2008-07-21  Philip Van Hoof  <philip@codeminded.be>
 
@@ -1838,7 +1847,7 @@
 
 2008-07-21  Martyn Russell  <martyn@imendio.com>
 
-	* src/trackerd/tracker-crawler.[ch]: 
+	* src/trackerd/tracker-crawler.[ch]:
 	* src/trackerd/tracker-marshal.list:
 	* src/trackerd/tracker-processor.c: Completely rework the crawler,
 	so we have ONE per module. It also now will crawl non-recursive
@@ -1854,8 +1863,8 @@
 2008-07-21  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-crawler.c:
-	* src/trackerd/tracker-main.c: 
-	* src/trackerd/tracker-monitor.[ch]: 
+	* src/trackerd/tracker-main.c:
+	* src/trackerd/tracker-monitor.[ch]:
 	* src/trackerd/tracker-processor.c: Make tracker-monitor a GObject
 	with signalling when there are items created/updated/deleted and
 	move all the code which sends file notifications to the indexer
@@ -1871,8 +1880,8 @@
 	* src/libtracker-common/tracker-file-utils.[ch]:
 	* src/libtracker-common/tracker-module-config.c: Added functions
 	to remove duplicates or hierarchical conflicts between monitor
-	directories and monitor recurse directories. 
-	
+	directories and monitor recurse directories.
+
 	* src/trackerd/tracker-marshal.list:
 	* src/trackerd/tracker-crawler.c: Emit a signal for each directory
 	we process so the processor can add monitors. The bug where we
@@ -1887,8 +1896,8 @@
 	set flags on the crawler before we start it so we know if we are
 	crawling to set up monitors or to get files. We should also return
 	the files to the processor to send to the indexer, instead of
-	doing all that in this module too. This needs more work. 
-	
+	doing all that in this module too. This needs more work.
+
 	* src/trackerd/tracker-processor.c: Removed add_recurse_monitors()
 	and add_monitors(), they are not needed. Added the code to handle
 	adding monitors from the process-directory callback in the crawler.
@@ -1899,16 +1908,16 @@
 	necessary (and even wrong).
 
 2008-07-18  Ivan Frade  <ivan.frade@nokia.com>
-	
+
 	* src/libtracker-db/tracker-db-manager.c:
 	Commented out the code to load xesam categories in
 	tracker_ontology. It overwrittes the real categories because the
 	IDs are not unique.
-	
+
 	* src/tracker-indexer/tracker-indexer.c
 	Obtain the mimetype and service type from the file, instead from
 	the module name.
-	
+
 2008-07-18  Philip Van Hoof  <philip@codeminded.be>
 
 	* src/tracker-indexer/tracker-indexer.c:
@@ -1918,20 +1927,20 @@
 	Added a SetPaused DBus API to the indexer
 
 2008-07-17  Ivan Frade  <ivan.frade@nokia.com>
-	
+
 	* src/libtracker-common/tracker-ontology.[ch]:
 	(tracker_ontology_registered_service_types)
 	(tracker_ontology_registered_field_types): new functions to obtain
 	services and field type names registered in the ontology.
-	
-	* src/trackerd/tracker-metadata.c: 
+
+	* src/trackerd/tracker-metadata.c:
 	(tracker_metadata_get_registered_types)
 	(tracker_metadata_get_registered_classes): Use the new functions
 	instead accessing to the DB.
-	
+
 	* tests/libtracker-common/tracker-ontology-test.c: Tests for the
 	new methods.
-	
+
 2008-07-17  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-crawler.c:
@@ -1939,7 +1948,7 @@
 	* src/trackerd/tracker-main.c: Initialize module config before
 	initializing the monitor module. The monitor module uses the
 	module config to set up queues and hash tables.
-	
+
 	* src/trackerd/tracker-monitor.[ch]: Make all API calls require a
 	module name. This is because now we have separate queues for each
 	module and 3 queues for each type of event (created, updated,
@@ -1954,7 +1963,7 @@
 	Async search API.
 
 2008-07-17  Ivan Frade  <ivan.frade@nokia.com>
-	
+
 	* data/dbus/tracker-files.xml
 	* src/trackerd/tracker-files.[ch]:
 
@@ -1970,62 +1979,62 @@
 	file, we print everything to stderr too now.
 
 2008-07-17  Ivan Frade  <ivan.frade@nokia.com>
-	
+
 	* data/dbus/tracker-metadata.xml
 	* src/trackerd/tracker-metadata.[ch]:
 	Async metadata API.
-	
+
 2008-07-17  Philip Van Hoof  <philip@codeminded.be>
 
 	* src/libtracker-db/tracker-db-manager.c: Add the functions for the
 	combine-attached db connections
 
 2008-07-16  Ivan Frade  <ivan.frade@nokia.com>
-	
+
 	* src/libtracker-common/tracker-field.[ch]:
 	(tracker_field_type_as_string): Added method to translate field types
 	in readable format.
-	
+
 	* data/sqlite-stored-procs.sql: Removed SelectMetadataClasses and
 	added SelectRegisteredClasses.
-	
+
 	* src/trackerd/tracker-db.c:
 	(tracker_db_service_get_by_entity): Reimplemented using an easier
 	DB query and tracker_ontology to translate the result to string.
 	(tracker_db_metadata_set_single): Added NULL at the end of the
 	array.
 	Renamed service -> service_type and id -> service_id
-	
-	* src/trackerd/tracker-metadata.c: 
+
+	* src/trackerd/tracker-metadata.c:
 	(tracker_metadata_get_type_details): Implemented using
 	tracker_ontology instead accessing to the DB.
 	Fixed things here and there. Now the metadata API actually works.
-	
+
 2008-07-16  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-utils.[ch]: Make it possible to
 	have a shortened version of the time string.
-	
+
 	* src/libtracker-db/tracker-db-manager.c: When setting up multiple
 	interfaces, don't assume we ALWAYS want to "add_functions",
 	instead use the array value for that database type (as we do
 	normally).
-	
+
 	* src/tracker-indexer/tracker-indexer.c: Don't print a status
 	message if there are 0 items remaining and change the transaction
 	limit to 200.
-	
+
 	* src/trackerd/tracker-dbus.c: Added signal prototypes for the
 	indexer for module-started, module-finished and started signals.
-	
+
 	* src/trackerd/tracker-processor.c: Use nicer debugging and
 	include the time elapsed now in the status update.
-	
+
 	* src/trackerd/tracker-xesam-manager.c: Disable live search event
 	updates during indexing. This causes havoc with the cache. The
 	cache is already being written to by the indexer so the daemon
 	becomes completely unresponsive. This is Enabled after indexing is
-	finished. 
+	finished.
 
 2008-07-16  Martyn Russell  <martyn@imendio.com>
 
@@ -2034,38 +2043,38 @@
 	* src/libtracker-common/tracker-utils.[ch]: Change the time
 	estimation function and added a function to convert seconds into a
 	readable string format.
-	
-	* src/tracker-indexer/tracker-indexer-module.[ch]: 
+
+	* src/tracker-indexer/tracker-indexer-module.[ch]:
 	* src/tracker-indexer/tracker-module.h: Added module_name to the
 	PathInfo->file type. This isn't so great, it means a lot of string
 	duplication. For now this is probably best, but ultimately we
 	should have separate queues in indexer like we do in the daemon so
 	we know by queue which module_name we are processing and we can do
 	them in the order they are sorted by (which is unsorted right now
-	but a potential future design). 
-	
-	* src/tracker-indexer/tracker-indexer.[ch]: 
+	but a potential future design).
+
+	* src/tracker-indexer/tracker-indexer.[ch]:
 	* src/tracker-indexer/tracker-main.c: Changed the flush time
 	to 5 seconds from 10 and the transaction limit to 100 from 50.
 	Also make sure we reset the timer when restarting an index so the
 	estimated time is correct. Added elapsed time to the "Finished"
 	and "Status" signals. Plus the current module name is in the
 	"Status" signal too.
-	
+
 
 	* src/trackerd/tracker-dbus.c: Add signal signatures for the
 	indexer proxy and remove som unused code.
-	
-	* src/trackerd/tracker-db.c: 
-	* src/trackerd/tracker-main.c: 
+
+	* src/trackerd/tracker-db.c:
+	* src/trackerd/tracker-main.c:
 	* src/trackerd/tracker-xesam-manager.[ch]: Don't initialize the
 	indexer signal set up for XESAM here, do it in
 	tracker-xesam-manager's init function. Also, only disconnect the
 	signal on shutdown and make sure that is done BEFORE we shutdown
 	the dbus module to avoid warnings.
-	
+
 	* src/trackerd/tracker-marshal.list: Added Indexer signal marshals.
-	
+
 	* src/trackerd/tracker-processor.c: Set up signal handlers to know
 	when the indexer is finished and to get status updates. This way
 	we can now effectively signal the daemon status as IDLE when we
@@ -2084,7 +2093,7 @@
 	* tests/libtracker-db/Makefile.am
 	* tests/libtracker-db/tracker-db-dbus-test.c: Added unit test to
 	tracker_dbus_query_result_to_strv.
-	
+
 2008-07-15  Martyn Russell  <martyn@imendio.com>
 
 	* data/dbus/tracker-indexer.xml: Removed GetRunning and SetRunning
@@ -2097,30 +2106,30 @@
 
 	* src/libtracker-common/tracker-utils.[ch]: Added function to
 	estimate time left in the indexer based on elapsed, items done and
-	items remaining. 
-	
-	* src/tracker-indexer/Makefile.am: 
-	* src/tracker-indexer/tracker-marshal-main.c: 
+	items remaining.
+
+	* src/tracker-indexer/Makefile.am:
+	* src/tracker-indexer/tracker-marshal-main.c:
 	* src/tracker-indexer/tracker-marshal.list: Added marshalling for
 	unique function signatures in signal emissions.
-	
+
 	* src/tracker-indexer/tracker-indexer.[ch]: Added more signals to
 	know what is going on here. Also cleaned up the flusher so we do
 	it either on a timeout OR maximum items reached per transaction.
 	Also optimized the way we get TrackerIndexerPrivate, so the
 	object->private pointer is used (this avoids casting and type
 	checking internally to make things quicker).
-	
+
 	* src/tracker-indexer/tracker-main.c: Removed unused code in the
 	indexer_initialize() and moved that code to the main() function
 	since it was quite small. Implemented the "LowMemoryMode" by
 	checking the config and passing the flag to the database manager
 	when initializing that.
-	
+
 	* src/trackerd/tracker-monitor.c: Don't check if the indexer is
 	running, simply do what the crawler does, which is to readd items
 	to the queue if the indexer isn't running or couldn't be
-	contacted. 
+	contacted.
 
 2008-07-14  Ivan Frade  <ivan.frade@nokia.com>
 
@@ -2130,10 +2139,10 @@
 
 	* src/libtracker-common/tracker-dbus.c
 	* src/libtracker-common/tracker-dbus.h
-	* tests/libtracker-common/tracker-dbus-test.c: 
+	* tests/libtracker-common/tracker-dbus-test.c:
 	(tracker_dbus_results_ptr_array_free): new function to free
 	GPtrArrays in the dbus API.
-	
+
 2008-07-14  Laurent Aguerreche  <laurent.aguerreche@free.fr>
 
 	* src/trackerd/tracker-crawler.c:
@@ -2142,7 +2151,7 @@
 
 2008-07-14  Martyn Russell  <martyn@imendio.com>
 
-	* src/tracker-indexer/tracker-index.c: 
+	* src/tracker-indexer/tracker-index.c:
 	* src/tracker-indexer/tracker-indexer.c: Give better debugging and
 	messaging information and add some detail about how long is
 	estimated to be left before complete. Also, don't spam the console
@@ -2158,10 +2167,10 @@
 
 	* src/trackerd/tracker-crawler.c: Added a signal to know when all
 	items have been sent to the indexer.
-	
+
 	* src/trackerd/tracker-daemon.[ch]: Use the new tracker-main API
 	instead of setting tracker-> members ourselves.
-	
+
 	* src/trackerd/tracker-db.[ch]: Write the init and shutdown
 	functions to require config, language and the file index which are
 	used in a lot of db functions.
@@ -2169,7 +2178,7 @@
 	* src/trackerd/tracker-dbus.[ch]: Use the _new() functions to
 	create objects we register here and pass all the object we need
 	instead of the Tracker pointer.
-	
+
 	* src/trackerd/tracker-main.[ch]: Completely remove the Tracker
 	structure. Now we have APIs for everything that is needed
 	externally and we make the rest private.
@@ -2218,9 +2227,9 @@
 2008-07-04  Ivan Frade  <ivan.frade@nokia.com>
 
 	* data/dbus/tracker-daemon.xml
-	* src/trackerd/tracker-daemon.[ch]: Tracker daemon dbus API is now 
+	* src/trackerd/tracker-daemon.[ch]: Tracker daemon dbus API is now
 	async.
-	
+
 2008-07-04  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-crawler.c: Don't check if the indexer is
@@ -2230,10 +2239,10 @@
 
 2008-07-04  Ivan Frade  <ivan.frade@nokia.com>
 
-	* src/libtracker-db/tracker-db-dbus.c: 
+	* src/libtracker-db/tracker-db-dbus.c:
 	(tracker_dbus_query_result_to_hash_table): Fixed warning caused by
 	uninitialized GValues.
-	
+
 2008-07-04  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-main.c: (check_runtime_level): Fixed this
@@ -2251,9 +2260,9 @@
 	pointer if it is disabled and just don't use it anywhere, this is
 	so function signatures can include it but it will be NULL where it
 	is called. Can't think of a better way to do this really.
-	
+
 	* src/trackerd/tracker-crawler.[ch]:
-	* src/trackerd/tracker-main.[ch]: 
+	* src/trackerd/tracker-main.[ch]:
 	* src/trackerd/tracker-processor.[ch]: Create TrackerHal in main
 	again and pass it around the processor and crawler to use. It is
 	need in main now to detect if we are using the laptop battery or
@@ -2282,7 +2291,7 @@
 	* src/libtracker-common/tracker-log.c: (log_output): Use
 	g_strerror() and errno when we can't open the log file so we know
 	why.
-	
+
 	* src/trackerd/tracker-main.c: Removed the throttle command line
 	option, it is only used by the indexer which loads the config file
 	separately. Also, plugged a leak in the check_runtime_level()
@@ -2291,7 +2300,7 @@
 2008-07-04  Martyn Russell  <martyn@imendio.com>
 
 	* src/tracker-indexer/modules/files.c: Fixed warning.
-	
+
 	* src/libtracker-common/tracker-config.[ch]:
 	* src/tracker-indexer/tracker-main.c:
 	(sanity_check_option_values): Removed config options we now no
@@ -2307,8 +2316,8 @@
 
 	* src/libtracker-common/tracker-log.c: If we can't open the log,
 	add a "\n" to the error so we don't get 2 messages on the same
-	line. 
-	
+	line.
+
 	* src/trackerd/tracker-crawler.c: Make sure we set module_name to
 	NULL when getting the next queue with data and recheck the next
 	queue in the running callback in case things have changed.
@@ -2325,16 +2334,16 @@
 	module name, this way we don't get the "module not loaded" error
 	when we stop crawling one module and start another (cause we were
 	freeing the priv->module_name and the queues are handled AFTER
-	crawling has stopped). 
+	crawling has stopped).
 
 2008-07-03  Ivan Frade  <ivan.frade@nokia.com>
-	
+
 	* src/libtracker-common/tracker-nfs-lock.c: using username instead
 	of PID to the nfs lock filename.
-	
-	* src/trackerd/tracker-main.c: Updated code to handle multiple 
+
+	* src/trackerd/tracker-main.c: Updated code to handle multiple
 	instances.
-		
+
 2008-07-03  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-config.c: Don't set the
@@ -2344,11 +2353,11 @@
 
 	* src/libtracker-common/tracker-config.[ch]: Removed
 	ThreadStackSize since it is no longer used.
-	
+
 	* src/tracker-indexer/tracker-main.c:
 	* src/trackerd/tracker-main.c: Improved startup option sanity
 	check output so we only show daemon or indexer options, not
-	everything. 
+	everything.
 
 2008-07-03  Martyn Russell  <martyn@imendio.com>
 
@@ -2383,31 +2392,31 @@
 	deleting files from the index
 
 2008-07-02  Ivan Frade  <ivan.frade@nokia.com>
-	
+
 	* src/tracker-indexer/tracker-index.c
 	* tests/tracker-indexer/tracker-index-test.c: Implemented the
 	addition of words to the index. Added unit tests to the new
 	functionality.
-	
+
 2008-07-02  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-main.c:
 	* src/libtracker-common/tracker-config.[ch]: Removed the email
 	client option, it is redundant now. Removed the index-modules
 	since that is now going to be changed to be ignore-modules.
-	
+
 	* src/libtracker-common/tracker-log.c: Use gsize for log size and
 	remove perror, instead use g_fprintf(stderr, ...) when we get an
 	error so we don't recurse.
-	
+
 	* src/trackerd/tracker-crawler.c: Only add monitors when we
 	process directories, so they are added breadth ways not depth
 	ways. Also, make the debugging ALWAYS available, this changes with
 	the -v option or the config setting.
-	
+
 	* src/trackerd/tracker-monitor.c: Don't add any monitors if it is
 	disabled in the config. Also, make the debugging ALWAYS available.
-	
+
 2008-07-02  Philip Van Hoof  <philip@codeminded.be>
 
 	* src/tracker-indexer/tracker-main.c
@@ -2524,9 +2533,9 @@
 
 	* tests/Makefile.am
 	* tests/tracker-indexer/Makefile.am
-	* tests/tracker-indexer/tracker-index-test.c: Added tests to 
+	* tests/tracker-indexer/tracker-index-test.c: Added tests to
 	tracker-index.
-	
+
 2008-07-02  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-module-config.c:
@@ -2565,23 +2574,23 @@
 
 2008-07-01  Philip Van Hoof  <philip@codeminded.be>
 
-	* src/tracker-indexer/tracker-indexer.h: 
-	* src/trackerd/tracker-search.c: 
-	* src/trackerd/tracker-keywords.c: 
-	* src/trackerd/tracker-metadata.c: 
-	* src/trackerd/tracker-main.c: 
-	* src/trackerd/tracker-files.c: 
-	* src/trackerd/tracker-daemon.c: 
-	* src/trackerd/tracker-xesam-live-search.c: 
-	* src/trackerd/tracker-db.c: 
-	* src/trackerd/tracker-xesam-manager.c: 
-	* src/trackerd/tracker-db.h: 
-	* src/libtracker-db/tracker-db-manager.c: 
-	* src/libtracker-db/tracker-db-manager.h: 
-	* src/libtracker-common/tracker-service.h: 
-	* src/libtracker-common/tracker-ontology.c: 
-	* tests/libtracker-db/tracker-db-manager-test-attach.c: 
-	* data/sqlite-stored-procs.sql: 
+	* src/tracker-indexer/tracker-indexer.h:
+	* src/trackerd/tracker-search.c:
+	* src/trackerd/tracker-keywords.c:
+	* src/trackerd/tracker-metadata.c:
+	* src/trackerd/tracker-main.c:
+	* src/trackerd/tracker-files.c:
+	* src/trackerd/tracker-daemon.c:
+	* src/trackerd/tracker-xesam-live-search.c:
+	* src/trackerd/tracker-db.c:
+	* src/trackerd/tracker-xesam-manager.c:
+	* src/trackerd/tracker-db.h:
+	* src/libtracker-db/tracker-db-manager.c:
+	* src/libtracker-db/tracker-db-manager.h:
+	* src/libtracker-common/tracker-service.h:
+	* src/libtracker-common/tracker-ontology.c:
+	* tests/libtracker-db/tracker-db-manager-test-attach.c:
+	* data/sqlite-stored-procs.sql:
 
 
 	Removes attach_iface and attach_all as this was broken by design
@@ -2613,17 +2622,17 @@
 
 	* src/libtracker-common/tracker-dbus.[ch]: Added a function to
 	convert n GQueue GFile items to a gchar**.
-	
+
 	* src/tracker-indexer/tracker-indexer.[ch]: Include the number of
 	items that were indexed in the finished signal.
-	
+
 	* src/tracker-indexer/tracker-main.c: Don't quit immediately, wait
 	10 seconds or so, otherwise if the daemon calls "are we running"
 	it replies and quits before the daemon can send the next message.
-	
+
 	* src/trackerd/tracker-crawler.c: Added back the code to handle
 	sending files to the indexer.
-	
+
 	* src/trackerd/tracker-processor.c: Removed commented out code.
 
 2008-07-01  Carlos Garnacho  <carlos@imendio.com>
@@ -2647,10 +2656,10 @@
 
 	* src/trackerd/tracker-crawler.c: Make sure we check the
 	file_index_patterns now. Improve statistics.
-	
+
 	* src/trackerd/tracker-marshal.list: Added to extend finished
 	signal to include some statistics.
-	
+
 	* src/trackerd/tracker-processor.c: Make use of the enable/disable
 	flag in the module config.
 
@@ -2660,16 +2669,16 @@
 	* tests/libtracker-common/tracker-dbus-test.c:
 	(tracker_test_helpers_get_nonutf8) Moved to common helper
 	functions.
-	
+
 	* tests/libtracker-common/non-utf8.txt: Updated test string to
 	look like a file.
-	
+
 	* tests/libtracker-common/Makefile.am
 	* tests/libtracker-common/tracker-file-utils-test.c: Test for
-	(tracker_path_list_filter_duplicates) and 
+	(tracker_path_list_filter_duplicates) and
 	(tracker_path_evaluate_name)
-	
-	
+
+
 2008-07-01  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-crawler.c: (crawler_finalize):
@@ -2685,13 +2694,13 @@
 	source so we know if memory is created or if a new list is the
 	only thing that is created from the
 	tracker_path_list_filter_duplicates() function.
-	
+
 	* src/libtracker-common/tracker-module-config.[ch]: Push all paths
 	returned from config into a hash table not a list, this way we can
 	have APIs to look up strings more quickly. Also added APIs to get
 	directory and file ignore patterns (these patterns are created by
 	the module config now).
-	
+
 	* src/trackerd/tracker-crawler.[ch]: Make the crawler crawl ALL
 	locations according to the module configuration details. The
 	ignore patterns for files and directories are now retrieved from
@@ -2699,7 +2708,7 @@
 	directory crawling breadth wise instead of depthwise. This means
 	all the top level files are monitored and indexed first since they
 	are usually the most important.
-	
+
 	* src/trackerd/tracker-processor.c: Added code to iterate all
 	modules and crawl each of them in turn. More work is needed here
 	to do other things like setting up monitors. This shouldn't be
@@ -2742,7 +2751,7 @@
 	add a --process-all parameter to allow standalone testing.
 
 	* src/tracker-indexer/tracker-indexer.c (tracker_indexer_process_all):
-	Added, queues all known modules in the modules list, so all data is 
+	Added, queues all known modules in the modules list, so all data is
 	processed.
 	* src/tracker-indexer/tracker-main.c: Add a --process-all commandline
 	argument, which triggers all modules processing without need of
@@ -2754,26 +2763,26 @@
 	$prefix/share/applications for now, it was just $prefix/share,
 	there are too many files there and we need the appropriate ignore
 	patterns in place before we can really do this.
-	
+
 	* src/trackerd/tracker-main.[ch]: Removed the HAL and Crawler from
 	the Tracker struct. Now they are created and stored in the
 	TrackerProcessor object.
-	
+
 	* src/trackerd/tracker-process.[ch]: Added the initial workings
 	from the indexer code which Carlos wrote and copied over to the
 	daemon to start iterating all locations according to the module
-	config. 
+	config.
 
 2008-06-27  Ivan Frade  <ivan.frade@nokia.com>
 
 	* tests/libtracker-common/tracker-type-utils.c:
 	(string_to_date): Using GDate instead of time_t to compare the
 	result without timezone.
-	
+
 2008-06-27  Ivan Frade  <ivan.frade@nokia.com>
 
 	* tests/**: Added license in .c/.h files.
-	
+
 2008-06-27  Philip Van Hoof  <philip@codeminded.be>
 
 	* svn merge -r 1769:1798 ../xesam-support
@@ -2789,13 +2798,13 @@
 2008-06-27  Ivan Frade  <ivan.frade@nokia.com>
 
 	* test/libtracker-common/tracker-type-utils-test.c:
-	(test_date_to_string): now it doesnt depend on the timezone of the 
+	(test_date_to_string): now it doesnt depend on the timezone of the
 	tester.
-	
+
 2008-06-27  Philip Van Hoof  <philip@codeminded.be>
 
 	* tests/libtracker-db/union-performance.c: Added a performance test
-	for a UNION query structure vs. views that me and ottela want to 
+	for a UNION query structure vs. views that me and ottela want to
 	start using for certain Xesam related queries
 
 2008-06-27  Philip Van Hoof  <philip@codeminded.be>
@@ -2810,8 +2819,8 @@
 
 	* src/libtracker-common/tracker-module-config.[ch]: Add API to get
 	all modules. Fixed the module naming now we don't use the .xml
-	extension. 
-	
+	extension.
+
 	* src/trackerd/tracker-main.c:
 	* src/trackerd/tracker-process.[ch]: Start by setting up monitors
 	and recursive monitors. The recursive monitors are still not
@@ -2846,7 +2855,7 @@
 	* data/modules/files.xml:
 	* data/modules/gaim-conversations.xml: Use "true" not "True",
 	breaks the GKeyFile.
-	
+
 	* src/libtracker-common/tracker-module-config.c: Don't set the
 	modules to NULL and set GError to NULL before using it.
 
@@ -2864,26 +2873,26 @@
 	* data/modules/files.xml:
 	* data/modules/gaim-conversations.xml: Added these module files
 	which should get read on startup.
-	
+
 	* src/libtracker-common/Makefile.am:
 	* src/libtracker-common/tracker-module-config.[ch]: Added this
 	module to load the .xml files which get installed into
 	$prefix/share/tracker.
-	
+
 	* src/libtracker-common/tracker-type-utils.[ch]: Added
 	tracker_gslist_to_string_list().
-	
-	* src/trackerd/tracker-crawler.[ch]: 
-	* src/trackerd/tracker-main.c: 
+
+	* src/trackerd/tracker-crawler.[ch]:
+	* src/trackerd/tracker-main.c:
 	* src/trackerd/tracker-process.[ch]: Use the new module config
 	code when initialising the process module.
 
 2008-06-26  Ivan Frade  <ivan.frade@nokia.com>
-	
+
 	* tests/libtracker-db/run-test-in-tmp-dir.sh
 	* tests/libtracker-db/tracker-db-manager-test-attach.c:
 	Added more tests.
-	
+
 2008-06-26  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-db.c:
@@ -2908,9 +2917,9 @@
 2008-06-26  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-daemon.c:
-	* src/trackerd/tracker-db.c: 
-	* src/trackerd/tracker-indexer.[ch]: 
-	* src/trackerd/tracker-main.[ch]: 
+	* src/trackerd/tracker-db.c:
+	* src/trackerd/tracker-indexer.[ch]:
+	* src/trackerd/tracker-main.[ch]:
 	* src/trackerd/tracker-monitor.c:
 	* src/trackerd/tracker-query-tree.[ch]:
 	* src/trackerd/tracker-search.[ch]: Refactored the TrackerIndexer
@@ -2937,7 +2946,7 @@
 	* src/trackerd/tracker-email-utils.h:
 	* src/trackerd/tracker-email.c:
 	* src/trackerd/tracker-email.h:
-	* src/trackerd/tracker-main.c: 
+	* src/trackerd/tracker-main.c:
 	* src/trackerd/tracker-process.c: Remove all email modules here,
 	this code is all done in the indexer now or is in the process of
 	being moved over. It is redundant in the daemon.
@@ -2945,7 +2954,7 @@
 2008-06-26  Martyn Russell  <martyn@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer.c: Cleaned up some code.
-	
+
 	* src/trackerd/Makefile.am:
 	* src/trackerd/tracker-db.c:
 	* src/trackerd/tracker-email-kmail.c:
@@ -2993,7 +3002,7 @@
 	* src/libtracker-common/tracker-log.c: (log_output),
 	(tracker_log_handler), (tracker_log_init): Actually make sure we
 	log to disk, we were just printing to screen.
-	
+
 	* src/tracker-indexer/Makefile.am: Change the domain for the
 	indexer to just "Tracker", the libraries are this too, makes sense
 	to stay consistent.
@@ -3005,12 +3014,12 @@
 	* tests/libtracker-db/tracker-db-manager-common.c
 	* tests/libtracker-db/tracker-db-manager-common.h: Common
 	functions to -attach and -unattach tests
-	
+
 	* tests/libtracker-db/tracker-db-manager-test-unattach.c: new
 	test to tracker_db_manager with no attach_all
 
 	* tests/libtracker-db/tracker-db-manager-test.c: renamed to -attach.c
-	* tests/libtracker-db/tracker-db-manager-test-attach.c: 
+	* tests/libtracker-db/tracker-db-manager-test-attach.c:
 
 2008-06-24  Carlos Garnacho  <carlos@imendio.com>
 
@@ -3078,7 +3087,7 @@
 2008-06-24  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/Makefile.am:
-	* src/libtracker-common/tracker-config.c: 
+	* src/libtracker-common/tracker-config.c:
 	* src/tracker-indexer/Makefile.am:
 	* src/tracker-indexer/modules/Makefile.am: Monitor config file for
 	changes and reload if it does.
@@ -3095,7 +3104,7 @@
 	* tests/libtracker-db/run-test-in-tmp-dir.sh
 	* tests/libtracker-db/tracker-db-manager-test.c: Initial
 	tracker_db_manager test files.
-	
+
 2008-06-24  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker/tracker.c:
@@ -3162,7 +3171,7 @@
 	* src/libtracker-db/tracker-db-interface-sqlite.c: Improve error
 	reporting here so we say if the query used is foobar OR if it is a
 	geniune error.
-	
+
 	* src/libtracker-db/tracker-db-manager.c: Strip whitespace before
 	trying to load queries from SQL files. Also, present a count when
 	done so we know how many we loaded as a measure of testing it
@@ -3176,11 +3185,11 @@
 
 2008-06-23  Martyn Russell  <martyn@imendio.com>
 
-	* src/libtracker-db/tracker-db-manager.[ch]: 
+	* src/libtracker-db/tracker-db-manager.[ch]:
 	* src/tracker-indexer/tracker-main.c:
 	* src/trackerd/tracker-main.c: Make the force_reindex, remove
 	cache and attach all settings into a flag we pass when
-	initialising the database manager. 
+	initialising the database manager.
 
 2008-06-23  Philip Van Hoof  <philip@codeminded.be>
 
@@ -3206,10 +3215,10 @@
 	* data/sqlite-service-triggers.sql:
 	* data/sqlite-tracker-triggers.sql:
 
-	Using a transaction around database initializations. This speeds up 
-	initialization, makes it more robust (what if we get killed while 
+	Using a transaction around database initializations. This speeds up
+	initialization, makes it more robust (what if we get killed while
 	initializing) and it seems to avoid a call for fsync() when we have
-	PRAGMA synchronous = NORMAL (which we currently do have for all 
+	PRAGMA synchronous = NORMAL (which we currently do have for all
 	database connections).
 
 	Point of opinion about this commit: we should utilize transactions more
@@ -3218,7 +3227,7 @@
 
 	http://www.sqlite.org/speed.html:
 
-	At Executive Summary: SQLite works best if you group multiple 
+	At Executive Summary: SQLite works best if you group multiple
 	operations together into a single transaction.
 
 	* svn merge -r 1683:1726 ../xesam-support
@@ -3227,7 +3236,7 @@
 
 	* src/libtracker-db/tracker-db-manager.c: Default to attach_all =
 	TRUE for database creation.
-	
+
 	* src/trackerd/tracker-main.c: Don't remove the cache directory on
 	startup and shutdown, let the database manager handle that.
 
@@ -3245,7 +3254,7 @@
 
 2008-06-20  Martyn Russell  <martyn@imendio.com>
 
-	* data/dbus/tracker-indexer.xml: 
+	* data/dbus/tracker-indexer.xml:
 	* src/tracker-indexer/tracker-indexer.[ch]: Removed
 	DatabaseReindex and DatabaseCheck, now the daemon ALWAYS makes
 	sure the database is ready instead of the indexer.
@@ -3253,25 +3262,25 @@
 	* data/sqlite-tracker.sql: Remove the ANALYZE statement after
 	creating the tables, this is what was causing the hang when
 	attaching ALL databases during creation.
-	
+
 	* src/libtracker-db/tracker-db-manager.[ch]: Reworked the way we
 	initialise so we create all databases on startup and check for
 	each database file too. If even one of them doesn't exist we
 	recreate all databases (with the exception of the cache). We also
 	don't remove directories now, just the database files when
 	cleaning up.
-	
+
 	* src/tracker-indexer/tracker-main.c: No need to check if a
 	reindex is required now and removed all reindex command line
-	options. 
-	
+	options.
+
 	* src/trackerd/tracker-main.c: Don't call the indexer over dbus,
 	just rely on tracker_db_manager_init() to set up the databases
 	correctly and to check if they exist properly.
 
 2008-06-19  Martyn Russell  <martyn@imendio.com>
 
-	* src/libtracker-db/tracker-db-manager.c: 
+	* src/libtracker-db/tracker-db-manager.c:
 	* src/trackerd/tracker-main.c: Again, create the databases when
 	needed on demand and don't create them when we initialise the
 	database manager so the trackerd doesn't try to create the
@@ -3286,22 +3295,22 @@
 
 	* src/trackerd/tracker-dbus.[ch]: Removed
 	tracker_dbus_indexer_start(), it is unused now.
-	
+
 	* src/tracker-indexer/tracker-metadata.c:
-	* src/tracker-indexer/tracker-main.c: 
+	* src/tracker-indexer/tracker-main.c:
 	* src/trackerd/tracker-main.c: DON'T use PID, since it is shared
-	between the indexer and the daemon. 
-	
+	between the indexer and the daemon.
+
 	* src/trackerd/tracker-main.c: Added a call to the blocking
 	version of the DBus API to check the database state from the
 	indexer so we make sure the indexer ALWAYS creates the database if
 	it doesn't exist in the first place. Plus if we force a reindex on
 	start up, the indexer is the one that does it. Also, when creating
-	the system temporary directory, 
+	the system temporary directory,
 
-	* src/trackerd/tracker-crawler.c: 
+	* src/trackerd/tracker-crawler.c:
 	* src/trackerd/tracker-monitor.c: Updated to renamed API.
-	
+
 	* data/dbus/tracker-indexer.xml:
 	* src/tracker-indexer/tracker-indexer.[ch]: Renamed some API calls
 	and also added a call to check the database state and return if it
@@ -3317,8 +3326,8 @@
 	* data/dbus/tracker-search.xml: Re-added the Nautilus API we
 	commented out and set all API which is to be removed as deprecated.
 
-	* src/libtracker/tracker.c: 
-	* src/trackerd/tracker-db.[ch]: 
+	* src/libtracker/tracker.c:
+	* src/trackerd/tracker-db.[ch]:
 	* src/trackerd/tracker-files.[ch]:
 	* src/trackerd/tracker-metadata.c: Readded and fixed APIs relating
 	to XML file changes.
@@ -3342,10 +3351,10 @@
 	properly by setting all lists and hash tables to NULL. Also, when
 	returning a TrackerService or any other GObject from the hash
 	tables, don't return it as a gpointer*, it is just a gpointer.
-	
+
 	* src/libtracker-db/tracker-db-interface-sqlite.c: Added some
 	messaging to know when the databases are opened and closed.
-	
+
 	* src/libtracker-db/tracker-db-manager.c: Initialise and shutdown
 	the ontology module in this module since we depend on it. We also
 	shut it down and reinitialise it when we reindex the database
@@ -3358,10 +3367,10 @@
 
 	* src/tracker-indexer/modules/files.c: Fixed crasher where service
 	type is returned as NULL before using strcmp.
-	
+
 	* src/tracker-indexer/tracker-indexer.c: Added some sliff and
 	sloff :)
-	
+
 	* src/trackerd/tracker-db.[ch]:
 	* src/trackerd/tracker-email-evolution.c:
 	* src/trackerd/tracker-email-modest.c:
@@ -3377,7 +3386,7 @@
 	reindexing the database done ONLY by the tracker-indexer, not by
 	the daemon. Needs a little more work. But command line -r works
 	nicely for the indexer so far, just need the dbus part to work
-	properly. 
+	properly.
 
 2008-06-17  Martyn Russell  <martyn@imendio.com>
 
@@ -3395,10 +3404,10 @@
 	* src/libtracker-common/tracker-dbus.c:
 	(tracker_dbus_async_queue_to_strv): Don't wait if there is no data
 	in the async queue with g_async_queue_timed_pop().
-	
+
 	* src/tracker-indexer/tracker-indexer.[ch]: Added functions to be
 	notified of created, deleted or updated files from the daemon.
-	
+
 	* src/trackerd/tracker-crawler.c: Don't block when shutting down
 	by calling g_async_queue_pop() on an empty queue.
 
@@ -3434,14 +3443,14 @@
 	* src/libtracker-common/tracker-hal.c:
 	* src/libtracker-common/tracker-log.c:
 	* src/libtracker-common/tracker-nfs-lock.c:
-	* src/libtracker/tracker-files.c: 
+	* src/libtracker/tracker-files.c:
 	* src/libtracker/tracker-get-meta-for-folder.c:
 	* src/libtracker/tracker-query.c:
-	* src/tracker-applet/tracker-applet.c: 
+	* src/tracker-applet/tracker-applet.c:
 	* src/tracker-indexer/tracker-main.c:
 	* src/trackerd/tracker-main.c: Changed all locations to use
 	"initialize" and "finalize" instead of the en_GB version for
-	consistency. 
+	consistency.
 
 2008-06-17  Martyn Russell  <martyn@imendio.com>
 
@@ -3451,7 +3460,7 @@
 
 2008-06-16  Philip Van Hoof  <philip@codeminded.be>
 
-	* src/trackerd/tracker-crawler.c: Bugfix, no longer freeing up 
+	* src/trackerd/tracker-crawler.c: Bugfix, no longer freeing up
 	already freed GStrv
 
 2008-06-16  Martyn Russell  <martyn@imendio.com>
@@ -3467,7 +3476,7 @@
 	system. Also we now only get the name and type of every file we
 	traverse, this significantly improved performance. Debug
 	statements are turned off now by default to improve performance.
-	
+
 	* src/trackerd/tracker-monitor.c: Debug statements are turned off
 	now by default to improve performance.
 
@@ -3479,7 +3488,7 @@
 	* tests/common/tracker-test-helpers.c
 	* tests/common/tracker-test-helpers.h: New library with common
 	code for all tests.
-	
+
 	* tests/libtracker-common/tracker-ontology-test.c
 	* tests/libtracker-common/Makefile.am
 	* tests/libtracker-common/tracker-type-utils-test.c: Added unit
@@ -3487,7 +3496,7 @@
 
 	* src/libtracker-common/tracker-type-utils.c: Minor fixes to pass
 	the tests.
-	
+
 2008-06-13  Philip Van Hoof  <philip@codeminded.be>
 
 	* svn merge -r 1656:1683 ../xesam-support
@@ -3500,7 +3509,7 @@
 
 	* src/libtracker-common/tracker-dbus.c:
 	Replaced g_warning with g_message. g_warning abort unit tests.
-	
+
 	* tests/libtracker-common/Makefile.am
 	* tests/libtracker-common/non-utf8.txt
 	* tests/libtracker-common/tracker-dbus-test.c: Unit tests to
@@ -3516,7 +3525,7 @@
 	(tracker_dbus_query_result_to_ptr_array): Now we UTF-8 check ALL
 	strings in these functions since they are sent over DBus and we
 	don't want DBus calling _exit() for us if the string is invalid
-	UTF-8. 
+	UTF-8.
 
 2008-06-13  Philip Van Hoof  <philip@codeminded.be>
 
@@ -3561,7 +3570,7 @@
 	* tests/trackerd/xesam/xesam-g-testsearcher.c:
 	* configure.ac:
 
-	Added infrastructure and first test example (ported from xesam-glib's 
+	Added infrastructure and first test example (ported from xesam-glib's
 	tests repository) for testing Xesam
 
 2008-06-12  Mikael Ottela <mikael.ottela@ixonos.com>
@@ -3577,34 +3586,34 @@
 	* src/libtracker-common/Makefile.am
 	* data/sqlite-stored-procs.sql
 	* data/sqlite-xesam.sql
-	
+
 	Switched xesam to use standard XesamField and XesamOntology.
 
 	* src/trackerd/tracker-xesam-live-search.c
-	
+
 	Bugs in handling of list-type return values fixed.
-	
+
 2008-06-13  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-file-utils.[ch]:
 	* src/trackerd/tracker-crawler.c: Moved
 	tracker_path_list_filter_duplicates() to the file utils.
-	
+
 	* src/trackerd/tracker-monitor.[ch]:  Use GFile instead of strings
 	in the API and added work to print file changes to the console.
 
 	* src/libtracker-common/tracker-dbus.[ch]: Added a new function to
 	convert 'n' items from a GAsyncQueue to a GStrv for sending files
 	to the indexer process.
-	
+
 	* src/trackerd/tracker-crawler.c: Use the new
 	tracker_dbus_async_queue_to_strv() API to generate the GStrv
 	instead of using a GPtrArray.
-	
-	* src/trackerd/tracker-monitor.c: Save the config variable on
-	initialisation. 
 
-	* src/trackerd/tracker-db.c: 
+	* src/trackerd/tracker-monitor.c: Save the config variable on
+	initialisation.
+
+	* src/trackerd/tracker-db.c:
 	* src/trackerd/tracker-email-kmail.c:
 	* src/trackerd/tracker-process-files.c: Removed all
 	tracker_monitor_() calls, this shouldn't be done from here.
@@ -3614,18 +3623,18 @@
 	* src/libtracker-common/tracker-dbus.[ch]: Added a new function to
 	convert 'n' items from a GAsyncQueue to a GStrv for sending files
 	to the indexer process.
-	
+
 	* src/trackerd/tracker-crawler.c: Use the new
 	tracker_dbus_async_queue_to_strv() API to generate the GStrv
 	instead of using a GPtrArray.
-	
+
 	* src/trackerd/tracker-monitor.c: Save the config variable on
-	initialisation. 
+	initialisation.
 
 2008-06-12  Philip Van Hoof  <philip@codeminded.be>
 
 	* svn merge -r 1538:1656 ../xesam-support
- 
+
 2008-06-12  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer.c
@@ -3640,15 +3649,15 @@
 	the strings should be freed separately and the array itself after
 	that, this is also better than g_strfreev() in case one or the
 	other changes to a GSlice implementation.
-	
-	* src/trackerd/tracker-main.c: 
+
+	* src/trackerd/tracker-main.c:
 	* src/trackerd/tracker-monitor.[ch]: Pass the TrackerConfig since
 	we need it to know if we shouldn't monitor certain locations.
 
 2008-06-12  Philip Van Hoof  <philip@codeminded.be>
 
 	* svn merge -r 1538:1656 ../xesam-support
- 
+
 2008-06-12  Philip Van Hoof  <philip@codeminded.be>
 
 	* tests/trackerd/tracker-xesam-test.c:
@@ -3662,15 +3671,15 @@
 
 	* src/libtracker-common/tracker-hal.c: Always initialise the hash
 	tables to avoid errors when we can't contact the HAL DBus service.
-	
+
 	* src/trackerd/linux-inotify-syscalls.h: Removed now we don't need
 	it thanks to the GIO file monitoring.
-	
+
 	* src/trackerd/tracker-crawler.c: Get the locations to crawl from
 	the config now and add a default of $HOME. Also added function to
 	check that we don't crawl the same location more than once and
 	added more locations to the ignore list.
-	
+
 	* src/trackerd/tracker-db.c:
 	* src/trackerd/tracker-email-kmail.c:
 	* src/trackerd/tracker-process-files.c: Removed the need for the
@@ -3680,7 +3689,7 @@
 	command line argument so we can at least inspect the startup
 	details and logging before the console is spammed with file
 	crawling information.
-	
+
 	* src/trackerd/tracker-monitor.[ch]: Implemented the basics of
 	file monitoring here using the new GFileMonitor API.
 
@@ -3743,7 +3752,7 @@
 	* data/sqlite-stored-procs.sql
 	* data/services/xesam-metadata.mmapping
 
-	Added framework for xesam field handling. 
+	Added framework for xesam field handling.
 
 2008-06-11  Martyn Russell  <martyn@imendio.com>
 
@@ -3753,25 +3762,25 @@
 2008-06-11  Martyn Russell  <martyn@imendio.com>
 
 	* src/tracker-indexer/tracker-main.c: Removed commented out code.
-	
+
 	* src/trackerd/tracker-crawler.c: Renamed internal functions
 	better and fixed a nasty crasher because we weren't NULL
 	terminating the GStrv we send to the indexer to process.
-	
+
 	* src/trackerd/tracker-main.c: Don't initiate and shutdown the
 	process-files module, it is no longer used. Also make sure we
 	shutdown properly when using Ctrl+C. Now when we initiate the db
 	manager we set the attach_all to TRUE now that Carlos has fixed
 	that bug. This means we use one connection for all transactions in
 	the daemon now.
-	
+
 2008-06-11  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-crawler.c: Make sure we set the ignored
 	file types each time the TrackerConfig object is set for the
 	TrackerCrawler. This fixes the warning about TrackConfig not
 	existing for tracker_config_get_no_index_file_types().
-	
+
 	* src/trackerd/tracker-main.c: Removed the initial sleep from the
 	daemon, this is only meant for the indexer which implements the
 	feature and this also means that we don't respond to dbus events
@@ -3784,10 +3793,10 @@
 	means we respond to DBus events. Fixed a nasty crash where we were
 	fixing static strings added to the database when the
 	TrackerCrawler was created.
-	
+
 	* src/trackerd/tracker-daemon.c: Changed message from "restarting" to
 	"shuting down" when shutting down the daemon.
-	
+
 	* src/trackerd/tracker-main.[ch]: Create the crawler in the
 	Tracker struct so the shutdown function can stop it immediately.
 
@@ -3821,37 +3830,37 @@
 
 	* configure.ac: Bumped the version dependency of GLib to 2.16 for
 	the new GIO API and remove the old backend code checks.
-	
+
 	* data/dbus/tracker-indexer.xml: Added a "ProcessFiles" API call
 	and updated the "GetRunning" to return the state as a function
 	parameter.
-	
+
 	* src/tracker-indexer/tracker-indexer.[ch]: Update all DBus
 	functions to include the GError and other parameters so we return
 	valid errors when functions fail.
-	
+
 	* src/trackerd/Makefile.am:
 	* src/trackerd/tracker-crawler.[ch]:
-	* src/trackerd/tracker-monitor.[ch]: 
+	* src/trackerd/tracker-monitor.[ch]:
 	* src/trackerd/tracker-email-evolution.c:
-	* src/trackerd/tracker-email-kmail.c: 
+	* src/trackerd/tracker-email-kmail.c:
 	* src/trackerd/tracker-email-modest.c:
-	* src/trackerd/tracker-email-thunderbird.c: 
+	* src/trackerd/tracker-email-thunderbird.c:
 	* src/trackerd/tracker-process-files.c: Added to handle directory
 	monitoring and for crawling the file system. The crawler module
-	now contacts the indexer and sends files it finds across DBus. 
-	
+	now contacts the indexer and sends files it finds across DBus.
+
 	* src/trackerd/tracker-db.c: Use tracker_monitor_() instead of
 	tracker_watcher_().
-	
+
 	* src/trackerd/tracker-dbus.[ch]: Added a function to get the
 	DBusGProxy for the indexer client connection.
-	
+
 	* src/trackerd/tracker-main.c: Initialise the TrackerCrawler
 	object so it crawls $HOME for now for testing.
 
 	* src/trackerd/tracker-watcher*.[ch]: Removed in favour of
-	tracker-monitor.[ch]. 
+	tracker-monitor.[ch].
 
 2008-06-10  Carlos Garnacho  <carlos@imendio.com>
 
@@ -3881,7 +3890,7 @@
 
 2008-06-10  Martyn Russell  <martyn@imendio.com>
 
-	* configure.ac: 
+	* configure.ac:
 	* src/libtracker-gtk/tracker-metadata-tile.c:
 	* src/libtracker/tracker-search.c: (main):
 	* src/libtracker/tracker-tag.c: (main):
@@ -3898,7 +3907,7 @@
 	* src/trackerd/tracker-xesam-live-search.c: get_hit_data improvements
 
 2008-06-09  Ivan Frade  <ivan.frade@nokia.com>
-	
+
 	* src/libtracker-db/tracker-db-dbus.[ch]:
 	(tracker_dbus_query_result_to_strv) Added new parameter to select
 	the column.
@@ -3939,7 +3948,7 @@
 2008-06-09  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-db/tracker-db-manager.c:
-	* src/trackerd/tracker-db.c: 
+	* src/trackerd/tracker-db.c:
 	* src/trackerd/tracker-indexer.c:
 	* src/trackerd/tracker-main.[ch]: Removed more unused members from
 	the Tracker struct.
@@ -3950,8 +3959,8 @@
 	* src/trackerd/tracker-files.c:
 	* src/trackerd/tracker-keywords.c:
 	* src/trackerd/tracker-main.[ch]:
-	* src/trackerd/tracker-metadata.c: 
-	* src/trackerd/tracker-utils.c: 
+	* src/trackerd/tracker-metadata.c:
+	* src/trackerd/tracker-utils.c:
 	* src/trackerd/tracker-watcher-inotify.c: Removed unused threading code.
 
 2008-06-09  Ivan Frade  <ivan.frade@nokia.com>
@@ -3967,15 +3976,15 @@
 	public API here because it is no longer needed. Simplified the way
 	we set up TrackerDBInterface objects. Improved the logging. Added
 	support for attaching all databases to one connection. Fixed the
-	odd bug found. 
+	odd bug found.
 
 	* src/tracker-indexer/tracker-main.c: Initialise the database
 	manager without attaching all databases.
-	
+
 	* src/trackerd/tracker-main.c:  Initialise the database manager
 	with attach_all_dbs set to FALSE for now, setting this to TRUE
 	causes problems when running the daemon with --reindex.
-	
+
 2008-06-09  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/libtracker-db/tracker-db-manager.c
@@ -3995,7 +4004,7 @@
 	* src/trackerd/tracker-metadata.c:
 	* src/trackerd/tracker-process-files.c:
 	* src/trackerd/tracker-rdf-query.c:
-	* src/trackerd/tracker-search.c: 
+	* src/trackerd/tracker-search.c:
 	* src/trackerd/tracker-xesam-live-search.c:
 	* src/trackerd/tracker-xesam-query.c:
 	* src/trackerd/tracker-xesam.h: Removed tracker-db-sqlite.[ch] and
@@ -4011,19 +4020,19 @@
 	* src/trackerd/tracker-dbus.c:
 	* src/trackerd/tracker-email-evolution.c:
 	* src/trackerd/tracker-email-kmail.c:
-	* src/trackerd/tracker-email-modest.c: 
+	* src/trackerd/tracker-email-modest.c:
 	* src/trackerd/tracker-email-plugin.h:
 	* src/trackerd/tracker-email-thunderbird.c:
 	* src/trackerd/tracker-email-utils.[ch]:
 	* src/trackerd/tracker-email.[ch]:
 	* src/trackerd/tracker-files.[ch]:
 	* src/trackerd/tracker-keywords.[ch]:
-	* src/trackerd/tracker-main.c: 
+	* src/trackerd/tracker-main.c:
 	* src/trackerd/tracker-metadata.[ch]:
 	* src/trackerd/tracker-process-files.c:
 	* src/trackerd/tracker-rdf-query.[ch]:
 	* src/trackerd/tracker-search.[ch]:
-	* src/trackerd/tracker-watcher-fam.c: 
+	* src/trackerd/tracker-watcher-fam.c:
 	* src/trackerd/tracker-watcher-inotify.c:
 	* src/trackerd/tracker-watcher.h:
 	* src/trackerd/tracker-xesam-live-search.c:
@@ -4049,7 +4058,7 @@
 2008-06-06  Philip Van Hoof  <philip@codeminded.be>
 
 	* src/libtracker-db/tracker-db-interface-sqlite.c:
-	* src/trackerd/tracker-xesam-live-search.c: Some minor bugfixes. Delaying 
+	* src/trackerd/tracker-xesam-live-search.c: Some minor bugfixes. Delaying
 	the SearchDone for a second (maybe we can remove this later)
 	* data/sqlite-stored-procs.sql: Two syntax errors in the SQL queries
 
@@ -4090,8 +4099,8 @@
 	* src/trackerd/tracker-watcher-inotify.c:
 	(tracker_process_files_is_file_info_valid) moved to
 	tracker-db-file-info (tracker_db_file_info_is_valid).
-	
-	
+
+
 2008-06-05  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/modules/files.c (check_exclude_file): Exclude
@@ -4104,17 +4113,17 @@
 	table.
 
 2008-06-05  Ivan Frade <ivan.frade@nokia.com>
-	
+
 	* src/trackerd/tracker-email-plugin.h: Email plugin interface.
-	
+
 	* src/trackerd/tracker-email.c: Consistent function names. _init
-	is now _start_watching_emails and _shutdown is now 
-	_end_watching_emails.	
+	is now _start_watching_emails and _shutdown is now
+	_end_watching_emails.
 
 	* src/trackerd/tracker-email-[modest,kmail,evolution,thunderbird].c:
 	Renamed method names to "implement" the plugin interface.
 
-	* src/trackerd/tracker-main.c: Use the new 
+	* src/trackerd/tracker-main.c: Use the new
 	(_start,_end)_watching_emails functions.
 
 
@@ -4165,8 +4174,8 @@
 
 	* src/libtracker-common/tracker-type-utils.h: Fixed glib include
 	build warning.
-	
-	* src/libtracker-db/tracker-db-manager.[ch]: 
+
+	* src/libtracker-db/tracker-db-manager.[ch]:
 	* src/tracker-indexer/tracker-indexer-db.[ch]:
 	* src/tracker-indexer/tracker-indexer.c:
 	* src/tracker-indexer/tracker-main.c:  Added functions from
@@ -4174,8 +4183,8 @@
 	So now when we request a database type like the common database or
 	the file metadata database, we return an interface and it is
 	already set up if it had to be created first, etc.
-	
-	* src/trackerd/tracker-db-sqlite.c: 
+
+	* src/trackerd/tracker-db-sqlite.c:
 	* src/trackerd/tracker-indexer.c: Changed the TrackerDB type names
 	for metadata from "META" to "METADATA".
 
@@ -4201,11 +4210,11 @@
 
 	* src/libtracker-common/tracker-file-utils.h: Fixed includes so we
 	don't get warnings if glib isn't already included.
-	
-	* src/trackerd/tracker-db-email.c: 
-	* src/trackerd/tracker-db-sqlite.c: 
+
+	* src/trackerd/tracker-db-email.c:
+	* src/trackerd/tracker-db-sqlite.c:
 	* src/trackerd/tracker-db.[ch]:
-	* src/trackerd/tracker-files.c: 
+	* src/trackerd/tracker-files.c:
 	* src/trackerd/tracker-main.c:
 	* src/trackerd/tracker-process-files.c:
 	* src/trackerd/tracker-watcher-inotify.c: Removed a lot of
@@ -4273,15 +4282,15 @@
 	* src/trackerd/tracker-poll.c:
 	* src/trackerd/tracker-process-files.c:
 	* src/trackerd/tracker-watch.h:
-	* src/trackerd/tracker-watcher-fam.c: 
+	* src/trackerd/tracker-watcher-fam.c:
 	* src/trackerd/tracker-watcher-inotify.c:
 	* src/trackerd/tracker-watcher-poll.c:
-	* src/trackerd/tracker-watcher-win.c: 
+	* src/trackerd/tracker-watcher-win.c:
 	* src/trackerd/tracker-watcher.h:
 	* src/trackerd/tracker-win-fs-changes.c: Moved all watch files so
 	they use the prefix tracker-watch-*. Updated the API to have a
 	consistent tracker_watcher_() prefix. Refactored the FAM, inotify,
-	poll and windows backends. 
+	poll and windows backends.
 
 2008-06-02  Carlos Garnacho  <carlos@imendio.com>
 
@@ -4298,17 +4307,17 @@
 2008-06-02  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/Makefile.am:
-	* src/trackerd/tracker-cache.[ch]: 
+	* src/trackerd/tracker-cache.[ch]:
 	* src/trackerd/tracker-db-email.c:
 	* src/trackerd/tracker-db-sqlite.c:
-	* src/trackerd/tracker-db.c: 
+	* src/trackerd/tracker-db.c:
 	* src/trackerd/tracker-email-evolution.c:
 	* src/trackerd/tracker-email-modest.c:
 	* src/trackerd/tracker-email-utils.c: Removed tracker-cache.[ch]
 	now used in the tracker-indexer code and cleaned up all places
 	that call cache functions.
-	
-	* src/trackerd/tracker-email-kmail.c: 
+
+	* src/trackerd/tracker-email-kmail.c:
 	* src/trackerd/tracker-indexer.c:
 
 	* src/trackerd/tracker-watch.h:
@@ -4320,11 +4329,11 @@
 	scan the disk for files to index. Also removed the
 	tracker->shutdown member, there is no point in having that AND the
 	->is_running member.
-	
+
 	* src/trackerd/tracker-process-files.[ch]: Removed a lot of the
 	indexer functionality and just left most of the directory
 	processing functions.
-	
+
 	* src/trackerd/tracker-utils.c: Removed the _add_io_grace()
 	function now it is no longer used.
 
@@ -4384,7 +4393,7 @@
 	* src/tracker-indexer/tracker-index.[ch]: New files. Provide methods
 	to store data in the QDBM index.
 	* src/tracker-indexer/Makefile.am: Added these files to build.
-	* src/tracker-indexer/tracker-indexer.c: Pass all metadata contents 
+	* src/tracker-indexer/tracker-indexer.c: Pass all metadata contents
 	through the parser and store all the results with TrackerIndex.
 
 2008-05-30  Carlos Garnacho  <carlos@imendio.com>
@@ -4443,7 +4452,7 @@
 	* src/trackerd/tracker-xesam-live-search.c:
 	* src/trackerd/tracker-xesam-live-search.h:
 	* src/trackerd/tracker-xesam-manager.c:
-	
+
 	Making it possible to pass which exact events occurred, to better
 	finetune the periodic LiveSearch query in future
 
@@ -4481,16 +4490,16 @@
 	prefix has been removed from the daemon xml files.
 
 	* data/tracker.cfg: Removed, it is generated initially now.
-	
+
 	* src/libtracker/Makefile.am:
 	* src/libtracker/tracker.c: Used the new data/dbus/*.xml files and
 	removed the -dbus- name space from the included generated files.
-	
+
 	* src/tracker-indexer/Makefile.am:
 	* src/trackerd/Makefile.am:
-	* src/trackerd/tracker-cache.c: 
-	* src/trackerd/tracker-daemon.[ch]: 
-	* src/trackerd/tracker-db-sqlite.c: 
+	* src/trackerd/tracker-cache.c:
+	* src/trackerd/tracker-daemon.[ch]:
+	* src/trackerd/tracker-db-sqlite.c:
 	* src/trackerd/tracker-dbus-daemon.[ch]:
 	* src/trackerd/tracker-dbus-files.[ch]:
 	* src/trackerd/tracker-dbus-keywords.[ch]:
@@ -4506,7 +4515,7 @@
 	* src/trackerd/tracker-status.c:
 	* src/trackerd/tracker-utils.c: Renamed all tracker_dbus_ files
 	and functions to tracker_ to make things simpler.
-	
+
 	* src/trackerd/tracker-xesam-manager.[ch]: Moved the old
 	tracker-xesam.[ch] to tracker-xesam-manager.[ch].
 
@@ -4521,14 +4530,14 @@
 
 	* src/libtracker-common/tracker-hal.h: Put the HAVE_HAL check
 	after the already included check.
-	
+
 	* src/libtracker-db/Makefile.am: Make sure we depend on
 	libtracker-common because we need some of the dbus API calls
-	there. 
-	
+	there.
+
 	* src/tracker-indexer/modules/Makefile.am: Remove commented out
 	libtracker-common include. Not needed.
-	
+
 	* src/tracker-indexer/tracker-dbus.c:
 	* src/tracker-indexer/tracker-main.c:
 	* src/trackerd/tracker-dbus.c:
@@ -4541,19 +4550,19 @@
 2008-05-29  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-hal.[ch]: Consistency fixes.
-	
+
 	* src/tracker-indexer/modules/Makefile.am: Reorder some of the
 	linking so it is done in the right order. This doesn't matter on
 	Linux, but it does on Windows. Linking must occur with the system
 	deps last. Yes that sucks.
-	
+
 	* src/trackerd/Makefile.am:
 	* src/trackerd/tracker-dbus.[ch]:
 	* src/trackerd/tracker-main.c: Added the tracker-indexer.xml file
 	to the Makefile here but to produce the client side API so we can
 	call _set_running() on the indexer to exec() the binary and start
 	indexing when we are ready. So now we start the indexer when it is
-	needed through DBus. 
+	needed through DBus.
 
 2008-05-29  Carlos Garnacho  <carlos@imendio.com>
 
@@ -4600,9 +4609,9 @@
 
 	* src/tracker-indexer/Makefile.am:
 	* data/tracker-indexer.xml: Add introspection support for the
-	indexer. 
-	
-	* src/tracker-indexer/tracker-dbus.c: 
+	indexer.
+
+	* src/tracker-indexer/tracker-dbus.c:
 	* src/tracker-indexer/tracker-main.c: Make sure we register the
 	DBus objects properly on startup.
 
@@ -4612,7 +4621,7 @@
 	* src/libtracker-common/tracker-dbus.c: Added this for the most
 	common DBus functionality, such as creating requests and logging
 	request comments, etc.
-	
+
 	* src/libtracker-db/Makefile.am:
 	* src/libtracker-db/tracker-db-dbus.c: Added for converting
 	TrackerDBResultSet information into Glib types to be transported
@@ -4624,7 +4633,7 @@
 	* src/tracker-indexer/tracker-main.c: Added initial DBus support
 	to register the tracker-indexer name on startup to start receiving
 	requests from the daemon.
-	
+
 	* src/trackerd/Makefile.am:
 	* src/trackerd/tracker-dbus-daemon.[ch]:
 	* src/trackerd/tracker-dbus-files.[ch]:
@@ -4691,22 +4700,22 @@
 2008-05-28  Martyn Russell  <martyn@imendio.com>
 
 	* configure.ac: Changed the IOPRIO_SUPPORT to HAVE_IOPRIO since
-	thats more consistent with naming conventions. 
-	
+	thats more consistent with naming conventions.
+
 	* src/tracker-indexer/Makefile.am:
 	* src/tracker-indexer/tracker-indexer.c:
 	* src/tracker-indexer/tracker-ioprio.[ch]:
 	* src/trackerd/Makefile.am: Moved the tracker-ioprio.[ch] to the
 	indexer directory, they are only needed there. Also, moved the
 	nice() function call to the indexer, the daemon doesn't need jthat
-	either.  
+	either.
 
 	* src/tracker-indexer/main.c: Removed all command line options
 	except verbosity and reindex, these will not be needed except for
 	debugging generally. Also use the same jargon about copyright, etc
 	when starting up as the daemon. Added log support, we write to the
 	same place as the daemon does, except it is called
-	tracker-indexer.log. 
+	tracker-indexer.log.
 
 	* src/trackerd/tracker-main.c: Changed the log to trackerd.log
 	from tracker.log.
@@ -4737,7 +4746,7 @@
 	stored-proc executers to also remove and add items into the
 	LiveSearches table
 
-	New TODO item: we are only detecting the Updates and Deletes for 
+	New TODO item: we are only detecting the Updates and Deletes for
 	the live searches, not the creates
 
 2008-05-27  Martyn Russell  <martyn@imendio.com>
@@ -4825,7 +4834,7 @@
 
 2008-05-27  Philip Van Hoof  <philip@codeminded.be>
 
-	* Fixes some bugs with xesam search structures and 
+	* Fixes some bugs with xesam search structures and
 	field definitions
 	* Patch by Ottela Mikael <mikael.ottela@ixonos.com>
 
@@ -4857,7 +4866,7 @@
 
 2008-05-27  Philip Van Hoof  <philip@codeminded.be>
 
-	* Fixes some bugs with xesam search structures and 
+	* Fixes some bugs with xesam search structures and
 	field definitions
 	* Patch by Ottela Mikael <mikael.ottela@ixonos.com>
 
@@ -4898,7 +4907,7 @@
 
 2008-05-27  Philip Van Hoof  <philip@codeminded.be>
 
-	* Fixes some bugs with xesam search structures and 
+	* Fixes some bugs with xesam search structures and
 	field definitions
 	* Patch by Ottela Mikael <mikael.ottela@ixonos.com>
 
@@ -4961,7 +4970,7 @@
 
 2008-05-26  Philip Van Hoof  <philip@codeminded.be>
 
-	* src/trackerd/tracker-main.c/h: Fixed the build 
+	* src/trackerd/tracker-main.c/h: Fixed the build
 	for --disable-hal
 	* svn merge -r 1423:1480 ../xesam-support
 
@@ -4989,25 +4998,25 @@
 	* src/trackerd/tracker-ontology.[ch]: Don't use "const" for
 	TrackerField, it is unnecessary. When cleaning up the
 	TrackerFieldData, there is no need to check the pointer value
-	before calling g_free() either, since g_free() does this for us. 
+	before calling g_free() either, since g_free() does this for us.
 
 2008-05-23  Martyn Russell  <martyn@imendio.com>
 
-	* src/trackerd/tracker-cache.c: 
-	* src/trackerd/tracker-db.c: 
+	* src/trackerd/tracker-cache.c:
+	* src/trackerd/tracker-db.c:
 	* src/trackerd/tracker-inotify.c:
 	* src/trackerd/tracker-main.h: Removed tracker->request_waiting,
 	it was only ever set, not used. Moved
 	tracker->black_list_timer_active, it is only used in the
-	tracker-db module. 
+	tracker-db module.
 
 2008-05-23  Martyn Russell  <martyn@imendio.com>
 
-	* src/libtracker-common/tracker-nfs-lock.[ch]: 
+	* src/libtracker-common/tracker-nfs-lock.[ch]:
 	* src/libtracker-db/Makefile.am:
 	* src/trackerd/tracker-cache.c:
 	* src/trackerd/tracker-db-manager.c:
-	* src/trackerd/tracker-db-sqlite.c: 
+	* src/trackerd/tracker-db-sqlite.c:
 	* src/trackerd/tracker-db.c:
 	* src/trackerd/tracker-email-utils.c:
 	* src/trackerd/tracker-hal.c:
@@ -5035,7 +5044,7 @@
 
 2008-05-20  Martyn Russell  <martyn@imendio.com>
 
-	* src/trackerd/tracker-db.[ch]: 
+	* src/trackerd/tracker-db.[ch]:
 	* src/trackerd/tracker-inotify.c:
 	* src/trackerd/tracker-main.c:
 	* src/trackerd/tracker-main.h:
@@ -5044,7 +5053,7 @@
 	tracker->file_process_queue and tracker->file_metadata_queue to
 	tracker-process-files.c and wrapped the GAsyncQueue with an API
 	for external modules to push TrackerDBFileInfo pointers into the
-	queue. 
+	queue.
 
 2008-05-20  Carlos Garnacho  <carlos@imendio.com>
 
@@ -5063,8 +5072,8 @@
 	* src/libtracker-common/tracker-log.[ch]: Changed
 	tracker_log_term() to tracker_log_shutdown() and removed the
 	domain parameter when initialising because we want to log ALL
-	domains. 
-	
+	domains.
+
 	* src/libtracker-common/tracker-nfs-lock.[ch]:
 	* src/trackerd/tracker-db-manager.[ch]:
 	* src/trackerd/tracker-ontology.[ch]: Changed _term() function to
@@ -5073,17 +5082,17 @@
 	* src/libtracker-db/Makefile.am:
 	* src/trackerd/Makefile.am: Make sure we define the G_LOG_DOMAIN
 	correctly.
-	
+
 	* src/trackerd/tracker-db.[ch]: Added an _init() and _shutdown()
 	function to handle the GQueue creation and clean up.
-	
+
 	* src/trackerd/tracker-main.[ch]: Moved the file_change_queue out
 	of the Tracker struct and into tracker-db.c since that's the only
-	place it is used. 
+	place it is used.
 
 2008-05-20  Martyn Russell  <martyn@imendio.com>
 
-	* src/trackerd/tracker-dbus.c: 
+	* src/trackerd/tracker-dbus.c:
 	* src/trackerd/tracker-main.[ch]: Moved the database connections
 	only used in the tracker-dbus module out of the Tracker struct.
 
@@ -5094,21 +5103,21 @@
 	(tracker_db_search_text_location)
 	(tracker_db_search_text_mime_location): Not used anywhere in the
 	code. Removed.
-	
+
 2008-05-20  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-email-kmail.c:
 	* src/trackerd/tracker-email-thunderbird.c: Fixed some
 	tracker_log() calls to use g_message() and the same for
 	tracker_error(), etc.
-	
+
 	* src/trackerd/tracker-ontology.h: Renamed the header #define to
 	ONTOLOGY and lined up functions.
 
 2008-05-20  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/Makefile.am:
-	* src/libtracker-common/tracker-file-utils.c: 
+	* src/libtracker-common/tracker-file-utils.c:
 	* src/libtracker-common/tracker-language.c:
 	* src/libtracker-common/tracker-log.c:
 	* src/libtracker-common/tracker-log.h:
@@ -5122,28 +5131,28 @@
 	* src/tracker-indexer/modules/files.c:
 	* src/trackerd/Makefile.am:
 	* src/trackerd/tracker-apps.c:
-	* src/trackerd/tracker-cache.c: 
+	* src/trackerd/tracker-cache.c:
 	* src/trackerd/tracker-db-email.c:
-	* src/trackerd/tracker-db-sqlite.c: 
+	* src/trackerd/tracker-db-sqlite.c:
 	* src/trackerd/tracker-db.c:
 	* src/trackerd/tracker-dbus-daemon.c:
 	* src/trackerd/tracker-dbus-keywords.c:
 	* src/trackerd/tracker-dbus-metadata.c:
 	* src/trackerd/tracker-dbus.c:
 	* src/trackerd/tracker-email-evolution.c:
-	* src/trackerd/tracker-email-kmail.c: 
+	* src/trackerd/tracker-email-kmail.c:
 	* src/trackerd/tracker-email-modest.c:
 	* src/trackerd/tracker-email-thunderbird.c:
 	* src/trackerd/tracker-email-utils.c:
 	* src/trackerd/tracker-fam.c:
-	* src/trackerd/tracker-hal.c: 
+	* src/trackerd/tracker-hal.c:
 	* src/trackerd/tracker-index-stage.c:
-	* src/trackerd/tracker-indexer.c: 
+	* src/trackerd/tracker-indexer.c:
 	* src/trackerd/tracker-inotify.c:
 	* src/trackerd/tracker-ioprio.c:
-	* src/trackerd/tracker-main.c: 
+	* src/trackerd/tracker-main.c:
 	* src/trackerd/tracker-metadata.c:
-	* src/trackerd/tracker-process-files.c: 
+	* src/trackerd/tracker-process-files.c:
 	* src/trackerd/tracker-rdf-query.c:
 	* src/trackerd/tracker-service-manager.c:
 	* src/trackerd/tracker-utils.c:
@@ -5161,7 +5170,7 @@
 
 	* src/trackerd/tracker-field.[ch] Old FieldDef struct is now
 	TrackerField GObject
-	
+
 	* src/trackerd/tracker-apps.c
 	* src/trackerd/tracker-db-email.c
 	* src/trackerd/tracker-db-sqlite.[ch]
@@ -5179,7 +5188,7 @@
 	* src/trackerd/tracker-rdf-query.c
 	* src/trackerd/tracker-xesam-query.c
 	* src/trackerd/tracker-main.c: Using new tracker-ontology.
-	
+
 	* src/trackerd/tracker-main.h: (tracker->metadata_table removed)
 
 2008-05-19  Carlos Garnacho  <carlos@imendio.com>
@@ -5216,7 +5225,7 @@
 	services so they are recognised when requesting hit counts. It
 	used to be just "Emails" as the service type, now we have
 	"ThunderbirdEmails", "EvolutionEmails", etc.
-	
+
 	* src/trackerd/tracker-main.c: (main): Fix the command line option
 	parsing so we actually set the verbosity and some of the other
 	options. Also, don't start the indexer thread if it is disabled.
@@ -5246,11 +5255,11 @@
 	where the padding was being set when setting the thread stack
 	size. The second was that the max text to index was being set when
 	setting the max words to index. This meant 0 words were being
-	indexed. 
-	
+	indexed.
+
 	* src/trackerd/tracker-main.c: Added more configuration to the
 	sanity check list so we can confirm things are starting up
-	correctly. 
+	correctly.
 
 2008-05-16  Philip Van Hoof  <philip@codeminded.be>
 
@@ -5318,18 +5327,18 @@
 	* src/trackerd/tracker-email-thunderbird.c:
 	* src/trackerd/tracker-email.[ch]: Pass the TrackerConfig to the
 	init() function to avoid using tracker->config.
-	
+
 	* src/trackerd/tracker-main.[ch]: Make sure we call all the
 	missing _shutdown() functions for modules, like
-	tracker_service_manager_shutdown(), etc. 
-	
+	tracker_service_manager_shutdown(), etc.
+
 	* src/trackerd/tracker-process-files.c: Don't try to set up signal
 	handlers for the HAL object if we don't have HAL support compiled
 	in to Tracker.
-	
+
 	* src/trackerd/tracker-service-manager.[ch]: Renamed
 	tracker_service_manager_term() to _shutdown().
-	
+
 	* src/trackerd/tracker-xesam.[ch]: Added a _shutdown() function
 	and moved the GHashTable of sessions to this module and out of the
 	Tracker struct.
@@ -5343,9 +5352,9 @@
 
 2008-05-14  Martyn Russell  <martyn@imendio.com>
 
-	* src/trackerd/tracker-db-email.c: 
+	* src/trackerd/tracker-db-email.c:
 	* src/trackerd/tracker-db-sqlite.c:
-	* src/trackerd/tracker-db.c: 
+	* src/trackerd/tracker-db.c:
 
 	* src/trackerd/tracker-dbus-daemon.c: Changed the "config"
 	property to be an object spec instead of a pointer spec. Also
@@ -5354,8 +5363,8 @@
 	* src/trackerd/tracker-dbus-search.[ch]: Added "config" and
 	"language" properties to be used with the TrackerQueryTree API.
 
-	* src/trackerd/tracker-dbus-xesam.c: 
-	* src/trackerd/tracker-xesam-live-search.c: 
+	* src/trackerd/tracker-dbus-xesam.c:
+	* src/trackerd/tracker-xesam-live-search.c:
 	* src/trackerd/tracker-xesam-session.h: Fix includes.
 
 	* src/trackerd/tracker-dbus.[ch]: Use Tracker pointer instead of
@@ -5366,15 +5375,15 @@
 	of the Tracker struct, it is not used. Also removed the
 	"index_number_min_length" member and replaced the one time it is
 	used for a #define in tracker-parser.c.
-	
+
 	* src/trackerd/tracker-parser.[ch]: Refactored this module and
 	made it not depend on TrackerConfig and TrackerLanguage, instead,
-	we parse the values in that we need in the public API. 
+	we parse the values in that we need in the public API.
 
 	* src/trackerd/tracker-query-tree.[ch]: Add properties for
 	TrackerConfig and TrackerLanguage so we can use them when using
 	the tracker-parser API.
-	
+
 	* src/trackerd/tracker-xesam.[ch]: Use proper GQuarks for the
 	xesam error system and reordered the functions in the header to be
 	more logical and inline with the .c file.
@@ -5388,7 +5397,7 @@
 
 	* data/Makefile.am
 	* data/sqlite-contents.sql: SQL code to create Contents table.
-	
+
 	* src/trackerd/tracker-db-sqlite.h
 	* src/trackerd/tracker-db-sqlite.c:
 	Using SQL file instead of hardcoded SQL to create ServiceContents
@@ -5396,11 +5405,11 @@
 	(open_common_db): Removed. Using directly open_db_interface.
 	(tracker_db_exec_proc): New. tracker_exec_proc but using
 	TrackerDBInterface.
-	(tracker_exec_no_reply) 
+	(tracker_exec_no_reply)
 	(tracker_metadata_is_key): Now static functions only in .c
 	(tracker_db_integrity_check): Removed. Unused function.
-	
-	
+
+
 2008-05-13  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-main.c: Don't initialise Tracker members
@@ -5416,10 +5425,10 @@
 
 2008-05-13  Martyn Russell  <martyn@imendio.com>
 
-	* src/tracker-indexer/tracker-indexer-module.[ch]: 
+	* src/tracker-indexer/tracker-indexer-module.[ch]:
 	* src/tracker-indexer/tracker-indexer.[ch]: Added indentation
 	information to the top of each file.
-	
+
 	* src/trackerd/Makefile.am:
 	* src/trackerd/tracker-cache.c:
 	* src/trackerd/tracker-index-stage.[ch]:
@@ -5510,9 +5519,9 @@
 
 2008-05-14  Martyn Russell  <martyn@imendio.com>
 
-	* src/trackerd/tracker-db-email.c: 
+	* src/trackerd/tracker-db-email.c:
 	* src/trackerd/tracker-db-sqlite.c:
-	* src/trackerd/tracker-db.c: 
+	* src/trackerd/tracker-db.c:
 
 	* src/trackerd/tracker-dbus-daemon.c: Changed the "config"
 	property to be an object spec instead of a pointer spec. Also
@@ -5521,8 +5530,8 @@
 	* src/trackerd/tracker-dbus-search.[ch]: Added "config" and
 	"language" properties to be used with the TrackerQueryTree API.
 
-	* src/trackerd/tracker-dbus-xesam.c: 
-	* src/trackerd/tracker-xesam-live-search.c: 
+	* src/trackerd/tracker-dbus-xesam.c:
+	* src/trackerd/tracker-xesam-live-search.c:
 	* src/trackerd/tracker-xesam-session.h: Fix includes.
 
 	* src/trackerd/tracker-dbus.[ch]: Use Tracker pointer instead of
@@ -5533,15 +5542,15 @@
 	of the Tracker struct, it is not used. Also removed the
 	"index_number_min_length" member and replaced the one time it is
 	used for a #define in tracker-parser.c.
-	
+
 	* src/trackerd/tracker-parser.[ch]: Refactored this module and
 	made it not depend on TrackerConfig and TrackerLanguage, instead,
-	we parse the values in that we need in the public API. 
+	we parse the values in that we need in the public API.
 
 	* src/trackerd/tracker-query-tree.[ch]: Add properties for
 	TrackerConfig and TrackerLanguage so we can use them when using
 	the tracker-parser API.
-	
+
 	* src/trackerd/tracker-xesam.[ch]: Use proper GQuarks for the
 	xesam error system and reordered the functions in the header to be
 	more logical and inline with the .c file.
@@ -5555,7 +5564,7 @@
 
 	* data/Makefile.am
 	* data/sqlite-contents.sql: SQL code to create Contents table.
-	
+
 	* src/trackerd/tracker-db-sqlite.h
 	* src/trackerd/tracker-db-sqlite.c:
 	Using SQL file instead of hardcoded SQL to create ServiceContents
@@ -5563,11 +5572,11 @@
 	(open_common_db): Removed. Using directly open_db_interface.
 	(tracker_db_exec_proc): New. tracker_exec_proc but using
 	TrackerDBInterface.
-	(tracker_exec_no_reply) 
+	(tracker_exec_no_reply)
 	(tracker_metadata_is_key): Now static functions only in .c
 	(tracker_db_integrity_check): Removed. Unused function.
-	
-	
+
+
 2008-05-13  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-main.c: Don't initialise Tracker members
@@ -5583,10 +5592,10 @@
 
 2008-05-13  Martyn Russell  <martyn@imendio.com>
 
-	* src/tracker-indexer/tracker-indexer-module.[ch]: 
+	* src/tracker-indexer/tracker-indexer-module.[ch]:
 	* src/tracker-indexer/tracker-indexer.[ch]: Added indentation
 	information to the top of each file.
-	
+
 	* src/trackerd/Makefile.am:
 	* src/trackerd/tracker-cache.c:
 	* src/trackerd/tracker-index-stage.[ch]:
@@ -5648,9 +5657,9 @@
 
 	* src/trackerd/tracker-cache.[ch]: Reworked this module and
 	cleaned up the code a bit.
-	
+
 	* src/trackerd/tracker-db.c: Fix some build warnings.
-	
+
 	* src/trackerd/tracker-email-utils.c: Renamed Tracker member.
 
 	* src/trackerd/tracker-main.[ch]: More clean ups, also made the
@@ -5658,7 +5667,7 @@
 	exiting. For some reason, we can't clean up the mutexes after that
 	though because they are busy? Looks like the threading here needs
 	looking at more thoroughly.
-	
+
 	* src/trackerd/tracker-process-files.c: Log when the thread exits.
 
 2008-05-12  Philip Van Hoof  <philip@codeminded.be>
@@ -5683,20 +5692,20 @@
 	* src/libtracker-common/tracker-type-utils.c
 	* src/libtracker-common/tracker-type-utils.h:
 	(tracker_boolean_as_text_to_number): New function.
-	
+
 	* src/libtracker-common/tracker-utils.c
 	* src/libtracker-common/tracker-utils.h
 	(tracker_escape_string): Moved from tracker-db-sqlite to here.
 
 	* src/trackerd/tracker-db-sqlite.c
 	(tracker_db_load_service_file): Splitted in three functions, for
-	.metadata, .services and .extensions files. Renamed to 
+	.metadata, .services and .extensions files. Renamed to
 	load_service_configuration_file, and now it is an static function.
 	Removed duplicate code betwwen load_sql_file and load_sql_trigger.
 
 	* src/trackerd/tracker-db-sqlite.h:
 	(tracker_db_load_service_file) removed from the public API.
-	
+
 	* src/trackerd/tracker-db.c: Commented unused lines.
 
 2008-05-09  Ivan Frade  <ivan.frade@nokia.com>
@@ -5705,24 +5714,24 @@
 	* src/trackerd/tracker-db-manager.c
 	* src/trackerd/tracker-db-manager.h: New module to handle
 	databases locations, names and parameters.
-	
+
 	* src/trackerd/tracker-db-sqlite.c
 	* src/trackerd/tracker-db-sqlite.h
-	* src/trackerd/tracker-indexer.c: Using new module. 
+	* src/trackerd/tracker-indexer.c: Using new module.
 	(open_db) is now open_db_interface.
-	
+
 	* src/trackerd/tracker-indexer.h: DB filenames moved to new
 	module.
-	
+
 	* src/trackerd/tracker-main.c: Init/term the new module
-	
-	* src/trackerd/tracker-main.h: 
+
+	* src/trackerd/tracker-main.h:
 	(tracker->services_dir): Removed
 
 2008-05-09  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/trackerd/tracker-db-sqlite.c
-	* src/trackerd/tracker-db-sqlite.h: 
+	* src/trackerd/tracker-db-sqlite.h:
 	(tracker_db_set_default_pragmas): Now static function
 	called set_default_pragmas and using TrackerDBInterface
 	(set_params): Uses TrackerDBInterface instead of DBConnection.
@@ -5733,9 +5742,9 @@
 	* src/trackerd/tracker-process-files.c
 	* src/trackerd/tracker-db-sqlite.c
 	* src/trackerd/tracker-db-sqlite.h:
-	(tracker_db_exec_no_reply): Uses TrackerDBInterface instead of 
+	(tracker_db_exec_no_reply): Uses TrackerDBInterface instead of
 	DBConnection.
-	
+
 2008-05-09  Philip Van Hoof  <philip@codeminded.be>
 
 	* src/trackerd/tracker-db-sqlite.c:
@@ -5751,7 +5760,7 @@
 	* src/libtracker-common/tracker-nfs-lock.c
 	* src/libtracker-common/tracker-nfs-lock.h
 	* src/trackerd/tracker-main.c
-	* src/trackerd/tracker-main.h: NFS locking activated from config 
+	* src/trackerd/tracker-main.h: NFS locking activated from config
 	file.
 
 	* src/trackerd/tracker-db-sqlite.c: Code style
@@ -5759,14 +5768,14 @@
 2008-05-08  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-nfs-lock.c: Improve logging.
-	
+
 	* src/trackerd/tracker-dbus-daemon.c: Renamed  _do_cleanup() to
 	_shutdown() and make it ONLY stop the main loop so we clean up
 	every time after the mainloop stops.
-	
+
 	* src/trackerd/tracker-main.[ch]: Refactored this heavily to make
 	the code start up and shut down flow easier to follow.
-	
+
 	* src/trackerd/tracker-process-files.c: Removed
 	tracker->update_count since it was redundant.
 
@@ -5774,9 +5783,9 @@
 
 	* src/libtracker-common/tracker-nfs-lock.[ch]: Cleaned up code to
 	be consistent.
-	
+
 	* src/trackerd/tracker-db-sqlite.c: Fixed warning.
-	
+
 	* src/trackerd/tracker-dbus-search.c: Always call
 	tracker_dbus_query_result_to_ptr_array() since it creates the
 	return value even if the result set is empty.
@@ -5785,9 +5794,9 @@
 
 	* src/trackerd/tracker-db-sqlite.c:
 	* src/libtracker-db/tracker-db-interface-sqlite.h:
-	* src/libtracker-db/tracker-db-interface-sqlite.c: Corrected the 
+	* src/libtracker-db/tracker-db-interface-sqlite.c: Corrected the
 	GThreadQueue to have ALL sqlite_* calls in the same thread. This
-	work needs some refactoring later. Especially the changes in 
+	work needs some refactoring later. Especially the changes in
 	tracker-db-sqlite.c are not quite the way I eventually want them.
 
 2008-05-08  Philip Van Hoof  <philip@codeminded.be>
@@ -5796,27 +5805,27 @@
 	results was 0
 
 2008-05-08  Ivan Frade  <ivan.frade@nokia.com>
-	
+
 	* src/libtracker-common/Makefile.am
 	* src/libtracker-common/tracker-nfs-lock.c
 	* src/libtracker-common/tracker-nfs-lock.h
 	* src/trackerd/tracker-db-sqlite.c
 	* src/trackerd/tracker-main.c:
 	Moved NFS lock code to his own module in libtracker-common.
-	
+
 2008-05-08  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-cache.c:
 	* src/trackerd/tracker-db-sqlite.c:
-	* src/trackerd/tracker-db.[ch]: 
+	* src/trackerd/tracker-db.[ch]:
 	* src/trackerd/tracker-dbus-daemon.c:
-	* src/trackerd/tracker-main.[ch]: 
+	* src/trackerd/tracker-main.[ch]:
 	* src/trackerd/tracker-process-files.c: Cleaned up the Tracker
 	structure by removing members which are not used. Also removed the
 	structures in the tracker-main.h file which are not used.
 
 2008-05-08  Philip Van Hoof  <philip@codeminded.be>
-	
+
 	* src/trackerd/tracker-db-sqlite.c:
 	* src/libtracker-db/tracker-db-interface.h:
 	* src/libtracker-db/tracker-db-interface-sqlite.c:
@@ -5824,13 +5833,13 @@
 	queries
 
 2008-05-08  Philip Van Hoof  <philip@codeminded.be>
-	
+
 	* src/trackerd/tracker-db-sqlite.c:
 	* src/trackerd/tracker-db-sqlite.h:
 	* data/sqlite-stored-procs.sql:
 	* data/sqlite-cache.sql:
 	* data/Makefile.am:
-	* data/sqlite-temp-tables.sql: Moved LiveSearches and Events to the 
+	* data/sqlite-temp-tables.sql: Moved LiveSearches and Events to the
 	cache db
 
 2008-05-08  Martyn Russell  <martyn@imendio.com>
@@ -5914,13 +5923,13 @@
 	more consistent and make sure we use the namespace of the binary
 	we are creating to avoid two header files with the same
 	name/definitions causing each other to not be included properly.
-	
+
 2008-05-07  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-utils.h: Fixed #ifndef issue where
 	this utils file had the same name that the trackerd utils file
 	had.
-	
+
 	* src/trackerd/Makefile.am:
 	* src/trackerd/tracker-db-email.c:
 	* src/trackerd/tracker-db-sqlite.[ch]:
@@ -5984,20 +5993,20 @@
 	always a pointer to the struct itself.
 
 2008-05-06  Ivan Frade  <ivan.frade@nokia.com>
-	
+
 	* src/trackerd/tracker-parser.c: Renamed WordType to
 	TrackerParserWordType to avoid conflicts.
-	
+
 	* src/trackerd/tracker-db-sqlite.c
 	* src/trackerd/tracker-db-sqlite.h
 	* src/trackerd/tracker-utils.h
-	* src/trackerd/trackerd.c: 
+	* src/trackerd/trackerd.c:
 	(tracker_db_connect_all): Removed unused param.
 	Replaced gpointer with Indexer in Tracker struct.
 
 	* src/trackerd/tracker-indexer.c
 	* src/trackerd/tracker-indexer.h: Removed unused code.
-	
+
 2008-05-06  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-apps.c:
@@ -6010,7 +6019,7 @@
 	moved out of tracker-utils.[ch].
 
 	* src/libtracker-common/tracker-file-utils.[ch]: Moved the
-	function which removes directory roots to here from the daemon. 
+	function which removes directory roots to here from the daemon.
 
 2008-05-06  Philip Van Hoof  <philip@codeminded.be>
 
@@ -6032,7 +6041,7 @@
 	of the prepared queries by using the GMappedFile API.
 
 2008-05-05  Ivan Frade  <ivan.frade@nokia.com>
-	
+
 	* src/trackerd/tracker-cache.c
 	* src/trackerd/trackerd.c
 	* src/trackerd/tracker-db-sqlite.c
@@ -6049,7 +6058,7 @@
 	* src/trackerd/tracker-dbus-files.c:
 	(tracker_db_get_field_def) Removed db_con parameter (unused)
 
-	
+
 2008-05-05  Philip Van Hoof  <philip@codeminded.be>
 
 	* src/trackerd/tracker-dbus-xesam.c
@@ -6079,31 +6088,31 @@
 	* src/libtracker-common/Makefile.am:
 	* src/libtracker-common/tracker-file-utils.[ch]: Added to handle
 	IO operations.
-	
+
 	* src/libtracker-db/Makefile.am:
 	* src/libtracker-db/tracker-db-action.[ch]:
 	* src/trackerd/Makefile.am:
 	* src/trackerd/tracker-action.[ch]: Moved TrackerAction to
 	libtracker-db and renamed to TrackerDBAction.
-	
+
 	* src/trackerd/tracker-apps.[ch]:
 	* src/trackerd/tracker-db-email.c:
 	* src/trackerd/tracker-db-sqlite.[ch]:
 	* src/trackerd/tracker-db.[ch]:
-	* src/trackerd/tracker-dbus-files.c: 
+	* src/trackerd/tracker-dbus-files.c:
 	* src/trackerd/tracker-email-evolution.c:
 	* src/trackerd/tracker-email-kmail.c:
 	* src/trackerd/tracker-email-modest.c:
 	* src/trackerd/tracker-email-thunderbird.c:
 	* src/trackerd/tracker-email.c:
 	* src/trackerd/tracker-email.h:
-	* src/trackerd/tracker-inotify.c: 
+	* src/trackerd/tracker-inotify.c:
 	* src/trackerd/tracker-process-files.[ch]:
 	* src/trackerd/tracker-status.[ch]:
 	* src/trackerd/tracker-utils.[ch]:
 	* src/trackerd/trackerd.c: Moved FileInfo and WatchTypes to
 	libtracker-db and renamed to TrackerDBFileInfo and
-	TrackerDBWatch. 
+	TrackerDBWatch.
 
 2008-04-30  Martyn Russell  <martyn@imendio.com>
 
@@ -6112,10 +6121,10 @@
 	* src/libtracker-common/tracker-os-dependant-win.c:
 	* src/libtracker-common/tracker-os-dependant.h: Moved to
 	libtracker-common from trackerd.
-	
+
 	* src/trackerd/Makefile.am:
-	* src/trackerd/tracker-db-sqlite.c: 
-	* src/trackerd/tracker-db.c: 
+	* src/trackerd/tracker-db-sqlite.c:
+	* src/trackerd/tracker-db.c:
 	* src/trackerd/tracker-dbus-files.c:
 	* src/trackerd/tracker-email-evolution.c:
 	* src/trackerd/tracker-email-kmail.c:
@@ -6127,42 +6136,42 @@
 	* src/trackerd/tracker-process-files.c:
 	* src/trackerd/tracker-utils.c:
 	* src/trackerd/tracker-utils.h: Moved file utility functions to
-	libtracker-common. 
+	libtracker-common.
 
 2008-04-29  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/Makefile.am:
 	* src/trackerd/tracker-action.[ch]: Added to handle TrackerAction
-	type. 
+	type.
 
 	* src/trackerd/tracker-db-sqlite.h:
 	* src/trackerd/tracker-db.[ch]:
 	* src/trackerd/tracker-dbus-files.c:
-	* src/trackerd/tracker-fam.c: 
+	* src/trackerd/tracker-fam.c:
 	* src/trackerd/tracker-inotify.c:
-	* src/trackerd/tracker-process-files.c: 
+	* src/trackerd/tracker-process-files.c:
 	* src/trackerd/tracker-utils.[ch]:
 	* src/trackerd/tracker-win-fs-changes.c: Renamed
 	TrackerChangeAction to TrackerAction and moved it to
-	tracker-action.[ch]. 
+	tracker-action.[ch].
 
 2008-04-29  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/Makefile.am:
 	* src/trackerd/tracker-dbus-xesam.[ch]:
-	* src/trackerd/tracker-dbus.c: 
+	* src/trackerd/tracker-dbus.c:
 	* src/trackerd/tracker-xesam-live-search.c:
 	* src/trackerd/tracker-xesam-search.[ch]:
 	* src/trackerd/tracker-xesam-session.h:
 	* src/trackerd/tracker-xesam.[ch]: Renamed tracker-xesam-search to
-	tracker-dbus-xesam.  
+	tracker-dbus-xesam.
 
 2008-04-29  Martyn Russell  <martyn@imendio.com>
 
 	* data/Makefile.am:
 	* data/tracker-xesam-search.xml: Renamed to
 	tracker-dbus-xesam.xml.
-	
+
 	* src/trackerd/tracker-xesam-live-search.[ch]:
 	* src/trackerd/tracker-xesam-search.[ch]:
 	* src/trackerd/tracker-xesam-session.[ch]:
@@ -6178,7 +6187,7 @@
 	* src/libtracker-common/tracker-type-utils.h:
 	* src/trackerd/tracker-db-email.c:
 	* src/trackerd/tracker-db-sqlite.c:
-	* src/trackerd/tracker-db.c: 
+	* src/trackerd/tracker-db.c:
 	* src/trackerd/tracker-dbus-files.c:
 	* src/trackerd/tracker-email-evolution.c:
 	* src/trackerd/tracker-email-kmail.c:
@@ -6205,16 +6214,16 @@
 2008-04-28  Martyn Russell  <martyn@imendio.com>
 
 	* configure.ac:
- 	* src/Makefile.am: 
+ 	* src/Makefile.am:
 	* src/libtracker-db/Makefile.am: Created new libtracker-db to
 	handle the shared database API between daemon and other
-	components of Tracker. 
-	
-	* src/trackerd/tracker-db-interface-sqlite.[ch]: 
+	components of Tracker.
+
+	* src/trackerd/tracker-db-interface-sqlite.[ch]:
 	* src/trackerd/tracker-db-interface.[ch]: Moved to libtracker-db.
-	
+
 	* src/trackerd/Makefile.am:
-	* src/trackerd/tracker-db-sqlite.[ch]: 
+	* src/trackerd/tracker-db-sqlite.[ch]:
 	* src/trackerd/tracker-dbus.h:
 	* src/trackerd/tracker-indexer.h: Updated files to include new
 	libtracker-db files.
@@ -6225,7 +6234,7 @@
 
 2008-04-25  Philip Van Hoof  <philip@codeminded.be>
 
-	* Adapted the TrackerXesamSearch DBus proxy to use 
+	* Adapted the TrackerXesamSearch DBus proxy to use
 	org.freedesktop.DBus.GLib.Async
 
 2008-04-23  Philip Van Hoof  <philip@codeminded.be>
@@ -6249,18 +6258,18 @@
 
 	* src/libtracker/tracker.[ch]: Fixed some left over issues from
 	the DBus patch which were caused by left over cruft in
-	$prefix/include. 
+	$prefix/include.
 
 2008-04-21  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/trackerd/tracker-db-interface.[ch]:
-	* src/trackerd/tracker-db-interface-sqlite.c: Implement API to 
+	* src/trackerd/tracker-db-interface-sqlite.c: Implement API to
 	start/end a transaction. Do not allocate (and later free) any
 	memory if a stmt doesn't return any rows. Add a GError parameter to
 	all query methods.
 
-	* src/trackerd/tracker-db-sqlite.h: do forward declaration for 
-	DBConnection, so it can hold pointers to structures of the same type 
+	* src/trackerd/tracker-db-sqlite.h: do forward declaration for
+	DBConnection, so it can hold pointers to structures of the same type
 	instead of just gpointers.
 
 	* src/trackerd/tracker-db-sqlite.c:
@@ -6277,7 +6286,7 @@
 
 	Added DBus introspection support for the DBus API and reworked the
 	code to use the glib bindings.
-	
+
 	* configure.ac: Added check for DBus bindings tool to create
 	server side and client side glue header files.
 
@@ -6288,20 +6297,20 @@
 	* data/tracker-dbus-metadata.xml:
 	* data/tracker-dbus-search.xml: Added to separate DBus interfaces
 	into their respective files.
-	
+
 	* data/tracker-introspect.xml: Removed in favour of new DBus
 	interface files.
-	
+
 	* src/libtracker-common/tracker-language.[ch]:
 	* src/libtracker-common/tracker-log.[ch]: Fixed copyright
-	information. 
+	information.
 
 	* src/libtracker-common/Makefile.am:
-	* src/libtracker-common/tracker-utils.[ch]: 
+	* src/libtracker-common/tracker-utils.[ch]:
 	* src/trackerd/tracker-db-sqlite.c: Added tracker-utils.[ch] to
 	handle some of the commonly shared utility functions which are
 	used across more than just the tracker daemon.
-	
+
 	* src/libtracker/Makefile.am:
 	* src/libtracker/tracker.c: Fixed object paths for DBus
 	connectivity to the various interfaces we use.
@@ -6309,7 +6318,7 @@
 	* src/libtracker/tracker.h: For the typedef enum MetadataTypes,
 	use METADATA_ as the prefix to all these values so we don't cause
 	namespace issues elsewhere.
-	
+
 	* src/tracker-preferences/tracker-preferences.c: Don't depend on
 	the tracker daemon DBus definitions for the various interfaces we
 	connect to, instead define them specifically ourselves.
@@ -6318,8 +6327,8 @@
 	* src/trackerd/tracker-dbus-daemon.[ch]: Added to handle daemon
 	specific DBus requests like shutting down and getting the current
 	status, etc.
-	
-	* src/trackerd/tracker-dbus-files.[ch]: 
+
+	* src/trackerd/tracker-dbus-files.[ch]:
 	* src/trackerd/tracker-dbus-keywords.[ch]:
 	* src/trackerd/tracker-dbus-metadata.[ch]:
 	* src/trackerd/tracker-dbus-search.[ch]: Rewritten to use the
@@ -6330,32 +6339,32 @@
 	support in the tracker daemon and host utility functions needed
 	for each interface.
 
-	* src/trackerd/tracker-dbus-methods.[ch]: 
+	* src/trackerd/tracker-dbus-methods.[ch]:
 	* src/trackerd/tracker-process-requests.[ch]: Removed. None of
 	these functions are necessary any longer.
 
-	* src/trackerd/tracker-cache.c: 
+	* src/trackerd/tracker-cache.c:
 	* src/trackerd/tracker-email-evolution.c:
 	* src/trackerd/tracker-email-kmail.c:
 	* src/trackerd/tracker-email-modest.c:
 	* src/trackerd/tracker-email-utils.c:
 	* src/trackerd/tracker-indexer.c:
 	* src/trackerd/tracker-inotify.c:
-	* src/trackerd/tracker-process-files.c: 
+	* src/trackerd/tracker-process-files.c:
 	* src/trackerd/tracker-rdf-query.c:
 	* src/trackerd/trackerd.c: Updates reflecting the new DBus changes.
 
 	* src/trackerd/tracker-marshal.list:
 	* src/trackerd/tracker-marshal-main.c: Added to include generated
 	marshal files built for extended signalling with unique	callback
-	signatures. 
+	signatures.
 
 	* src/trackerd/tracker-status.[ch]: Added to handle the current
 	state and to also signal changes when the global tracker daemon
 	state changes.
-	
+
 	* src/trackerd/tracker-utils.[ch]: Moved functions to relevant
-	modules and removed all other unused code. 
+	modules and removed all other unused code.
 
 2008-04-17  Philip Van Hoof  <philip@codeminded.be>
 
@@ -6370,7 +6379,7 @@
 	Introduced tracker_set_status
 
 2008-04-16  Patch from Szilveszter Farkas <szilveszter.farkas@gmail.com>
-	
+
 	* src/libstemmer/src_c/stem_UTF_8_hungarian.c
 	* src/libstemmer/src_c/stem_UTF_8_hungarian.h
 	* src/libstemmer/Makefile.am
@@ -6378,9 +6387,9 @@
 	* src/tracker-preferences/tracker-preferences.glade
 	* data/languages/stopwords.hu
 	* data/languages/Makefile.am
-	
+
 	Added hungarian stemmer and stopword list
-	
+
 2008-04-14  Carlos Garnacho  <carlos@imendio.com>
 
         Implement a database abstraction interface, with a sqlite
@@ -6417,8 +6426,8 @@
 	* configure.ac:
 	* src/libtracker-common/tracker-config.[ch]: Added options
 	"index-mounted-directories" and "index-removable-devices".
-	
-	* src/trackerd/Makefile.am: 
+
+	* src/trackerd/Makefile.am:
 	* src/trackerd/tracker-hal.[ch]: Added to do all things HAL.
 
 	* src/trackerd/tracker-db.c:
@@ -6428,7 +6437,7 @@
 	* src/trackerd/tracker-indexer.c:
 	* src/trackerd/tracker-inotify.c:
 	* src/trackerd/tracker-process-files.[ch]:
-	* src/trackerd/tracker-utils.[ch]: 
+	* src/trackerd/tracker-utils.[ch]:
 	* src/trackerd/trackerd.c: Moved a LOT of code out of
 	tracker-utils.[ch] and into tracker-process-files.[ch] since
 	that's the only place they were used. Moved HAL code out to new
@@ -6505,18 +6514,18 @@
 2008-04-08  Ivan Frade  <ivan.frade@nokia.com>
 
 	Hide indexer struct to improve modularity. Bug #525403
-	
+
 	* src/trackerd/tracker-utils.h: WordDetails moved to the indexer.
-	
+
 	* src/trackerd/tracker-dbus-search.c: Levenshtein algorythm moved
 	to the indexer.
-	
-	* src/trackerd/tracker-cache.c: 
+
+	* src/trackerd/tracker-cache.c:
 	* src/trackerd/trackerd.c: Updated to new functions
 
 	* src/trackerd/tracker-indexer.[ch]: Hide indexer struct
 	implementation. Added Levenshtein code and WordDetails struct.
-	
+
 
 2008-04-08  Ivan Frade  <ivan.frade@nokia.com>
 
@@ -6525,22 +6534,22 @@
 	* src/trackerd/tracker-service-manager.h
 	* src/trackerd/tracker-service.c: Added files missing in previous
 	commit.
-	
+
 2008-04-08  Ivan Frade  <ivan.frade@nokia.com>
 
 	Service type information encapsulated in TrackerService GObject.
 	Service-type/mime/mime prefixes relations in tracker_service_manager.
 	Bug #523200
-	
+
 	* data/services/default.service: Add HasFulltext, HasMetadata,
 	HasThumbs properties with proper values.
-	
+
 	* data/sqlite-stored-procs.sql: Add method to obtain service
 	type related mimes.
 
 	* src/trackerd/Makefile.am: Add new files for compilation.
-	
-	* src/trackerd/tracker-process-files.c: 
+
+	* src/trackerd/tracker-process-files.c:
 	* src/trackerd/trackerd.c:
 	* src/trackerd/tracker-dbus-keywords.c
 	* src/trackerd/tracker-dbus-search.c
@@ -6551,8 +6560,8 @@
 	* src/trackerd/tracker-db-sqlite.h
 	* src/trackerd/tracker-db.c
 	* src/trackerd/tracker-db-email.c: Use new methods.
-	
-	* src/trackerd/tracker-db-sqlite.c: Use new methods. 
+
+	* src/trackerd/tracker-db-sqlite.c: Use new methods.
 	(tracker_db_mime_query): New helper function to obtain mime and mime
 	prefixes for a service type.
 	(tracker_db_get_mimes_for_service_id):
@@ -6560,19 +6569,19 @@
 	tracker_db_mime_query.
 	(db_row_to_service): Convert a service type row in the database to
 	a new TrackerService object.
-	
+
 	* src/tracker-preferences/tracker-preferences.c:
 	* src/trackerd/tracker-dbus.[ch]: renamed TRACKER_SERVICE to
 	TRACKER_DBUS_SERVICE
-	
+
 	* src/trackerd/tracker-indexer.c: Reformatted code.
-	
+
 	* src/trackerd/tracker-metadata.c: Removed hardcoded mimes and
 	logic to solve mime->service_type
-	
+
 	* src/trackerd/tracker-service-manager.[ch]: Code handling service
 	types, mimes and mime prefixes.
-	
+
 	* src/trackerd/tracker-service.[ch]: GObject representing a
 	service type
 
@@ -6590,7 +6599,7 @@
 	Using standard C functions to parse dates. Bug #526727
 	Replaced iso8160 with iso8601
 
-	* tracker-extract.[ch]: Replaced tracker_generic_data_extractor 
+	* tracker-extract.[ch]: Replaced tracker_generic_data_extractor
 	and his	auxiliar functions with tracker_generic_date_to_iso8601,
 	strftime and strptime.
 
@@ -6617,7 +6626,7 @@
 	* src/trackerd/tracker-email-evolution.h:
 	* src/trackerd/tracker-email-kmail.h:
 	* src/trackerd/tracker-email-thunderbird.h: Removed, no longer
-	necessary. The three modules share now the same public interface, 
+	necessary. The three modules share now the same public interface,
 	and these are called through GModule.
 
 	* src/trackerd/tracker-email.[ch]: Use GModule to load the selected
@@ -6655,10 +6664,10 @@
 
 	* src/trackerd/Makefile.am:
 	* src/trackerd/tracker-process-files.[ch]:
-	* src/trackerd/tracker-process-requests.[ch]: 
+	* src/trackerd/tracker-process-requests.[ch]:
 	* src/trackerd/trackerd.c: Added these files to split out the
 	indexing functionality which was in trackerd.c. Fixes bug #521803.
-	
+
 	* src/trackerd/tracker-utils.h: Removed two members of the Tracker
 	struct which are not used globally.
 
@@ -6698,7 +6707,7 @@
 	* src/trackerd/tracker-email-utils.c:
 	* src/trackerd/tracker-utils.h: Fix missing
 	libtracker-common/tracker-config.h and
-	libtracker-common/tracker-log.h dependencies which requires it.  
+	libtracker-common/tracker-log.h dependencies which requires it.
 
 2008-03-10  Martyn Russell  <martyn@imendio.com>
 
@@ -6714,42 +6723,42 @@
 
 2008-03-06  Martyn Russell  <martyn@imendio.com>
 
-	* src/libtracker-common/tracker-configuration.c: 
+	* src/libtracker-common/tracker-configuration.c:
 	* src/qdbm/myconf.c:
-	* src/text-filters/ooo_converter/o3read.c: 
+	* src/text-filters/ooo_converter/o3read.c:
 	* src/tracker-applet/tracker-applet.c: Fixed compiler warnings.
 
 	* src/libtracker-gtk/tracker-keyword-store.c:
 	(tracker_keyword_store_drag_data_get): Change
 	gtk_selection_data_set() to gtk_selection_data_set_text() instead,
 	saves us casting to a guchar pointer.
-	
+
 	* src/libtracker-gtk/tracker-metadata-tile.c: Removed unused
-	date_to_str() function. 
-	
+	date_to_str() function.
+
 	* src/tracker-search-tool/tracker-search-tool.c: Removed unused
 	tracker_search_select_service_type_by_string() function.
-	
+
 	* src/trackerd/tracker-email-thunderbird.c: Remove unused
 	get_boolean_from_string() function.
-	
+
 	* src/trackerd/tracker-indexer.c: Include ISO definitions before
 	including math.h so we don't get warnings about lrintf() usage.
-	
+
 	* src/trackerd/trackerd.c: Removed unused set_update_count()
-	function. 
+	function.
 
 2008-03-06  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/Makefile.am:
 	* src/libtracker-common/tracker-config.[ch]:
 	* src/libtracker-common/tracker-language.[ch]: Moved these files
-	here from src/trackerd so the API can be shared by all components. 
+	here from src/trackerd so the API can be shared by all components.
 
 	* src/libtracker-common/tracker-log.[ch]: Created by taking these
 	functions from the src/trackerd/tracker-utils.c log functions.
 	This is based on a patch from Ivan Frade.
-	
+
 	* src/trackerd/Makefile.am:
 	* src/trackerd/tracker-apps.c:
 	* src/trackerd/tracker-cache.c:
@@ -6773,10 +6782,10 @@
 	* src/trackerd/tracker-metadata.c:
 	* src/trackerd/tracker-parser.c:
 	* src/trackerd/tracker-rdf-query.c:
-	* src/trackerd/tracker-utils.c: 
+	* src/trackerd/tracker-utils.c:
 	* src/trackerd/trackerd.c: Update the include statments in most of
 	these files to use libtracker-common's config/log headers.
-	
+
 2008-03-05  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-config.[ch]: Added.
@@ -6784,19 +6793,19 @@
 	* src/trackerd/tracker-stemmer.[ch]: Removed.
 
 	* src/trackerd/Makefile.am:
-	* src/trackerd/tracker-cache.c: 
-	* src/trackerd/tracker-db-sqlite.c: 
-	* src/trackerd/tracker-db.c: 
-	* src/trackerd/tracker-dbus-methods.c: 
+	* src/trackerd/tracker-cache.c:
+	* src/trackerd/tracker-db-sqlite.c:
+	* src/trackerd/tracker-db.c:
+	* src/trackerd/tracker-dbus-methods.c:
 	* src/trackerd/tracker-dbus-search.c:
 	* src/trackerd/tracker-dbus.c:
 	* src/trackerd/tracker-email-evolution.c:
-	* src/trackerd/tracker-email-thunderbird.c: 
+	* src/trackerd/tracker-email-thunderbird.c:
 	* src/trackerd/tracker-email-utils.c:
 	* src/trackerd/tracker-email.c:
-	* src/trackerd/tracker-indexer.c: 
-	* src/trackerd/tracker-parser.c: 
-	* src/trackerd/tracker-utils.[ch]: 
+	* src/trackerd/tracker-indexer.c:
+	* src/trackerd/tracker-parser.c:
+	* src/trackerd/tracker-utils.[ch]:
 	* src/trackerd/trackerd.c: Moved all configuration options to
 	their own module for type and limit checking combined with
 	property notification and signalling. This fixes bug #513486.
@@ -6843,11 +6852,11 @@
 
 	* Lots of minor tweaks
 	* make  aplet prefs more hig compliant
-	
+
 
 2008-02-27 Jamie McCracken <jamiemcc at gnome org>
 
-	* stopped applet respawn of trackerd (via dbus activation unpause method) when killed whilst smart paused 
+	* stopped applet respawn of trackerd (via dbus activation unpause method) when killed whilst smart paused
 	* Made progress/animation of email indexing in step
 	* Added index merging progress to tooltip
 	* Fixed clean exiting of trackerd when paused and in index merge state
@@ -6885,9 +6894,9 @@
 	* added tmp black list of frequently changing files
 
 2007-02-24 patches from Jerry Tan <jerry.tan@sun.com>
-	
+
 	* added web history
-	
+
 
 2008-02-22  Luca Ferretti  <elle.uca@libero.it>
 
@@ -6900,7 +6909,7 @@
 
 	* Updated applet
 	* removed popup window and replaced with tooltip to indicate status/progress
-	* added smart pause by tracking X events for mouse and keyboard 
+	* added smart pause by tracking X events for mouse and keyboard
 	* added more options to not show animation and hide icon
 
 2008-02-17  Saleem Abdulrasool  <compnerd@compnerd.org>
@@ -6939,7 +6948,7 @@
 	* src/libtracker-gtk/tracker-utils.h:
 	  src/libtracker-gtk/tracker-utils.c:
 	  src/libtracker-gtk/tracker-tag-bar.c:
-          Fix for bug #494892 - Label for/labeled by relation missing for 
+          Fix for bug #494892 - Label for/labeled by relation missing for
           add tag button.
 
 	* src/libtracker-gtk/tracker-metadata-tile.c:
@@ -6964,7 +6973,7 @@
 2008-02-03 Patch from Carlos Garnacho  <carlos@imendio.com>
 
 	* GNOME Bug #509601: make tracker-extract more modular using dynamically loaded libraries
-	
+
 2008-01-30 Luca Ferretti  <elle.uca@libero.it>
 
 	* src/tracker-preferences/tracker-preferences.c:
@@ -7080,7 +7089,7 @@
 
 
 2007-11-30 Jerry Tan <jerry.tan@sun.com>
-        fix gnome bug 495528, disable Save Result As when search type like email, applications 
+        fix gnome bug 495528, disable Save Result As when search type like email, applications
         * src/tracker-search-tool/tracker-search-tool.c
 
 
@@ -7089,7 +7098,7 @@
         * src/trackerd/tracker-utils.h
         * src/trackerd/tracker-utils.c
         * src/trackerd/trackerd.c
- 
+
 
 2007-11-26 Marcus Fritzsch <m at fritschy dot de>
 
@@ -7279,7 +7288,7 @@
 	trackerd.c into a new file called tracker-poll.c.
 	* Update files to #include "tracker-watch.h".
 	* Update Makefile.am to build the correct file monitoring backend.
-	Drop removed files like tracker-inotify.h, tracker-fam.h, 
+	Drop removed files like tracker-inotify.h, tracker-fam.h,
 	tracker-win-fs-changes.h and add tracker-watch.h to trackerd_SOURCES.
 
 
@@ -7296,7 +7305,7 @@
 
 
 2007-10-31 Patch from Thiago Marcos P. Santos <tmpsantos@gmail.com>
-	
+
 	* escape string in sql fix
 
 
@@ -7459,15 +7468,15 @@
 	* Split legacy deskbar handler into two files, static and live.
 	* Don't show static tracker search option when only live search is enabled
 	  This fixes Gnome #474660.
-	
-	* Introduce support for MUAs Thunderbird and KMail in both 
+
+	* Introduce support for MUAs Thunderbird and KMail in both
 	  legacy and new deskbar handlers
-	  
+
 	* Check that t-s-t is installed before showing static handler as available
 	  extension. This closes Debian #441889.
-	  
+
 	It should be noted that recent deskbar work has closed Gnome #474131 as well.
-	
+
 	Commited and approved by kamstrup.
 
 
@@ -7505,7 +7514,7 @@
 	* Use O_NOATIME mode to read emails with GMime
 
 
-2007-09-07  Patch from Christian Persch  
+2007-09-07  Patch from Christian Persch
 
 	* Fixed HIG violations in tracker-preferences
 
@@ -7525,7 +7534,7 @@
 	* Added initial support for index merging
 	* Made sure stats no longer reset
 	* Fixed runaway memory usage of sqlite in indexer
-	
+
 
 2007-09-04 Jamie McCracken <jamiemcc at gnome org>
 
@@ -7542,7 +7551,7 @@
 
 
 2007-09-03 Mikkel Kamstrup Erlandsen <mikkel.kamstrup@mail.com>
-	
+
 	* python/deskbar-handler/tracker-module.py
 	  Add additional standard actions
 
@@ -7564,7 +7573,7 @@
 
 
 2007-08-19 Patch from Marcus Fritzsch <fritschy at googlemail com>
-	
+
 	* Added option to skip mounted directories when indexing
 	* added safeguards to html and imagemagick extractors to prevent crashers
 	* added safeguard to app indexing
@@ -7595,7 +7604,7 @@
 
 	* Fix bug #131842 from Ubuntu
 
-	
+
 2007-08-13 Laurent Aguerreche <laurent.aguerreche@free.fr>
 
 	* Replace "g_slist_length(list)>0" with "list!=NULL" to check
@@ -7655,7 +7664,7 @@
 
 
 2007-08-07 Michael Biebl <mbiebl at gmail com>
-	
+
 	* Generate the D-Bus client-side bindings automatically from the
 	introspection XML file
 
@@ -7673,19 +7682,19 @@
 
 
 2007-08-04 Patch from Marcus Fritzsch <fritschy at googlemail com>
-	
+
 	* fixed crasher in email indexing when parsing mimes
 	* updated applet
 	* added tracker-preferences man page
 
 
 2007-08-04 Patch from Anders Rune Jensen <anders@iola.dk>
-	
+
 	* Made tracker compilable on windows
 
 
 2007-08-02 Patch from Marcus Fritzsch <fritschy at googlemail com>
-	
+
 	* Made generic error display window
 	* fixed crasher in tsts - added check for error when calculating hit count
 
@@ -7698,7 +7707,7 @@
 
 
 2007-07-29 Patch from Marcus Fritzsch <fritschy at googlemail com>
-	
+
 	* Removed small chunk of whitespace from being parsed into indexer
 
 
@@ -7706,7 +7715,7 @@
 
 	* Fixed printing of date for audio files in TST
 
-	
+
 2007-07-25 Patch from Jerry Tan <Jerry.Tan@Sun.COM>
 
 	* updated applet to 0.6.0 settings
@@ -7740,7 +7749,7 @@
 
 
 2007-07-22 Patch from Marcus Fritzsch <fritschy at googlemail com>
-	
+
 	* fixed service names on command line tools
 	* updated man pages
 
@@ -7774,7 +7783,7 @@
 
 
 2007-07-21 Patch from Marcus Fritzsch <fritschy at googlemail com>
-	
+
 	* updated man pages
 
 
@@ -7803,7 +7812,7 @@
 
 	* Fixed poppler extractor
 	* Fix for AMD64 setrlimit
-	
+
 
 2007-07-17 Patch from Andreas Eckstein <andreas.eckstein@gmx.net>
 
@@ -7816,7 +7825,7 @@
 	* Made all tracker calls async
 	* Gconf settings for separator position
 	* Fixed bug in tagbar where instruction text would be saved as keywords
-	
+
 
 2007-07-17 Laurent Aguerreche <laurent.aguerreche@free.fr>
 
@@ -7831,7 +7840,7 @@
 
 
 2007-07-17 Patch from Marcus Fritzsch <fritschy at googlemail com>
-	
+
 	* Added MaxTextWords limit to config
 	* small compiler warning fixes
 
@@ -7841,19 +7850,19 @@
 	* Fixed metadata tile to display for all cats
 	* Fixed TST to display all cats
 	* Fixed various bugs for the above
-		
+
 
 
 2007-07-15 Patch from Marcus Fritzsch <fritschy at googlemail com>
-	
+
 	* Fixed mem leak and some cleanups
 	* added initial sleep config variable
 
 
 2007-07-13  Patch from Luca Ferretti  <elle.uca@libero.it>
-	
+
 	* cosmetic changes to tst
-	
+
 
 2007-07-13 Patch from Jerry Tan <Jerry.Tan@Sun.COM>
 
@@ -7871,7 +7880,7 @@
 
 	* Added NULL to terminate some string arrays in tracker-metadata-tile.c
 
-	
+
 2007-07-10 Patch from Jerry Tan <Jerry.Tan@Sun.COM>
 
 	* Added GetStatus Dbus nmethod and tracker-status app
@@ -7892,7 +7901,7 @@
 
 	* src/tracker-search-tool/tracker-search-tool.desktop.in.in:
 	mark Name and Comment as translatable
-	
+
 	* trackerd.desktop.in.in: update Comment
 
 
@@ -7914,7 +7923,7 @@
 
 	* README: updates
 	* Low Memory mode added to config file
-	* Deskbar handler README	
+	* Deskbar handler README
 
 
 2007-07-09 Jamie McCracken <jamiemcc at gnome org>
@@ -7943,7 +7952,7 @@
 2007-07-04 Jamie McCracken <jamiemcc at gnome org>
 
 	* removed calls to g_mime_stream_close as they appear to be crashing tracker
-	
+
 
 2007-07-03  Luca Ferretti  <elle.uca@libero.it>
 
@@ -7976,7 +7985,7 @@
 
 	Besides, make clean remove .desktop files and make dist includes
 	.desktop.in in released packages. Or, at least, this is the
-	desider behavior...	
+	desider behavior...
 
 2007-07-03  Luca Ferretti  <elle.uca@libero.it>
 
@@ -7993,7 +8002,7 @@
 
 	* src/tracker-preferences/Makefile.am:
 	Add -DTRACKER_LOCALEDIR in INCLUDES
-	
+
 	* src/tracker-preferences/tracker-preferences-main.c: (main):
 	Enable localization at runtime.
 
@@ -8003,8 +8012,8 @@
 	* configure.ac:
 	Enable localization for trackerd.desktop file. It's useful for
 	gnome-session-properties 2.19/2.20. I'm not sure 'make dist'
-	will include the right files :-( 
-	
+	will include the right files :-(
+
 	* trackerd.desktop.in: moved...
 	* trackerd.desktop.in.in: ...here, plus changes to
 	enable translations and removal of spurious fr translation.
@@ -8032,7 +8041,7 @@
 	* fix bad parsing of summary file
 	* used g_slice
 	* fixed mime type of attachments
-   
+
 
 2007-06-30 Patch from B Berteh <berteh@hotmail.com>
 
@@ -8087,12 +8096,12 @@
 	* Added support for And/Or
 	* Added IDF (inverse document frequency) ranking for multiple word searches
 	* added preliminary support for wildcards (not fully operational yet)
-	
+
 
 2007-06-06  Mikkel Kamstrup Erlandsen  <mikkel.kamstrup@gmail.com>
 
 	* python/deskbar-handler/tracker-handler.py:
-	Fix bug 430252, crash on conversion to ascii. 
+	Fix bug 430252, crash on conversion to ascii.
 
 2007-05-26  Claude Paroz  <claude@2xlibre.net>
 
@@ -8128,7 +8137,7 @@
 	* Got stats working
 	* renabled backup of user defined metadata
 	* fixed crashers in email indexing
-	* fixed too many open file descriptors by closing them 
+	* fixed too many open file descriptors by closing them
 
 
 2007-04-28 Tshepang Lekhonkhobe <tshepang@gmail.com>
@@ -8158,7 +8167,7 @@
 	* Fixed bug whereby directories exceeding the max number of watches would not be indexed (also fixed/applicable to NFS mounts)
 	* Fixed email attachment indexing
 	* Improved text parsing
-	
+
 
 
 2007-04-05  Edward Duffy <eduffy@gmail.com>
@@ -8222,7 +8231,7 @@
 
 	* Removed polling functionality
 	* Startup checks now include test for deletions in dirs that have changed
-	* Index directories bottom up so indexing resumes from where it left off if stopped 
+	* Index directories bottom up so indexing resumes from where it left off if stopped
 	* made sure tmp dir and /proc and /dev are not indexed
 
 
@@ -8298,7 +8307,7 @@
 
 2007-03-01 patch from John Stowers <john.stowers@gmail.com>
 
-	* Add libtracker-gtk 
+	* Add libtracker-gtk
 
 
 2007-02-28  Jamie McCracken <jamiemcc at gnome org>
@@ -8332,7 +8341,7 @@
 
 	* src/trackerd/trackerd.c:
 	Use "VALUE" not "value" in --help for -t and -v explanation
-	as any other option 
+	as any other option
 
 2007-02-18  Jamie McCracken <jamiemcc at gnome org>
 
@@ -8389,7 +8398,7 @@
 
 	* fixed bug where moving a file would not update index of the new filename
 	* made some of the db data static
-	
+
 
 2007-01-28 Patch from Michael Biebl <mbiebl at gmail com>
 
@@ -8398,7 +8407,7 @@
 
 
 2007-01-28  Patch from Laurent Aguerreche <laurent aguerreche at free fr>
-	
+
 	* email fixes
 	* improved imap4 support
 	* memory leak fix in indexer
@@ -8443,12 +8452,12 @@
 2007-01-22  Luca Ferretti  <elle.uca@libero.it>
 
 	* src/libtracker/tracker-stats.c:
-	
+
 	Port tracker-stats to GOption and mark translatable strings.
 	Fix bug 397940.
 
 2007-01-21 Patch from Daniel Fullmer <cgibreak at gmail com>
-	
+
 	* fix for parallel make
 
 2007-01-21 Patch from Michael Biebl <mbiebl at gmail com>
@@ -8463,7 +8472,7 @@
 	* Added a verbosity command line param
 	* Made sure all indeixng occurs under a single transaction
 	* removed superflous code
-	
+
 
 2007-01-21  Kjartan Maraas  <kmaraas@gnome.org>
 
@@ -8475,7 +8484,7 @@
 	* changed mmap back to shared as optimisation would destroy the index
 	* made indexing super fast
 	* smoothed out indexing so that it (virtually) never slows the system down
-	* made default full throttle (turbo) 
+	* made default full throttle (turbo)
 	* Added new high speed index flusher
 	* Improved word descriminator
 
@@ -8555,7 +8564,7 @@
 	* Added a note on the reason why SQLite is statically-linked
 
 2007-01-03 Laurent Aguerreche <laurent aguerreche at free fr>
-	
+
 	* improved email support
 	* added imap support
 	* linked in db email support
@@ -8579,7 +8588,7 @@
 	* Added db support for emails
 	* added indexing support for emails
 	* optimised metadata insertion
-	
+
 2007-01-01  David Lodge <dave@cirt.net>
 
 	* configure.in: Added en_GB
@@ -8646,7 +8655,7 @@
 	about changes, see http://mail.gnome.org/archives/tracker-list/2006-November/msg00382.html
 
 2006-11-29 Patch from Michael Biebl <mbiebl at gmail com>
-	
+
 	* cleaned up makefiles for debian compliance
 	* removed debian subfolder from cvs
 	* fixed make dist
@@ -8656,10 +8665,10 @@
 	* Cleaned up Makefiles
 	* set executable scripts to libdir and not datadir
 	* added missing license/copyright info to files
-	
+
 
 2006-11-27 Edward Duffy <eduffy at gmail com>
-	
+
 	* made thumbnailing fdo compliant
 
 2006-11-27  Jamie McCracken <jamiemcc at gnome org>
@@ -8667,13 +8676,13 @@
 	* fixed crasher in snippet generator and made it more utf-8 friendly
 
 2006-11-26 Eugenio <me at eugesoftware com>
-	
-	* updated fuse based trackerdfs 
+
+	* updated fuse based trackerdfs
 	* omplete support for move/copy/create dir/file
 
 2006-11-26 Gergan Penkov <gergan at gmail com>
 
-	* Updated configure.in to support more distro firendly options 
+	* Updated configure.in to support more distro firendly options
 
 2006-11-21  Deji Akingunola <dakingun gmail com>
 
@@ -8733,32 +8742,32 @@
 	* made snippets wrap around when resizing t-s-t
 	* added icon to both t-s-t and desktop file
 	* reduced sqlite cache usage
-	
+
 
 2006-11-18  Jamie McCracken <jamiemcc at gnome org>
 
 	* Limited tracker-extracts memory usage using setrlimit
-	* prevents unreasonable memory usage (especially mistaken treatment of large binary files as video files) 
+	* prevents unreasonable memory usage (especially mistaken treatment of large binary files as video files)
 	* fixed rdf bug where a search term without a query could not be executed
 
 2006-11-18 Laurent Aguerreche <laurent aguerreche at free fr>
-	
+
 	* added more tmeplate filters
 	* improved use of tmp directory for temporary stuff
 
 
 2006-11-16 Laurent Aguerreche <laurent aguerreche at free fr>
-	
+
 	* added missing OOO templates to our filters
 
 
 2006-11-16 Eugenio <me at eugesoftware com>
-	
+
 	* added fuse based trackerdfs to our python tools
 
 
 2006-11-16 Edward Duffy <eduffy at gmail com>
-	
+
 	* added timeout to all external processes used by tracker
 
 
@@ -8769,19 +8778,19 @@
 	translation experience.
 
 2006-11-15 Edward Duffy <eduffy at gmail com>
-	
+
 	* added xdg-open to t-s-t with fallback to gnome-open
 
 2006-11-15 Laurent Aguerreche <laurent aguerreche at free fr>
-	
+
 	* added desktop files to debs
 
-2006-11-15  Luca Ferretti  <elle.uca@libero.it> 	 
+2006-11-15  Luca Ferretti  <elle.uca@libero.it>
 
 	 * */.cvsignore: Add cvs ingore files.
 
 2006-11-12 Laurent Aguerreche <laurent aguerreche at free fr>
-	
+
 	* changed html filter to use w3m
 
 2006-11-12 Gergan Penkov <gergan at gmail com>
@@ -8789,7 +8798,7 @@
 	* fixed dbus warning
 
 2006-11-12 Edward Duffy <eduffy at gmail com>
-	
+
 	* added abiword and xml text filters
 
 2006-11-12  Deji Akingunola <dakingun gmail com>
@@ -8805,15 +8814,15 @@
 
 	* fixed bug in rdf query so that non file objects are supported by default
 	* fixed gstreamer extractor to time out after a few seconds (this prevents it hanging with some movie files)
-	
+
 
 2006-11-10 Edward Duffy <eduffy at gmail com>
-	
+
 	* Downgraded libpoppler requirements
 
 
 2006-11-10  Deji Akingunola <dakingun gmail com>
-	
+
 	* added .desktop file for tracker-search-tool
 
 2006-11-10  Luca Ferretti  <elle.uca@libero.it>
@@ -8822,7 +8831,7 @@
 	Replace AM_GLIB_DEFINE_LOCALEDIR with a custom test and AC_DEFINE
 	due to the bug #343825 (glib vs. autoconf >= 2.60). See also
 	http://lists.debian.org/debian-gtk-gnome/2006/06/msg00001.html
-	(from Laurent Aguerreche)	
+	(from Laurent Aguerreche)
 
 2006-11-10  Luca Ferretti  <elle.uca@libero.it>
 
@@ -8863,7 +8872,7 @@
 	* added internationlisation support to tracker and t-s-t
 
 2006-11-07 Laurent Aguerreche <laurent aguerreche at free fr>
-	
+
 	* fixed bad comment tag in mplayer extractor
 
 
@@ -8884,7 +8893,7 @@
 	* cleanups to remove compiler warnings
 
 2006-11-05 Laurent Aguerreche <laurent aguerreche at free fr>
-	
+
 	* improved use of tmp directory
 	* added gstreamer based extractor for audio and video tags
 	* cleaned up other extractors
@@ -8902,8 +8911,8 @@
 	* fixed build (Makefile, not MakeFile)
 
 2006-10-30 Laurent Aguerreche <laurent aguerreche at free fr>
-	
-	* fixed and cleaned debian build 
+
+	* fixed and cleaned debian build
 	* fixed build of man pages
 
 
@@ -8918,8 +8927,8 @@
 
 
 2006-10-29 Laurent Aguerreche <laurent aguerreche at free fr>
-	
-	* Updated debian build 
+
+	* Updated debian build
 	* cleaned up process
 	* added new package for tracker-search-tool
 
@@ -8938,7 +8947,7 @@
 
 	* fixed leak in GetMetadataForFilesInFolder
 	* fixed field checking in GetMetadataForFilesInFolder
-	* added dbus argument error handling 
+	* added dbus argument error handling
 	* fixed issue with tracker-tag not reporting file not found
 	* added comamnd line args to t-s-t
 
@@ -8954,7 +8963,7 @@
 
 
 2006-10-29 Baptiste Mille-Mathias <baptiste.millemathias gmail com>
-	
+
 	* added initial manpages for the tracker command line tools
 
 
@@ -8972,7 +8981,7 @@
 2006-10-22 Eskil Bylund <eskil at letterboxes org>
 
 	* build fix for make dist
-	* fix for tracker-search-tool's handling of filenames by escaping them 
+	* fix for tracker-search-tool's handling of filenames by escaping them
 
 
 2006-10-16 Jamie McCracken <jamiemcc at gnome org>
@@ -8984,7 +8993,7 @@
 
 
 2006-10-17 Edward Duffy <eduffy at gmail com>
-	
+
 	* Made a totem extractor
 	* Fix for pdf extractor
 
@@ -8999,7 +9008,7 @@
 	* fixed a few leaks
 
 2006-10-16 Edward Duffy <eduffy at gmail com>
-	
+
 	* Made an mplayer extractor
 	* Fix for potential crasher in tracker-extract
 	* Fix for autotools
@@ -9011,7 +9020,7 @@
 
 
 2006-10-12 Marcus Fritzsch <fritschy at googlemail com>
-	
+
 	* Patch to make sure ignore dirs argument is treated as an array
 
 
@@ -9027,7 +9036,7 @@
 	* made sure only lstat is used to prevent symlink directories from being followed
 
 2006-10-11 Jedy Wang <Jedy Wang at Sun COM>
-	
+
 	* Patch to improve compilation on Solaris
 
 
@@ -9036,16 +9045,16 @@
 	* Created tracker-search-tool (based on gnome-search-tool)
 	* Bug fix for handling uri's without a leading backslash in indexing
 	* tuned indexer
-	
+
 
 
 2006-10-07 Laurent Aguerreche <laurent aguerreche at free fr>
-	
+
 	* Made Thunderbird backend aware of vfolders
 
 
 2006-10-05 Laurent Aguerreche <laurent aguerreche at free fr>
-	
+
 	* Email uri fixes
 
 
@@ -9055,12 +9064,12 @@
 
 
 2006-10-05 Marcus Fritzsch <fritschy at googlemail com>
-	
-	* Patch to make sure NULL is returned if no date is available in tracker_db_get_field_def 
+
+	* Patch to make sure NULL is returned if no date is available in tracker_db_get_field_def
 
 
 2006-10-03 Laurent Aguerreche <laurent aguerreche at free fr>
-	
+
 	* Cleaned up tracker-db-sqlite source
 	* Fixed potential crasher where g_free was being used on a g_lice allocation
 
@@ -9069,13 +9078,13 @@
 	* fixed retrieval of metadata types
 	* fixed Metadata.Get method
 	* fixed Files.GetByMimeType
-	* added python stuff to repository 
+	* added python stuff to repository
 	* added lyrics.py ripped from rhythmbox and modded by Samuel Cormier-Iijima
 	* added nautilus tag tabs written by Edward Duffy
 
 
 2006-10-03 Edward Duffy <eduffy at gmail com>
-	
+
 	* added libgsf extractor for ms office files
 	* added open document thumbnailers
 	* fix for sqlite sql
@@ -9083,12 +9092,12 @@
 
 
 2006-10-03 Anders Aagaard <aagaande at gmail com>
-	
+
 	* added ionice support
 
 
 2006-10-02 Laurent Aguerreche <laurent aguerreche at free fr>
-	
+
 	* Force email body to return plain text instead of html
 	* Fixed signedness warnings in xdgmime
 
@@ -9105,9 +9114,9 @@
 
 
 2006-10-01 Laurent Aguerreche <laurent aguerreche at free fr>
-	
+
 	* Added Kmail email support
-	* Added fixes for sqlite 
+	* Added fixes for sqlite
 
 
 2006-10-01 Jamie McCracken <jamiemcc at gnome org>
@@ -9122,7 +9131,7 @@
 
 
 2006-09-27 Edward Duffy <eduffy at gmail com>
-	
+
 	* made internal extractors external and intgrated into tracker-extract
 	* added extractors for images
 
@@ -9131,120 +9140,120 @@
 	* fix bug with search text (correct no of results now returned)
 	* got search mime , search location and search mime location working
 	* replaced bzip compression with zlib
-	
+
 
 
 2006-09-26 Samuel Cormier-Iijima <sciyoshi at gmail com>
-	
+
 	* Added #ifdefs to make libpoppler usage optional
 
 
 2006-09-26 Jamie McCracken <jamiemcc at gnome org>
 
 	* fix bug with get_metadata routine expecting metadata name and not metadata id
-	
+
 
 2006-09-25 Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* Integrated new indexer and parser into tracker/sqlite
 	* Added support for insert, update and delete
 	* performs differential indexing for updates
 	* got tracker-search to function with it
 
 2006-09-25 Edward Duffy <eduffy at gmail com>
-	
+
 	* added internal extractors for pdf, OpenDocument, Abiword and Postscript
 
 2006-09-25 Fabien VALLON <fabien at sonappart net>
-	
-	* Did an initial ogg extractor 
+
+	* Did an initial ogg extractor
 
 2006-09-25 Laurent Aguerreche <laurent aguerreche at free fr>
-	
+
 	* Added thunderbird email support
 	* Added fixes for detecting deleted and junk emails in Evolution mail parser
 
 2006-09-21 Laurent Aguerreche <laurent aguerreche at free fr>
-	
+
 	* Added detection of deleted and junk messages to email indexing
 
 
 2006-09-21 Edward Duffy <eduffy at gmail com>
-	
+
 	* added jpeg and png thumbnailers
 
 
 2006-09-21 Samuel Cormier-Iijima <sciyoshi at gmail com>
-	
+
 	* Inotify patch to clean up code
 	* Also made sure inotify timeout for file move detection is removed when no moved files are pending (this prevents tracker from peridoically waking up)
 	* added g_message support for logging messages
 
 2006-09-21 Laurent Aguerreche <laurent aguerreche at free fr>
-	
+
 	* Added initial email indexing support
 	* Added indexing of evolution emails
 	* Added indexing of email attachments
 
 
 2006-09-21 Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* Created Test suite for new indexer
 	* fixed bugs in indexer
 
 
 2006-09-19 Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* Finished tracker's new indexer
 
 
 2006-09-19 Fabien VALLON <fabien at sonappart net>
-	
+
 	* Added retrieval of tracke number to tracker-extract
 
 
 2006-09-18 Samuel Cormier-Iijima <sciyoshi at gmail com>
-	
+
 	* Added search by service option to tracker-search
 
 
 2006-09-17 Samuel Cormier-Iijima <sciyoshi at gmail com>
-	
-	* Added Goption and limit option to tracker-search 
+
+	* Added Goption and limit option to tracker-search
 
 
 2006-09-16 Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* Fixed erroneous rdf query where returned values were null
 
 
 2006-09-16 Samuel Cormier-Iijima <sciyoshi at gmail com>
-	
+
 	* Patch to fix sqlite sql
 	* Patch to fix race condition in request thread
 
 
 2006-09-16 Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* More work on tracker-indexer
 
 
 
 2006-09-12 Samuel Cormier-Iijima <sciyoshi at gmail com>
-	
+
 	* Patch to fix segfault when retrieveing metadata
 	* Patch to use g_slice_new0 instead of g_slice_new
 
 
 
 2006-09-11 Samuel Cormier-Iijima <sciyoshi at gmail com>
-	
+
 	* Patch to fix sending of null values on Dbus
 	* Also fix for erroneous g_free on a g_slice allocation
 
 
 2006-09-13 Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* Tidied up tracker-GUI
 	* Inline libsexy widget
 	* extended parser to support line by line indexing
@@ -9252,63 +9261,63 @@
 
 
 2006-09-13 Edward Duffy <eduffy at gmail com>
-	
+
 	* Enhanced tracker GUI
 	* fixed display of sexy icon entry
 
 
 2006-09-13 Jaime Frutos Morales <acidborg at gmail com>
-	
+
 	* Patch to add skeleton for tracker GUI
 
 
 2006-09-11 Samuel Cormier-Iijima <sciyoshi at gmail com>
-	
+
 	* Patch to add Goption support for tracker-tag
 
 
 2006-09-11 Laurent Aguerreche <laurent aguerreche at free fr>
-	
+
 	* Added option to disable thumbnail generation
 
 
 2006-09-11 Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* Added bug fixes to sqlite functionality
 
 
 
 2006-09-10 Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* Added rough sqlite support
 
 
 2006-09-10 Laurent Aguerreche <laurent aguerreche at free fr>
-	
-	* Fixed symlink problem 
+
+	* Fixed symlink problem
 	* More code cleanup
 
 
 2006-09-07 Laurent Aguerreche <laurent aguerreche at free fr>
-	
+
 	* Handled Dbus Connection shutdown gracefully
 	* tracker deamon now shuts down smoothly when dbus session bus is stopped
 	* Big code cleanup
 
 
 2006-09-06 Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* Finishsed db abstractions
 	* Added initial sqlite support
 
 
 2006-09-02 Laurent Aguerreche <laurent aguerreche at free fr>
-	
-	* Fix for Rdf-query parser to allow "contains" function to be called more easily 
+
+	* Fix for Rdf-query parser to allow "contains" function to be called more easily
 
 
 2006-09-02 Laurent Aguerreche <laurent aguerreche at free fr>
-	
+
 	* Added locale handling for non utf-8 files
 	* Made sure all filenames passed to posix system calls are translated to user's locale
 	* made sure all results are displayed in user's locale
@@ -9316,48 +9325,48 @@
 
 
 2006-09-02 Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* Added more abstractions for db calls
 
 2006-08-25 Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* Improved thread synchronisation speed
 	* Fixed potential deadlock as pointed out by Laurent Aguerreche <laurent aguerreche at free fr>
 	* Improved exiting
 
 2006-08-21 Gergan Penkov <gergan at gmail com>
-	
+
 	* Fix sql for an SP
 
 2006-08-21 Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* Improved thread synchronisation using G_COND and g_cond_signal and g_cond_wait
 	* Eliminated redundant mutexes (file available/metadata available)
-	* Restructured threads to be more efficient 
+	* Restructured threads to be more efficient
 	* Added two phase program halt so that stuff ends gracefully and all threads are exited smoothly
 
 
 2006-08-21 Laurent Aguerreche <laurent aguerreche at free fr>
-		
+
 	* Patch to fix signal handling amongst threads
 	* Jamie McCracken heavily modified this patch to make sure it avoids deadlocks and race conditions
 
 
 2006-08-19 Laurent Aguerreche <laurent aguerreche at free fr>
-	
-	* Patch to fix debain build 
+
+	* Patch to fix debain build
 	* split up tracker into several debs
 	* Fixed make dist in autofoo
 
 
 2006-08-19 Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* Abstracted all mysql specific stuff into tracker-db-mysql
 	* Paved the way to support alternative backends like sqlite/qdbm
 
 
 2006-08-13 Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* Added new tracker-file-convert to convert text file into list of unique words with associated counts
 	* Added support for stemming
 	* Added new parsing word breaker
@@ -9365,56 +9374,56 @@
 
 
 2006-08-13 Marcus Fritzsch <fritschy at googlemail com>
-	
+
 	* Patch to make sure a dbus reply is sent if the rdf query string is NULL or erroneous
 
 
 2006-08-03 Marcus Fritzsch <fritschy at googlemail com>
-	
+
 	* Patch to make sure query is not null in tracker_exec_sql
 
 
 2006-08-03 Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* Added new Dbus methods for File Exists and File GetServiceType
 
 
 2006-08-02 Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* Added new command line tool tracker-files
 
 
 2006-08-02 Edward Duffy <eduffy at gmail com>
-	
+
 	* Patch for small fix to XdgMime
 
 
 
 2006-08-02 Jedy Wang <Jedy Wang at Sun COM>
-	
+
 	* Patch to add build instructions for Solaris to README file
 
 
 
 2006-08-02 Laurent Aguerreche <laurent aguerreche at free fr>
-	
+
 	* Patch to fix sql
 
 
 2006-08-01 Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* Added offset parameter to search methods
 
 
 
 2006-07-31 Jedy Wang <Jedy Wang at Sun COM>
-	
+
 	* Patch to improve compilation on Solaris
 
 
 
 2006-07-31 Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* Added realpath for file parameters in command line tools
 	* Improved search terms to *and* them by default
 	* added support for OR in search terms
@@ -9423,61 +9432,61 @@
 
 
 2006-07-30 Marcus Fritzsch <fritschy at googlemail com>
-	
+
 	* Patch to make build more debian friendly
 
 
 2006-07-30 Jedy Wang <Jedy Wang at Sun COM>
-	
+
 	* Patch to fix crasher on solaris
 
 
 
 2006-07-30 Christoph Laimburg <christoph laimburg at rolmail net>
-	
+
 	* Patch to replace deprecated dbus call (dbus_connection_disconnect)
 
 
 2006-07-30 Samuel Cormier-Iijima <sciyoshi at gmail com>
-	
+
 	* Patch to add RegExp rdf query extension support
 
 
 2006-07-30 Samuel Cormier-Iijima <sciyoshi at gmail com>
-	
+
 	* Modified patch to make no watch directories parameter functional
-	
+
 
 
 2006-07-30 Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* Added new command line tools (tracker-tag)
 	* Fixed bugs in tracker-search methods
 	* Fixed bugs in tracker-query
 
 
 2006-07-25 Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* Sorted out libtracker
 	* updated to reflect new dbus interfaces
 	* Added new command line tools
 
 
 2006-07-22  Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* Created new dbus interface for Search and Files
 	* Added new methods to create richer dbus functionality
 	* Ported over existing metadata methods to new interface
 
 
 2006-07-18  Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* Created new dbus interface for Keywords
 	* Added new methods for adding, removing and searching keywords
 
 
 2006-07-11  Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* Created new dbus interface for Metadata
 	* Added new methods for registering and querying metadata types
 	* Ported over existing metadata methods to new interface
@@ -9485,14 +9494,14 @@
 
 
 2006-06-30  Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* Added New Dbus Interface Methods
 	* Added GetStats, GetServices and GetVersion
 
 
 
 2006-06-12  Jamie McCracken <jamiemcc at gnome org>
-	
+
 	* Reworked rdf query functionality
 	* Optimised it for performamce
 	* Added new extensions for Contains and StartsWith
@@ -9500,7 +9509,7 @@
 
 
 2006-05-17  Gergan Penkov <gpp666_999 at yahoo de>
-	
+
 	* Fix for conifgure in (added ssl linking due to bug in mysql)
 
 
@@ -9552,7 +9561,7 @@
 
 2006-04-22  Nate Nielsen  <nielsen at memberwewbs com>
 
-	* Fix compile warnings, crasher 
+	* Fix compile warnings, crasher
 
 
 2006-03-28  Jamie McCracken <jamiemcc at gnome org>
@@ -9588,9 +9597,9 @@
 2006-01-11  Jamie McCracken <jamiemcc at gnome org>
 
 	* Improved file change handling by creating a pending file
-	  queue and a pending File Database table  This allows changes 
+	  queue and a pending File Database table  This allows changes
 	  awaiting processing by the tracker daemon to be handled much
-	  more efficiently with respect to memory usage 
+	  more efficiently with respect to memory usage
 
 
 2006-01-06  Jamie McCracken <jamiemcc at gnome org>
@@ -9598,7 +9607,7 @@
 	* Added fallback polling mechanism to trackerd c  This kicks
 	  in if iNotify/FAM is not available (IE if home directory
 	  is on an NFS mount) or if iNotify/FAM watch limits have
-	  been exceeded 
+	  been exceeded
 
 
 2005-12-13  Jamie McCracken <jamiemcc at gnome org>

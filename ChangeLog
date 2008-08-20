@@ -1,3 +1,14 @@
+2008-08-20  Martyn Russell  <martyn@imendio.com>
+
+	* configure.ac: Clean up and remove the --enable-debug-tools. The
+	-g option is automatic with autotools and most packaging systems
+	(like debian's) have an option to strip binaries of debug symbols.
+	In the worst case we can always use CFLAGS="..." before running
+	./autogen.sh anyway.
+	
+	* src/trackerd/tracker-monitor.c: Fixed a nasty NULL deference
+	spotted by Ross Burton.
+
 2008-08-20  Carlos Garnacho  <carlos@imendio.com>
 
 	* tracker.pc.in:

@@ -1344,11 +1344,9 @@ tracker_monitor_add (TrackerMonitor *monitor,
 	file_monitor = libinotify_monitor_directory (monitor, file);
 	
 	if (!file_monitor) {
-		g_warning ("Could not add monitor for path:'%s', %s", 
-			   path, 
-			   error->message);
+		g_warning ("Could not add monitor for path:'%s'", 
+			   path);
 		g_free (path);
-		g_error_free (error);
 		return FALSE;
 	}
 

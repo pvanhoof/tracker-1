@@ -24,7 +24,6 @@ endif
 
 SUBDIRS = 					\
 	libstemmer				\
-	xdgmime					\
 	$(build_qdbm)				\
 	$(build_libinotify)			\
 	libtracker-common 			\

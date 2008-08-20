@@ -983,7 +983,6 @@ AC_CONFIG_FILES([
 	src/tracker-search-tool/tracker-search-tool.desktop.in
 	src/tracker-thumbnailer/Makefile
 	src/tracker-utils/Makefile
-	src/xdgmime/Makefile
 	tests/common/Makefile
 	tests/libtracker-common/Makefile
 	tests/libtracker-db/Makefile

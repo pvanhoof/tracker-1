@@ -32,8 +32,6 @@
 #include <glib.h>
 #include <gio/gio.h>
 
-#include <xdgmime/xdgmime.h>
-
 #include "tracker-log.h"
 #include "tracker-os-dependant.h"
 #include "tracker-file-utils.h"
@@ -296,56 +294,36 @@ tracker_file_get_mtime (const gchar *uri)
 }
 
 gchar *
-tracker_file_get_mime_type (const gchar *uri)
+tracker_file_get_mime_type (const gchar *path)
 {
-	struct stat  finfo;
-	gchar	    *str;
-	const gchar *result;
-	gchar       *mime_type;
+	GFileInfo *info;
+	GFile *file;
+	GError *error = NULL;
+	gchar *content_type;
 
-	if (!tracker_file_is_valid (uri)) {
-		g_message ("URI:'%s' is no longer valid", 
-			   uri);
+	file = g_file_new_for_path (path);
+	info = g_file_query_info (file,
+				  G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
+				  G_FILE_QUERY_INFO_NONE,
+				  NULL, &error);
+
+	if (error) {
+		g_warning ("Error guessing mimetype for '%s': %s\n", path, error->message);
+		g_error_free (error);
+
 		return g_strdup ("unknown");
 	}
 
-	str = g_filename_from_utf8 (uri, -1, NULL, NULL, NULL);
+	content_type = g_strdup (g_file_info_get_content_type (info));
 
-	if (!str) {
-		g_warning ("URI:'%s' could not be converted to locale format",
-			   uri);
+	g_object_unref (info);
+	g_object_unref (file);
+
+	if (!content_type) {
 		return g_strdup ("unknown");
 	}
 
-	g_lstat (str, &finfo);
-
-	if (S_ISLNK (finfo.st_mode) && S_ISDIR (finfo.st_mode)) {
-	        g_free (str);
-		return g_strdup ("symlink");
-	}
-
-	/* Handle iso files as they can be mistaken for video files */
-	if (g_str_has_suffix (uri, ".iso")) {
-		return g_strdup ("application/x-cd-image");
-	}
-
-	result = xdg_mime_get_mime_type_for_file (uri, NULL);
-
-	if (!result || result == XDG_MIME_TYPE_UNKNOWN) {
-		if (is_text_file (str)) {
-			mime_type = g_strdup ("text/plain");
-		} else if (S_ISDIR (finfo.st_mode)) {
-			mime_type = g_strdup ("x-directory/normal");
-		} else {
-			mime_type = g_strdup ("unknown");
-		}
-	} else {
-		mime_type = g_strdup (result);
-	}
-
-	g_free (str);
-
-	return mime_type;
+	return content_type;
 }
 
 gchar *

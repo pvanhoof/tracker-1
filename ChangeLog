@@ -1,3 +1,11 @@
+2008-08-20  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/libtracker-common/tracker-file-utils.c
+	(tracker_file_get_mime_type): Replace mimetype checking with GIO.
+	* configure.in:
+	* src/Makefile.am:
+	* src/xdgmime/*: Nuked the local xdgmime copy.
+
 2008-08-20  Martyn Russell  <martyn@imendio.com>
 
 	* src/tracker-applet/tracker-applet.c: 

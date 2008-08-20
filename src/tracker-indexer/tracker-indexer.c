@@ -642,12 +642,12 @@ check_disk_space_cb (TrackerIndexer *indexer)
 	disk_space_low = check_disk_space_low (indexer);
 
 	if (disk_space_low) {
-		tracker_indexer_set_running (indexer, FALSE);
+		tracker_indexer_set_running (indexer, FALSE, TRUE);
 
 		/* The function above stops the low disk check, restart it */
 		check_disk_space_start (indexer);
 	} else {
-		tracker_indexer_set_running (indexer, TRUE);
+		tracker_indexer_set_running (indexer, TRUE, TRUE);
 	}
 
 	return TRUE;
@@ -1767,7 +1767,8 @@ tracker_indexer_get_running (TrackerIndexer *indexer)
 
 void
 tracker_indexer_set_running (TrackerIndexer *indexer,
-			     gboolean        running)
+			     gboolean        running,
+			     gboolean        flush)
 {
 	gboolean was_running;
 
@@ -1780,7 +1781,8 @@ tracker_indexer_set_running (TrackerIndexer *indexer,
 	}
 
 	if (!running) {
-		schedule_flush (indexer, TRUE);
+		 if (flush)
+			 schedule_flush (indexer, TRUE);
 		check_disk_space_stop (indexer);
 		signal_status_timeout_stop (indexer);
 
@@ -1833,7 +1835,7 @@ tracker_indexer_pause (TrackerIndexer         *indexer,
 		tracker_dbus_request_comment (request_id,
 					      "Pausing indexing");
 
-		tracker_indexer_set_running (indexer, FALSE);
+		tracker_indexer_set_running (indexer, FALSE, FALSE);
 	}
 
 	dbus_g_method_return (context);
@@ -1848,7 +1850,7 @@ pause_for_duration_cb (gpointer user_data)
 
 	indexer = TRACKER_INDEXER (user_data);
 
-	tracker_indexer_set_running (indexer, TRUE);
+	tracker_indexer_set_running (indexer, TRUE, FALSE);
 	indexer->private->pause_for_duration_id = 0;
 
 	return FALSE;
@@ -1879,7 +1881,7 @@ tracker_indexer_pause_for_duration (TrackerIndexer         *indexer,
 		tracker_dbus_request_comment (request_id,
 					      "Pausing indexing");
 
-		tracker_indexer_set_running (indexer, FALSE);
+		tracker_indexer_set_running (indexer, FALSE, FALSE);
 
 		indexer->private->pause_for_duration_id =
 			g_timeout_add_seconds (seconds,
@@ -1910,7 +1912,7 @@ tracker_indexer_continue (TrackerIndexer         *indexer,
 		tracker_dbus_request_comment (request_id,
 					      "Continuing indexing");
 
-		tracker_indexer_set_running (indexer, TRUE);
+		tracker_indexer_set_running (indexer, TRUE, FALSE);
 	}
 
 	dbus_g_method_return (context);

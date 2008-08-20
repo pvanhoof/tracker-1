@@ -5,13 +5,6 @@ include $(top_srcdir)/Makefile.decl
 SUBDIRS += tests
 endif
 
-pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = tracker.pc
-
-if ENABLE_LIBTRACKERGTK
-pkgconfig_DATA += libtracker-gtk.pc
-endif
-
 EXTRA_DIST = \
 	rdf-query-examples/80s-music.rdf \
 	rdf-query-examples/90s-music.rdf \

@@ -9,6 +9,13 @@ autostart_DATA = trackerd.desktop
 
 @INTLTOOL_DESKTOP_RULE@
 
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = tracker.pc
+
+if ENABLE_LIBTRACKERGTK
+pkgconfig_DATA += libtracker-gtk.pc
+endif
+
 configdir = $(datadir)/tracker
 
 config_DATA =						\

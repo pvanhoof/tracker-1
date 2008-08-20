@@ -843,15 +843,16 @@ AC_CONFIG_FILES([
 	data/icons/Makefile
 	data/icons/scalable/Makefile
 	data/languages/Makefile
+	data/libtracker-gtk.pc
 	data/Makefile
 	data/modules/Makefile
 	data/services/Makefile
+	data/tracker.pc
 	data/trackerd.desktop.in
 	docs/Makefile
 	filters/application/Makefile
 	filters/Makefile
 	filters/text/Makefile
-	libtracker-gtk.pc
 	Makefile
 	po/Makefile.in
 	python/deskbar-handler/Makefile
@@ -889,7 +890,6 @@ AC_CONFIG_FILES([
 	thumbnailers/application/Makefile
 	thumbnailers/image/Makefile
 	thumbnailers/Makefile
-	tracker.pc
 	utils/Makefile
 	utils/qdbm/Makefile
 ])

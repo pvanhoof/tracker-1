@@ -1,5 +1,13 @@
 2008-08-20  Carlos Garnacho  <carlos@imendio.com>
 
+	* tracker.pc.in:
+	* libtracker-gtk.pc.in: Moved also to data/
+	* configure.ac:
+	* Makefile.am:
+	* data/Makefile.am: Modify corresponding autofoo.
+
+2008-08-20  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/trackerd/Makefile.am:
 	* src/tracker-indexer/Makefile.am: Install both trackerd and
 	tracker-indexer in $(prefix)/libexec, since they're not supposed to be

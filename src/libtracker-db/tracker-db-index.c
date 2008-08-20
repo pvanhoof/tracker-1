@@ -871,7 +871,7 @@ guint32
 tracker_db_index_get_size (TrackerDBIndex *index)
 {
         TrackerDBIndexPrivate *priv;
-        guint32              size;
+        guint32                size;
 
         g_return_val_if_fail (TRACKER_IS_DB_INDEX (index), 0);
 
@@ -882,7 +882,7 @@ tracker_db_index_get_size (TrackerDBIndex *index)
         priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
 
         g_mutex_lock (priv->mutex);
-        dpfsiz (priv->index);
+        size = dpfsiz (priv->index);
         g_mutex_unlock (priv->mutex);
 
 	return size;

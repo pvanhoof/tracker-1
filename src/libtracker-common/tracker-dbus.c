@@ -300,11 +300,11 @@ tracker_dbus_request_failed (gint          request_id,
 		va_end (args);
 		
 		g_set_error (error, TRACKER_DBUS_ERROR, 0, str);
-		
 	} else if (*error != NULL) {
 		str = g_strdup ((*error)->message);
 	} else {
-		g_critical ("Unset error and no error message.");
+		str = g_strdup (_("No error given"));
+		g_warning ("Unset error and no error message.");
 	}
 
 	g_message ("---> [%d] Failed, %s",

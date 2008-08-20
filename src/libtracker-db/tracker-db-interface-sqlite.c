@@ -352,6 +352,7 @@ create_result_set_from_stmt (TrackerDBInterfaceSqlite  *interface,
 	priv = TRACKER_DB_INTERFACE_SQLITE_GET_PRIVATE (interface);
 	columns = sqlite3_column_count (stmt);
 	result = SQLITE_OK;
+        busy_count = 0;
 
 	while (result == SQLITE_OK  ||
 	       result == SQLITE_ROW ||

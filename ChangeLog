@@ -1,5 +1,29 @@
 2008-08-20  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-dbus.c:
+	(tracker_dbus_request_failed): If error is already set and there
+	is no format, we do not set str which is used in a print statement
+	and then freed. This could lead to serious stack corruption.
+
+	* src/libtracker-db/tracker-db-index-manager.c:
+	(has_tmp_merge_files): Don't print a warning with an uninitialised
+	path string.
+	
+	* src/libtracker-db/tracker-db-index.c:
+	(tracker_db_index_get_size): Actually return the size instead of
+	returning an uninitialised size variable.
+	
+	* src/libtracker-db/tracker-db-interface-sqlite.c:
+	(create_result_set_from_stmt): Set the busy count instead of
+	incrementing random memory.
+	
+	* src/libtracker-db/tracker-db-manager.c:
+	(load_service_file_xesam): If we can't map data id to a
+	TrackerFieldType, don't just use an uninitialised integer. Now we
+	use -1 and display a warning.
+
+2008-08-20  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-db/tracker-db-dbus.c:
 	(tracker_dbus_query_result_to_hash_table): Fixed a bug where
 	field_count was redefined in a deeper code block overwriting the

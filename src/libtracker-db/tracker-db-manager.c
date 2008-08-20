@@ -714,9 +714,15 @@ load_service_file_xesam (TrackerDBInterface *iface,
 						gint mapped_data_id;
 						gboolean list = FALSE;
 
-						/* We map these values to existing field types. 
-						   FIXME Eventually we should change the config file instead. */
-						
+						/* We map these values
+						 * to existing field
+						 * types. FIXME
+						 * Eventually we
+						 * should change the
+						 * config file
+						 * instead.
+						 */
+	
 						switch (data_id) {
 						case 0:
 							mapped_data_id = TRACKER_FIELD_TYPE_STRING;
@@ -739,6 +745,9 @@ load_service_file_xesam (TrackerDBInterface *iface,
 							list = TRUE;
 							mapped_data_id = TRACKER_FIELD_TYPE_STRING;
 							break;
+						default:
+							g_warning ("Couldn't map data id %d to TrackerFieldType");
+							mapped_data_id = -1;
 						}
 
 						sql = g_strdup_printf ("update XesamMetadataTypes set DataTypeID = %d where ID = %s", 

@@ -68,7 +68,6 @@ has_tmp_merge_files (TrackerDBIndexType type)
 	GFileInfo       *info;
 	GError          *error = NULL;
 	gchar           *prefix;
-	const gchar     *data_dir;
 	gchar           *dirname;
 	gboolean         found;
 
@@ -117,8 +116,7 @@ has_tmp_merge_files (TrackerDBIndexType type)
 
 	if (error) {
 		g_warning ("Could not get file information for temporary "
-			   "index files in directory:'%s', %s",
-			   data_dir,
+			   "index files, %s",
 			   error->message);
 		g_error_free (error);
 	}

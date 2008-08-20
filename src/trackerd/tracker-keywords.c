@@ -322,7 +322,7 @@ tracker_keywords_remove (TrackerKeywords        *object,
 {
 	TrackerDBInterface  *iface;
 	guint                request_id;
-	gchar               *service_id, *service_result = NULL;
+	gchar               *service_id;
 	GError              *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
@@ -370,7 +370,7 @@ tracker_keywords_remove (TrackerKeywords        *object,
 	}
 
 	org_freedesktop_Tracker_Indexer_property_remove (tracker_dbus_indexer_get_proxy (),
-							 service_result,
+							 service_type,
 							 uri,
 							 "User:Keywords",
 							 (const gchar **)keywords,

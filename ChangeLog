@@ -1,5 +1,10 @@
 2008-08-19  Philip Van Hoof  <philip@codeminded.be>
 
+	* src/trackerd/tracker-keywords.c: Removing keywords was not passing
+	service_type correctly
+
+2008-08-19  Philip Van Hoof  <philip@codeminded.be>
+
 	* src/tracker-indexer/tracker-indexer.c
 	* src/tracker-indexer/tracker-indexer.h
 	* src/libtracker-db/tracker-db-index.c: There's no need to flush the

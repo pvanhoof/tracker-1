@@ -857,6 +857,7 @@ tracker_db_index_flush (TrackerDBIndex *index)
 						     cache_flush_foreach, 
 						     priv->index);
 		} else {
+			g_warning ("Could not open index, cache was not flushed");
 			size = 0;
 		}
 	}

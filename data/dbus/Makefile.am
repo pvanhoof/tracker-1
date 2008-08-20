@@ -17,7 +17,7 @@ org.freedesktop.Tracker.Indexer_servicedir = $(DBUS_SERVICES_DIR)
 org.freedesktop.Tracker.Indexer_service_DATA = org.freedesktop.Tracker.Indexer.service
 
 %.service: %.service.in
-	@sed -e "s|\@bindir\@|$(bindir)|" $< > $@
+	@sed -e "s|@libexecdir[@]|${libexecdir}|" $< > $@
 
 EXTRA_DIST = 						\
 	$(org.freedesktop.Tracker_service_DATA)		\

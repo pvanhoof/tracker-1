@@ -1,5 +1,14 @@
 SUBDIRS = dbus modules languages icons services
 
+trackerd.desktop: trackerd.desktop.in
+	@sed -e "s|@libexec[@]|${libexecdir}|" $< > $@
+
+autostartdir = $(sysconfdir)/xdg/autostart
+autostart_in_files = trackerd.desktop.in
+autostart_DATA = trackerd.desktop
+
+@INTLTOOL_DESKTOP_RULE@
+
 configdir = $(datadir)/tracker
 
 config_DATA =						\
@@ -15,5 +24,9 @@ config_DATA =						\
 	sqlite-service-types.sql 			\
 	sqlite-metadata.sql 				\
 	sqlite-xesam.sql
+
+CLEANFILES = $(autostart_DATA)
+
+DISTCLEANFILES = $(autostart_in_files)
 
 EXTRA_DIST = $(config_DATA)

@@ -11,7 +11,7 @@ INCLUDES =								\
 	$(DBUS_CFLAGS)							\
 	$(GMODULE_CFLAGS)
 
-bin_PROGRAMS = tracker-indexer
+libexec_PROGRAMS = tracker-indexer
 
 tracker_indexer_SOURCES =						\
 	tracker-dbus.c							\

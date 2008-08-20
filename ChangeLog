@@ -1,3 +1,19 @@
+2008-08-20  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/trackerd/Makefile.am:
+	* src/tracker-indexer/Makefile.am: Install both trackerd and
+	tracker-indexer in $(prefix)/libexec, since they're not supposed to be
+	executed by the user.
+	* data/dbus/Makefile.am:
+	* data/dbus/org.freedesktop.Tracker.service.in:
+	* data/dbus/org.freedesktop.Tracker.Indexer.service.in: Look up the
+	executables in $(libexecdir)
+	* Makefile.am:
+	* data/Makefile.am:
+	* configure.ac:
+	* trackerd.desktop.in.in: Moved trackerd.desktop.in.in to data/. Also
+	correct path to trackerd.
+
 2008-08-19  Philip Van Hoof  <philip@codeminded.be>
 
 	* src/trackerd/tracker-keywords.c: Removing keywords was not passing

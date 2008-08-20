@@ -846,6 +846,7 @@ AC_CONFIG_FILES([
 	data/Makefile
 	data/modules/Makefile
 	data/services/Makefile
+	data/trackerd.desktop.in
 	docs/Makefile
 	filters/application/Makefile
 	filters/Makefile
@@ -888,7 +889,6 @@ AC_CONFIG_FILES([
 	thumbnailers/application/Makefile
 	thumbnailers/image/Makefile
 	thumbnailers/Makefile
-	trackerd.desktop.in
 	tracker.pc
 	utils/Makefile
 	utils/qdbm/Makefile

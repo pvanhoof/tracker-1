@@ -23,7 +23,7 @@ endif
 #
 # Daemon sources
 #
-bin_PROGRAMS = trackerd
+libexec_PROGRAMS = trackerd
 
 trackerd_SOURCES =							\
 	tracker-crawler.c						\

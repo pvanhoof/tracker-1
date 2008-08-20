@@ -1,3 +1,10 @@
+2008-08-19  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/trackerd/tracker-files.c
+	(tracker_files_get_metadata_for_files_in_folder):
+	Added NULL element at the end of the fields array. This fixes a
+	segfault using the method.
+	
 2008-08-19  Martyn Russell  <martyn@imendio.com>
 
 	* configure.ac:

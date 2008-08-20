@@ -756,6 +756,8 @@ tracker_files_get_metadata_for_files_in_folder (TrackerFiles           *object,
 		}
 
 	}
+	defs [g_strv_length (fields)] = NULL;
+
 
 	if (g_str_has_suffix (uri, G_DIR_SEPARATOR_S)) {
 		/* Remove trailing 'G_DIR_SEPARATOR' */
@@ -797,7 +799,7 @@ tracker_files_get_metadata_for_files_in_folder (TrackerFiles           *object,
 		} else {
 			gchar *display_field;
 
-			display_field = tracker_ontology_get_display_field (defs[i]);
+			display_field = tracker_ontology_get_display_field (defs[i-1]);
 			g_string_append_printf (sql, ", M%d.%s ", i, display_field);
 			g_free (display_field);
 			needs_join[i - 1] = TRUE;

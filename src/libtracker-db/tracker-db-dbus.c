@@ -174,7 +174,6 @@ tracker_dbus_query_result_to_hash_table (TrackerDBResultSet *result_set)
 		GValue	 transform = { 0, };
 		GValue	*values;
 		gchar  **p;
-		gint	 field_count;
 		gint	 i = 0;
 		gchar	*key;
 		GSList	*list = NULL;

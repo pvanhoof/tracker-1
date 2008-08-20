@@ -1,3 +1,18 @@
+2008-08-20  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-db/tracker-db-index.c: Don't try to open the
+	index and flush if the cache size is < 1. This should fix a
+	warning we were seeing about not being able to open the cache on
+	startup and shutdown.
+	
+	* src/trackerd/tracker-marshal.list:
+	* src/trackerd/tracker-monitor.c: Add support for libinotify to
+	know about MOVE events.
+	
+	* src/trackerd/tracker-processor.[ch]: Added a move queue and API
+	to use the new indexer move API when we know about
+	files/directories that move.
+
 2008-08-19  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/trackerd/tracker-files.c

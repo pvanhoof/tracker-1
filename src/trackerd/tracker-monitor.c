@@ -88,12 +88,17 @@ struct _TrackerMonitorPrivate {
 
 	/* Timeout id for pausing when we get IO */
 	guint          unpause_timeout_id;
+
+#ifdef USE_LIBINOTIFY
+	GHashTable    *event_pairs;
+#endif /* USE_LIBINOTIFY */
 };
 
 enum {
 	ITEM_CREATED,
 	ITEM_UPDATED,
 	ITEM_DELETED,
+	ITEM_MOVED,
 	LAST_SIGNAL
 };
 
@@ -102,18 +107,24 @@ enum {
 	PROP_ENABLED
 };
 
-static void     tracker_monitor_finalize     (GObject        *object);
-static void     tracker_monitor_set_property (GObject        *object,
-					      guint           prop_id,
-					      const GValue   *value,
-					      GParamSpec     *pspec);
-static void     tracker_monitor_get_property (GObject        *object,
-					      guint           prop_id,
-					      GValue         *value,
-					      GParamSpec     *pspec);
-static gboolean black_list_check_items_cb    (gpointer        data);
-static void     black_list_print_all         (TrackerMonitor *monitor);
-static guint    get_inotify_limit            (void);
+static void           tracker_monitor_finalize     (GObject        *object);
+static void           tracker_monitor_set_property (GObject        *object,
+						    guint           prop_id,
+						    const GValue   *value,
+						    GParamSpec     *pspec);
+static void           tracker_monitor_get_property (GObject        *object,
+						    guint           prop_id,
+						    GValue         *value,
+						    GParamSpec     *pspec);
+static gboolean       black_list_check_items_cb    (gpointer        data);
+static void           black_list_print_all         (TrackerMonitor *monitor);
+static guint          get_inotify_limit            (void);
+
+#ifdef USE_LIBINOTIFY 
+static INotifyHandle *libinotify_monitor_directory (TrackerMonitor *monitor,
+						    GFile          *file);
+static void           libinotify_monitor_cancel    (gpointer        data);
+#endif /* USE_LIBINOTIFY */
 
 static guint signals[LAST_SIGNAL] = { 0, };
 
@@ -164,6 +175,19 @@ tracker_monitor_class_init (TrackerMonitorClass *klass)
 			      G_TYPE_NONE, 
 			      3,
 			      G_TYPE_STRING,
+			      G_TYPE_OBJECT,
+			      G_TYPE_BOOLEAN);
+	signals[ITEM_MOVED] = 
+		g_signal_new ("item-moved",
+			      G_TYPE_FROM_CLASS (klass),
+			      G_SIGNAL_RUN_LAST,
+			      0,
+			      NULL, NULL,
+			      tracker_marshal_VOID__STRING_OBJECT_OBJECT_BOOLEAN,
+			      G_TYPE_NONE, 
+			      4,
+			      G_TYPE_STRING,
+			      G_TYPE_OBJECT,
 			      G_TYPE_OBJECT,
 			      G_TYPE_BOOLEAN);
 
@@ -218,17 +242,36 @@ tracker_monitor_init (TrackerMonitor *object)
 				       g_object_unref,
 				       NULL);
 
+#ifdef USE_LIBINOTIFY
+	/* We have a hash table with cookies so we can pair up move
+	 * events.
+	 */
+	priv->event_pairs = 
+		g_hash_table_new_full (g_direct_hash, 
+				       g_direct_equal,
+				       NULL,
+				       g_object_unref);
+#endif /* USE_LIBINOTIFY */
+
 	all_modules = tracker_module_config_get_modules ();
 
 	for (l = all_modules; l; l = l->next) {
 		GHashTable *monitors;
 
 		/* Create monitors table for this module */
+#ifdef USE_LIBINOTIFY
+		monitors = 
+			g_hash_table_new_full (g_file_hash,
+					       (GEqualFunc) g_file_equal,
+					       (GDestroyNotify) g_object_unref,
+					       (GDestroyNotify) libinotify_monitor_cancel);
+#else  /* USE_LIBINOTIFY */
 		monitors = 
 			g_hash_table_new_full (g_file_hash,
 					       (GEqualFunc) g_file_equal,
 					       (GDestroyNotify) g_object_unref,
 					       (GDestroyNotify) g_file_monitor_cancel);
+#endif /* USE_LIBINOTIFY */
 		
 		g_hash_table_insert (priv->modules, g_strdup (l->data), monitors);
 	}
@@ -332,6 +375,10 @@ tracker_monitor_finalize (GObject *object)
 
 	g_hash_table_unref (priv->black_list_timestamps);
 	g_hash_table_unref (priv->black_list_count);
+
+#ifdef USE_LIBINOTIFY
+	g_hash_table_unref (priv->event_pairs);
+#endif /* USE_LIBINOTIFY */
 	
 	if (priv->black_list_timeout_id) {
 		g_source_remove (priv->black_list_timeout_id);		
@@ -650,29 +697,6 @@ black_list_print_all (TrackerMonitor *monitor)
 	}
 }
 
-static const gchar *
-monitor_event_to_string (GFileMonitorEvent event_type)
-{
-	switch (event_type) {
-	case G_FILE_MONITOR_EVENT_CHANGED:
-		return "G_FILE_MONITOR_EVENT_CHANGED";
-	case G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT:
-		return "G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT";
-	case G_FILE_MONITOR_EVENT_DELETED:
-		return "G_FILE_MONITOR_EVENT_DELETED";
-	case G_FILE_MONITOR_EVENT_CREATED:
-		return "G_FILE_MONITOR_EVENT_CREATED";
-	case G_FILE_MONITOR_EVENT_ATTRIBUTE_CHANGED:
-		return "G_FILE_MONITOR_EVENT_ATTRIBUTE_CHANGED";
-	case G_FILE_MONITOR_EVENT_PRE_UNMOUNT:
-		return "G_FILE_MONITOR_EVENT_PRE_UNMOUNT";
-	case G_FILE_MONITOR_EVENT_UNMOUNTED:
-		return "G_FILE_MONITOR_EVENT_UNMOUNTED";
-	}
-
-	return "unknown";
-}
-
 static void 
 indexer_pause_cb (DBusGProxy *proxy,
 		  GError     *error,
@@ -716,6 +740,379 @@ unpause_cb (gpointer data)
 	}
 
 	return FALSE;
+}
+
+#ifdef USE_LIBINOTIFY
+
+static gchar *
+libinotify_monitor_event_to_string (guint32 event_type)
+{
+	GString *s;
+
+	s = g_string_new ("");
+
+	if (event_type & IN_ACCESS) {
+		s = g_string_append (s, "IN_ACCESS | ");
+	}	
+	if (event_type & IN_MODIFY) {
+		s = g_string_append (s, "IN_MODIFY | ");
+	}	
+	if (event_type & IN_ATTRIB) {
+		s = g_string_append (s, "IN_ATTRIB | ");
+	}	
+	if (event_type & IN_CLOSE_WRITE) {
+		s = g_string_append (s, "IN_CLOSE_WRITE | ");
+	}	
+	if (event_type & IN_CLOSE_NOWRITE) {
+		s = g_string_append (s, "IN_CLOSE_NOWRITE | ");
+	}	
+	if (event_type & IN_OPEN) {
+		s = g_string_append (s, "IN_OPEN | ");
+	}	
+	if (event_type & IN_MOVED_FROM) {
+		s = g_string_append (s, "IN_MOVED_FROM | ");
+	}	
+	if (event_type & IN_MOVED_TO) {
+		s = g_string_append (s, "IN_MOVED_TO | ");
+	}	
+	if (event_type & IN_CREATE) {
+		s = g_string_append (s, "IN_CREATE | ");
+	}	
+	if (event_type & IN_DELETE) {
+		s = g_string_append (s, "IN_DELETE | ");
+	}	
+	if (event_type & IN_DELETE_SELF) {
+		s = g_string_append (s, "IN_DELETE_SELF | ");
+	}	
+	if (event_type & IN_MOVE_SELF) {
+		s = g_string_append (s, "IN_MOVE_SELF | ");
+	}	
+	if (event_type & IN_UNMOUNT) {
+		s = g_string_append (s, "IN_UNMOUNT | ");
+	}	
+	if (event_type & IN_Q_OVERFLOW) {
+		s = g_string_append (s, "IN_Q_OVERFLOW | ");
+	}	
+	if (event_type & IN_IGNORED) {
+		s = g_string_append (s, "IN_IGNORED | ");
+	}	
+	
+	/* helper events */
+	if (event_type & IN_CLOSE) {
+		s = g_string_append (s, "IN_CLOSE* | ");
+	}	
+	if (event_type & IN_MOVE) {
+		s = g_string_append (s, "IN_MOVE* | ");
+	}
+	
+	/* special flags */	
+	if (event_type & IN_MASK_ADD) {
+		s = g_string_append (s, "IN_MASK_ADD^ | ");
+	}	
+	if (event_type & IN_ISDIR) {
+		s = g_string_append (s, "IN_ISDIR^ | ");
+	}	
+	if (event_type & IN_ONESHOT) {
+		s = g_string_append (s, "IN_ONESHOT^ | ");
+	}	
+
+	s->str[s->len - 3] = '\0';
+
+	return g_string_free (s, FALSE);	
+}
+
+static void 
+libinotify_monitor_event_cb (INotifyHandle *handle,
+			     const char    *monitor_name,
+			     const char    *filename,
+			     guint32        event_type,
+			     guint32        cookie,
+			     gpointer       user_data)
+{
+	TrackerMonitor *monitor;
+	GFile          *file;
+	GFile          *other_file;
+	const gchar    *module_name;
+	gchar          *str1;
+	gchar          *str2;
+	gboolean        is_directory;
+	gchar          *event_type_str;
+
+	monitor = user_data;
+
+	switch (event_type) {
+	case IN_Q_OVERFLOW:
+	case IN_OPEN:
+	case IN_CLOSE_NOWRITE:
+	case IN_ACCESS:
+	case IN_IGNORED:
+		/* Return, otherwise we spam with messages for every
+		 * file we open and look at.
+		 */
+		return;
+	default:
+		break;
+	}
+
+	if (G_UNLIKELY (!monitor->private->enabled)) {
+		g_debug ("Silently dropping monitor event, monitor disabled for now");
+		return;
+	}
+
+	if (monitor_name) {
+		str1 = g_build_filename (monitor_name, filename, NULL);
+		file = g_file_new_for_path (str1);
+	} else {
+		str1 = NULL;
+		file = g_file_new_for_path (filename);
+	}
+
+	other_file = NULL;
+
+	module_name = get_module_name_from_gfile (monitor, 
+						  file, 
+						  &is_directory);
+	if (!module_name) {
+		g_free (str1);
+		g_object_unref (file);
+		return;
+	}
+
+	if (!str1) {
+		str1 = g_file_get_path (file);
+	}
+	
+	/* This doesn't outright black list a file, it purely adds
+	 * each file to the hash table so we have a count for every
+	 * path we get an event for. If the count is too high, we
+	 * then don't propagate the event up.
+	 */
+	switch (event_type) {
+	case IN_MOVE_SELF:
+	case IN_MOVED_FROM:
+	case IN_MOVED_TO:
+		/* If the event is a move type, we don't increment the
+		 * black list count to avoid missing the second event
+		 * to pair the two up. 
+		 */
+		break;
+
+	default:
+		black_list_file_increment (monitor, file);
+		break;
+	}
+
+	if (other_file) {
+		str2 = g_file_get_path (other_file);
+	} else {
+		str2 = NULL;
+	}
+
+	event_type_str = libinotify_monitor_event_to_string (event_type);
+	g_message ("Received monitor event:%d->'%s' for file:'%s' (cookie:%d)",
+		   event_type,
+		   event_type_str,
+		   str1 ? str1 : "",
+		   cookie);
+	g_free (event_type_str);
+	   
+	if (!black_list_file_check (monitor, file)) {
+		if (monitor->private->unpause_timeout_id != 0) {
+			g_source_remove (monitor->private->unpause_timeout_id);
+		} else {
+			g_message ("Pausing indexing because we are "
+				   "receiving monitor events");
+
+			tracker_status_set_is_paused_for_io (TRUE);
+
+			org_freedesktop_Tracker_Indexer_pause_async (tracker_dbus_indexer_get_proxy (), 
+								     indexer_pause_cb, 
+								     NULL);
+		}
+
+		monitor->private->unpause_timeout_id = 
+			g_timeout_add_seconds (PAUSE_FOR_IO_SECONDS,
+					       unpause_cb,
+					       monitor);
+
+		if (cookie > 0) {
+			/* First check if we already have a file in
+			 * the event pairs hash table.
+			 */
+			other_file = g_hash_table_lookup (monitor->private->event_pairs, 
+							  GINT_TO_POINTER (cookie));
+			if (!other_file) {
+				g_hash_table_insert (monitor->private->event_pairs, 
+						     GINT_TO_POINTER (cookie),
+						     g_object_ref (file));
+			} else {
+				gchar *other_path;
+
+				other_path = g_file_get_path (other_file);
+				g_message ("!!!!!!! File:'%s' moved from '%s'\n\n",
+					   other_path, str1); 
+				g_free (other_path);
+			}
+		}
+
+		switch (event_type) {
+		case IN_MODIFY:
+			if (!monitor->private->use_changed_event) {
+				/* Do nothing */
+				break;
+			}
+			
+		case IN_CLOSE_WRITE:
+		case IN_ATTRIB:
+			g_signal_emit (monitor, 
+				       signals[ITEM_UPDATED], 0, 
+				       module_name, 
+				       file, 
+				       is_directory);
+			break;
+			
+		case IN_MOVE_SELF:
+		case IN_MOVED_FROM:
+		case IN_DELETE:
+		case IN_DELETE_SELF:
+			/* FIXME: What if we don't monitor the other
+			 * location?
+			 */
+			if (cookie == 0) {
+				g_signal_emit (monitor, 
+					       signals[ITEM_DELETED], 0, 
+					       module_name, 
+					       file, 
+					       is_directory);
+			} else if (other_file) {
+				g_message ("!!!!!!! Emitting signal\n\n");
+				g_signal_emit (monitor, 
+					       signals[ITEM_MOVED], 0,
+					       module_name, 
+					       file, 
+					       other_file,
+					       is_directory);
+				g_hash_table_remove (monitor->private->event_pairs,
+						     GINT_TO_POINTER (cookie));
+			}
+
+			break;
+			
+		case IN_CREATE:
+		case IN_MOVED_TO:
+			/* FIXME: What if we don't monitor the other
+			 * location?
+			 */
+			if (cookie == 0) {
+				g_signal_emit (monitor, 
+					       signals[ITEM_CREATED], 0,
+					       module_name, 
+					       file, 
+					       is_directory);
+			} else if (other_file) {
+				g_message ("!!!!!!! Emitting signal\n\n");
+				g_signal_emit (monitor, 
+					       signals[ITEM_MOVED], 0,
+					       module_name, 
+					       file, 
+					       other_file,
+					       is_directory);
+				g_hash_table_remove (monitor->private->event_pairs,
+						     GINT_TO_POINTER (cookie));
+			}
+
+			break;
+			
+		case IN_UNMOUNT:
+			g_signal_emit (monitor, 
+				       signals[ITEM_DELETED], 0,
+				       module_name, 
+				       file, 
+				       is_directory);
+			break;
+			
+		case IN_Q_OVERFLOW:
+		case IN_OPEN:
+		case IN_CLOSE_NOWRITE:
+		case IN_ACCESS:
+		case IN_IGNORED:
+			/* Do nothing */
+			break;
+		}
+	} else {
+		g_message ("Not propagating event, file is black listed");
+	}
+
+	g_free (str1);
+	g_free (str2);
+	g_object_unref (file);
+}
+
+static INotifyHandle *
+libinotify_monitor_directory (TrackerMonitor *monitor,
+			      GFile          *file)
+{
+	INotifyHandle *handle;
+	gchar         *path;
+	guint32	       mask;
+	unsigned long  flags;
+	gboolean       is_directory;
+
+	is_directory = TRUE;
+	flags = 0;
+	mask = IN_ALL_EVENTS;
+
+	/* For files */
+	if (is_directory) {
+		flags &= ~IN_FLAG_FILE_BASED;
+	} else {
+		flags |= IN_FLAG_FILE_BASED;
+	}
+
+	path = g_file_get_path (file);
+	handle = inotify_monitor_add (path, 
+				      mask, 
+				      flags, 
+				      libinotify_monitor_event_cb, 
+				      monitor);
+	g_free (path);
+
+	if (!handle) {
+		return NULL;
+	}
+
+	return handle;
+}
+
+static void
+libinotify_monitor_cancel (gpointer data)
+{
+	inotify_monitor_remove (data);
+}
+
+#else  /* USE_LIBINOTIFY */
+
+static const gchar *
+monitor_event_to_string (GFileMonitorEvent event_type)
+{
+	switch (event_type) {
+	case G_FILE_MONITOR_EVENT_CHANGED:
+		return "G_FILE_MONITOR_EVENT_CHANGED";
+	case G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT:
+		return "G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT";
+	case G_FILE_MONITOR_EVENT_DELETED:
+		return "G_FILE_MONITOR_EVENT_DELETED";
+	case G_FILE_MONITOR_EVENT_CREATED:
+		return "G_FILE_MONITOR_EVENT_CREATED";
+	case G_FILE_MONITOR_EVENT_ATTRIBUTE_CHANGED:
+		return "G_FILE_MONITOR_EVENT_ATTRIBUTE_CHANGED";
+	case G_FILE_MONITOR_EVENT_PRE_UNMOUNT:
+		return "G_FILE_MONITOR_EVENT_PRE_UNMOUNT";
+	case G_FILE_MONITOR_EVENT_UNMOUNTED:
+		return "G_FILE_MONITOR_EVENT_UNMOUNTED";
+	}
+
+	return "unknown";
 }
 
 static void
@@ -837,6 +1234,7 @@ monitor_event_cb (GFileMonitor      *file_monitor,
 	g_free (str2);
 }
 
+#endif /* USE_LIBINOTIFY */
 
 TrackerMonitor *
 tracker_monitor_new (TrackerConfig *config)
@@ -879,7 +1277,11 @@ tracker_monitor_add (TrackerMonitor *monitor,
 		     const gchar    *module_name,
 		     GFile          *file)
 {
+#ifdef USE_LIBINOTIFY
+	INotifyHandle *file_monitor;
+#else  /* USE_LIBINOTIFY */
 	GFileMonitor *file_monitor;
+#endif /* USE_LIBINOTIFY */
 	GHashTable   *monitors;
 	GSList       *ignored_roots;
 	GSList       *l;
@@ -938,6 +1340,22 @@ tracker_monitor_add (TrackerMonitor *monitor,
 	 *
 	 * Also, we assume ALL paths passed are directories.
 	 */
+#ifdef USE_LIBINOTIFY
+	file_monitor = libinotify_monitor_directory (monitor, file);
+	
+	if (!file_monitor) {
+		g_warning ("Could not add monitor for path:'%s', %s", 
+			   path, 
+			   error->message);
+		g_free (path);
+		g_error_free (error);
+		return FALSE;
+	}
+
+	g_hash_table_insert (monitors,
+			     g_object_ref (file), 
+			     file_monitor);
+#else  /* USE_LIBINOTIFY */
 	file_monitor = g_file_monitor_directory (file,
 						 G_FILE_MONITOR_WATCH_MOUNTS,
 						 NULL,
@@ -959,6 +1377,7 @@ tracker_monitor_add (TrackerMonitor *monitor,
 	g_hash_table_insert (monitors,
 			     g_object_ref (file), 
 			     file_monitor);
+#endif /* USE_LIBINOTIFY */
 
 	g_debug ("Added monitor for module:'%s', path:'%s', total monitors:%d", 
 		 module_name,
@@ -1105,142 +1524,3 @@ tracker_monitor_get_ignored (TrackerMonitor *monitor)
 
 	return monitor->private->monitors_ignored;
 }
-
-#ifdef USE_LIBINOTIFY
-
-static gchar *
-get_events (guint32 event_type)
-{
-	GString *s;
-
-	s = g_string_new ("");
-
-	if (event_type & IN_ACCESS) {
-		s = g_string_append (s, "IN_ACCESS | ");
-	}	
-	if (event_type & IN_MODIFY) {
-		s = g_string_append (s, "IN_MODIFY | ");
-	}	
-	if (event_type & IN_ATTRIB) {
-		s = g_string_append (s, "IN_ATTRIB | ");
-	}	
-	if (event_type & IN_CLOSE_WRITE) {
-		s = g_string_append (s, "IN_CLOSE_WRITE | ");
-	}	
-	if (event_type & IN_CLOSE_NOWRITE) {
-		s = g_string_append (s, "IN_CLOSE_NOWRITE | ");
-	}	
-	if (event_type & IN_OPEN) {
-		s = g_string_append (s, "IN_OPEN | ");
-	}	
-	if (event_type & IN_MOVED_FROM) {
-		s = g_string_append (s, "IN_MOVED_FROM | ");
-	}	
-	if (event_type & IN_MOVED_TO) {
-		s = g_string_append (s, "IN_MOVED_TO | ");
-	}	
-	if (event_type & IN_CREATE) {
-		s = g_string_append (s, "IN_CREATE | ");
-	}	
-	if (event_type & IN_DELETE) {
-		s = g_string_append (s, "IN_DELETE | ");
-	}	
-	if (event_type & IN_DELETE_SELF) {
-		s = g_string_append (s, "IN_DELETE_SELF | ");
-	}	
-	if (event_type & IN_MOVE_SELF) {
-		s = g_string_append (s, "IN_MOVE_SELF | ");
-	}	
-	if (event_type & IN_UNMOUNT) {
-		s = g_string_append (s, "IN_UNMOUNT | ");
-	}	
-	if (event_type & IN_Q_OVERFLOW) {
-		s = g_string_append (s, "IN_Q_OVERFLOW | ");
-	}	
-	if (event_type & IN_IGNORED) {
-		s = g_string_append (s, "IN_IGNORED | ");
-	}	
-	
-	/* helper events */
-	if (event_type & IN_CLOSE) {
-		s = g_string_append (s, "IN_CLOSE* | ");
-	}	
-	if (event_type & IN_MOVE) {
-		s = g_string_append (s, "IN_MOVE* | ");
-	}
-	
-	/* special flags */	
-	if (event_type & IN_MASK_ADD) {
-		s = g_string_append (s, "IN_MASK_ADD^ | ");
-	}	
-	if (event_type & IN_ISDIR) {
-		s = g_string_append (s, "IN_ISDIR^ | ");
-	}	
-	if (event_type & IN_ONESHOT) {
-		s = g_string_append (s, "IN_ONESHOT^ | ");
-	}	
-
-	s->len -= 3;
-
-	return g_string_free (s, FALSE);	
-}
-
-static void 
-callback (INotifyHandle *handle,
-	  const char    *monitor_name,
-	  const char    *filename,
-	  guint32        event_type,
-	  guint32        cookie,
-	  gpointer       user_data)
-{
-	gchar *event_type_str = get_events (event_type);
-
-	g_message ("Received monitor event:%d->'%s' for file:'%s'",
-		   event_type,
-		   event_type_str,
-		   filename ? filename : "");
-	
-	g_free (event_type_str);
-}
-
-void start (const gchar *path);
-
-void
-start (const gchar *path)
-{
-	INotifyHandle **handle;
-	guint32	        mask;
-	unsigned long   flags;
-	gboolean        is_directory;
-	static gint     i = 0;
-	static gint     count = 0;
-
-	if (!inotify_is_available ()) {
-		return;
-	}
-
-	handle = g_new (INotifyHandle *, 1);
-
-	is_directory = TRUE;
-	flags = 0;
-	mask = IN_ALL_EVENTS;
-
-	/* For files */
-	if (is_directory) {
-		flags &= ~IN_FLAG_FILE_BASED;
-	} else {
-		flags |= IN_FLAG_FILE_BASED;
-	}
-
-	g_message ("Addeding monitor for path:'%s'", path);
-	handle[i] = inotify_monitor_add (path, mask, flags, callback, NULL);
-
-	if (handle[i] == NULL) {
-		g_warning ("failed to add monitor for path:'%s'", path);
-	} else {
-		count++;
-		i++;
-	}
-}
-
-#endif /* USE_LIBINOTIFY */

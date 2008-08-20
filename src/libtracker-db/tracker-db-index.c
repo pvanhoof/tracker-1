@@ -840,24 +840,26 @@ tracker_db_index_flush (TrackerDBIndex *index)
 
         g_mutex_lock (priv->mutex);
 
-	if (!priv->index) {
-		g_debug ("Index was not open for flush, opening first...");
-		g_mutex_unlock (priv->mutex);
-		tracker_db_index_open (index);
-		g_mutex_lock (priv->mutex);
-	}
-
 	size = g_hash_table_size (priv->cache);
 
-	if (priv->index && size > 0) {
-		g_debug ("Flushing index with %d items in cache", size);
+	if (size > 0) {
+		if (!priv->index) {
+			g_debug ("Index was not open for flush, opening first...");
+			g_mutex_unlock (priv->mutex);
+			tracker_db_index_open (index);
+			g_mutex_lock (priv->mutex);
+		}
 
-		g_hash_table_foreach_remove (priv->cache, 
-					     cache_flush_foreach, 
-					     priv->index);
-	} else {
-		g_warning ("Could not open index, cache was not flushed");
-		size = 0;
+		if (priv->index) {
+			g_debug ("Flushing index with %d items in cache", size);
+			
+			g_hash_table_foreach_remove (priv->cache, 
+						     cache_flush_foreach, 
+						     priv->index);
+		} else {
+			g_warning ("Could not open index, cache was not flushed");
+			size = 0;
+		}
 	}
 
 	g_mutex_unlock (priv->mutex);

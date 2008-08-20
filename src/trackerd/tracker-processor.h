@@ -71,6 +71,11 @@ void              tracker_processor_files_delete            (TrackerProcessor *p
 							     const gchar      *module_name,
 							     GFile            *file,
 							     gboolean          is_directory);
+void              tracker_processor_files_move              (TrackerProcessor *processor,
+							     const gchar      *module_name,
+							     GFile            *file,
+							     GFile            *other_file,
+							     gboolean          is_directory);
 
 /* Statistics */
 guint             tracker_processor_get_directories_found   (TrackerProcessor *processor);

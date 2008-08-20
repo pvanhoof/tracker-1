@@ -1,5 +1,51 @@
 2008-08-20  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-type-utils.[ch]: Renamed
+	tracker_boolean_as_text_to_number() to
+	tracker_string_boolean_to_string_gint(). 
+	
+	* src/libtracker-db/tracker-db-manager.c: Make use of
+	tracker_string_boolean_to_string_gint() instead of using code
+	which does the exact same thing. Also fixed 3 places which use
+	uninitalised integers as part of their calculations.
+	
+	* src/tracker-indexer/modules/evolution.c:
+	(get_mbox_recipient_list): When getting the recipients list, don't
+	potentially add an uninitialised string.
+	
+	* src/trackerd/tracker-db.c: (get_backup_id): Don't reuse id here,
+	call it something else and make this code work.
+	
+	* src/trackerd/tracker-keywords.c: (tracker_keywords_search):
+	Don't check if "values" is != NULL since it is a local variable
+	now not a gchar** like it used to be.
+	
+	* src/trackerd/tracker-metadata.c: (tracker_metadata_get): If
+	there is no result set, set the values to NULL so we don't check
+	for NULL against an uninitalised variable.
+	
+	* src/trackerd/tracker-monitor.c: (tracker_monitor_add): Fixed
+	warning about unused variable when using libinotify.
+	
+	* src/trackerd/tracker-processor.c: (item_queue_processed_cb):
+	Fixed warning about queue being uninitialised in NOP switch
+	statement condition.
+	
+	* src/trackerd/tracker-search.c: (search_highlight_terms): If
+	there are no search terms, don't rely on uninitialised "s"
+	variable being set.
+	
+	* src/trackerd/tracker-xesam-query.c: (build_sql): Set value to
+	NULL to initialise it and use
+	tracker_string_boolean_to_string_gint() instead of duplicating the
+	code to do the same thing.
+	
+	* src/trackerd/tracker-xesam.c: (tracker_xesam_get_state): Don't
+	try to free random memory and make sure we NULL terminate the
+	GStrv that is returned.
+
+2008-08-20  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-dbus.c:
 	(tracker_dbus_request_failed): If error is already set and there
 	is no format, we do not set str which is used in a print statement

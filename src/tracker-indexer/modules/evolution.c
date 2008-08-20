@@ -666,9 +666,14 @@ get_mbox_recipient_list (GMimeMessage *message,
                         str = g_strdup (address->value.addr);
                 } else if (address->name) {
                         str = g_strdup (address->name);
+                } else {
+                        str = NULL;
                 }
 
-                list = g_list_prepend (list, str);
+                if (str) {
+                        list = g_list_prepend (list, str);
+                }
+
                 addresses = addresses->next;
         }
 

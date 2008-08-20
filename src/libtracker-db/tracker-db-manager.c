@@ -268,7 +268,7 @@ load_metadata_file (TrackerDBInterface *iface,
 				continue;
 			}
 
-			new_value = tracker_boolean_as_text_to_number (value);
+			new_value = tracker_string_boolean_to_string_gint (value);
 			g_free (value);
 
 			if (strcasecmp (keys[j], "Parent") == 0) {
@@ -445,7 +445,7 @@ load_service_file (TrackerDBInterface *iface,
 				gchar *value, *new_value, *esc_value;
 
 				value = g_key_file_get_string (key_file, groups[i], keys[j], NULL);
-				new_value = tracker_boolean_as_text_to_number (value);
+				new_value = tracker_string_boolean_to_string_gint (value);
 				esc_value = tracker_escape_string (new_value);
 
 				tracker_db_interface_execute_query (iface, 
@@ -601,7 +601,7 @@ load_service_file_xesam (TrackerDBInterface *iface,
 	gboolean              is_service;
 	gboolean              is_metadata_mapping;
 	gboolean              is_service_mapping;
-	gint                  i, j, id; 
+	gint                  i, j; 
 
 	const gchar          *data_types[] = {
 		"string", 
@@ -659,6 +659,7 @@ load_service_file_xesam (TrackerDBInterface *iface,
 	for (i = 0; groups[i]; i++) {
 		gchar  *str_id;
 		gchar **keys;
+		gint    id = -1;
 
 		if (is_metadata) {
 			db_exec_proc (iface, 
@@ -746,7 +747,8 @@ load_service_file_xesam (TrackerDBInterface *iface,
 							mapped_data_id = TRACKER_FIELD_TYPE_STRING;
 							break;
 						default:
-							g_warning ("Couldn't map data id %d to TrackerFieldType");
+							g_warning ("Couldn't map data id %d to TrackerFieldType", 
+								   data_id);
 							mapped_data_id = -1;
 						}
 

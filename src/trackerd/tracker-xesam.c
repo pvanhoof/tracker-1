@@ -752,17 +752,18 @@ void
 tracker_xesam_get_state (TrackerXesam          *object,
 			 DBusGMethodInvocation *context)
 {
-	GStrv   state_info;
-	gchar **state;
-	guint   request_id;
+	GStrv        strv;
+	const gchar *state;
+	guint        request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
-	state = g_malloc (sizeof (gchar*) * 1);
-	state[0] = g_strdup (tracker_status_get_as_string ());
 
-	dbus_g_method_return (context, state_info);
+	state = tracker_status_get_as_string ();
+	strv = tracker_string_to_string_list (state);
 
-	g_strfreev (state_info);
+	dbus_g_method_return (context, strv);
+
+	g_strfreev (strv);
 
 	tracker_dbus_request_success (request_id);
 }

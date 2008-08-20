@@ -499,7 +499,6 @@ tracker_keywords_search (TrackerKeywords        *object,
 
 	tracker_dbus_async_return_if_fail (service_type != NULL, FALSE);
 	tracker_dbus_async_return_if_fail (keywords != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (values != NULL, FALSE);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to search keywords, "

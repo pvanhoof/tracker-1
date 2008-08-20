@@ -134,11 +134,11 @@ tracker_metadata_get (TrackerMetadata        *object,
 		      DBusGMethodInvocation  *context,
 		      GError                **error)
 {
-	TrackerDBInterface *iface;
-	TrackerDBResultSet *result_set;
-	guint               request_id;
-	gchar              *service_id, *service_result;
-	guint               i;
+	TrackerDBInterface  *iface;
+	TrackerDBResultSet  *result_set;
+	guint                request_id;
+	gchar               *service_id, *service_result;
+	guint                i;
 	gchar              **values;
 	GError              *actual_error = NULL;
 
@@ -212,6 +212,8 @@ tracker_metadata_get (TrackerMetadata        *object,
 	if (result_set) {
 		values = tracker_dbus_query_result_columns_to_strv (result_set, -1, -1, TRUE);
 		g_object_unref (result_set);
+	} else {
+		values = NULL;
 	}
 
 	if (!values) {

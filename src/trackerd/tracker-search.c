@@ -254,6 +254,7 @@ search_highlight_terms (const gchar  *text,
 		return NULL;
 	}
 
+	s = NULL;
 	text_copy = g_strdup (text);
 
 	for (p = terms; *p; p++) {

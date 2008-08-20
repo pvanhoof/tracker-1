@@ -304,14 +304,14 @@ get_backup_id (TrackerDBInterface *iface,
 	}
 
 	if (!backup_id) {
-		gint64 id;
+		gint64 last_insert_id;
 
 		tracker_db_exec_proc (iface, 
 				      "InsertBackupService", 
 				      id, 
 				      NULL);
-		id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (iface));
-		backup_id = tracker_gint_to_string (id);
+		last_insert_id = tracker_db_interface_sqlite_get_last_insert_id (TRACKER_DB_INTERFACE_SQLITE (iface));
+		backup_id = tracker_gint_to_string (last_insert_id);
 	}
 
 	return backup_id;

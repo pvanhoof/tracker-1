@@ -950,15 +950,20 @@ build_sql (ParserData *data)
 {
 	ParseState  state;
 	gchar 	   *avalue, *value, *sub;
-	GList      *field_data = NULL;
-	GList      *field_data_list = NULL;
+	GList      *field_data;
+	GList      *field_data_list;
 	GString    *str;
-	gint        i = 0;
+	gint        i;
 
 	g_return_val_if_fail (data->current_field && 
 			      data->current_operator != OP_NONE && 
 			      data->current_value, 
 			      FALSE);
+
+	value = NULL;
+	field_data = NULL;
+	field_data_list = NULL;
+	i = 0;
 
 	data->statement_count++;
 
@@ -1010,14 +1015,7 @@ build_sql (ParserData *data)
 			/* FIXME We do a state check here, because
 			 * TRACKER_FIELD_TYPE_BOOLEAN is not in db.
 			 */
-			if (!strcmp(avalue,"true")) {
-				value = g_strdup("1");
-			} else if(!strcmp(avalue,"false")) {
-				value = g_strdup("0");
-			} else {
-				/* TODO Add error message */
-				return FALSE; 
-			}
+			value = tracker_string_boolean_to_string_gint (avalue);
 		} else {
 			value = g_strdup (avalue);
 		}
@@ -1139,7 +1137,6 @@ build_sql (ParserData *data)
 			break;
 
 		case OP_FULL_TEXT:
-
 			sub = strchr (data->current_value, '*');
 
 			if (sub) {

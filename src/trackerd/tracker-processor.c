@@ -531,9 +531,6 @@ item_queue_processed_cb (DBusGProxy *proxy,
 
 		/* Put files back into queue */
 		switch (processor->private->sent_type) {
-		case SENT_TYPE_NONE:
-			queue = NULL;
-			break;
 		case SENT_TYPE_CREATED:
 			queue = g_hash_table_lookup (processor->private->items_created_queues, 
 						     processor->private->sent_module_name);
@@ -549,6 +546,10 @@ item_queue_processed_cb (DBusGProxy *proxy,
 		case SENT_TYPE_MOVED:
 			queue = g_hash_table_lookup (processor->private->items_moved_queues, 
 						     processor->private->sent_module_name);
+			break;
+		case SENT_TYPE_NONE:
+		default:
+			queue = NULL;
 			break;
 		}
 				

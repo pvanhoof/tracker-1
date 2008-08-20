@@ -1281,11 +1281,11 @@ tracker_monitor_add (TrackerMonitor *monitor,
 	INotifyHandle *file_monitor;
 #else  /* USE_LIBINOTIFY */
 	GFileMonitor *file_monitor;
+	GError       *error = NULL;
 #endif /* USE_LIBINOTIFY */
 	GHashTable   *monitors;
 	GSList       *ignored_roots;
 	GSList       *l;
-	GError       *error = NULL;
 	gchar        *path;
 
 	g_return_val_if_fail (TRACKER_IS_MONITOR (monitor), FALSE);

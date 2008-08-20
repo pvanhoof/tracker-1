@@ -719,7 +719,7 @@ tracker_gslist_copy_with_string_data (GSList *list)
 	return new_list;
 }
 gchar *  
-tracker_boolean_as_text_to_number  (const gchar *value)
+tracker_string_boolean_to_string_gint (const gchar *value)
 {
 	g_return_val_if_fail (value != NULL, NULL);
 

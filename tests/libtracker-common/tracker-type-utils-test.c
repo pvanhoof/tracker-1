@@ -337,48 +337,48 @@ test_boolean_as_text_to_number ()
         gchar *result;
 
         /* Correct true values */
-        result = tracker_boolean_as_text_to_number ("True");
+        result = tracker_string_boolean_to_string_gint ("True");
         g_assert (tracker_test_helpers_cmpstr_equal (result, "1"));
         g_free (result);
 
 
-        result = tracker_boolean_as_text_to_number ("TRUE");
+        result = tracker_string_boolean_to_string_gint ("TRUE");
         g_assert (tracker_test_helpers_cmpstr_equal (result, "1"));
         g_free (result);
 
-        result = tracker_boolean_as_text_to_number ("true");
+        result = tracker_string_boolean_to_string_gint ("true");
         g_assert (tracker_test_helpers_cmpstr_equal (result, "1"));
         g_free (result);
 
         /* Correct false values */
-        result = tracker_boolean_as_text_to_number ("False");
+        result = tracker_string_boolean_to_string_gint ("False");
         g_assert (tracker_test_helpers_cmpstr_equal (result, "0"));
         g_free (result);
 
-        result = tracker_boolean_as_text_to_number ("FALSE");
+        result = tracker_string_boolean_to_string_gint ("FALSE");
         g_assert (tracker_test_helpers_cmpstr_equal (result, "0"));
         g_free (result);
 
-        result = tracker_boolean_as_text_to_number ("false");
+        result = tracker_string_boolean_to_string_gint ("false");
         g_assert (tracker_test_helpers_cmpstr_equal (result, "0"));
         g_free (result);
 
         /* Invalid values */
-        result = tracker_boolean_as_text_to_number ("Thrue");
+        result = tracker_string_boolean_to_string_gint ("Thrue");
         g_assert (tracker_test_helpers_cmpstr_equal (result, "Thrue"));
         g_free (result);
 
-        result = tracker_boolean_as_text_to_number ("Falsez");
+        result = tracker_string_boolean_to_string_gint ("Falsez");
         g_assert (tracker_test_helpers_cmpstr_equal (result, "Falsez"));
         g_free (result);
 
-        result = tracker_boolean_as_text_to_number ("Other invalid value");
+        result = tracker_string_boolean_to_string_gint ("Other invalid value");
         g_assert (tracker_test_helpers_cmpstr_equal (result, "Other invalid value"));
         g_free (result);
 
         
         if (g_test_trap_fork (0, G_TEST_TRAP_SILENCE_STDERR)) {
-                result = tracker_boolean_as_text_to_number (NULL);
+                result = tracker_string_boolean_to_string_gint (NULL);
         }
         g_test_trap_assert_failed ();
 }

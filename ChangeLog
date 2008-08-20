@@ -1,5 +1,15 @@
 2008-08-20  Martyn Russell  <martyn@imendio.com>
 
+	* src/tracker-applet/tracker-applet.c: 
+	* src/tracker-extract/tracker-extract-tiff.c:
+	* src/tracker-indexer/tracker-indexer-db.c:
+	* src/trackerd/tracker-xesam.c:
+	* tests/libtracker-common/tracker-type-utils-test.c:
+	* utils/qdbm/search-word.c: More uninitialised variable crapness
+	fixed to make it the all new hotness.
+
+2008-08-20  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-type-utils.[ch]: Renamed
 	tracker_boolean_as_text_to_number() to
 	tracker_string_boolean_to_string_gint(). 

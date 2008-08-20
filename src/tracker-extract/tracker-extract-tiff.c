@@ -103,8 +103,8 @@ tracker_extract_tiff (const gchar *filename, GHashTable *metadata)
 	TiffTag  *tag;
 
 	gchar buffer[1024];
-	guint16 varui16;
-	guint32 varui32;
+	guint16 varui16 = 0;
+	guint32 varui32 = 0;
 	float vardouble;
 
 #ifdef HAVE_EXEMPI
@@ -119,7 +119,6 @@ tracker_extract_tiff (const gchar *filename, GHashTable *metadata)
 	}
 	
 	for (tag = tags; tag->name; ++tag) {
-
 		switch (tag->type) {
 			case TIFF_TAGTYPE_STRING:
 				if (!TIFFGetField(image, tag->tag, &buffer)) {

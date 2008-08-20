@@ -422,7 +422,7 @@ tracker_db_get_property_values (TrackerService     *service_def,
 				TrackerField       *field_def)
 {
 	TrackerDBInterface *iface;
-	TrackerDBResultSet *result_set;
+	TrackerDBResultSet *result_set = NULL;
 	gint                metadata_key;
 	gchar             **final_result = NULL;
 	gboolean            is_numeric = FALSE;

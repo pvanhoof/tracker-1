@@ -27,6 +27,7 @@
 #include <libtracker-common/tracker-dbus.h>
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-ontology.h>
+#include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-utils.h>
 
 #include <libtracker-db/tracker-db-index.h>

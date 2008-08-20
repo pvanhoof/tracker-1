@@ -232,14 +232,13 @@ set_status_hint (TrayIcon * icon)
 
 	TrayIconPrivate *priv = TRAY_ICON_GET_PRIVATE (icon);
 
-	const char *status;
+	const char *status = NULL;
 	GString *hint;
 
 	/* Translators: this will appear like "Tracker : Idle" */
 	hint = g_string_new (_("Tracker : "));
 
 	switch (priv->index_state) {
-
 	case INDEX_IDLE:
 		status = _("Idle");
 		break;
@@ -251,7 +250,6 @@ set_status_hint (TrayIcon * icon)
 	case INDEX_MERGING:
 		status = _("Merging");
 		break;
-
 	}
 
 

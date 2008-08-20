@@ -77,6 +77,8 @@ show_term_in_index (const gchar *filename,
     DEPOT              *depot;
     guint               hits, i;
 
+    hits = 0;
+
     depot = dpopen (filename, DP_OREADER, -1);
 
     if (depot == NULL) {

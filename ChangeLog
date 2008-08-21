@@ -1,3 +1,8 @@
+2008-08-21  Mikael Ottela    <mikael.ottela@ixonos.com>
+
+	* src/libtracker-db/tracker-db-interface.c: Bug fix. Added checking
+	that row exists before reading for result sets.
+
 2008-08-21  Carlos Garnacho  <carlos@imendio.com>
 
 	* tests/tracker-indexer/Makefile.am: No need to include libxdgmime.la

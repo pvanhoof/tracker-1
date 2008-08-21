@@ -520,7 +520,22 @@ _tracker_db_result_set_get_value (TrackerDBResultSet *result_set,
 
 	if (priv->col_types[column] != G_TYPE_INVALID) {
 		g_value_init (value, priv->col_types[column]);
-		fill_in_value (value, row[column]);
+		if (row) {
+			fill_in_value (value, row[column]);
+		} else {
+			/* Make up some empty value. */
+			switch (G_VALUE_TYPE (value)) {
+			case G_TYPE_INT:
+				g_value_set_int (value, 0);
+				break;
+			case G_TYPE_DOUBLE:
+				g_value_set_double (value, 0.0);
+				break;
+			case G_TYPE_STRING:
+				g_value_set_string (value, "");
+				break;
+			}
+		}
 	} else {
 		/* Make up some empty value */
 		g_value_init (value, G_TYPE_STRING);

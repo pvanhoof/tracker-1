@@ -15,6 +15,7 @@ INCLUDES = 				\
 	$(DBUS_CFLAGS)			\
 	$(GMODULE_CFLAGS)		\
 	$(GTHREAD_CFLAGS)		\
+	$(PANGO_CFLAGS)			\
 	$(GLIB2_CFLAGS)
 
 
@@ -73,4 +74,5 @@ tracker_parser_LDADD =							\
 	$(top_builddir)/src/libstemmer/libstemmer.la	 		\
 	$(GMODULE_LIBS)							\
 	$(GTHREAD_LIBS)							\
+	$(PANGO_LIBS)							\
 	$(GLIB2_LIBS)							

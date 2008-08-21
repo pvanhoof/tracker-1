@@ -638,8 +638,9 @@ main (gint argc, gchar *argv[])
         TrackerConfig              *config;
         TrackerLanguage            *language;
         TrackerHal                 *hal;
-        TrackerDBIndex             *index;
-        TrackerDBIndex             *index_update;
+        TrackerDBIndex             *file_index;
+        TrackerDBIndex             *file_update_index;
+        TrackerDBIndex             *email_index;
 	TrackerRunningLevel         runtime_level;
 	TrackerDBManagerFlags       flags = 0;
 	TrackerDBIndexManagerFlags  index_flags = 0;
@@ -842,16 +843,18 @@ main (gint argc, gchar *argv[])
 		return EXIT_FAILURE;
 	}
 
-	index = tracker_db_index_manager_get_index (TRACKER_DB_INDEX_TYPE_INDEX);
-	index_update = tracker_db_index_manager_get_index (TRACKER_DB_INDEX_TYPE_INDEX_UPDATE);
+	file_index = tracker_db_index_manager_get_index (TRACKER_DB_INDEX_FILE);
+	file_update_index = tracker_db_index_manager_get_index (TRACKER_DB_INDEX_FILE_UPDATE);
+	email_index = tracker_db_index_manager_get_index (TRACKER_DB_INDEX_EMAIL);
 
-	if (!TRACKER_IS_DB_INDEX (index) || 
-	    !TRACKER_IS_DB_INDEX (index_update)) {
-		g_critical ("Could not create indexer for all indexes (index, index-update)");
+	if (!TRACKER_IS_DB_INDEX (file_index) || 
+	    !TRACKER_IS_DB_INDEX (file_update_index) ||
+	    !TRACKER_IS_DB_INDEX (email_index)) {
+		g_critical ("Could not create indexer for all indexes (file, file-update, email)");
 		return EXIT_FAILURE;
 	}
 
-	tracker_db_init (config, language, index);
+	tracker_db_init (config, language, file_index, email_index);
 	tracker_xesam_manager_init ();
 
 	private->processor = tracker_processor_new (config, hal);
@@ -859,7 +862,8 @@ main (gint argc, gchar *argv[])
 	/* Make Tracker available for introspection */
 	if (!tracker_dbus_register_objects (config,
 					    language,
-					    index,
+					    file_index,
+					    email_index,
 					    private->processor)) {
 		return EXIT_FAILURE;
 	}

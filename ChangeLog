@@ -1,3 +1,52 @@
+2008-08-21  Martyn Russell  <martyn@imendio.com>
+
+	* data/services/default.service: Added inode/; to the prefixes to
+	recognise folders like $HOME/.xchat.
+	
+	* src/libtracker-common/tracker-ontology.[ch]: 
+	* tests/libtracker-common/tracker-ontology-test.c: Renamed
+	tracker_ontology_get_parent_id_for_service_id() to
+	tracker_ontology_get_db_by_service_type() and added a check for
+	NULL service strings.
+	
+	* src/libtracker-common/tracker-parser.c: Cleaned up the code,
+	fixed a nasty double free that was introduced recently. Do proper
+	type checking for TrackerLanguage. Make sure we reference the
+	language and unreference it when creating/freeing the parser.
+	
+	* src/libtracker-common/tracker-service.[ch]:
+	(tracker_db_type_get_type): Added missing enumerations: unknown,
+	files and xesam.
+	
+	* src/libtracker-db/tracker-db-manager.[ch]: Added
+	TRACKER_DB_UNKNOWN type.
+	
+	* src/trackerd/tracker-db.[ch]: Make use of GStaticPrivate for the
+	local data. Also instead of using priv->index, we now send the
+	services we are interested in to TrackerQueryTree and it finds out
+	what indexes it needs to use instead. Added a function to return a
+	gint GArray for the service IDs needed for TrackerQueryTree too.
+
+	* src/trackerd/tracker-query-tree.[ch]: Removed properties which
+	shouldn't change after creation (like language and config).
+	Removed the TrackerDBIndex parameter for _new() and just use the
+	GArray for services now. We get the TrackerDBIndex from each
+	service instead.
+	
+	* src/trackerd/tracker-search.[ch]: Use
+	tracker_db_create_array_of_services() instead of duplicating the
+	code here. Also try to get suggestions from the email index db if
+	there are none from the files index db.
+
+	* src/libtracker-db/tracker-db-index-manager.[ch]:
+	* src/tracker-indexer/tracker-indexer.c: 
+	* src/trackerd/tracker-db.c: 
+	* src/trackerd/tracker-dbus.[ch]: 
+	* src/trackerd/tracker-main.c: 
+	* src/trackerd/tracker-processor.c: Now we have all email words
+	indexed to their own email-index.db file instead of filling up one
+	big index.db file. This was causing serious performance issues.
+	
 2008-08-21  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/libtracker-db/tracker-db-index.c (tracker_db_index_open): Do not

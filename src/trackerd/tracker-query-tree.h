@@ -30,8 +30,6 @@ G_BEGIN_DECLS
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-language.h>
 
-#include <libtracker-db/tracker-db-index.h>
-
 #define TRACKER_TYPE_QUERY_TREE         (tracker_query_tree_get_type())
 #define TRACKER_QUERY_TREE(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_QUERY_TREE, TrackerQueryTree))
 #define TRACKER_QUERY_TREE_CLASS(c)     (G_TYPE_CHECK_CLASS_CAST ((c),    TRACKER_TYPE_QUERY_TREE, TrackerQueryTreeClass))
@@ -58,22 +56,13 @@ struct TrackerHitCount {
 
 GType                 tracker_query_tree_get_type       (void);
 TrackerQueryTree *    tracker_query_tree_new            (const gchar      *query_str,
-                                                         TrackerDBIndex   *index,
 							 TrackerConfig    *config,
 							 TrackerLanguage  *language,
                                                          GArray           *services);
 G_CONST_RETURN gchar *tracker_query_tree_get_query      (TrackerQueryTree *tree);
 void                  tracker_query_tree_set_query      (TrackerQueryTree *tree,
                                                          const gchar      *query_str);
-TrackerDBIndex *      tracker_query_tree_get_index      (TrackerQueryTree *tree);
-void                  tracker_query_tree_set_index      (TrackerQueryTree *tree,
-							 TrackerDBIndex   *indexer);
-TrackerConfig *       tracker_query_tree_get_config     (TrackerQueryTree *tree);
-void                  tracker_query_tree_set_config     (TrackerQueryTree *tree,
-                                                         TrackerConfig    *config);
-TrackerLanguage *     tracker_query_tree_get_language   (TrackerQueryTree *tree);
-void                  tracker_query_tree_set_language   (TrackerQueryTree *tree,
-                                                         TrackerLanguage  *language);
+
 GArray *              tracker_query_tree_get_services   (TrackerQueryTree *tree);
 void                  tracker_query_tree_set_services   (TrackerQueryTree *tree,
                                                          GArray           *services);

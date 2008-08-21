@@ -277,9 +277,9 @@ test_get_db_for_service (void)
 {
 	TrackerDBType result_db;
 
-	result_db = tracker_ontology_get_db_for_service_type ("Test service");
+	result_db = tracker_ontology_get_db_by_service_type ("Test service");
 	g_assert (result_db == TRACKER_DB_TYPE_FILES); // ????? HARDCODED IN tracker-ontology!!!!!
-	result_db = tracker_ontology_get_db_for_service_type ("trash");
+	result_db = tracker_ontology_get_db_by_service_type ("trash");
 	g_assert (result_db == TRACKER_DB_TYPE_FILES);
 }
 

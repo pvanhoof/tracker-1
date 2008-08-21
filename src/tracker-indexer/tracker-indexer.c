@@ -107,7 +107,8 @@ struct TrackerIndexerPrivate {
 
 	gchar *db_dir;
 
-	TrackerDBIndex *index;
+	TrackerDBIndex *file_index;
+	TrackerDBIndex *email_index;
 
 	TrackerDBInterface *file_metadata;
 	TrackerDBInterface *file_contents;
@@ -144,8 +145,6 @@ struct PathInfo {
 };
 
 struct MetadataForeachData {
-	TrackerDBIndex *index;
-
 	TrackerLanguage *language;
 	TrackerConfig *config;
 	TrackerService *service;
@@ -153,8 +152,6 @@ struct MetadataForeachData {
 };
 
 struct UpdateWordsForeachData {
-	TrackerDBIndex *index;
-
 	guint32 service_id;
 	guint32 service_type_id;
 };
@@ -291,7 +288,8 @@ flush_data (TrackerIndexer *indexer)
 		stop_transaction (indexer);
 	}
 
-	tracker_db_index_flush (indexer->private->index);
+	tracker_db_index_flush (indexer->private->file_index);
+	tracker_db_index_flush (indexer->private->email_index);
 	signal_status (indexer, "flush");
 
 	indexer->private->items_processed = 0;
@@ -428,7 +426,8 @@ tracker_indexer_finalize (GObject *object)
 	g_object_unref (priv->language);
 	g_object_unref (priv->config);
 
-	g_object_unref (priv->index);
+	g_object_unref (priv->file_index);
+	g_object_unref (priv->email_index);
 
 	g_free (priv->db_dir);
 
@@ -784,8 +783,11 @@ tracker_indexer_init (TrackerIndexer *indexer)
 	}
 
 	/* Set up indexer */
-	index = tracker_db_index_manager_get_index (TRACKER_DB_INDEX_TYPE_INDEX);
-	priv->index = g_object_ref (index);
+	index = tracker_db_index_manager_get_index (TRACKER_DB_INDEX_FILE);
+	priv->file_index = g_object_ref (index);
+
+	index = tracker_db_index_manager_get_index (TRACKER_DB_INDEX_EMAIL);
+	priv->email_index = g_object_ref (index);
 
 	/* Set up databases, these pointers are mostly used to
 	 * start/stop transactions, since TrackerDBManager treats
@@ -833,8 +835,10 @@ index_metadata_item (TrackerField        *field,
 		     const gchar         *value,
 		     MetadataForeachData *data)
 {
+	TrackerDBIndex *index;
 	gchar *parsed_value;
 	gchar **arr;
+	gint service_id;
 	gint i;
 
 	parsed_value = tracker_parser_text_to_string (value,
@@ -850,12 +854,14 @@ index_metadata_item (TrackerField        *field,
 	}
 
 	arr = g_strsplit (parsed_value, " ", -1);
+	service_id = tracker_service_get_id (data->service);
+	index = tracker_db_index_manager_get_index_by_service_id (service_id);
 
 	for (i = 0; arr[i]; i++) {
-		tracker_db_index_add_word (data->index,
+		tracker_db_index_add_word (index,
 					   arr[i],
 					   data->id,
-					   tracker_service_get_id (data->service),
+					   service_id,
 					   tracker_field_get_weight (field));
 	}
 
@@ -907,7 +913,6 @@ index_metadata (TrackerIndexer  *indexer,
 {
 	MetadataForeachData data;
 
-	data.index = indexer->private->index;
 	data.language = indexer->private->language;
 	data.config = indexer->private->config;
 	data.service = service;
@@ -926,6 +931,7 @@ send_text_to_index (TrackerIndexer *indexer,
 		    gboolean        full_parsing,
 		    gint            weight_factor)
 {
+	TrackerDBIndex *index;
 	GHashTable     *parsed;
 	GHashTableIter  iter;
 	gpointer        key, value;
@@ -954,9 +960,11 @@ send_text_to_index (TrackerIndexer *indexer,
 	}
 
 	g_hash_table_iter_init (&iter, parsed);
+
+	index = tracker_db_index_manager_get_index_by_service_id (service_type);
 	
 	while (g_hash_table_iter_next (&iter, &key, &value)) {
-		tracker_db_index_add_word (indexer->private->index,
+		tracker_db_index_add_word (index,
 					   key,
 					   service_id,
 					   service_type,
@@ -1031,8 +1039,9 @@ update_word_foreach (gpointer key,
 		     gpointer value, 
 		     gpointer user_data)
 {
-	gchar                  *word;
+	TrackerDBIndex         *index;
 	UpdateWordsForeachData *data;
+	gchar                  *word;
 	gint                    score;
 
 	word = key;
@@ -1040,7 +1049,9 @@ update_word_foreach (gpointer key,
 
 	data = user_data;
 
-	tracker_db_index_add_word (data->index,
+	index = tracker_db_index_manager_get_index_by_service_id (data->service_type_id);
+
+	tracker_db_index_add_word (index,
 				   word,
 				   data->service_id,
 				   data->service_type_id,
@@ -1055,7 +1066,6 @@ update_words_no_parsing (TrackerIndexer *indexer,
 {
 	UpdateWordsForeachData user_data;
 
-	user_data.index = indexer->private->index;
 	user_data.service_id = service_id;
 	user_data.service_type_id = service_type_id;
 
@@ -1809,7 +1819,8 @@ tracker_indexer_set_running (TrackerIndexer *indexer,
 		indexer->private->idle_id = 0;
 		indexer->private->is_paused = TRUE;
 
-		tracker_db_index_close (indexer->private->index);
+		tracker_db_index_close (indexer->private->file_index);
+		tracker_db_index_close (indexer->private->email_index);
 		g_signal_emit (indexer, signals[PAUSED], 0);
 	} else {
 		check_disk_space_start (indexer);
@@ -1818,7 +1829,8 @@ tracker_indexer_set_running (TrackerIndexer *indexer,
 		indexer->private->is_paused = FALSE;
 		indexer->private->idle_id = g_idle_add (process_func, indexer);
 
-		tracker_db_index_open (indexer->private->index);
+		tracker_db_index_open (indexer->private->file_index);
+		tracker_db_index_open (indexer->private->email_index);
 		g_signal_emit (indexer, signals[CONTINUED], 0);
 	}
 }

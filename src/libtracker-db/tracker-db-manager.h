@@ -30,6 +30,7 @@ G_BEGIN_DECLS
 #define TRACKER_TYPE_DB (tracker_db_get_type ())
 
 typedef enum {
+	TRACKER_DB_UNKNOWN,
         TRACKER_DB_COMMON,
         TRACKER_DB_CACHE,
         TRACKER_DB_FILE_METADATA,

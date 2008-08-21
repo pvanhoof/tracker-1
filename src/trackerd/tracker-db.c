@@ -38,6 +38,7 @@
 
 #include <libtracker-db/tracker-db-index.h>
 #include <libtracker-db/tracker-db-interface-sqlite.h>
+#include <libtracker-db/tracker-db-index-manager.h>
 #include <libtracker-db/tracker-db-manager.h>
 
 #include "tracker-db.h"
@@ -48,11 +49,31 @@
 
 #define ZLIBBUFSIZ 8192
 
-static gboolean         initialized;
+typedef struct {
+	TrackerConfig   *config;
+	TrackerLanguage *language;
+} TrackerDBPrivate;
 
-static TrackerConfig   *config;
-static TrackerLanguage *language;
-static TrackerDBIndex  *db_index;
+/* Private */
+static GStaticPrivate private_key = G_STATIC_PRIVATE_INIT;
+
+static void
+private_free (gpointer data)
+{
+	TrackerDBPrivate *private;
+
+	private = data;
+
+	if (private->config) {
+		g_object_unref (private->config);
+	}
+
+	if (private->language) {
+		g_object_unref (private->language);
+	}
+
+	g_free (private);
+}
 
 static gchar *
 compress_string (const gchar *ptr, 
@@ -221,11 +242,15 @@ update_metadata_index (const gchar  *id,
 		       const gchar  *old_value, 
 		       const gchar  *new_value) 
 {
-	GHashTable *old_table;
-	GHashTable *new_table;
-	gint        sid;
+	TrackerDBPrivate *private;
+	GHashTable       *old_table;
+	GHashTable       *new_table;
+	gint              sid;
 
 	g_return_if_fail (TRACKER_IS_FIELD (def));
+
+	private = g_static_private_get (&private_key);
+	g_return_if_fail (private != NULL);
 
 	old_table = NULL;
 	new_table = NULL;
@@ -234,10 +259,10 @@ update_metadata_index (const gchar  *id,
 		old_table = tracker_parser_text (old_table, 
 						 old_value, 
 						 tracker_field_get_weight (def), 
-						 language, 
- 						 tracker_config_get_max_words_to_index (config),
- 						 tracker_config_get_max_word_length (config),
- 						 tracker_config_get_min_word_length (config),
+						 private->language, 
+ 						 tracker_config_get_max_words_to_index (private->config),
+ 						 tracker_config_get_max_word_length (private->config),
+ 						 tracker_config_get_min_word_length (private->config),
 						 tracker_field_get_filtered (def), 
 						 tracker_field_get_delimited (def));
 	}
@@ -247,10 +272,10 @@ update_metadata_index (const gchar  *id,
 		new_table = tracker_parser_text (new_table, 
 						 new_value, 
 						 tracker_field_get_weight (def), 
-						 language, 
- 						 tracker_config_get_max_words_to_index (config),
- 						 tracker_config_get_max_word_length (config),
- 						 tracker_config_get_min_word_length (config),
+						 private->language, 
+ 						 tracker_config_get_max_words_to_index (private->config),
+ 						 tracker_config_get_max_word_length (private->config),
+ 						 tracker_config_get_min_word_length (private->config),
 						 tracker_field_get_filtered (def), 
 						 tracker_field_get_delimited (def));
 	}
@@ -468,62 +493,120 @@ db_create_event (TrackerDBInterface *iface,
 	return id;
 }
 
-static GArray *
-db_create_array_of_services (void)
+GArray *
+tracker_db_create_array_of_services (const gchar *service,
+				     gboolean     basic_services)
 {
-	GArray *array;
-	gint    services[8];
-	gint    count = 0;
+	GArray   *array;
+	gint      services[12];
+	gint      count;
+	gboolean  add_files;
+	gboolean  add_emails;
+	gboolean  add_conversations;
 
-	/* FIXME: Shouldn't we add emails and GAIM conversaions? -mr */
-	services[count++] = tracker_ontology_get_id_for_service_type ("Folders");
-	services[count++] = tracker_ontology_get_id_for_service_type ("Documents");
-	services[count++] = tracker_ontology_get_id_for_service_type ("Images");
-	services[count++] = tracker_ontology_get_id_for_service_type ("Videos");
-	services[count++] = tracker_ontology_get_id_for_service_type ("Music");
-	services[count++] = tracker_ontology_get_id_for_service_type ("Text");
-	services[count++] = tracker_ontology_get_id_for_service_type ("Development");
-	services[count++] = tracker_ontology_get_id_for_service_type ("Other");
+	if (service) {
+		if (g_ascii_strcasecmp (service, "Files") == 0) {
+			add_files = TRUE;
+			add_emails = FALSE;
+			add_conversations = FALSE;
+		} else if (g_ascii_strcasecmp (service, "Emails") == 0) {
+			add_files = FALSE;
+			add_emails = TRUE;
+			add_conversations = FALSE;
+		} else if (g_ascii_strcasecmp (service, "Conversations") == 0) {
+			add_files = FALSE;
+			add_emails = FALSE;
+			add_conversations = TRUE;
+		} else {
+			/* Maybe set them all to TRUE? */
+			add_files = FALSE;
+			add_emails = FALSE;
+			add_conversations = FALSE;
+		}
+	} else if (basic_services) {
+		add_files = TRUE;
+		add_emails = FALSE;
+		add_conversations = FALSE;
+	} else {
+		add_files = TRUE;
+		add_emails = TRUE;
+		add_conversations = TRUE;
+	}
+
+	count = 0;
+
+	if (add_files) {
+		services[count++] = tracker_ontology_get_id_for_service_type ("Folders");
+		services[count++] = tracker_ontology_get_id_for_service_type ("Documents");
+		services[count++] = tracker_ontology_get_id_for_service_type ("Images");
+		services[count++] = tracker_ontology_get_id_for_service_type ("Videos");
+		services[count++] = tracker_ontology_get_id_for_service_type ("Music");
+		services[count++] = tracker_ontology_get_id_for_service_type ("Text");
+		services[count++] = tracker_ontology_get_id_for_service_type ("Development");
+		services[count++] = tracker_ontology_get_id_for_service_type ("Other");
+	}
+
+	if (add_emails) {
+		services[count++] = tracker_ontology_get_id_for_service_type ("EvolutionEmails");
+		services[count++] = tracker_ontology_get_id_for_service_type ("KMailEmails");
+		services[count++] = tracker_ontology_get_id_for_service_type ("ThunderbirdEmails");
+	}
+	
+	if (add_conversations) {
+		services[count++] = tracker_ontology_get_id_for_service_type ("GaimConversations");
+	}
+
+	services[count] = 0;
 
 	array = g_array_new (TRUE, TRUE, sizeof (gint));
-	g_array_append_vals (array, services, G_N_ELEMENTS (services));
+	g_array_append_vals (array, services, count);
 
 	return array;
 }
 
 void
-tracker_db_init (TrackerConfig   *this_config,
-		 TrackerLanguage *this_language,
-		 TrackerDBIndex  *this_index)
+tracker_db_init (TrackerConfig   *config,
+		 TrackerLanguage *language,
+		 TrackerDBIndex  *file_index,
+		 TrackerDBIndex  *email_index)
 {
-	g_return_if_fail (TRACKER_IS_CONFIG (this_config));
-	g_return_if_fail (TRACKER_IS_LANGUAGE (this_language));
-	g_return_if_fail (TRACKER_IS_DB_INDEX (this_index));
-	
-	if (initialized) {
+	TrackerDBPrivate *private;
+
+	g_return_if_fail (TRACKER_IS_CONFIG (config));
+	g_return_if_fail (TRACKER_IS_LANGUAGE (language));
+	g_return_if_fail (TRACKER_IS_DB_INDEX (file_index));
+	g_return_if_fail (TRACKER_IS_DB_INDEX (email_index));
+
+	private = g_static_private_get (&private_key);
+	if (private) {
+		g_warning ("Already initialized (%s)", 
+			   __FUNCTION__);
 		return;
 	}
 
-	config = g_object_ref (this_config);
-	language = g_object_ref (this_language);
-	db_index = g_object_ref (this_index);
+	private = g_new0 (TrackerDBPrivate, 1);
+	
+	private->config = g_object_ref (config);
+	private->language = g_object_ref (language);
+
+	g_static_private_set (&private_key, 
+			      private, 
+			      private_free);
 }
 
 void
 tracker_db_shutdown (void)
 {
-	if (!initialized) {
+	TrackerDBPrivate *private;
+
+	private = g_static_private_get (&private_key);
+	if (!private) {
+		g_warning ("Not initialized (%s)", 
+			   __FUNCTION__);
 		return;
 	}
 
-	g_object_unref (db_index);
-	db_index = NULL;
-
-	g_object_unref (language);
-	language = NULL;
-
-	g_object_unref (config);
-	config = NULL;
+	g_static_private_free (&private_key);
 }
 
 gboolean
@@ -630,6 +713,7 @@ tracker_db_search_text (TrackerDBInterface *iface,
 			gboolean            save_results, 
 			gboolean            detailed)
 {
+	TrackerDBPrivate    *private;
 	TrackerQueryTree    *tree;
 	TrackerDBResultSet  *result_set, *result;
 	gchar 		   **array;
@@ -647,10 +731,13 @@ tracker_db_search_text (TrackerDBInterface *iface,
 	g_return_val_if_fail (search_string != NULL, NULL);
 	g_return_val_if_fail (offset >= 0, NULL);
 
+	private = g_static_private_get (&private_key);
+	g_return_val_if_fail (private != NULL, NULL);
+
 	array = tracker_parser_text_into_array (search_string,
-						language,
-						tracker_config_get_max_word_length (config),
-						tracker_config_get_min_word_length (config));
+						private->language,
+						tracker_config_get_max_word_length (private->config),
+						tracker_config_get_min_word_length (private->config));
 
 	result_set = tracker_db_exec_proc (iface, 
 					   "GetRelatedServiceIDs", 
@@ -676,10 +763,10 @@ tracker_db_search_text (TrackerDBInterface *iface,
 		g_object_unref (result_set);
 	}
 
+	/* FIXME: Do we need both index and services here? We used to have it */
 	tree = tracker_query_tree_new (search_string, 
-				       db_index, 
-				       config,
-				       language,
+				       private->config,
+				       private->language,
 				       services);
 	hits = tracker_query_tree_get_hits (tree, offset, limit);
 	result = NULL;
@@ -785,14 +872,19 @@ tracker_db_search_text (TrackerDBInterface *iface,
 
 	/* Delete duds */
 	if (duds) {
-		TrackerDBIndex *index;
+		TrackerDBIndex *file_index;
+		TrackerDBIndex *email_index;
 		GSList         *words, *w;
 
 		words = tracker_query_tree_get_words (tree);
-		index = tracker_query_tree_get_index (tree);
+		file_index = tracker_db_index_manager_get_index (TRACKER_DB_INDEX_FILE);
+		email_index = tracker_db_index_manager_get_index (TRACKER_DB_INDEX_EMAIL);
 
 		for (w = words; w; w = w->next) {
-			tracker_db_index_remove_dud_hits (index, 
+			tracker_db_index_remove_dud_hits (file_index, 
+							  (const gchar *) w->data, 
+							  duds);
+			tracker_db_index_remove_dud_hits (email_index, 
 							  (const gchar *) w->data, 
 							  duds);
 		}
@@ -823,6 +915,7 @@ tracker_db_search_text_and_mime (TrackerDBInterface  *iface,
 				 const gchar         *text, 
 				 gchar              **mime_array)
 {
+	TrackerDBPrivate   *private;
 	TrackerQueryTree   *tree;
 	TrackerDBResultSet *result_set1;
 	GArray             *hits;
@@ -834,13 +927,15 @@ tracker_db_search_text_and_mime (TrackerDBInterface  *iface,
 	g_return_val_if_fail (text != NULL, NULL);
 	g_return_val_if_fail (mime_array != NULL, NULL);
 
+	private = g_static_private_get (&private_key);
+	g_return_val_if_fail (private != NULL, NULL);
+
 	result_set1 = NULL;
-	services = db_create_array_of_services ();
+	services = tracker_db_create_array_of_services (NULL, TRUE);
 
 	tree = tracker_query_tree_new (text, 
-				       db_index, 
-				       config,
-				       language,
+				       private->config,
+				       private->language,
 				       services);
 	hits = tracker_query_tree_get_hits (tree, 0, 0);
 
@@ -917,6 +1012,7 @@ tracker_db_search_text_and_location (TrackerDBInterface *iface,
 				     const gchar        *text, 
 				     const gchar        *location)
 {
+	TrackerDBPrivate   *private;
 	TrackerDBResultSet *result_set1;
 	TrackerQueryTree   *tree;
 	GArray             *hits;
@@ -929,14 +1025,16 @@ tracker_db_search_text_and_location (TrackerDBInterface *iface,
 	g_return_val_if_fail (text != NULL, NULL);
 	g_return_val_if_fail (location != NULL, NULL);
 
+	private = g_static_private_get (&private_key);
+	g_return_val_if_fail (private != NULL, NULL);
+
 	result_set1 = NULL;
 	location_prefix = g_strconcat (location, G_DIR_SEPARATOR_S, NULL);
-	services = db_create_array_of_services ();
+	services = tracker_db_create_array_of_services (NULL, TRUE);
 
 	tree = tracker_query_tree_new (text, 
-				       db_index, 
-				       config,
-				       language,
+				       private->config,
+				       private->language,
 				       services);
 	hits = tracker_query_tree_get_hits (tree, 0, 0);
 
@@ -949,9 +1047,9 @@ tracker_db_search_text_and_location (TrackerDBInterface *iface,
 
 		str_id = tracker_guint_to_string (rank.service_id);
 		result_set2 = tracker_db_exec_proc (iface, 
-						   "GetFileByID", 
-						   str_id, 
-						   NULL);
+						    "GetFileByID", 
+						    str_id, 
+						    NULL);
 		g_free (str_id);
 
 		if (result_set2) {
@@ -1015,6 +1113,7 @@ tracker_db_search_text_and_mime_and_location (TrackerDBInterface  *iface,
 					      gchar              **mime_array, 
 					      const gchar         *location)
 {
+	TrackerDBPrivate   *private;
 	TrackerDBResultSet *result_set1;
 	TrackerQueryTree   *tree;
 	GArray             *hits;
@@ -1027,14 +1126,16 @@ tracker_db_search_text_and_mime_and_location (TrackerDBInterface  *iface,
 	g_return_val_if_fail (text != NULL, NULL);
 	g_return_val_if_fail (location != NULL, NULL);
 
+	private = g_static_private_get (&private_key);
+	g_return_val_if_fail (private != NULL, NULL);
+
 	result_set1 = NULL;
 	location_prefix = g_strconcat (location, G_DIR_SEPARATOR_S, NULL);
-	services = db_create_array_of_services ();
+	services = tracker_db_create_array_of_services (NULL, TRUE);
 
 	tree = tracker_query_tree_new (text, 
-				       db_index, 
-				       config,
-				       language,
+				       private->config,
+				       private->language,
 				       services);
 	hits = tracker_query_tree_get_hits (tree, 0, 0);
 
@@ -1424,21 +1525,25 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 			 gchar              **values, 
 			 gboolean             do_backup)
 {
-	TrackerField *def;
-	gchar 	     *old_value = NULL;
-	gchar        *new_value = NULL;
-	gchar        *res_service;
-	gboolean      update_index;
-	gint	      key_field = 0;
-	guint         i;
-	guint         length;
-	GString      *str = NULL;
+	TrackerDBPrivate *private;
+	TrackerField     *def;
+	gchar 	         *old_value;
+	gchar            *new_value;
+	gchar            *res_service;
+	gboolean          update_index;
+	gint	          key_field;
+	guint             i;
+	guint             length;
+	GString          *str;
 	
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
 	g_return_val_if_fail (service_type != NULL, NULL);
 	g_return_val_if_fail (service_id != NULL, NULL);
 	g_return_val_if_fail (key != NULL, NULL);
 	g_return_val_if_fail (values != NULL, NULL);
+
+	private = g_static_private_get (&private_key);
+	g_return_val_if_fail (private != NULL, NULL);
 
 	if (strcmp (service_id, "0") == 0) {
 		return NULL;
@@ -1457,6 +1562,11 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 		g_warning ("Service not found for service_id:'%s'", service_id);
 		return NULL;
 	}
+
+	old_value = NULL;
+	new_value = NULL;
+	key_field = 0;
+	str = NULL;
 	
 	length = g_strv_length (values);
 
@@ -1475,7 +1585,7 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 		old_value = tracker_db_metadata_get_delimited (iface, service_id, key);
 	}
 
-	/* delete old value if metadata does not support multiple values */
+	/* Delete old value if metadata does not support multiple values */
 	if (!tracker_field_get_multiple_values (def)) {
 		tracker_db_metadata_delete (iface, service_type, service_id, key, FALSE);
 	}
@@ -1536,9 +1646,9 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 			}
 
 			mvalue = tracker_parser_text_to_string (values[i], 
-								language,
-								tracker_config_get_max_word_length (config),
-								tracker_config_get_min_word_length (config),
+								private->language,
+								tracker_config_get_max_word_length (private->config),
+								tracker_config_get_min_word_length (private->config),
 								tracker_field_get_filtered (def),  
 								tracker_field_get_filtered (def), 
 								tracker_field_get_delimited (def));
@@ -1586,9 +1696,9 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 			}
 
 			mvalue = tracker_parser_text_to_string (values[i], 
-								language,
-								tracker_config_get_max_word_length (config),
-								tracker_config_get_min_word_length (config),
+								private->language,
+								tracker_config_get_max_word_length (private->config),
+								tracker_config_get_min_word_length (private->config),
 								tracker_field_get_filtered (def),  
 								tracker_field_get_filtered (def), 
 								tracker_field_get_delimited (def));
@@ -1753,18 +1863,22 @@ tracker_db_metadata_delete_value (TrackerDBInterface *iface,
 				  const gchar        *key, 
 				  const gchar        *value) 
 {
-	TrackerField *def;
-	gchar        *old_value = NULL;
-	gchar        *new_value = NULL;
-	gchar        *mvalue;
-	gchar        *res_service;
-	gboolean      update_index;
-	gint          key_field;
+	TrackerDBPrivate *private;
+	TrackerField     *def;
+	gchar            *old_value;
+	gchar            *new_value;
+	gchar            *mvalue;
+	gchar            *res_service;
+	gboolean          update_index;
+	gint              key_field;
 
 	g_return_if_fail (TRACKER_IS_DB_INTERFACE (iface));
 	g_return_if_fail (service != NULL);
 	g_return_if_fail (id != NULL);
 	g_return_if_fail (key != NULL);
+
+	private = g_static_private_get (&private_key);
+	g_return_if_fail (private != NULL);
 
 	/* Get type details */
 	def = tracker_ontology_get_field_def (key);
@@ -1772,6 +1886,9 @@ tracker_db_metadata_delete_value (TrackerDBInterface *iface,
 	if (!def) {
 		return;
 	}
+
+	old_value = NULL;
+	new_value = NULL;
 
 	if (!tracker_field_get_embedded (def) && 
             tracker_ontology_service_type_has_embedded (service)) {
@@ -1811,9 +1928,9 @@ tracker_db_metadata_delete_value (TrackerDBInterface *iface,
 	case TRACKER_FIELD_TYPE_INDEX:
 	case TRACKER_FIELD_TYPE_STRING:
 		mvalue = tracker_parser_text_to_string (value, 
-							language,
-							tracker_config_get_max_word_length (config),
-							tracker_config_get_min_word_length (config),
+							private->language,
+							tracker_config_get_max_word_length (private->config),
+							tracker_config_get_min_word_length (private->config),
 							tracker_field_get_filtered (def),  
 							tracker_field_get_filtered (def), 
 							tracker_field_get_delimited (def));
@@ -2404,6 +2521,7 @@ tracker_db_service_create (TrackerDBInterface *iface,
 			   const gchar        *service,
 			   TrackerDBFileInfo  *info)
 {
+	TrackerDBPrivate   *private;
 	TrackerDBResultSet *result_set;
 	TrackerDBResultSet *result_set_proc;
 	gint	            i;
@@ -2425,6 +2543,9 @@ tracker_db_service_create (TrackerDBInterface *iface,
 	g_return_val_if_fail (info->uri, 0);
 	g_return_val_if_fail (info->uri[0], 0);
 	g_return_val_if_fail (service, 0);
+
+	private = g_static_private_get (&private_key);
+	g_return_val_if_fail (private != NULL, 0);
 
 	if (info->uri[0] == G_DIR_SEPARATOR) {
 		name = g_path_get_basename (info->uri);
@@ -2540,7 +2661,7 @@ tracker_db_service_create (TrackerDBInterface *iface,
 			g_free (parent);
 		}
 
-		if (tracker_config_get_enable_xesam (config)) {
+		if (tracker_config_get_enable_xesam (private->config)) {
 			/* FIXME: Shouldn't this be the common interface? */
 			db_create_event (iface, sid, "Create");
 		}

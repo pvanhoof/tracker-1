@@ -64,6 +64,16 @@ typedef struct {
 } TrackerDBDefinition;
 
 static TrackerDBDefinition dbs[] = {
+	{ TRACKER_DB_UNKNOWN,
+	  TRACKER_DB_LOCATION_USER_DATA_DIR,
+	  NULL,
+	  NULL,
+	  NULL,
+	  NULL,
+	  32,
+          TRACKER_DB_PAGE_SIZE_DEFAULT, 
+          FALSE,
+          FALSE },
         { TRACKER_DB_COMMON, 
           TRACKER_DB_LOCATION_USER_DATA_DIR, 
 	  NULL,
@@ -2143,7 +2153,6 @@ db_interface_get_xesam (void)
 		tracker_db_interface_end_transaction (iface);
 	}
 
-
 	/* Load static xesam data */
 	db_get_static_xesam_data (iface);
 
@@ -2154,9 +2163,12 @@ static TrackerDBInterface *
 db_interface_create (TrackerDB db)
 {
 	switch (db) {
+        case TRACKER_DB_UNKNOWN:
+		return NULL;
+
         case TRACKER_DB_COMMON:
 		return db_interface_get_common ();
-
+		
         case TRACKER_DB_CACHE:
 		return db_interface_get_cache ();
 
@@ -2190,7 +2202,7 @@ db_manager_remove_all (void)
 
 	g_message ("Removing all database files");
 
-	for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
+	for (i = 1; i < G_N_ELEMENTS (dbs); i++) {
 		g_message ("Removing database:'%s'", 
 			   dbs[i].abs_filename);
 		g_unlink (dbs[i].abs_filename);
@@ -2297,7 +2309,7 @@ tracker_db_manager_init (TrackerDBManagerFlags  flags,
 
 	g_message ("Checking database files exist");
 
-        for (i = 0, need_reindex = FALSE; i < G_N_ELEMENTS (dbs); i++) {
+        for (i = 1, need_reindex = FALSE; i < G_N_ELEMENTS (dbs); i++) {
                 /* Fill absolute path for the database */
                 dir = location_to_directory (dbs[i].location);
 		dbs[i].abs_filename = g_build_filename (dir, dbs[i].file, NULL);
@@ -2364,7 +2376,7 @@ tracker_db_manager_init (TrackerDBManagerFlags  flags,
 		/* Now create the databases and close them */
 		g_message ("Creating database files, this may take a few moments...");
 
-		for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
+		for (i = 1; i < G_N_ELEMENTS (dbs); i++) {
 			dbs[i].iface = db_interface_create (i);
 		}
 
@@ -2372,7 +2384,7 @@ tracker_db_manager_init (TrackerDBManagerFlags  flags,
 		 * becase some databases need other databases
 		 * attached to be created correctly.
 		 */
-		for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
+		for (i = 1; i < G_N_ELEMENTS (dbs); i++) {
 			g_object_unref (dbs[i].iface);
 			dbs[i].iface = NULL;
 		}
@@ -2395,7 +2407,7 @@ tracker_db_manager_init (TrackerDBManagerFlags  flags,
 	/* Load databases */
 	g_message ("Loading databases files...");
 
-	for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
+	for (i = 1; i < G_N_ELEMENTS (dbs); i++) {
 		dbs[i].iface = db_interface_create (i);
 	}
 
@@ -2411,7 +2423,7 @@ tracker_db_manager_shutdown (void)
                 return;
         }
 
-        for (i = 0; i < G_N_ELEMENTS (dbs); i++) {
+        for (i = 1; i < G_N_ELEMENTS (dbs); i++) {
                 if (dbs[i].abs_filename) {
                         g_free (dbs[i].abs_filename);
 			dbs[i].abs_filename = NULL;
@@ -2562,7 +2574,7 @@ tracker_db_manager_get_db_interface_by_service (const gchar *service)
 	g_return_val_if_fail (initialized != FALSE, NULL);
 	g_return_val_if_fail (service != NULL, NULL);
 
-	type = tracker_ontology_get_db_for_service_type (service);
+	type = tracker_ontology_get_db_by_service_type (service);
 
 	switch (type) {
 	case TRACKER_DB_TYPE_EMAIL:
@@ -2615,12 +2627,12 @@ tracker_db_manager_get_db_interface_by_type (const gchar          *service,
 					     TrackerDBContentType  content_type)
 {
 	TrackerDBType type;
-	TrackerDB db;
+	TrackerDB     db;
 
 	g_return_val_if_fail (initialized != FALSE, NULL);
 	g_return_val_if_fail (service != NULL, NULL);
 
-	type = tracker_ontology_get_db_for_service_type (service);
+	type = tracker_ontology_get_db_by_service_type (service);
 
 	switch (type) {
 	case TRACKER_DB_TYPE_EMAIL:

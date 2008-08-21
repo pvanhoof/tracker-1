@@ -446,122 +446,6 @@ pango_next (TrackerParser *parser,
 	return NULL;
 }
 
-TrackerParser *
-tracker_parser_new (TrackerLanguage *language,
-		    gint max_word_length,
-		    gint min_word_length)
-{
-
-
-	TrackerParser *parser = g_new0 (TrackerParser, 1);
-
-	parser->language = language;
-	parser->max_word_length = max_word_length;
-	parser->min_word_length = min_word_length;
-
-	parser->attrs = NULL;
-
-	return parser;
-}
-
-void
-tracker_parser_reset (TrackerParser *parser,
-		      const gchar   *txt,
-		      gint           txt_size,
-		      gboolean       delimit_words,
-		      gboolean       enable_stemmer,
-		      gboolean       enable_stop_words)
-{
-        g_return_if_fail (parser != NULL);
-	g_return_if_fail (txt != NULL);
-
-	g_free (parser->attrs);
-
-	parser->enable_stemmer = enable_stemmer;
-	parser->enable_stop_words = enable_stop_words;
-	parser->delimit_words = delimit_words;
-	parser->encoding = get_encoding (txt);
-	parser->txt_size = txt_size;
-	parser->txt = txt;
-
-	parser->word_position = 0;
-
-	parser->cursor = txt;
-
-	if (parser->encoding == TRACKER_PARSER_ENCODING_CJK) {
-		PangoLogAttr *attrs;
-
-                parser->attr_length = g_utf8_strlen (parser->txt, parser->txt_size) + 1;
-
-		attrs = g_new0 (PangoLogAttr, parser->attr_length);
-
-		pango_get_log_attrs (parser->txt,
-                                     txt_size,
-                                     0,
-                                     pango_language_from_string ("C"),
-                                     attrs,
-                                     parser->attr_length);
-
-                parser->attrs = attrs;
-                parser->attr_pos = 0;
-	}
-}
-
-gchar *
-tracker_parser_process_word (TrackerParser *parser,
-                             const char    *word,
-                             gint           length,
-                             gboolean       do_strip)
-{
-	const gchar *stem_word;
-	gchar       *str = NULL;
-        gchar       *stripped_word = NULL;
-	guint        bytes, len;
-
-	if (word) {
-		if (length == -1) {
-			bytes = strlen (word);
-		} else {
-			bytes = length;
-		}
-
-		if (do_strip && get_encoding (word) == TRACKER_PARSER_ENCODING_LATIN) {
-        	        stripped_word = strip_word (word, bytes, &len);
-        	} else {
-        	        stripped_word = NULL;
-        	}
-
-                if (!stripped_word) {
-                        str = g_utf8_normalize (word,
-                                                bytes,
-                                                G_NORMALIZE_NFC);
-                } else {
-                        str = g_utf8_normalize (stripped_word,
-                                                len,
-                                                G_NORMALIZE_NFC);
-                        g_free (stripped_word);
-                }
-
-                if (!parser->enable_stemmer) {
-                	return str;
-                }
-
-                len = strlen (str);
-
-                stem_word = tracker_language_stem_word (parser->language, str, len);
-
-		if (stem_word) {
-			gchar *result;
-
-                        result = g_strdup (stem_word);
-       	        g_free (str);
-
-			return result;
-		}
-	}
-
-	return str;
-}
 
 static gchar *
 parser_next (TrackerParser *parser,
@@ -761,6 +645,176 @@ parser_next (TrackerParser *parser,
 
 }
 
+static gboolean
+word_table_increment (GHashTable *word_table,
+                      gchar      *index_word,
+                      gint        weight,
+                      gint        total_words,
+                      gint        max_words_to_index)
+{
+        gboolean update_count;
+
+        update_count = total_words <= max_words_to_index;
+
+        if (update_count) {
+                gpointer p;
+                gint     count;
+
+                p = g_hash_table_lookup (word_table, index_word);
+                count = GPOINTER_TO_INT (p);
+
+                g_hash_table_replace (word_table,
+                                      index_word,
+                                      GINT_TO_POINTER (count + weight));
+        } else {
+                g_free (index_word);
+        }
+
+        return update_count;
+}
+
+TrackerParser *
+tracker_parser_new (TrackerLanguage *language,
+		    gint             max_word_length,
+		    gint             min_word_length)
+{
+	TrackerParser *parser;
+
+        g_return_val_if_fail (TRACKER_IS_LANGUAGE (language), NULL);
+        g_return_val_if_fail (min_word_length > 0, NULL);
+        g_return_val_if_fail (min_word_length < max_word_length, NULL);
+
+        parser = g_new0 (TrackerParser, 1);
+
+	parser->language = g_object_ref (language);
+
+	parser->max_word_length = max_word_length;
+	parser->min_word_length = min_word_length;
+
+	parser->attrs = NULL;
+
+	return parser;
+}
+
+void
+tracker_parser_free (TrackerParser *parser)
+{
+        g_return_if_fail (parser != NULL);
+
+        if (parser->language) {
+                g_object_unref (parser->language);
+        }
+
+        g_free (parser->attrs);
+
+	g_free (parser);
+}
+
+void
+tracker_parser_reset (TrackerParser *parser,
+		      const gchar   *txt,
+		      gint           txt_size,
+		      gboolean       delimit_words,
+		      gboolean       enable_stemmer,
+		      gboolean       enable_stop_words)
+{
+        g_return_if_fail (parser != NULL);
+	g_return_if_fail (txt != NULL);
+
+	g_free (parser->attrs);
+
+	parser->enable_stemmer = enable_stemmer;
+	parser->enable_stop_words = enable_stop_words;
+	parser->delimit_words = delimit_words;
+	parser->encoding = get_encoding (txt);
+	parser->txt_size = txt_size;
+	parser->txt = txt;
+
+	parser->word_position = 0;
+
+	parser->cursor = txt;
+
+	if (parser->encoding == TRACKER_PARSER_ENCODING_CJK) {
+		PangoLogAttr *attrs;
+
+                parser->attr_length = g_utf8_strlen (parser->txt, parser->txt_size) + 1;
+
+		attrs = g_new0 (PangoLogAttr, parser->attr_length);
+
+		pango_get_log_attrs (parser->txt,
+                                     txt_size,
+                                     0,
+                                     pango_language_from_string ("C"),
+                                     attrs,
+                                     parser->attr_length);
+
+                parser->attrs = attrs;
+                parser->attr_pos = 0;
+	}
+}
+
+gchar *
+tracker_parser_process_word (TrackerParser *parser,
+                             const char    *word,
+                             gint           length,
+                             gboolean       do_strip)
+{
+	const gchar *stem_word;
+	gchar       *str;
+        gchar       *stripped_word;
+	guint        bytes, len;
+
+        g_return_val_if_fail (parser != NULL, NULL);
+        g_return_val_if_fail (word != NULL, NULL);
+
+        str = NULL;
+        stripped_word = NULL;
+
+	if (word) {
+		if (length == -1) {
+			bytes = strlen (word);
+		} else {
+			bytes = length;
+		}
+
+		if (do_strip && get_encoding (word) == TRACKER_PARSER_ENCODING_LATIN) {
+        	        stripped_word = strip_word (word, bytes, &len);
+        	} else {
+        	        stripped_word = NULL;
+        	}
+
+                if (!stripped_word) {
+                        str = g_utf8_normalize (word,
+                                                bytes,
+                                                G_NORMALIZE_NFC);
+                } else {
+                        str = g_utf8_normalize (stripped_word,
+                                                len,
+                                                G_NORMALIZE_NFC);
+                        g_free (stripped_word);
+                }
+
+                if (!parser->enable_stemmer) {
+                	return str;
+                }
+
+                len = strlen (str);
+
+                stem_word = tracker_language_stem_word (parser->language, str, len);
+
+		if (stem_word) {
+			gchar *result;
+
+                        result = g_strdup (stem_word);
+       	        g_free (str);
+
+			return result;
+		}
+	}
+
+	return str;
+}
+
 gboolean
 tracker_parser_is_stop_word (TrackerParser *parser, const gchar *word)
 {
@@ -775,29 +829,25 @@ tracker_parser_is_stop_word (TrackerParser *parser, const gchar *word)
 
 gchar *
 tracker_parser_next (TrackerParser *parser,
-		     guint *position,
-		     guint *byte_offset_start,
-		     guint *byte_offset_end,
-		     gboolean *new_paragraph,
-		     gboolean *stop_word)
+		     guint         *position,
+		     guint         *byte_offset_start,
+		     guint         *byte_offset_end,
+		     gboolean      *new_paragraph,
+		     gboolean      *stop_word)
 {
-
-	guint byte_start, byte_end;
-	gboolean new_para;
-	char *str;
-
-
+	gchar    *str;
+	guint     byte_start, byte_end;
+	gboolean  new_para;
 
 	if (parser->encoding == TRACKER_PARSER_ENCODING_CJK) {
 		str = pango_next (parser, 0, &byte_start, &byte_end, &new_para);
-
 		parser->word_position++;
 
-		*stop_word = FALSE;
-
+                *stop_word = FALSE;
 	} else {
 		str = parser_next (parser, 0, &byte_start, &byte_end, &new_para);
 		parser->word_position++;
+
 		if (parser->enable_stop_words && is_stop_word (parser->language, str)) {
 			*stop_word = TRUE;
 		} else {
@@ -811,38 +861,29 @@ tracker_parser_next (TrackerParser *parser,
 	*new_paragraph = new_para;
 
 	return str;
-
 }
 
 void
 tracker_parser_set_posititon (TrackerParser *parser,
-		     	      guint position)
+		     	      guint          position)
 {
-	guint byte_start, byte_end;
-	gboolean para;
+        gchar    *s;
+	guint     byte_start, byte_end;
+	gboolean  para;
 
+        g_return_if_fail (parser != NULL);
 
 	parser->word_position = 0;
 	parser->cursor = parser->txt;
 	parser->attr_pos = 0;
 
 	if (parser->encoding == TRACKER_PARSER_ENCODING_CJK) {
-		char *s = pango_next (parser, position, &byte_start, &byte_end, &para);
+                s = pango_next (parser, position, &byte_start, &byte_end, &para);
 		g_free (s);
 	} else {
-		char *s = parser_next (parser, position, &byte_start, &byte_end, &para);
+		s = parser_next (parser, position, &byte_start, &byte_end, &para);
 		g_free (s);
 	}
-
-}
-
-void
-tracker_parser_free (TrackerParser *parser)
-{
-	if (parser->attrs) g_free (parser->attrs);
-
-	g_free (parser);
-
 }
 
 gchar *
@@ -854,7 +895,7 @@ tracker_parser_text_to_string (const gchar     *txt,
                                gboolean         filter_numbers,
                                gboolean         delimit)
 {
-	const gchar *p = txt;
+	const gchar *p;
 	gchar       *parsed_text;
 	guint32      i = 0;
         gint         len;
@@ -865,6 +906,7 @@ tracker_parser_text_to_string (const gchar     *txt,
                 return NULL;
         }
 
+        p = txt;
         len = strlen (txt);
         len = MIN (len, 500);
 
@@ -973,7 +1015,7 @@ tracker_parser_text_into_array (const gchar     *text,
 	gchar  *s;
 	gchar **strv;
 
-        g_return_val_if_fail (language != NULL, NULL);
+        g_return_val_if_fail (TRACKER_IS_LANGUAGE (language), NULL);
 
         s = tracker_parser_text_to_string (text,
                                            language,
@@ -993,10 +1035,8 @@ tracker_parser_text_fast (GHashTable  *word_table,
                           const gchar *txt,
                           gint         weight)
 {
-	gchar    **tmp;
-	gchar    **array;
-	gpointer   k = 0;
-        gpointer   v = 0;
+	gchar **array;
+	gchar **p;
 
         /* Use this for already processed text only */
 	if (!word_table) {
@@ -1011,56 +1051,18 @@ tracker_parser_text_fast (GHashTable  *word_table,
 	}
 
 	array = g_strsplit (txt, " ", -1);
-
-	for (tmp = array; *tmp; tmp++) {
-		if (!(**tmp)) {
-                        continue;
-                }
-
-                if (!g_hash_table_lookup_extended (word_table, *tmp, &k, &v)) {
-                        g_hash_table_insert (word_table,
-                                             g_strdup (*tmp),
-                                             GINT_TO_POINTER (GPOINTER_TO_INT (v) + weight));
-                } else {
-                        g_hash_table_insert (word_table,
-                                             *tmp,
-                                             GINT_TO_POINTER (GPOINTER_TO_INT (v) + weight));
-                }
-	}
-
-	g_strfreev (array);
-
-	return word_table;
-}
-
-static gboolean
-word_table_increment (GHashTable *word_table,
-                      gchar      *index_word,
-                      gint        weight,
-                      gint        total_words,
-                      gint        max_words_to_index)
-{
-        gboolean update_count;
-
-        update_count = total_words <= max_words_to_index;
-
-        if (update_count) {
-                gpointer p;
-                gint     count;
-
-                p = g_hash_table_lookup (word_table, index_word);
-                count = GPOINTER_TO_INT (p);
-
-                g_hash_table_replace (word_table,
-                                      index_word,
-                                      GINT_TO_POINTER (count + weight));
-        } else {
-                g_free (index_word);
+        if (!array) {
+                return word_table;
         }
 
-        return update_count;
-}
+	for (p = array; *p; p++) {
+                word_table_increment (word_table, *p, weight, 0, 0);
+	}
 
+        g_free (array);
+        
+	return word_table;
+}
 
 GHashTable *
 tracker_parser_text (GHashTable      *word_table,
@@ -1079,7 +1081,7 @@ tracker_parser_text (GHashTable      *word_table,
         /* Use this for unprocessed raw text */
 	gint         total_words;
 
-        g_return_val_if_fail (language != NULL, NULL);
+        g_return_val_if_fail (TRACKER_IS_LANGUAGE (language), NULL);
 
 	if (!word_table) {
 		word_table = g_hash_table_new_full (g_str_hash,

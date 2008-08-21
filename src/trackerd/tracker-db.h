@@ -40,10 +40,14 @@
 
 G_BEGIN_DECLS
 
-void                tracker_db_init                              (TrackerConfig       *this_config,
-								  TrackerLanguage     *this_language,
-								  TrackerDBIndex      *this_file_index);
+void                tracker_db_init                              (TrackerConfig       *config,
+								  TrackerLanguage     *language,
+								  TrackerDBIndex      *file_index,
+								  TrackerDBIndex      *email_index);
 void                tracker_db_shutdown                          (void);
+
+GArray *            tracker_db_create_array_of_services          (const gchar         *service,
+								  gboolean             basic_services);
 
 /* Operations for TrackerDBInterface */
 TrackerDBResultSet *tracker_db_exec_proc                         (TrackerDBInterface  *iface,

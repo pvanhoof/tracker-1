@@ -49,7 +49,8 @@
 typedef struct {
 	TrackerConfig   *config;
 	TrackerLanguage *language;
-        TrackerDBIndex  *index;
+        TrackerDBIndex  *file_index;
+        TrackerDBIndex  *email_index;
 } TrackerSearchPrivate;
 
 static void tracker_search_finalize (GObject *object);
@@ -80,7 +81,8 @@ tracker_search_finalize (GObject *object)
 	
 	priv = TRACKER_SEARCH_GET_PRIVATE (object);
 
-	g_object_unref (priv->index);
+	g_object_unref (priv->email_index);
+	g_object_unref (priv->file_index);
 	g_object_unref (priv->language);
 	g_object_unref (priv->config);
 
@@ -90,14 +92,16 @@ tracker_search_finalize (GObject *object)
 TrackerSearch *
 tracker_search_new (TrackerConfig   *config,
 		    TrackerLanguage *language,
-		    TrackerDBIndex  *index)
+		    TrackerDBIndex  *file_index,
+		    TrackerDBIndex  *email_index)
 {
 	TrackerSearch        *object;
 	TrackerSearchPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 	g_return_val_if_fail (TRACKER_IS_LANGUAGE (language), NULL);
-	g_return_val_if_fail (TRACKER_IS_DB_INDEX (index), NULL);
+	g_return_val_if_fail (TRACKER_IS_DB_INDEX (file_index), NULL);
+	g_return_val_if_fail (TRACKER_IS_DB_INDEX (email_index), NULL);
 
 	object = g_object_new (TRACKER_TYPE_SEARCH, NULL); 
 
@@ -105,7 +109,8 @@ tracker_search_new (TrackerConfig   *config,
 
 	priv->config = g_object_ref (config);
 	priv->language = g_object_ref (language);
-	priv->index = g_object_ref (index);
+	priv->file_index = g_object_ref (file_index);
+	priv->email_index = g_object_ref (email_index);
 
 	return object;
 }
@@ -434,8 +439,6 @@ tracker_search_get_hit_count (TrackerSearch          *object,
 	GError               *actual_error = NULL;
 	GArray               *array;
 	guint                 request_id;
-	gint                  services[12];
-	gint                  count = 0;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -471,31 +474,8 @@ tracker_search_get_hit_count (TrackerSearch          *object,
 
 	priv = TRACKER_SEARCH_GET_PRIVATE (object);
 
-	services[count++] = tracker_ontology_get_id_for_service_type (service);
-
-	if (strcmp (service, "Files") == 0) {
-		services[count++] = tracker_ontology_get_id_for_service_type ("Folders");
-		services[count++] = tracker_ontology_get_id_for_service_type ("Documents");
-		services[count++] = tracker_ontology_get_id_for_service_type ("Images");
-		services[count++] = tracker_ontology_get_id_for_service_type ("Videos");
-		services[count++] = tracker_ontology_get_id_for_service_type ("Music");
-		services[count++] = tracker_ontology_get_id_for_service_type ("Text");
-		services[count++] = tracker_ontology_get_id_for_service_type ("Development");
-		services[count++] = tracker_ontology_get_id_for_service_type ("Other");
-	} else if (strcmp (service, "Emails") == 0) {
-		services[count++] = tracker_ontology_get_id_for_service_type ("EvolutionEmails");
-		services[count++] = tracker_ontology_get_id_for_service_type ("KMailEmails");
-		services[count++] = tracker_ontology_get_id_for_service_type ("ThunderbirdEmails");
- 	} else if (strcmp (service, "Conversations") == 0) {
-		services[count++] = tracker_ontology_get_id_for_service_type ("GaimConversations");
-	}
-
-	services[count] = 0;
-
-	array = g_array_new (TRUE, TRUE, sizeof (gint));
-	g_array_append_vals (array, services, G_N_ELEMENTS (services));
+	array = tracker_db_create_array_of_services (service, FALSE);
 	tree = tracker_query_tree_new (search_text, 
-				       priv->index, 
 				       priv->config,
 				       priv->language,
 				       array);
@@ -521,6 +501,7 @@ tracker_search_get_hit_count_all (TrackerSearch          *object,
 	GArray                *hit_counts;
 	guint                  request_id;
 	guint                  i;
+	GArray                *array;
 	GPtrArray             *values = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
@@ -544,11 +525,12 @@ tracker_search_get_hit_count_all (TrackerSearch          *object,
 
 	priv = TRACKER_SEARCH_GET_PRIVATE (object);
 
+	array = tracker_db_create_array_of_services (NULL, FALSE);
 	tree = tracker_query_tree_new (search_text, 
-				       priv->index, 
 				       priv->config,
 				       priv->language,
-				       NULL);
+				       array);
+	g_array_free (array, TRUE);
 
 	hit_counts = tracker_query_tree_get_hit_counts (tree);
 
@@ -1237,7 +1219,16 @@ tracker_search_suggest (TrackerSearch          *object,
 
 	priv = TRACKER_SEARCH_GET_PRIVATE (object);
 
-	value = tracker_db_index_get_suggestion (priv->index, search_text, max_dist);
+	/* First we try the file index */
+	value = tracker_db_index_get_suggestion (priv->file_index, 
+						 search_text, 
+						 max_dist);
+	if (!value) {
+		/* Second we try the email index */
+		value = tracker_db_index_get_suggestion (priv->email_index, 
+							 search_text, 
+							 max_dist);
+	}
 
 	if (!value) {
 		g_set_error (&actual_error,

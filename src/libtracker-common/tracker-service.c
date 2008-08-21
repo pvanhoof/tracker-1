@@ -86,6 +86,9 @@ tracker_db_type_get_type (void)
 
 	if (etype == 0) {
 		static const GEnumValue values[] = {
+			{ TRACKER_DB_TYPE_UNKNOWN, 
+			  "TRACKER_DB_TYPE_UNKNOWN", 
+			  "unknown" },
 			{ TRACKER_DB_TYPE_DATA, 
 			  "TRACKER_DB_TYPE_DATA", 
 			  "data" },
@@ -101,6 +104,12 @@ tracker_db_type_get_type (void)
 			{ TRACKER_DB_TYPE_EMAIL, 
 			  "TRACKER_DB_TYPE_EMAIL", 
 			  "email" },
+			{ TRACKER_DB_TYPE_FILES, 
+			  "TRACKER_DB_TYPE_FILES", 
+			  "files" },
+			{ TRACKER_DB_TYPE_XESAM, 
+			  "TRACKER_DB_TYPE_XESAM", 
+			  "xesam" },
 			{ TRACKER_DB_TYPE_CACHE, 
 			  "TRACKER_DB_TYPE_CACHE", 
 			  "cache" },

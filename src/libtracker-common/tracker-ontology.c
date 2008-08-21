@@ -337,13 +337,14 @@ tracker_ontology_get_parent_id_for_service_id (gint id)
 }
 
 TrackerDBType
-tracker_ontology_get_db_for_service_type (const gchar *service_str)
+tracker_ontology_get_db_by_service_type (const gchar *service)
 {
 	TrackerDBType  type;
 	gchar         *str;
 
-	type = TRACKER_DB_TYPE_FILES;
-	str = g_utf8_strdown (service_str, -1);
+	g_return_val_if_fail (service != NULL, TRACKER_DB_TYPE_FILES);
+
+	str = g_utf8_strdown (service, -1);
 
 	if (g_str_has_suffix (str, "emails") || 
 	    g_str_has_suffix (str, "attachments")) {
@@ -352,6 +353,8 @@ tracker_ontology_get_db_for_service_type (const gchar *service_str)
 		type = TRACKER_DB_TYPE_FILES;
 	} else if (g_str_has_prefix (str, "xesam")) {
 		type = TRACKER_DB_TYPE_XESAM;
+	} else {
+		type = TRACKER_DB_TYPE_FILES;
 	}
 
 	g_free (str);

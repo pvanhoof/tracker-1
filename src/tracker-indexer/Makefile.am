@@ -35,7 +35,6 @@ tracker_indexer_LDADD =							\
 	$(top_builddir)/src/libtracker-db/libtracker-db.la 		\
 	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
 	$(top_builddir)/src/libstemmer/libstemmer.la	 		\
-	$(top_builddir)/src/xdgmime/libxdgmime.la 			\
 	$(trackerd_win_libs)						\
 	$(DBUS_LIBS)							\
 	$(GMODULE_LIBS)							\

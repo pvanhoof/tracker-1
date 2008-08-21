@@ -144,52 +144,6 @@ is_utf8 (const gchar *buffer,
 	return FALSE;
 }
 
-static gboolean
-is_text_file (const gchar *uri)
-{
-	gchar  	 buffer[TEXT_SNIFF_SIZE];
-	gint     buffer_length = 0;
-	gint     fd;
-	gboolean result = FALSE;
-
-	fd = tracker_file_open (uri, FALSE);
-	buffer_length = read (fd, buffer, TEXT_SNIFF_SIZE);
-
-	/* Don't allow embedded zeros in textfiles. */
-	if (buffer_length > 2 && 
-	    memchr (buffer, 0, buffer_length) == NULL) {
-		if (is_utf8 (buffer, buffer_length)) {
-			result = TRUE;
-		} else {
-			GError *error = NULL;
-			gchar  *tmp;
-			
-			tmp = g_locale_to_utf8 (buffer, 
-						buffer_length, 
-						NULL, 
-						NULL, 
-						&error);
-			g_free (tmp);
-			
-			if (error) {
-				gboolean result = FALSE;
-				
-				if (error->code != G_CONVERT_ERROR_ILLEGAL_SEQUENCE && 
-				    error->code != G_CONVERT_ERROR_FAILED && 
-				    error->code != G_CONVERT_ERROR_NO_CONVERSION) {
-					result = TRUE;
-				}
-				
-				g_error_free (error);
-			}
-		}
-	}
-
-	tracker_file_close (fd, !result);
-
-	return result;
-}
-
 gboolean
 tracker_file_is_valid (const gchar *uri)
 {

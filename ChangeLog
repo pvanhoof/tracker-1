@@ -1,7 +1,24 @@
+2008-08-21  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-file-utils.c: Removed
+	is_text_file() which is no longer used.
+
+	* src/libtracker-common/tracker-parser.[ch]: Fixed the formatting
+	and use gchar instead of char in new code. Removed unnecessary
+	spacing and a LOT of trailing whitespace. Fixed the header file
+	too.
+	
+	* src/tracker-indexer/Makefile.am:
+	* src/tracker-indexer/modules/Makefile.am:
+	* src/trackerd/Makefile.am:
+	* tests/libtracker-common/Makefile.am:
+	* tests/libtracker-db/Makefile.am: Removed references to
+	libxdgmime.la which was breaking the build.
+
 2008-08-20  Jamie McCracken <jamiemcc at gnome org>
 
-	* Added new API for tracker-parser so that it will be compatible with sqlite FTS3
-
+	* Added new API for tracker-parser so that it will be compatible
+	with sqlite FTS3.
 
 2008-08-20  Carlos Garnacho  <carlos@imendio.com>
 

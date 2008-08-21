@@ -58,7 +58,6 @@ tracker_file_utils_SOURCES = \
 tracker_file_utils_LDADD =						\
 	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
 	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
-	$(top_builddir)/src/xdgmime/libxdgmime.la 			\
 	$(GMODULE_LIBS)							\
 	$(GTHREAD_LIBS)							\
 	$(GLIB2_LIBS)							
@@ -70,7 +69,6 @@ tracker_parser_SOURCES = \
 tracker_parser_LDADD =							\
 	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
 	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
-	$(top_builddir)/src/xdgmime/libxdgmime.la 			\
 	$(top_builddir)/src/libstemmer/libstemmer.la	 		\
 	$(GMODULE_LIBS)							\
 	$(GTHREAD_LIBS)							\

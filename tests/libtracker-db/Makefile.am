@@ -33,7 +33,6 @@ union_performance_LDADD =                                              \
 	$(top_builddir)/src/libtracker-db/libtracker-db.la              \
 	$(top_builddir)/src/libtracker-common/libtracker-common.la      \
 	$(top_builddir)/tests/common/libtracker-testcommon.la           \
-	$(top_builddir)/src/xdgmime/libxdgmime.la                       \
 	$(SQLITE3_LIBS)                                                 \
 	$(QDBM_LIBS)                                                    \
 	$(GMODULE_LIBS)                                                 \
@@ -41,56 +40,53 @@ union_performance_LDADD =                                              \
 	$(GLIB2_LIBS)                                                   \
 	-lz
 
-tracker_db_manager_attach_SOURCES = 		\
-	tracker-db-manager-test-attach.c 	\
-	tracker-db-manager-common.c		\
-	tracker-db-manager-common.h
+# tracker_db_manager_attach_SOURCES = 		\
+# 	tracker-db-manager-test-attach.c 	\
+# 	tracker-db-manager-common.c		\
+# 	tracker-db-manager-common.h
 
-tracker_db_manager_unattach_LDADD =					\
-	$(top_builddir)/src/libtracker-db/libtracker-db.la 		\
-	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
-	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
-        $(top_builddir)/src/xdgmime/libxdgmime.la                       \
-	$(SQLITE3_LIBS)							\
-	$(QDBM_LIBS)							\
-	$(GMODULE_LIBS)							\
-	$(GTHREAD_LIBS)							\
-	$(GLIB2_LIBS)							\
-	-lz
+# tracker_db_manager_attach_LDADD =					\
+# 	$(top_builddir)/src/libtracker-db/libtracker-db.la 		\
+# 	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
+# 	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
+# 	$(SQLITE3_LIBS)							\
+# 	$(QDBM_LIBS)							\
+# 	$(GMODULE_LIBS)							\
+# 	$(GTHREAD_LIBS)							\
+# 	$(GLIB2_LIBS)							\
+# 	-lz
 
-tracker_db_manager_unattach_SOURCES = 		\
-	tracker-db-manager-test-unattach.c 	\
-	tracker-db-manager-common.c		\
-	tracker-db-manager-common.h
+# tracker_db_manager_unattach_SOURCES = 		\
+# 	tracker-db-manager-test-unattach.c 	\
+# 	tracker-db-manager-common.c		\
+# 	tracker-db-manager-common.h
 
-tracker_db_manager_attach_LDADD =					\
-	$(top_builddir)/src/libtracker-db/libtracker-db.la 		\
-	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
-	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
-        $(top_builddir)/src/xdgmime/libxdgmime.la                       \
-	$(SQLITE3_LIBS)							\
-	$(QDBM_LIBS)							\
-	$(GMODULE_LIBS)							\
-	$(GTHREAD_LIBS)							\
-	$(GLIB2_LIBS)							\
-	-lz
+# tracker_db_manager_unattach_LDADD =					\
+# 	$(top_builddir)/src/libtracker-db/libtracker-db.la 		\
+# 	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
+# 	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
+# 	$(SQLITE3_LIBS)							\
+# 	$(QDBM_LIBS)							\
+# 	$(GMODULE_LIBS)							\
+# 	$(GTHREAD_LIBS)							\
+# 	$(GLIB2_LIBS)							\
+# 	-lz
 
-tracker_db_manager_custom_SOURCES = 		\
-	tracker-db-manager-test-custom.c 	\
-	tracker-db-manager-common.c		\
-	tracker-db-manager-common.h
+# tracker_db_manager_custom_SOURCES = 		\
+# 	tracker-db-manager-test-custom.c 	\
+# 	tracker-db-manager-common.c		\
+# 	tracker-db-manager-common.h
 
-tracker_db_manager_custom_LDADD =					\
-	$(top_builddir)/src/libtracker-db/libtracker-db.la 		\
-	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
-	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
-        $(top_builddir)/src/xdgmime/libxdgmime.la                       \
-	$(SQLITE3_LIBS)							\
-	$(QDBM_LIBS)							\
-	$(GMODULE_LIBS)							\
-	$(GTHREAD_LIBS)							\
-	$(GLIB2_LIBS)							\
-	-lz
+# tracker_db_manager_custom_LDADD =					\
+# 	$(top_builddir)/src/libtracker-db/libtracker-db.la 		\
+# 	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
+# 	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
+# 	$(SQLITE3_LIBS)							\
+# 	$(QDBM_LIBS)							\
+# 	$(GMODULE_LIBS)							\
+# 	$(GTHREAD_LIBS)							\
+# 	$(GLIB2_LIBS)							\
+# 	-lz
 
 tracker_db_dbus_SOURCES = 	\
 	tracker-db-dbus-test.c 		

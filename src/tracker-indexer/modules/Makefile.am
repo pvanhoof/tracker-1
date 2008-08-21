@@ -33,7 +33,6 @@ libtracker_indexer_files_la_SOURCES = files.c
 libtracker_indexer_files_la_LDFLAGS = $(module_flags)
 libtracker_indexer_files_la_LIBADD = 					\
 	$(top_builddir)/src/libtracker-db/libtracker-db.la		\
-	$(top_builddir)/src/xdgmime/libxdgmime.la			\
 	$(GMODULE_LIBS)							\
 	$(GIO_LIBS)							\
 	$(GLIB2_LIBS)

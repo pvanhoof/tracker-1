@@ -1,3 +1,8 @@
+2008-08-20  Jamie McCracken <jamiemcc at gnome org>
+
+	* Added new API for tracker-parser so that it will be compatible with sqlite FTS3
+
+
 2008-08-20  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/libtracker-common/tracker-file-utils.c

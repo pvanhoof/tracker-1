@@ -22,10 +22,78 @@
 #define __TRACKERD_PARSER_H__
 
 #include <glib.h>
+#include <pango/pango.h>
 
 #include "tracker-language.h"
 
 G_BEGIN_DECLS
+
+
+typedef enum {
+	TRACKER_PARSER_ENCODING_ASCII,
+	TRACKER_PARSER_ENCODING_LATIN,
+	TRACKER_PARSER_ENCODING_CJK,
+	TRACKER_PARSER_ENCODING_OTHER
+} TrackerParserEncoding;
+
+typedef struct {
+	const gchar     	*txt;
+	gint			txt_size;
+	TrackerLanguage 	*language;
+	gboolean		enable_stemmer;
+	gboolean		enable_stop_words;
+	guint             	max_words_to_index;
+    	guint             	max_word_length;
+	guint             	min_word_length;
+	gboolean         	delimit_words;
+	
+	/* private members */
+	guint		 	word_position;
+	TrackerParserEncoding	encoding;
+	const gchar		*cursor;
+	
+	/* pango members for CJK text parsing */
+	PangoLogAttr *		attrs;
+	guint			attr_length;	
+	guint			attr_pos;
+	
+} TrackerParser;
+
+
+
+TrackerParser *	tracker_parser_new (TrackerLanguage *language,
+				    gint max_word_length,
+				    gint min_word_length);
+
+				     		      
+void 		tracker_parser_reset (TrackerParser *parser, 
+				      const gchar *txt, 
+				      gint txt_size, 
+				      gboolean delimit_words,
+				      gboolean enable_stemmer,
+				      gboolean enable_stop_words);				     		      
+
+				    
+				    
+gchar *		tracker_parser_next (TrackerParser *parser,
+				     guint *position,
+				     guint *byte_offset_start,
+				     guint *byte_offset_end,
+				     gboolean *new_paragraph,
+				     gboolean *stop_word);
+				     
+				     
+void		tracker_parser_set_posititon (TrackerParser *parser,
+				     	      guint position);
+				     
+gboolean	tracker_parser_is_stop_word (TrackerParser *parser, const gchar *word);	
+
+static gchar *  tracker_parser_process_word (TrackerParser *parser, const char *word, gint length, gboolean do_strip);
+	     
+void		tracker_parser_free (TrackerParser *parser);				     
+				     
+				    
+
 
 /* 
  * Functions to parse supplied text and break into individual words and

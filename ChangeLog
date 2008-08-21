@@ -1,3 +1,8 @@
+2008-08-21  Ivan frade  <ivan.frade@nokia.com>
+
+	* data/service/image.metadata: Set the correct data types for the
+	metadata.
+	
 2008-08-21  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer.c (create_update_item)

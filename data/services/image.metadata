@@ -1,7 +1,7 @@
 [Image:Title]
 DisplayName=Title
 Description=The title of the image
-DataType=Indexable
+DataType=index
 Parent=DC:Title
 Weight=10
 Filtered=false
@@ -9,7 +9,7 @@ Filtered=false
 [Image:Keywords]
 DisplayName=Keywords
 Description=The keywords embedded in the image
-DataType=Keyword
+DataType=keyword
 Parent=DC:Keywords
 Weight=20
 Filtered=false
@@ -18,17 +18,17 @@ Delimited=true
 [Image:Height]
 DisplayName=Height
 Description=Height in pixels of the image
-DataType=Integer
+DataType=integer
 
 [Image:Width]
 DisplayName=Width
 Description=Width in pixels of the image
-DataType=Integer
+DataType=integer
 
 [Image:Album]
 DisplayName=Album
 Description=The name of the album in which the image resides
-DataType=Indexable
+DataType=index
 Weight=5
 
 [Image:Date]
@@ -40,7 +40,7 @@ Parent=DC:Date
 [Image:Creator]
 DisplayName=Creator
 Description=The person who created the image
-DataType=Indexable
+DataType=index
 Parent=DC:Creator
 Weight=10
 Filtered=false
@@ -48,7 +48,7 @@ Filtered=false
 [Image:Comments]
 DisplayName=Comments
 Description=The comments embedded in the image
-DataType=Indexable
+DataType=index
 Parent=DC:Description
 Weight=5
 
@@ -56,72 +56,72 @@ Weight=5
 [Image:Description]
 DisplayName=Description
 Description=The description embedded in the image
-DataType=Indexable
+DataType=index
 Parent=DC:Description
 Weight=5
 
 [Image:Software]
 DisplayName=Software
 Description=The software used to create the image
-DataType=Indexable
+DataType=index
 Weight=1
 
 [Image:CameraMake]
 DisplayName=Camera make
 Description=The camera used to create the image
-DataType=Indexable
+DataType=index
 Weight=1
 
 [Image:CameraModel]
 DisplayName=Camera model
 Description=The model number of the camera used to create the image
-DataType=Indexable
+DataType=index
 Weight=1
 
 [Image:Orientation]
 DisplayName=Orientation
 Description=The Orientation mode of the image (portrait/landscape)
-DataType=String
+DataType=string
 
 [Image:ExposureProgram]
 DisplayName=Exposure program
 Description=The class of the program used by the camera to set exposure when the picture is taken
-DataType=String
+DataType=string
 
 [Image:ExposureTime]
 DisplayName=Exposure time
 Description=Exposure time in seconds
-DataType=Integer
+DataType=integer
 
 [Image:FNumber]
 DisplayName=F number
 Description=The F number
-DataType=Integer
+DataType=integer
 
 [Image:Flash]
 DisplayName=Flash
 Description=Indicates the status of flash when the image was shot (0=off, 1=on)
-DataType=Integer
+DataType=integer
 
 [Image:FocalLength]
 DisplayName=Focal length
 Description= The actual focal length of the lens in mm
-DataType=Double
+DataType=double
 
 [Image:ISOSpeed]
 DisplayName=ISO speed
 Description=Indicates the ISO Speed and ISO Latitude of the camera or input device as specified in ISO 12232.
-DataType=Integer
+DataType=integer
 
 [Image:MeteringMode]
 DisplayName=Metering mode
 Description=The metering mode
-DataType=String
+DataType=string
 
 [Image:WhiteBalance]
 DisplayName=White balance
 Description=Indicates the white balance mode set when the image was shot (auto/manual)
-DataType=String
+DataType=string
 
 
 

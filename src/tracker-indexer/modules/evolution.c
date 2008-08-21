@@ -41,7 +41,6 @@
 #define METADATA_EMAIL_SUBJECT       "Email:Subject"
 #define METADATA_EMAIL_SENT_TO       "Email:SentTo"
 #define METADATA_EMAIL_CC            "Email:CC"
-#define METADATA_EMAIL_BODY          "Email:Body"
 
 typedef union EvolutionFileData EvolutionFileData;
 typedef struct EvolutionLocalData EvolutionLocalData;
@@ -745,8 +744,7 @@ get_metadata_for_mbox (TrackerFile *file)
         EvolutionLocalData *data;
         GMimeMessage *message;
         TrackerMetadata *metadata;
-        gchar *dirname, *basename, *body;
-        gboolean is_html;
+        gchar *dirname, *basename;
         time_t date;
         GList *list;
         guint flags;
@@ -790,9 +788,6 @@ get_metadata_for_mbox (TrackerFile *file)
 
         list = get_mbox_recipient_list (message, GMIME_RECIPIENT_TYPE_CC);
         tracker_metadata_insert_multiple_values (metadata, METADATA_EMAIL_CC, list);
-
-        body = g_mime_message_get_body (message, TRUE, &is_html);
-        tracker_metadata_insert (metadata, METADATA_EMAIL_BODY, body);
 
         return metadata;
 }
@@ -1037,20 +1032,6 @@ get_imap_message_path (TrackerFile *file,
         return message_path;
 }
 
-static gchar *
-get_imap_message_body (TrackerFile *file,
-                       const gchar *uid)
-{
-        gchar *message_path;
-        gchar *body = NULL;
-
-        message_path = get_imap_message_path (file, uid);
-        g_file_get_contents (message_path, &body, NULL, NULL);
-        g_free (message_path);
-
-        return body;
-}
-
 static TrackerMetadata *
 get_metadata_for_imap_attachment (TrackerFile *file,
                                   const gchar *mime_file)
@@ -1115,7 +1096,7 @@ get_metadata_for_imap (TrackerFile *file)
         EvolutionImapData *data;
         TrackerMetadata *metadata = NULL;
         gchar *dirname, *basename;
-        gchar *uid, *subject, *from, *to, *cc, *body;
+        gchar *uid, *subject, *from, *to, *cc;
         gint32 i, count, flags;
         time_t date;
         GList *list;
@@ -1187,9 +1168,6 @@ get_metadata_for_imap (TrackerFile *file)
 
                 list = get_imap_recipient_list (cc);
                 tracker_metadata_insert_multiple_values (metadata, METADATA_EMAIL_CC, list);
-
-                body = get_imap_message_body (file, uid);
-                tracker_metadata_insert (metadata, METADATA_EMAIL_BODY, body);
         }
 
         g_free (uid);
@@ -1368,6 +1346,66 @@ tracker_module_file_get_metadata (TrackerFile *file)
         }
 
         return NULL;
+}
+
+static gchar *
+get_text_for_mbox (TrackerFile *file)
+{
+        EvolutionLocalData *data;
+        gboolean is_html;
+
+        data = file->data;
+
+        if (data->current_mime_part) {
+                /* FIXME: Extract text from attachments */
+                return NULL;
+        }
+
+        return g_mime_message_get_body (data->message, TRUE, &is_html);
+}
+
+static gchar *
+get_text_for_imap (TrackerFile *file)
+{
+        EvolutionImapData *data;
+        gchar *message_path;
+        gchar *body = NULL;
+
+        data = file->data;
+
+        if (data->current_mime_part) {
+                /* FIXME: Extract text from attachments */
+                return NULL;
+        }
+
+        message_path = get_imap_message_path (file, data->cur_message_uid);
+        g_file_get_contents (message_path, &body, NULL, NULL);
+        g_free (message_path);
+
+        return body;
+}
+
+gchar *
+tracker_module_file_get_text (TrackerFile *file)
+{
+        EvolutionFileData *data;
+        gchar *text = NULL;
+
+        data = file->data;
+
+        if (!data) {
+                /* It isn't any of the files the
+                 * module is interested in */
+                return NULL;
+        }
+
+        if (data->type == MAIL_STORAGE_LOCAL) {
+                text = get_text_for_mbox (file);
+        } else if (data->type == MAIL_STORAGE_IMAP) {
+                text = get_text_for_imap (file);
+        }
+
+        return text;
 }
 
 static GList *

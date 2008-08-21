@@ -224,6 +224,10 @@ start_transaction (TrackerIndexer *indexer)
 static void
 stop_transaction (TrackerIndexer *indexer)
 {
+	if (!indexer->private->in_transaction) {
+		return;
+	}
+
 	tracker_db_interface_end_transaction (indexer->private->common);
 	tracker_db_interface_end_transaction (indexer->private->email_metadata);
 	tracker_db_interface_end_transaction (indexer->private->file_metadata);
@@ -296,16 +300,25 @@ flush_data (TrackerIndexer *indexer)
 }
 
 static void
+stop_scheduled_flush (TrackerIndexer *indexer)
+{
+	if (indexer->private->flush_id) {
+		g_source_remove (indexer->private->flush_id);
+		indexer->private->flush_id = 0;
+	}
+}
+
+static void
 schedule_flush (TrackerIndexer *indexer,
 		gboolean        immediately)
 {
+	if (indexer->private->is_paused) {
+		return;
+	}
+
 	if (immediately) {
 		/* No need to wait for flush timeout */
-		if (indexer->private->flush_id) {
-			g_source_remove (indexer->private->flush_id);
-			indexer->private->flush_id = 0;
-		}
-
+		stop_scheduled_flush (indexer);
 		flush_data (indexer);
 		return;
 	}
@@ -382,10 +395,7 @@ tracker_indexer_finalize (GObject *object)
 	/* Important! Make sure we flush if we are scheduled to do so,
 	 * and do that first.
 	 */
-	if (priv->flush_id) {
-		g_source_remove (priv->flush_id);
-		schedule_flush (TRACKER_INDEXER (object), TRUE);
-	}
+	stop_scheduled_flush (TRACKER_INDEXER (object));
 
 	if (priv->pause_for_duration_id) {
 		g_source_remove (priv->pause_for_duration_id);
@@ -642,12 +652,12 @@ check_disk_space_cb (TrackerIndexer *indexer)
 	disk_space_low = check_disk_space_low (indexer);
 
 	if (disk_space_low) {
-		tracker_indexer_set_running (indexer, FALSE, TRUE);
+		tracker_indexer_set_running (indexer, FALSE);
 
 		/* The function above stops the low disk check, restart it */
 		check_disk_space_start (indexer);
 	} else {
-		tracker_indexer_set_running (indexer, TRUE, TRUE);
+		tracker_indexer_set_running (indexer, TRUE);
 	}
 
 	return TRUE;
@@ -1718,7 +1728,7 @@ process_func (gpointer data)
 
 	indexer = TRACKER_INDEXER (data);
 
-	if (!indexer->private->in_transaction) {
+	if (G_UNLIKELY (!indexer->private->in_transaction)) {
 		start_transaction (indexer);
 	}
 
@@ -1777,8 +1787,7 @@ tracker_indexer_get_running (TrackerIndexer *indexer)
 
 void
 tracker_indexer_set_running (TrackerIndexer *indexer,
-			     gboolean        running,
-			     gboolean        flush)
+			     gboolean        running)
 {
 	gboolean was_running;
 
@@ -1791,14 +1800,10 @@ tracker_indexer_set_running (TrackerIndexer *indexer,
 	}
 
 	if (!running) {
-
-		if (flush)
-			schedule_flush (indexer, TRUE);
-		else
-			stop_transaction (indexer);
-
 		check_disk_space_stop (indexer);
 		signal_status_timeout_stop (indexer);
+		stop_scheduled_flush (indexer);
+		stop_transaction (indexer);
 
 		g_source_remove (indexer->private->idle_id);
 		indexer->private->idle_id = 0;
@@ -1841,15 +1846,10 @@ tracker_indexer_pause (TrackerIndexer         *indexer,
 				  "DBus request to pause the indexer");
 
 	if (tracker_indexer_get_running (indexer)) {
-		if (indexer->private->in_transaction) {
-			tracker_dbus_request_comment (request_id,
-						      "Committing transactions");
-		}
-
 		tracker_dbus_request_comment (request_id,
 					      "Pausing indexing");
 
-		tracker_indexer_set_running (indexer, FALSE, FALSE);
+		tracker_indexer_set_running (indexer, FALSE);
 	}
 
 	dbus_g_method_return (context);
@@ -1864,7 +1864,7 @@ pause_for_duration_cb (gpointer user_data)
 
 	indexer = TRACKER_INDEXER (user_data);
 
-	tracker_indexer_set_running (indexer, TRUE, FALSE);
+	tracker_indexer_set_running (indexer, TRUE);
 	indexer->private->pause_for_duration_id = 0;
 
 	return FALSE;
@@ -1895,7 +1895,7 @@ tracker_indexer_pause_for_duration (TrackerIndexer         *indexer,
 		tracker_dbus_request_comment (request_id,
 					      "Pausing indexing");
 
-		tracker_indexer_set_running (indexer, FALSE, FALSE);
+		tracker_indexer_set_running (indexer, FALSE);
 
 		indexer->private->pause_for_duration_id =
 			g_timeout_add_seconds (seconds,
@@ -1926,7 +1926,7 @@ tracker_indexer_continue (TrackerIndexer         *indexer,
 		tracker_dbus_request_comment (request_id,
 					      "Continuing indexing");
 
-		tracker_indexer_set_running (indexer, TRUE, FALSE);
+		tracker_indexer_set_running (indexer, TRUE);
 	}
 
 	dbus_g_method_return (context);

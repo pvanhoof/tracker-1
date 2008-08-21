@@ -75,8 +75,7 @@ GType           tracker_indexer_get_type           (void) G_GNUC_CONST;
 TrackerIndexer *tracker_indexer_new                (void);
 gboolean        tracker_indexer_get_running        (TrackerIndexer         *indexer);
 void            tracker_indexer_set_running        (TrackerIndexer         *indexer,
-						    gboolean                running,
-						    gboolean                flush);
+						    gboolean                running);
 void            tracker_indexer_stop               (TrackerIndexer         *indexer);
 void            tracker_indexer_process_all        (TrackerIndexer         *indexer);
 

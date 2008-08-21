@@ -1,3 +1,20 @@
+2008-08-21  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/libtracker-db/tracker-db-index.c (tracker_db_index_open): Do not
+	reopen/leak/corrupt data if there's already an index opened.
+	(tracker_db_index_flush): Do not open index if it was closed, there
+	could be good reasons for it.
+	* src/tracker-indexer/tracker-indexer.[ch] (schedule_flush): Do not
+	attempt to flush if the indexer is paused.
+	(stop_transaction): No point in committing if there wasn't a
+	transaction.
+	(tracker_indexer_set_running): Refactored the flush out, calling it
+	wherever it's needed. Also stop scheduled flushes so they aren't
+	called while the indexer is paused.
+	(check_disk_space_cb) (tracker_indexer_pause) (pause_for_duration_cb)
+	(tracker_indexer_pause_for_duration) (tracker_indexer_continue):
+	Update callers.
+
 2008-08-21  Philip Van Hoof  <philip@codeminded.be>
 
         * src/libtracker-db/tracker-db-index.c: Regression fix on "There's 

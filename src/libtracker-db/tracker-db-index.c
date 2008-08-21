@@ -50,8 +50,8 @@ struct TrackerDBIndexPrivate {
 	guint       min_bucket;
         guint       max_bucket;
 
-	gboolean    reload;
-	gboolean    readonly;
+	guint       reload : 1;
+	guint       readonly : 1;
 
 	/* From the indexer */
 	GHashTable *cache;
@@ -741,6 +741,7 @@ tracker_db_index_open (TrackerDBIndex *index)
 	priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
 
 	g_return_val_if_fail (priv->filename != NULL, FALSE);
+	g_return_val_if_fail (priv->index != NULL, FALSE);
 
 	g_mutex_lock (priv->mutex);
 
@@ -840,26 +841,20 @@ tracker_db_index_flush (TrackerDBIndex *index)
 
         g_mutex_lock (priv->mutex);
 
+	if (!priv->index) {
+		g_debug ("Index was not open for flush, waiting...");
+		g_mutex_unlock (priv->mutex);
+		return;
+	}
+
 	size = g_hash_table_size (priv->cache);
 
 	if (size > 0) {
-		if (!priv->index) {
-			g_debug ("Index was not open for flush, opening first...");
-			g_mutex_unlock (priv->mutex);
-			tracker_db_index_open (index);
-			g_mutex_lock (priv->mutex);
-		}
+		g_debug ("Flushing index with %d items in cache", size);
 
-		if (priv->index) {
-			g_debug ("Flushing index with %d items in cache", size);
-			
-			g_hash_table_foreach_remove (priv->cache, 
-						     cache_flush_foreach, 
-						     priv->index);
-		} else {
-			g_warning ("Could not open index, cache was not flushed");
-			size = 0;
-		}
+		g_hash_table_foreach_remove (priv->cache,
+					     cache_flush_foreach,
+					     priv->index);
 	}
 
 	g_mutex_unlock (priv->mutex);

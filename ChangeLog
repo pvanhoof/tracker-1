@@ -1,5 +1,12 @@
 2008-08-21  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-ontology.c:
+	(ontology_hash_lookup_by_str), (ontology_hash_lookup_by_id): Check
+	the string is != NULL before using it in g_hash_table_lookup()
+	which uses strcmp for string comparisons.
+
+2008-08-21  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-file-utils.c: Removed
 	is_text_file() which is no longer used.
 

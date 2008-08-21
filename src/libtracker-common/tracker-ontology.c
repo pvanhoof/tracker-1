@@ -78,6 +78,10 @@ ontology_hash_lookup_by_str (GHashTable  *hash_table,
 	gchar    *str_lower;
 
 	str_lower = g_utf8_collate_key (str, -1);
+	if (!str_lower) {
+		return NULL;
+	}
+
 	data = g_hash_table_lookup (hash_table, str_lower);
 	g_free (str_lower);
 
@@ -92,6 +96,10 @@ ontology_hash_lookup_by_id (GHashTable  *hash_table,
 	gchar    *str;
 
 	str = g_strdup_printf ("%d", id);
+	if (!str) {
+		return NULL;
+	}
+
 	data = g_hash_table_lookup (hash_table, str);
 	g_free (str);
 

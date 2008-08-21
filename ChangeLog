@@ -1,5 +1,10 @@
 2008-08-21  Carlos Garnacho  <carlos@imendio.com>
 
+	* tests/tracker-indexer/Makefile.am: No need to include libxdgmime.la
+	anymore.
+
+2008-08-21  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/modules/evolution.c (get_text_for_mbox)
 	(get_text_for_imap) (tracker_module_file_get_text): New functions, get
 	the emails body through the get_text() module function, so it's saved

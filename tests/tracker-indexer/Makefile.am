@@ -24,7 +24,6 @@ tracker_metadata_utils_LDADD =	                                        \
 	$(top_builddir)/src/libtracker-db/libtracker-db.la 		\
 	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
 	$(top_builddir)/tests/common/libtracker-testcommon.la           \
-	$(top_builddir)/src/xdgmime/libxdgmime.la 			\
 	$(GMODULE_LIBS)							\
 	$(GTHREAD_LIBS)							\
 	$(GIO_LIBS)							\

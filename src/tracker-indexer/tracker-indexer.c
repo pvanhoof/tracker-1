@@ -1102,6 +1102,11 @@ create_update_item (TrackerIndexer  *indexer,
 	guint32 id;
 
 	service_type = tracker_indexer_module_file_get_service_type (info->module, info->file);
+
+	if (!service_type) {
+		return;
+	}
+
 	service_def = tracker_ontology_get_service_type_by_name (service_type);
 	g_free (service_type);
 
@@ -1542,6 +1547,11 @@ should_index_file (PathInfo    *info,
 	time_t mtime;
 
 	service_type = tracker_indexer_module_file_get_service_type (info->module, info->file);
+
+	if (!service_type) {
+		return FALSE;
+	}
+
 	service = tracker_ontology_get_service_type_by_name (service_type);
 	g_free (service_type);
 
@@ -2042,10 +2052,13 @@ tracker_indexer_file_move (TrackerIndexer         *indexer,
 	info = path_info_new (module, module_name, to);
 
 	service_type = tracker_indexer_module_file_get_service_type (module, info->file);
-	service = tracker_ontology_get_service_type_by_name (service_type);
-	g_free (service_type);
 
-	tracker_db_move_service (service, from, to);
+	if (service_type) {
+		service = tracker_ontology_get_service_type_by_name (service_type);
+		g_free (service_type);
+
+		tracker_db_move_service (service, from, to);
+	}
 
 	dbus_g_method_return (context);
 	tracker_dbus_request_success (request_id);

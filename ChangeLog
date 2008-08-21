@@ -1,3 +1,10 @@
+2008-08-21  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer.c (create_update_item)
+	(should_index_file) (tracker_indexer_file_move): Check return value of
+	tracker_indexer_module_file_get_service_type(), since it could return
+	NULL for files the module doesn't handle.
+
 2008-08-21  Philip Van Hoof  <philip@codeminded.be>
 
 	* src/tracker-indexer/tracker-main.c: Run forever feature for the

@@ -1791,8 +1791,12 @@ tracker_indexer_set_running (TrackerIndexer *indexer,
 	}
 
 	if (!running) {
-		 if (flush)
-			 schedule_flush (indexer, TRUE);
+
+		if (flush)
+			schedule_flush (indexer, TRUE);
+		else
+			stop_transaction (indexer);
+
 		check_disk_space_stop (indexer);
 		signal_status_timeout_stop (indexer);
 

@@ -1,3 +1,9 @@
+2008-08-21  Philip Van Hoof  <philip@codeminded.be>
+
+        * src/libtracker-db/tracker-db-index.c: Regression fix on "There's 
+	no need to flush the word index on pausing the indexer.": the current
+	transaction was not always being committed anymore
+
 2008-08-21  Mikael Ottela    <mikael.ottela@ixonos.com>
 
 	* src/libtracker-db/tracker-db-interface.c: Bug fix. Added checking

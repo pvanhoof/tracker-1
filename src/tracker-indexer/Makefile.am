@@ -9,6 +9,7 @@ INCLUDES =								\
 	-DG_LOG_DOMAIN=\"Tracker\"					\
 	-I$(top_srcdir)/src						\
 	$(DBUS_CFLAGS)							\
+	$(PANGO_CFLAGS)							\
 	$(GMODULE_CFLAGS)
 
 libexec_PROGRAMS = tracker-indexer
@@ -39,6 +40,7 @@ tracker_indexer_LDADD =							\
 	$(DBUS_LIBS)							\
 	$(GMODULE_LIBS)							\
 	$(GTHREAD_LIBS)							\
+	$(PANGO_LIBS)							\
 	$(GIO_LIBS)							\
 	$(GLIB2_LIBS)							\
 	-lz								\

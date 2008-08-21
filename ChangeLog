@@ -1,4 +1,17 @@
-2008-08-21  Ivan frade  <ivan.frade@nokia.com>
+2008-08-21  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/tracker-indexer/tracker-metadata-utils.[ch]
+	(tracker_metadata_utils_calculate_merge): Addded funciont.
+	Given two set of metadata (old and new) calculate a list of 
+	actions to do in the DB (insert, delete or update)..
+	
+	* tests/tracker-indexer
+	* tests/tracker-indexer/tracker-metadata-utils-test.c
+	* tests/tracker-indexer/Makefile.am
+	* tests/Makefile.am
+	* configure.ac: Added unit tests to the previous function
+	
+2008-08-21  Ivan Frade  <ivan.frade@nokia.com>
 
 	* data/service/image.metadata: Set the correct data types for the
 	metadata.

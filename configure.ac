@@ -245,12 +245,10 @@ if test "x$enable_unit_tests" != "xno" ; then
       glib_pkgconfig=$glib_pkgconfig_tmp
       AC_PATH_PROG(GTESTER, [gtester], [no] )
       if test "x$GTESTER" = "xno" ; then
-	 AC_MSG_ERROR([*** Gtester is not in the path])
+      	 AC_MSG_ERROR([*** Gtester is not in the path])
       else
-	 PKG_CHECK_MODULES(XESAM_GLIB, 
-			   xesam-glib, 
-			   [have_xesam_glib=yes], 
-			   [have_xesam_glib=no])
+	PKG_CHECK_MODULES(XESAM_GLIB, 
+		xesam-glib, [have_xesam_glib=yes], [have_xesam_glib=no])
       fi
    fi
 else
@@ -935,6 +933,11 @@ if test "$have_hildon_thumbnail" = "yes" ; then
    AC_DEFINE(HAVE_HILDON_THUMBNAIL, 1, [Define if we have hildon-thumbnail])
 fi
 
+AC_CONFIG_LINKS(tests/tracker-indexer/tracker-metadata.c:src/tracker-indexer/tracker-metadata.c 
+                tests/tracker-indexer/tracker-metadata.h:src/tracker-indexer/tracker-metadata.h
+                tests/tracker-indexer/tracker-metadata-utils.c:src/tracker-indexer/tracker-metadata-utils.c
+                tests/tracker-indexer/tracker-metadata-utils.h:src/tracker-indexer/tracker-metadata-utils.h)
+
 ##################################################################
 # Write generated files
 ##################################################################
@@ -992,6 +995,7 @@ AC_CONFIG_FILES([
 	tests/scripts/Makefile
 	tests/trackerd/Makefile
 	tests/trackerd/xesam/Makefile
+	tests/tracker-indexer/Makefile
 	thumbnailers/application/Makefile
 	thumbnailers/image/Makefile
 	thumbnailers/Makefile

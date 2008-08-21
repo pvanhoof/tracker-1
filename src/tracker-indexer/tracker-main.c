@@ -61,6 +61,7 @@ static guint         quit_timeout_id;
 
 static gint          verbosity = -1;
 static gboolean      process_all = FALSE;
+static gboolean      run_forever = FALSE;
 
 static GOptionEntry  entries[] = {
 	{ "verbosity", 'v', 0, 
@@ -72,6 +73,11 @@ static GOptionEntry  entries[] = {
           G_OPTION_ARG_NONE, &process_all,
           N_("Whether to process data from all configured modules to be indexed"),
           NULL },
+	{ "run-forever", 'f', 0, 
+	  G_OPTION_ARG_NONE, &run_forever, 
+	  N_("Run forever, only interesting for debugging purposes"), 
+	  NULL },
+
 	{ NULL }
 };
 
@@ -218,14 +224,17 @@ indexer_finished_cb (TrackerIndexer *indexer,
                 g_source_remove (quit_timeout_id);
         }
 
-        g_message ("Waiting another %d seconds for more items before quitting...",
-                   QUIT_TIMEOUT);
+        if (!run_forever) {
 
-        quit_timeout_id = g_timeout_add_seconds_full (G_PRIORITY_DEFAULT,
-                                                      QUIT_TIMEOUT,
-                                                      quit_timeout_cb,
-                                                      g_object_ref (indexer),
-                                                      (GDestroyNotify) g_object_unref);
+                g_message ("Waiting another %d seconds for more items before quitting...",
+                           QUIT_TIMEOUT);
+
+                quit_timeout_id = g_timeout_add_seconds_full (G_PRIORITY_DEFAULT,
+                                                              QUIT_TIMEOUT,
+                                                              quit_timeout_cb,
+                                                              g_object_ref (indexer),
+                                                              (GDestroyNotify) g_object_unref);
+        }
 }
 
 gint

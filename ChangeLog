@@ -1,3 +1,8 @@
+2008-08-21  Philip Van Hoof  <philip@codeminded.be>
+
+	* src/tracker-indexer/tracker-main.c: Run forever feature for the
+	indexer, for debugging purposes
+
 2008-08-21  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-ontology.c:

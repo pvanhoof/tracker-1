@@ -1213,33 +1213,42 @@ processor_files_move (TrackerProcessor *processor,
 	GQueue         *queue;
 	gchar          *path;
 	gchar          *other_path;
-	gboolean        ignored;
+	gboolean        path_ignored;
+	gboolean        other_path_ignored;
 
 	path = g_file_get_path (file);
 	other_path = g_file_get_path (other_file);
 	crawler = g_hash_table_lookup (processor->private->crawlers, module_name);
 
-#if 0
-	/* FIXME: How do we do this? Surely if other_file is ignored we delete it? */
-	ignored = tracker_crawler_is_path_ignored (crawler, path, is_directory);
-#else
-	ignored = FALSE;
-#endif
+	path_ignored = tracker_crawler_is_path_ignored (crawler, path, is_directory);
+	other_path_ignored = tracker_crawler_is_path_ignored (crawler, other_path, is_directory);
 
-	g_debug ("%s:'%s'->'%s' (move monitor event or user request)",
-		 ignored ? "Ignored" : "Found ",
+	g_debug ("%s:'%s'->'%s':%s (move monitor event or user request)",
+		 path_ignored ? "Ignored" : "Found ",
 		 path,
-		 other_path);
+		 other_path,
+		 other_path_ignored ? "Ignored" : " Found");
 
+	g_free (other_path);
 	g_free (path);
-	
-	if (ignored) {
-		return;
-	}
 
-	queue = g_hash_table_lookup (processor->private->items_moved_queues, module_name);
-	g_queue_push_tail (queue, g_object_ref (file));
-	g_queue_push_tail (queue, g_object_ref (other_file));
+	if (path_ignored && other_path_ignored) {
+		/* Do nothing */
+		return;
+	} else if (path_ignored) {
+		/* Check new file */
+		queue = g_hash_table_lookup (processor->private->items_created_queues, module_name);
+		g_queue_push_tail (queue, g_object_ref (other_file));
+	} else if (other_path_ignored) {
+		/* Delete old file */
+		queue = g_hash_table_lookup (processor->private->items_deleted_queues, module_name);
+		g_queue_push_tail (queue, g_object_ref (file));
+	} else {
+		/* Move old file to new file */
+		queue = g_hash_table_lookup (processor->private->items_moved_queues, module_name);
+		g_queue_push_tail (queue, g_object_ref (file));
+		g_queue_push_tail (queue, g_object_ref (other_file));
+	}
 
 	item_queue_handlers_set_up (processor);
 }

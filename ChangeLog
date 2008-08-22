@@ -1,3 +1,17 @@
+2008-08-22  Martyn Russell  <martyn@imendio.com>
+
+	* src/trackerd/tracker-monitor.c: Handle situations where the
+	source or target are not monitored and emit the appropriate
+	signals up the stack.
+	
+	* src/trackerd/tracker-processor.c: Check the source AND the
+	target to see if they should be ignored or not when we get MOVE
+	monitor events. If both are ignored, we do nothing, if source is
+	ignored we create the new file in the database, if target is
+	ignored we delete the old file in the database, if both are valid
+	we do a simple move in the database. I say simple, it isn't that
+	simple. :)
+
 2008-08-22  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/trackerd/tracker-marshal.list:

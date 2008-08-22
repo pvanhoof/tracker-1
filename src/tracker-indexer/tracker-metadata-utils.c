@@ -94,6 +94,7 @@ tracker_metadata_read (GIOChannel   *channel,
 
 			if (line && *line) {
 				g_strstrip (line);
+				g_strdelimit (line, ";", '\0');
 				g_ptr_array_add (array, line);
 			}
 		} while (status == G_IO_STATUS_NORMAL && line && *line);

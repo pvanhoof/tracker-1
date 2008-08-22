@@ -1,5 +1,11 @@
 2008-08-22  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-metadata-utils.c
+	(tracker_metadata_read): Strip metadata separators when reading from
+	the external extractor.
+
+2008-08-22  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-indexer-module.c
 	(tracker_indexer_module_file_get_uri): Reduce the warning to a debug
 	message, it's still nice to have that info, but it isn't crucial

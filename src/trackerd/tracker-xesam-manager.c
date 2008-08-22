@@ -66,6 +66,7 @@ static void
 indexer_finished_cb (DBusGProxy *proxy,
 		     gdouble     seconds_elapsed,
 		     guint       items_done,
+		     gboolean    interrupted,
 		     gpointer    user_data)
 {
 	/* So now when we get status updates we can process live

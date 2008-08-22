@@ -1,3 +1,12 @@
+2008-08-22  Carlos Garnacho  <carlos@imendio.com>
+
+	* data/dbus/tracker-indexer.xml:
+	* src/trackerd/tracker-dbus.c:
+	* src/trackerd/tracker-processor.c:
+	* src/trackerd/tracker-xesam-manager.c: Added a missing argument to
+	the Finished DBus signal definition in the indexer. Also updated all
+	callers.
+
 2008-08-22  Mikael Ottela    <mikael.ottela@ixonos.com>
 
 	* src/trackerd/tracker-rdf-query.c:

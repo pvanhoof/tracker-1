@@ -116,6 +116,7 @@ static void indexer_status_cb               (DBusGProxy       *proxy,
 static void indexer_finished_cb             (DBusGProxy       *proxy,
 					     gdouble           seconds_elapsed,
 					     guint             items_done,
+					     gboolean          interrupted,
 					     gpointer          user_data);
 static void monitor_item_created_cb         (TrackerMonitor   *monitor,
 					     const gchar      *module_name,
@@ -1061,6 +1062,7 @@ static void
 indexer_finished_cb (DBusGProxy  *proxy,
 		     gdouble      seconds_elapsed,
 		     guint        items_done,
+		     gboolean     interrupted,
 		     gpointer     user_data)
 {
 	TrackerProcessor *processor;

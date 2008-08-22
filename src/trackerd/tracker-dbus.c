@@ -491,6 +491,7 @@ tracker_dbus_indexer_get_proxy (void)
 					 "Finished",
 					 G_TYPE_DOUBLE,
 					 G_TYPE_UINT,
+					 G_TYPE_BOOLEAN,
 					 G_TYPE_INVALID);
 		dbus_g_proxy_add_signal (proxy_for_indexer,
 					 "ModuleStarted",

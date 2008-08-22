@@ -76,6 +76,7 @@
     <signal name="Finished">
       <arg type="d" name="elapsed_time" />
       <arg type="u" name="items_done" />
+      <arg type="b" name="interrupted" />
     </signal>
     <signal name="ModuleStarted">
       <arg type="s" name="module_name" />

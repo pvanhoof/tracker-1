@@ -741,7 +741,7 @@ tracker_db_index_open (TrackerDBIndex *index)
 	priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
 
 	g_return_val_if_fail (priv->filename != NULL, FALSE);
-	g_return_val_if_fail (priv->index != NULL, FALSE);
+	g_return_val_if_fail (priv->index == NULL, FALSE);
 
 	g_mutex_lock (priv->mutex);
 
@@ -760,11 +760,14 @@ tracker_db_index_open (TrackerDBIndex *index)
 			      priv->max_bucket);
 
 	if (!priv->index) {
-		g_debug ("Index doesnt exists or was not closed properly, index:'%s', %s",
-			 priv->filename,
-			 dperrmsg (dpecode));
+		if (!g_file_test (priv->filename, G_FILE_TEST_EXISTS)) {
+			g_debug ("Index doesnt exists yet:'%s'",
+				 priv->filename);
+		} else {
+			g_debug ("Index was not closed properly:'%s', %s",
+				 priv->filename,
+				 dperrmsg (dpecode));
 
-		if (g_file_test (priv->filename, G_FILE_TEST_EXISTS)) {
 			if (dprepair (priv->filename)) {
 				priv->index = dpopen (priv->filename,
 						      flags,
@@ -844,7 +847,8 @@ tracker_db_index_flush (TrackerDBIndex *index)
 	if (!priv->index) {
 		g_debug ("Index was not open for flush, waiting...");
 		g_mutex_unlock (priv->mutex);
-		return;
+
+		return 0;
 	}
 
 	size = g_hash_table_size (priv->cache);

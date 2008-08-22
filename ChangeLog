@@ -1,3 +1,13 @@
+2008-08-22  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-db/tracker-db-index.c: (tracker_db_index_open),
+	(tracker_db_index_flush): Fixed the g_return_val_if_fail() check
+	for the priv->index already being set in tracker_db_index_open().
+	Initially it is not set at all so the index was not being opened.
+	Also, if we can't open the index, we now debug specifically if it
+	was because the file doesn't exist yet or if it wasn't closed
+	properly. 
+
 2008-08-21  Martyn Russell  <martyn@imendio.com>
 
 	* data/services/default.service: Added inode/; to the prefixes to

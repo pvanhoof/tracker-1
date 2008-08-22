@@ -1,3 +1,10 @@
+2008-08-22  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer-module.c
+	(tracker_indexer_module_file_get_uri): Reduce the warning to a debug
+	message, it's still nice to have that info, but it isn't crucial
+	either.
+
 2008-08-22  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-db/tracker-db-index.c: (tracker_db_index_open),

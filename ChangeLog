@@ -1,5 +1,10 @@
 2008-08-22  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/trackerd/tracker-marshal.list:
+	* src/trackerd/tracker-dbus.c: Fix marshaller for Finished signal.
+
+2008-08-22  Carlos Garnacho  <carlos@imendio.com>
+
 	* data/dbus/tracker-indexer.xml:
 	* src/trackerd/tracker-dbus.c:
 	* src/trackerd/tracker-processor.c:

@@ -464,10 +464,11 @@ tracker_dbus_indexer_get_proxy (void)
 						   G_TYPE_UINT,
 						   G_TYPE_UINT,
 						   G_TYPE_INVALID);
-		dbus_g_object_register_marshaller (tracker_marshal_VOID__DOUBLE_UINT,
+		dbus_g_object_register_marshaller (tracker_marshal_VOID__DOUBLE_UINT_BOOL,
 						   G_TYPE_NONE,
 						   G_TYPE_DOUBLE,
 						   G_TYPE_UINT,
+						   G_TYPE_BOOLEAN,
 						   G_TYPE_INVALID);
 
 		/* Add signals, why can't we use introspection for this? */

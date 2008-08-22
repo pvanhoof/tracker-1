@@ -4,11 +4,10 @@
 	recognise folders like $HOME/.xchat.
 	
 	* src/libtracker-common/tracker-ontology.[ch]: 
-	* tests/libtracker-common/tracker-ontology-test.c: Renamed
-	tracker_ontology_get_parent_id_for_service_id() to
-	tracker_ontology_get_db_by_service_type() and added a check for
-	NULL service strings.
-	
+	* tests/libtracker-common/tracker-ontology-test.c: Added in
+	tracker_ontology_get_db_by_service_type() a check for NULL service
+	strings.
+
 	* src/libtracker-common/tracker-parser.c: Cleaned up the code,
 	fixed a nasty double free that was introduced recently. Do proper
 	type checking for TrackerLanguage. Make sure we reference the

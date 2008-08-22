@@ -3002,7 +3002,9 @@ tracker_db_get_metadata_field (TrackerDBInterface *iface,
 			g_free (display_field);
 		}
 			
-		if (tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_DOUBLE) {
+		if ((tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_DOUBLE) ||
+		    (tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_INDEX)  ||
+		    (tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_STRING)) {
 			where_field = g_strdup_printf ("M%d.MetaDataDisplay", field_count);
 		} else {
 			where_field = g_strdup_printf ("M%d.MetaDataValue", field_count);

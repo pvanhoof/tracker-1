@@ -1,3 +1,9 @@
+2008-08-22  Mikael Ottela    <mikael.ottela@ixonos.com>
+
+	* src/trackerd/tracker-rdf-query.c:
+	* src/trackerd/tracker-db.c: Fixes to index and string type 
+	metadata handling in queries.
+
 2008-08-22  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-metadata-utils.c

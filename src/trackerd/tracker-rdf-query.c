@@ -803,17 +803,9 @@ build_sql (ParserData *data)
 
                         data_type = tracker_field_data_get_data_type (field_data);
 
-                        if (data_type == TRACKER_FIELD_TYPE_DATE ||
-                            data_type == TRACKER_FIELD_TYPE_INTEGER ||
-                            data_type == TRACKER_FIELD_TYPE_DOUBLE) {
-                                g_string_append_printf (str, " (%s = %s) ", 
-                                                        where_field, 
-                                                        value);
-                        } else {
-                                g_string_append_printf (str, " (%s = '%s') ", 
-                                                        where_field, 
-                                                        value);
-                        }
+			g_string_append_printf (str, " (%s = %s) ",
+						where_field,
+						value);
                 }
                 break;
                 

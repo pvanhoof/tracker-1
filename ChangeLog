@@ -1,4 +1,20 @@
-2008-08-25  Mikael Ottela    <mikael.ottela@ixonos.com>
+2008-08-25  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/libtracker-common/tracker-file-utils.[ch]
+	(tracker_file_get_path_and_name): New function to get the path and
+	name of an uri. It removes some duplicate code and uses g_file
+	to parse the path, so we can fix "x//y" in uris.
+	
+	* src/trackerd/tracker-db.c
+	* src/trackerd/tracker-files.c: Using the new method, instead of
+	the old code.
+	
+	* tests/libtracker-common/tracker-file-utils-test.c: Fixed minor
+	things in previous tests and added test for the new method.
+	
+
+2008-08-25  Mikael Ottela   <mikael.ottela@ixonos.com>
+	
 	* src/tracker-extract/tracker-extract-gstreamer.c: Gstreamer
 	extractor extracts now also images.	
 

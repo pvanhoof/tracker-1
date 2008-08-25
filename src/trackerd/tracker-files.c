@@ -418,8 +418,8 @@ tracker_files_search_text_contents (TrackerFiles           *object,
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set = NULL;
 	guint               request_id;
-	gchar              *name;
-	gchar              *path;
+	gchar              *name = NULL;
+	gchar              *path = NULL;
 	gchar              *max_length_str;
 	gchar              *value = NULL;
 	GError             *actual_error = NULL;
@@ -439,13 +439,7 @@ tracker_files_search_text_contents (TrackerFiles           *object,
 
 	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
-	if (uri[0] == G_DIR_SEPARATOR) {
-		name = g_path_get_basename (uri);
-		path = g_path_get_dirname (uri);
-	} else {
-		name = tracker_file_get_vfs_name (uri);
-		path = tracker_file_get_vfs_path (uri);
-	}
+	tracker_file_get_path_and_name (uri, &path, &name);
 	
 	max_length_str = tracker_gint_to_string (max_length);
 
@@ -656,8 +650,8 @@ tracker_files_get_mtime (TrackerFiles           *object,
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
 	guint               request_id;
-	gchar              *path;
-	gchar              *name;
+	gchar              *path = NULL;
+	gchar              *name = NULL;
 	gint                mtime;
 	GError             *actual_error = NULL;
 
@@ -672,13 +666,7 @@ tracker_files_get_mtime (TrackerFiles           *object,
 
 	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
-	if (uri[0] == G_DIR_SEPARATOR) {
-		name = g_path_get_basename (uri);
-		path = g_path_get_dirname (uri);
-	} else {
-		name = tracker_file_get_vfs_name (uri);
-		path = tracker_file_get_vfs_path (uri);
-	}
+	tracker_file_get_path_and_name (uri, &path, &name);
 
 	result_set = tracker_db_exec_proc (iface,
 					   "GetFileMTime", 

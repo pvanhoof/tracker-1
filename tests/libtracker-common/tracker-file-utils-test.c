@@ -68,9 +68,9 @@ test_path_list_filter_duplicates (void)
         result = tracker_path_list_filter_duplicates (input_as_list);
         g_assert_cmpint (3, ==, g_slist_length (result));
         
-        g_assert (string_in_list (result, "/home/"));
-        g_assert (string_in_list (result, "/tmp/"));
-        g_assert (string_in_list (result, "/usr/"));
+        g_assert (string_in_list (result, "/home"));
+        g_assert (string_in_list (result, "/tmp"));
+        g_assert (string_in_list (result, "/usr"));
 
         g_slist_foreach (input_as_list, (GFunc) g_free, NULL);
 }
@@ -78,7 +78,7 @@ test_path_list_filter_duplicates (void)
 static void
 test_path_evaluate_name (void)
 {
-        gchar *result;
+        gchar *result, *expected;
         
         const gchar *home = g_getenv ("HOME");
         const gchar *pwd = g_getenv ("PWD");
@@ -100,38 +100,53 @@ test_path_evaluate_name (void)
         tracker_test_helpers_cmpstr_equal (result, "/home/user/all/dir");
         g_free (result);
 
-        result = tracker_path_evaluate_name ("~/all/dir/");
-        tracker_test_helpers_cmpstr_equal (result, 
-                                           g_build_path (G_DIR_SEPARATOR_S, home, "/all/dir/", NULL));
+
+	/*
+	 * TODO: In valgrind this test shows a memory leak
+	 */
+	result = tracker_path_evaluate_name ("~/all/dir/");
+	expected = g_build_path (G_DIR_SEPARATOR_S, home, "/all/dir/", NULL);
+        tracker_test_helpers_cmpstr_equal (result, expected);
+
         g_free (result);
+	g_free (expected);
 
         result = tracker_path_evaluate_name ("$HOME/all/dir/");
-        tracker_test_helpers_cmpstr_equal (result, 
-                                           g_build_path (G_DIR_SEPARATOR_S, home, "/all/dir", NULL));
+	expected = g_build_path (G_DIR_SEPARATOR_S, home, "/all/dir", NULL);
+        tracker_test_helpers_cmpstr_equal (result, expected);
+
         g_free (result);
+	g_free (expected);
 
         result = tracker_path_evaluate_name ("${HOME}/all/dir/");
-        tracker_test_helpers_cmpstr_equal (result, 
-                                           g_build_path (G_DIR_SEPARATOR_S, home, "/all/dir", NULL));
+	expected = g_build_path (G_DIR_SEPARATOR_S, home, "/all/dir", NULL);
+	tracker_test_helpers_cmpstr_equal (result, expected);
+
         g_free (result);
+	g_free (expected);
 
         result = tracker_path_evaluate_name ("./test/current/dir");
-        tracker_test_helpers_cmpstr_equal (result,
-                                           g_build_path (G_DIR_SEPARATOR_S, pwd, "/test/current/dir", NULL));
+	expected = g_build_path (G_DIR_SEPARATOR_S, pwd, "/test/current/dir", NULL);
+        tracker_test_helpers_cmpstr_equal (result, expected);
+
         g_free (result);
+	g_free (expected);
 
         result = tracker_path_evaluate_name ("$TEST_TRACKER_DIR/test/dir");
-        tracker_test_helpers_cmpstr_equal (result,
-                                           g_build_path (G_DIR_SEPARATOR_S, test, "/test/dir", NULL));
-        g_free (result);
+	expected = g_build_path (G_DIR_SEPARATOR_S, test, "/test/dir", NULL);
+        tracker_test_helpers_cmpstr_equal (result, expected);
 
+        g_free (result);
+	g_free (expected);
 
         result = tracker_path_evaluate_name ("../test/dir");
         parent_dir = g_path_get_dirname (pwd);
-        tracker_test_helpers_cmpstr_equal (result,
-                                           g_build_path (G_DIR_SEPARATOR_S, parent_dir, "/test/dir", NULL));
+	expected = g_build_path (G_DIR_SEPARATOR_S, parent_dir, "/test/dir", NULL);
+        tracker_test_helpers_cmpstr_equal (result, expected);
+
         g_free (result);
         g_free (parent_dir);
+	g_free (expected);
 
         result = tracker_path_evaluate_name ("");
         g_assert (!result);
@@ -142,6 +157,7 @@ test_path_evaluate_name (void)
         result = tracker_path_evaluate_name (tracker_test_helpers_get_nonutf8 ());
         tracker_test_helpers_cmpstr_equal (result,
                                            tracker_test_helpers_get_nonutf8 ());
+
         g_unsetenv ("TEST_TRACKER_DIR");
 }
 
@@ -159,12 +175,61 @@ test_file_get_mime_type (void)
 
         result = tracker_file_get_mime_type (dir_name);
 
-        g_assert (tracker_test_helpers_cmpstr_equal (result, "x-directory/normal"));
+        g_assert (tracker_test_helpers_cmpstr_equal (result, "inode/directory"));
 
         /* Remove test directory */
         g_file_delete (dir, NULL, NULL);
         g_object_unref (dir);
         g_free (dir_name);
+}
+
+static void
+test_file_get_path_and_name ()
+{
+
+	gchar *name = NULL;
+	gchar *path = NULL;
+
+	tracker_file_get_path_and_name ("/home/ivan/test/file.txt",
+					&path,
+					&name);
+
+	g_assert_cmpint (g_strcmp0 (name, "file.txt"), ==, 0);
+	g_assert_cmpint (g_strcmp0 (path, "/home/ivan/test"), ==, 0);
+	
+	g_free (name);
+	g_free (path);
+	name = NULL;
+	path = NULL;
+
+	tracker_file_get_path_and_name ("/home/ivan//test/file.txt",
+					&path,
+					&name);
+
+	g_assert_cmpint (g_strcmp0 (name, "file.txt"), ==, 0);
+	g_assert_cmpint (g_strcmp0 (path, "/home/ivan/test"), ==, 0);
+	
+	g_free (name);
+	g_free (path);
+	name = NULL;
+	path = NULL;
+/*
+ *      TODO: Fix this case
+ *
+	tracker_file_get_path_and_name ("file:///home/ivan//test/file.txt",
+					&path,
+					&name);
+
+	g_assert_cmpint (g_strcmp0 (name, "file.txt"), ==, 0);
+	g_print ("%s\n", path);
+	g_assert_cmpint (g_strcmp0 (path, "file:///home/ivan/test"), ==, 0);
+	
+	g_free (name);
+	g_free (path);
+	name = NULL;
+	path = NULL;
+*/
+
 }
 
 int
@@ -184,6 +249,9 @@ main (int argc, char **argv)
 
         g_test_add_func ("/tracker/libtracker-common/tracker-file-utils/file_get_mime_type",
                          test_file_get_mime_type);
+
+	g_test_add_func ("/libtracker_common/tracker-file-utils/file_get_path_and_name",
+			 test_file_get_path_and_name);
 
         result = g_test_run ();
 

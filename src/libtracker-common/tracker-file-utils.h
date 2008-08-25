@@ -35,8 +35,9 @@ gboolean tracker_file_is_indexable                 (const gchar *uri);
 guint32  tracker_file_get_size                     (const gchar *uri);
 gint32   tracker_file_get_mtime                    (const gchar *uri);
 gchar *  tracker_file_get_mime_type                (const gchar *uri);
-gchar *  tracker_file_get_vfs_path                 (const gchar *uri);
-gchar *  tracker_file_get_vfs_name                 (const gchar *uri);
+void     tracker_file_get_path_and_name            (const gchar *uri,
+						    gchar **path,
+						    gchar **name);
 void     tracker_path_remove                       (const gchar *uri);
 gboolean tracker_path_is_in_path                   (const gchar *path,
 						    const gchar *in_path);

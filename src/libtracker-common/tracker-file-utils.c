@@ -280,7 +280,8 @@ tracker_file_get_mime_type (const gchar *path)
 	return content_type;
 }
 
-gchar *
+
+static gchar *
 tracker_file_get_vfs_path (const gchar *uri)
 {
 	gchar *p;
@@ -321,7 +322,7 @@ tracker_file_get_vfs_path (const gchar *uri)
 	}
 }
 
-gchar *
+static gchar *
 tracker_file_get_vfs_name (const gchar *uri)
 {
 	gchar *p, *res, *tmp, *result;
@@ -356,6 +357,47 @@ tracker_file_get_vfs_name (const gchar *uri)
 
 	return g_strdup (" ");
 }
+
+
+static gchar *
+normalize_uri (const gchar *uri) {
+
+        GFile  *f;
+	gchar *normalized;
+
+	f = g_file_new_for_path (uri);
+        normalized =  g_file_get_path (f);
+	g_object_unref (f);
+
+	return normalized;
+}
+
+void     
+tracker_file_get_path_and_name (const gchar *uri,
+				gchar **path,
+				gchar **name)
+{
+
+	g_return_if_fail (uri);
+	g_return_if_fail (path);
+	g_return_if_fail (name);
+
+	if (uri[0] == G_DIR_SEPARATOR) {
+		gchar *checked_uri;
+
+		checked_uri = normalize_uri (uri);
+		*name = g_path_get_basename (checked_uri);
+		*path = g_path_get_dirname (checked_uri);
+
+		g_free (checked_uri);
+	} else {
+		*name = tracker_file_get_vfs_name (uri);
+		*path = tracker_file_get_vfs_path (uri);
+	}
+	
+}
+
+
 
 void
 tracker_path_remove (const gchar *uri)

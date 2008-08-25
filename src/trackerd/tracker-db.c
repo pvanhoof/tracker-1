@@ -2535,8 +2535,8 @@ tracker_db_service_create (TrackerDBInterface *iface,
 	gchar              *str_aux;
 	gint	            service_type_id;
 	gchar	           *str_service_type_id;
-	gchar              *path;
-	gchar              *name;
+	gchar              *path = NULL;
+	gchar              *name = NULL;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), 0);
 	g_return_val_if_fail (info, 0);
@@ -2547,14 +2547,8 @@ tracker_db_service_create (TrackerDBInterface *iface,
 	private = g_static_private_get (&private_key);
 	g_return_val_if_fail (private != NULL, 0);
 
-	if (info->uri[0] == G_DIR_SEPARATOR) {
-		name = g_path_get_basename (info->uri);
-		path = g_path_get_dirname (info->uri);
-	} else {
-		name = tracker_file_get_vfs_name (info->uri);
-		path = tracker_file_get_vfs_path (info->uri);
-	}
-
+	tracker_file_get_path_and_name (info->uri, &path, &name);
+	
 	/* Get a new unique ID for the service - use mutex to prevent race conditions */
 	result_set = tracker_db_exec_proc (iface, "GetNewID", NULL);
 
@@ -2708,6 +2702,7 @@ tracker_db_service_get_by_entity (TrackerDBInterface *iface,
 	return result;
 }
 
+
 guint32
 tracker_db_file_get_id (TrackerDBInterface *iface, 
 			const gchar        *uri)
@@ -2719,13 +2714,7 @@ tracker_db_file_get_id (TrackerDBInterface *iface,
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), 0);
 	g_return_val_if_fail (uri != NULL, 0);
 
-	if (uri[0] == G_DIR_SEPARATOR) {
-		name = g_path_get_basename (uri);
-		path = g_path_get_dirname (uri);
-	} else {
-		name = tracker_file_get_vfs_name (uri);
-		path = tracker_file_get_vfs_path (uri);
-	}
+	tracker_file_get_path_and_name (uri, &path, &name);
 
 	result_set = tracker_db_exec_proc (iface,
 					   "GetServiceID", 

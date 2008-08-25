@@ -1,3 +1,7 @@
+2008-08-25  Mikael Ottela    <mikael.ottela@ixonos.com>
+	* src/tracker-extract/tracker-extract-gstreamer.c: Gstreamer
+	extractor extracts now also images.	
+
 2008-08-25  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-extract/Makefile.am:

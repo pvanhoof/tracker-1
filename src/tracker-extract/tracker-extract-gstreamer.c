@@ -1,3 +1,4 @@
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /* Tracker - audio/video metadata extraction based on GStreamer
  * Copyright (C) 2006, Laurent Aguerreche (laurent.aguerreche@free.fr)
  *
@@ -56,6 +57,13 @@
 
 #include "tracker-extract.h"
 
+typedef enum {
+	EXTRACT_MIME_UNDEFINED=0,
+	EXTRACT_MIME_AUDIO,
+	EXTRACT_MIME_VIDEO,
+	EXTRACT_MIME_IMAGE
+} ExtractMime;
+
 typedef struct {
 	GstElement	*playbin;
 
@@ -67,6 +75,8 @@ typedef struct {
 
 	gboolean	has_audio;
 	gboolean	has_video;
+
+	ExtractMime     mime;
 
 	gint		video_height;
 	gint		video_width;
@@ -475,11 +485,19 @@ extract_metadata (MetadataExtractor *extractor, GHashTable *metadata)
 	}
 
 	if (extractor->video_height >= 0) {
-		add_uint_info (metadata, g_strdup ("Video:Height"), (guint) extractor->video_height);
+		if (extractor->mime == EXTRACT_MIME_IMAGE) {
+			add_uint_info (metadata, g_strdup ("Image:Height"), (guint) extractor->video_height);
+		} else {
+			add_uint_info (metadata, g_strdup ("Video:Height"), (guint) extractor->video_height);
+		}
 	}
 
 	if (extractor->video_width >= 0) {
-		add_uint_info (metadata, g_strdup ("Video:Width"), (guint) extractor->video_width);
+		if (extractor->mime == EXTRACT_MIME_IMAGE) {
+			add_uint_info (metadata, g_strdup ("Image:Width"), (guint) extractor->video_height);
+		} else {
+			add_uint_info (metadata, g_strdup ("Video:Width"), (guint) extractor->video_height);
+		}
 	}
 
 	if (extractor->video_fps_n >= 0 && extractor->video_fps_d >= 0) {
@@ -514,8 +532,12 @@ extract_metadata (MetadataExtractor *extractor, GHashTable *metadata)
 
 		duration = get_media_duration (extractor);
 
-		/* Sometimes it is unclear to what a tag belongs to! */
-		if (extractor->has_video) {
+		if ((extractor->mime == EXTRACT_MIME_IMAGE) && (extractor->has_video)) {
+			add_string_gst_tag (metadata, "Image:Title", extractor->tagcache, GST_TAG_TITLE);
+			add_string_gst_tag (metadata, "Image:Comments", extractor->tagcache, GST_TAG_COMMENT);
+			add_string_gst_tag (metadata, "Image:Author", extractor->tagcache, GST_TAG_ARTIST);
+
+		} else if (extractor->has_video) {
 			add_string_gst_tag (metadata, "Video:Title", extractor->tagcache, GST_TAG_TITLE);
 			add_string_gst_tag (metadata, "Video:Comments", extractor->tagcache, GST_TAG_COMMENT);
 			/* FIXME: is it a good idea to use GST_TAG_ARTIST as author?! */
@@ -652,9 +674,8 @@ poll_for_state_change (MetadataExtractor *extractor, GstState state)
 	return FALSE;
 }
 
-
 static void
-tracker_extract_gstreamer (const gchar *uri, GHashTable *metadata)
+tracker_extract_gstreamer (const gchar *uri, GHashTable *metadata, ExtractMime type)
 {
 	MetadataExtractor *extractor;
 	gchar		  *mrl;
@@ -682,6 +703,8 @@ tracker_extract_gstreamer (const gchar *uri, GHashTable *metadata)
 	extractor->audio_samplerate = -1;
 
 	extractor->ignore_messages_mask = 0;
+
+	extractor->mime = type;
 
 	extractor->playbin = gst_element_factory_make ("playbin", "playbin");
 
@@ -722,10 +745,30 @@ tracker_extract_gstreamer (const gchar *uri, GHashTable *metadata)
 	g_slice_free (MetadataExtractor, extractor);
 }
 
+static void
+tracker_extract_gstreamer_audio (const gchar *uri, GHashTable *metadata)
+{
+	tracker_extract_gstreamer (uri, metadata, EXTRACT_MIME_AUDIO);
+}
+
+
+static void
+tracker_extract_gstreamer_video (const gchar *uri, GHashTable *metadata)
+{
+	tracker_extract_gstreamer (uri, metadata, EXTRACT_MIME_VIDEO);
+}
+
+static void
+tracker_extract_gstreamer_image (const gchar *uri, GHashTable *metadata)
+{
+	tracker_extract_gstreamer (uri, metadata, EXTRACT_MIME_IMAGE);
+}
+
 
 TrackerExtractorData data[] = {
-	{ "audio/*", tracker_extract_gstreamer },
-	{ "video/*", tracker_extract_gstreamer },
+	{ "audio/*", tracker_extract_gstreamer_audio },
+	{ "video/*", tracker_extract_gstreamer_video },
+	{ "image/*", tracker_extract_gstreamer_image },
 	{ NULL, NULL }
 };
 

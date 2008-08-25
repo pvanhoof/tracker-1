@@ -29,6 +29,7 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 
+#include <libtracker-common/tracker-os-dependant.h>
 #include "tracker-extract.h"
 
 #if !HAVE_GETLINE
@@ -248,11 +249,6 @@ tracker_extract_ps (const gchar *filename, GHashTable *metadata)
                 close (fd);
         }
 }
-
-
-/* our private prototype */
-void tracker_child_cb (gpointer user_data);
-
 
 static void
 tracker_extract_ps_gz (const gchar *filename, GHashTable *metadata)

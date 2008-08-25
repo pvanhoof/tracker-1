@@ -215,7 +215,7 @@ initialize_extractors (void)
 		module = g_module_open (module_path, G_MODULE_BIND_LOCAL);
 
 		if (!module) {
-			g_warning ("Could not load module: %s", name);
+			g_warning ("Could not load module '%s': %s", name, g_module_error ());
 			g_free (module_path);
 			continue;
 		}

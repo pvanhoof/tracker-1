@@ -1,3 +1,11 @@
+2008-08-25  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-extract/Makefile.am:
+	* src/tracker-extract/tracker-extract-ps.c: Fix up symbol not found
+	that prevented the PS module to be loaded.
+	* src/tracker-extract/tracker-extract.c (initialize_extractors):
+	Provide a better error message if a module can't be loaded.
+
 2008-08-22  Martyn Russell  <martyn@imendio.com>
 
 	* src/trackerd/tracker-monitor.c: Handle situations where the

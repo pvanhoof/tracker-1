@@ -1319,7 +1319,7 @@ handle_metadata_add (TrackerIndexer *indexer,
 	TrackerService *service_def;
 	TrackerField *field_def;
 	guint service_id, i;
-	gchar *joined, *dirname, *basename;
+	gchar *joined, *dirname = NULL, *basename =NULL;
 	gint len;
 
 	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
@@ -1365,8 +1365,7 @@ handle_metadata_add (TrackerIndexer *indexer,
 		return FALSE;
 	}
 
-	dirname = tracker_file_get_vfs_path (uri);
-	basename = tracker_file_get_vfs_name (uri);
+	tracker_file_get_path_and_name (uri, &dirname, &basename);
 
 	tracker_db_check_service (service_def,
 				  dirname,
@@ -1459,7 +1458,7 @@ handle_metadata_remove (TrackerIndexer *indexer,
 	TrackerService *service_def;
 	TrackerField *field_def;
 	guint service_id, i;
-	gchar *joined = NULL, *dirname, *basename;
+	gchar *joined = NULL, *dirname = NULL, *basename = NULL;
 
 	service_def = tracker_ontology_get_service_type_by_name (service_type);
 	if (!service_def) {
@@ -1490,8 +1489,7 @@ handle_metadata_remove (TrackerIndexer *indexer,
 		return FALSE;
 	}
 
-	dirname = tracker_file_get_vfs_path (uri);
-	basename = tracker_file_get_vfs_name (uri);
+	tracker_file_get_path_and_name (uri, &dirname, &basename);
 
 	tracker_db_check_service (service_def, dirname, basename, &service_id, NULL);
 

@@ -1,5 +1,11 @@
 2008-08-25  Ivan Frade  <ivan.frade@nokia.com>
 
+	* src/tracker-indexer/tracker-indexer-db.c
+	* src/tracker-indexer/tracker-indexer.c:
+	Using the new method also here to obtain path and name also here.
+	
+2008-08-25  Ivan Frade  <ivan.frade@nokia.com>
+
 	* src/libtracker-common/tracker-file-utils.[ch]
 	(tracker_file_get_path_and_name): New function to get the path and
 	name of an uri. It removes some duplicate code and uses g_file

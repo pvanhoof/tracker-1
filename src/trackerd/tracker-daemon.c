@@ -209,7 +209,7 @@ indexer_finished_cb (DBusGProxy *proxy,
 		ret[0] = NULL;
 	}
 
-	g_signal_emit_by_name (daemon, "stats-changed", ret);
+	g_signal_emit (daemon, signals[DAEMON_STATS_CHANGED], 0, ret);
 
 	g_strfreev (ret);
 }

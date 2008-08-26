@@ -1,5 +1,10 @@
 2008-08-26  Philip Van Hoof  <philip@codeminded.be>
 
+	* src/trackerd/tracker-daemon.c: Changed the way we emit the
+	stats-changed signal. Fixes a crash.
+
+2008-08-26  Philip Van Hoof  <philip@codeminded.be>
+
 	* src/tracker-indexer/tracker-indexer.c
 	* src/libtracker-db/tracker-db-index.h
 	* src/libtracker-db/tracker-db-index.c: Making flushing the index more

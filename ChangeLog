@@ -1,5 +1,10 @@
 2008-08-26  Carlos Garnacho  <carlos@imendio.com>
 
+	* tests/tracker-indexer/Makefile.am: Added LIBDIR define for
+	tracker-metadata-utils.c
+
+2008-08-26  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/modules/files.c
 	(tracker_metadata_call_text_filter) (get_file_content): Moved to
 	tracker-metadata-utils.c

@@ -7,6 +7,7 @@ TEST_PROGS += tracker-metadata-utils
 INCLUDES = 				\
 	-g 				\
 	-DG_LOG_DOMAIN=\"Tracker\"	\
+	-DLIBDIR=\""$(libdir)"\"	\
 	-DEXTRACTOR_PATH=\""$(libexecdir)/tracker-extract"\" \
 	-I$(top_srcdir)/src		\
 	-I$(top_srcdir)/tests/common	\

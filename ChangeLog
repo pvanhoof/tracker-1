@@ -1,5 +1,13 @@
 2008-08-26  Philip Van Hoof  <philip@codeminded.be>
 
+	* src/libtracker-db/tracker-db-index.c: removed a mutex. The API of
+	tracker-db-index.h is never used by more than one thread. Therefore 
+	can't there be a need for a mutex. If we do need a mutex, then just
+	reverting this wont suffice: changes that will happen after this
+	commit will require using a recursive mutex instead.
+
+2008-08-26  Philip Van Hoof  <philip@codeminded.be>
+
 	* src/trackerd/tracker-daemon.c
 	* src/trackerd/tracker-marshal.list
 	* data/dbus/tracker-daemon.xml: Added a stats-changed signal

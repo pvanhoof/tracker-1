@@ -45,7 +45,6 @@ typedef struct TrackerDBIndexPrivate TrackerDBIndexPrivate;
 struct TrackerDBIndexPrivate {
 	/* From the daemon */
 	DEPOT      *index;
-	GMutex     *mutex;
 
 	guint       min_bucket;
         guint       max_bucket;
@@ -147,7 +146,6 @@ tracker_db_index_init (TrackerDBIndex *index)
 
 	priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
 
-	priv->mutex = g_mutex_new ();
 	priv->reload = TRUE;
 
 	priv->cache = g_hash_table_new_full (g_str_hash,
@@ -172,7 +170,6 @@ tracker_db_index_finalize (GObject *object)
 
 	g_free (priv->filename);
 
-	g_mutex_free (priv->mutex);
 
 	G_OBJECT_CLASS (tracker_db_index_parent_class)->finalize (object);
 }
@@ -385,9 +382,7 @@ has_word (TrackerDBIndex *index,
 
         priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
 
-	g_mutex_lock (priv->mutex);
         count = dpgetwb (priv->index, word, -1, 0, 32, buffer);
-	g_mutex_unlock (priv->mutex);
 
 	return count > 7;
 }
@@ -401,9 +396,7 @@ count_hit_size_for_word (TrackerDBIndex *index,
 
         priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
 
-	g_mutex_lock (priv->mutex);
 	tsiz = dpvsiz (priv->index, word, -1);
-	g_mutex_unlock (priv->mutex);
 
 	return tsiz;
 }
@@ -743,7 +736,6 @@ tracker_db_index_open (TrackerDBIndex *index)
 	g_return_val_if_fail (priv->filename != NULL, FALSE);
 	g_return_val_if_fail (priv->index == NULL, FALSE);
 
-	g_mutex_lock (priv->mutex);
 
 	g_debug ("Opening index:'%s' (%s)", 
 		 priv->filename,
@@ -796,7 +788,6 @@ tracker_db_index_open (TrackerDBIndex *index)
 		priv->reload = TRUE;
 	}
 	
-	g_mutex_unlock (priv->mutex);
 
 	return !priv->reload;
 }
@@ -811,7 +802,6 @@ tracker_db_index_close (TrackerDBIndex *index)
 
 	priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
 
-	g_mutex_lock (priv->mutex);
 
 	retval = TRUE;
 
@@ -827,7 +817,6 @@ tracker_db_index_close (TrackerDBIndex *index)
 		priv->index = NULL;
 	}
 
-	g_mutex_unlock (priv->mutex);
 
 	return retval;
 }
@@ -842,11 +831,9 @@ tracker_db_index_flush (TrackerDBIndex *index)
 
 	priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
 
-        g_mutex_lock (priv->mutex);
 
 	if (!priv->index) {
 		g_debug ("Index was not open for flush, waiting...");
-		g_mutex_unlock (priv->mutex);
 
 		return 0;
 	}
@@ -861,7 +848,6 @@ tracker_db_index_flush (TrackerDBIndex *index)
 					     priv->index);
 	}
 
-	g_mutex_unlock (priv->mutex);
 
 	return size;
 }
@@ -880,9 +866,7 @@ tracker_db_index_get_size (TrackerDBIndex *index)
 
         priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
 
-        g_mutex_lock (priv->mutex);
         size = dpfsiz (priv->index);
-        g_mutex_unlock (priv->mutex);
 
 	return size;
 }
@@ -913,13 +897,11 @@ tracker_db_index_get_suggestion (TrackerDBIndex *index,
 	winner_str = g_strdup (term);
         winner_dist = G_MAXINT;  /* Initialize to the worst case */
 
-	g_mutex_lock (priv->mutex);
         dpiterinit (priv->index);
 
 	g_get_current_time (&start);
 
 	str = dpiternext (priv->index, NULL);
-	g_mutex_unlock (priv->mutex);
 
 	while (str != NULL) {
 		dist = levenshtein (term, str, 0);
@@ -954,9 +936,7 @@ tracker_db_index_get_suggestion (TrackerDBIndex *index,
                         break;
 		}
 
-                g_mutex_lock (priv->mutex);
 		str = dpiternext (priv->index, NULL);
-                g_mutex_unlock (priv->mutex);
 	}
 
         return winner_str;
@@ -981,7 +961,6 @@ tracker_db_index_get_word_hits (TrackerDBIndex *index,
 		return NULL;
 	}
 
-	g_mutex_lock (priv->mutex);
 
 	details = NULL;
 
@@ -999,7 +978,6 @@ tracker_db_index_get_word_hits (TrackerDBIndex *index,
 		}
 	}
 
-	g_mutex_unlock (priv->mutex);
 
 	return details;
 }
@@ -1022,7 +1000,6 @@ tracker_db_index_add_word (TrackerDBIndex *index,
 
 	priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
 
-        g_mutex_lock (priv->mutex);
 
 	elem.id = service_id;
 	elem.amalgamated = tracker_db_index_item_calc_amalgamated (service_type, weight);
@@ -1036,7 +1013,6 @@ tracker_db_index_add_word (TrackerDBIndex *index,
 		array = g_array_new (FALSE, TRUE, sizeof (TrackerDBIndexItem));
 		g_hash_table_insert (priv->cache, g_strdup (word), array);
 		g_array_append_val (array, elem);
-		g_mutex_unlock (priv->mutex);
 
 		return;
 	} 
@@ -1065,7 +1041,6 @@ tracker_db_index_add_word (TrackerDBIndex *index,
 										new_score);
 			}
 
-			g_mutex_unlock (priv->mutex);
 
 			return;
 		}
@@ -1074,7 +1049,6 @@ tracker_db_index_add_word (TrackerDBIndex *index,
 	/* First time in the file */
 	g_array_append_val (array, elem);
 
-        g_mutex_unlock (priv->mutex);
 }
 
 /*
@@ -1105,7 +1079,6 @@ tracker_db_index_remove_dud_hits (TrackerDBIndex *index,
 
 	g_return_val_if_fail (priv->index, FALSE);
 
-	g_mutex_lock (priv->mutex);
 
 	/* Check if existing record is there  */
 	tmp = dpget (priv->index,
@@ -1116,7 +1089,6 @@ tracker_db_index_remove_dud_hits (TrackerDBIndex *index,
                      &tsiz);
 
         if (!tmp) {
-		g_mutex_unlock (priv->mutex);
                 return FALSE;
         }
 
@@ -1167,7 +1139,6 @@ tracker_db_index_remove_dud_hits (TrackerDBIndex *index,
 
         g_free (tmp);
 
-	g_mutex_unlock (priv->mutex);
 
 	return retval;
 }

@@ -46,7 +46,8 @@ typedef struct {
 void              tracker_metadata_utils_action_item_free (MetadataActionItem *item,
 							   gpointer user_data);
 
-TrackerMetadata * tracker_metadata_utils_get_data (const gchar *file);
+TrackerMetadata * tracker_metadata_utils_get_data (const gchar *path);
+gchar *           tracker_metadata_utils_get_text (const gchar *path);
 
 GSList *          tracker_metadata_utils_calculate_merge (TrackerMetadata *old_metadata,
 							  TrackerMetadata *new_metadata);

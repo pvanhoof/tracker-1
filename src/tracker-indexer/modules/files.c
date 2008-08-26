@@ -142,126 +142,16 @@ tracker_module_file_get_metadata (TrackerFile *file)
         return tracker_metadata_utils_get_data (path);
 }
 
-static gchar *
-tracker_metadata_call_text_filter (const gchar *path,
-				   const gchar *mime)
-{
-	gchar *str, *text_filter_file;
-	gchar *text = NULL;
-
-#ifdef OS_WIN32
-	str = g_strconcat (mime, "_filter.bat", NULL);
-#else
-	str = g_strconcat (mime, "_filter", NULL);
-#endif
-
-	text_filter_file = g_build_filename (LIBDIR,
-					     "tracker",
-					     "filters",
-					     str,
-					     NULL);
-
-	if (g_file_test (text_filter_file, G_FILE_TEST_EXISTS)) {
-		gchar **argv;
-
-		argv = g_new0 (gchar *, 3);
-		argv[0] = g_strdup (text_filter_file);
-		argv[1] = g_strdup (path);
-
-		g_message ("Extracting text for:'%s' using filter:'%s'",
-                           argv[1], argv[0]);
-
-		tracker_spawn (argv, 30, &text, NULL);
-
-		g_strfreev (argv);
-	}
-
-	g_free (text_filter_file);
-	g_free (str);
-
-	return text;
-}
-
-static gchar *
-get_file_content (const gchar *path)
-{
-        GFile            *file;
-        GFileInputStream *stream;
-        GError           *error = NULL;
-        gssize            bytes_read;
-        gssize            bytes_remaining;
-        gchar             buf[1048576];
-
-        file = g_file_new_for_path (path);
-        stream = g_file_read (file, NULL, &error);
-
-        if (error) {
-                g_message ("Couldn't get file file:'%s', %s",
-                           path,
-                           error->message);
-                g_error_free (error);
-                g_object_unref (file);
-
-                return NULL;
-        }
-
-        /* bytes_max = tracker_config_get_max_text_to_index (config); */
-        bytes_remaining = sizeof (buf);
-        memset (buf, 0, bytes_remaining);
-
-        /* NULL termination */
-        bytes_remaining--;
-
-        for (bytes_read = -1; bytes_read != 0 && !error; ) {
-                bytes_read = g_input_stream_read (G_INPUT_STREAM (stream),
-                                                  buf,
-                                                  bytes_remaining,
-                                                  NULL,
-                                                  &error);
-                bytes_remaining -= bytes_read;
-        }
-        
-        if (error) {
-                g_message ("Couldn't get read input stream for:'%s', %s",
-                           path,
-                           error->message);
-                g_error_free (error);
-                g_object_unref (file);
-                g_object_unref (stream);
-
-                return NULL;
-        }
-
-        g_object_unref (file);
-        g_object_unref (stream);
-
-        g_debug ("Read %d bytes from file:'%s'\n",
-                 sizeof (buf) - bytes_remaining,
-                 path);
-
-        return g_strdup (buf);
-}
-
 gchar *
 tracker_module_file_get_text (TrackerFile *file)
 {
-	gchar *mimetype, *service_type;
-	gchar *text = NULL;
+	const gchar *path;
 
-	mimetype = tracker_file_get_mime_type (file->path);
-	service_type = tracker_ontology_get_service_type_for_mime (mimetype);
+	path = file->path;
 
-	/* No need to filter text based files - index them directly */
-	if (service_type && 
-            (strcmp (service_type, "Text") == 0 ||
-             strcmp (service_type, "Development") == 0)) {
-                text = get_file_content (file->path);
-	} else {
-		text = tracker_metadata_call_text_filter (file->path, mimetype);
-	}
+        if (check_exclude_file (path)) {
+                return NULL;
+        }
 
-	g_free (mimetype);
-	g_free (service_type);
-
-	return text;
+        return tracker_metadata_utils_get_text (path);
 }

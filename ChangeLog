@@ -1,3 +1,13 @@
+2008-08-26  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/modules/files.c
+	(tracker_metadata_call_text_filter) (get_file_content): Moved to
+	tracker-metadata-utils.c
+	(tracker_module_file_get_text): Use these new functions.
+	* src/tracker-indexer/tracker-metadata-utils.[ch]: Refactor
+	MetadataContext so it can also spawn external text extractors.
+	(tracker_metadata_utils_get_text): New helper function.
+
 2008-08-25  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/tracker-indexer/tracker-indexer-db.c

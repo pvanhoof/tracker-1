@@ -54,7 +54,7 @@
         "\n"								  \
 	"  http://www.gnu.org/licenses/gpl.txt\n" 
 
-#define QUIT_TIMEOUT 10 /* Seconds */
+#define QUIT_TIMEOUT 300 /* 5 minutes worth of seconds */
 
 static GMainLoop    *main_loop;
 static guint         quit_timeout_id;

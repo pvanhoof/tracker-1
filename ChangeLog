@@ -1,5 +1,20 @@
 2008-08-26  Philip Van Hoof  <philip@codeminded.be>
 
+	* src/tracker-indexer/tracker-main.c: raised the "wait for more"
+	timeout to 5 minutes. The indexer is harmless for the system's
+	resources while waiting. VS. stopping and starting the indexer often
+	isn't harmless for the system's resources.
+
+2008-08-26  Philip Van Hoof  <philip@codeminded.be>
+
+	* src/trackerd/tracker-processor.c: a patch fix for the processor. It
+	seems that a timeout that happens after the indexer has shut down
+	calls its callback. That callback sets the status back to indexing.
+
+	When Martyn is back from holiday he should take a look at this.
+
+2008-08-26  Philip Van Hoof  <philip@codeminded.be>
+
 	* src/trackerd/tracker-daemon.c: Changed the way we emit the
 	stats-changed signal. Fixes a crash.
 

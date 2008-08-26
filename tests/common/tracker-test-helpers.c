@@ -49,7 +49,7 @@ tracker_test_helpers_get_nonutf8 (void)
         GMappedFile *file = NULL;
 
         if (!nonutf8_str) {
-                file = g_mapped_file_new ("./non-utf8.txt", FALSE, NULL);
+                file = g_mapped_file_new (TEST_TEXT, FALSE, NULL);
                 nonutf8_str = g_strdup (g_mapped_file_get_contents (file));
                 nonutf8_str [g_mapped_file_get_length (file) -1] = '\0';
                 g_mapped_file_free (file);

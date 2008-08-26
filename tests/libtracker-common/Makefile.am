@@ -74,3 +74,5 @@ tracker_parser_LDADD =							\
 	$(GTHREAD_LIBS)							\
 	$(PANGO_LIBS)							\
 	$(GLIB2_LIBS)							
+
+EXTRA_DIST = non-utf8.txt

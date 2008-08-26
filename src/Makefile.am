@@ -35,6 +35,23 @@ SUBDIRS = 					\
 	tracker-thumbnailer			\
 	tracker-indexer				\
 	$(build_libtrackergtk)			\
-	$(build_tracker_gui)			\
 	$(build_trackerapplet) 			\
+	$(build_tracker_search_tool)		\
 	$(build_tracker_preferences)
+
+DIST_SUBDIRS = 					\
+	libstemmer				\
+	qdbm					\
+	libinotify				\
+	libtracker-common 			\
+	libtracker-db				\
+	libtracker				\
+	trackerd				\
+	tracker-utils				\
+	tracker-extract				\
+	tracker-thumbnailer			\
+	tracker-indexer				\
+	libtracker-gtk				\
+	tracker-applet	 			\
+	tracker-search-tool			\
+	tracker-preferences

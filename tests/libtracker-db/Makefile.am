@@ -27,7 +27,10 @@ INCLUDES = 				\
 	$(GLIB2_CFLAGS)
 
 
-union_performance_SOURCES = union-performance.c
+union_performance_SOURCES = \
+	tracker-db-manager-common.h	\
+	tracker-db-manager-common.c	\
+	union-performance.c
 
 union_performance_LDADD =                                              \
 	$(top_builddir)/src/libtracker-db/libtracker-db.la              \

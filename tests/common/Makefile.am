@@ -3,6 +3,7 @@ include $(top_srcdir)/Makefile.decl
 noinst_LTLIBRARIES = libtracker-testcommon.la
 
 INCLUDES = 				\
+	-DTEST_TEXT=\""$(top_srcdir)"/tests/libtracker-common/non-utf8.txt\"	\
 	-I.				\
 	$(GLIB2_CFLAGS)
 

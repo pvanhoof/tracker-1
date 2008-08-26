@@ -1,3 +1,9 @@
+2008-08-26  Philip Van Hoof  <philip@codeminded.be>
+
+	* src/trackerd/tracker-daemon.c
+	* src/trackerd/tracker-marshal.list
+	* data/dbus/tracker-daemon.xml: Added a stats-changed signal
+
 2008-08-26  Carlos Garnacho  <carlos@imendio.com>
 
 	* tests/tracker-indexer/Makefile.am: Added LIBDIR define for

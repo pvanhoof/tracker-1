@@ -178,5 +178,12 @@
       <arg type="i" name="items_remaining"/>
       <arg type="i" name="items_total"/>
     </signal>
+
+    <!-- Signal whenever the count of a category changed. Look at GetStats for
+	 the format of service_stats. 
+      -->
+    <signal name="StatsChanged">
+      <arg type="aas" name="service_stats"/>
+    </signal>
   </interface>
 </node>

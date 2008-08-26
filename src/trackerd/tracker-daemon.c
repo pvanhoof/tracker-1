@@ -47,12 +47,14 @@ typedef struct {
 	TrackerConfig    *config;
 	TrackerProcessor *processor;
 	DBusGProxy       *indexer_proxy;
+	GPtrArray        *last_stats;
 } TrackerDaemonPrivate;
 
 enum {
         DAEMON_INDEX_STATE_CHANGE,
         DAEMON_INDEX_FINISHED,
 	DAEMON_INDEX_PROGRESS,
+	DAEMON_STATS_CHANGED,
         LAST_SIGNAL
 };
 
@@ -123,14 +125,130 @@ tracker_daemon_class_init (TrackerDaemonClass *klass)
 			      G_TYPE_INT,
 			      G_TYPE_INT,
 			      G_TYPE_INT);
-
+        signals[DAEMON_STATS_CHANGED] =
+                g_signal_new ("stats-changed",
+                              G_TYPE_FROM_CLASS (klass),
+                              G_SIGNAL_RUN_LAST,
+                              0,
+                              NULL, NULL,
+                              tracker_marshal_VOID__BOXED,
+                              G_TYPE_NONE,
+                              1,
+			      G_TYPE_STRV);
 	g_type_class_add_private (object_class, sizeof (TrackerDaemonPrivate));
+}
+
+static void
+clean_last_stats (TrackerDaemonPrivate *priv) {
+	if (priv->last_stats) {
+		g_ptr_array_foreach (priv->last_stats, (GFunc) g_strfreev, NULL);
+		g_ptr_array_free (priv->last_stats, TRUE);
+	}
+}
+
+static void
+indexer_finished_cb (DBusGProxy *proxy,
+		     gdouble     seconds_elapsed,
+		     guint       items_done,
+		     gboolean    interrupted,
+		     gpointer    user_data)
+{
+	GObject              *daemon;
+	TrackerDaemonPrivate *priv;
+	TrackerDBInterface   *iface;
+	TrackerDBResultSet   *result_set;
+	GPtrArray            *values = NULL;
+	GPtrArray            *new_stats;
+	GStrv                 ret;
+	guint                 i;
+
+	daemon = tracker_dbus_get_object (TRACKER_TYPE_DAEMON);
+	priv = TRACKER_DAEMON_GET_PRIVATE (daemon);
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
+
+	result_set = tracker_db_exec_proc (iface, "GetStats", 0);
+	new_stats = tracker_dbus_query_result_to_ptr_array (result_set);
+
+	if (result_set)
+		g_object_unref (result_set);
+
+	if (priv->last_stats && new_stats) {
+		for (i = 0; i < priv->last_stats->len && i < new_stats->len; i++) {
+			GStrv str1 = g_ptr_array_index (priv->last_stats, i);
+			GStrv str2 = g_ptr_array_index (new_stats, i);
+
+			if (!str1[0] || !str1[1] || !str2[1])
+				continue;
+
+			if (strcmp (str1[1], str2[1]) != 0) {
+				if (!values)
+					values = g_ptr_array_new ();
+				g_ptr_array_add (values, g_strdup (str1[0]));
+			}
+		}
+	} else if (new_stats) {
+		for (i = 0; i < new_stats->len; i++) {
+			GStrv str = g_ptr_array_index (new_stats, i);
+			if (!str[0])
+				continue;
+			g_ptr_array_add (values, g_strdup (str[0]));
+		}
+	}
+
+	clean_last_stats (priv);
+	priv->last_stats = new_stats;
+
+	if (values) {
+		ret = (GStrv) g_malloc (sizeof (gchar*) * values->len);
+		for (i = 0 ; i < values->len; i++)
+			ret[i] = g_ptr_array_index (values, i);
+		ret[i] = NULL;
+		g_ptr_array_free (values, TRUE);
+	} else {
+		ret = (GStrv) g_malloc (sizeof (gchar*) * 1);
+		ret[0] = NULL;
+	}
+
+	g_signal_emit_by_name (daemon, "stats-changed", ret);
+
+	g_strfreev (ret);
 }
 
 static void
 tracker_daemon_init (TrackerDaemon *object)
 {
+	TrackerDaemonPrivate *priv;
+	TrackerDBInterface   *iface;
+	TrackerDBResultSet   *result_set;
+	DBusGProxy           *proxy;
+
+	priv = TRACKER_DAEMON_GET_PRIVATE (object);
+
+	proxy = tracker_dbus_indexer_get_proxy ();
+	priv->indexer_proxy = g_object_ref (proxy);
+
+	dbus_g_proxy_connect_signal (proxy, "Paused",
+				     G_CALLBACK (indexer_paused_cb),
+				     object,
+				     NULL);
+	dbus_g_proxy_connect_signal (proxy, "Continued",
+				     G_CALLBACK (indexer_continued_cb),
+				     object,
+				     NULL);
+	dbus_g_proxy_connect_signal (proxy, "Finished",
+				     G_CALLBACK (indexer_finished_cb),
+				     object,
+				     NULL);
+
+	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
+
+	result_set = tracker_db_exec_proc (iface, "GetStats", 0);
+	priv->last_stats = tracker_dbus_query_result_to_ptr_array (result_set);
+
+	if (result_set)
+		g_object_unref (result_set);
 }
+
 
 static void
 tracker_daemon_finalize (GObject *object)
@@ -141,12 +259,18 @@ tracker_daemon_finalize (GObject *object)
 	daemon = TRACKER_DAEMON (object);
 	priv = TRACKER_DAEMON_GET_PRIVATE (daemon);
 
+	clean_last_stats (priv);
+
 	dbus_g_proxy_disconnect_signal (priv->indexer_proxy, "Continued",
 					G_CALLBACK (indexer_continued_cb),
 					NULL);
 	dbus_g_proxy_disconnect_signal (priv->indexer_proxy, "Paused",
 					G_CALLBACK (indexer_paused_cb),
 					NULL);
+	dbus_g_proxy_disconnect_signal (priv->indexer_proxy, "Finished",
+					G_CALLBACK (indexer_continued_cb),
+					NULL);
+
 	g_object_unref (priv->indexer_proxy);
 
 	g_object_unref (priv->processor);
@@ -161,7 +285,6 @@ tracker_daemon_new (TrackerConfig    *config,
 {
 	TrackerDaemon        *object;
 	TrackerDaemonPrivate *priv;
-	DBusGProxy           *proxy;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 	g_return_val_if_fail (TRACKER_IS_PROCESSOR (processor), NULL);
@@ -172,18 +295,6 @@ tracker_daemon_new (TrackerConfig    *config,
 
 	priv->config = g_object_ref (config);
 	priv->processor = g_object_ref (processor);
-
-	proxy = tracker_dbus_indexer_get_proxy ();
-	priv->indexer_proxy = g_object_ref (proxy);
-
-	dbus_g_proxy_connect_signal (proxy, "Paused",
-				     G_CALLBACK (indexer_paused_cb),
-				     object,
-				     NULL);
-	dbus_g_proxy_connect_signal (proxy, "Continued",
-				     G_CALLBACK (indexer_continued_cb),
-				     object,
-				     NULL);
 
 	return object;
 }

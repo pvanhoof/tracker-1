@@ -1,5 +1,11 @@
 2008-08-26  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-metadata-utils.c (get_file_content):
+	Don't allocate in the stack so much memory, even more when it's going
+	to be copied around.
+
+2008-08-26  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/Makefile.am:
 	* src/libinotify/Makefile.am:
 	* tests/common/Makefile.am:

@@ -38,6 +38,8 @@
 #define METADATA_FILE_MODIFIED       "File:Modified"
 #define METADATA_FILE_ACCESSED       "File:Accessed"
 
+#define TEXT_MAX_SIZE                1048576
+
 typedef struct {
 	GPid pid;
 	GIOChannel *stdin_channel;
@@ -424,8 +426,9 @@ get_file_content (const gchar *path)
         GError           *error = NULL;
         gssize            bytes_read;
         gssize            bytes_remaining;
-        gchar             buf[1048576];
+        gchar            *buf;
 
+        buf = g_new (gchar, TEXT_MAX_SIZE);
         file = g_file_new_for_path (path);
         stream = g_file_read (file, NULL, &error);
 
@@ -440,8 +443,7 @@ get_file_content (const gchar *path)
         }
 
         /* bytes_max = tracker_config_get_max_text_to_index (config); */
-        bytes_remaining = sizeof (buf);
-        memset (buf, 0, bytes_remaining);
+        bytes_remaining = TEXT_MAX_SIZE;
 
         /* NULL termination */
         bytes_remaining--;
@@ -462,18 +464,21 @@ get_file_content (const gchar *path)
                 g_error_free (error);
                 g_object_unref (file);
                 g_object_unref (stream);
+                g_free (buf);
 
                 return NULL;
         }
+
+        buf [TEXT_MAX_SIZE - bytes_remaining] = '\0';
 
         g_object_unref (file);
         g_object_unref (stream);
 
         g_debug ("Read %d bytes from file:'%s'\n",
-                 sizeof (buf) - bytes_remaining,
+                 TEXT_MAX_SIZE - bytes_remaining,
                  path);
 
-        return g_strdup (buf);
+        return buf;
 }
 
 gchar *

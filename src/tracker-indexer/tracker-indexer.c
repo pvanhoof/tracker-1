@@ -1817,8 +1817,8 @@ tracker_indexer_set_running (TrackerIndexer *indexer,
 		indexer->private->idle_id = 0;
 		indexer->private->is_paused = TRUE;
 
-		tracker_db_index_close (indexer->private->file_index);
-		tracker_db_index_close (indexer->private->email_index);
+		tracker_db_index_set_paused (indexer->private->file_index, TRUE);
+		tracker_db_index_set_paused (indexer->private->email_index, TRUE);
 		g_signal_emit (indexer, signals[PAUSED], 0);
 	} else {
 		check_disk_space_start (indexer);
@@ -1827,8 +1827,8 @@ tracker_indexer_set_running (TrackerIndexer *indexer,
 		indexer->private->is_paused = FALSE;
 		indexer->private->idle_id = g_idle_add (process_func, indexer);
 
-		tracker_db_index_open (indexer->private->file_index);
-		tracker_db_index_open (indexer->private->email_index);
+		tracker_db_index_set_paused (indexer->private->file_index, FALSE);
+		tracker_db_index_set_paused (indexer->private->email_index, FALSE);
 		g_signal_emit (indexer, signals[CONTINUED], 0);
 	}
 }

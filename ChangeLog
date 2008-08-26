@@ -1,5 +1,12 @@
 2008-08-26  Philip Van Hoof  <philip@codeminded.be>
 
+	* src/tracker-indexer/tracker-indexer.c
+	* src/libtracker-db/tracker-db-index.h
+	* src/libtracker-db/tracker-db-index.c: Making flushing the index more
+	responsive
+
+2008-08-26  Philip Van Hoof  <philip@codeminded.be>
+
 	* src/libtracker-db/tracker-db-index.c: removed a mutex. The API of
 	tracker-db-index.h is never used by more than one thread. Therefore 
 	can't there be a need for a mutex. If we do need a mutex, then just

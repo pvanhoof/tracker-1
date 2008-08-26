@@ -51,6 +51,7 @@ struct TrackerDBIndexPrivate {
 
 	guint       reload : 1;
 	guint       readonly : 1;
+	guint       in_pause : 1;
 
 	/* From the indexer */
 	GHashTable *cache;
@@ -694,7 +695,7 @@ indexer_update_word (DEPOT       *index,
 }
 
 static gboolean
-cache_flush_foreach (gpointer key,
+cache_flush_item (gpointer key,
 		     gpointer value,
 		     gpointer user_data)
 {
@@ -821,6 +822,24 @@ tracker_db_index_close (TrackerDBIndex *index)
 	return retval;
 }
 
+void
+tracker_db_index_set_paused (TrackerDBIndex *index, gboolean paused)
+{
+	TrackerDBIndexPrivate *priv;
+
+	priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
+
+	if (!priv->in_pause && paused) {
+		priv->in_pause = paused;
+		tracker_db_index_close (index);
+	} else if (priv->in_pause && !paused) {
+		priv->in_pause = paused;
+		tracker_db_index_open (index);
+	}
+}
+
+
+
 guint
 tracker_db_index_flush (TrackerDBIndex *index)
 {
@@ -831,21 +850,26 @@ tracker_db_index_flush (TrackerDBIndex *index)
 
 	priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
 
-
 	if (!priv->index) {
 		g_debug ("Index was not open for flush, waiting...");
-
 		return 0;
 	}
 
 	size = g_hash_table_size (priv->cache);
 
 	if (size > 0) {
+		GHashTableIter iter;
+		gpointer       key, value;
+
 		g_debug ("Flushing index with %d items in cache", size);
 
-		g_hash_table_foreach_remove (priv->cache,
-					     cache_flush_foreach,
-					     priv->index);
+		g_hash_table_iter_init (&iter, priv->cache);
+
+		while (g_hash_table_iter_next (&iter, &key, &value) && !priv->in_pause) {
+			if (cache_flush_item (key, value, priv->index))
+				g_hash_table_iter_remove (&iter);
+			g_main_context_iteration (NULL, FALSE);
+		}
 	}
 
 

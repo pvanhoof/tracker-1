@@ -1,3 +1,8 @@
+2008-08-27  Philip Van Hoof  <philip@codeminded.be>
+
+	* src/trackerd/tracker-daemon.c: Fixed a memory problem allocating 0
+	bytes, found using valgrind
+
 2008-08-26  Jamie McCracken <jamiemcc at gnome org>
 
 

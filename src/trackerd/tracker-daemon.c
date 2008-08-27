@@ -166,6 +166,10 @@ indexer_finished_cb (DBusGProxy *proxy,
 	priv = TRACKER_DAEMON_GET_PRIVATE (daemon);
 	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
+	/* GetStats has asc in its query. Therefore we don't have to lookup the
+	 * in a to compare in b, just compare index based. Maybe we want to
+	 * change this nonetheless later? */
+
 	result_set = tracker_db_exec_proc (iface, "GetStats", 0);
 	new_stats = tracker_dbus_query_result_to_ptr_array (result_set);
 

@@ -301,6 +301,10 @@ tracker_metadata_utils_get_data (const gchar *path)
                                  g_filename_to_utf8 (path, -1, NULL, NULL, NULL));
 	tracker_metadata_insert (metadata, METADATA_FILE_MIMETYPE, mimetype);
 
+	if (mimetype) {
+		tracker_metadata_utils_get_thumbnail (path, mimetype);
+	}
+
 	if (S_ISLNK (st.st_mode)) {
 		gchar *link_path;
 
@@ -508,6 +512,53 @@ tracker_metadata_utils_get_text (const gchar *path)
 	g_free (service_type);
 
 	return text;
+}
+
+gchar *
+tracker_metadata_utils_get_thumbnail (const gchar *path,
+				      const gchar *mime)
+{
+	ProcessContext *context;
+	GString *thumbnail;
+	gchar *argv[5];
+
+	argv[0] = g_strdup ("tracker-thumbnailer");
+	argv[1] = g_filename_from_utf8 (path, -1, NULL, NULL, NULL);
+	argv[2] = g_strdup (mime);
+	argv[3] = g_strdup ("normal");
+	argv[4] = NULL;
+
+	context = create_process_context ((const gchar **) argv);
+
+	if (!context) {
+		return NULL;
+	}
+
+	thumbnail = g_string_new (NULL);
+	context->data = thumbnail;
+
+	g_io_add_watch (context->stdout_channel,
+			G_IO_IN | G_IO_PRI | G_IO_ERR | G_IO_HUP,
+			tracker_text_read,
+			context);
+
+	g_main_loop_run (context->data_incoming_loop);
+
+	g_free (argv[0]);
+	g_free (argv[1]);
+	g_free (argv[2]);
+	g_free (argv[3]);
+
+	destroy_process_context (context);
+
+	if (!thumbnail->str || !*thumbnail->str) {
+		g_string_free (thumbnail, TRUE);
+		return NULL;
+	}
+
+	g_debug ("Got thumbnail '%s' for '%s'", thumbnail->str, path);
+
+	return g_string_free (thumbnail, FALSE);
 }
 
 typedef struct {

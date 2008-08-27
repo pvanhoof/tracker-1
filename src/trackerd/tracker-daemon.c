@@ -199,7 +199,7 @@ indexer_finished_cb (DBusGProxy *proxy,
 	priv->last_stats = new_stats;
 
 	if (values && values->len > 0) {
-		ret = (GStrv) g_malloc (sizeof (gchar*) * values->len);
+		ret = (GStrv) g_malloc (sizeof (gchar*) * values->len + 1);
 		for (i = 0 ; i < values->len; i++)
 			ret[i] = g_ptr_array_index (values, i);
 		ret[i] = NULL;

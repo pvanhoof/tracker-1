@@ -35,6 +35,7 @@ CREATE TABLE  XesamServiceTypes
 	TypeCount		Integer default 0,
 
 	DisplayName		Text default ' ',
+	PropertyPrefix          Text default ' ',
 	Enabled			Integer default 1, 
 	Embedded		Integer default 1, /* service is created by the indexer if embedded. User or app defined services are not embedded */
 	ChildResource		Integer default 0, /* service is a child service */

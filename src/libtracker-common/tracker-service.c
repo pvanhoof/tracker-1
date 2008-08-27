@@ -36,6 +36,7 @@ struct _TrackerServicePriv {
 	gchar	      *name;
 	gchar	      *parent;
 
+	gchar         *property_prefix;
 	gchar	      *content_metadata;
 	GSList	      *key_metadata;
 
@@ -67,6 +68,7 @@ enum {
 	PROP_ID,
 	PROP_NAME,
 	PROP_PARENT,
+	PROP_PROPERTY_PREFIX,
 	PROP_CONTENT_METADATA,
 	PROP_KEY_METADATA,
 	PROP_DB_TYPE,
@@ -157,6 +159,13 @@ tracker_service_class_init (TrackerServiceClass *klass)
 					 g_param_spec_string ("parent",
 							      "parent",
 							      "Service name of parent",
+							      NULL,
+							      G_PARAM_READWRITE));
+	g_object_class_install_property (object_class,
+					 PROP_PROPERTY_PREFIX,
+					 g_param_spec_string ("property-prefix",
+							      "property-prefix",
+							      "The properties of this category are prefix:name",
 							      NULL,
 							      G_PARAM_READWRITE));
 	g_object_class_install_property (object_class,
@@ -275,6 +284,9 @@ service_get_property (GObject    *object,
 	case PROP_PARENT:
 		g_value_set_string (value, priv->parent);
 		break;
+	case PROP_PROPERTY_PREFIX:
+		g_value_set_string (value, priv->property_prefix);
+		break;
 	case PROP_CONTENT_METADATA:
 		g_value_set_string (value, priv->content_metadata);
 		break;
@@ -329,6 +341,10 @@ service_set_property (GObject      *object,
 	case PROP_NAME:
 		tracker_service_set_name (TRACKER_SERVICE (object),
 					  g_value_get_string (value));
+		break;
+	case PROP_PROPERTY_PREFIX:
+		tracker_service_set_property_prefix (TRACKER_SERVICE (object),
+						     g_value_get_string (value));
 		break;
 	case PROP_PARENT:
 		tracker_service_set_parent (TRACKER_SERVICE (object),
@@ -448,6 +464,18 @@ tracker_service_get_parent (TrackerService *service)
 	priv = GET_PRIV (service);
 
 	return priv->parent;
+}
+
+const gchar *
+tracker_service_get_property_prefix (TrackerService *service)
+{
+	TrackerServicePriv *priv;
+	
+	g_return_val_if_fail (TRACKER_IS_SERVICE (service), NULL);
+
+	priv = GET_PRIV (service);
+
+	return priv->property_prefix;
 }
 
 const gchar *
@@ -628,6 +656,27 @@ tracker_service_set_parent (TrackerService *service,
 	}
 
 	g_object_notify (G_OBJECT (service), "parent");
+}
+
+void
+tracker_service_set_property_prefix (TrackerService *service,
+				     const gchar    *value)
+{
+	TrackerServicePriv *priv;
+
+	g_return_if_fail (TRACKER_IS_SERVICE (service));
+
+	priv = GET_PRIV (service);
+
+	g_free (priv->property_prefix);
+
+	if (value) {
+		priv->property_prefix = g_strdup (value);
+	} else {
+		priv->property_prefix = NULL;
+	}
+
+	g_object_notify (G_OBJECT (service), "property-prefix");
 }
 
 void

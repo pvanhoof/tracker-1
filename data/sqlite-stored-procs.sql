@@ -20,7 +20,7 @@ GetApplicationByID  SELECT DISTINCT (S.Path || '/' || S.Name) as uri, 'Applicati
 GetFileMTime SELECT M.MetaDataValue  FROM Services F inner join ServiceNumericMetaData M on F.ID = M.ServiceID WHERE F.Path = ? and F.Name = ? and M.MetaDataID = (select ID From MetaDataTypes where MetaName ='File:Modified');
 
 GetServices SELECT TypeName, Description, Parent  FROM ServiceTypes ORDER BY TypeID;
-GetAllServices SELECT TypeID, TypeName, Parent, Enabled, Embedded, HasMetadata, HasFullText, HasThumbs, ContentMetadata, Database, ShowServiceFiles, ShowServiceDirectories, KeyMetadata1, KeyMetadata2, KeyMetadata3, KeyMetadata4, KeyMetadata5, KeyMetadata6, KeyMetadata7, KeyMetadata8, KeyMetadata9, KeyMetadata10, KeyMetadata11  FROM ServiceTypes;
+GetAllServices SELECT TypeID, TypeName, Parent, PropertyPrefix, Enabled, Embedded, HasMetadata, HasFullText, HasThumbs, ContentMetadata, Database, ShowServiceFiles, ShowServiceDirectories, KeyMetadata1, KeyMetadata2, KeyMetadata3, KeyMetadata4, KeyMetadata5, KeyMetadata6, KeyMetadata7, KeyMetadata8, KeyMetadata9, KeyMetadata10, KeyMetadata11  FROM ServiceTypes;
 
 /* GetNewID and UpdateNewID are deprecated !! */
 GetNewID SELECT OptionValue FROM Options WHERE OptionKey = 'Sequence';
@@ -224,7 +224,7 @@ GetXesamMetaDataLookups SELECT DISTINCT MetaName FROM XesamMetaDataLookup WHERE 
 GetXesamMetaDataTextLookups SELECT DISTINCT L.MetaName FROM XesamMetaDataLookup L INNER JOIN XesamMetaDataTypes T ON (T.MetaName = L.XesamMetaName) WHERE T.DataTypeID = 3;
 
 GetXesamMetaDataTypes SELECT ID, MetaName, DataTypeID, FieldName, Weight, Embedded, MultipleValues, Delimited, Filtered, Abstract FROM XesamMetaDataTypes;
-GetXesamServiceTypes SELECT TypeID, TypeName, Parents, Enabled, Embedded, HasMetadata, HasFullText, HasThumbs, ContentMetadata, Database, ShowServiceFiles, ShowServiceDirectories, KeyMetadata1, KeyMetadata2, KeyMetadata3, KeyMetadata4, KeyMetadata5, KeyMetadata6, KeyMetadata7, KeyMetadata8, KeyMetadata9, KeyMetadata10, KeyMetadata11  FROM XesamServiceTypes;
+GetXesamServiceTypes SELECT TypeID, TypeName, Parents, PropertyPrefix, Enabled, Embedded, HasMetadata, HasFullText, HasThumbs, ContentMetadata, Database, ShowServiceFiles, ShowServiceDirectories, KeyMetadata1, KeyMetadata2, KeyMetadata3, KeyMetadata4, KeyMetadata5, KeyMetadata6, KeyMetadata7, KeyMetadata8, KeyMetadata9, KeyMetadata10, KeyMetadata11  FROM XesamServiceTypes;
 
 InsertXesamMimes replace into XesamFileMimes (Mime) Values (?);
 InsertXesamMimePrefixes replace into XesamFileMimePrefixes (MimePrefix) Values (?);

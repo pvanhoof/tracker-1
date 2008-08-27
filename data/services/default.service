@@ -1,6 +1,7 @@
 [Files]
 DisplayName=All Files
 Description=All files in the filesystem
+PropertyPrefix=File
 UIVisible=true
 Icon=system-file-manager
 UIView=icon
@@ -24,6 +25,7 @@ HasThumbs=false
 [Documents]
 DisplayName=Documents
 Description=Office and PDF based files
+PropertyPrefix=Doc
 Parent=Files
 UIVisible=true
 Icon=x-office-document
@@ -62,6 +64,7 @@ HasThumbs=true
 [Images]
 DisplayName=Images
 Description=Image based files
+PropertyPrefix=Image
 Parent=Files
 UIVisible=true
 UIView=icon
@@ -86,6 +89,7 @@ HasThumbs=true
 [Music]
 DisplayName=Music
 Description=Music based files
+PropertyPrefix=Audio
 Parent=Files
 UIVisible=true
 UIView=tabular
@@ -115,6 +119,7 @@ HasThumbs=false
 [Videos]
 DisplayName=Videos
 Description=Video based files
+PropertyPrefix=Video
 Parent=Files
 UIVisible=true
 UIView=icon
@@ -177,6 +182,7 @@ HasThumbs=true
 [Emails]
 DisplayName=Emails
 Description=All Emails
+PropertyPrefix=Email
 UIVisible=true
 UIMetadata1=Email:Subject
 UIMetadata2=Email:Sender
@@ -280,6 +286,7 @@ HasThumbs=false
 [Applications]
 DisplayName=Applications
 Description=Application files
+PropertyPrefix=App
 UIVisible=true
 Icon=stock_active
 ShowServiceFiles=true

@@ -96,10 +96,11 @@ create_field_definition (const gchar *id,
 }
 
 static TrackerService *
-create_service_definition (gint        id, 
-			   const char *name, 
-			   const char *parent, 
-			   gboolean    embedded) 
+create_service_definition (gint         id, 
+			   const gchar *name, 
+			   const gchar *parent, 
+			   const gchar *prefix,
+			   gboolean     embedded) 
 {
         TrackerService *def;
 	/* array_to_list use prepend, so use reverse order here  */
@@ -113,6 +114,7 @@ create_service_definition (gint        id,
         tracker_service_set_id (def, id);
         tracker_service_set_name (def, name);
         tracker_service_set_parent (def, parent);
+	tracker_service_set_property_prefix (def, prefix);
         tracker_service_set_db_type (def, TRACKER_DB_TYPE_CONTENT);
         tracker_service_set_enabled (def, FALSE);
         tracker_service_set_embedded (def, embedded);
@@ -140,13 +142,13 @@ tracker_services_general_setup ()
 
 	GSList *mimes, *mime_prefixes;
 
-	def = create_service_definition (0, "Test service", "Parent service", TRUE);
-	parent_def = create_service_definition (1, "Parent service", NULL, FALSE);
-        other_def = create_service_definition (2, "Applications", NULL, FALSE);
-        conv_def = create_service_definition (3, "Conversations", NULL, FALSE);
-        gaim_def = create_service_definition (4, "GaimConversations", "Conversations", FALSE);
-        gossip_def = create_service_definition (5, "GossipConversations", "Conversations", FALSE);
-        new_gaim_def = create_service_definition (6, "NewGaimConversations", "GaimConversations", FALSE);
+	def = create_service_definition (0, "Test service", "Parent service", NULL, TRUE);
+	parent_def = create_service_definition (1, "Parent service", NULL, NULL, FALSE);
+        other_def = create_service_definition (2, "Applications", NULL, "App", FALSE);
+        conv_def = create_service_definition (3, "Conversations", NULL, NULL, FALSE);
+        gaim_def = create_service_definition (4, "GaimConversations", "Conversations", NULL, FALSE);
+        gossip_def = create_service_definition (5, "GossipConversations", "Conversations", NULL, FALSE);
+        new_gaim_def = create_service_definition (6, "NewGaimConversations", "GaimConversations", NULL, FALSE);
 
         field_title = create_field_definition ("0", 
                                                "App.Title", 
@@ -358,7 +360,7 @@ test_get_registered_field_types (void)
 	g_assert (!field_types);
 
 	/* App field types */
-	field_types = tracker_ontology_registered_field_types ("App");
+	field_types = tracker_ontology_registered_field_types ("Applications");
 
 	g_assert_cmpint (1 ,==, g_slist_length (field_types));
 

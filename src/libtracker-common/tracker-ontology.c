@@ -503,16 +503,56 @@ tracker_ontology_registered_field_types (const gchar *service_type)
 {
 	GList *field_types = NULL, *iter = NULL;
 	GSList *names = NULL;
-	TrackerField *field;
+	TrackerField   *field;
+	TrackerService *service = NULL, *parent;
+	const gchar    *prefix;
+	const gchar    *parent_name = NULL;
+	const gchar    *parent_prefix = NULL;
+	
+
+	if (service_type) {
+		service = tracker_ontology_get_service_type_by_name (service_type);
+		if (!service) {
+			return NULL;
+		}
+
+		/* Prefix for properties of the category */
+		prefix = tracker_service_get_property_prefix (service);
+		
+		if (!prefix || g_strcmp0 (prefix, " ") == 0) {
+			prefix = service_type;
+		}
+		
+		/* Prefix for properties of the parent */
+		parent_name = tracker_ontology_get_parent_service (service_type);
+
+		if (parent_name) {
+			parent = tracker_ontology_get_service_type_by_name (parent_name);
+		
+			if (!parent) {
+				g_critical ("Category %s (set as %s parent) is not in the ontology",
+					    parent_name, service_type);
+			}
+			parent_prefix = tracker_service_get_property_prefix (parent);
+		
+			if (!parent_prefix || g_strcmp0 (parent_prefix, " ") == 0) {
+				parent_prefix = parent_name;
+			}
+		}
+	}
 
 	field_types = g_hash_table_get_values (metadata_table);
 
 	for (iter = field_types; iter != NULL; iter = iter->next) {
+
 		field = (TrackerField*)iter->data;
 
+		const gchar *name = tracker_field_get_name (field);
+
 		if (service_type == NULL 
-		    || g_str_has_prefix (tracker_field_get_name (field), service_type)) {
-			names = g_slist_prepend (names, g_strdup (tracker_field_get_name (field)));
+		    || g_str_has_prefix (name, prefix)
+		    || g_str_has_prefix (name, parent_prefix)) {
+			names = g_slist_prepend (names, g_strdup (name));
 		}
 	}
 	return names;

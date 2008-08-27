@@ -996,7 +996,7 @@ db_row_to_service (TrackerDBResultSet *result_set)
         TrackerService *service;
         GSList         *new_list = NULL;
         gint            id, i;
-	gchar          *name, *parent, *content_metadata;
+	gchar          *name, *parent, *content_metadata, *property_prefix = NULL;
 	gboolean        enabled, embedded, has_metadata, has_fulltext;
 	gboolean        has_thumbs, show_service_files, show_service_directories;
 
@@ -1006,19 +1006,21 @@ db_row_to_service (TrackerDBResultSet *result_set)
 				   0, &id,
 				   1, &name,
 				   2, &parent,
-				   3, &enabled,
-				   4, &embedded,
-				   5, &has_metadata,
-				   6, &has_fulltext,
-				   7, &has_thumbs,
-				   8, &content_metadata,
-				   10, &show_service_files,
-				   11, &show_service_directories,
+				   3, &property_prefix,
+				   4, &enabled,
+				   5, &embedded,
+				   6, &has_metadata,
+				   7, &has_fulltext,
+				   8, &has_thumbs,
+				   9, &content_metadata,
+				   11, &show_service_files,
+				   12, &show_service_directories,
 				   -1);
 
         tracker_service_set_id (service, id);
         tracker_service_set_name (service, name);
         tracker_service_set_parent (service, parent);
+	tracker_service_set_property_prefix (service, property_prefix);
         tracker_service_set_enabled (service, enabled);
         tracker_service_set_embedded (service, embedded);
         tracker_service_set_has_metadata (service, has_metadata);
@@ -1029,7 +1031,7 @@ db_row_to_service (TrackerDBResultSet *result_set)
         tracker_service_set_show_service_files (service, show_service_files);
         tracker_service_set_show_service_directories (service, show_service_directories);
 
-        for (i = 12; i < 23; i++) {
+        for (i = 13; i < 24; i++) {
 		gchar *metadata;
 
 		tracker_db_result_set_get (result_set, i, &metadata, -1);
@@ -1039,7 +1041,9 @@ db_row_to_service (TrackerDBResultSet *result_set)
 		}
         }
 
-	/* FIXME: is this necessary? */
+	/* FIXME: is this necessary? 
+	 * This values are set as key metadata in default.service already
+	 */
 #if 0
         /* Hack to prevent db change late in the cycle, check the
          * service name matches "Applications", then add some voodoo.
@@ -1062,6 +1066,7 @@ db_row_to_service (TrackerDBResultSet *result_set)
 
 	g_free (name);
 	g_free (parent);
+	g_free (property_prefix);
 	g_free (content_metadata);
 
         return service;

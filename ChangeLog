@@ -1,3 +1,23 @@
+2008-08-27  Ivan Frade  <ivan.frade@nokia.com>
+
+	* data/services/default.service
+	* data/sqlite-service-types.sql
+	* data/sqlite-stored-procs.sql
+	* data/sqlite-xesam.sql: Added new field to service type
+	description called "PropertyPrefix", so we can specify that
+	"Document" properties are "Doc:xxx"
+	
+	* src/libtracker-common/tracker-service.[ch]
+	* src/libtracker-db/tracker-db-manager.c: Code to handle the new
+	property.
+
+	* src/libtracker-common/tracker-ontology.[ch]
+	(tracker_ontology_get_registered_field_types): Implemented
+	properly so now it return the property of the service type and his
+	parent. This fixes the GetRegisteredTypes method in the API.
+	
+	* tests/libtracker-common/tracker-ontology-test.c: Updated tests.
+	
 2008-08-27  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-metadata-utils.[ch]

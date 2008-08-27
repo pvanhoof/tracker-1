@@ -69,6 +69,7 @@ TrackerService *tracker_service_new                          (void);
 gint            tracker_service_get_id                       (TrackerService *service);
 const gchar *   tracker_service_get_name                     (TrackerService *service);
 const gchar *   tracker_service_get_parent                   (TrackerService *service);
+const gchar *   tracker_service_get_property_prefix          (TrackerService *service);
 const gchar *   tracker_service_get_content_metadata         (TrackerService *service);
 const GSList *  tracker_service_get_key_metadata             (TrackerService *service);
 TrackerDBType   tracker_service_get_db_type                  (TrackerService *service);
@@ -85,6 +86,8 @@ void            tracker_service_set_id                       (TrackerService *se
 void            tracker_service_set_name                     (TrackerService *service,
 							      const gchar    *value);
 void            tracker_service_set_parent                   (TrackerService *service,
+							      const gchar    *value);
+void            tracker_service_set_property_prefix          (TrackerService *service,
 							      const gchar    *value);
 void            tracker_service_set_content_metadata         (TrackerService *service,
 							      const gchar    *value);

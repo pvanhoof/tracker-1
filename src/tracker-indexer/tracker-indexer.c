@@ -136,7 +136,7 @@ struct TrackerIndexerPrivate {
 	guint items_processed;
 
 	guint in_transaction : 1;
-	guint state : 3;
+	guint state : 4;
 };
 
 struct PathInfo {
@@ -161,7 +161,8 @@ struct UpdateWordsForeachData {
 enum TrackerIndexerState {
 	TRACKER_INDEXER_STATE_FLUSHING  = 1 << 0,
 	TRACKER_INDEXER_STATE_PAUSED    = 1 << 1,
-	TRACKER_INDEXER_STATE_DISK_FULL = 1 << 2
+	TRACKER_INDEXER_STATE_DISK_FULL = 1 << 2,
+	TRACKER_INDEXER_STATE_STOPPED   = 1 << 3
 };
 
 enum {
@@ -188,6 +189,7 @@ static void         tracker_indexer_set_state_flags     (TrackerIndexer      *in
 static void         tracker_indexer_unset_state_flags   (TrackerIndexer      *indexer,
 							 TrackerIndexerState  state);
 TrackerIndexerState tracker_indexer_get_state_flags     (TrackerIndexer      *indexer);
+static void         tracker_indexer_check_state         (TrackerIndexer      *indexer);
 
 
 static guint signals[LAST_SIGNAL] = { 0, };
@@ -590,12 +592,16 @@ close_module (GModule *module)
 static void
 check_started (TrackerIndexer *indexer)
 {
+	TrackerIndexerState state;
+
+	state = tracker_indexer_get_state_flags (indexer);
+
 	if (indexer->private->idle_id ||
-	    tracker_indexer_get_state_flags (indexer)) {
+	    !(state & TRACKER_INDEXER_STATE_STOPPED)) {
 		return;
 	}
 
-	indexer->private->idle_id = g_idle_add (process_func, indexer);
+	tracker_indexer_unset_state_flags (indexer, TRACKER_INDEXER_STATE_STOPPED);
 
 	g_timer_destroy (indexer->private->timer);
 	indexer->private->timer = g_timer_new ();
@@ -614,11 +620,7 @@ check_stopped (TrackerIndexer *indexer,
 	g_timer_stop (indexer->private->timer);
 	seconds_elapsed = g_timer_elapsed (indexer->private->timer, NULL);
 
-	/* Clean up source ID */
-	if (indexer->private->idle_id != 0) {
-		g_source_remove (indexer->private->idle_id);
-		indexer->private->idle_id = 0;
-	}
+	tracker_indexer_set_state_flags (indexer, TRACKER_INDEXER_STATE_STOPPED);
 
 	/* Flush remaining items */
 	schedule_flush (indexer, TRUE);
@@ -833,9 +835,7 @@ tracker_indexer_init (TrackerIndexer *indexer)
 	priv->timer = g_timer_new ();
 
 	/* Set up idle handler to process files/directories */
-	check_started (indexer);
-	check_disk_space_start (indexer);
-	signal_status_timeout_start (indexer);
+	tracker_indexer_check_state (indexer);
 }
 
 static void

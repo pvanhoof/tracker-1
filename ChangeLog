@@ -1,5 +1,13 @@
 2008-08-27  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-indexer.c: Add new
+	TRACKER_INDEXER_STATE_STOPPED flag.
+	(check_started) (check_stopped): Use that flag.
+	(tracker_indexer_init): Call directly tracker_indexer_check_state() to
+	setup the idle functions.
+
+2008-08-27  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/libtracker-db/tracker-db-index.c (tracker_db_index_flush):
 	Protect agains reentrancy, return the number of actually flushed
 	items. Also, fail when adding if the cache is being flushed.

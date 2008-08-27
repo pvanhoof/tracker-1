@@ -1,5 +1,11 @@
 2008-08-27  Ivan Frade  <ivan.frade@nokia.com>
 
+	* src/libtracker-common/tracker-ontology.c:
+	(tracker_ontology_get_registered_field_types): Removed wrong
+	g_critical, the categories can have "empty" parent.
+	
+2008-08-27  Ivan Frade  <ivan.frade@nokia.com>
+
 	* data/services/default.service
 	* data/sqlite-service-types.sql
 	* data/sqlite-stored-procs.sql

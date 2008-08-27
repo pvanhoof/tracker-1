@@ -526,17 +526,16 @@ tracker_ontology_registered_field_types (const gchar *service_type)
 		/* Prefix for properties of the parent */
 		parent_name = tracker_ontology_get_parent_service (service_type);
 
-		if (parent_name) {
+		if (parent_name && (g_strcmp0 (parent_name, " ") != 0)) {
 			parent = tracker_ontology_get_service_type_by_name (parent_name);
 		
-			if (!parent) {
-				g_critical ("Category %s (set as %s parent) is not in the ontology",
-					    parent_name, service_type);
-			}
-			parent_prefix = tracker_service_get_property_prefix (parent);
+			if (parent) {
+			
+				parent_prefix = tracker_service_get_property_prefix (parent);
 		
-			if (!parent_prefix || g_strcmp0 (parent_prefix, " ") == 0) {
-				parent_prefix = parent_name;
+				if (!parent_prefix || g_strcmp0 (parent_prefix, " ") == 0) {
+					parent_prefix = parent_name;
+				}
 			}
 		}
 	}
@@ -550,8 +549,8 @@ tracker_ontology_registered_field_types (const gchar *service_type)
 		const gchar *name = tracker_field_get_name (field);
 
 		if (service_type == NULL 
-		    || g_str_has_prefix (name, prefix)
-		    || g_str_has_prefix (name, parent_prefix)) {
+		    || (prefix && g_str_has_prefix (name, prefix))
+		    || (parent_prefix && g_str_has_prefix (name, parent_prefix))) {
 			names = g_slist_prepend (names, g_strdup (name));
 		}
 	}

@@ -100,17 +100,19 @@ tracker_metadata_read (GIOChannel   *channel,
 		       GIOCondition  condition,
 		       gpointer      user_data)
 {
-	ProcessContext *context;
 	GPtrArray *array;
 	GIOStatus status = G_IO_STATUS_NORMAL;
 	gchar *line;
 
-	context = user_data;
-	array = context->data;
+	if (!metadata_context) {
+		return FALSE;
+	}
 
 	if (condition & G_IO_IN || condition & G_IO_PRI) {
+		array = metadata_context->data;
+
 		do {
-			status = g_io_channel_read_line (context->stdout_channel, &line, NULL, NULL, NULL);
+			status = g_io_channel_read_line (metadata_context->stdout_channel, &line, NULL, NULL, NULL);
 
 			if (status == G_IO_STATUS_NORMAL && line && *line) {
 				g_strstrip (line);
@@ -123,7 +125,7 @@ tracker_metadata_read (GIOChannel   *channel,
 		    status == G_IO_STATUS_ERROR ||
 		    (status == G_IO_STATUS_NORMAL && !*line)) {
 			/* all extractor output has been processed */
-			g_main_loop_quit (context->data_incoming_loop);
+			g_main_loop_quit (metadata_context->data_incoming_loop);
 			return FALSE;
 		}
 	}
@@ -197,7 +199,10 @@ tracker_metadata_query_file (const gchar *path,
 	g_main_loop_run (metadata_context->data_incoming_loop);
 
 	g_ptr_array_add (array, NULL);
-	metadata_context->data = NULL;
+
+	if (metadata_context) {
+		metadata_context->data = NULL;
+	}
 
 	g_free (utf_path);
 	g_free (str);
@@ -387,7 +392,7 @@ call_text_filter (const gchar *path,
 
 	argv = g_new0 (gchar *, 3);
 	argv[0] = text_filter_file;
-	argv[1] = path;
+	argv[1] = (gchar *) path;
 
 	g_message ("Extracting text for:'%s' using filter:'%s'", argv[1], argv[0]);
 

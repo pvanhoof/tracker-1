@@ -52,6 +52,7 @@ struct TrackerDBIndexPrivate {
 	guint       reload : 1;
 	guint       readonly : 1;
 	guint       in_pause : 1;
+	guint       in_flush : 1;
 
 	/* From the indexer */
 	GHashTable *cache;
@@ -844,18 +845,24 @@ guint
 tracker_db_index_flush (TrackerDBIndex *index)
 {
 	TrackerDBIndexPrivate *priv;
-	guint                  size;
+	guint                  size, removed_items;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INDEX (index), 0);
 
 	priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
+
+	if (priv->in_flush) {
+		return;
+	}
 
 	if (!priv->index) {
 		g_debug ("Index was not open for flush, waiting...");
 		return 0;
 	}
 
+	priv->in_flush = TRUE;
 	size = g_hash_table_size (priv->cache);
+	removed_items = 0;
 
 	if (size > 0) {
 		GHashTableIter iter;
@@ -866,14 +873,18 @@ tracker_db_index_flush (TrackerDBIndex *index)
 		g_hash_table_iter_init (&iter, priv->cache);
 
 		while (g_hash_table_iter_next (&iter, &key, &value) && !priv->in_pause) {
-			if (cache_flush_item (key, value, priv->index))
+			if (cache_flush_item (key, value, priv->index)) {
 				g_hash_table_iter_remove (&iter);
+				removed_items++;
+			}
+
 			g_main_context_iteration (NULL, FALSE);
 		}
 	}
 
+	priv->in_flush = FALSE;
 
-	return size;
+	return removed_items;
 }
 
 guint32
@@ -1024,6 +1035,7 @@ tracker_db_index_add_word (TrackerDBIndex *index,
 
 	priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
 
+	g_return_if_fail (priv->in_flush == FALSE);
 
 	elem.id = service_id;
 	elem.amalgamated = tracker_db_index_item_calc_amalgamated (service_type, weight);

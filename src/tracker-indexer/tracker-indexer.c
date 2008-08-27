@@ -95,6 +95,7 @@ typedef struct PathInfo PathInfo;
 typedef struct MetadataForeachData MetadataForeachData;
 typedef struct MetadataRequest MetadataRequest;
 typedef struct UpdateWordsForeachData UpdateWordsForeachData;
+typedef enum TrackerIndexerState TrackerIndexerState;
 
 struct TrackerIndexerPrivate {
 	GQueue *dir_queue;
@@ -135,7 +136,7 @@ struct TrackerIndexerPrivate {
 	guint items_processed;
 
 	guint in_transaction : 1;
-	guint is_paused : 1;
+	guint state : 3;
 };
 
 struct PathInfo {
@@ -157,6 +158,12 @@ struct UpdateWordsForeachData {
 	guint32 service_type_id;
 };
 
+enum TrackerIndexerState {
+	TRACKER_INDEXER_STATE_FLUSHING  = 1 << 0,
+	TRACKER_INDEXER_STATE_PAUSED    = 1 << 1,
+	TRACKER_INDEXER_STATE_DISK_FULL = 1 << 2
+};
+
 enum {
 	PROP_0,
 	PROP_RUNNING,
@@ -175,6 +182,13 @@ enum {
 
 static gboolean process_func           (gpointer        data);
 static void     check_disk_space_start (TrackerIndexer *indexer);
+
+static void         tracker_indexer_set_state_flags     (TrackerIndexer      *indexer,
+							 TrackerIndexerState  state);
+static void         tracker_indexer_unset_state_flags   (TrackerIndexer      *indexer,
+							 TrackerIndexerState  state);
+TrackerIndexerState tracker_indexer_get_state_flags     (TrackerIndexer      *indexer);
+
 
 static guint signals[LAST_SIGNAL] = { 0, };
 
@@ -285,6 +299,9 @@ flush_data (TrackerIndexer *indexer)
 {
 	indexer->private->flush_id = 0;
 
+	tracker_indexer_set_state_flags (indexer,
+					 TRACKER_INDEXER_STATE_FLUSHING);
+
 	if (indexer->private->in_transaction) {
 		stop_transaction (indexer);
 	}
@@ -294,6 +311,9 @@ flush_data (TrackerIndexer *indexer)
 	signal_status (indexer, "flush");
 
 	indexer->private->items_processed = 0;
+
+	tracker_indexer_unset_state_flags (indexer,
+					   TRACKER_INDEXER_STATE_FLUSHING);
 
 	return FALSE;
 }
@@ -311,7 +331,7 @@ static void
 schedule_flush (TrackerIndexer *indexer,
 		gboolean        immediately)
 {
-	if (indexer->private->is_paused) {
+	if (tracker_indexer_get_state_flags (indexer) != 0) {
 		return;
 	}
 
@@ -460,7 +480,8 @@ tracker_indexer_get_property (GObject    *object,
 
 	switch (prop_id) {
 	case PROP_RUNNING:
-		g_value_set_boolean (value, (priv->idle_id != 0));
+		g_value_set_boolean (value,
+				     tracker_indexer_get_running (TRACKER_INDEXER (object)));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -570,7 +591,7 @@ static void
 check_started (TrackerIndexer *indexer)
 {
 	if (indexer->private->idle_id ||
-	    indexer->private->is_paused == TRUE) {
+	    tracker_indexer_get_state_flags (indexer)) {
 		return;
 	}
 
@@ -589,9 +610,6 @@ check_stopped (TrackerIndexer *indexer,
 	gchar   *str;
 	gdouble  seconds_elapsed;
 
-	/* Flush remaining items */
-	schedule_flush (indexer, TRUE);
-
 	/* No more modules to query, we're done */
 	g_timer_stop (indexer->private->timer);
 	seconds_elapsed = g_timer_elapsed (indexer->private->timer, NULL);
@@ -601,6 +619,9 @@ check_stopped (TrackerIndexer *indexer,
 		g_source_remove (indexer->private->idle_id);
 		indexer->private->idle_id = 0;
 	}
+
+	/* Flush remaining items */
+	schedule_flush (indexer, TRUE);
 
 	/* Print out how long it took us */
 	str = tracker_seconds_to_string (seconds_elapsed, FALSE);
@@ -652,12 +673,14 @@ check_disk_space_cb (TrackerIndexer *indexer)
 	disk_space_low = check_disk_space_low (indexer);
 
 	if (disk_space_low) {
-		tracker_indexer_set_running (indexer, FALSE);
+		tracker_indexer_set_state_flags (indexer,
+						 TRACKER_INDEXER_STATE_DISK_FULL);
 
 		/* The function above stops the low disk check, restart it */
 		check_disk_space_start (indexer);
 	} else {
-		tracker_indexer_set_running (indexer, TRUE);
+		tracker_indexer_unset_state_flags (indexer,
+						 TRACKER_INDEXER_STATE_DISK_FULL);
 	}
 
 	return TRUE;
@@ -670,10 +693,14 @@ check_disk_space_start (TrackerIndexer *indexer)
 	gint low_disk_space_limit;
 
 	priv = indexer->private;
+
+	if (priv->disk_space_check_id != 0) {
+		return;
+	}
+
 	low_disk_space_limit = tracker_config_get_low_disk_space_limit (priv->config);
 
-	if (low_disk_space_limit != -1 &&
-	    priv->disk_space_check_id == 0) {
+	if (low_disk_space_limit != -1) {
 		priv->disk_space_check_id = g_timeout_add_seconds (LOW_DISK_CHECK_FREQUENCY,
 								   (GSourceFunc) check_disk_space_cb,
 								   indexer);
@@ -1836,48 +1863,86 @@ tracker_indexer_new (void)
 gboolean
 tracker_indexer_get_running (TrackerIndexer *indexer)
 {
+	TrackerIndexerState state;
+
 	g_return_val_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
 
-	return indexer->private->idle_id != 0;
+	state = tracker_indexer_get_state_flags (indexer);
+
+	return (state & TRACKER_INDEXER_STATE_PAUSED) == 0;
+}
+
+static void
+tracker_indexer_check_state (TrackerIndexer *indexer)
+{
+	TrackerIndexerState state;
+
+	state = indexer->private->state;
+
+	if ((state & TRACKER_INDEXER_STATE_FLUSHING) ||
+	    (state & TRACKER_INDEXER_STATE_DISK_FULL) ||
+	    (state & TRACKER_INDEXER_STATE_PAUSED)) {
+		check_disk_space_stop (indexer);
+		signal_status_timeout_stop (indexer);
+		stop_scheduled_flush (indexer);
+		stop_transaction (indexer);
+
+		if (indexer->private->idle_id) {
+			g_source_remove (indexer->private->idle_id);
+			indexer->private->idle_id = 0;
+		}
+	} else {
+		check_disk_space_start (indexer);
+		signal_status_timeout_start (indexer);
+
+		if (indexer->private->idle_id == 0) {
+			indexer->private->idle_id = g_idle_add (process_func, indexer);
+		}
+	}
+}
+
+static void
+tracker_indexer_set_state_flags (TrackerIndexer      *indexer,
+				 TrackerIndexerState  state)
+{
+	indexer->private->state |= state;
+	tracker_indexer_check_state (indexer);
+}
+
+static void
+tracker_indexer_unset_state_flags (TrackerIndexer      *indexer,
+				   TrackerIndexerState  state)
+{
+	indexer->private->state &= ~(state);
+	tracker_indexer_check_state (indexer);
+}
+
+TrackerIndexerState
+tracker_indexer_get_state_flags (TrackerIndexer *indexer)
+{
+	return indexer->private->state;
 }
 
 void
 tracker_indexer_set_running (TrackerIndexer *indexer,
 			     gboolean        running)
 {
-	gboolean was_running;
+	TrackerIndexerState state;
 
-	g_return_if_fail (TRACKER_IS_INDEXER (indexer));
+	state = tracker_indexer_get_state_flags (indexer);
 
-	was_running = tracker_indexer_get_running (indexer);
-
-	if (running == was_running) {
-		return;
-	}
-
-	if (!running) {
-		check_disk_space_stop (indexer);
-		signal_status_timeout_stop (indexer);
-		stop_scheduled_flush (indexer);
-		stop_transaction (indexer);
-
-		g_source_remove (indexer->private->idle_id);
-		indexer->private->idle_id = 0;
-		indexer->private->is_paused = TRUE;
-
-		tracker_db_index_set_paused (indexer->private->file_index, TRUE);
-		tracker_db_index_set_paused (indexer->private->email_index, TRUE);
-		g_signal_emit (indexer, signals[PAUSED], 0);
-	} else {
-		check_disk_space_start (indexer);
-		signal_status_timeout_start (indexer);
-
-		indexer->private->is_paused = FALSE;
-		indexer->private->idle_id = g_idle_add (process_func, indexer);
+	if (running && (state & TRACKER_INDEXER_STATE_PAUSED)) {
+		tracker_indexer_unset_state_flags (indexer, TRACKER_INDEXER_STATE_PAUSED);
 
 		tracker_db_index_set_paused (indexer->private->file_index, FALSE);
 		tracker_db_index_set_paused (indexer->private->email_index, FALSE);
 		g_signal_emit (indexer, signals[CONTINUED], 0);
+	} else if (!running && !(state & TRACKER_INDEXER_STATE_PAUSED)) {
+		tracker_indexer_set_state_flags (indexer, TRACKER_INDEXER_STATE_PAUSED);
+
+		tracker_db_index_set_paused (indexer->private->file_index, TRUE);
+		tracker_db_index_set_paused (indexer->private->email_index, TRUE);
+		g_signal_emit (indexer, signals[PAUSED], 0);
 	}
 }
 

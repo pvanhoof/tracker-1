@@ -11,6 +11,24 @@
 	
 2008-08-27  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/libtracker-db/tracker-db-index.c (tracker_db_index_flush):
+	Protect agains reentrancy, return the number of actually flushed
+	items. Also, fail when adding if the cache is being flushed.
+	* src/tracker-indexer/tracker-indexer.c
+	(tracker_indexer_set_state_flags) (tracker_indexer_unset_state_flags)
+	(tracker_indexer_get_state_flags): There are several reasons why the
+	indexer would want to stop, and not all of them are relevant outside
+	TrackerIndexer. This internal API will stop the indexer if any of the
+	relevant flags is set.
+	(tracker_indexer_[gs]et_running): Use internally the 
+	TRACKER_INDEXER_STATE_PAUSED flag.
+	(check_disk_space_cb): Use internally the
+	TRACKER_INDEXER_STATE_DISK_FULL flag.
+	(flush_data): Set the TRACKER_INDEXER_STATE_FLUSHING flag when
+	flushing, so the indexing is temporarily stopped.
+
+2008-08-27  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-metadata-utils.c (tracker_metadata_read)
 	(tracker_metadata_query_file): Handle again metadata_context being
 	possibly invalidated during reading.

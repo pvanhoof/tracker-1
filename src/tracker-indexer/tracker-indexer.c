@@ -1881,6 +1881,7 @@ tracker_indexer_check_state (TrackerIndexer *indexer)
 
 	if ((state & TRACKER_INDEXER_STATE_FLUSHING) ||
 	    (state & TRACKER_INDEXER_STATE_DISK_FULL) ||
+	    (state & TRACKER_INDEXER_STATE_STOPPED) ||
 	    (state & TRACKER_INDEXER_STATE_PAUSED)) {
 		check_disk_space_stop (indexer);
 		signal_status_timeout_stop (indexer);

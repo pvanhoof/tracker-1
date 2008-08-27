@@ -1,5 +1,10 @@
 2008-08-27  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-indexer.c (tracker_indexer_check_state):
+	Actually check the TRACKER_INDEXER_STATE_STOPPED flag...
+
+2008-08-27  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-indexer.c: Add new
 	TRACKER_INDEXER_STATE_STOPPED flag.
 	(check_started) (check_stopped): Use that flag.

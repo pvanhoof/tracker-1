@@ -29,6 +29,7 @@ SUBDIRS = 					\
 	libtracker-common 			\
 	libtracker-db				\
 	libtracker				\
+	tracker-fts				\
 	trackerd				\
 	tracker-utils				\
 	tracker-extract				\

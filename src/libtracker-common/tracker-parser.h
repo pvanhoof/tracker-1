@@ -47,11 +47,14 @@ typedef struct {
     	guint                  max_word_length;
 	guint                  min_word_length;
 	gboolean               delimit_words;
+	gboolean	       parse_reserved_words;
 	
 	/* Private members */
-	guint                  word_position;
-	TrackerParserEncoding  encoding;
-	const gchar           *cursor;
+	gchar			*word;
+	gint			word_length;
+	guint                   word_position;
+	TrackerParserEncoding   encoding;
+	const gchar             *cursor;
 	
 	/* Pango members for CJK text parsing */
 	PangoLogAttr          *attrs;
@@ -67,15 +70,17 @@ void           tracker_parser_reset           (TrackerParser   *parser,
 					       gint             txt_size,
 					       gboolean         delimit_words,
 					       gboolean         enable_stemmer,
-					       gboolean         enable_stop_words);
-gchar *        tracker_parser_next            (TrackerParser   *parser,
-					       guint           *position,
-					       guint           *byte_offset_start,
-					       guint           *byte_offset_end,
+					       gboolean         enable_stop_words,
+					       gboolean		parse_reserved_words);
+const gchar *  tracker_parser_next            (TrackerParser   *parser,
+					       gint            *position,
+					       gint            *byte_offset_start,
+					       gint            *byte_offset_end,
 					       gboolean        *new_paragraph,
-					       gboolean        *stop_word);
+					       gboolean        *stop_word,
+					       gint	       *word_length);
 void           tracker_parser_set_posititon   (TrackerParser   *parser,
-					       guint            position);
+					       gint             position);
 gboolean       tracker_parser_is_stop_word    (TrackerParser   *parser,
 					       const gchar     *word);
 gchar *        tracker_parser_process_word    (TrackerParser   *parser,

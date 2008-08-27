@@ -45,6 +45,8 @@
 #define IS_HYPHEN(c)             ((c) == 0x002D)
 #define IS_UNDERSCORE(c)         ((c) == 0x005F)
 #define IS_NEWLINE(c)	         ((c) == 0x000D)
+#define IS_O(c)		         ((c) == 0x006F)
+#define IS_R(c)		         ((c) == 0x0072)
 
 typedef enum {
 	TRACKER_PARSER_WORD_ASCII_HIGHER,
@@ -374,18 +376,17 @@ analyze_text (const gchar      *text,
         return p;
 }
 
-static gchar *
+static gboolean
 pango_next (TrackerParser *parser,
-	    guint          skip_words,
-	    guint         *byte_offset_start,
-	    guint         *byte_offset_end,
+	    gint          *byte_offset_start,
+	    gint          *byte_offset_end,
      	    gboolean      *is_new_paragraph)
+
 {
 	/* CJK text does not need stemming or other treatment */
 	gint    word_start = -1;
 	gint    old_word_start = -1;
-	guint   words_parsed = 0;
-	guint32 i;
+	guint   i;
 
 	*is_new_paragraph = FALSE;
 
@@ -399,12 +400,7 @@ pango_next (TrackerParser *parser,
 			gchar *start_word, *end_word;
 
 			old_word_start = word_start;
-			words_parsed++;
-
-			if (words_parsed <= skip_words) {
-                                continue;
-                        }
-
+				
 			start_word = g_utf8_offset_to_pointer (parser->txt, word_start);
 			end_word = g_utf8_offset_to_pointer (parser->txt, i);
 
@@ -429,11 +425,15 @@ pango_next (TrackerParser *parser,
 					*is_new_paragraph = TRUE;
 				}
 
+				parser->word_length = strlen (index_word);
+				parser->word = index_word;
+
 				*byte_offset_start = (start_word - parser->txt);
 				*byte_offset_end = *byte_offset_start + (end_word - start_word);
 				parser->attr_pos = i;
 
-				return index_word;
+				
+				return TRUE;
 
 			}
 
@@ -443,38 +443,35 @@ pango_next (TrackerParser *parser,
 
 	parser->attr_pos = i;
 
-	return NULL;
+	return FALSE;
 }
 
 
-static gchar *
-parser_next (TrackerParser *parser,
-             guint          skip_words,
-             guint         *byte_offset_start,
-             guint         *byte_offset_end,
+static gboolean
+parser_next (TrackerParser *parser, 
+             gint          *byte_offset_start,
+             gint          *byte_offset_end,
              gboolean      *is_new_paragraph)
 {
 	TrackerParserWordType word_type;
         gunichar              word[64];
         gboolean              is_valid;
-        gboolean	      filter_numbers = TRUE;
-        guint                  length;
+        guint                 length;
         gint		      char_count = 0;
         glong                 bytes;
 	const gchar          *p;
 	const gchar          *start;
 	const gchar          *end;
-	guint		      words_skipped = 0;
 	gboolean	      do_strip = FALSE;
 
- 	*byte_offset_start = 1;
-	*byte_offset_end = 2;
+ 	*byte_offset_start = 0;
+	*byte_offset_end = 0;
      	*is_new_paragraph = FALSE;
 
-	g_return_val_if_fail (parser, NULL);
+	g_return_val_if_fail (parser, FALSE);
 
 	if (!parser->cursor) {
-                return NULL;
+                return FALSE;
         }
 
         word_type = TRACKER_PARSER_WORD_IGNORE;
@@ -505,19 +502,19 @@ parser_next (TrackerParser *parser,
                                 continue;
                         } else {
                         	/* word break */
+                        	
+                        	/* check if word is reserved */
+                        	if (is_valid && parser->parse_reserved_words) {
+                        		if (length == 2 && word[0] == 'o' && word[1] == 'r') {
+                        			break;
+                        		}
+                        	}
 
                         	if (!is_valid || 
                                     length < parser->min_word_length || 
-                                    word_type == TRACKER_PARSER_WORD_NUM || 
-                                    words_skipped < skip_words) {
+                                    word_type == TRACKER_PARSER_WORD_NUM) {
                         		*is_new_paragraph = FALSE;
-
-                        		if (is_valid && length >= parser->min_word_length && 
-                                            word_type != TRACKER_PARSER_WORD_NUM && 
-                                            words_skipped < skip_words) { 
-                                                words_skipped++;
-                                        }
-
+                        		
                         		word_type = TRACKER_PARSER_WORD_IGNORE;
                         		is_valid = TRUE;
         				length = 0;
@@ -538,20 +535,21 @@ parser_next (TrackerParser *parser,
                 }
 
                 if (!start) {
-                        start = g_utf8_offset_to_pointer (parser->cursor, char_count);
+                        start = g_utf8_offset_to_pointer (parser->cursor, char_count-1);
 
                         /* Valid words must start with an alpha or
                          * underscore if we are filtering.
                          */
-                        if (filter_numbers) {
-                                if (type == TRACKER_PARSER_WORD_NUM) {
-                                        is_valid = FALSE;
-                                        continue;
-                                } else {
-                                        if (type == TRACKER_PARSER_WORD_HYPHEN) {
-                                                is_valid = FALSE;
-                                                continue;
-                                        }
+                      
+			if (type == TRACKER_PARSER_WORD_NUM) {
+				is_valid = FALSE;
+                                start = NULL;
+                                continue;
+			} else {
+                        	if (type == TRACKER_PARSER_WORD_HYPHEN) {
+                        		is_valid = parser->parse_reserved_words;
+                                        start = NULL;
+       	                                continue;
                                 }
                         }
                 }
@@ -611,14 +609,12 @@ parser_next (TrackerParser *parser,
                 word[length -1] = c;
         }
 
+	parser->cursor = NULL;
+
         if (!is_valid) {
-        	parser->cursor = NULL;
-                return NULL;
+                return FALSE;
         }
-        end = g_utf8_offset_to_pointer (parser->cursor, char_count);
-
-        parser->cursor = end;
-
+     
         if (word_type == TRACKER_PARSER_WORD_ALPHA_NUM || word_type == TRACKER_PARSER_WORD_ALPHA) {
                 gchar       *utf8;
                 gchar 	    *processed_word;
@@ -628,20 +624,26 @@ parser_next (TrackerParser *parser,
                 utf8 = g_ucs4_to_utf8 (word, length, NULL, &bytes, NULL);
 
                 if (!utf8) {
-                	return NULL;
+                	return FALSE;
                 }
-                *byte_offset_start = start - parser->txt;
-		*byte_offset_end = end - parser->txt;
+                
+                *byte_offset_start = start-parser->txt;
+		*byte_offset_end = *byte_offset_start + bytes;
+
+		parser->cursor = g_utf8_next_char (parser->txt + *byte_offset_end);
 
 		processed_word = tracker_parser_process_word (parser, utf8, bytes, do_strip);
 
 		g_free (utf8);
+		
+		parser->word_length = strlen (processed_word);
+		parser->word = processed_word;
 
-		return processed_word;
+		return TRUE;
 
         }
 
-        return NULL;
+        return FALSE;
 
 }
 
@@ -690,7 +692,7 @@ tracker_parser_new (TrackerLanguage *language,
 
 	parser->max_word_length = max_word_length;
 	parser->min_word_length = min_word_length;
-
+	parser->word_length = 0;
 	parser->attrs = NULL;
 
 	return parser;
@@ -706,6 +708,8 @@ tracker_parser_free (TrackerParser *parser)
         }
 
         g_free (parser->attrs);
+        
+        g_free (parser->word);
 
 	g_free (parser);
 }
@@ -716,12 +720,14 @@ tracker_parser_reset (TrackerParser *parser,
 		      gint           txt_size,
 		      gboolean       delimit_words,
 		      gboolean       enable_stemmer,
-		      gboolean       enable_stop_words)
+		      gboolean       enable_stop_words,
+		      gboolean       parse_reserved_words)
 {
         g_return_if_fail (parser != NULL);
 	g_return_if_fail (txt != NULL);
 
 	g_free (parser->attrs);
+        parser->attrs = NULL;
 
 	parser->enable_stemmer = enable_stemmer;
 	parser->enable_stop_words = enable_stop_words;
@@ -729,6 +735,10 @@ tracker_parser_reset (TrackerParser *parser,
 	parser->encoding = get_encoding (txt);
 	parser->txt_size = txt_size;
 	parser->txt = txt;
+	parser->parse_reserved_words = parse_reserved_words;
+	
+	g_free (parser->word);
+	parser->word = NULL;
 
 	parser->word_position = 0;
 
@@ -736,6 +746,10 @@ tracker_parser_reset (TrackerParser *parser,
 
 	if (parser->encoding == TRACKER_PARSER_ENCODING_CJK) {
 		PangoLogAttr *attrs;
+		
+		if (parser->txt_size == -1) {
+			parser->txt_size = strlen (parser->txt);
+		}
 
                 parser->attr_length = g_utf8_strlen (parser->txt, parser->txt_size) + 1;
 
@@ -777,7 +791,7 @@ tracker_parser_process_word (TrackerParser *parser,
 			bytes = length;
 		}
 
-		if (do_strip && get_encoding (word) == TRACKER_PARSER_ENCODING_LATIN) {
+		if (do_strip) {
         	        stripped_word = strip_word (word, bytes, &len);
         	} else {
         	        stripped_word = NULL;
@@ -806,7 +820,7 @@ tracker_parser_process_word (TrackerParser *parser,
 			gchar *result;
 
                         result = g_strdup (stem_word);
-       	        g_free (str);
+       	       		g_free (str);
 
 			return result;
 		}
@@ -827,34 +841,45 @@ tracker_parser_is_stop_word (TrackerParser *parser, const gchar *word)
 	return result;
 }
 
-gchar *
+const gchar *
 tracker_parser_next (TrackerParser *parser,
-		     guint         *position,
-		     guint         *byte_offset_start,
-		     guint         *byte_offset_end,
+		     gint          *position,
+		     gint          *byte_offset_start,
+		     gint          *byte_offset_end,
 		     gboolean      *new_paragraph,
-		     gboolean      *stop_word)
+		     gboolean      *stop_word,
+		     gint	   *word_length)
 {
-	gchar    *str;
-	guint     byte_start, byte_end;
+	const gchar  *str;
+	gint     byte_start = 0, byte_end = 0;
 	gboolean  new_para;
+	
+	str = NULL;
+	
+        g_free (parser->word);
+        parser->word = NULL;
 
 	if (parser->encoding == TRACKER_PARSER_ENCODING_CJK) {
-		str = pango_next (parser, 0, &byte_start, &byte_end, &new_para);
+		if (pango_next (parser, &byte_start, &byte_end, &new_para)) {
+			str = parser->word;
+		}
 		parser->word_position++;
 
                 *stop_word = FALSE;
 	} else {
-		str = parser_next (parser, 0, &byte_start, &byte_end, &new_para);
-		parser->word_position++;
+		if (parser_next (parser, &byte_start, &byte_end, &new_para)) {
+			str = parser->word;
+		}
 
 		if (parser->enable_stop_words && is_stop_word (parser->language, str)) {
 			*stop_word = TRUE;
 		} else {
+			parser->word_position++;
 			*stop_word = FALSE;
 		}
 	}
 
+	*word_length = parser->word_length;
 	*position = parser->word_position;
 	*byte_offset_start = byte_start;
 	*byte_offset_end = byte_end;
@@ -863,28 +888,6 @@ tracker_parser_next (TrackerParser *parser,
 	return str;
 }
 
-void
-tracker_parser_set_posititon (TrackerParser *parser,
-		     	      guint          position)
-{
-        gchar    *s;
-	guint     byte_start, byte_end;
-	gboolean  para;
-
-        g_return_if_fail (parser != NULL);
-
-	parser->word_position = 0;
-	parser->cursor = parser->txt;
-	parser->attr_pos = 0;
-
-	if (parser->encoding == TRACKER_PARSER_ENCODING_CJK) {
-                s = pango_next (parser, position, &byte_start, &byte_end, &para);
-		g_free (s);
-	} else {
-		s = parser_next (parser, position, &byte_start, &byte_end, &para);
-		g_free (s);
-	}
-}
 
 gchar *
 tracker_parser_text_to_string (const gchar     *txt,

@@ -1,3 +1,28 @@
+2008-08-26  Jamie McCracken <jamiemcc at gnome org>
+
+
+	* src/libtracker-common/tracker-parser.c
+	* src/libtracker-common/tracker-parser.h
+	Made new API for tracker-parser more compatible
+	with sqlite FTS3.
+	
+	* tracker-fts
+	* tracker-fts/tracker-fts.c
+	* tracker-fts/tracker-fts-hash.c
+	* tracker-fts/Makefile.am
+	* tracker-fts/tracker-fts.h
+	* tracker-fts/tracker-fts-hash.h
+	Created forked version of sqlite fts3 module called tracker-fts
+	Integrated our parser and tweaked it to work fully with FTS3 api
+	
+	* tests/Makefile.am
+	* configure.ac
+	* src/Makefile.am
+	* tests/tracker-fts
+	* tests/tracker-fts/tracker-fts-test.c
+	* tests/tracker-fts/Makefile.am
+	Added test files for tracker-fts module
+
 2008-08-26  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-metadata-utils.c (get_file_content):

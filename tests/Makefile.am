@@ -5,5 +5,6 @@ SUBDIRS = common \
 	trackerd \
 	scripts \
 	libtracker-db \
+	tracker-fts   \
 	tracker-indexer
 

@@ -978,6 +978,7 @@ AC_CONFIG_FILES([
 	src/tracker-applet/tracker-applet.desktop.in
 	src/trackerd/Makefile
 	src/tracker-extract/Makefile
+	src/tracker-fts/Makefile
 	src/tracker-indexer/Makefile
 	src/tracker-indexer/modules/Makefile
 	src/tracker-preferences/Makefile
@@ -996,6 +997,7 @@ AC_CONFIG_FILES([
 	tests/trackerd/Makefile
 	tests/trackerd/xesam/Makefile
 	tests/tracker-indexer/Makefile
+	tests/tracker-fts/Makefile
 	thumbnailers/application/Makefile
 	thumbnailers/image/Makefile
 	thumbnailers/Makefile

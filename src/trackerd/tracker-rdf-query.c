@@ -837,11 +837,11 @@ build_sql (ParserData *data)
                 sub = strchr (data->current_value, '*');
                 
                 if (sub) {
-                        g_string_append_printf (str, " (%s like '%%%s%%') ", 
+                        g_string_append_printf (str, " (%s like '%%%%%s%%%%') ", 
                                                 where_field, 
                                                 data->current_value);
                 } else {
-                        g_string_append_printf (str, " (%s like '%%%s%%') ", 
+                        g_string_append_printf (str, " (%s like '%%%%%s%%%%') ", 
                                                 where_field,
                                                 data->current_value);
                 }
@@ -855,7 +855,7 @@ build_sql (ParserData *data)
                                                 where_field, 
                                                 data->current_value);
                 } else {
-                        g_string_append_printf (str, " (%s like '%s%%') ", 
+                        g_string_append_printf (str, " (%s like '%s%%%%') ", 
                                                 where_field, 
                                                 data->current_value);
                 }

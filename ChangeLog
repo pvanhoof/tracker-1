@@ -1,3 +1,8 @@
+2008-08-27  Mikael Ottela    <mikael.ottela@ixonos.com>
+	* src/trackerd/tracker-rdf-query.c: Fixed a crash. Added
+	additional '%' to sql like statements because vsprintf strips some 
+	at execute_query level.
+
 2008-08-27  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer.c (tracker_indexer_check_state):

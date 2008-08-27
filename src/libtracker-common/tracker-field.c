@@ -85,7 +85,7 @@ tracker_field_type_get_type (void)
 			  "TRACKER_FIELD_TYPE_INDEX",
 			  "index" },
 			{ TRACKER_FIELD_TYPE_FULLTEXT,
-			  " TRACKER_FIELD_TYPE_FULLTEXT",
+			  "TRACKER_FIELD_TYPE_FULLTEXT",
 			  "fulltext" },
 			{ TRACKER_FIELD_TYPE_STRING,
 			  "TRACKER_FIELD_TYPE_STRING",

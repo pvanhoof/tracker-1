@@ -1,3 +1,10 @@
+2008-08-27  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/libtracker-common/tracker-field.c
+	* tests/libtracker-common/tracker-field-test.c
+	* tests/libtracker-common/Makefile.am: Fixed detail in enum
+	definition and added testing for enum->string function.
+	
 2008-08-27  Philip Van Hoof  <philip@codeminded.be>
 
 	* src/trackerd/tracker-daemon.c: Fixed a memory problem allocating 0

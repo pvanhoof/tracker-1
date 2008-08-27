@@ -696,6 +696,27 @@ tracker_ontology_get_field_def (const gchar *name)
 	return ontology_hash_lookup_by_str (metadata_table, name);
 }
 
+TrackerField *  
+tracker_ontology_get_field_def_by_id (gint id)
+{
+	GList *values = NULL, *iter;
+
+	/* TODO Create a hashtable with id -> field def. More efficient */
+
+	values = g_hash_table_get_values (metadata_table);
+	
+	for (iter = values; iter != NULL; iter = iter->next) {
+		TrackerField *def;
+
+		def = (TrackerField *) iter->data;
+		if (atoi(tracker_field_get_id (def)) == id) {
+			return def;
+		}
+	}
+
+	return NULL;
+}
+
 const gchar *
 tracker_ontology_get_field_id (const gchar *name)
 {

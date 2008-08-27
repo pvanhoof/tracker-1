@@ -71,6 +71,7 @@ gboolean           tracker_ontology_field_is_child_of            (const gchar   
 								  const gchar    *parent);
 TrackerField *     tracker_ontology_get_field_def                (const gchar    *name);
 const gchar *      tracker_ontology_get_field_id                 (const gchar    *name);
+TrackerField *  tracker_ontology_get_field_def_by_id          (gint            id);
 
 G_END_DECLS
 

@@ -317,6 +317,101 @@ db_get_metadata (TrackerService *service,
 	return g_string_free (result, FALSE);
 }
 
+static void
+result_set_to_metadata (TrackerDBResultSet *result_set,
+			TrackerMetadata    *metadata,
+			gboolean            numeric,
+			gboolean            only_embedded)
+{
+	gboolean      valid = TRUE;
+	TrackerField *field_def;
+	gint          metadata_id;
+	gchar        *value;
+	gint          numeric_value;
+
+	while (valid) {
+		
+		if (numeric) {
+			tracker_db_result_set_get (result_set, 0, &metadata_id, 1, &numeric_value, -1);
+			value = g_strdup_printf ("%d", numeric_value);
+		} else {
+			tracker_db_result_set_get (result_set, 0, &metadata_id, 1, &value, -1);
+		}
+		
+		field_def = tracker_ontology_get_field_def_by_id (metadata_id);
+		if (!field_def) {
+			g_critical ("Field id %d in database but not in tracker-ontology",
+				    metadata_id);
+			g_free (value);
+			return;
+		}
+		
+		if (tracker_field_get_embedded (field_def) || !only_embedded) {
+
+			if (tracker_field_get_multiple_values (field_def)) {
+			
+				GList *new_values = NULL;
+				const GList *old_values = NULL; 
+				old_values = tracker_metadata_lookup_multiple_values (metadata,
+										      tracker_field_get_name (field_def));
+				if (old_values) {
+					new_values = g_list_copy ((GList *)old_values);
+				}
+				
+				new_values = g_list_prepend (new_values, g_strdup (value));
+				tracker_metadata_insert_multiple_values (metadata, 
+									 tracker_field_get_name (field_def),
+									 new_values);
+				
+			} else {
+				tracker_metadata_insert (metadata, tracker_field_get_name (field_def), g_strdup (value));
+			}
+		}
+
+		g_free (value);
+		valid = tracker_db_result_set_iter_next (result_set);
+	}
+}
+
+TrackerMetadata *
+tracker_db_get_all_metadata (TrackerService *service,
+			     guint32         service_id,
+			     gboolean        only_embedded)
+{
+	TrackerDBInterface *iface;
+	TrackerDBResultSet *result_set = NULL;
+	gchar              *service_id_str;
+	TrackerMetadata    *metadata;
+
+	metadata = tracker_metadata_new ();
+
+	service_id_str = g_strdup_printf ("%d", service_id);
+	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service),
+							     TRACKER_DB_CONTENT_TYPE_METADATA);
+
+	result_set = tracker_db_interface_execute_procedure (iface, NULL, "GetMetadataIDValue", service_id_str, NULL);
+	if (result_set) {
+	        result_set_to_metadata (result_set, metadata, FALSE, only_embedded);
+		g_object_unref (result_set);
+	}
+
+	result_set = tracker_db_interface_execute_procedure (iface, NULL, "GetMetadataIDValueKeyword", service_id_str, NULL);
+	if (result_set) {
+	        result_set_to_metadata (result_set, metadata, FALSE, only_embedded);
+		g_object_unref (result_set);
+	}
+
+	result_set = tracker_db_interface_execute_procedure (iface, NULL, "GetMetadataIDValueNumeric", service_id_str, NULL);
+	if (result_set) {
+	        result_set_to_metadata (result_set, metadata, TRUE, only_embedded);
+		g_object_unref (result_set);
+	}
+
+	g_free (service_id_str);
+
+	return metadata;
+}
+
 void
 tracker_db_delete_service (TrackerService *service,
 			   guint32         service_id)

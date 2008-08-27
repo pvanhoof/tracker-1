@@ -148,6 +148,7 @@ struct MetadataForeachData {
 	TrackerLanguage *language;
 	TrackerConfig *config;
 	TrackerService *service;
+	gboolean add;
 	guint32 id;
 };
 
@@ -840,6 +841,7 @@ index_metadata_item (TrackerField        *field,
 	gchar **arr;
 	gint service_id;
 	gint i;
+	gint score;
 
 	parsed_value = tracker_parser_text_to_string (value,
 						      data->language,
@@ -853,6 +855,12 @@ index_metadata_item (TrackerField        *field,
 		return;
 	}
 
+	if (data->add) {
+		score = -1*tracker_field_get_weight (field);
+	} else {
+		score = tracker_field_get_weight (field);
+	}
+
 	arr = g_strsplit (parsed_value, " ", -1);
 	service_id = tracker_service_get_id (data->service);
 	index = tracker_db_index_manager_get_index_by_service_id (service_id);
@@ -861,11 +869,15 @@ index_metadata_item (TrackerField        *field,
 		tracker_db_index_add_word (index,
 					   arr[i],
 					   data->id,
-					   service_id,
-					   tracker_field_get_weight (field));
+					   tracker_service_get_id (data->service),
+					   score);
 	}
 
-	tracker_db_set_metadata (data->service, data->id, field, (gchar *) value, parsed_value);
+	if (data->add) {
+		tracker_db_set_metadata (data->service, data->id, field, (gchar *) value, parsed_value);
+	} else {
+		tracker_db_delete_metadata (data->service, data->id, field, (gchar *)value);
+	}
 
 	g_free (parsed_value);
 	g_strfreev (arr);
@@ -917,11 +929,32 @@ index_metadata (TrackerIndexer  *indexer,
 	data.config = indexer->private->config;
 	data.service = service;
 	data.id = id;
+	data.add = TRUE;
 
 	tracker_metadata_foreach (metadata, index_metadata_foreach, &data);
 
 	schedule_flush (indexer, FALSE);
 }
+
+static void
+unindex_metadata (TrackerIndexer  *indexer,
+		  guint32          id,
+		  TrackerService  *service,
+		  TrackerMetadata *metadata)
+{
+	MetadataForeachData data;
+
+	data.language = indexer->private->language;
+	data.config = indexer->private->config;
+	data.service = service;
+	data.id = id;
+	data.add = FALSE;
+
+	tracker_metadata_foreach (metadata, index_metadata_foreach, &data);
+
+	schedule_flush (indexer, FALSE);
+}
+
 
 static void
 send_text_to_index (TrackerIndexer *indexer,
@@ -1166,13 +1199,18 @@ create_update_item (TrackerIndexer  *indexer,
 			g_free (text);
 		}
 	} else {
-		gchar *old_text;
-		gchar *new_text;
+		gchar           *old_text = NULL,  *new_text = NULL;
+		TrackerMetadata *old_metadata = NULL;
+		/* Update case */
+		g_debug ("Updating file '%s'", info->file->path);
 
-		/* TODO: Take the old metadata -> the new one,
-		 * calculate difference and add the words.
+		/* 
+		 * Using DB directly: get old (embedded) metadata, unindex, index the new metadata
 		 */
-		
+		old_metadata = tracker_db_get_all_metadata (service_def, id, TRUE);
+		unindex_metadata (indexer, id, service_def, old_metadata);
+		index_metadata (indexer, id, service_def, metadata);
+
 		/* Take the old text -> the new one, calculate
 		 * difference and add the words.
 		 */
@@ -1180,8 +1218,8 @@ create_update_item (TrackerIndexer  *indexer,
 		new_text = tracker_indexer_module_file_get_text (info->module, info->file);
 		
 		if (old_text || new_text) {
-			GHashTable *old_words;
-			GHashTable *new_words;
+			GHashTable *old_words = NULL;
+			GHashTable *new_words = NULL;
 
 			/* Service has/had full text */
 			old_words = tracker_parser_text (NULL, 
@@ -1215,6 +1253,16 @@ create_update_item (TrackerIndexer  *indexer,
 						 tracker_service_get_id (service_def), 
 						 new_words);
 
+			/* Remove old text and set new one in the db */
+			if (old_text) {
+				tracker_db_delete_text (service_def, id);
+				g_free (old_text);
+			}
+
+			if (new_text) {
+				tracker_db_set_text (service_def, id, new_text);
+				g_free (new_text);
+			}
 			g_hash_table_unref (old_words);
 			g_hash_table_unref (new_words);
 		}

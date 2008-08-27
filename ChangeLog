@@ -1,3 +1,14 @@
+2008-08-27  Ivan Frade  <ivan.frade@nokia.com>
+
+	* data/sqlite-stored-procs.sql
+	* src/libtracker-common/tracker-ontology.[ch]
+	* src/tracker-indexer/tracker-indexer-db.[ch]
+	* src/tracker-indexer/tracker-indexer.c
+	
+	Added metadata updating when the file is updated. Remove the old
+	embedded metadata and set the new values. Remove only the embedded to
+	keep the tags and other user/application metadata.
+	
 2008-08-27  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-metadata-utils.c (tracker_metadata_read)

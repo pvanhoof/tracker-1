@@ -199,15 +199,12 @@ indexer_finished_cb (DBusGProxy *proxy,
 	priv->last_stats = new_stats;
 
 	if (values && values->len > 0) {
-		ret = (GStrv) g_malloc (sizeof (gchar*) * values->len + 1);
+		ret = (GStrv) g_malloc0 (sizeof (gchar*) * (values->len + 2));
 		for (i = 0 ; i < values->len; i++)
 			ret[i] = g_ptr_array_index (values, i);
-		ret[i] = NULL;
 		g_ptr_array_free (values, TRUE);
-	} else {
-		ret = (GStrv) g_malloc (sizeof (gchar*) * 1);
-		ret[0] = NULL;
-	}
+	} else
+		ret = (GStrv) g_malloc0 (sizeof (gchar*) * 1);
 
 	g_signal_emit (daemon, signals[DAEMON_STATS_CHANGED], 0, ret);
 

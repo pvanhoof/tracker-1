@@ -207,7 +207,7 @@ load_sql_file (TrackerDBInterface *iface,
 
 		/* Skip white space, including control characters */
 		for (sql = queries[i]; sql && g_ascii_isspace (sql[0]); sql++);
-		
+
 		if (!sql || sql[0] == '\0') {
 			continue;
 		}
@@ -912,6 +912,10 @@ load_prepared_queries (void)
 
 		for (p = queries; *p; p++) {
 			GStrv details;
+
+			if (**p == '#') {
+				continue;
+			}
 
 			details = g_strsplit (*p, " ", 2);
 

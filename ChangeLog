@@ -1,5 +1,11 @@
 2008-08-28  Carlos Garnacho  <carlos@imendio.com>
 
+	* data/sqlite-stored-procs.sql: Use '#' to begin comments.
+	* src/libtracker-db/tracker-db-manager.c (load_prepared_queries): Skip
+	lines that begin with '#'.
+
+2008-08-28  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-thumbnailer/Makefile.am: Install thumbnailer in libexec.
 	* src/tracker-indexer/Makefile.am:
 	* tests/tracker-indexer/Makefile.am: define LIBEXECDIR

@@ -3,7 +3,7 @@ INCLUDES = \
 	$(LIBPNG_CFLAGS) \
 	-DLIBDIR=\""$(libdir)"\" 
 
-bin_PROGRAMS = tracker-thumbnailer
+libexec_PROGRAMS = tracker-thumbnailer
 
 tracker_thumbnailer_SOURCES = \
 	tracker-thumbnailer.c \

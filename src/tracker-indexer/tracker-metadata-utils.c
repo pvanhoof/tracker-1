@@ -156,7 +156,7 @@ static gchar **
 tracker_metadata_query_file (const gchar *path,
 			     const gchar *mimetype)
 {
-	const gchar *argv[2] = { EXTRACTOR_PATH, NULL };
+	const gchar *argv[2] = { LIBEXEC_PATH G_DIR_SEPARATOR_S "tracker-extract", NULL };
 	gchar *utf_path, *str;
 	GPtrArray *array;
 	GIOStatus status;
@@ -522,7 +522,7 @@ tracker_metadata_utils_get_thumbnail (const gchar *path,
 	GString *thumbnail;
 	gchar *argv[5];
 
-	argv[0] = g_strdup ("tracker-thumbnailer");
+	argv[0] = g_strdup (LIBEXEC_PATH G_DIR_SEPARATOR_S "tracker-thumbnailer");
 	argv[1] = g_filename_from_utf8 (path, -1, NULL, NULL, NULL);
 	argv[2] = g_strdup (mime);
 	argv[3] = g_strdup ("normal");

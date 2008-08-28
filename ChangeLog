@@ -1,5 +1,14 @@
 2008-08-28  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-thumbnailer/Makefile.am: Install thumbnailer in libexec.
+	* src/tracker-indexer/Makefile.am:
+	* tests/tracker-indexer/Makefile.am: define LIBEXECDIR
+	* src/tracker-indexer/tracker-metadata-utils.c
+	(tracker_metadata_query_file) (tracker_metadata_utils_get_thumbnail):
+	Use LIBEXECDIR to locate both tracker-extract and tracker-thumbnailer.
+
+2008-08-28  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-indexer.c (create_update_item): Avoid
 	potential double frees.
 

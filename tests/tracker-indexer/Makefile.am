@@ -8,7 +8,7 @@ INCLUDES = 				\
 	-g 				\
 	-DG_LOG_DOMAIN=\"Tracker\"	\
 	-DLIBDIR=\""$(libdir)"\"	\
-	-DEXTRACTOR_PATH=\""$(libexecdir)/tracker-extract"\" \
+	-DLIBEXEC_PATH=\""$(libexecdir)"\"	\
 	-I$(top_srcdir)/src		\
 	-I$(top_srcdir)/tests/common	\
 	$(GMODULE_CFLAGS)		\

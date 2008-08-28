@@ -1283,13 +1283,12 @@ create_update_item (TrackerIndexer  *indexer,
 			/* Remove old text and set new one in the db */
 			if (old_text) {
 				tracker_db_delete_text (service_def, id);
-				g_free (old_text);
 			}
 
 			if (new_text) {
 				tracker_db_set_text (service_def, id, new_text);
-				g_free (new_text);
 			}
+
 			g_hash_table_unref (old_words);
 			g_hash_table_unref (new_words);
 		}

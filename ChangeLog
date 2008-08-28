@@ -1,5 +1,10 @@
 2008-08-28  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-indexer.c (create_update_item): Avoid
+	potential double frees.
+
+2008-08-28  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-metadata-utils.c
 	(tracker_metadata_watch_cb): Rename to process_watch_cb() and make
 	generic to all spawned processes, so we don't leave defunct processes

@@ -70,6 +70,19 @@ destroy_process_context (ProcessContext *context)
 	g_free (context);
 }
 
+static void
+process_watch_cb (GPid     pid,
+		  gint     status,
+		  gpointer user_data)
+{
+	g_debug ("Process '%d' exited with code: %d\n", pid, status);
+
+	if (user_data == metadata_context) {
+		destroy_process_context (metadata_context);
+		metadata_context = NULL;
+	}
+}
+
 static ProcessContext *
 create_process_context (const gchar **argv)
 {
@@ -91,6 +104,8 @@ create_process_context (const gchar **argv)
 	flags |= G_IO_FLAG_NONBLOCK;
 
 	g_io_channel_set_flags (context->stdout_channel, flags, NULL);
+
+	g_child_watch_add (context->pid, process_watch_cb, context);
 
 	return context;
 }
@@ -137,19 +152,6 @@ tracker_metadata_read (GIOChannel   *channel,
 	return TRUE;
 }
 
-static void
-tracker_metadata_watch_cb (GPid     pid,
-			   gint     status,
-			   gpointer user_data)
-{
-	g_debug ("Metadata extractor exited with code: %d\n", status);
-
-	if (metadata_context) {
-		destroy_process_context (metadata_context);
-		metadata_context = NULL;
-	}
-}
-
 static gchar **
 tracker_metadata_query_file (const gchar *path,
 			     const gchar *mimetype)
@@ -169,8 +171,6 @@ tracker_metadata_query_file (const gchar *path,
 		if (!metadata_context) {
 			return NULL;
 		}
-
-		g_child_watch_add (metadata_context->pid, tracker_metadata_watch_cb, NULL);
 	}
 
 	utf_path = g_filename_from_utf8 (path, -1, NULL, NULL, NULL);

@@ -1,3 +1,10 @@
+2008-08-28  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/tracker-metadata-utils.c
+	(tracker_metadata_watch_cb): Rename to process_watch_cb() and make
+	generic to all spawned processes, so we don't leave defunct processes
+	all around.
+
 2008-08-27  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/libtracker-common/tracker-ontology.c:

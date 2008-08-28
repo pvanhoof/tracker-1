@@ -1,5 +1,12 @@
 2008-08-28  Carlos Garnacho  <carlos@imendio.com>
 
+	* tests/tracker-indexer/tracker-metadata-utils-test.c: Remove tests
+	related to metadata merging, this leaves the file mostly empty, but
+	would be useful to keep it around when some other tests to
+	tracker-indexer are added.
+
+2008-08-28  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-metadata-utils.c (lists_equal)
 	(metadata_action_item_new) (calculate_merge_action)
 	(add_deleted_items) (tracker_metadata_utils_calculate_merge)

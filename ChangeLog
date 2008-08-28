@@ -1,5 +1,13 @@
 2008-08-28  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-metadata-utils.c (lists_equal)
+	(metadata_action_item_new) (calculate_merge_action)
+	(add_deleted_items) (tracker_metadata_utils_calculate_merge)
+	(tracker_metadata_utils_action_item_free): Removed functions, they
+	weren't used anywhere.
+
+2008-08-28  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-thumbnailer/tracker-thumbnailer.c: Use GChecksum instead
 	of shipped MD5 implementation.
 	* src/tracker-thumbnailer/Makefile.am:

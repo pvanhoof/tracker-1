@@ -311,6 +311,11 @@ tracker_metadata_utils_get_data (const gchar *path)
 	tracker_metadata_insert (metadata, METADATA_FILE_MIMETYPE, mimetype);
 
 	if (mimetype) {
+
+		/* FIXME: 
+		 * We should determine here for which items we do and for which
+		 * items we don't want to pre-create the thumbnail. */
+
 		tracker_metadata_utils_get_thumbnail (path, mimetype);
 	}
 

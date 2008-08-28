@@ -1,5 +1,13 @@
 2008-08-28  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-thumbnailer/tracker-thumbnailer.c: Use GChecksum instead
+	of shipped MD5 implementation.
+	* src/tracker-thumbnailer/Makefile.am:
+	* src/tracker-thumbnailer/md5.[ch]: Removed MD5 implementation, no 
+	longer necessary.
+
+2008-08-28  Carlos Garnacho  <carlos@imendio.com>
+
 	* data/sqlite-stored-procs.sql: Use '#' to begin comments.
 	* src/libtracker-db/tracker-db-manager.c (load_prepared_queries): Skip
 	lines that begin with '#'.

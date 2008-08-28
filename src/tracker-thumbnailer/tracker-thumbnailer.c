@@ -29,7 +29,6 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <png.h>
-#include "md5.h"
 
 #ifdef OS_WIN32
 #include <Windows.h>
@@ -82,12 +81,10 @@ int main (int argc, char *argv[])
 	gchar          realname[MAXPATHLEN];
 	struct stat    stat_info;
 	gchar         *mtime;
-	md5_state_t    hash_state;
-	guchar         hash[16];
-	gchar          uri_hash[21], *p;
+	const gchar   *md5_hash;
 	int	       i;
 	guint32        j;
-	gchar         *thumbnail_filename;
+	gchar         *filename, *thumbnail_filename;
 	FILE          *fp;
 	png_structp    png_ptr;
 	png_infop      info_ptr;
@@ -101,6 +98,7 @@ int main (int argc, char *argv[])
 	png_colorp     palette;
 	int            num_palette;
 	png_bytepp     row_pointers;
+	GChecksum     *checksum;
 
 	/* only make normal size thumbnails for now */
 	if (strcmp (argv[3], "normal") != 0) {
@@ -134,17 +132,17 @@ int main (int argc, char *argv[])
 	mtime = g_strdup_printf ("%lu", stat_info.st_mtime);
 
 	/* create path to thumbnail */
-	md5_init (&hash_state);
-	md5_append (&hash_state, (guchar *)uri, strlen (uri));
-	md5_finish (&hash_state, hash);
-	p = uri_hash;
-	for (i = 0; i < 16; i++) {
-		g_sprintf (p, "%02x", hash[i]);
-		p += 2;
-	}
-	g_sprintf (p, ".png");
+	checksum = g_checksum_new (G_CHECKSUM_MD5);
+	g_checksum_update (checksum, (guchar *) uri, -1);
+	md5_hash = g_checksum_get_string (checksum);
+
+	filename = g_strdup_printf ("%s.png", md5_hash);
+	g_checksum_free (checksum);
+
 	thumbnail_filename = g_build_filename (
-		g_get_home_dir (), ".thumbnails", argv[3], uri_hash, NULL);
+		g_get_home_dir (), ".thumbnails", argv[3], filename, NULL);
+
+	g_free (filename);
 
 	/* check to see if the thumbnail already exists */
 	if (g_file_test (thumbnail_filename, G_FILE_TEST_EXISTS)) {

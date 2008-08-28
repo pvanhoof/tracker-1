@@ -1,3 +1,12 @@
+2008-08-28  Philip Van Hoof  <philip@codeminded.be>
+
+	src/tracker-indexer/tracker-metadata-utils.c
+	src/tracker-indexer/tracker-metadata-utils.h
+	src/tracker-indexer/Makefile.am
+	tests/tracker-indexer/Makefile.am
+	configure.ac: Use Hildon's thumbnailer if available. Similar things
+	should be done for other thumbnailers too.
+	
 2008-08-28  Carlos Garnacho  <carlos@imendio.com>
 
 	* tests/tracker-indexer/tracker-metadata-utils-test.c: Remove tests

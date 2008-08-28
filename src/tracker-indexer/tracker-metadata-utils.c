@@ -26,6 +26,14 @@
 #include <gio/gio.h>
 #include <string.h>
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#ifdef HAVE_HILDON_THUMBNAIL
+#include <hildon-thumbnail-factory.h>
+#endif
+
 #include "tracker-metadata-utils.h"
 
 #define METADATA_FILE_NAME_DELIMITED "File:NameDelimited"
@@ -49,6 +57,7 @@ typedef struct {
 } ProcessContext;
 
 static ProcessContext *metadata_context = NULL;
+static void tracker_metadata_utils_get_thumbnail (const gchar *path, const gchar *mime);
 
 static void
 destroy_process_context (ProcessContext *context)
@@ -514,11 +523,15 @@ tracker_metadata_utils_get_text (const gchar *path)
 	return text;
 }
 
-gchar *
+static void
 tracker_metadata_utils_get_thumbnail (const gchar *path,
 				      const gchar *mime)
 {
+#ifdef HAVE_HILDON_THUMBNAIL
+	hildon_thumbnail_factory_load (path, mime, 128, 128, NULL, NULL);
+#else
 	ProcessContext *context;
+
 	GString *thumbnail;
 	gchar *argv[5];
 
@@ -553,10 +566,13 @@ tracker_metadata_utils_get_thumbnail (const gchar *path,
 
 	if (!thumbnail->str || !*thumbnail->str) {
 		g_string_free (thumbnail, TRUE);
-		return NULL;
+		return;
 	}
 
 	g_debug ("Got thumbnail '%s' for '%s'", thumbnail->str, path);
 
-	return g_string_free (thumbnail, FALSE);
+	g_string_free (thumbnail, TRUE);
+
+#endif
+
 }

@@ -916,14 +916,17 @@ fi
 # Check for Hildon-thumbnail
 ##################################################################
 
-AC_ARG_ENABLE(hildon-thumbnail, 
-	      AS_HELP_STRING([--disable-hildon-thumbnail], [Disable Hildon thumbnail]),,
-	      [enable_hildon_thumbnail=yes])
+PKG_CHECK_MODULES(HILDON_THUMBNAIL, 
+		  hildon-thumbnail,
+		  [has_hildon_thumbnail=yes],
+		  [has_hildon_thumbnail=no])
 
-if test "x$enable_hildon_thumbnail" = "xyes"; then
+if test "x$has_hildon_thumbnail" = "xyes"; then
    AC_CHECK_PROG(HAVE_HILDON_THUMBNAIL,hildon-thumb-gdk-pixbuf,"yes","no",)
    have_hildon_thumbnail="$HAVE_HILDON_THUMBNAIL"
 else
+   HILDON_THUMBNAIL_CFLAGS=""
+   HILDON_THUMBNAIL_LIBS=""
    have_hildon_thumbnail="no (disabled)"
 fi
 
@@ -932,6 +935,9 @@ AM_CONDITIONAL(HAVE_HILDON_THUMBNAIL, test "$have_hildon_thumbnail" = "yes")
 if test "$have_hildon_thumbnail" = "yes" ; then
    AC_DEFINE(HAVE_HILDON_THUMBNAIL, 1, [Define if we have hildon-thumbnail])
 fi
+
+AC_SUBST(HILDON_THUMBNAIL_CFLAGS)
+AC_SUBST(HILDON_THUMBNAIL_LIBS)
 
 AC_CONFIG_LINKS(tests/tracker-indexer/tracker-metadata.c:src/tracker-indexer/tracker-metadata.c 
                 tests/tracker-indexer/tracker-metadata.h:src/tracker-indexer/tracker-metadata.h

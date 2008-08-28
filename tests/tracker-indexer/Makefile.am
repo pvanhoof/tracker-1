@@ -13,7 +13,8 @@ INCLUDES = 				\
 	-I$(top_srcdir)/tests/common	\
 	$(GMODULE_CFLAGS)		\
 	$(GTHREAD_CFLAGS)		\
-	$(GLIB2_CFLAGS)
+	$(GLIB2_CFLAGS)			\
+	$(HILDON_THUMBNAIL_CFLAGS)
 
 
 tracker_metadata_utils_SOURCES = 	\
@@ -28,5 +29,6 @@ tracker_metadata_utils_LDADD =	                                        \
 	$(GMODULE_LIBS)							\
 	$(GTHREAD_LIBS)							\
 	$(GIO_LIBS)							\
-	$(GLIB2_LIBS)							
+	$(GLIB2_LIBS)							\
+	$(HILDON_THUMBNAIL_LIBS)
 

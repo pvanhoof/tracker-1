@@ -865,21 +865,25 @@ tracker_db_index_flush (TrackerDBIndex *index)
 	removed_items = 0;
 
 	if (size > 0) {
-		GHashTableIter iter;
-		gpointer       key, value;
+		GList *keys, *k;
+		gpointer value;
 
 		g_debug ("Flushing index with %d items in cache", size);
 
-		g_hash_table_iter_init (&iter, priv->cache);
+		keys = g_hash_table_get_keys (priv->cache);
 
-		while (g_hash_table_iter_next (&iter, &key, &value) && !priv->in_pause) {
-			if (cache_flush_item (key, value, priv->index)) {
-				g_hash_table_iter_remove (&iter);
+		for (k = keys; k; k = k->next) {
+			value = g_hash_table_lookup (priv->cache, k->data);
+
+			if (cache_flush_item (k->data, value, priv->index)) {
+				g_hash_table_remove (priv->cache, k->data);
 				removed_items++;
 			}
 
 			g_main_context_iteration (NULL, FALSE);
 		}
+
+		g_list_free (keys);
 	}
 
 	priv->in_flush = FALSE;

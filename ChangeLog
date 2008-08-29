@@ -1,5 +1,13 @@
 2008-08-29  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/libtracker-db/tracker-db-index.c (tracker_db_index_flush): Do
+	not use GHashTableIter API here, we can't avoid for sure having other
+	portions of the code try to insert data to the index cache while it's
+	flushing, and performance here is largely bound to QDBM, so it won't
+	be that noticeable anyways.
+
+2008-08-29  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-main.c (initialize_signal_handler):
 	Ignore SIGPIPE, so we can handle it ourselves.
 	* src/tracker-indexer/tracker-metadata-utils.c: It's possible that the

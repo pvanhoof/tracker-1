@@ -112,7 +112,7 @@ tracker_files_exist (TrackerFiles           *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (uri != NULL, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to see if files exist, "
@@ -164,10 +164,10 @@ tracker_files_create (TrackerFiles           *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (mime != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (size >= 0, FALSE);
-	tracker_dbus_async_return_if_fail (mtime >= 0, FALSE);
+	tracker_dbus_async_return_if_fail (uri != NULL, context);
+	tracker_dbus_async_return_if_fail (mime != NULL, context);
+	tracker_dbus_async_return_if_fail (size >= 0, context);
+	tracker_dbus_async_return_if_fail (mtime >= 0, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to create file, "
@@ -203,7 +203,7 @@ tracker_files_delete (TrackerFiles           *object,
 	
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (uri != NULL, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to delete file, "
@@ -243,7 +243,7 @@ tracker_files_get_service_type (TrackerFiles           *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (uri != NULL, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get service type ",
@@ -338,10 +338,10 @@ tracker_files_get_text_contents (TrackerFiles           *object,
 					 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (offset >= 0, FALSE);
-	tracker_dbus_async_return_if_fail (max_length >= 0, FALSE);
-	tracker_dbus_async_return_if_fail (value != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (uri != NULL, context);
+	tracker_dbus_async_return_if_fail (offset >= 0, context);
+	tracker_dbus_async_return_if_fail (max_length >= 0, context);
+	tracker_dbus_async_return_if_fail (value != NULL, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get text contents, "
@@ -426,9 +426,9 @@ tracker_files_search_text_contents (TrackerFiles           *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (text != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (max_length >= 0, FALSE);
+	tracker_dbus_async_return_if_fail (uri != NULL, context);
+	tracker_dbus_async_return_if_fail (text != NULL, context);
+	tracker_dbus_async_return_if_fail (max_length >= 0, context);
 	
 	tracker_dbus_request_new (request_id,
 				  "DBus request to search text contents, "
@@ -491,9 +491,9 @@ tracker_files_get_by_service_type (TrackerFiles           *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (service != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (offset >= 0, FALSE);
-	tracker_dbus_async_return_if_fail (max_hits >= 0, FALSE);
+	tracker_dbus_async_return_if_fail (service != NULL, context);
+	tracker_dbus_async_return_if_fail (offset >= 0, context);
+	tracker_dbus_async_return_if_fail (max_hits >= 0, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get files by service type, "
@@ -550,10 +550,10 @@ tracker_files_get_by_mime_type (TrackerFiles           *object,
 					
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (mime_types != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (g_strv_length (mime_types) > 0, FALSE);
-	tracker_dbus_async_return_if_fail (offset >= 0, FALSE);
-	tracker_dbus_async_return_if_fail (max_hits >= 0, FALSE);
+	tracker_dbus_async_return_if_fail (mime_types != NULL, context);
+	tracker_dbus_async_return_if_fail (g_strv_length (mime_types) > 0, context);
+	tracker_dbus_async_return_if_fail (offset >= 0, context);
+	tracker_dbus_async_return_if_fail (max_hits >= 0, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get files by mime types, "
@@ -602,10 +602,10 @@ tracker_files_get_by_mime_type_vfs (TrackerFiles           *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (mime_types != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (g_strv_length (mime_types) > 0, FALSE);
-	tracker_dbus_async_return_if_fail (offset >= 0, FALSE);
-	tracker_dbus_async_return_if_fail (max_hits >= 0, FALSE);
+	tracker_dbus_async_return_if_fail (mime_types != NULL, context);
+	tracker_dbus_async_return_if_fail (g_strv_length (mime_types) > 0, context);
+	tracker_dbus_async_return_if_fail (offset >= 0, context);
+	tracker_dbus_async_return_if_fail (max_hits >= 0, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get files by mime types (VFS), "
@@ -657,7 +657,7 @@ tracker_files_get_mtime (TrackerFiles           *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (uri != NULL, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request for mtime, "
@@ -717,9 +717,9 @@ tracker_files_get_metadata_for_files_in_folder (TrackerFiles           *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (fields != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (g_strv_length (fields) > 0, FALSE);
+	tracker_dbus_async_return_if_fail (uri != NULL, context);
+	tracker_dbus_async_return_if_fail (fields != NULL, context);
+	tracker_dbus_async_return_if_fail (g_strv_length (fields) > 0, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request for metadata for files in folder, "
@@ -855,9 +855,9 @@ tracker_files_search_by_text_and_mime (TrackerFiles           *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (text != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (mime_types != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (g_strv_length (mime_types) > 0, FALSE);
+	tracker_dbus_async_return_if_fail (text != NULL, context);
+	tracker_dbus_async_return_if_fail (mime_types != NULL, context);
+	tracker_dbus_async_return_if_fail (g_strv_length (mime_types) > 0, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to search files by text & mime types, "
@@ -918,8 +918,8 @@ tracker_files_search_by_text_and_location (TrackerFiles           *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (text != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (text != NULL, context);
+	tracker_dbus_async_return_if_fail (uri != NULL, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to search files by text & location, "
@@ -981,10 +981,10 @@ tracker_files_search_by_text_and_mime_and_location (TrackerFiles           *obje
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (text != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (mime_types != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (g_strv_length (mime_types) > 0, FALSE);
-	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (text != NULL, context);
+	tracker_dbus_async_return_if_fail (mime_types != NULL, context);
+	tracker_dbus_async_return_if_fail (g_strv_length (mime_types) > 0, context);
+	tracker_dbus_async_return_if_fail (uri != NULL, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to search files by text & mime types & location, "

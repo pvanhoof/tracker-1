@@ -1,3 +1,15 @@
+2008-08-29  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/tracker-indexer/tracker-indexer.c
+	* src/trackerd/tracker-daemon.c
+	* src/trackerd/tracker-files.c
+	* src/trackerd/tracker-keywords.c
+	* src/trackerd/tracker-metadata.c
+
+	Use context instead of FALSE as second parameter for
+	tracker_dbus_async_return_if_fail . This fixes crashes in trackerd
+	when the assertions failed.
+	
 2008-08-29  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/libtracker-db/tracker-db-index.c (tracker_db_index_flush): Do

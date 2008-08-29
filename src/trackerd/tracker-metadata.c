@@ -144,10 +144,10 @@ tracker_metadata_get (TrackerMetadata        *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (service_type != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (keys != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (g_strv_length (keys) > 0, FALSE);
+	tracker_dbus_async_return_if_fail (service_type != NULL, context);
+	tracker_dbus_async_return_if_fail (uri != NULL, context);
+	tracker_dbus_async_return_if_fail (keys != NULL, context);
+	tracker_dbus_async_return_if_fail (g_strv_length (keys) > 0, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get metadata values, "
@@ -247,12 +247,12 @@ tracker_metadata_set (TrackerMetadata        *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (service_type != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (keys != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (values != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (g_strv_length (keys) > 0, FALSE);
-	tracker_dbus_async_return_if_fail (g_strv_length (values) > 0, FALSE);
-	tracker_dbus_async_return_if_fail (g_strv_length (keys) == g_strv_length (values), FALSE);
+	tracker_dbus_async_return_if_fail (service_type != NULL, context);
+	tracker_dbus_async_return_if_fail (keys != NULL, context);
+	tracker_dbus_async_return_if_fail (values != NULL, context);
+	tracker_dbus_async_return_if_fail (g_strv_length (keys) > 0, context);
+	tracker_dbus_async_return_if_fail (g_strv_length (values) > 0, context);
+	tracker_dbus_async_return_if_fail (g_strv_length (keys) == g_strv_length (values), context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to set metadata keys, "
@@ -353,7 +353,7 @@ tracker_metadata_get_type_details (TrackerMetadata        *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (metadata != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (metadata != NULL, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get metadata details, "
@@ -397,7 +397,7 @@ tracker_metadata_get_registered_types (TrackerMetadata        *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (service_type != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (service_type != NULL, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get registered metadata types, "

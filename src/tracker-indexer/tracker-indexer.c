@@ -1963,7 +1963,7 @@ tracker_indexer_pause (TrackerIndexer         *indexer,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
+	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to pause the indexer");
@@ -2003,7 +2003,7 @@ tracker_indexer_pause_for_duration (TrackerIndexer         *indexer,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
+	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to pause the indexer for %d seconds",
@@ -2040,7 +2040,7 @@ tracker_indexer_continue (TrackerIndexer         *indexer,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
+	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), context);
 
 	tracker_dbus_request_new (request_id,
                                   "DBus request to continue the indexer");
@@ -2081,8 +2081,8 @@ tracker_indexer_files_check (TrackerIndexer *indexer,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
-	tracker_dbus_async_return_if_fail (files != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), context);
+	tracker_dbus_async_return_if_fail (files != NULL, context);
 
 	tracker_dbus_request_new (request_id,
                                   "DBus request to check %d files",
@@ -2153,9 +2153,9 @@ tracker_indexer_file_move (TrackerIndexer         *indexer,
 	GError *actual_error;
 	PathInfo *info;
 
-	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
-	tracker_dbus_async_return_if_fail (from != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (to != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), context);
+	tracker_dbus_async_return_if_fail (from != NULL, context);
+	tracker_dbus_async_return_if_fail (to != NULL, context);
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -2207,12 +2207,12 @@ tracker_indexer_property_set (TrackerIndexer         *indexer,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
-	tracker_dbus_async_return_if_fail (service_type != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (property != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (values != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (g_strv_length (values) > 0, FALSE);
+	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), context);
+	tracker_dbus_async_return_if_fail (service_type != NULL, context);
+	tracker_dbus_async_return_if_fail (uri != NULL, context);
+	tracker_dbus_async_return_if_fail (property != NULL, context);
+	tracker_dbus_async_return_if_fail (values != NULL, context);
+	tracker_dbus_async_return_if_fail (g_strv_length (values) > 0, context);
 
 	tracker_dbus_request_new (request_id,
                                   "DBus request to set %d values in property '%s' for file '%s' ",
@@ -2254,11 +2254,11 @@ tracker_indexer_property_remove (TrackerIndexer         *indexer,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
-	tracker_dbus_async_return_if_fail (service_type != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (property != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (values != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), context);
+	tracker_dbus_async_return_if_fail (service_type != NULL, context);
+	tracker_dbus_async_return_if_fail (uri != NULL, context);
+	tracker_dbus_async_return_if_fail (property != NULL, context);
+	tracker_dbus_async_return_if_fail (values != NULL, context);
 
 	tracker_dbus_request_new (request_id,
                                   "DBus request to remove %d values in property '%s' for file '%s' ",
@@ -2291,7 +2291,7 @@ tracker_indexer_shutdown (TrackerIndexer         *indexer,
 {
 	guint request_id;
 
-	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), FALSE);
+	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), context);
 
 	request_id = tracker_dbus_get_next_request_id ();
 	tracker_dbus_request_new (request_id,

@@ -126,7 +126,7 @@ tracker_keywords_get_list (TrackerKeywords  *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (service_type != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (service_type != NULL, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get keywords list, "
@@ -173,8 +173,8 @@ tracker_keywords_get (TrackerKeywords        *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (service_type != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (service_type != NULL, context);
+	tracker_dbus_async_return_if_fail (uri != NULL, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get keywords, "
@@ -248,9 +248,9 @@ tracker_keywords_add (TrackerKeywords        *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (service_type != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (keywords != NULL && *keywords != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (service_type != NULL, context);
+	tracker_dbus_async_return_if_fail (uri != NULL, context);
+	tracker_dbus_async_return_if_fail (keywords != NULL && *keywords != NULL, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to add keywords, "
@@ -327,9 +327,9 @@ tracker_keywords_remove (TrackerKeywords        *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (service_type != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (keywords != NULL && g_strv_length (keywords) > 0, FALSE);
+	tracker_dbus_async_return_if_fail (service_type != NULL, context);
+	tracker_dbus_async_return_if_fail (uri != NULL, context);
+	tracker_dbus_async_return_if_fail (keywords != NULL && g_strv_length (keywords) > 0, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to remove keywords, "
@@ -407,8 +407,8 @@ tracker_keywords_remove_all (TrackerKeywords        *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (service_type != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (uri != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (service_type != NULL, context);
+	tracker_dbus_async_return_if_fail (uri != NULL, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to remove all keywords, "
@@ -497,8 +497,8 @@ tracker_keywords_search (TrackerKeywords        *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (service_type != NULL, FALSE);
-	tracker_dbus_async_return_if_fail (keywords != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (service_type != NULL, context);
+	tracker_dbus_async_return_if_fail (keywords != NULL, context);
 
 	tracker_dbus_request_new (request_id,
 				  "DBus request to search keywords, "

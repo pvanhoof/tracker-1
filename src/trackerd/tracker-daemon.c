@@ -494,7 +494,7 @@ tracker_daemon_set_bool_option (TrackerDaemon          *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (option != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (option != NULL, context);
 
 	priv = TRACKER_DAEMON_GET_PRIVATE (object);
 
@@ -595,7 +595,7 @@ tracker_daemon_set_int_option (TrackerDaemon          *object,
 
 	request_id = tracker_dbus_get_next_request_id ();
 
-	tracker_dbus_async_return_if_fail (option != NULL, FALSE);
+	tracker_dbus_async_return_if_fail (option != NULL, context);
 
 	priv = TRACKER_DAEMON_GET_PRIVATE (object);
 

@@ -1,3 +1,13 @@
+2008-08-29  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer.c (process_func)
+	(tracker_indexer_check_state): If for some reason the indexer is
+	stopped and started again somewhere inside process_func(), the indexer
+	would end up with the current idle function "detached" but still
+	running, and a new one. So, if we're inside process_func, we won't
+	remove the idle function immediately, instead we'll wait and make the
+	idle func return FALSE if the indexer should still be paused.
+
 2008-08-29  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/tracker-indexer/tracker-indexer.c

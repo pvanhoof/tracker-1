@@ -136,6 +136,7 @@ struct TrackerIndexerPrivate {
 	guint items_processed;
 
 	guint in_transaction : 1;
+	guint in_process : 1;
 	guint state : 4;
 };
 
@@ -1810,6 +1811,8 @@ process_func (gpointer data)
 
 	indexer = TRACKER_INDEXER (data);
 
+	indexer->private->in_process = TRUE;
+
 	if (G_UNLIKELY (!indexer->private->in_transaction)) {
 		start_transaction (indexer);
 	}
@@ -1850,6 +1853,14 @@ process_func (gpointer data)
 		schedule_flush (indexer, TRUE);
 	}
 
+	indexer->private->in_process = TRUE;
+
+	if (indexer->private->state != 0) {
+		/* Some flag has been set, meaning the idle function should stop */
+		indexer->private->idle_id = 0;
+		return FALSE;
+	}
+
 	return TRUE;
 }
 
@@ -1887,7 +1898,14 @@ tracker_indexer_check_state (TrackerIndexer *indexer)
 		stop_scheduled_flush (indexer);
 		stop_transaction (indexer);
 
-		if (indexer->private->idle_id) {
+		/* Actually, we don't want to remove/add back the idle
+		 * function if we're in the middle of processing one item,
+		 * as we could end up with a detached idle function running
+		 * plus a newly created one, instead we don't remove the source
+		 * here and make the idle function return FALSE if any flag is set.
+		 */
+		if (indexer->private->idle_id &&
+		    !indexer->private->in_process) {
 			g_source_remove (indexer->private->idle_id);
 			indexer->private->idle_id = 0;
 		}

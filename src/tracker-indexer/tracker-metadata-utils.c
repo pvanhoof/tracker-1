@@ -161,25 +161,45 @@ tracker_metadata_read (GIOChannel   *channel,
 	return TRUE;
 }
 
+static gboolean
+create_metadata_context (void)
+{
+	const gchar *argv[2] = { LIBEXEC_PATH G_DIR_SEPARATOR_S "tracker-extract", NULL };
+
+	if (metadata_context) {
+		destroy_process_context (metadata_context);
+		metadata_context = NULL;
+	}
+
+	metadata_context = create_process_context (argv);
+
+	if (!metadata_context) {
+		return FALSE;
+	}
+
+	g_io_add_watch (metadata_context->stdout_channel,
+			G_IO_IN | G_IO_PRI | G_IO_ERR | G_IO_HUP,
+			tracker_metadata_read,
+			metadata_context);
+
+	return TRUE;
+}
+
 static gchar **
 tracker_metadata_query_file (const gchar *path,
 			     const gchar *mimetype)
 {
-	const gchar *argv[2] = { LIBEXEC_PATH G_DIR_SEPARATOR_S "tracker-extract", NULL };
 	gchar *utf_path, *str;
 	GPtrArray *array;
 	GIOStatus status;
+	GError *error = NULL;
 
 	if (!path || !mimetype) {
 		return NULL;
 	}
 
-	if (!metadata_context) {
-		metadata_context = create_process_context (argv);
-
-		if (!metadata_context) {
-			return NULL;
-		}
+	if (!metadata_context && !create_metadata_context ()) {
+		return NULL;
 	}
 
 	utf_path = g_filename_from_utf8 (path, -1, NULL, NULL, NULL);
@@ -192,15 +212,34 @@ tracker_metadata_query_file (const gchar *path,
 	array = g_ptr_array_sized_new (10);
 	metadata_context->data = array;
 
-	g_io_add_watch (metadata_context->stdout_channel,
-			G_IO_IN | G_IO_PRI | G_IO_ERR | G_IO_HUP,
-			tracker_metadata_read,
-			metadata_context);
+	str = g_strdup_printf ("%s\n%s\n", utf_path, mimetype);
+	g_free (utf_path);
 
 	/* write path and mimetype */
-	str = g_strdup_printf ("%s\n%s\n", utf_path, mimetype);
-	status = g_io_channel_write_chars (metadata_context->stdin_channel, str, -1, NULL, NULL);
-	g_io_channel_flush (metadata_context->stdin_channel, NULL);
+	g_io_channel_write_chars (metadata_context->stdin_channel, str, -1, NULL, NULL);
+	status = g_io_channel_flush (metadata_context->stdin_channel, &error);
+
+	if (status == G_IO_STATUS_ERROR &&
+	    error &&
+	    g_error_matches (error, G_IO_CHANNEL_ERROR, G_IO_CHANNEL_ERROR_PIPE)) {
+		/* Looks like the external extractor
+		 * process has died before the child watch
+		 * could handle it, try respawning.
+		 */
+		g_error_free (error);
+
+		create_metadata_context ();
+		metadata_context->data = array;
+
+		g_io_channel_write_chars (metadata_context->stdin_channel, str, -1, NULL, NULL);
+		status = g_io_channel_flush (metadata_context->stdin_channel, NULL);
+
+		if (status == G_IO_STATUS_ERROR) {
+			/* No point in trying again */
+			g_free (str);
+			return NULL;
+		}
+	}
 
 	/* It will block here until all incoming
 	 * metadata has been processed
@@ -213,7 +252,6 @@ tracker_metadata_query_file (const gchar *path,
 		metadata_context->data = NULL;
 	}
 
-	g_free (utf_path);
 	g_free (str);
 
 	return (gchar **) g_ptr_array_free (array, FALSE);

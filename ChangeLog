@@ -1,3 +1,12 @@
+2008-08-29  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/tracker-main.c (initialize_signal_handler):
+	Ignore SIGPIPE, so we can handle it ourselves.
+	* src/tracker-indexer/tracker-metadata-utils.c: It's possible that the
+	indexer is trying to write to the metadata extractor before it
+	realizes it has quit/crashed. Handle errors writing to a broken pipe
+	and respawn the metadata process context in that case.
+
 2008-08-28  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/tracker-thumbnailer/tracker-thumbnailer.c:

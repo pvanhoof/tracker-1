@@ -146,7 +146,6 @@ signal_handler (gint signo)
 	case SIGBUS:
 	case SIGILL:
 	case SIGFPE:
-	case SIGPIPE:
 	case SIGABRT:
 	case SIGTERM:
 	case SIGINT:
@@ -165,13 +164,17 @@ static void
 initialize_signal_handler (void)
 {
 #ifndef OS_WIN32
-  	struct sigaction   act;
-	sigset_t 	   empty_mask;
+  	struct sigaction act, ign_act;
+	sigset_t 	 empty_mask;
 
 	sigemptyset (&empty_mask);
 	act.sa_handler = signal_handler;
 	act.sa_mask    = empty_mask;
 	act.sa_flags   = 0;
+
+        ign_act.sa_handler = SIG_IGN;
+        ign_act.sa_mask = empty_mask;
+        ign_act.sa_flags = 0;
 
 	sigaction (SIGTERM, &act, NULL);
 	sigaction (SIGILL,  &act, NULL);
@@ -182,6 +185,7 @@ initialize_signal_handler (void)
 	sigaction (SIGABRT, &act, NULL);
 	sigaction (SIGUSR1, &act, NULL);
 	sigaction (SIGINT,  &act, NULL);
+        sigaction (SIGPIPE, &ign_act, NULL);
 #endif
 }
 

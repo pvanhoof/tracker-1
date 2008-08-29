@@ -1,10 +1,16 @@
+2008-08-28  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/tracker-thumbnailer/tracker-thumbnailer.c:
+	Splitted the code in functions. Fixed some memory leaks. Fixed
+	crash with incorrect parameters
+	
 2008-08-28  Philip Van Hoof  <philip@codeminded.be>
 
-	src/tracker-indexer/tracker-metadata-utils.c
-	src/tracker-indexer/tracker-metadata-utils.h
-	src/tracker-indexer/Makefile.am
-	tests/tracker-indexer/Makefile.am
-	configure.ac: Use Hildon's thumbnailer if available. Similar things
+	* src/tracker-indexer/tracker-metadata-utils.c
+	* src/tracker-indexer/tracker-metadata-utils.h
+	* src/tracker-indexer/Makefile.am
+	* tests/tracker-indexer/Makefile.am
+	* configure.ac: Use Hildon's thumbnailer if available. Similar things
 	should be done for other thumbnailers too.
 	
 2008-08-28  Carlos Garnacho  <carlos@imendio.com>

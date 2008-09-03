@@ -46,7 +46,8 @@
 #define METADATA_FILE_MODIFIED       "File:Modified"
 #define METADATA_FILE_ACCESSED       "File:Accessed"
 
-#define TEXT_MAX_SIZE                1048576
+#define TEXT_MAX_SIZE                1048576  /* bytes */
+#define TEXT_CHECK_SIZE              65535    /* bytes */
 
 typedef struct {
 	GPid pid;
@@ -485,11 +486,17 @@ get_file_content (const gchar *path)
         GFile            *file;
         GFileInputStream *stream;
         GError           *error = NULL;
+        gssize            bytes;
         gssize            bytes_read;
+        gssize            bytes_read_total;
         gssize            bytes_remaining;
-        gchar            *buf;
+	gssize            buf_size;
+        gchar             buf[TEXT_CHECK_SIZE];
+	gboolean          has_more_data;
+	gboolean          has_reached_max;
+	gboolean          has_cr;
+	GString          *s;
 
-        buf = g_new (gchar, TEXT_MAX_SIZE);
         file = g_file_new_for_path (path);
         stream = g_file_read (file, NULL, &error);
 
@@ -503,20 +510,96 @@ get_file_content (const gchar *path)
                 return NULL;
         }
 
-        /* bytes_max = tracker_config_get_max_text_to_index (config); */
-        bytes_remaining = TEXT_MAX_SIZE;
+	s = g_string_new ("");
+	has_reached_max = FALSE;
+	has_more_data = TRUE;
+	has_cr = FALSE;
+	bytes_read_total = 0;
+	buf_size = TEXT_CHECK_SIZE - 1;
 
-        /* NULL termination */
-        bytes_remaining--;
+	g_debug ("  Starting read...");
+	
+	while (has_more_data && !has_reached_max && !error) {
+		/* Leave space for NULL termination and make sure we
+		 * add it at the end now.
+		 */
+		bytes_remaining = buf_size;
+		bytes_read = 0;
 
-        for (bytes_read = -1; bytes_read != 0 && !error; ) {
-                bytes_read = g_input_stream_read (G_INPUT_STREAM (stream),
-                                                  buf,
-                                                  bytes_remaining,
-                                                  NULL,
-                                                  &error);
-                bytes_remaining -= bytes_read;
-        }
+		/* Loop until we hit the maximum */
+		for (bytes = -1; bytes != 0 && !error; ) {
+			bytes = g_input_stream_read (G_INPUT_STREAM (stream),
+						     buf,
+						     bytes_remaining,
+						     NULL,
+						     &error);
+
+			bytes_read += bytes;
+			bytes_remaining -= bytes;
+
+			g_debug ("  Read %d bytes", 
+				 bytes);
+		}
+
+		/* Set the NULL termination after the last byte read */
+		buf[TEXT_CHECK_SIZE - bytes_remaining] = '\0';
+
+		/* First of all, check if this is the first time we
+		 * have tried to read the file up to the TEXT_CHECK_SIZE
+		 * limit. Then make sure that we read the maximum size
+		 * of the buffer. If we don't do this, there is the
+		 * case where we read 10 bytes in and it is just one
+		 * line with no '\n'. Once we have confirmed this we
+		 * check that the buffer has a '\n' to make sure the
+		 * file is worth indexing.
+		 */
+		if (bytes_read_total == 0 && 
+		    bytes_read == buf_size &&
+		    strchr (buf, '\n') == NULL) {
+			g_debug ("  No '\\n' in the first %d bytes, not indexing file", 
+				 buf_size);
+			break;
+		}
+
+		/* Here we increment the bytes read total to evaluate
+		 * the next states. We don't do this before the
+		 * previous condition so we can know when we have
+		 * iterated > 1.
+		 */
+		bytes_read_total += bytes_read;
+
+		if (bytes_read != buf_size || bytes_read == 0) {
+			has_more_data = FALSE;
+		} 
+
+		if (bytes_read_total >= TEXT_MAX_SIZE) {
+			has_reached_max = TRUE;
+		}
+
+		g_debug ("  Read %d bytes total, %d bytes this time, more data:%s, reached max:%s", 
+			 bytes_read_total,
+			 bytes_read,
+			 has_more_data ? "yes" : "no",
+			 has_reached_max ? "yes" : "no");
+
+		s = g_string_append (s, buf);
+
+		if (has_reached_max) {
+			const gchar *p;
+			gssize       bytes_valid;
+
+			/* Check for UTF-8 validity, since we may
+			 * have cut off the end.
+			 */
+			g_utf8_validate (s->str, s->len, &p);
+			bytes_valid = p - s->str;
+			s->str[bytes_valid] = '\0';
+
+			g_debug ("  Maximum indexable limit reached, checking UTF-8 validity. Bytes valid %d/%d", 
+				 bytes_valid,
+				 s->len);
+		}
+	}
 
         if (error) {
                 g_message ("Couldn't get read input stream for:'%s', %s",
@@ -530,16 +613,15 @@ get_file_content (const gchar *path)
                 return NULL;
         }
 
-        buf [TEXT_MAX_SIZE - bytes_remaining] = '\0';
-
         g_object_unref (file);
         g_object_unref (stream);
 
-        g_debug ("Read %d bytes from file:'%s'\n",
-                 TEXT_MAX_SIZE - bytes_remaining,
-                 path);
-
-        return buf;
+	if (s->len < 1) {
+		g_string_free (s, TRUE);
+		s = NULL;
+	}
+	
+        return s ? g_string_free (s, FALSE) : NULL;
 }
 
 gchar *
@@ -587,7 +669,7 @@ tracker_metadata_utils_get_thumbnail (const gchar *path,
 	context = create_process_context ((const gchar **) argv);
 
 	if (!context) {
-		return NULL;
+		return;
 	}
 
 	thumbnail = g_string_new (NULL);

@@ -87,7 +87,6 @@ struct TrackerProcessorPrivate {
 
 	gboolean        interrupted; 
 	gboolean        finished;
-	gboolean        indexer_shut_down;
 
 	/* Statistics */
 	guint           directories_found;
@@ -198,7 +197,6 @@ tracker_processor_init (TrackerProcessor *object)
 
 	priv = object->private;
 
-	priv->indexer_shut_down = FALSE;
 	priv->modules = tracker_module_config_get_modules ();
 
 	/* For each module we create a TrackerCrawler and keep them in
@@ -590,9 +588,7 @@ item_queue_handlers_cb (gpointer user_data)
 	}
 
 	/* Now we try to send items to the indexer */
-	if (!processor->private->indexer_shut_down)
-		tracker_status_set_and_signal (TRACKER_STATUS_INDEXING);
-	processor->private->indexer_shut_down = FALSE;
+	tracker_status_set_and_signal (TRACKER_STATUS_INDEXING);
 
 	/* This is here so we don't try to send something if we are
 	 * still waiting for a response from the last send.
@@ -1101,8 +1097,6 @@ indexer_finished_cb (DBusGProxy  *proxy,
 		   str,
 		   items_done);
 	g_free (str);
-
-	processor->private->indexer_shut_down = TRUE;
 
 	/* Do we even need this step Optimizing ? */
 	tracker_status_set_and_signal (TRACKER_STATUS_OPTIMIZING);

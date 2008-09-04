@@ -96,6 +96,8 @@ struct TrackerProcessorPrivate {
 
 	guint           items_done;
 	guint           items_remaining;
+
+	gdouble         seconds_elapsed;
 };
 
 enum {
@@ -1005,8 +1007,10 @@ indexer_status_cb (DBusGProxy  *proxy,
 
 	processor = user_data;
 
+	/* Update our local copy */
 	processor->private->items_done = items_done; 
 	processor->private->items_remaining = items_remaining; 
+	processor->private->seconds_elapsed = seconds_elapsed;
 
 	if (items_remaining < 1 ||
 	    current_module_name == NULL || 
@@ -1025,9 +1029,10 @@ indexer_status_cb (DBusGProxy  *proxy,
 			       "index-progress",
 			       tracker_module_config_get_index_service (current_module_name),
 			       path ? path : "",
-			       processor->private->items_done,                          /* files */
-			       processor->private->items_remaining,                     /* files */
-			       processor->private->items_done + processor->private->items_remaining); /* files */
+			       items_done,
+			       items_remaining,
+			       items_done + items_remaining,
+			       seconds_elapsed);
 	g_free (path);
 
 	/* Tell the index that it can reload, really we should do
@@ -1067,18 +1072,25 @@ indexer_finished_cb (DBusGProxy  *proxy,
 {
 	TrackerProcessor *processor;
 	TrackerDBIndex   *index;
+	GObject          *object;
 	gchar            *str;
 
 	processor = user_data;
+	object = tracker_dbus_get_object (TRACKER_TYPE_DAEMON);
+
+	processor->private->items_done = items_done;
+	processor->private->items_remaining = 0;
+	processor->private->seconds_elapsed = seconds_elapsed;
 
 	/* Signal to any applications */
-	g_signal_emit_by_name (tracker_dbus_get_object (TRACKER_TYPE_DAEMON),
+	g_signal_emit_by_name (object,
 			       "index-progress",
 			       "", /* Service */
 			       "", /* Path */
-			       processor->private->items_done,                          /* files */
-			       processor->private->items_remaining,                     /* files */
-			       processor->private->items_done + processor->private->items_remaining); /* files */
+			       items_done,
+			       0,
+			       items_done,
+			       seconds_elapsed);
 
 	/* Tell the index that it can reload, really we should do
 	 * module_name->index type so we don't do this for both
@@ -1103,6 +1115,11 @@ indexer_finished_cb (DBusGProxy  *proxy,
 
 	/* Now the indexer is done, we can signal our status as IDLE */ 
 	tracker_status_set_and_signal (TRACKER_STATUS_IDLE);
+
+	/* Signal to the applet we are finished */
+	g_signal_emit_by_name (object,
+			       "index-finished",
+			       seconds_elapsed);
 
 	/* Signal the processor is now finished */
 	processor->private->finished = TRUE;
@@ -1679,4 +1696,12 @@ tracker_processor_get_files_total (TrackerProcessor *processor)
 	g_return_val_if_fail (TRACKER_IS_PROCESSOR (processor), 0);
 	
 	return processor->private->files_found + processor->private->files_ignored;
+}
+
+gdouble 
+tracker_processor_get_seconds_elapsed (TrackerProcessor *processor)
+{
+	g_return_val_if_fail (TRACKER_IS_PROCESSOR (processor), 0);
+	
+	return processor->private->seconds_elapsed;
 }

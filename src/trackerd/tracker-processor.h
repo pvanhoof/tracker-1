@@ -84,6 +84,7 @@ guint             tracker_processor_get_directories_total   (TrackerProcessor *p
 guint             tracker_processor_get_files_found         (TrackerProcessor *processor);
 guint             tracker_processor_get_files_ignored       (TrackerProcessor *processor);
 guint             tracker_processor_get_files_total         (TrackerProcessor *processor);
+gdouble           tracker_processor_get_seconds_elapsed     (TrackerProcessor *processor);
 
 G_END_DECLS
 

@@ -163,7 +163,7 @@
     
     <!-- Signal when index has completed.  -->
     <signal name="IndexFinished">
-      <arg type="i" name="time_taken"/>
+      <arg type="d" name="seconds_elapsed"/>
     </signal>
     
     <!-- Signal progress of indexing, returns current service
@@ -173,17 +173,18 @@
       -->
     <signal name="IndexProgress">
       <arg type="s" name="service"/>
-      <arg type="s" name="current_uri" />
+      <arg type="s" name="current_uri"/>
       <arg type="i" name="items_done"/>
       <arg type="i" name="items_remaining"/>
       <arg type="i" name="items_total"/>
+      <arg type="d" name="seconds_elapsed"/>
     </signal>
 
     <!-- Signal whenever the count of a category changed. Look at GetStats for
 	 the format of service_stats. 
       -->
-    <signal name="StatsChanged">
-      <arg type="aas" name="service_stats"/>
+    <signal name="ServiceStatisticsUpdated">
+      <arg type="aas" name="statistics"/>
     </signal>
   </interface>
 </node>

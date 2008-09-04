@@ -1,8 +1,7 @@
-
 #ifndef __tracker_MARSHAL_H__
 #define __tracker_MARSHAL_H__
 
-#include	<glib-object.h>
+#include <glib-object.h>
 
 G_BEGIN_DECLS
 
@@ -18,12 +17,12 @@ extern void tracker_VOID__STRING_BOOLEAN_BOOLEAN_BOOLEAN_BOOLEAN_BOOLEAN (GClosu
 #define tracker_VOID__INT	g_cclosure_marshal_VOID__INT
 
 /* VOID:STRING,STRING,INT,INT,INT (/dev/stdin:3) */
-extern void tracker_VOID__STRING_STRING_INT_INT_INT (GClosure     *closure,
-                                                     GValue       *return_value,
-                                                     guint         n_param_values,
-                                                     const GValue *param_values,
-                                                     gpointer      invocation_hint,
-                                                     gpointer      marshal_data);
+extern void tracker_VOID__STRING_STRING_INT_INT_INT_DOUBLE (GClosure     *closure,
+                                                            GValue       *return_value,
+                                                            guint         n_param_values,
+                                                            const GValue *param_values,
+                                                            gpointer      invocation_hint,
+                                                            gpointer      marshal_data);
 
 G_END_DECLS
 

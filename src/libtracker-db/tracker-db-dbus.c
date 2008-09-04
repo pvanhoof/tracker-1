@@ -23,7 +23,6 @@
 
 #include "tracker-db-dbus.h"
 
-
 static gchar **
 dbus_query_result_to_strv (TrackerDBResultSet *result_set, 
 			   gint                column,
@@ -47,7 +46,6 @@ dbus_query_result_to_strv (TrackerDBResultSet *result_set,
 		strv = g_new (gchar*, rows + 1);
 		
 		while (valid) {
-
 			if (numeric) {
 				tracker_db_result_set_get (result_set, column, &value, -1);
 				str = g_strdup_printf ("%d", value);
@@ -60,7 +58,6 @@ dbus_query_result_to_strv (TrackerDBResultSet *result_set,
 				continue;
 			}
 			
-
 			if (!g_utf8_validate (str, -1, NULL)) {
 				g_warning ("Could not add string:'%s' to GStrv, invalid UTF-8", str);
 				g_free (str);

@@ -1,5 +1,31 @@
 2008-09-04  Martyn Russell  <martyn@imendio.com>
 
+	* data/dbus/tracker-daemon.xml:
+	* src/tracker-applet/Makefile.am:
+	* src/tracker-applet/tracker-applet-marshallers.[ch]: 
+	* src/trackerd/tracker-marshal.list:
+	* src/trackerd/tracker-daemon.c: Include the elapsed time in
+	seconds in the index-progress signal. 
+	
+	* src/tracker-applet/tracker-applet.c: Refactored the code a
+	little and improved the status tooltip to include estimated time
+	and elapsed time.
+	
+	* data/dbus/tracker-daemon.xml:
+	* src/trackerd/tracker-daemon.c: Changed the signal name
+	'state-change' to 'service-statistics-updated' so it is clearer
+	what it means.
+	
+	* src/trackerd/tracker-processor.[ch]: Added an API to get last
+	elapsed time sent to us from the indexer. Fixed a bug where we
+	were using our private copy of the items done/remaining in signal
+	emissions but not updating them first in the "finished" signal
+	from the indexer. The "index-finished" signal is now emitted.
+	Before it wasn't at all so the applet was left looming in a wrong
+	state. 
+
+2008-09-04  Martyn Russell  <martyn@imendio.com>
+
 	* src/tracker-indexer/tracker-indexer.c: Fixed the process idle
 	handler so that when we are finished processing we set the
 	->in_process to FALSE (was TRUE). In check_started() we don't

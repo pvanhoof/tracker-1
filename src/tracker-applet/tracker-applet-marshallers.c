@@ -1,4 +1,4 @@
-#include	<glib-object.h>
+#include <glib-object.h>
 #include "tracker-applet-marshallers.h"
 
 
@@ -96,27 +96,28 @@ tracker_VOID__STRING_BOOLEAN_BOOLEAN_BOOLEAN_BOOLEAN_BOOLEAN (GClosure     *clos
 
 /* VOID:INT (/dev/stdin:2) */
 
-/* VOID:STRING,STRING,INT,INT,INT (/dev/stdin:3) */
+/* VOID:STRING,STRING,INT,INT,INT,DOUBLE (/dev/stdin:3) */
 void
-tracker_VOID__STRING_STRING_INT_INT_INT (GClosure     *closure,
-                                         GValue       *return_value,
-                                         guint         n_param_values,
-                                         const GValue *param_values,
-                                         gpointer      invocation_hint,
-                                         gpointer      marshal_data)
+tracker_VOID__STRING_STRING_INT_INT_INT_DOUBLE (GClosure     *closure,
+                                                GValue       *return_value,
+                                                guint         n_param_values,
+                                                const GValue *param_values,
+                                                gpointer      invocation_hint,
+                                                gpointer      marshal_data)
 {
-  typedef void (*GMarshalFunc_VOID__STRING_STRING_INT_INT_INT) (gpointer     data1,
-                                                                gpointer     arg_1,
-                                                                gpointer     arg_2,
-                                                                gint         arg_3,
-                                                                gint         arg_4,
-                                                                gint         arg_5,
-                                                                gpointer     data2);
-  register GMarshalFunc_VOID__STRING_STRING_INT_INT_INT callback;
+  typedef void (*GMarshalFunc_VOID__STRING_STRING_INT_INT_INT_DOUBLE) (gpointer     data1,
+                                                                       gpointer     arg_1,
+                                                                       gpointer     arg_2,
+                                                                       gint         arg_3,
+                                                                       gint         arg_4,
+                                                                       gint         arg_5,
+                                                                       gdouble      arg_6,
+                                                                       gpointer     data2);
+  register GMarshalFunc_VOID__STRING_STRING_INT_INT_INT_DOUBLE callback;
   register GCClosure *cc = (GCClosure*) closure;
   register gpointer data1, data2;
 
-  g_return_if_fail (n_param_values == 6);
+  g_return_if_fail (n_param_values == 7);
 
   if (G_CCLOSURE_SWAP_DATA (closure))
     {
@@ -128,7 +129,7 @@ tracker_VOID__STRING_STRING_INT_INT_INT (GClosure     *closure,
       data1 = g_value_peek_pointer (param_values + 0);
       data2 = closure->data;
     }
-  callback = (GMarshalFunc_VOID__STRING_STRING_INT_INT_INT) (marshal_data ? marshal_data : cc->callback);
+  callback = (GMarshalFunc_VOID__STRING_STRING_INT_INT_INT_DOUBLE) (marshal_data ? marshal_data : cc->callback);
 
   callback (data1,
             g_marshal_value_peek_string (param_values + 1),
@@ -136,6 +137,7 @@ tracker_VOID__STRING_STRING_INT_INT_INT (GClosure     *closure,
             g_marshal_value_peek_int (param_values + 3),
             g_marshal_value_peek_int (param_values + 4),
             g_marshal_value_peek_int (param_values + 5),
+            g_marshal_value_peek_double (param_values + 6),
             data2);
 }
 

@@ -51,10 +51,10 @@ typedef struct {
 } TrackerDaemonPrivate;
 
 enum {
-        DAEMON_INDEX_STATE_CHANGE,
-        DAEMON_INDEX_FINISHED,
-	DAEMON_INDEX_PROGRESS,
-	DAEMON_STATS_CHANGED,
+        INDEX_STATE_CHANGE,
+        INDEX_FINISHED,
+	INDEX_PROGRESS,
+	SERVICE_STATISTICS_UPDATED,
         LAST_SIGNAL
 };
 
@@ -85,7 +85,7 @@ tracker_daemon_class_init (TrackerDaemonClass *klass)
 
 	object_class->finalize = tracker_daemon_finalize;
 
-        signals[DAEMON_INDEX_STATE_CHANGE] =
+        signals[INDEX_STATE_CHANGE] =
                 g_signal_new ("index-state-change",
                               G_TYPE_FROM_CLASS (klass),
                               G_SIGNAL_RUN_LAST,
@@ -101,32 +101,33 @@ tracker_daemon_class_init (TrackerDaemonClass *klass)
 			      G_TYPE_BOOLEAN,
 			      G_TYPE_BOOLEAN,
 			      G_TYPE_BOOLEAN);
-        signals[DAEMON_INDEX_FINISHED] =
+        signals[INDEX_FINISHED] =
                 g_signal_new ("index-finished",
                               G_TYPE_FROM_CLASS (klass),
                               G_SIGNAL_RUN_LAST,
                               0,
                               NULL, NULL,
-                              g_cclosure_marshal_VOID__INT,
+                              g_cclosure_marshal_VOID__DOUBLE,
                               G_TYPE_NONE,
                               1,
-			      G_TYPE_INT);
-        signals[DAEMON_INDEX_PROGRESS] =
+			      G_TYPE_DOUBLE);
+        signals[INDEX_PROGRESS] =
                 g_signal_new ("index-progress",
                               G_TYPE_FROM_CLASS (klass),
                               G_SIGNAL_RUN_LAST,
                               0,
                               NULL, NULL,
-                              tracker_marshal_VOID__STRING_STRING_INT_INT_INT,
+                              tracker_marshal_VOID__STRING_STRING_INT_INT_INT_DOUBLE,
                               G_TYPE_NONE,
-                              5,
+                              6,
 			      G_TYPE_STRING,
 			      G_TYPE_STRING,
 			      G_TYPE_INT,
 			      G_TYPE_INT,
-			      G_TYPE_INT);
-        signals[DAEMON_STATS_CHANGED] =
-                g_signal_new ("stats-changed",
+			      G_TYPE_INT,
+			      G_TYPE_DOUBLE);
+        signals[SERVICE_STATISTICS_UPDATED] =
+                g_signal_new ("service-statistics-updated",
                               G_TYPE_FROM_CLASS (klass),
                               G_SIGNAL_RUN_LAST,
                               0,
@@ -135,11 +136,13 @@ tracker_daemon_class_init (TrackerDaemonClass *klass)
                               G_TYPE_NONE,
                               1,
 			      G_TYPE_STRV);
+
 	g_type_class_add_private (object_class, sizeof (TrackerDaemonPrivate));
 }
 
 static void
-clean_last_stats (TrackerDaemonPrivate *priv) {
+clean_last_stats (TrackerDaemonPrivate *priv) 
+{
 	if (priv->last_stats) {
 		g_ptr_array_foreach (priv->last_stats, (GFunc) g_strfreev, NULL);
 		g_ptr_array_free (priv->last_stats, TRUE);
@@ -159,42 +162,54 @@ indexer_finished_cb (DBusGProxy *proxy,
 	TrackerDBResultSet   *result_set;
 	GPtrArray            *values = NULL;
 	GPtrArray            *new_stats;
-	GStrv                 ret;
+	GStrv                 strv;
 	guint                 i;
 
 	daemon = tracker_dbus_get_object (TRACKER_TYPE_DAEMON);
 	priv = TRACKER_DAEMON_GET_PRIVATE (daemon);
 	iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
-	/* GetStats has asc in its query. Therefore we don't have to lookup the
-	 * in a to compare in b, just compare index based. Maybe we want to
-	 * change this nonetheless later? */
-
+	/* GetStats has asc in its query. Therefore we don't have to
+	 * lookup the in a to compare in b, just compare index based.
+	 * Maybe we want to change this nonetheless later? 
+	 */
 	result_set = tracker_db_exec_proc (iface, "GetStats", 0);
 	new_stats = tracker_dbus_query_result_to_ptr_array (result_set);
 
-	if (result_set)
+	if (result_set) {
 		g_object_unref (result_set);
+	}
 
 	if (priv->last_stats && new_stats) {
 		for (i = 0; i < priv->last_stats->len && i < new_stats->len; i++) {
-			GStrv str1 = g_ptr_array_index (priv->last_stats, i);
-			GStrv str2 = g_ptr_array_index (new_stats, i);
+			GStrv str1;
+			GStrv str2;
 
-			if (!str1[0] || !str1[1] || !str2[1])
+			str1 = g_ptr_array_index (priv->last_stats, i);
+			str2 = g_ptr_array_index (new_stats, i);
+
+			if (!str1[0] || !str1[1] || !str2[1]) {
 				continue;
+			}
 
 			if (strcmp (str1[1], str2[1]) != 0) {
-				if (!values)
+				if (!values) {
 					values = g_ptr_array_new ();
+				}
+
 				g_ptr_array_add (values, g_strdup (str1[0]));
 			}
 		}
 	} else if (new_stats) {
 		for (i = 0; i < new_stats->len; i++) {
-			GStrv str = g_ptr_array_index (new_stats, i);
-			if (!str[0])
+			GStrv str;
+
+			str = g_ptr_array_index (new_stats, i);
+
+			if (!str[0]) {
 				continue;
+			}
+
 			g_ptr_array_add (values, g_strdup (str[0]));
 		}
 	}
@@ -203,16 +218,21 @@ indexer_finished_cb (DBusGProxy *proxy,
 	priv->last_stats = new_stats;
 
 	if (values && values->len > 0) {
-		ret = (GStrv) g_malloc0 (sizeof (gchar*) * (values->len + 2));
-		for (i = 0 ; i < values->len; i++)
-			ret[i] = g_ptr_array_index (values, i);
+		strv = g_new0 (gchar*, values->len + 1);
+
+		for (i = 0 ; i < values->len; i++) {
+			strv[i] = g_ptr_array_index (values, i);
+		}
+
 		g_ptr_array_free (values, TRUE);
-	} else
-		ret = (GStrv) g_malloc0 (sizeof (gchar*) * 1);
+		strv[i] = NULL;
+	} else {
+		strv = g_new0 (gchar*, 1);
+		strv[0] = NULL;
+	}
 
-	g_signal_emit (daemon, signals[DAEMON_STATS_CHANGED], 0, ret);
-
-	g_strfreev (ret);
+	g_signal_emit (daemon, signals[SERVICE_STATISTICS_UPDATED], 0, strv);
+	g_strfreev (strv);
 }
 
 static void
@@ -246,10 +266,10 @@ tracker_daemon_init (TrackerDaemon *object)
 	result_set = tracker_db_exec_proc (iface, "GetStats", 0);
 	priv->last_stats = tracker_dbus_query_result_to_ptr_array (result_set);
 
-	if (result_set)
+	if (result_set) {
 		g_object_unref (result_set);
+	}
 }
-
 
 static void
 tracker_daemon_finalize (GObject *object)
@@ -685,7 +705,8 @@ tracker_daemon_prompt_index_signals (TrackerDaemon          *object,
                                "",
                                tracker_processor_get_files_total (priv->processor),
                                tracker_processor_get_directories_found (priv->processor),
-                               tracker_processor_get_directories_total (priv->processor));
+                               tracker_processor_get_directories_total (priv->processor),
+			       tracker_processor_get_seconds_elapsed (priv->processor));
 
 #if 1
 	/* FIXME: We need a way of knowing WHAT service we have a
@@ -695,9 +716,10 @@ tracker_daemon_prompt_index_signals (TrackerDaemon          *object,
 			       "index-progress",
                                "Emails",
                                "",
-                               0,  /*priv->tracker->index_count,*/
-                               0,  /*priv->tracker->mbox_processed,*/
-                               0); /*priv->tracker->mbox_count);*/
+                               0,  /* priv->tracker->index_count, */
+                               0,  /* priv->tracker->mbox_processed, */
+                               0,  /* priv->tracker->mbox_count); */
+			       0); /* seconds elapsed */
 #endif
 
 	dbus_g_method_return (context);

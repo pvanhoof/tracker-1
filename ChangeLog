@@ -1,3 +1,18 @@
+2008-09-04  Martyn Russell  <martyn@imendio.com>
+
+	* src/tracker-indexer/tracker-metadata-utils.c: (call_text_filter),
+	(get_file_in_locale), (get_file_content): Split the
+	get_file_content() up into a few smaller functions. Also check the
+	WHOLE string for UTF-8 compliance instead of JUST when we reach
+	the maximum indexable allowance. Plus don't free buf which is a
+	stack allocated buffer. Also made it possible to try and convert
+	from locale to UTF-8 with a #define at the top of the file. Trying
+	this worked for some files and not for others. A lot of files were
+	just dropped because the last character was something weird. I
+	thought it would be better to index as much content as possible,
+	so for now this is disabled so we index up to the last valid UTF-8
+	character. 
+
 2008-09-03  Martyn Russell  <martyn@imendio.com>
 
 	* src/tracker-indexer/tracker-metadata-utils.c: (get_file_content),

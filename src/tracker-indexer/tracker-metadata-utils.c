@@ -46,6 +46,7 @@
 #define METADATA_FILE_MODIFIED       "File:Modified"
 #define METADATA_FILE_ACCESSED       "File:Accessed"
 
+#undef  TRY_LOCALE_TO_UTF8_CONVERSION
 #define TEXT_MAX_SIZE                1048576  /* bytes */
 #define TEXT_CHECK_SIZE              65535    /* bytes */
 
@@ -480,28 +481,88 @@ call_text_filter (const gchar *path,
 	return g_string_free (text, FALSE);
 }
 
+static gboolean 
+get_file_is_utf8 (GString *s,
+		  gssize  *bytes_valid)
+{
+	const gchar *end;
+	
+	/* Check for UTF-8 validity, since we may
+	 * have cut off the end.
+	 */
+	if (g_utf8_validate (s->str, s->len, &end)) {
+		*bytes_valid = (gssize) s->len;
+		return TRUE;
+	}
+
+	*bytes_valid = end - s->str;
+	
+	/* 4 is the maximum bytes for a UTF-8 character. */
+	if (*bytes_valid > 4) {
+		return FALSE;
+	}
+
+	if (g_utf8_get_char_validated (end, *bytes_valid) == (gunichar) -1) {
+		return FALSE;
+	}
+	
+	return TRUE;
+}
+
+#ifdef TRY_LOCALE_TO_UTF8_CONVERSION
+
+static GString *
+get_file_in_locale (GString *s)
+{
+	GError *error = NULL;
+	gchar  *str;
+	gsize   bytes_read;
+	gsize   bytes_written;
+	
+	str = g_locale_to_utf8 (s->str, 
+				s->len, 
+				&bytes_read, 
+				&bytes_written, 
+				&error);
+	if (error) {
+		g_debug ("  Conversion to UTF-8 read %d bytes, wrote %d bytes",
+			 bytes_read, 
+			 bytes_written);
+		g_message ("Could not convert file from locale to UTF-8, %s", 
+			   error->message);
+		g_error_free (error);
+		g_free (str);
+	} else {
+		g_string_assign (s, str);
+		g_free (str);
+	}
+
+	return s;
+}
+
+#endif /* TRY_LOCALE_TO_UTF8_CONVERSION */
+
 static gchar *
 get_file_content (const gchar *path)
 {
         GFile            *file;
         GFileInputStream *stream;
         GError           *error = NULL;
+	GString          *s;
         gssize            bytes;
-        gssize            bytes_read;
+        gssize            bytes_valid;
         gssize            bytes_read_total;
-        gssize            bytes_remaining;
 	gssize            buf_size;
         gchar             buf[TEXT_CHECK_SIZE];
 	gboolean          has_more_data;
 	gboolean          has_reached_max;
-	gboolean          has_cr;
-	GString          *s;
+	gboolean          is_utf8;
 
         file = g_file_new_for_path (path);
         stream = g_file_read (file, NULL, &error);
 
         if (error) {
-                g_message ("Couldn't get file file:'%s', %s",
+                g_message ("Could not get read file:'%s', %s",
                            path,
                            error->message);
                 g_error_free (error);
@@ -513,13 +574,15 @@ get_file_content (const gchar *path)
 	s = g_string_new ("");
 	has_reached_max = FALSE;
 	has_more_data = TRUE;
-	has_cr = FALSE;
 	bytes_read_total = 0;
 	buf_size = TEXT_CHECK_SIZE - 1;
 
 	g_debug ("  Starting read...");
 	
 	while (has_more_data && !has_reached_max && !error) {
+		gssize bytes_read;
+		gssize bytes_remaining;
+
 		/* Leave space for NULL termination and make sure we
 		 * add it at the end now.
 		 */
@@ -551,14 +614,19 @@ get_file_content (const gchar *path)
 		 * case where we read 10 bytes in and it is just one
 		 * line with no '\n'. Once we have confirmed this we
 		 * check that the buffer has a '\n' to make sure the
-		 * file is worth indexing.
+		 * file is worth indexing. Similarly if the file has
+		 * <= 3 bytes then we drop it.
 		 */
-		if (bytes_read_total == 0 && 
-		    bytes_read == buf_size &&
-		    strchr (buf, '\n') == NULL) {
-			g_debug ("  No '\\n' in the first %d bytes, not indexing file", 
-				 buf_size);
-			break;
+		if (bytes_read_total == 0) {
+			if (bytes_read == buf_size &&
+			    strchr (buf, '\n') == NULL) {
+				g_debug ("  No '\\n' in the first %d bytes, not indexing file", 
+					 buf_size);
+				break;
+			} else if (bytes_read <= 2) {
+				g_debug ("  File has less than 3 characters in it, not indexing file");
+				break;
+			}
 		}
 
 		/* Here we increment the bytes read total to evaluate
@@ -583,35 +651,49 @@ get_file_content (const gchar *path)
 			 has_reached_max ? "yes" : "no");
 
 		s = g_string_append (s, buf);
+	}
 
-		if (has_reached_max) {
-			const gchar *p;
-			gssize       bytes_valid;
-
-			/* Check for UTF-8 validity, since we may
-			 * have cut off the end.
-			 */
-			g_utf8_validate (s->str, s->len, &p);
-			bytes_valid = p - s->str;
-			s->str[bytes_valid] = '\0';
-
-			g_debug ("  Maximum indexable limit reached, checking UTF-8 validity. Bytes valid %d/%d", 
-				 bytes_valid,
-				 s->len);
-		}
+	if (has_reached_max) {
+		g_debug ("  Maximum indexable limit reached");
 	}
 
         if (error) {
-                g_message ("Couldn't get read input stream for:'%s', %s",
+                g_message ("Could not read input stream for:'%s', %s",
                            path,
                            error->message);
                 g_error_free (error);
                 g_object_unref (file);
                 g_object_unref (stream);
-                g_free (buf);
+                g_string_free (s, TRUE);
 
                 return NULL;
         }
+	
+	/* Check for UTF-8 Validity, if not try to convert it to the
+	 * locale we are in.
+	 */
+	is_utf8 = get_file_is_utf8 (s, &bytes_valid);
+	
+	/* Make sure the string is NULL terminated and in the case
+	 * where the string is valid UTF-8 up to the last character
+	 * which was cut off, NULL terminate to the last most valid
+	 * character.  
+	 */
+#ifdef TRY_LOCALE_TO_UTF8_CONVERSION
+	if (!is_utf8) {
+		s = get_file_in_locale (s);
+	} else {
+		g_debug ("  Truncating to last valid UTF-8 character (%d/%d bytes)", 
+			 bytes_valid,
+			 s->len);
+		s = g_string_truncate (s, bytes_valid);
+	}
+#else   /* TRY_LOCALE_TO_UTF8_CONVERSION */
+	g_debug ("  Truncating to last valid UTF-8 character (%d/%d bytes)", 
+		 bytes_valid,
+		 s->len);
+	s = g_string_truncate (s, bytes_valid);
+#endif  /* TRY_LOCALE_TO_UTF8_CONVERSION */
 
         g_object_unref (file);
         g_object_unref (stream);

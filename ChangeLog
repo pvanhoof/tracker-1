@@ -1,5 +1,15 @@
 2008-09-04  Martyn Russell  <martyn@imendio.com>
 
+	* src/tracker-indexer/tracker-indexer.c: Fixed the process idle
+	handler so that when we are finished processing we set the
+	->in_process to FALSE (was TRUE). In check_started() we don't
+	check the ->idle_id, we instead rely on the state being correct.
+	Renamed the state functions so they are obviously internal and
+	don't use global name space and fixed one of them that wasn't
+	static. 
+
+2008-09-04  Martyn Russell  <martyn@imendio.com>
+
 	* src/tracker-indexer/tracker-metadata-utils.c: (call_text_filter),
 	(get_file_in_locale), (get_file_content): Split the
 	get_file_content() up into a few smaller functions. Also check the

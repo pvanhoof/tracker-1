@@ -1,5 +1,23 @@
 2008-09-05  Martyn Russell  <martyn@imendio.com>
 
+	* configure.ac: 
+	* src/Makefile.am: Make Jamie's new tracker-fts/ directory disabled
+	by default. Enabled with the --enable-sqlite-fts configure option.
+	This breaks the build right now that's why it is disabled while it
+	is under development. Also fixed make distcheck failures (tests
+	still fail for some things).
+	
+	* src/libtracker-db/Makefile.am: Link with -lz so build doesn't fail.
+
+	* tests/Makefile.am: Clean ups.
+
+	* src/libtracker-db/tracker-db-index.c: (tracker_db_index_flush):
+	Fixed build warnings.
+
+	* tests/tracker-fts/Makefile.am: Fixed missing header file.
+
+2008-09-05  Martyn Russell  <martyn@imendio.com>
+
 	* src/libstemmer/*: Moved all source files into this directory,
 	there is no need to have them all in separate directories. Make
 	the library generated a shared library.

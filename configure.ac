@@ -469,6 +469,46 @@ AC_SUBST(SQLITE3_CFLAGS)
 AC_SUBST(SQLITE3_LIBS)
 
 ##################################################################
+# Enable SQLite FTS support?
+##################################################################
+
+AC_ARG_ENABLE([sqlite_fts],
+              AS_HELP_STRING([--enable-sqlite-fts], [Enable SQLite FTS support]),,
+              [enable_sqlite_fts=no])
+
+if test "x$enable_sqlite_fts" == "xno" ; then
+   enable_sqlite_fts="no (disabled)"
+fi
+
+AM_CONDITIONAL(ENABLE_SQLITE_FTS, test "$enable_sqlite_fts" = "yes")
+
+##################################################################
+# Enable UNAC support?
+##################################################################
+
+AC_ARG_ENABLE([unac], 
+              AS_HELP_STRING([--disable-unac], [Disable unac accent stripper support]),,
+	      [enable_unac=yes])
+
+if test "x$enable_unac" != "xno" ; then
+   PKG_CHECK_MODULES(UNAC, 
+		     [unac >= 1.0.0],
+		     [enable_unac=yes],
+		     [enable_unac=no])
+
+   AC_SUBST([UNAC_CFLAGS])
+   AC_SUBST([UNAC_LIBS])
+else
+   enable_unac="no (disabled)"
+fi
+
+if test "$enable_unac" = "yes"; then
+   AC_DEFINE(HAVE_UNAC, [], [Define if we have unac lib])
+fi
+
+AM_CONDITIONAL(ENABLE_UNAC, test "$enable_unac" = "yes")
+
+##################################################################
 # Enable building libtracker-gtk?
 ##################################################################
 
@@ -530,32 +570,6 @@ else
 fi
 
 AM_CONDITIONAL(ENABLE_TRACKERAPPLET, test "$enable_trackerapplet" = "yes")
-
-##################################################################
-# Enable UNAC support?
-##################################################################
-
-AC_ARG_ENABLE([unac], 
-              AS_HELP_STRING([--disable-unac], [Disable unac accent stripper support]),,
-	      [enable_unac=yes])
-
-if test "x$enable_unac" != "xno" ; then
-   PKG_CHECK_MODULES(UNAC, 
-		     [unac >= 1.0.0],
-		     [enable_unac=yes],
-		     [enable_unac=no])
-
-   AC_SUBST([UNAC_CFLAGS])
-   AC_SUBST([UNAC_LIBS])
-else
-   enable_unac="no (disabled)"
-fi
-
-if test "$enable_unac" = "yes"; then
-   AC_DEFINE(HAVE_UNAC, [], [Define if we have unac lib])
-fi
-
-AM_CONDITIONAL(ENABLE_UNAC, test "$enable_unac" = "yes")
 
 ##################################################################
 # Check for GNOME/GTK dependencies to build tracker search tool
@@ -1002,8 +1016,8 @@ AC_CONFIG_FILES([
 	tests/scripts/Makefile
 	tests/trackerd/Makefile
 	tests/trackerd/xesam/Makefile
-	tests/tracker-indexer/Makefile
 	tests/tracker-fts/Makefile
+	tests/tracker-indexer/Makefile
 	thumbnailers/application/Makefile
 	thumbnailers/image/Makefile
 	thumbnailers/Makefile
@@ -1034,6 +1048,8 @@ Build Configuration:
 	Support for HAL:                    	$have_hal
 
 Applications:
+
+	Build with SQLite FTS support:		$enable_sqlite_fts
 
 	Build deskbar-applet:			$enable_deskbar_applet
 	Build tracker-search-tool:	        $have_gnome

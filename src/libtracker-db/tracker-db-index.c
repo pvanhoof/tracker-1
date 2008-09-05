@@ -852,7 +852,8 @@ tracker_db_index_flush (TrackerDBIndex *index)
 	priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
 
 	if (priv->in_flush) {
-		return;
+		g_debug ("Index was already in the middle of a flush");
+		return 0;
 	}
 
 	if (!priv->index) {

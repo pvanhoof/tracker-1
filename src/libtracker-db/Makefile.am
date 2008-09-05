@@ -38,4 +38,5 @@ libtracker_db_la_LIBADD = 						\
 	$(SQLITE3_LIBS)							\
 	$(QDBM_LIBS)							\
 	$(DBUS_LIBS)							\
-	$(GLIB2_LIBS)
+	$(GLIB2_LIBS)							\
+	-lz

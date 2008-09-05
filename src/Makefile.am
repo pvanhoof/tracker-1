@@ -10,6 +10,10 @@ if !USING_EXTERNAL_QDBM
 build_qdbm = qdbm
 endif
 
+if ENABLE_SQLITE_FTS
+build_sqlite_fts = tracker-fts
+endif
+
 if ENABLE_PREFERENCES
 build_tracker_preferences = tracker-preferences
 endif
@@ -29,7 +33,7 @@ SUBDIRS = 					\
 	libtracker-common 			\
 	libtracker-db				\
 	libtracker				\
-	tracker-fts				\
+	$(build_sqlite_fts)			\
 	trackerd				\
 	tracker-utils				\
 	tracker-extract				\
@@ -47,6 +51,7 @@ DIST_SUBDIRS = 					\
 	libtracker-common 			\
 	libtracker-db				\
 	libtracker				\
+	tracker-fts				\
 	trackerd				\
 	tracker-utils				\
 	tracker-extract				\

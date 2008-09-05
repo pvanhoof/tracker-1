@@ -518,7 +518,7 @@ tracker_metadata_get_unique_values (TrackerMetadata        *object,
 
 	iface = tracker_db_manager_get_db_interface_by_service (service_type);
 
-	sql_select = g_string_new ("SELECT ");
+	sql_select = g_string_new ("SELECT DISTINCT ");
 	sql_from   = g_string_new ("\nFROM Services S ");
 	sql_where  = g_string_new ("\nWHERE ");
 	sql_order  = g_string_new ("\nORDER BY ");
@@ -547,7 +547,7 @@ tracker_metadata_get_unique_values (TrackerMetadata        *object,
 			g_string_append_printf (sql_order, ",");
 		}
 
-		g_string_append_printf (sql_select, "DISTINCT %s", tracker_field_data_get_select_field (def));
+		g_string_append_printf (sql_select, "%s", tracker_field_data_get_select_field (def));
 		g_string_append_printf (sql_order, " %s %s",
 					tracker_field_data_get_select_field (def),
 					order_desc ? "DESC" : "ASC" );
@@ -594,6 +594,201 @@ tracker_metadata_get_unique_values (TrackerMetadata        *object,
 	g_string_free (sql_from, TRUE);
 	g_string_free (sql_where, TRUE);
 	g_string_free (sql_order, TRUE);
+
+	g_slist_foreach (field_list, (GFunc) g_object_unref, NULL);
+	g_slist_free (field_list);
+
+	g_message ("Unique values query executed:\n%s", sql);
+
+	result_set =  tracker_db_interface_execute_query (iface, NULL, sql);
+
+	g_free (sql);
+
+	values = tracker_dbus_query_result_to_ptr_array (result_set);
+
+	dbus_g_method_return (context, values);
+
+	tracker_dbus_results_ptr_array_free (&values);
+
+	if (result_set) {
+		g_object_unref (result_set);
+	}
+
+	tracker_dbus_request_success (request_id);
+
+	return;
+}
+
+void
+tracker_metadata_get_unique_values_with_count (TrackerMetadata        *object,
+					       const gchar            *service_type,
+					       gchar                 **fields,
+					       const gchar            *query_condition,
+					       const gchar            *count_field,
+					       gboolean                order_desc,
+					       gint                    offset,
+					       gint                    max_hits,
+					       DBusGMethodInvocation  *context,
+					       GError                **error)
+{
+	TrackerDBInterface *iface;
+	TrackerDBResultSet *result_set = NULL;
+	guint               request_id;
+
+	GPtrArray          *values = NULL;
+	GSList             *field_list = NULL;
+	gchar	           *str_offset, *str_limit;
+
+	GString            *sql_select;
+	GString            *sql_from;
+	GString            *sql_where;
+	GString            *sql_order;
+	GString            *sql_group;
+	gchar              *sql;
+
+	char               *rdf_where;
+	char               *rdf_from;
+	GError             *actual_error = NULL;
+
+	guint               i;
+
+	request_id = tracker_dbus_get_next_request_id ();
+
+	tracker_dbus_async_return_if_fail (service_type != NULL, context);
+	tracker_dbus_async_return_if_fail (fields != NULL, context);
+	tracker_dbus_async_return_if_fail (query_condition != NULL, context);
+
+	tracker_dbus_request_new (request_id,
+				  "DBus request to get unique values, "
+				  "service type:'%s', query '%s'"
+				  "count field :'%s'",
+                                  service_type,
+                                  query_condition,
+				  count_field);
+
+	if (!tracker_ontology_is_valid_service_type (service_type)) {
+		tracker_dbus_request_failed (request_id,
+					     &actual_error, 
+                                             "Service_Type '%s' is invalid or has not been implemented yet", 
+                                             service_type);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
+
+	iface = tracker_db_manager_get_db_interface_by_service (service_type);
+
+	sql_select = g_string_new ("SELECT DISTINCT ");
+	sql_from   = g_string_new ("\nFROM Services S ");
+	sql_where  = g_string_new ("\nWHERE ");
+	sql_order  = g_string_new ("\nORDER BY ");
+	sql_group  = g_string_new ("\nGROUP BY ");
+
+
+	for (i=0;i<g_strv_length(fields);i++) {
+		TrackerFieldData   *def = NULL;
+		def = tracker_metadata_add_metadata_field (iface, service_type, &field_list, fields[i], FALSE, TRUE);
+		
+		if (!def) {
+			g_string_free (sql_select, TRUE);
+			g_string_free (sql_from, TRUE);
+			g_string_free (sql_where, TRUE);
+			g_string_free (sql_order, TRUE);
+			g_string_free (sql_group, TRUE);
+			
+			tracker_dbus_request_failed (request_id,
+						     &actual_error, 
+						     "Invalid or non-existant metadata type '%s' specified", 
+						     fields[i]);
+			dbus_g_method_return_error (context, actual_error);
+			g_error_free (actual_error);
+			return;
+		}
+
+		if (i) {
+			g_string_append_printf (sql_select, ",");
+			g_string_append_printf (sql_order, ",");
+			g_string_append_printf (sql_group, ",");
+		}
+
+		g_string_append_printf (sql_select, "%s", tracker_field_data_get_select_field (def));
+		g_string_append_printf (sql_order, " %s %s",
+					tracker_field_data_get_select_field (def),
+					order_desc ? "DESC" : "ASC" );
+		g_string_append_printf (sql_group, "%s", tracker_field_data_get_select_field (def));
+	
+	}
+	
+	if (count_field && !(tracker_is_empty_string (count_field))) {
+		TrackerFieldData   *def = NULL;
+
+		def = tracker_metadata_add_metadata_field (iface, service_type, &field_list, count_field, FALSE, TRUE);
+
+		if (!def) {
+			g_string_free (sql_select, TRUE);
+			g_string_free (sql_from, TRUE);
+			g_string_free (sql_where, TRUE);
+			g_string_free (sql_order, TRUE);
+			g_string_free (sql_group, TRUE);
+			
+			tracker_dbus_request_failed (request_id,
+						     &actual_error, 
+						     "Invalid or non-existant metadata type '%s' specified", 
+						     count_field);
+			dbus_g_method_return_error (context, actual_error);
+			g_error_free (actual_error);
+			return;
+		}
+
+		g_string_append_printf (sql_select, ", COUNT (DISTINCT %s)", tracker_field_data_get_select_field (def));
+	}
+
+	tracker_rdf_filter_to_sql (iface, query_condition, service_type,
+				   &field_list, &rdf_from, &rdf_where, &actual_error);
+	
+	if (actual_error) {
+
+		g_string_free (sql_select, TRUE);
+		g_string_free (sql_from, TRUE);
+		g_string_free (sql_where, TRUE);
+		g_string_free (sql_order, TRUE);
+		g_string_free (sql_group, TRUE);
+			
+
+		tracker_dbus_request_failed (request_id,
+					     &actual_error, 
+					     NULL);
+		
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+		return;
+	}
+
+	g_string_append_printf (sql_from, " %s ", rdf_from);
+	g_string_append_printf (sql_where, " %s ", rdf_where);
+
+	g_free (rdf_from);
+	g_free (rdf_where);
+
+	str_offset = tracker_gint_to_string (offset);
+	str_limit = tracker_gint_to_string (metadata_sanity_check_max_hits (max_hits));
+
+	g_string_append_printf (sql_order, " LIMIT %s,%s", str_offset, str_limit);
+
+	sql = g_strconcat (sql_select->str, " ", 
+			   sql_from->str, " ", 
+			   sql_where->str, " ",
+			   sql_group->str, " ",
+			   sql_order->str, NULL);
+
+	g_free (str_offset);
+	g_free (str_limit);
+
+	g_string_free (sql_select, TRUE);
+	g_string_free (sql_from, TRUE);
+	g_string_free (sql_where, TRUE);
+	g_string_free (sql_order, TRUE);
+	g_string_free (sql_group, TRUE);
 
 	g_slist_foreach (field_list, (GFunc) g_object_unref, NULL);
 	g_slist_free (field_list);

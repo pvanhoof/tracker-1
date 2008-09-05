@@ -1,3 +1,15 @@
+2008-09-05  Mikael Ottela   <mikael.ottela@ixonos.com>
+
+	* src/libtracker/tracker.h:
+	* src/libtracker/tracker.c:
+	* src/tracker-utils/tracker-unique.c:
+	* src/trackerd/tracker-metadata.c:
+	* src/trackerd/tracker-metadata.h:
+	* data/dbus/tracker-metadata.xml: Added GetUniqueValueWithCount
+	to metadata dbus. It is similar to previous GetUniqueValues,
+	except if requested an additional count of items is returned.
+
+
 2008-09-04  Martyn Russell  <martyn@imendio.com>
 
 	* data/dbus/tracker-daemon.xml:

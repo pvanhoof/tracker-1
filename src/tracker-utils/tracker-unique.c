@@ -189,14 +189,15 @@ main (int argc, char **argv)
                 }
 	}
 
-	array = tracker_metadata_get_unique_values (client, 
-                                                    type, 
-                                                    fields, 
-                                                    buffer, 
-                                                    descending, 
-                                                    0, 
-                                                    512, 
-                                                    &error);
+	array = tracker_metadata_get_unique_values_with_count (client, 
+							       type, 
+							       fields, 
+							       buffer,
+							       count,
+							       descending, 
+							       0, 
+							       512, 
+							       &error);
         g_free (buffer);
 
 	if (error) {

@@ -98,6 +98,16 @@ void             tracker_metadata_get_count              (TrackerMetadata       
 							  DBusGMethodInvocation  *context,
 							  GError                **error);
 
+void             tracker_metadata_get_unique_values_with_count (TrackerMetadata        *object,
+								const gchar            *service_type,
+								gchar                 **fields,
+								const gchar            *query_condition,
+								const gchar            *count,
+								gboolean                order_desc,
+								gint                    offset,
+								gint                    max_hits,
+								DBusGMethodInvocation  *context,
+								GError                **error);
 
 G_END_DECLS
 

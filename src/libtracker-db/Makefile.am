@@ -7,27 +7,30 @@ INCLUDES =								\
 	$(DBUS_CFLAGS)							\
 	$(GLIB2_CFLAGS)
 
-noinst_LTLIBRARIES = libtracker-db.la
+libtracker_dbdir = $(libdir)/tracker
+libtracker_db_LTLIBRARIES = libtracker-db.la
 
 libtracker_db_la_SOURCES = 						\
 	tracker-db-action.c						\
-	tracker-db-action.h						\
 	tracker-db-dbus.c						\
-	tracker-db-dbus.h						\
 	tracker-db-file-info.c						\
-	tracker-db-file-info.h						\
 	tracker-db-index.c						\
-	tracker-db-index.h						\
 	tracker-db-index-item.c						\
-	tracker-db-index-item.h						\
 	tracker-db-index-manager.c					\
-	tracker-db-index-manager.h					\
 	tracker-db-interface.c						\
-	tracker-db-interface.h						\
 	tracker-db-interface-sqlite.c					\
+	tracker-db-manager.c
+
+noinst_HEADERS =							\
+	tracker-db-action.h						\
+	tracker-db-dbus.h						\
+	tracker-db-file-info.h						\
+	tracker-db-index.h						\
+	tracker-db-index-item.h						\
+	tracker-db-index-manager.h					\
+	tracker-db-interface.h						\
 	tracker-db-interface-sqlite.h					\
-	tracker-db-manager.c						\
-	tracker-db-manager.h
+	tracker-db-manager.h 
 
 libtracker_db_la_LDFLAGS = -version-info 0:0:0
 libtracker_db_la_LIBADD = 						\

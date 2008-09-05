@@ -9,7 +9,8 @@ INCLUDES =						\
 	$(GIO_CFLAGS)					\
 	$(GLIB2_CFLAGS)
 
-noinst_LTLIBRARIES = libtracker-common.la
+libtracker_commondir = $(libdir)/tracker
+libtracker_common_LTLIBRARIES = libtracker-common.la
 
 if OS_WIN32
 os_sources = tracker-os-dependant-win.c
@@ -19,45 +20,49 @@ endif
 
 if HAVE_HAL
 hal_sources = 						\
-	tracker-hal.c					\
+	tracker-hal.c
+hal_headers = 						\
 	tracker-hal.h
 endif
 
 libtracker_common_la_SOURCES =	 			\
 	$(os_sources)					\
 	$(hal_sources)					\
-	tracker-configuration.c 			\
-	tracker-configuration.h 			\
 	tracker-config.c 				\
-	tracker-config.h				\
+	tracker-configuration.c 			\
 	tracker-dbus.c	 				\
-	tracker-dbus.h					\
 	tracker-field.c					\
-	tracker-field.h					\
 	tracker-field-data.c				\
-	tracker-field-data.h				\
 	tracker-file-utils.c				\
-	tracker-file-utils.h				\
 	tracker-ioprio.c				\
-	tracker-ioprio.h				\
 	tracker-language.c				\
-	tracker-language.h				\
 	tracker-log.c	 				\
-	tracker-log.h					\
 	tracker-module-config.c				\
-	tracker-module-config.h				\
 	tracker-nfs-lock.c				\
-	tracker-nfs-lock.h				\
 	tracker-ontology.c				\
+	tracker-parser.c				\
+	tracker-service.c				\
+	tracker-type-utils.c				\
+	tracker-utils.c
+
+noinst_HEADERS =					\
+	$(hal_headers)					\
+	tracker-config.h				\
+	tracker-configuration.h				\
+	tracker-dbus.h					\
+	tracker-field-data.h				\
+	tracker-field.h					\
+	tracker-file-utils.h				\
+	tracker-ioprio.h				\
+	tracker-language.h				\
+	tracker-log.h					\
+	tracker-module-config.h				\
+	tracker-nfs-lock.h				\
 	tracker-ontology.h				\
 	tracker-os-dependant.h				\
-	tracker-parser.c				\
 	tracker-parser.h				\
-	tracker-service.c				\
 	tracker-service.h				\
-	tracker-type-utils.c				\
 	tracker-type-utils.h				\
-	tracker-utils.c					\
 	tracker-utils.h
 
 libtracker_common_la_LDFLAGS = -version-info 0:0:0

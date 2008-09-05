@@ -1,3 +1,15 @@
+2008-09-05  Martyn Russell  <martyn@imendio.com>
+
+	* src/libstemmer/*: Moved all source files into this directory,
+	there is no need to have them all in separate directories. Make
+	the library generated a shared library.
+	
+	* src/libtracker-common/Makefile.am:
+	* src/libtracker-db/Makefile.am: Made libtracker-common and
+	libtracker-db shared libraries.
+
+	* src/libtracker-common/tracker-language.c: Fixed include paths.
+
 2008-09-05  Mikael Ottela   <mikael.ottela@ixonos.com>
 
 	* src/libtracker/tracker.h:

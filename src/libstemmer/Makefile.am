@@ -1,39 +1,49 @@
-noinst_LTLIBRARIES = libstemmer.la
+INCLUDES =						\
+	-DSHAREDIR=\""$(datadir)"\"			\
+	-DG_LOG_DOMAIN=\"Tracker\"			\
+	-I$(top_srcdir)/src
 
-libstemmer_la_SOURCES = 			\
-	libstemmer/libstemmer.c 		\
-	runtime/api.c 				\
-	runtime/utilities.c 			\
-	src_c/stem_UTF_8_danish.c 		\
-	src_c/stem_UTF_8_dutch.c 		\
-	src_c/stem_UTF_8_english.c 		\
-	src_c/stem_UTF_8_finnish.c 		\
-	src_c/stem_UTF_8_french.c 		\
-	src_c/stem_UTF_8_german.c 		\
-	src_c/stem_UTF_8_hungarian.c 		\
-	src_c/stem_UTF_8_italian.c 		\
-	src_c/stem_UTF_8_norwegian.c 		\
-	src_c/stem_UTF_8_porter.c 		\
-	src_c/stem_UTF_8_portuguese.c 		\
-	src_c/stem_UTF_8_russian.c 		\
-	src_c/stem_UTF_8_spanish.c 		\
-	src_c/stem_UTF_8_swedish.c 		\
-	include/libstemmer.h 			\
-	libstemmer/modules.h 			\
-	runtime/api.h 				\
-	runtime/header.h 			\
-	src_c/stem_UTF_8_danish.h 		\
-	src_c/stem_UTF_8_dutch.h 		\
-	src_c/stem_UTF_8_english.h 		\
-	src_c/stem_UTF_8_finnish.h 		\
-	src_c/stem_UTF_8_french.h 		\
-	src_c/stem_UTF_8_german.h 		\
-	src_c/stem_UTF_8_hungarian.h 		\
-	src_c/stem_UTF_8_italian.h 		\
-	src_c/stem_UTF_8_norwegian.h 		\
-	src_c/stem_UTF_8_porter.h 		\
-	src_c/stem_UTF_8_portuguese.h 		\
-	src_c/stem_UTF_8_russian.h 		\
-	src_c/stem_UTF_8_spanish.h 		\
-	src_c/stem_UTF_8_swedish.h
+libstemmerdir = $(libdir)/tracker
+libstemmer_LTLIBRARIES = libstemmer.la
+
+libstemmer_la_SOURCES = 		\
+	libstemmer.c 			\
+	api.c 				\
+	utilities.c 			\
+	stem_UTF_8_danish.c 		\
+	stem_UTF_8_dutch.c 		\
+	stem_UTF_8_english.c 		\
+	stem_UTF_8_finnish.c 		\
+	stem_UTF_8_french.c 		\
+	stem_UTF_8_german.c 		\
+	stem_UTF_8_hungarian.c 		\
+	stem_UTF_8_italian.c 		\
+	stem_UTF_8_norwegian.c 		\
+	stem_UTF_8_porter.c 		\
+	stem_UTF_8_portuguese.c 	\
+	stem_UTF_8_russian.c 		\
+	stem_UTF_8_spanish.c 		\
+	stem_UTF_8_swedish.c
+
+noinst_HEADERS =			\
+	api.h				\
+	header.h			\
+	libstemmer.h			\
+	modules.h			\
+	stem_UTF_8_danish.h		\
+	stem_UTF_8_dutch.h		\
+	stem_UTF_8_english.h		\
+	stem_UTF_8_finnish.h		\
+	stem_UTF_8_french.h		\
+	stem_UTF_8_german.h		\
+	stem_UTF_8_hungarian.h		\
+	stem_UTF_8_italian.h		\
+	stem_UTF_8_norwegian.h		\
+	stem_UTF_8_porter.h		\
+	stem_UTF_8_portuguese.h		\
+	stem_UTF_8_russian.h		\
+	stem_UTF_8_spanish.h		\
+	stem_UTF_8_swedish.h
+
+libstemmer_la_LDFLAGS = -version-info 0:0:0
 

@@ -14,8 +14,9 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "../include/libstemmer.h"
-#include "../runtime/api.h"
+
+#include "libstemmer.h"
+#include "api.h"
 #include "modules.h"
 
 struct sb_stemmer {

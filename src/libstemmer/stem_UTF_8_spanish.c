@@ -14,7 +14,7 @@
 
 /* This file was generated automatically by the Snowball to ANSI C compiler */
 
-#include "../runtime/header.h"
+#include "header.h"
 
 extern int spanish_UTF_8_stem(struct SN_env * z);
 static int r_residual_suffix(struct SN_env * z);

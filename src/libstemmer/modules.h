@@ -21,19 +21,19 @@
  * german, italian, norwegian, porter, portuguese, russian, spanish, swedish
  */
 
-#include "../src_c/stem_UTF_8_danish.h"
-#include "../src_c/stem_UTF_8_dutch.h"
-#include "../src_c/stem_UTF_8_english.h"
-#include "../src_c/stem_UTF_8_finnish.h"
-#include "../src_c/stem_UTF_8_french.h"
-#include "../src_c/stem_UTF_8_german.h"
-#include "../src_c/stem_UTF_8_italian.h"
-#include "../src_c/stem_UTF_8_norwegian.h"
-#include "../src_c/stem_UTF_8_porter.h"
-#include "../src_c/stem_UTF_8_portuguese.h"
-#include "../src_c/stem_UTF_8_russian.h"
-#include "../src_c/stem_UTF_8_spanish.h"
-#include "../src_c/stem_UTF_8_swedish.h"
+#include "stem_UTF_8_danish.h"
+#include "stem_UTF_8_dutch.h"
+#include "stem_UTF_8_english.h"
+#include "stem_UTF_8_finnish.h"
+#include "stem_UTF_8_french.h"
+#include "stem_UTF_8_german.h"
+#include "stem_UTF_8_italian.h"
+#include "stem_UTF_8_norwegian.h"
+#include "stem_UTF_8_porter.h"
+#include "stem_UTF_8_portuguese.h"
+#include "stem_UTF_8_russian.h"
+#include "stem_UTF_8_spanish.h"
+#include "stem_UTF_8_swedish.h"
 
 typedef enum {
   ENC_UNKNOWN,

@@ -14,7 +14,7 @@
 
 /* This file was generated automatically by the Snowball to ANSI C compiler */
 
-#include "../runtime/header.h"
+#include "header.h"
 
 extern int french_UTF_8_stem(struct SN_env * z);
 static int r_un_accent(struct SN_env * z);

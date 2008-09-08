@@ -1,3 +1,13 @@
+2008-09-08  Martyn Russell  <martyn@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer.c: Implemented a cache that
+	we use to know if a directory mtime has changed to know if we
+	should go into it to be reindexed. We still mtime check each file
+	in that directory, but we don't even try to index files for a
+	directory where the mtime is the same.
+	
+	* src/tracker-indexer/tracker-module.h: Cleaned up header.
+
 2008-09-05  Martyn Russell  <martyn@imendio.com>
 
 	* configure.ac: 

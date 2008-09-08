@@ -27,6 +27,7 @@
 G_BEGIN_DECLS
 
 gchar *  tracker_date_format                   (const gchar  *time_string);
+gchar *  tracker_date_to_time_string           (const gchar  *date_string);
 time_t   tracker_string_to_date                (const gchar  *time_string);
 gchar *  tracker_date_to_string                (time_t        date_time);
 gchar *  tracker_glong_to_string               (glong         i);

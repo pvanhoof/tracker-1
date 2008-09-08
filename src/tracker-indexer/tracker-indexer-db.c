@@ -613,6 +613,7 @@ tracker_db_set_metadata (TrackerService *service,
 	TrackerDBInterface *iface;
 	gint metadata_key;
 	gchar *id_str;
+	gchar *time_string;
 
 	id_str = tracker_guint32_to_string (id);
 	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service),
@@ -641,13 +642,26 @@ tracker_db_set_metadata (TrackerService *service,
 		break;
 
 	case TRACKER_FIELD_TYPE_INTEGER:
-	case TRACKER_FIELD_TYPE_DATE:
 		tracker_db_interface_execute_procedure (iface, NULL,
 							"SetMetadataNumeric",
 							id_str,
 							tracker_field_get_id (field),
 							value,
 							NULL);
+		break;
+
+	case TRACKER_FIELD_TYPE_DATE:
+
+		time_string = tracker_date_to_time_string (value);
+
+		tracker_db_interface_execute_procedure (iface, NULL,
+							"SetMetadataNumeric",
+							id_str,
+							tracker_field_get_id (field),
+							time_string,
+							NULL);
+		g_free (time_string);
+
 		break;
 
 	case TRACKER_FIELD_TYPE_FULLTEXT:

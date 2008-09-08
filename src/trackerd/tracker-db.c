@@ -291,27 +291,6 @@ update_metadata_index (const gchar  *id,
 }
 
 static gchar *
-format_date (const gchar *avalue)
-{
-	gchar *dvalue;
-
-	dvalue = tracker_date_format (avalue);
-
-	if (dvalue) {
-		time_t time;
-
-		time = tracker_string_to_date (dvalue);
-		g_free (dvalue);
-
-		if (time != -1) {
-			return tracker_gint_to_string (time);
-		} 
-	}
-
-	return NULL;
-}
-
-static gchar *
 get_backup_id (TrackerDBInterface *iface,
 	       const gchar        *id)
 {
@@ -1772,7 +1751,7 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 				continue;
 			}
 
-			mvalue = format_date (values[i]);
+			mvalue = tracker_date_to_time_string (values[i]);
 
 			if (!mvalue) {
 				g_warning ("Could not format date:'%s'", values[i]);
@@ -1814,7 +1793,7 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 			gchar *esc_value = NULL;
 
 			if (tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_DATE) {
-				esc_value = format_date (values[0]);
+				esc_value = tracker_date_to_time_string (values[0]);
 
 				if (!esc_value) {
 					return NULL;

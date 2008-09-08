@@ -42,20 +42,21 @@ static gboolean
 is_int (const gchar *str)
 {
 	gboolean valid;
-	gint     i;
+	gint     i, len;
 
 	if (!str || str[0] == '\0') {
 		return FALSE;
 	}
 
-	valid = TRUE;
-	i = 0;
+	len = strlen (str);
 
-	while (valid) {
-		valid = g_ascii_isdigit (str[i++]);
+	for (i = 0; i < len; i++) {
+		if (!g_ascii_isdigit(str[i])) {
+			return FALSE;
+		}
 	}
 
-	return valid;
+	return TRUE ;
 }
 
 static gint
@@ -297,6 +298,27 @@ tracker_date_format (const gchar *timestamp)
 	}
 
 	return g_strdup (timestamp);
+}
+
+gchar *
+tracker_date_to_time_string (const gchar  *time_string)
+{
+	gchar *dvalue;
+	
+	dvalue = tracker_date_format (time_string);
+
+	if (dvalue) {
+		time_t time;
+
+		time = tracker_string_to_date (dvalue);
+		g_free (dvalue);
+
+		if (time != -1) {
+			return tracker_gint_to_string (time);
+		} 
+	}
+
+	return NULL;	
 }
 
 static gboolean

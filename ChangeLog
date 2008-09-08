@@ -1,4 +1,11 @@
 2008-09-08  Mikael Ottela   <mikael.ottela@ixonos.com>
+	* src/tracker-extract/tracker-extract-png.c:
+	* src/tracker-extract/tracker-extract-jpeg.c:
+	* src/tracker-extract/tracker-extract-tiff.c: Changed image
+	extractors to take native image information have higher
+	priority than EXIF/XMP (for example for width & height)
+
+2008-09-08  Mikael Ottela   <mikael.ottela@ixonos.com>
 
 	* src/tracker-indexer/tracker-indexer-db.c:
 	* src/trackerd/tracker-db.c:

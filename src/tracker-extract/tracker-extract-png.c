@@ -110,15 +110,6 @@ tracker_extract_png (const gchar *filename, GHashTable *metadata)
 		png_init_io (png_ptr, png);
 		png_read_info (png_ptr, info_ptr);
 
-		/* read header bits */
-		if (png_get_IHDR (png_ptr, info_ptr, &width, &height, &bit_depth,
-		                 &color_type, &interlace_type, &compression_type, &filter_type)) {
-			g_hash_table_insert (metadata, g_strdup ("Image:Width"),
-			                     g_strdup_printf ("%ld", width));
-			g_hash_table_insert (metadata, g_strdup ("Image:Height"),
-			                     g_strdup_printf ("%ld", height));
-		}
-
 		if (png_get_text (png_ptr, info_ptr, &text_ptr, &num_text) > 0) {
                         gint i;
 			for (i = 0; i < num_text; i++) {
@@ -151,6 +142,15 @@ tracker_extract_png (const gchar *filename, GHashTable *metadata)
 					}
 				}
 			}
+		}
+
+		/* Read size from header. We want native have higher priority than EXIF etc */
+		if (png_get_IHDR (png_ptr, info_ptr, &width, &height, &bit_depth,
+		                 &color_type, &interlace_type, &compression_type, &filter_type)) {
+			g_hash_table_insert (metadata, g_strdup ("Image:Width"),
+			                     g_strdup_printf ("%ld", width));
+			g_hash_table_insert (metadata, g_strdup ("Image:Height"),
+			                     g_strdup_printf ("%ld", height));
 		}
 
 		png_destroy_read_struct (&png_ptr, &info_ptr, NULL);

@@ -117,48 +117,6 @@ tracker_extract_tiff (const gchar *filename, GHashTable *metadata)
 		g_error("Could not open image\n");
 		return;
 	}
-	
-	for (tag = tags; tag->name; ++tag) {
-		switch (tag->type) {
-			case TIFF_TAGTYPE_STRING:
-				if (!TIFFGetField(image, tag->tag, &buffer)) {
-					continue;
-				}
-				break;
-			case TIFF_TAGTYPE_UINT16:
-				if (!TIFFGetField(image, tag->tag, &varui32)) {
-					continue;
-				}
-
-				sprintf(buffer,"%i",varui16);
-				break;
-			case TIFF_TAGTYPE_UINT32:
-				if (!TIFFGetField(image, tag->tag, &varui32)) {
-					continue;
-				}
-
-				sprintf(buffer,"%i",varui32);
-				break;
-			case TIFF_TAGTYPE_DOUBLE:
-				if (!TIFFGetField(image, tag->tag, &vardouble)) {
-					continue;
-				}
-				
-				sprintf(buffer,"%f",vardouble);
-				break;
-			default:
-				continue;
-				break;
-			}
-
-		if (tag->post) {
-			g_hash_table_insert (metadata, g_strdup (tag->name),
-					     g_strdup ((*tag->post) (buffer)));
-		} else {
-			g_hash_table_insert (metadata, g_strdup (tag->name),
-					     g_strdup (buffer));
-		}
-	}
 
 	/* FIXME There are problems between XMP data embedded with different tools
 	   due to bugs in the original spec (type) */
@@ -220,6 +178,49 @@ tracker_extract_tiff (const gchar *filename, GHashTable *metadata)
 				}
 			}
 			
+		}
+	}
+
+	/* We want to give native tags priority over XMP/Exif */
+	for (tag = tags; tag->name; ++tag) {
+		switch (tag->type) {
+			case TIFF_TAGTYPE_STRING:
+				if (!TIFFGetField(image, tag->tag, &buffer)) {
+					continue;
+				}
+				break;
+			case TIFF_TAGTYPE_UINT16:
+				if (!TIFFGetField(image, tag->tag, &varui32)) {
+					continue;
+				}
+
+				sprintf(buffer,"%i",varui16);
+				break;
+			case TIFF_TAGTYPE_UINT32:
+				if (!TIFFGetField(image, tag->tag, &varui32)) {
+					continue;
+				}
+
+				sprintf(buffer,"%i",varui32);
+				break;
+			case TIFF_TAGTYPE_DOUBLE:
+				if (!TIFFGetField(image, tag->tag, &vardouble)) {
+					continue;
+				}
+				
+				sprintf(buffer,"%f",vardouble);
+				break;
+			default:
+				continue;
+				break;
+			}
+
+		if (tag->post) {
+			g_hash_table_insert (metadata, g_strdup (tag->name),
+					     g_strdup ((*tag->post) (buffer)));
+		} else {
+			g_hash_table_insert (metadata, g_strdup (tag->name),
+					     g_strdup (buffer));
 		}
 	}
 

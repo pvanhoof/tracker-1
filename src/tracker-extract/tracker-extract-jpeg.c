@@ -205,13 +205,7 @@ tracker_extract_jpeg (const gchar *filename, GHashTable *metadata)
 		
 		  jpeg_calc_output_dimensions(&cinfo); 
 		*/
-		
-		g_hash_table_insert (metadata, g_strdup ("Image:Width"),
-				     g_strdup_printf ("%u", (unsigned int) cinfo.image_width));
-		g_hash_table_insert (metadata, g_strdup ("Image:Height"),
-				     g_strdup_printf ("%u", (unsigned int) cinfo.image_height));
-		
-		
+	       		
 		marker = (struct jpeg_marker_struct *) &cinfo.marker_list;
 		
 		while(marker) {
@@ -249,6 +243,12 @@ tracker_extract_jpeg (const gchar *filename, GHashTable *metadata)
 			marker = marker->next;
 		}
 		
+		/* We want native size to have priority over EXIF, XMP etc */
+		g_hash_table_insert (metadata, g_strdup ("Image:Width"),
+				     g_strdup_printf ("%u", (unsigned int) cinfo.image_width));
+		g_hash_table_insert (metadata, g_strdup ("Image:Height"),
+				     g_strdup_printf ("%u", (unsigned int) cinfo.image_height));
+
 		jpeg_destroy_decompress(&cinfo);
 		
 		fclose (jpeg);

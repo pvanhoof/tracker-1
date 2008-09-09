@@ -1,3 +1,4 @@
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /* Tracker Extract - extracts embedded metadata from files
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  *
@@ -1074,7 +1075,23 @@ tracker_extract_mp3 (const char *filename, GHashTable *metadata)
 	/* get mp3 stream info */
 	mp3_parse (buffer, size, metadata);
 
+	/* Check that we have the minimum data. FIXME We should not need to do this */
+	if (!g_hash_table_lookup (metadata, "Audio:Title")) {
+		g_hash_table_insert (metadata, g_strdup ("Audio:Title"), g_strdup ("tracker:unknown"));	
+	}
 
+	if (!g_hash_table_lookup (metadata, "Audio:Album")) {
+		g_hash_table_insert (metadata, g_strdup ("Audio:Album"), g_strdup ("tracker:unknown"));	
+	}
+
+	if (!g_hash_table_lookup (metadata, "Audio:Artist")) {
+		g_hash_table_insert (metadata, g_strdup ("Audio:Artist"), g_strdup ("tracker:unknown"));	
+	}
+
+	if (!g_hash_table_lookup (metadata, "Audio:Genre")) {
+		g_hash_table_insert (metadata, g_strdup ("Audio:Genre"), g_strdup ("tracker:unknown"));	
+	}
+		
 #ifndef OS_WIN32
   	munmap (buffer, size);
 #endif

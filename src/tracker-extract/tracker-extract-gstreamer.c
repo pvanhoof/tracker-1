@@ -736,6 +736,22 @@ tracker_extract_gstreamer (const gchar *uri, GHashTable *metadata, ExtractMime t
 
 	extract_metadata (extractor, metadata);
 
+	/* Check that we have the minimum data. FIXME We should not need to do this */
+	if (!g_hash_table_lookup (metadata, "Audio:Title")) {
+		g_hash_table_insert (metadata, g_strdup ("Audio:Title"), g_strdup ("tracker:unknown"));	
+	}
+
+	if (!g_hash_table_lookup (metadata, "Audio:Album")) {
+		g_hash_table_insert (metadata, g_strdup ("Audio:Album"), g_strdup ("tracker:unknown"));	
+	}
+
+	if (!g_hash_table_lookup (metadata, "Audio:Artist")) {
+		g_hash_table_insert (metadata, g_strdup ("Audio:Artist"), g_strdup ("tracker:unknown"));	
+	}
+
+	if (!g_hash_table_lookup (metadata, "Audio:Genre")) {
+		g_hash_table_insert (metadata, g_strdup ("Audio:Genre"), g_strdup ("tracker:unknown"));	
+	}
 
 	/* also clean up */
 	gst_element_set_state (extractor->playbin, GST_STATE_NULL);

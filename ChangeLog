@@ -1,3 +1,12 @@
+2008-09-09  Mikael Ottela   <mikael.ottela@ixonos.com>
+	* src/tracker-extract/tracker-extract-mp3.c:
+	* src/tracker-extract/tracker-extract-gstreamer.c: The audio
+	extractors now check that a minimum amount of information
+	(title, artist, album, genre) has been found and if not, 
+	"tracker:unknown" value is used for these crucial fields.
+	This change can be considered a hack and should be reverted
+	when tracker supports finding unexisting metadata.
+
 2008-09-09  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-db/tracker-db-interface.c:

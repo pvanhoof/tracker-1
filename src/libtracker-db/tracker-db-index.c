@@ -738,7 +738,6 @@ tracker_db_index_open (TrackerDBIndex *index)
 	g_return_val_if_fail (priv->filename != NULL, FALSE);
 	g_return_val_if_fail (priv->index == NULL, FALSE);
 
-
 	g_debug ("Opening index:'%s' (%s)", 
 		 priv->filename,
 		 priv->readonly ? "readonly" : "read/write");
@@ -790,7 +789,6 @@ tracker_db_index_open (TrackerDBIndex *index)
 		priv->reload = TRUE;
 	}
 	
-
 	return !priv->reload;
 }
 
@@ -803,7 +801,6 @@ tracker_db_index_close (TrackerDBIndex *index)
 	g_return_val_if_fail (TRACKER_IS_DB_INDEX (index), FALSE);
 
 	priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
-
 
 	retval = TRUE;
 
@@ -819,12 +816,12 @@ tracker_db_index_close (TrackerDBIndex *index)
 		priv->index = NULL;
 	}
 
-
 	return retval;
 }
 
 void
-tracker_db_index_set_paused (TrackerDBIndex *index, gboolean paused)
+tracker_db_index_set_paused (TrackerDBIndex *index,
+			     gboolean        paused)
 {
 	TrackerDBIndexPrivate *priv;
 
@@ -838,8 +835,6 @@ tracker_db_index_set_paused (TrackerDBIndex *index, gboolean paused)
 		tracker_db_index_open (index);
 	}
 }
-
-
 
 guint
 tracker_db_index_flush (TrackerDBIndex *index)

@@ -1,3 +1,12 @@
+2008-09-09  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-db/tracker-db-index.c: Cleaned up the code.
+	* src/tracker-indexer/tracker-indexer.c: When finishing do 2
+	things. First make sure we flush BEFORE we unset the flag to say
+	we are indexing. This way the flush function doesn't just return.
+	Also when finished, we now close the index. This means that the
+	daemon can use the new index when it reopens it after indexing.
+
 2008-09-09  Mikael Ottela   <mikael.ottela@ixonos.com>
 	* src/tracker-extract/tracker-extract-mp3.c:
 	* src/tracker-extract/tracker-extract-gstreamer.c: The audio

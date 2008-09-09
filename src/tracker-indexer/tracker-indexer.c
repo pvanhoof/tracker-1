@@ -621,10 +621,14 @@ check_stopped (TrackerIndexer *indexer,
 	g_timer_stop (indexer->private->timer);
 	seconds_elapsed = g_timer_elapsed (indexer->private->timer, NULL);
 
-	state_set_flags (indexer, TRACKER_INDEXER_STATE_STOPPED);
-
 	/* Flush remaining items */
 	schedule_flush (indexer, TRUE);
+
+	/* Close indexes */
+	tracker_db_index_close (indexer->private->file_index);
+	tracker_db_index_close (indexer->private->email_index);
+
+	state_set_flags (indexer, TRACKER_INDEXER_STATE_STOPPED);
 
 	/* Print out how long it took us */
 	str = tracker_seconds_to_string (seconds_elapsed, FALSE);
@@ -724,7 +728,7 @@ check_disk_space_stop (TrackerIndexer *indexer)
 static gboolean
 signal_status_cb (TrackerIndexer *indexer)
 {
-	signal_status (indexer, "");
+	signal_status (indexer, "status update");
 	return TRUE;
 }
 

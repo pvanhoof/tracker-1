@@ -464,8 +464,8 @@ tracker_db_move_service (TrackerService *service,
 	tracker_db_interface_execute_procedure (iface, 
 						NULL, 
 						"MoveService",
-						from_dirname, from_basename,
 						to_dirname, to_basename,
+						from_dirname, from_basename,
 						NULL);
 
 	/* FIXME: This procedure should use LIKE statement */

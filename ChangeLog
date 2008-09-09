@@ -1,5 +1,16 @@
 2008-09-09  Martyn Russell  <martyn@imendio.com>
 
+	* src/tracker-indexer/tracker-indexer-db.c:
+	(tracker_db_move_service): Switch the to and from parameters round
+	so the move statement works.
+	
+	* src/tracker-indexer/tracker-indexer.c: Now use the PathInfo
+	struct for move events and also the event queue instead of dealing
+	with them specifically there and then. Now rename or move events
+	on files work.
+
+2008-09-09  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-db/tracker-db-index.c: Cleaned up the code.
 	* src/tracker-indexer/tracker-indexer.c: When finishing do 2
 	things. First make sure we flush BEFORE we unset the flag to say

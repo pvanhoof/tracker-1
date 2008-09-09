@@ -1,3 +1,13 @@
+2008-09-09  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-file-utils.c:
+	(tracker_file_get_mime_type): Improve the error message.
+
+	* src/tracker-indexer/modules/files.c: Small clean up.
+	* src/trackerd/tracker-monitor.c: Fixed the signal emission so the
+	file and other file are the right way round for one of the MOVE
+	events. This is probably why renaming a file was not working before.
+
 2008-09-08  Mikael Ottela   <mikael.ottela@ixonos.com>
 
 	* src/tracker-extract/tracker-extract-png.c:

@@ -1115,9 +1115,6 @@ libinotify_monitor_event_cb (INotifyHandle *handle,
 		case IN_MOVED_FROM:
 		case IN_DELETE:
 		case IN_DELETE_SELF:
-			/* FIXME: What if we don't monitor the other
-			 * location?
-			 */
 			if (cookie == 0) {
 				g_signal_emit (monitor, 
 					       signals[ITEM_DELETED], 0, 
@@ -1156,8 +1153,8 @@ libinotify_monitor_event_cb (INotifyHandle *handle,
 				g_signal_emit (monitor, 
 					       signals[ITEM_MOVED], 0,
 					       module_name, 
-					       file, 
-					       other_file,
+					       other_file, 
+					       file,
 					       is_directory);
 				g_hash_table_remove (monitor->private->event_pairs,
 						     GUINT_TO_POINTER (cookie));

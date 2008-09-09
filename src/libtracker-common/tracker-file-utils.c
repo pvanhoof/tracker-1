@@ -251,9 +251,9 @@ gchar *
 tracker_file_get_mime_type (const gchar *path)
 {
 	GFileInfo *info;
-	GFile *file;
-	GError *error = NULL;
-	gchar *content_type;
+	GFile     *file;
+	GError    *error = NULL;
+	gchar     *content_type;
 
 	file = g_file_new_for_path (path);
 	info = g_file_query_info (file,
@@ -262,7 +262,8 @@ tracker_file_get_mime_type (const gchar *path)
 				  NULL, &error);
 
 	if (error) {
-		g_warning ("Error guessing mimetype for '%s': %s\n", path, error->message);
+		g_warning ("Could not guess mimetype, %s\n", 
+			   error->message);
 		g_error_free (error);
 
 		return g_strdup ("unknown");
@@ -279,7 +280,6 @@ tracker_file_get_mime_type (const gchar *path)
 
 	return content_type;
 }
-
 
 static gchar *
 tracker_file_get_vfs_path (const gchar *uri)

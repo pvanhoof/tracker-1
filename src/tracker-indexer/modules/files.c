@@ -52,12 +52,12 @@ tracker_module_get_name (void)
 gchar *
 tracker_module_file_get_service_type (TrackerFile *file)
 {
-        gchar *mimetype;
+        gchar *mime_type;
         gchar *service_type;
 
-        mimetype = tracker_file_get_mime_type (file->path);
-        service_type = tracker_ontology_get_service_type_for_mime (mimetype);
-        g_free (mimetype);
+        mime_type = tracker_file_get_mime_type (file->path);
+        service_type = tracker_ontology_get_service_type_for_mime (mime_type);
+        g_free (mime_type);
 
         return service_type;
 }

@@ -446,27 +446,41 @@ tracker_db_move_service (TrackerService *service,
 {
 	TrackerDBInterface *iface;
 	GError *error = NULL;
-	gchar *from_dirname = NULL, *from_basename = NULL, *to_dirname = NULL, *to_basename = NULL;
+	gchar *from_dirname;
+	gchar *from_basename;
+	gchar *to_dirname;
+	gchar *to_basename;
 
 	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service),
 							     TRACKER_DB_CONTENT_TYPE_METADATA);
 
-	tracker_file_get_path_and_name (from, &from_dirname, &from_basename);
-	tracker_file_get_path_and_name (to, &to_dirname, &to_basename);
+	tracker_file_get_path_and_name (from, 
+					&from_dirname, 
+					&from_basename);
+	tracker_file_get_path_and_name (to, 
+					&to_dirname, 
+					&to_basename);
 
-	tracker_db_interface_execute_procedure (iface, NULL, "MoveService",
+	tracker_db_interface_execute_procedure (iface, 
+						NULL, 
+						"MoveService",
 						from_dirname, from_basename,
 						to_dirname, to_basename,
 						NULL);
 
 	/* FIXME: This procedure should use LIKE statement */
-	tracker_db_interface_execute_procedure (iface, &error, "MoveServiceChildren", from, to, from, NULL);
-
-	g_free (from_dirname);
-	g_free (from_basename);
+	tracker_db_interface_execute_procedure (iface,
+						&error, 
+						"MoveServiceChildren", 
+						from, 
+						to, 
+						from, 
+						NULL);
 
 	g_free (to_dirname);
 	g_free (to_basename);
+	g_free (from_dirname);
+	g_free (from_basename);
 }
 
 void

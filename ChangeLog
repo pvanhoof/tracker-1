@@ -1,5 +1,13 @@
 2008-09-09  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-db/tracker-db-interface.c:
+	* src/tracker-indexer/tracker-indexer-db.c: Some small code clean ups.
+
+	* src/tracker-indexer/tracker-indexer.c: Better error handling for
+	the move dbus function.
+
+2008-09-09  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-file-utils.c:
 	(tracker_file_get_mime_type): Improve the error message.
 

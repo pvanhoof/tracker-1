@@ -2349,10 +2349,18 @@ tracker_indexer_file_move (TrackerIndexer         *indexer,
 		g_free (service_type);
 
 		tracker_db_move_service (service, from, to);
-	}
 
-	dbus_g_method_return (context);
-	tracker_dbus_request_success (request_id);
+		dbus_g_method_return (context);
+		tracker_dbus_request_success (request_id);
+	} else {
+		tracker_dbus_request_failed (request_id,
+					     &actual_error,
+					     "Service type could not be found for file '%s' in module '%s'",
+					     service_type,
+					     module_name);
+		dbus_g_method_return_error (context, actual_error);
+		g_error_free (actual_error);
+	}
 
 	path_info_free (info);
 }

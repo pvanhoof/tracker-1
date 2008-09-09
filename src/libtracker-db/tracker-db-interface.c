@@ -19,9 +19,10 @@
  */
 
 #include <string.h>
-#include <gobject/gvaluecollector.h>
-#include "tracker-db-interface.h"
 
+#include <gobject/gvaluecollector.h>
+
+#include "tracker-db-interface.h"
 
 #define TRACKER_DB_RESULT_SET_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_DB_RESULT_SET, TrackerDBResultSetPrivate))
 
@@ -44,18 +45,18 @@ G_DEFINE_TYPE (TrackerDBResultSet, tracker_db_result_set, G_TYPE_OBJECT)
 GQuark
 tracker_db_interface_error_quark (void)
 {
-  return g_quark_from_static_string ("tracker-db-interface-error-quark");
+	return g_quark_from_static_string ("tracker-db-interface-error-quark");
 }
 
 static void
 tracker_db_interface_class_init (gpointer iface)
 {
-  g_object_interface_install_property (iface,
-				       g_param_spec_boolean ("in-transaction",
-							     "In transaction",
-							     "Whether the connection has a transaction opened",
-							     FALSE,
-							     G_PARAM_READWRITE));
+	g_object_interface_install_property (iface,
+					     g_param_spec_boolean ("in-transaction",
+								   "In transaction",
+								   "Whether the connection has a transaction opened",
+								   FALSE,
+								   G_PARAM_READWRITE));
 }
 
 GType
@@ -202,7 +203,8 @@ tracker_db_result_set_class_init (TrackerDBResultSetClass *class)
 							    "Columns",
 							    "Resultset columns",
 							    0, G_MAXUINT, 0,
-							    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+							    G_PARAM_READWRITE | 
+							    G_PARAM_CONSTRUCT_ONLY));
 
 
 	g_type_class_add_private (object_class,
@@ -244,12 +246,16 @@ tracker_db_interface_execute_vquery (TrackerDBInterface  *interface,
 	g_return_val_if_fail (query != NULL, NULL);
 
 	if (!TRACKER_DB_INTERFACE_GET_IFACE (interface)->execute_query) {
-		g_critical ("Database abstraction %s doesn't implement the method execute_vquery()", G_OBJECT_TYPE_NAME (interface));
+		g_critical ("Database abstraction %s doesn't implement "
+			    "the method execute_vquery()", 
+			    G_OBJECT_TYPE_NAME (interface));
 		return NULL;
 	}
 
 	str = g_strdup_vprintf (query, args);
-	result_set = TRACKER_DB_INTERFACE_GET_IFACE (interface)->execute_query (interface, error, str);
+	result_set = TRACKER_DB_INTERFACE_GET_IFACE (interface)->execute_query (interface, 
+										error, 
+										str);
 	g_free (str);
 
 	return ensure_result_set_state (result_set);
@@ -267,7 +273,10 @@ tracker_db_interface_execute_query (TrackerDBInterface  *interface,
 	va_list args;
 
 	va_start (args, query);
-	result_set = tracker_db_interface_execute_vquery (interface, error, query, args);
+	result_set = tracker_db_interface_execute_vquery (interface, 
+							  error, 
+							  query, 
+							  args);
 	va_end (args);
 
 	return result_set;
@@ -281,11 +290,14 @@ tracker_db_interface_set_procedure_table (TrackerDBInterface *interface,
 	g_return_if_fail (procedure_table != NULL);
 
 	if (!TRACKER_DB_INTERFACE_GET_IFACE (interface)->set_procedure_table) {
-		g_critical ("Database abstraction %s doesn't implement the method set_procedure_table()", G_OBJECT_TYPE_NAME (interface));
+		g_critical ("Database abstraction %s doesn't implement "
+			    "the method set_procedure_table()",
+			    G_OBJECT_TYPE_NAME (interface));
 		return;
 	}
 
-	TRACKER_DB_INTERFACE_GET_IFACE (interface)->set_procedure_table (interface, procedure_table);
+	TRACKER_DB_INTERFACE_GET_IFACE (interface)->set_procedure_table (interface, 
+									 procedure_table);
 }
 
 TrackerDBResultSet *
@@ -300,11 +312,16 @@ tracker_db_interface_execute_vprocedure (TrackerDBInterface  *interface,
 	g_return_val_if_fail (procedure != NULL, NULL);
 
 	if (!TRACKER_DB_INTERFACE_GET_IFACE (interface)->execute_procedure) {
-		g_critical ("Database abstraction %s doesn't implement the method execute_procedure()", G_OBJECT_TYPE_NAME (interface));
+		g_critical ("Database abstraction %s doesn't implement "
+			    "the method execute_procedure()", 
+			    G_OBJECT_TYPE_NAME (interface));
 		return NULL;
 	}
 
-	result_set = TRACKER_DB_INTERFACE_GET_IFACE (interface)->execute_procedure (interface, error, procedure, args);
+	result_set = TRACKER_DB_INTERFACE_GET_IFACE (interface)->execute_procedure (interface, 
+										    error, 
+										    procedure, 
+										    args);
 
 	return ensure_result_set_state (result_set);
 }
@@ -323,11 +340,16 @@ tracker_db_interface_execute_vprocedure_len (TrackerDBInterface  *interface,
 	g_return_val_if_fail (procedure != NULL, NULL);
 
 	if (!TRACKER_DB_INTERFACE_GET_IFACE (interface)->execute_procedure_len) {
-		g_critical ("Database abstraction %s doesn't implement the method execute_procedure_len()", G_OBJECT_TYPE_NAME (interface));
+		g_critical ("Database abstraction %s doesn't implement "
+			    "the method execute_procedure_len()", 
+			    G_OBJECT_TYPE_NAME (interface));
 		return NULL;
 	}
 
-	result_set = TRACKER_DB_INTERFACE_GET_IFACE (interface)->execute_procedure_len (interface, error, procedure, args);
+	result_set = TRACKER_DB_INTERFACE_GET_IFACE (interface)->execute_procedure_len (interface,
+											error, 
+											procedure, 
+											args);
 
 	return ensure_result_set_state (result_set);
 }
@@ -342,7 +364,10 @@ tracker_db_interface_execute_procedure (TrackerDBInterface  *interface,
 	va_list args;
 
 	va_start (args, procedure);
-	result_set = tracker_db_interface_execute_vprocedure (interface, error, procedure, args);
+	result_set = tracker_db_interface_execute_vprocedure (interface, 
+							      error, 
+							      procedure, 
+							      args);
 	va_end (args);
 
 	return result_set;
@@ -358,7 +383,10 @@ tracker_db_interface_execute_procedure_len (TrackerDBInterface  *interface,
 	va_list args;
 
 	va_start (args, procedure);
-	result_set = tracker_db_interface_execute_vprocedure_len (interface, error, procedure, args);
+	result_set = tracker_db_interface_execute_vprocedure_len (interface, 
+								  error, 
+								  procedure, 
+								  args);
 	va_end (args);
 
 	return result_set;
@@ -369,7 +397,9 @@ tracker_db_interface_start_transaction (TrackerDBInterface *interface)
 {
 	GError *error = NULL;
 
-	tracker_db_interface_execute_query (interface, &error, "BEGIN TRANSACTION");
+	tracker_db_interface_execute_query (interface, 
+					    &error, 
+					    "BEGIN TRANSACTION");
 
 	if (error) {
 		g_warning (error->message);
@@ -378,6 +408,7 @@ tracker_db_interface_start_transaction (TrackerDBInterface *interface)
 	}
 
 	g_object_set (interface, "in-transaction", TRUE, NULL);
+
 	return TRUE;
 }
 
@@ -389,8 +420,9 @@ tracker_db_interface_end_transaction (TrackerDBInterface *interface)
 
 	g_object_get (interface, "in-transaction", &in_transaction, NULL);
 
-	if (!in_transaction)
+	if (!in_transaction) {
 		return FALSE;
+	}
 
 	g_object_set (interface, "in-transaction", FALSE, NULL);
 	tracker_db_interface_execute_query (interface, &error, "COMMIT");

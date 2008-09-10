@@ -1,3 +1,14 @@
+2008-09-10  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-file-utils.[ch]:
+	* src/tracker-indexer/tracker-main.c: 
+	* src/trackerd/tracker-main.c: 
+	(tracker_env_check_xdg_dirs): Added this function to make sure we
+	have write access to XDG_DATA_HOME. On the Maemo platform, this is
+	/usr/share, on Ubuntu this is $HOME/.local/share. We default to
+	the later in cases where we don't have write access and can't
+	create the XDG_DATA_HOME location.
+	
 2008-09-10  Mikael Ottela   <mikael.ottela@ixonos.com>
 	* src/trackerd/tracker-rdf-query.c: Fixed some problems with
 	OR operator in RDF queries.

@@ -229,7 +229,6 @@ indexer_finished_cb (TrackerIndexer *indexer,
         }
 
         if (!run_forever) {
-
                 g_message ("Waiting another %d seconds for more items before quitting...",
                            QUIT_TIMEOUT);
 
@@ -279,6 +278,11 @@ main (gint argc, gchar *argv[])
 	g_print ("Initializing tracker-indexer...\n");
 
 	initialize_signal_handler ();
+
+        /* Check XDG spec locations XDG_DATA_HOME _MUST_ be writable. */
+        if (!tracker_env_check_xdg_dirs ()) {
+                return EXIT_FAILURE;
+        }
 
         /* Initialize logging */
         config = tracker_config_new ();

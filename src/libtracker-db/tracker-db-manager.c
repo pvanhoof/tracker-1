@@ -2289,13 +2289,13 @@ tracker_db_manager_init (TrackerDBManagerFlags  flags,
 	g_message ("Setting database locations");
 
 	services_dir = g_build_filename (SHAREDIR, 
-					    "tracker", 
-					    "services", 
-					    NULL);
+					 "tracker", 
+					 "services", 
+					 NULL);
 	sql_dir = g_build_filename (SHAREDIR, 
-				       "tracker", 
-				       NULL);
-
+				    "tracker", 
+				    NULL);
+	
 	user_data_dir = g_build_filename (g_get_user_data_dir (), 
                                           "tracker", 
                                           "data", 

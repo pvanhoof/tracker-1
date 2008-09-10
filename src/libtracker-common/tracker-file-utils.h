@@ -44,5 +44,6 @@ gboolean tracker_path_is_in_path                   (const gchar *path,
 void     tracker_path_hash_table_filter_duplicates (GHashTable  *roots);
 GSList * tracker_path_list_filter_duplicates       (GSList      *roots);
 gchar *  tracker_path_evaluate_name                (const gchar *uri);
+gboolean tracker_env_check_xdg_dirs                (void);
 
 #endif /* __LIBTRACKER_COMMON_FILE_UTILS_H__ */

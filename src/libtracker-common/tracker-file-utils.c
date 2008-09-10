@@ -707,3 +707,118 @@ tracker_path_evaluate_name (const gchar *uri)
 
 	return final_path;
 }
+
+static gboolean
+path_has_write_access (const gchar *path,
+		       gboolean    *exists)
+{
+	GFile     *file;
+	GFileInfo *info;
+	GError    *error = NULL;
+        gboolean   writable;
+
+        g_return_val_if_fail (path != NULL, FALSE);
+        g_return_val_if_fail (path[0] != '\0', FALSE);
+
+        file = g_file_new_for_path (path);
+	info = g_file_query_info (file,
+                                  G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE,
+                                  0,
+                                  NULL, 
+                                  &error);
+        g_object_unref (file);
+      
+	if (error) {
+                if (error->code == G_IO_ERROR_NOT_FOUND) {
+                        if (exists) {
+                                *exists = FALSE;
+                        }
+                } else {
+			g_warning ("Could not check if we have write access for "
+				   "path '%s', %s",
+				   path,
+				   error->message);
+		}
+
+		g_error_free (error);
+                       
+		return FALSE;
+	}
+
+        if (exists) {
+                *exists = TRUE;
+        }
+
+        writable = g_file_info_get_attribute_boolean (info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
+        g_object_unref (info);
+
+        return writable;
+}
+
+static gboolean
+path_has_write_access_or_was_created (const gchar *path)
+{
+        gboolean writable;
+        gboolean exists;
+
+        writable = path_has_write_access (path, &exists);
+        if (exists) {
+                if (writable) {
+                        g_message ("  Path is OK");
+                        return TRUE;
+                } 
+                  
+                g_message ("  Path can not be written to");
+        } else {
+                g_message ("  Path does not exist, attempting to create...");
+
+                if (g_mkdir_with_parents (path, 0700) == 0) {
+                        g_message ("  Path was created");
+                        return TRUE;
+                }
+
+                g_message ("  Path could not be created");
+        }
+	
+	return FALSE;
+}
+
+gboolean
+tracker_env_check_xdg_dirs (void)
+{
+        const gchar *user_data_dir;
+        gchar       *new_dir;
+        gboolean     success;
+
+        g_message ("Checking XDG_DATA_HOME is writable and exists");
+
+	/* NOTE: We don't use g_get_user_data_dir() here because as
+	 * soon as we do, it sets the result and doesn't re-fetch the
+	 * XDG_DATA_HOME environment variable which we set below.
+	 */
+	user_data_dir = g_getenv ("XDG_DATA_HOME");
+
+	/* Check the default XDG_DATA_HOME location */
+        g_message ("  XDG_DATA_HOME is '%s'", user_data_dir);
+
+	if (path_has_write_access_or_was_created (user_data_dir)) {
+		return TRUE;
+	}
+
+        /* Change environment, this is actually what we have on Ubuntu. */
+        new_dir = g_build_path (G_DIR_SEPARATOR_S, g_get_home_dir (), ".local", "share", NULL);
+
+	/* Check the new XDG_DATA_HOME location */
+	success = g_setenv ("XDG_DATA_HOME", new_dir, TRUE);
+
+	if (success) {
+		g_message ("  XDG_DATA_HOME set to '%s'", new_dir);
+		success = path_has_write_access_or_was_created (new_dir);
+	} else {
+		g_message ("  XDG_DATA_HOME could not be set");
+	}
+
+	g_free (new_dir);
+
+	return success;
+}

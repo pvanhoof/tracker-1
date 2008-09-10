@@ -705,6 +705,11 @@ main (gint argc, gchar *argv[])
 
 	initialize_signal_handler ();
 
+        /* Check XDG spec locations XDG_DATA_HOME _MUST_ be writable. */
+        if (!tracker_env_check_xdg_dirs ()) {
+                return EXIT_FAILURE;
+        }
+
 	/* Set IO priority */
 	tracker_ioprio_init ();
 

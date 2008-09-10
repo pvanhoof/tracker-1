@@ -19,6 +19,7 @@
 	daemon can use the new index when it reopens it after indexing.
 
 2008-09-09  Mikael Ottela   <mikael.ottela@ixonos.com>
+
 	* src/tracker-extract/tracker-extract-mp3.c:
 	* src/tracker-extract/tracker-extract-gstreamer.c: The audio
 	extractors now check that a minimum amount of information

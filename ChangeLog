@@ -10,6 +10,7 @@
 	create the XDG_DATA_HOME location.
 	
 2008-09-10  Mikael Ottela   <mikael.ottela@ixonos.com>
+
 	* src/trackerd/tracker-rdf-query.c: Fixed some problems with
 	OR operator in RDF queries.
 

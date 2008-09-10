@@ -1,3 +1,7 @@
+2008-09-10  Mikael Ottela   <mikael.ottela@ixonos.com>
+	* src/trackerd/tracker-rdf-query.c: Fixed some problems with
+	OR operator in RDF queries.
+
 2008-09-09  Martyn Russell  <martyn@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer-db.c:

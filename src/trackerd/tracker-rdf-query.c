@@ -483,7 +483,7 @@ start_element_handler (GMarkupParseContext  *context,
 			return;
 		}
 
-		if (data->statement_count > 1) {
+		if (data->statement_count >= 1) {
 			if (data->current_logic_operator == LOP_AND) {
 				data->sql_where = g_string_append (data->sql_where, 
                                                                    " AND ");
@@ -510,7 +510,7 @@ start_element_handler (GMarkupParseContext  *context,
 			return;
 		}
 
-		if (data->statement_count > 1) {
+		if (data->statement_count >= 1) {
 			if (data->current_logic_operator == LOP_AND) {
 				data->sql_where = g_string_append (data->sql_where, 
                                                                    " AND ");
@@ -537,8 +537,8 @@ start_element_handler (GMarkupParseContext  *context,
                                        error)) {
 			return;
 		}
-
-		if (data->statement_count > 1) {
+		
+		if (data->statement_count >= 1) {
 			if (data->current_logic_operator == LOP_AND) {
 				data->sql_where = g_string_append (data->sql_where, 
                                                                    " AND ");
@@ -549,6 +549,8 @@ start_element_handler (GMarkupParseContext  *context,
 				}
 			}
 		}
+
+		data->statement_count = 0;
 		data->sql_where = g_string_append (data->sql_where, " NOT ( ");
 		push_stack (data, STATE_NOT);
 

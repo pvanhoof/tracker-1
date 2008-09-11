@@ -1,3 +1,7 @@
+2008-09-11  Mikael Ottela   <mikael.ottela@ixonos.com>
+	* src/libtracker-db/tracker-db-interface.c: Fixed a crash in
+	result sets.
+
 2008-09-11  Martyn Russell  <martyn@imendio.com>
 
 	* src/tracker-extract/tracker-extract.c: (debug_impl),

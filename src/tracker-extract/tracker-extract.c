@@ -40,7 +40,9 @@
 #include <glib.h>
 #include <gmodule.h>
 
+#include <libtracker-common/tracker-os-dependant.h>
 #include <libtracker-common/tracker-type-utils.h>
+#include <libtracker-common/tracker-utils.h>
 
 #include "tracker-extract.h"
 
@@ -73,77 +75,6 @@ tracker_generic_date_to_iso8601 (const gchar *date,
 }
 
 gboolean
-tracker_is_empty_string (const gchar *s)
-{
-        return s == NULL || s[0] == '\0';
-}
-
-static gboolean
-set_memory_rlimits (void)
-{
-#ifndef OS_WIN32
-	struct	rlimit rl;
-	gint	fail = 0;
-
-	/* We want to limit the max virtual memory
-	 * most extractors use mmap() so only virtual memory can be effectively limited */
-#ifdef __x86_64__
-	/* many extractors on AMD64 require 512M of virtual memory, so we limit heap too */
-	getrlimit (RLIMIT_AS, &rl);
-	rl.rlim_cur = MAX_MEM_AMD64*1024*1024;
-	fail |= setrlimit (RLIMIT_AS, &rl);
-
-	getrlimit (RLIMIT_DATA, &rl);
-	rl.rlim_cur = MAX_MEM*1024*1024;
-	fail |= setrlimit (RLIMIT_DATA, &rl);
-#else
-	/* on other architectures, 128M of virtual memory seems to be enough */
-	getrlimit (RLIMIT_AS, &rl);
-	rl.rlim_cur = MAX_MEM*1024*1024;
-	fail |= setrlimit (RLIMIT_AS, &rl);
-#endif
-
-	if (fail) {
-		g_printerr ("Error trying to set memory limit for tracker-extract\n");
-        }
-
-	return !fail;
-#endif
-}
-
-static void
-child_cb (gpointer user_data)
-{
-#ifndef OS_WIN32
-	struct 	rlimit cpu_limit;
-	gint	timeout = GPOINTER_TO_INT (user_data);
-
-	/* set cpu limit */
-	getrlimit (RLIMIT_CPU, &cpu_limit);
-	cpu_limit.rlim_cur = timeout;
-	cpu_limit.rlim_max = timeout + 1;
-
-	if (setrlimit (RLIMIT_CPU, &cpu_limit) != 0) {
-		g_printerr ("Error trying to set resource limit for cpu\n");
-	}
-
-	set_memory_rlimits ();
-
-	/* Set child's niceness to 19 */
-        errno = 0;
-        /* nice() uses attribute "warn_unused_result" and so complains if we do not check its
-           returned value. But it seems that since glibc 2.2.4, nice() can return -1 on a
-           successful call so we have to check value of errno too. Stupid... */
-        if (nice (19) == -1 && errno) {
-                g_printerr ("ERROR: trying to set nice value\n");
-        }
-
-	/* have this as a precaution in cases where cpu limit has not been reached due to spawned app sleeping */
-	alarm (timeout+2);
-#endif
-}
-
-gboolean
 tracker_spawn (gchar **argv, 
                gint    timeout, 
                gchar **tmp_stdout, 
@@ -153,7 +84,7 @@ tracker_spawn (gchar **argv,
                              argv,
                              NULL,
                              G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL,
-                             child_cb,
+                             tracker_spawn_child_func,
                              GINT_TO_POINTER (timeout),
                              tmp_stdout,
                              NULL,
@@ -392,7 +323,7 @@ main (int argc, char *argv[])
 	GMainLoop  *main_loop;
 	GIOChannel *input;
 
-	set_memory_rlimits ();
+	tracker_memory_setrlimits ();
 
 	if (!g_thread_supported ()) {
 		g_thread_init (NULL);

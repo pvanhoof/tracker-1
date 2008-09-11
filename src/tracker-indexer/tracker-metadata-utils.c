@@ -95,7 +95,10 @@ process_watch_cb (GPid     pid,
 		  gint     status,
 		  gpointer user_data)
 {
-	g_debug ("Process '%d' exited with code: %d", pid, status);
+	g_debug ("Process '%d' exited with code: %d->'%s'", 
+		 pid, 
+		 status,
+		 g_strerror (status));
 
 	if (user_data == metadata_context) {
 		destroy_process_context (metadata_context);

@@ -1,5 +1,16 @@
 2008-09-11  Martyn Russell  <martyn@imendio.com>
 
+	* src/tracker-extract/Makefile.am: Cleaned up Makefile.
+
+	* src/tracker-extract/tracker-extract.c: Use functions from
+	libtracker-common instead of duplicating our own here.
+	
+	* src/tracker-indexer/tracker-metadata-utils.c:
+	(process_watch_cb): Print the g_strerror() for the error code we
+	get back from an exiting process from the extractor.
+
+2008-09-11  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-os-dependant-unix.c: Cleaned up
 	* src/libtracker-common/tracker-os-dependant.h: 
 	functions. Added parameter checks for all public functions. Made

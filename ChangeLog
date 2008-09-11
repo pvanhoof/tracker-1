@@ -1,3 +1,13 @@
+2008-09-11  Martyn Russell  <martyn@imendio.com>
+
+	* src/tracker-indexer/tracker-indexer.c: (process_file): Add some
+	compiler hints to optimize the code here a little.
+	
+	* src/tracker-indexer/tracker-metadata-utils.c:
+	(tracker_metadata_utils_get_text),
+	(tracker_metadata_utils_get_thumbnail): Disable thumbnail
+	retrieval until it is faster.
+
 2008-09-10  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-file-utils.[ch]:

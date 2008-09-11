@@ -697,8 +697,8 @@ indexer_update_word (DEPOT       *index,
 
 static gboolean
 cache_flush_item (gpointer key,
-		     gpointer value,
-		     gpointer user_data)
+		  gpointer value,
+		  gpointer user_data)
 {
 	GArray *array;
 	DEPOT  *index;

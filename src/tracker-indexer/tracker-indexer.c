@@ -1890,7 +1890,6 @@ should_index_file (TrackerIndexer *indexer,
 	
 	return TRUE;
 }
-
 static gboolean
 process_file (TrackerIndexer *indexer,
 	      PathInfo       *info)
@@ -1915,7 +1914,7 @@ process_file (TrackerIndexer *indexer,
 	}
 		
 	/* For normal files, we do some checks, for moves we don't need these */
-	if (!info->other_file) {
+	if (G_LIKELY (!info->other_file)) {
 		if (!should_index_file (indexer, info, dirname, basename)) {
 			g_debug ("File is already up to date: '%s'", info->file->path);
 

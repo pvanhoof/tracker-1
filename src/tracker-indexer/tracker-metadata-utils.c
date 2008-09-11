@@ -19,16 +19,23 @@
  * Boston, MA  02110-1301, USA.
  */
 
+#include <gio/gio.h>
+
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-os-dependant.h>
 #include <libtracker-common/tracker-ontology.h>
-#include <gio/gio.h>
+
 #include <string.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
+
+/* This is temporarily disabled until hildon-thumbnailer is enabled.
+ * There are performance concerns with this enabled.
+ */
+#undef THUMBNAIL_RETRIEVAL_ENABLED
 
 #ifdef HAVE_HILDON_THUMBNAIL
 #include <hildon-thumbnail-factory.h>
@@ -734,6 +741,7 @@ static void
 tracker_metadata_utils_get_thumbnail (const gchar *path,
 				      const gchar *mime)
 {
+#ifdef THUMBNAIL_RETRIEVAL_ENABLED
 #ifdef HAVE_HILDON_THUMBNAIL
 	hildon_thumbnail_factory_load (path, mime, 128, 128, NULL, NULL);
 #else
@@ -779,7 +787,6 @@ tracker_metadata_utils_get_thumbnail (const gchar *path,
 	g_debug ("Got thumbnail '%s' for '%s'", thumbnail->str, path);
 
 	g_string_free (thumbnail, TRUE);
-
-#endif
-
+#endif /* HAVE_HILDON_THUMBNAIL */
+#endif /* THUMBNIAL_RETRIEVAL_ENABLED */
 }

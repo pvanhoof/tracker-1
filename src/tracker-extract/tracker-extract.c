@@ -74,24 +74,6 @@ tracker_generic_date_to_iso8601 (const gchar *date,
         return result;
 }
 
-gboolean
-tracker_spawn (gchar **argv, 
-               gint    timeout, 
-               gchar **tmp_stdout, 
-               gint   *exit_status)
-{
-	return g_spawn_sync (NULL,
-                             argv,
-                             NULL,
-                             G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL,
-                             tracker_spawn_child_func,
-                             GINT_TO_POINTER (timeout),
-                             tmp_stdout,
-                             NULL,
-                             exit_status,
-                             NULL);
-}
-
 static void
 initialize_extractors (void)
 {

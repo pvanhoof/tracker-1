@@ -1,5 +1,11 @@
 2008-09-11  Martyn Russell  <martyn@imendio.com>
 
+	* src/tracker-extract/tracker-extract.c: Use the libtracker-common
+	spawn function instead of duplicating the code here. Also the
+	libtracker-common function has a lot better error handling.
+
+2008-09-11  Martyn Russell  <martyn@imendio.com>
+
 	* src/tracker-extract/Makefile.am: Cleaned up Makefile.
 
 	* src/tracker-extract/tracker-extract.c: Use functions from

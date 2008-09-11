@@ -1,3 +1,8 @@
+2008-09-11  Mikael Ottela   <mikael.ottela@ixonos.com>
+
+	* src/tracker-indexer/tracker-metadata-utils.c: Fixed a date
+	metadata bug.
+	
 2008-09-11  Martyn Russell  <martyn@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer.c: (process_file): Add some

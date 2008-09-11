@@ -249,11 +249,16 @@ tracker_get_file_metadata (const gchar *uri,
 
 				g_free (uri_in_locale);
 
+                                debug ("Extractor - Found %d metadata items",
+                                       g_hash_table_size (meta_table));
+
 				return meta_table;
 			}
 		}
+
+                debug ("Extractor - Could not find any extractors to handle metadata type.");
 	} else {
-                debug ("No mime available, not extracting data");
+                debug ("Extractor - No mime available, not extracting data");
         }
 
 	g_free (uri_in_locale);

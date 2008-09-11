@@ -1,5 +1,10 @@
 2008-09-11  Martyn Russell  <martyn@imendio.com>
 
+	* src/tracker-extract/tracker-extract.c:
+	(tracker_get_file_metadata): Debugging improvements.
+
+2008-09-11  Martyn Russell  <martyn@imendio.com>
+
 	* src/tracker-extract/tracker-extract.c: Added debugging which can
 	be turned off using the #define DISABLE_DEBUGGING at the top.
 

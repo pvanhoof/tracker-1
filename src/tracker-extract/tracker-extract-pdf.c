@@ -1,6 +1,7 @@
-/* vim: set noet ts=8 sw=8 sts=0: */
-/* Tracker Extract - extracts embedded metadata from files
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2008, Nokia
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -20,16 +21,27 @@
 
 #include "config.h"
 
-#include <poppler.h>
 #include <string.h>
+#include <poppler.h>
+
 #include <glib.h>
 
 #include "tracker-extract.h"
 #include "tracker-xmp.h"
 
+#include <libtracker-common/tracker-utils.h>
+
+static void extract_pdf (const gchar *filename, 
+                         GHashTable  *metadata);
+
+static TrackerExtractorData data[] = {
+ 	{ "application/pdf", extract_pdf },
+	{ NULL, NULL }
+};
 
 static void
-tracker_extract_pdf (const gchar *filename, GHashTable *metadata)
+extract_pdf (const gchar *filename, 
+             GHashTable  *metadata)
 {
 	PopplerDocument *document;
 	gchar           *tmp;
@@ -65,27 +77,29 @@ tracker_extract_pdf (const gchar *filename, GHashTable *metadata)
         }
 
 	if (!tracker_is_empty_string (title)) {
-		g_hash_table_insert (metadata, g_strdup ("Doc:Title"), g_strdup (title));
+		g_hash_table_insert (metadata, 
+                                     g_strdup ("Doc:Title"), 
+                                     g_strdup (title));
         }
 	if (!tracker_is_empty_string (author)) {
-		g_hash_table_insert (metadata, g_strdup ("Doc:Author"), g_strdup (author));
+		g_hash_table_insert (metadata, 
+                                     g_strdup ("Doc:Author"), 
+                                     g_strdup (author));
         }
 	if (!tracker_is_empty_string (subject)) {
-		g_hash_table_insert (metadata, g_strdup ("Doc:Subject"), g_strdup (subject));
+		g_hash_table_insert (metadata, 
+                                     g_strdup ("Doc:Subject"), 
+                                     g_strdup (subject));
         }
 	if (!tracker_is_empty_string (keywords)) {
-		g_hash_table_insert (metadata, g_strdup ("Doc:Keywords"), g_strdup (keywords));
+		g_hash_table_insert (metadata, 
+                                     g_strdup ("Doc:Keywords"), 
+                                     g_strdup (keywords));
         }
 
-
-#if 0
-	GTimeVal creation_date_val = { creation_date, 0 };
-	g_hash_table_insert (metadata, g_strdup ("Doc.Created"),
-		g_time_val_to_iso8601 (creation_date_val));
-#endif
-
-	g_hash_table_insert (metadata, g_strdup ("Doc:PageCount"),
-		g_strdup_printf ("%d", poppler_document_get_n_pages (document)));
+	g_hash_table_insert (metadata, 
+                             g_strdup ("Doc:PageCount"),
+                             g_strdup_printf ("%d", poppler_document_get_n_pages (document)));
 
 	if ( metadata_xml ) {
 		tracker_read_xmp (metadata_xml, strlen (metadata_xml), metadata);
@@ -99,13 +113,6 @@ tracker_extract_pdf (const gchar *filename, GHashTable *metadata)
 
 	g_object_unref (document);
 }
-
-
-TrackerExtractorData data[] = {
- 	{ "application/pdf", tracker_extract_pdf },
-	{ NULL, NULL }
-};
-
 
 TrackerExtractorData *
 tracker_get_extractor_data (void)

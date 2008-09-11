@@ -1,5 +1,7 @@
-/* Tracker Extract - extracts embedded metadata from files
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2008, Nokia
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -22,11 +24,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
 #include <glib.h>
+
+#include <libtracker-common/tracker-os-dependant.h>
 
 #include "tracker-extract.h"
 #include "tracker-xmp.h"
-
 
 static void
 tracker_extract_imagemagick (const gchar *filename, GHashTable *metadata)

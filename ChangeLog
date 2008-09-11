@@ -1,5 +1,17 @@
 2008-09-11  Martyn Russell  <martyn@imendio.com>
 
+	* src/tracker-extract/tracker-extract-imagemagick.c:
+	* src/tracker-extract/tracker-extract-mplayer.c: 
+ 	* src/tracker-extract/tracker-extract-msoffice.c:
+	* src/tracker-extract/tracker-extract-oasis.c:
+	* src/tracker-extract/tracker-extract-pdf.c: 
+	* src/tracker-extract/tracker-extract-totem.c:
+	* src/tracker-extract/tracker-extract.[ch]: Code clean up and use
+	libtracker-common for functions instead of duplicating them in
+	these files.
+
+2008-09-11  Martyn Russell  <martyn@imendio.com>
+
 	* src/tracker-extract/tracker-extract.c: Use the libtracker-common
 	spawn function instead of duplicating the code here. Also the
 	libtracker-common function has a lot better error handling.

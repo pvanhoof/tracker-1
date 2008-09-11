@@ -1,5 +1,7 @@
-/* Tracker - audio/video metadata extraction that will call Totem
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
  * Copyright (C) 2006, Edward Duffy (eduffy@gmail.com)
+ * Copyright (C) 2008, Nokia
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -18,7 +20,11 @@
  */
 
 #include <string.h>
+
 #include <glib.h>
+
+#include <libtracker-common/tracker-os-dependant.h>
+
 #include "tracker-extract.h"
 
 static gchar *tags[][2] = {
@@ -29,10 +35,6 @@ static gchar *tags[][2] = {
 	{ "TOTEM_INFO_VIDEO_BITRATE",		"Video:Bitrate"		},
 	{ "TOTEM_INFO_TITLE",			"Video:Title"		},
 	{ "TOTEM_INFO_AUTHOR",			"Video:Author"		},
-	// { "TOTEM_INFO_YEAR", ...
-	// { "TOTEM_INFO_ALBUM", ...
-	// { "TOTEM_INFO_DURATION", ...
-	// { "TOTEM_INFO_TRACK_NUMBER", ...
 	{ "TOTEM_INFO_AUDIO_BITRATE",		"Audio:Bitrate"		},
 	{ "TOTEM_INFO_AUDIO_SAMPLE_RATE",	"Audio:Samplerate"	},
 	{ "TOTEM_INFO_AUDIO_CODEC",		"Audio:Codec"		},
@@ -40,9 +42,18 @@ static gchar *tags[][2] = {
 	{ NULL,					NULL			}
 };
 
+static void extract_totem (const gchar *filename, 
+                           GHashTable  *metadata);
+
+static TrackerExtractorData data[] = {
+	{ "audio/*", extract_totem },
+	{ "video/*", extract_totem },
+	{ NULL, NULL }
+};
 
 static void
-tracker_extract_totem (const gchar *filename, GHashTable *metadata)
+extract_totem (const gchar *filename, 
+               GHashTable  *metadata)
 {
 	gchar *argv[3];
 	gchar *totem;
@@ -52,7 +63,6 @@ tracker_extract_totem (const gchar *filename, GHashTable *metadata)
 	argv[2] = NULL;
 
 	if (tracker_spawn (argv, 10, &totem, NULL)) {
-
 		gchar **lines, **line;
 
 		lines = g_strsplit (totem, "\n", -1);
@@ -71,14 +81,6 @@ tracker_extract_totem (const gchar *filename, GHashTable *metadata)
 		}
 	}
 }
-
-
-TrackerExtractorData data[] = {
-	{ "audio/*", tracker_extract_totem },
-	{ "video/*", tracker_extract_totem },
-	{ NULL, NULL }
-};
-
 
 TrackerExtractorData *
 tracker_get_extractor_data (void)

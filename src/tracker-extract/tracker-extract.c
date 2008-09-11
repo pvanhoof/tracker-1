@@ -1,6 +1,7 @@
-/* vim: set noet ts=8 sw=8 sts=0: */
-/* Tracker Extract - extracts embedded metadata from files
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2008, Nokia
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public

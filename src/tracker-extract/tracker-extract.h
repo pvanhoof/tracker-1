@@ -1,5 +1,7 @@
-/* Tracker Extract - extracts embedded metadata from files
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2008, Nokia
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -25,6 +27,7 @@
 G_BEGIN_DECLS
 
 typedef struct TrackerExtractorData TrackerExtractorData;
+
 typedef TrackerExtractorData * (* TrackerExtractorDataFunc) (void);
 
 struct TrackerExtractorData {
@@ -36,11 +39,6 @@ struct TrackerExtractorData {
 
 gchar *               tracker_generic_date_to_iso8601 (const gchar  *date,
                                                        const gchar  *format);
-gboolean              tracker_is_empty_string         (const gchar  *s);
-gboolean              tracker_spawn                   (gchar       **argv,
-                                                       int           timeout,
-                                                       gchar       **tmp_stdout,
-                                                       gint         *exit_status);
 TrackerExtractorData *tracker_get_extractor_data      (void);
 
 G_END_DECLS

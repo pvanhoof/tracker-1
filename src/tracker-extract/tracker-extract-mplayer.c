@@ -1,6 +1,8 @@
-/* Tracker - audio/video metadata extraction that will call MPlayer
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
  * Copyright (C) 2006, Edward Duffy (eduffy@gmail.com)
  * Copyright (C) 2006, Laurent Aguerreche (laurent.aguerreche@free.fr)
+ * Copyright (C) 2008, Nokia
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -18,10 +20,24 @@
  * Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <string.h>
+
 #include <glib.h>
+
+#include <libtracker-common/tracker-os-dependant.h>
+
 #include "tracker-extract.h"
 
+static void extract_mplayer (const gchar *filename, 
+                             GHashTable  *metadata);
+
+static TrackerExtractorData data[] = {
+	{ "audio/*", extract_mplayer },
+	{ "video/*", extract_mplayer },
+	{ NULL, NULL }
+};
 
 static gchar *video_tags[][2] = {
 	{ "ID_VIDEO_HEIGHT",	"Video:Height"		},
@@ -32,7 +48,6 @@ static gchar *video_tags[][2] = {
 	{ NULL,			NULL			}
 };
 
-
 static gchar *audio_tags[][2] = {
 	{ "ID_AUDIO_BITRATE",	"Audio:Bitrate"		},
 	{ "ID_AUDIO_RATE",	"Audio:Samplerate"	},
@@ -40,7 +55,6 @@ static gchar *audio_tags[][2] = {
 	{ "ID_AUDIO_NCH",	"Audio:Channels"	},
 	{ NULL,			NULL			}
 };
-
 
 /* Some of "info_tags" tags can belong to Audio or/and video or none, so 3 cases :
  * 1/ tag does not belong to audio nor video, it is a general tag ;
@@ -60,16 +74,19 @@ static gchar *info_tags[][3] = {
 	{ NULL,			NULL,			NULL		}
 };
 
-
 static void
-copy_hash_table_entry (gpointer key, gpointer value, gpointer user_data)
+copy_hash_table_entry (gpointer key, 
+                       gpointer value,
+                       gpointer user_data)
 {
-	g_hash_table_insert ((GHashTable *) user_data, g_strdup ((char *) key), g_strdup ((char *) value));
+	g_hash_table_insert (user_data, 
+                             g_strdup (key), 
+                             g_strdup (value));
 }
 
-
 static void
-tracker_extract_mplayer (const gchar *filename, GHashTable *metadata)
+extract_mplayer (const gchar *filename, 
+                 GHashTable  *metadata)
 {
 	gchar *argv[10];
 	gchar *mplayer;
@@ -86,12 +103,17 @@ tracker_extract_mplayer (const gchar *filename, GHashTable *metadata)
 	argv[9] = NULL;
 
 	if (tracker_spawn (argv, 10, &mplayer, NULL)) {
-	
-		GPatternSpec *pattern_ID_AUDIO_ID, *pattern_ID_VIDEO_ID;
-		GPatternSpec *pattern_ID_AUDIO, *pattern_ID_VIDEO, *pattern_ID_CLIP_INFO_NAME, *pattern_ID_CLIP_INFO_VALUE, *pattern_ID_LENGTH;
-		GHashTable   *tmp_metadata_audio, *tmp_metadata_video;
-		gboolean     has_audio, has_video;
-		gchar	     *duration;
+		GPatternSpec  *pattern_ID_AUDIO_ID;
+                GPatternSpec  *pattern_ID_VIDEO_ID;
+		GPatternSpec  *pattern_ID_AUDIO;
+                GPatternSpec  *pattern_ID_VIDEO;
+                GPatternSpec  *pattern_ID_CLIP_INFO_NAME;
+                GPatternSpec  *pattern_ID_CLIP_INFO_VALUE;
+                GPatternSpec  *pattern_ID_LENGTH;
+		GHashTable    *tmp_metadata_audio;
+                GHashTable    *tmp_metadata_video;
+		gboolean       has_audio, has_video;
+		gchar	      *duration;
 		gchar	     **lines, **line;
 
 		pattern_ID_AUDIO_ID = g_pattern_spec_new ("ID_AUDIO_ID=*");
@@ -111,16 +133,12 @@ tracker_extract_mplayer (const gchar *filename, GHashTable *metadata)
 
 		lines = g_strsplit (mplayer, "\n", -1);
 
-
 		for (line = lines; *line; ++line) {
-
 			if (g_pattern_match_string (pattern_ID_AUDIO_ID, *line)) {
-				/* media has audio! */
 				has_audio = TRUE;
 			}
 
 			else if (g_pattern_match_string (pattern_ID_VIDEO_ID, *line)) {
-				/* media has video! */
 				has_video = TRUE;
 			}
 
@@ -227,14 +245,6 @@ tracker_extract_mplayer (const gchar *filename, GHashTable *metadata)
 		g_hash_table_destroy (tmp_metadata_video);
 	}
 }
-
-
-TrackerExtractorData data[] = {
-	{ "audio/*", tracker_extract_mplayer },
-	{ "video/*", tracker_extract_mplayer },
-	{ NULL, NULL }
-};
-
 
 TrackerExtractorData *
 tracker_get_extractor_data (void)

@@ -40,29 +40,28 @@
 #include <glib.h>
 #include <gmodule.h>
 
+#include <libtracker-common/tracker-type-utils.h>
+
 #include "tracker-extract.h"
 
-#define MAX_MEM 128
+#define MAX_MEM       128
 #define MAX_MEM_AMD64 512
 
 #define ISO8601_FORMAT "%Y-%m-%dT%H:%M:%S%z"
 
-GArray *extractors = NULL;
-guint   shutdown_timeout_id = 0;
+static GArray *extractors = NULL;
+static guint   shutdown_timeout_id = 0;
 
 gchar *
-tracker_generic_date_to_iso8601 (const gchar *date, const gchar *format)
+tracker_generic_date_to_iso8601 (const gchar *date, 
+                                 const gchar *format)
 {
-
-        gchar *processed;
         gchar *result;
         struct tm date_tm;
         
         memset (&date_tm, 0, sizeof (struct tm));
 
-        processed = strptime (date, format, &date_tm);
-        if (processed == NULL) {
-                // Unable to parse the input
+        if (strptime (date, format, &date_tm) == NULL) {
                 return NULL;
         }
 
@@ -78,7 +77,6 @@ tracker_is_empty_string (const gchar *s)
 {
         return s == NULL || s[0] == '\0';
 }
-
 
 static gboolean
 set_memory_rlimits (void)
@@ -145,9 +143,11 @@ child_cb (gpointer user_data)
 #endif
 }
 
-
 gboolean
-tracker_spawn (gchar **argv, gint timeout, gchar **tmp_stdout, gint *exit_status)
+tracker_spawn (gchar **argv, 
+               gint    timeout, 
+               gchar **tmp_stdout, 
+               gint   *exit_status)
 {
 	return g_spawn_sync (NULL,
                              argv,
@@ -161,31 +161,35 @@ tracker_spawn (gchar **argv, gint timeout, gchar **tmp_stdout, gint *exit_status
                              NULL);
 }
 
-
 static void
 initialize_extractors (void)
 {
 	GDir        *dir;
-	GError      *error = NULL;
+	GError      *error;
 	const gchar *name;
-	GArray      *generic_extractors = NULL;
+	GArray      *generic_extractors;
 
-	if (extractors != NULL)
+	if (extractors != NULL) {
 		return;
+        }
 
 	if (!g_module_supported ()) {
 		g_error ("Modules are not supported for this platform");
 		return;
 	}
 
-	extractors = g_array_sized_new (FALSE, TRUE,
+        error = NULL;
+        
+	extractors = g_array_sized_new (FALSE, 
+                                        TRUE,
 					sizeof (TrackerExtractorData),
 					10);
 
 	/* This array is going to be used to store
 	 * temporarily extractors with mimetypes such as "audio / *"
 	 */
-	generic_extractors = g_array_sized_new (FALSE, TRUE,
+	generic_extractors = g_array_sized_new (FALSE, 
+                                                TRUE,
 						sizeof (TrackerExtractorData),
 						10);
 
@@ -239,20 +243,21 @@ initialize_extractors (void)
 		g_free (module_path);
 	}
 
-	/* append the generic extractors at the end of
+	/* Append the generic extractors at the end of
 	 * the list, so the specific ones are used first
 	 */
-	g_array_append_vals (extractors, generic_extractors->data, generic_extractors->len);
-
+	g_array_append_vals (extractors, 
+                             generic_extractors->data, 
+                             generic_extractors->len);
 	g_array_free (generic_extractors, TRUE);
 }
 
-
 static GHashTable *
-tracker_get_file_metadata (const gchar *uri, const gchar *mime)
+tracker_get_file_metadata (const gchar *uri, 
+                           const gchar *mime)
 {
-	GHashTable      *meta_table;
-	gchar		*uri_in_locale;
+	GHashTable *meta_table;
+	gchar	   *uri_in_locale;
 
 	if (!uri) {
 		return NULL;
@@ -302,11 +307,11 @@ print_meta_table_data (gpointer pkey,
                        gpointer pvalue,
                        gpointer user_data)
 {
-	char *value;
+	gchar *value;
 
 	g_return_if_fail (pkey && pvalue);
 
-	value = g_locale_to_utf8 ((char *) pvalue, -1, NULL, NULL, NULL);
+	value = g_locale_to_utf8 (pvalue, -1, NULL, NULL, NULL);
 
 	if (value) {
 		if (value[0] != '\0') {
@@ -315,7 +320,7 @@ print_meta_table_data (gpointer pkey,
 			value = g_strdelimit (value, "=", '-');
 			value = g_strstrip (value);
 
-			g_print ("%s=%s;\n", (char *) pkey, value);
+			g_print ("%s=%s;\n", (gchar*) pkey, value);
 		}
 
 		g_free (value);
@@ -381,16 +386,17 @@ process_input_cb (GIOChannel   *channel,
 	return TRUE;
 }
 
-gint
-main (gint argc, gchar *argv[])
+int
+main (int argc, char *argv[])
 {
 	GMainLoop  *main_loop;
 	GIOChannel *input;
 
 	set_memory_rlimits ();
 
-	if (!g_thread_supported ())
+	if (!g_thread_supported ()) {
 		g_thread_init (NULL);
+        }
 
 	g_set_application_name ("tracker-extract");
 

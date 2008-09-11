@@ -19,18 +19,18 @@
  * Boston, MA  02110-1301, USA.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include <string.h>
+
 #include <gio/gio.h>
 
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-os-dependant.h>
 #include <libtracker-common/tracker-ontology.h>
-
-#include <string.h>
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
 
 /* This is temporarily disabled until hildon-thumbnailer is enabled.
  * There are performance concerns with this enabled.
@@ -65,8 +65,10 @@ typedef struct {
 	gpointer data;
 } ProcessContext;
 
+static void tracker_metadata_utils_get_thumbnail (const gchar *path,
+						  const gchar *mime);
+
 static ProcessContext *metadata_context = NULL;
-static void tracker_metadata_utils_get_thumbnail (const gchar *path, const gchar *mime);
 
 static void
 destroy_process_context (ProcessContext *context)
@@ -93,7 +95,7 @@ process_watch_cb (GPid     pid,
 		  gint     status,
 		  gpointer user_data)
 {
-	g_debug ("Process '%d' exited with code: %d\n", pid, status);
+	g_debug ("Process '%d' exited with code: %d", pid, status);
 
 	if (user_data == metadata_context) {
 		destroy_process_context (metadata_context);
@@ -109,8 +111,18 @@ create_process_context (const gchar **argv)
 	GIOFlags flags;
 	GPid pid;
 
-	if (!tracker_spawn_async_with_channels (argv, 10, &pid, &stdin_channel, &stdout_channel, NULL))
+	if (!tracker_spawn_async_with_channels (argv, 
+						10, 
+						&pid, 
+						&stdin_channel, 
+						&stdout_channel, 
+						NULL)) {
 		return NULL;
+	}
+
+	g_debug ("Process '%d' spawned for command:'%s'", 
+		 pid,
+		 argv[0]);
 
 	context = g_new0 (ProcessContext, 1);
 	context->pid = pid;
@@ -145,7 +157,11 @@ tracker_metadata_read (GIOChannel   *channel,
 		array = metadata_context->data;
 
 		do {
-			status = g_io_channel_read_line (metadata_context->stdout_channel, &line, NULL, NULL, NULL);
+			status = g_io_channel_read_line (metadata_context->stdout_channel, 
+							 &line, 
+							 NULL, 
+							 NULL, 
+							 NULL);
 
 			if (status == G_IO_STATUS_NORMAL && line && *line) {
 				g_strstrip (line);
@@ -173,7 +189,10 @@ tracker_metadata_read (GIOChannel   *channel,
 static gboolean
 create_metadata_context (void)
 {
-	const gchar *argv[2] = { LIBEXEC_PATH G_DIR_SEPARATOR_S "tracker-extract", NULL };
+	const gchar *argv[2] = { 
+		LIBEXEC_PATH G_DIR_SEPARATOR_S "tracker-extract", 
+		NULL 
+	};
 
 	if (metadata_context) {
 		destroy_process_context (metadata_context);
@@ -295,9 +314,9 @@ tracker_metadata_utils_get_embedded (const char      *path,
 
 	/* parse returned values and extract keys and associated metadata */
 	for (i = 0; values[i]; i++) {
-		char *meta_data, *sep;
-		const char *name, *value;
-		char *utf_value;
+		gchar *meta_data, *sep;
+		const gchar *name, *value;
+		gchar *utf_value;
 
 		meta_data = values[i];
 		sep = strchr (meta_data, '=');

@@ -25,6 +25,7 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 
+/* Process spawning */
 gboolean tracker_spawn                     (gchar       **argv,
 					    gint          timeout,
 					    gchar       **tmp_stdout,
@@ -35,8 +36,12 @@ gboolean tracker_spawn_async_with_channels (const gchar **argv,
 					    GIOChannel  **stdin_channel,
 					    GIOChannel  **stdout_channel,
 					    GIOChannel  **stderr_channel);
+void     tracker_spawn_child_func          (gpointer      user_data);
 
-void     tracker_child_cb                  (gpointer      user_data);
+/* File permissions */
 gchar *  tracker_create_permission_string  (struct stat   finfo);
+
+/* Memory limits */
+gboolean tracker_memory_setrlimits (void);
 
 #endif /* __LIBTRACKER_COMMON_OS_DEPENDANT_H__ */

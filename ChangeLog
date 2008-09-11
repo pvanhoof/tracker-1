@@ -1,3 +1,32 @@
+2008-09-11  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-os-dependant-unix.c: Cleaned up
+	* src/libtracker-common/tracker-os-dependant.h: 
+	functions. Added parameter checks for all public functions. Made
+	setrlimit function public since it is used in a lot of places.
+	
+	* src/libtracker-common/tracker-os-dependant-win.c: Updated this
+	* src/libtracker-common/tracker-os-dependant.h: 
+	module and wrote functions that were missing.
+
+	* src/tracker-extract/tracker-extract.c:
+	* src/tracker-extract/tracker-extract-abw.c:
+	* src/tracker-extract/tracker-extract-gstreamer.c:
+	* src/tracker-extract/tracker-extract-html.c: 
+	* src/tracker-extract/tracker-extract-jpeg.c: 
+	* src/tracker-extract/tracker-extract-ps.c: Cleaned up the code
+	here. Made a lot of things static which shouldn't be public.
+
+	* src/tracker-extract/tracker-extract-jpeg.c: Fixed some memory
+	leaks here in the "fix" functions.
+
+	* src/tracker-indexer/tracker-main.c: Temporarily removed the
+	SIGPIPE handling here so we know about it instead of just ignore
+	it.
+	
+	* src/tracker-indexer/tracker-metadata-utils.c: Improved the
+	debugging and cleaned up the code.
+
 2008-09-11  Mikael Ottela   <mikael.ottela@ixonos.com>
 
 	* src/tracker-indexer/tracker-metadata-utils.c: Fixed a date

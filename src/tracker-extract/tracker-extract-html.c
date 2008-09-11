@@ -1,5 +1,7 @@
-/* Tracker Extract - extracts embedded metadata from files
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
+/*
  * Copyright (C) 2007, Jason Kivlighn (jkivlighn@gmail.com)
+ * Copyright (C) 2008, Nokia
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -21,30 +23,43 @@
 
 #include <string.h>
 #include <glib.h>
+
 #include <libxml/HTMLparser.h>
+
 #include "tracker-extract.h"
 
 typedef enum {
 	READ_TITLE,
 } tag_type;
 
-
 typedef struct {
 	GHashTable *metadata;
 	tag_type current;
 } HTMLParseInfo;
 
+static void extract_html (const gchar *filename, 
+                          GHashTable  *metadata);
+
+static TrackerExtractorData data[] = {
+ 	{ "text/html",             extract_html },
+ 	{ "application/xhtml+xml", extract_html },
+	{ NULL, NULL }
+};
+
 static gboolean
-has_attribute (const xmlChar **atts, const char *attr, const char *val)
+has_attribute (const xmlChar **atts, 
+               const gchar    *attr, 
+               const gchar    *val)
 {
+	gint i;
+
 	if (!(atts && attr && val)) {
 		return FALSE;
 	}
 
-	int i;
-	for (i = 0; atts[i] && atts[i+1]; i+=2) {
-		if (strcasecmp ((char*)atts[i], attr) == 0) {
-			if (strcasecmp ((char*)atts[i+1], val) == 0) {
+	for (i = 0; atts[i] && atts[i + 1]; i += 2) {
+		if (strcasecmp ((gchar*) atts[i], attr) == 0) {
+			if (strcasecmp ((gchar*) atts[i + 1], val) == 0) {
 				return TRUE;
 			}
 		}
@@ -53,98 +68,114 @@ has_attribute (const xmlChar **atts, const char *attr, const char *val)
 	return FALSE;
 }
 
-
 static const xmlChar *
-lookup_attribute (const xmlChar **atts, const char *attr)
+lookup_attribute (const xmlChar **atts, 
+                  const gchar    *attr)
 {
+	gint i;
+
 	if (!atts || !attr) {
 		return NULL;
 	}
 
-	int i;
-	for (i = 0; atts[i] && atts[i+1]; i+=2) {
-		if (strcasecmp ((char*)atts[i], attr) == 0) {
-			return atts[i+1];
+	for (i = 0; atts[i] && atts[i + 1]; i += 2) {
+		if (strcasecmp ((gchar*) atts[i], attr) == 0) {
+			return atts[i + 1];
 		}
 	}
 
 	return NULL;
 }
 
-
 void
-startElement (void *info, const xmlChar *name, const xmlChar **atts)
+startElement (void           *info, 
+              const xmlChar  *name, 
+              const xmlChar **atts)
 {
 	if (!(info && name)) {
 		return;
 	}
 
 	/* Look for RDFa triple describing the license */
-	if (strcasecmp ((char*)name, "a") == 0) {
+	if (strcasecmp ((gchar*) name, "a") == 0) {
+		/* This tag is a license.  Ignore, however, if it is
+                 * referring to another document.
+                 */
+		if (has_attribute (atts, "rel", "license") && 
+                    has_attribute (atts, "about", NULL) == FALSE) {
+			const xmlChar *href;
 
-		/* This tag is a license.  Ignore, however, if it is referring to another document */
-		if (has_attribute (atts, "rel", "license") && !has_attribute (atts, "about", NULL)) {
+                        href = lookup_attribute (atts, "href");
 
-			const xmlChar *href = lookup_attribute (atts, "href");
 			if (href) {
-				g_hash_table_insert (((HTMLParseInfo *)info)->metadata, g_strdup ("File:License"),
-				                     g_strdup ((char*)href));
+				g_hash_table_insert (((HTMLParseInfo*) info)->metadata, 
+                                                     g_strdup ("File:License"),
+				                     g_strdup ((gchar*)  href));
 			}
 		}
-
-	} else if (strcasecmp ((char*)name, "title") == 0) {
-
-		((HTMLParseInfo *)info)->current = READ_TITLE;
-
-	} else if (strcasecmp ((char*)name, "meta") == 0) {
-
+        } else if (strcasecmp ((gchar*)name, "title") == 0) {
+		((HTMLParseInfo*) info)->current = READ_TITLE;
+	} else if (strcasecmp ((gchar*)name, "meta") == 0) {
 		if (has_attribute (atts, "name", "Author")) {
+			const xmlChar *author;
+                        
+                        author = lookup_attribute (atts, "content");
 
-			const xmlChar *author = lookup_attribute (atts, "content");
 			if (author) {
-				g_hash_table_insert (((HTMLParseInfo *)info)->metadata, g_strdup ("Doc:Author"),
-				                     g_strdup ((char*)author));
+				g_hash_table_insert (((HTMLParseInfo*) info)->metadata, 
+                                                     g_strdup ("Doc:Author"),
+				                     g_strdup ((gchar*) author));
 			}
 		}
 
 		if (has_attribute (atts, "name", "DC.Description")) {
+			const xmlChar *desc;
 
-			const xmlChar *desc = lookup_attribute (atts,"content");
+                        desc = lookup_attribute (atts,"content");
+
 			if (desc) {
-				g_hash_table_insert (((HTMLParseInfo *)info)->metadata, g_strdup ("Doc:Comments"),
-				                     g_strdup ((char*)desc));
+				g_hash_table_insert (((HTMLParseInfo*) info)->metadata, 
+                                                     g_strdup ("Doc:Comments"),
+				                     g_strdup ((gchar*) desc));
 			}
 		}
-
-            if (has_attribute (atts, "name", "KEYWORDS") || has_attribute (atts, "name", "keywords")) {
-									
-			const xmlChar *keywords = lookup_attribute (atts, "content");
-			if ( keywords ) {
-				g_hash_table_insert (((HTMLParseInfo *)info)->metadata, g_strdup ("Doc:Keywords"),
-							   g_strdup ((char*)keywords));			
-			}					
-		}
+                
+                if (has_attribute (atts, "name", "KEYWORDS") || 
+                    has_attribute (atts, "name", "keywords")) {
+                        const xmlChar *keywords;
+                        
+                        keywords = lookup_attribute (atts, "content");
+                        
+                        if (keywords) {
+                                g_hash_table_insert (((HTMLParseInfo*) info)->metadata, 
+                                                     g_strdup ("Doc:Keywords"),
+                                                     g_strdup ((gchar*) keywords));			
+                        }					
+                }
 	}
 }
 
 void
-characters (void *info, const xmlChar *ch, int len)
+characters (void          *info, 
+            const xmlChar *ch, 
+            int            len)
 {
-	switch (((HTMLParseInfo *)info)->current) {
-		case READ_TITLE:
-				g_hash_table_insert (((HTMLParseInfo *)info)->metadata, g_strdup ("Doc:Title"),
-				                     g_strdup ((char*)ch));
-				break;
-		default:
-                                break;
+	switch (((HTMLParseInfo*) info)->current) {
+        case READ_TITLE:
+                g_hash_table_insert (((HTMLParseInfo*) info)->metadata, 
+                                     g_strdup ("Doc:Title"),
+                                     g_strdup ((gchar*) ch));
+                break;
+        default:
+                break;
 	}
 
-	((HTMLParseInfo *)info)->current = -1;
+	((HTMLParseInfo*) info)->current = -1;
 }
 
-
 static void
-tracker_extract_html (const gchar* filename, GHashTable *metadata)
+extract_html (const gchar *filename, 
+              GHashTable  *metadata)
 {
 	xmlSAXHandler SAXHandlerStruct = {
 			NULL, /* internalSubset */
@@ -189,14 +220,6 @@ tracker_extract_html (const gchar* filename, GHashTable *metadata)
 		xmlFreeDoc (doc);
 	}
 }
-
-
-TrackerExtractorData data[] = {
- 	{ "text/html",             tracker_extract_html },
- 	{ "application/xhtml+xml", tracker_extract_html },
-	{ NULL, NULL }
-};
-
 
 TrackerExtractorData *
 tracker_get_extractor_data (void)

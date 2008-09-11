@@ -1,6 +1,7 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
 /*
  * Copyright (C) 2007, Mr Jamie McCracken (jamiemcc@gnome.org)
+ * Copyright (C) 2008, Nokia
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -18,10 +19,14 @@
  * Boston, MA  02110-1301, USA.
  */
 
+#include "config.h"
+
 #include <glib/gspawn.h>
 #include <glib/gstring.h>
 
 #include "mingw-compat.h"
+
+#include "tracker-log.h"
 #include "tracker-os-dependant.h"
 
 gboolean
@@ -33,12 +38,15 @@ tracker_spawn (gchar **argv,
 	GSpawnFlags   flags;
 	GError       *error = NULL;
         gchar       **new_argv;
-        gboolean      status;
+        gboolean      result;
         gint          length;
         gint          i;
 
-        for (i = 0; argv[i]; i++);
-        length = i;
+        g_return_val_if_fail (argv != NULL, FALSE);
+        g_return_val_if_fail (argv[0] != NULL, FALSE);
+        g_return_val_if_fail (timeout > 0, FALSE);
+
+	length = g_strv_length (argv);
 
         new_argv = g_new0 (gchar*, length + 3);
 
@@ -53,10 +61,10 @@ tracker_spawn (gchar **argv,
                 G_SPAWN_STDERR_TO_DEV_NULL;
 
 	if (!tmp_stdout) {
-		flags = flags | G_SPAWN_STDOUT_TO_DEV_NULL;
+		flags |= G_SPAWN_STDOUT_TO_DEV_NULL;
 	}
 
-	status = g_spawn_sync (NULL,
+	result = g_spawn_sync (NULL,
                                new_argv,
                                NULL,
                                flags,
@@ -67,14 +75,16 @@ tracker_spawn (gchar **argv,
                                exit_status,
                                &error);
 
-	if (!status) {
-                tracker_log (error->message);
-                g_error_free (error);	
-	}
+        if (error) {
+                g_warning ("Could not spawn command:'%s', %s",
+                           argv[0],
+                           error->message);
+                g_error_free (error);
+        }
 
         g_strfreev (new_argv);
 
-	return status;
+	return result;
 }
 
 gboolean
@@ -85,42 +95,51 @@ tracker_spawn_async_with_channels (const gchar **argv,
 				   GIOChannel  **stdout_channel,
 				   GIOChannel  **strerr_channel)
 {
-	gint stdin, stdout, stderr;
-	gboolean result;
-	GError *error = NULL;
+	GError   *error = NULL;
+	gboolean  result;
+	gint      stdin, stdout, stderr;
+
+        g_return_val_if_fail (argv != NULL, FALSE);
+        g_return_val_if_fail (argv[0] != NULL, FALSE);
+        g_return_val_if_fail (timeout > 0, FALSE);
+        g_return_val_if_fail (pid != NULL, FALSE);
 
 	result = g_spawn_async_with_pipes (NULL,
 					   (gchar **) argv,
 					   NULL,
 					   G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
-					   tracker_child_cb, GINT_TO_POINTER (timeout), pid,
-					   (stdin_channel) ? &stdin : NULL,
-					   (stdout_channel) ? &stdout : NULL,
-					   (stderr_channel) ? &stderr : NULL,
+					   tracker_spawn_child_func, 
+					   GINT_TO_POINTER (timeout), 
+					   pid,
+					   stdin_channel ? &stdin : NULL,
+					   stdout_channel ? &stdout : NULL,
+					   stderr_channel ? &stderr : NULL,
 					   &error);
 
 	if (error) {
-                g_warning ("Could not spawn command: %s", error->message);
+                g_warning ("Could not spawn command:'%s', %s",
+                           argv[0],
+                           error->message);
                 g_error_free (error);
 	}
 
 	if (stdin_channel) {
-		*stdin_channel = (result) ? g_io_channel_win32_new_fd (stdin) : NULL;
+		*stdin_channel = result ? g_io_channel_win32_new_fd (stdin) : NULL;
 	}
 
 	if (stdout_channel) {
-		*stdout_channel = (result) ? g_io_channel_win32_new_fd (stdout) : NULL;
+		*stdout_channel = result ? g_io_channel_win32_new_fd (stdout) : NULL;
 	}
 
 	if (stderr_channel) {
-		*stderr_channel = (result) ? g_io_channel_win32_new_fd (stderr) : NULL;
+		*stderr_channel = result ? g_io_channel_win32_new_fd (stderr) : NULL;
 	}
 
 	return result;
 }
 
 void
-tracker_child_cb (gpointer user_data)
+tracker_spawn_child_func (gpointer user_data)
 {
 }
 
@@ -154,3 +173,8 @@ tracker_create_permission_string (struct stat finfo)
 	return str;
 }
 
+gboolean 
+tracker_memory_setrlimits (void)
+{
+	return TRUE;
+}

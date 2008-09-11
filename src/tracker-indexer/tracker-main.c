@@ -35,6 +35,7 @@
 #include <libtracker-common/tracker-log.h>
 #include <libtracker-common/tracker-ontology.h>
 #include <libtracker-common/tracker-module-config.h>
+#include <libtracker-common/tracker-file-utils.h>
 
 #include <libtracker-db/tracker-db-manager.h>
 #include <libtracker-db/tracker-db-index-manager.h>
@@ -185,7 +186,7 @@ initialize_signal_handler (void)
 	sigaction (SIGABRT, &act, NULL);
 	sigaction (SIGUSR1, &act, NULL);
 	sigaction (SIGINT,  &act, NULL);
-        sigaction (SIGPIPE, &ign_act, NULL);
+        /* sigaction (SIGPIPE, &ign_act, NULL); */
 #endif
 }
 

@@ -1,5 +1,11 @@
 2008-09-11  Martyn Russell  <martyn@imendio.com>
 
+	* src/tracker-extract/tracker-extract.c: (debug_impl),
+	(print_meta_table_data): Fixed printing to stdout for the indexer
+	to use the returned data.
+
+2008-09-11  Martyn Russell  <martyn@imendio.com>
+
 	* src/tracker-extract/tracker-extract.c:
 	(tracker_get_file_metadata): Debugging improvements.
 

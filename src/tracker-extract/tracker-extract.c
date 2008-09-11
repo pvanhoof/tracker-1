@@ -106,7 +106,7 @@ debug_impl (const gchar *msg, ...)
         g_vfprintf (stderr, msg, args);
         va_end (args);
         
-        g_printerr ("\n");
+        g_fprintf (stderr, "\n");
 }
 
 static void
@@ -284,9 +284,11 @@ print_meta_table_data (gpointer pkey,
 			value = g_strdelimit (value, "=", '-');
 			value = g_strstrip (value);
 
-			debug ("Extractor - Found %s = %s;", 
+			debug ("Extractor - Found '%s' = '%s'", 
                                (gchar*) pkey, 
                                value);
+
+                        g_print ("%s=%s;\n", (gchar*) pkey, value);
 		}
 
 		g_free (value);

@@ -1,5 +1,10 @@
 2008-09-11  Martyn Russell  <martyn@imendio.com>
 
+	* src/tracker-extract/tracker-extract.c: Added debugging which can
+	be turned off using the #define DISABLE_DEBUGGING at the top.
+
+2008-09-11  Martyn Russell  <martyn@imendio.com>
+
 	* src/tracker-extract/tracker-extract-imagemagick.c:
 	* src/tracker-extract/tracker-extract-mplayer.c: 
  	* src/tracker-extract/tracker-extract-msoffice.c:

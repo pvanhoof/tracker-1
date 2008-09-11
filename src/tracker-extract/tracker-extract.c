@@ -52,6 +52,28 @@
 
 #define ISO8601_FORMAT "%Y-%m-%dT%H:%M:%S%z"
 
+/* #define DISABLE_DEBUG */
+
+#ifdef G_HAVE_ISO_VARARGS
+#  ifdef DISABLE_DEBUG
+#    define debug(...)
+#  else
+#    define debug(...) debug_impl (__VA_ARGS__)
+#  endif
+#elif defined(G_HAVE_GNUC_VARARGS)
+#  if DISABLE_DEBUG
+#    define debug(fmt...)
+#  else
+#    define debug(fmt...) debug_impl(fmt)
+#  endif
+#else
+#  if DISABLE_DEBUG
+#    define debug(x)
+#  else
+#    define debug debug_impl
+#  endif
+#endif
+
 static GArray *extractors = NULL;
 static guint   shutdown_timeout_id = 0;
 
@@ -73,6 +95,18 @@ tracker_generic_date_to_iso8601 (const gchar *date,
         strftime (result, 25, ISO8601_FORMAT , &date_tm);
 
         return result;
+}
+
+static void
+debug_impl (const gchar *msg, ...)
+{
+        va_list args;
+        
+        va_start (args, msg);
+        g_vfprintf (stderr, msg, args);
+        va_end (args);
+        
+        g_printerr ("\n");
 }
 
 static void
@@ -110,7 +144,7 @@ initialize_extractors (void)
 	dir = g_dir_open (MODULES_DIR, 0, &error);
 
 	if (!dir) {
-		g_error ("Error opening modules directory: %s\n", error->message);
+		g_error ("Error opening modules directory: %s", error->message);
 		g_error_free (error);
                 g_array_free (extractors, TRUE);
                 extractors = NULL;
@@ -177,18 +211,27 @@ tracker_get_file_metadata (const gchar *uri,
 		return NULL;
 	}
 
+        debug ("Extractor - Getting metadata from file:'%s' with mime:'%s'",
+               uri,
+               mime);
+
 	uri_in_locale = g_filename_from_utf8 (uri, -1, NULL, NULL, NULL);
 
 	if (!uri_in_locale) {
+                g_warning ("Could not convert uri:'%s' from UTF-8 to locale", uri);
 		return NULL;
 	}
 
 	if (!g_file_test (uri_in_locale, G_FILE_TEST_EXISTS)) {
+                g_warning ("File does not exist '%s'", uri_in_locale);
 		g_free (uri_in_locale);
 		return NULL;
 	}
 
-	meta_table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+	meta_table = g_hash_table_new_full (g_str_hash, 
+                                            g_str_equal, 
+                                            g_free, 
+                                            g_free);
 
 	if (mime) {
 		guint i;
@@ -209,7 +252,9 @@ tracker_get_file_metadata (const gchar *uri,
 				return meta_table;
 			}
 		}
-	}
+	} else {
+                debug ("No mime available, not extracting data");
+        }
 
 	g_free (uri_in_locale);
 
@@ -234,7 +279,9 @@ print_meta_table_data (gpointer pkey,
 			value = g_strdelimit (value, "=", '-');
 			value = g_strstrip (value);
 
-			g_print ("%s=%s;\n", (gchar*) pkey, value);
+			debug ("Extractor - Found %s = %s;", 
+                               (gchar*) pkey, 
+                               value);
 		}
 
 		g_free (value);
@@ -246,6 +293,8 @@ shutdown_app_timeout (gpointer user_data)
 {
 	GMainLoop *main_loop;
 
+        debug ("Extractor - Timed out, shutting down");
+
 	main_loop = (GMainLoop *) user_data;
 	g_main_loop_quit (main_loop);
 
@@ -255,6 +304,8 @@ shutdown_app_timeout (gpointer user_data)
 static void
 reset_shutdown_timeout (GMainLoop *main_loop)
 {
+        debug ("Extractor - Resetting timeout");
+
 	if (shutdown_timeout_id != 0) {
 		g_source_remove (shutdown_timeout_id);
 	}
@@ -269,6 +320,8 @@ process_input_cb (GIOChannel   *channel,
 {
 	GHashTable *meta;
 	gchar *filename, *mimetype;
+
+        debug ("Extractor - Processing input");
 
 	reset_shutdown_timeout ((GMainLoop *) user_data);
 
@@ -306,6 +359,7 @@ main (int argc, char *argv[])
 	GMainLoop  *main_loop;
 	GIOChannel *input;
 
+        debug ("Extractor - Initializing...");
 	tracker_memory_setrlimits ();
 
 	if (!g_thread_supported ()) {
@@ -319,11 +373,15 @@ main (int argc, char *argv[])
 	initialize_extractors ();
 	main_loop = g_main_loop_new (NULL, FALSE);
 
-	input = g_io_channel_unix_new (0);
+	input = g_io_channel_unix_new (STDIN_FILENO);
 	g_io_add_watch (input, G_IO_IN, process_input_cb, main_loop);
 
 	reset_shutdown_timeout (main_loop);
+
+        debug ("Extractor - Waiting for work");
 	g_main_loop_run (main_loop);
+
+        debug ("Extractor - Finished");
 
 	return EXIT_SUCCESS;
 }

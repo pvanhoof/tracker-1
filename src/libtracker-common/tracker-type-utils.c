@@ -41,7 +41,6 @@ static const char imonths[] = {
 static gboolean
 is_int (const gchar *str)
 {
-	gboolean valid;
 	gint     i, len;
 
 	if (!str || str[0] == '\0') {

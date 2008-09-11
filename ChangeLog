@@ -1,4 +1,17 @@
 2008-09-11  Mikael Ottela   <mikael.ottela@ixonos.com>
+	
+	* src/tracker-extract/tracker-extract-mp3.c: Added mime-type
+	audio/x-mp3 to the list of supported ones. Corrected some
+	metadata field names.
+	* src/tracker-extract/tracker-extract-jpeg.c: Call to xmp routines
+	fixed.
+	* src/libtracker-common/tracker-type-utils.c: Removed an unused
+	variable.
+	* src/tracker-indexer/tracker-indexer-db.c: Added a check that the
+	date given by extractor is valid.
+
+2008-09-11  Mikael Ottela   <mikael.ottela@ixonos.com>
+	
 	* src/libtracker-db/tracker-db-interface.c: Fixed a crash in
 	result sets.
 

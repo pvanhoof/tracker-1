@@ -269,9 +269,9 @@ extract_jpeg (const gchar *filename,
 				len = marker->data_length;
 
 				if (strncmp (XMP_NAMESPACE, str, XMP_NAMESPACE_LENGTH) == 0) {
-					read_xmp (str + XMP_NAMESPACE_LENGTH, 
-						  len - XMP_NAMESPACE_LENGTH,
-						  metadata);
+					tracker_read_xmp (str + XMP_NAMESPACE_LENGTH, 
+							  len - XMP_NAMESPACE_LENGTH,
+							  metadata);
 				}
 #endif /* HAVE_EXEMPI */
 				break;

@@ -668,14 +668,15 @@ tracker_db_set_metadata (TrackerService *service,
 
 		time_string = tracker_date_to_time_string (value);
 
-		tracker_db_interface_execute_procedure (iface, NULL,
-							"SetMetadataNumeric",
-							id_str,
-							tracker_field_get_id (field),
-							time_string,
-							NULL);
-		g_free (time_string);
-
+		if (time_string) {
+			tracker_db_interface_execute_procedure (iface, NULL,
+								"SetMetadataNumeric",
+								id_str,
+								tracker_field_get_id (field),
+								time_string,
+								NULL);
+			g_free (time_string);
+		}
 		break;
 
 	case TRACKER_FIELD_TYPE_FULLTEXT:

@@ -1,5 +1,10 @@
 2008-09-12  Martyn Russell  <martyn@imendio.com>
 
+	* src/tracker-extract/tracker-extract.c: Disabled debugging by
+	default. 
+
+2008-09-12  Martyn Russell  <martyn@imendio.com>
+
 	* src/tracker-extract/tracker-extract-mp3.c: Clean up the code.
 
 2008-09-11  Mikael Ottela   <mikael.ottela@ixonos.com>

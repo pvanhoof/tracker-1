@@ -52,7 +52,7 @@
 
 #define ISO8601_FORMAT "%Y-%m-%dT%H:%M:%S%z"
 
-/* #define DISABLE_DEBUG */
+#define DISABLE_DEBUG
 
 #ifdef G_HAVE_ISO_VARARGS
 #  ifdef DISABLE_DEBUG

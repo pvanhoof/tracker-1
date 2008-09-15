@@ -1,3 +1,9 @@
+2008-09-15  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/tracker-metadata-utils.c (tracker_metadata_read)
+	(tracker_text_read): Don't remove the idle func when we're done
+	reading metadata for one item, it can be reused for the next one.
+
 2008-09-15  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-file-utils.c:

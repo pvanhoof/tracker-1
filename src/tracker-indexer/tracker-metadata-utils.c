@@ -175,7 +175,7 @@ tracker_metadata_read (GIOChannel   *channel,
 		    (status == G_IO_STATUS_NORMAL && !*line)) {
 			/* all extractor output has been processed */
 			g_main_loop_quit (metadata_context->data_incoming_loop);
-			return FALSE;
+			return TRUE;
 		}
 	}
 
@@ -434,7 +434,7 @@ tracker_text_read (GIOChannel   *channel,
 		if (status == G_IO_STATUS_EOF ||
 		    status == G_IO_STATUS_ERROR) {
 			g_main_loop_quit (context->data_incoming_loop);
-			return FALSE;
+			return TRUE;
 		}
 	}
 

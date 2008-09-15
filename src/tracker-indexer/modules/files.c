@@ -56,7 +56,7 @@ tracker_module_file_get_service_type (TrackerFile *file)
         gchar *service_type;
 
         mime_type = tracker_file_get_mime_type (file->path);
-        service_type = tracker_ontology_service_get_by_mime (mime_type);
+        service_type = tracker_ontology_get_service_by_mime (mime_type);
         g_free (mime_type);
 
         return service_type;

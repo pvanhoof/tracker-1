@@ -292,7 +292,7 @@ tracker_files_get_service_type (TrackerFiles           *object,
 	}
 
 	/* Get service from mime */
-	value = tracker_ontology_service_get_by_mime (mime);
+	value = tracker_ontology_get_service_by_mime (mime);
 
 	if (value) {
 

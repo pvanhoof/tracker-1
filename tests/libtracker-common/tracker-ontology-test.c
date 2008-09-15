@@ -188,9 +188,9 @@ test_get_id_for_service (void)
 {
 	gint result_int;
 
-	result_int = tracker_ontology_service_get_id_by_name ("Test service");
+	result_int = tracker_ontology_get_service_id_by_name ("Test service");
 	g_assert_cmpint (result_int, ==, 0);
-	result_int = tracker_ontology_service_get_id_by_name ("trash");
+	result_int = tracker_ontology_get_service_id_by_name ("trash");
 	g_assert_cmpint (result_int, ==, -1);
 }
 
@@ -200,10 +200,10 @@ test_get_service_by_id (void)
 {
 	gchar *result_string;
 
-	result_string = tracker_ontology_service_get_by_id (0);
+	result_string = tracker_ontology_get_service_by_id (0);
 	g_assert ( g_str_equal (result_string, "Test service"));
 	g_free (result_string);
-	result_string = tracker_ontology_service_get_by_id (20);
+	result_string = tracker_ontology_get_service_by_id (20);
 	g_assert (!result_string);
 }
 
@@ -213,10 +213,10 @@ test_get_parent_service_by_id (void)
 {
 	gchar *result_string;
 
-	result_string = tracker_ontology_service_get_parent_by_id (0);
+	result_string = tracker_ontology_get_service_parent_by_id (0);
 	g_assert ( g_str_equal (result_string, "Parent service"));
 	g_free (result_string);
-	result_string = tracker_ontology_service_get_parent_by_id (1);
+	result_string = tracker_ontology_get_service_parent_by_id (1);
 	g_assert (!result_string);
 }
 
@@ -225,9 +225,9 @@ test_get_parent_id_for_service_id (void)
 {
 	gint result_int;
 
-	result_int = tracker_ontology_service_get_parent_id_by_id (0);
+	result_int = tracker_ontology_get_service_parent_id_by_id (0);
 	g_assert_cmpint (result_int, ==, 1);
-	result_int = tracker_ontology_service_get_parent_id_by_id (1);
+	result_int = tracker_ontology_get_service_parent_id_by_id (1);
 	g_assert_cmpint (result_int, ==, -1);
 }
 
@@ -236,10 +236,10 @@ test_get_parent_service (void)
 {
 	gchar *result_string;
 
-	result_string = tracker_ontology_service_get_parent ("Test service");
+	result_string = tracker_ontology_get_service_parent ("Test service");
 	g_assert (g_str_equal (result_string, "Parent service"));
 	g_free (result_string);
-	result_string = tracker_ontology_service_get_parent ("Parent service");
+	result_string = tracker_ontology_get_service_parent ("Parent service");
 	g_assert (!result_string);
 }
 
@@ -248,15 +248,15 @@ test_get_service_type_for_mime (void)
 {
 	gchar *value;
 
-	value = tracker_ontology_service_get_by_mime ("application/rtf");
+	value = tracker_ontology_get_service_by_mime ("application/rtf");
 	g_assert ( g_str_equal ("Parent service", value));
 	g_free (value);
 
-	value = tracker_ontology_service_get_by_mime ("images/jpeg");
+	value = tracker_ontology_get_service_by_mime ("images/jpeg");
 	g_assert ( g_str_equal ("Parent service", value));
 	g_free (value);
 
-	value = tracker_ontology_service_get_by_mime ("noexists/bla");
+	value = tracker_ontology_get_service_by_mime ("noexists/bla");
 	g_assert ( g_str_equal ("Other", value));
 	g_free (value);
 }
@@ -266,11 +266,11 @@ test_get_service (void)
 {
 	TrackerService *result_def;
 
-	result_def = tracker_ontology_service_get_by_name ("Test service");
+	result_def = tracker_ontology_get_service_by_name ("Test service");
 	g_assert (test_cmp_servicedef_equals (result_def, expected_results->def));
-	result_def = tracker_ontology_service_get_by_name ("No no no");
+	result_def = tracker_ontology_get_service_by_name ("No no no");
 	g_assert (!test_cmp_servicedef_equals (result_def, expected_results->def));
-	result_def = tracker_ontology_service_get_by_name ("Parent service");
+	result_def = tracker_ontology_get_service_by_name ("Parent service");
 	g_assert (test_cmp_servicedef_equals (result_def, expected_results->parent_def));
 }
 
@@ -279,9 +279,9 @@ test_get_db_for_service (void)
 {
 	TrackerDBType result_db;
 
-	result_db = tracker_ontology_service_get_db_by_name ("Test service");
+	result_db = tracker_ontology_get_service_db_by_name ("Test service");
 	g_assert (result_db == TRACKER_DB_TYPE_FILES); // ????? HARDCODED IN tracker-ontology!!!!!
-	result_db = tracker_ontology_service_get_db_by_name ("trash");
+	result_db = tracker_ontology_get_service_db_by_name ("trash");
 	g_assert (result_db == TRACKER_DB_TYPE_FILES);
 }
 
@@ -329,7 +329,7 @@ test_get_registered_service_types (void)
 {
 	GSList *service_types = NULL;
 
-	service_types = tracker_ontology_registered_service_types ();
+	service_types = tracker_ontology_get_service_names_registered ();
 
 	g_assert_cmpint (7, ==, g_slist_length (service_types));
 	
@@ -345,7 +345,7 @@ test_get_registered_field_types (void)
 	GSList *field_types = NULL;
 	
 	/* All registered field types */
-	field_types = tracker_ontology_registered_field_types (NULL);
+	field_types = tracker_ontology_get_field_names_registered (NULL);
 
 	g_assert_cmpint (1 ,==, g_slist_length (field_types));
 
@@ -355,12 +355,12 @@ test_get_registered_field_types (void)
 	g_slist_free (field_types);
 
 	/* Music field types */
-	field_types = tracker_ontology_registered_field_types ("Music");
+	field_types = tracker_ontology_get_field_names_registered ("Music");
 
 	g_assert (!field_types);
 
 	/* App field types */
-	field_types = tracker_ontology_registered_field_types ("Applications");
+	field_types = tracker_ontology_get_field_names_registered ("Applications");
 
 	g_assert_cmpint (1 ,==, g_slist_length (field_types));
 

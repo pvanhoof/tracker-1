@@ -281,7 +281,7 @@ update_metadata_index (const gchar  *id,
 	}
 
 	/* We only do differential updates so only changed words scores are updated */
-	sid = tracker_ontology_service_get_id_by_name (service);
+	sid = tracker_ontology_get_service_id_by_name (service);
 #if 0
 	tracker_db_update_differential_index (old_table, new_table, id, sid);
 #endif
@@ -515,24 +515,24 @@ tracker_db_create_array_of_services (const gchar *service,
 	count = 0;
 
 	if (add_files) {
-		services[count++] = tracker_ontology_service_get_id_by_name ("Folders");
-		services[count++] = tracker_ontology_service_get_id_by_name ("Documents");
-		services[count++] = tracker_ontology_service_get_id_by_name ("Images");
-		services[count++] = tracker_ontology_service_get_id_by_name ("Videos");
-		services[count++] = tracker_ontology_service_get_id_by_name ("Music");
-		services[count++] = tracker_ontology_service_get_id_by_name ("Text");
-		services[count++] = tracker_ontology_service_get_id_by_name ("Development");
-		services[count++] = tracker_ontology_service_get_id_by_name ("Other");
+		services[count++] = tracker_ontology_get_service_id_by_name ("Folders");
+		services[count++] = tracker_ontology_get_service_id_by_name ("Documents");
+		services[count++] = tracker_ontology_get_service_id_by_name ("Images");
+		services[count++] = tracker_ontology_get_service_id_by_name ("Videos");
+		services[count++] = tracker_ontology_get_service_id_by_name ("Music");
+		services[count++] = tracker_ontology_get_service_id_by_name ("Text");
+		services[count++] = tracker_ontology_get_service_id_by_name ("Development");
+		services[count++] = tracker_ontology_get_service_id_by_name ("Other");
 	}
 
 	if (add_emails) {
-		services[count++] = tracker_ontology_service_get_id_by_name ("EvolutionEmails");
-		services[count++] = tracker_ontology_service_get_id_by_name ("KMailEmails");
-		services[count++] = tracker_ontology_service_get_id_by_name ("ThunderbirdEmails");
+		services[count++] = tracker_ontology_get_service_id_by_name ("EvolutionEmails");
+		services[count++] = tracker_ontology_get_service_id_by_name ("KMailEmails");
+		services[count++] = tracker_ontology_get_service_id_by_name ("ThunderbirdEmails");
 	}
 	
 	if (add_conversations) {
-		services[count++] = tracker_ontology_service_get_id_by_name ("GaimConversations");
+		services[count++] = tracker_ontology_get_service_id_by_name ("GaimConversations");
 	}
 
 	services[count] = 0;
@@ -2568,7 +2568,7 @@ tracker_db_service_create (TrackerDBInterface *iface,
 	str_mtime = tracker_gint32_to_string (info->mtime);
 	str_offset = tracker_gint32_to_string (info->offset);
 
-	service_type_id = tracker_ontology_service_get_id_by_name (service);
+	service_type_id = tracker_ontology_get_service_id_by_name (service);
 
 	if (info->mime) {
 		g_debug ("service id for %s is %d and sid is %s with mime %s", 
@@ -2620,7 +2620,7 @@ tracker_db_service_create (TrackerDBInterface *iface,
 			g_object_unref (result_set_proc);
 		}
 
-                parent = tracker_ontology_service_get_parent (service);
+                parent = tracker_ontology_get_service_parent (service);
 		
 		if (parent) {
 			result_set_proc = tracker_db_exec_proc (iface, 
@@ -2675,7 +2675,7 @@ tracker_db_service_get_by_entity (TrackerDBInterface *iface,
 		tracker_db_result_set_get (result_set, 3, &service_type_id, -1);
 		g_object_unref (result_set);
 
-		result = tracker_ontology_service_get_by_id (service_type_id);
+		result = tracker_ontology_get_service_by_id (service_type_id);
 	}
 
 	return result;
@@ -2726,7 +2726,7 @@ tracker_db_file_get_id_as_string (TrackerDBInterface *iface,
 	g_return_val_if_fail (service != NULL, NULL);
 
 	/* Do we really need service here? */
-	service_id = tracker_ontology_service_get_id_by_name (service);
+	service_id = tracker_ontology_get_service_id_by_name (service);
 
 	if (service_id == -1) {
 		return NULL;

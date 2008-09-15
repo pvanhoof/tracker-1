@@ -417,7 +417,7 @@ tracker_metadata_get_registered_types (TrackerMetadata        *object,
 
 	requested = (strcmp (service_type, "*") == 0 ? NULL : service_type);
 
-	registered = tracker_ontology_registered_field_types (requested);
+	registered = tracker_ontology_get_field_names_registered (requested);
 
 	values = tracker_gslist_to_string_list (registered);
 
@@ -447,7 +447,7 @@ tracker_metadata_get_registered_classes (TrackerMetadata        *object,
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get registered classes");
 
-	registered = tracker_ontology_registered_service_types ();
+	registered = tracker_ontology_get_service_names_registered ();
 
 	values = tracker_gslist_to_string_list (registered);
 

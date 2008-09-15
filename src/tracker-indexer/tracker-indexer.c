@@ -1265,7 +1265,7 @@ item_create_or_update (TrackerIndexer  *indexer,
 		return;
 	}
 
-	service_def = tracker_ontology_service_get_by_name (service_type);
+	service_def = tracker_ontology_get_service_by_name (service_type);
 	g_free (service_type);
 
 	if (!service_def) {
@@ -1352,7 +1352,7 @@ item_move (TrackerIndexer  *indexer,
 		return;
 	}
 
-	service_def = tracker_ontology_service_get_by_name (service_type);
+	service_def = tracker_ontology_get_service_by_name (service_type);
 	g_free (service_type);
 
 	if (!service_def) {
@@ -1415,11 +1415,11 @@ item_delete (TrackerIndexer *indexer,
 			return;
 		}
 
-		name = tracker_ontology_service_get_by_id (service_type_id);
-		service_def = tracker_ontology_service_get_by_name (name);
+		name = tracker_ontology_get_service_by_id (service_type_id);
+		service_def = tracker_ontology_get_service_by_name (name);
 		g_free (name);
 	} else {
-		service_def = tracker_ontology_service_get_by_name (service_type);
+		service_def = tracker_ontology_get_service_by_name (service_type);
 		service_type_id = tracker_service_get_id (service_def);
 	}
 
@@ -1487,7 +1487,7 @@ handle_metadata_add (TrackerIndexer *indexer,
 
 	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
-	service_def = tracker_ontology_service_get_by_name (service_type);
+	service_def = tracker_ontology_get_service_by_name (service_type);
 	if (!service_def) {
 		g_set_error (error, 
 			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
@@ -1623,7 +1623,7 @@ handle_metadata_remove (TrackerIndexer *indexer,
 	guint service_id, i;
 	gchar *joined = NULL, *dirname = NULL, *basename = NULL;
 
-	service_def = tracker_ontology_service_get_by_name (service_type);
+	service_def = tracker_ontology_get_service_by_name (service_type);
 	if (!service_def) {
 		g_set_error (error, 
 			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
@@ -1736,7 +1736,7 @@ should_index_file (TrackerIndexer *indexer,
 		return FALSE;
 	}
 
-	service = tracker_ontology_service_get_by_name (service_type);
+	service = tracker_ontology_get_service_by_name (service_type);
 	g_free (service_type);
 
 	if (!service) {

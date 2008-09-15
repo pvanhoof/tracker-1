@@ -1,5 +1,23 @@
 2008-09-15  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-ontology.c:
+	* src/libtracker-common/tracker-ontology.h:
+	* src/libtracker-db/tracker-db-index-manager.c:
+	* src/libtracker-db/tracker-db-manager.c:
+	* src/tracker-indexer/modules/files.c:
+	* src/tracker-indexer/tracker-indexer.c:
+	* src/tracker-indexer/tracker-metadata-utils.c:
+	* src/trackerd/tracker-db.c:
+	* src/trackerd/tracker-files.c:
+	* src/trackerd/tracker-metadata.c:
+	* src/trackerd/tracker-query-tree.c:
+	* src/trackerd/tracker-rdf-query.c:
+	* src/trackerd/tracker-search.c:
+	* tests/libtracker-common/tracker-ontology-test.c: More ontology
+	API improvements.
+
+2008-09-15  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-ontology.[ch]:
 	* src/libtracker-db/tracker-db-index-manager.c:
 	* src/libtracker-db/tracker-db-manager.c: 

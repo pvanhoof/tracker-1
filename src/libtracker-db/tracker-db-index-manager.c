@@ -281,7 +281,7 @@ tracker_db_index_manager_get_index_by_service (const gchar *service)
 	g_return_val_if_fail (initialized == TRUE, NULL);
 	g_return_val_if_fail (service != NULL, NULL);
 
-	type = tracker_ontology_service_get_db_by_name (service);
+	type = tracker_ontology_get_service_db_by_name (service);
 
 	switch (type) {
 	case TRACKER_DB_TYPE_FILES:
@@ -308,12 +308,12 @@ tracker_db_index_manager_get_index_by_service_id (gint id)
 
 	g_return_val_if_fail (initialized == TRUE, NULL);
 
-	service = tracker_ontology_service_get_by_id (id);
+	service = tracker_ontology_get_service_by_id (id);
 	if (!service) {
 		return NULL;
 	}
 
-	type = tracker_ontology_service_get_db_by_name (service);
+	type = tracker_ontology_get_service_db_by_name (service);
 	g_free (service);
 
 	switch (type) {

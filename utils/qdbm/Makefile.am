@@ -19,6 +19,7 @@ search_SOURCES = 							\
 	search-word.c
 
 search_LDADD = 								\
+	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
 	$(top_builddir)/src/libtracker-db/libtracker-db.la	 	\
 	$(QDBM_LIBS) 							\
 	$(GLIB2_LIBS)							

@@ -9,32 +9,32 @@ noinst_PROGRAMS = $(TEST_PROGS)
 ##	tracker-db-manager-attach         \
 ##	tracker-db-manager-custom         \
 
-TEST_PROGS += \
-	tracker-db-dbus			\
-	union-performance		\
-	tracker-index-reader		\
+TEST_PROGS += 								\
+	tracker-db-dbus							\
+	union-performance						\
+	tracker-index-reader						\
 	tracker-index-writer
 
-INCLUDES = 				\
-	-DG_LOG_DOMAIN=\"Tracker\"	\
-	-I$(top_srcdir)/src		\
-	-I$(top_srcdir)/tests/common	\
-	$(DBUS_CFLAGS)			\
-	$(SQLITE3_CFLAGS)		\
-	$(QDBM_CFLAGS)			\
-	$(GMODULE_CFLAGS)		\
-	$(GTHREAD_CFLAGS)		\
+INCLUDES = 								\
+	-DG_LOG_DOMAIN=\"Tracker\"					\
+	-I$(top_srcdir)/src						\
+	-I$(top_srcdir)/tests/common					\
+	$(DBUS_CFLAGS)							\
+	$(SQLITE3_CFLAGS)						\
+	$(QDBM_CFLAGS)							\
+	$(GMODULE_CFLAGS)						\
+	$(GTHREAD_CFLAGS)						\
 	$(GLIB2_CFLAGS)
 
 
-union_performance_SOURCES = \
-	tracker-db-manager-common.h	\
-	tracker-db-manager-common.c	\
+union_performance_SOURCES =						\
+	tracker-db-manager-common.h					\
+	tracker-db-manager-common.c					\
 	union-performance.c
 
-union_performance_LDADD =                                              \
-	$(top_builddir)/src/libtracker-db/libtracker-db.la              \
+union_performance_LDADD =                                              	\
 	$(top_builddir)/src/libtracker-common/libtracker-common.la      \
+	$(top_builddir)/src/libtracker-db/libtracker-db.la              \
 	$(top_builddir)/tests/common/libtracker-testcommon.la           \
 	$(SQLITE3_LIBS)                                                 \
 	$(QDBM_LIBS)                                                    \
@@ -91,12 +91,12 @@ union_performance_LDADD =                                              \
 # 	$(GLIB2_LIBS)							\
 # 	-lz
 
-tracker_db_dbus_SOURCES = 	\
+tracker_db_dbus_SOURCES = 						\
 	tracker-db-dbus-test.c 		
 
 tracker_db_dbus_LDADD =							\
-	$(top_builddir)/src/libtracker-db/libtracker-db.la 		\
 	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
+	$(top_builddir)/src/libtracker-db/libtracker-db.la 		\
 	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
 	$(SQLITE3_LIBS)							\
 	$(GMODULE_LIBS)							\
@@ -105,10 +105,10 @@ tracker_db_dbus_LDADD =							\
 	-lz
 
 
-tracker_index_writer_SOURCES = \
+tracker_index_writer_SOURCES = 						\
 	tracker-index-writer-test.c
 
-tracker_index_writer_LDADD =							\
+tracker_index_writer_LDADD =						\
 	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
 	$(top_builddir)/src/libtracker-db/libtracker-db.la	 	\
 	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
@@ -118,16 +118,17 @@ tracker_index_writer_LDADD =							\
 	$(GLIB2_LIBS)							
 
 
-tracker_index_reader_SOURCES = \
+tracker_index_reader_SOURCES = 						\
 	tracker-index-reader-test.c 
 
-tracker_index_reader_LDADD = \
-	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
+tracker_index_reader_LDADD = 						\
+	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
 	$(top_builddir)/src/libtracker-db/libtracker-db.la 		\
-	$(GMODULE_LIBS) \
-	$(GTHREAD_LIBS) \
-	$(GLIB2_LIBS) \
-	$(DBUS_LIBS) \
-	$(GIO_LIBS) \
+	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
+	$(GMODULE_LIBS) 						\
+	$(GTHREAD_LIBS) 						\
+	$(GLIB2_LIBS) 							\
+	$(DBUS_LIBS) 							\
+	$(GIO_LIBS) 							\
 	$(QDBM_LIBS) 
 

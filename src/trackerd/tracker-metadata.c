@@ -154,7 +154,7 @@ tracker_metadata_get (TrackerMetadata        *object,
 				  "service type:'%s'",
 				  service_type);
 
-	if (!tracker_ontology_is_valid_service_type (service_type)) {
+	if (!tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error, 
                                              "Service '%s' is invalid or has not been implemented yet", 
@@ -259,7 +259,7 @@ tracker_metadata_set (TrackerMetadata        *object,
 				  "service type:'%s' uri:'%s'",
 				  service_type, uri);
 
-	if (!tracker_ontology_is_valid_service_type (service_type)) {
+	if (!tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error, 
                                              "Service_Type '%s' is invalid or has not been implemented yet", 
@@ -405,7 +405,7 @@ tracker_metadata_get_registered_types (TrackerMetadata        *object,
 				  service_type);
 
 	if (strcmp (service_type, "*") != 0 &&
-	    !tracker_ontology_is_valid_service_type (service_type)) {
+	    !tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error, 
                                              "Service_Type '%s' is invalid or has not been implemented yet", 
@@ -506,7 +506,7 @@ tracker_metadata_get_unique_values (TrackerMetadata        *object,
                                   service_type,
                                   query_condition);
 
-	if (!tracker_ontology_is_valid_service_type (service_type)) {
+	if (!tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error, 
                                              "Service_Type '%s' is invalid or has not been implemented yet", 
@@ -666,7 +666,7 @@ tracker_metadata_get_unique_values_with_count (TrackerMetadata        *object,
                                   query_condition,
 				  count_field);
 
-	if (!tracker_ontology_is_valid_service_type (service_type)) {
+	if (!tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error, 
                                              "Service_Type '%s' is invalid or has not been implemented yet", 
@@ -859,7 +859,7 @@ tracker_metadata_get_sum (TrackerMetadata        *object,
 				  field,
                                   query_condition);
 
-	if (!tracker_ontology_is_valid_service_type (service_type)) {
+	if (!tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
 					     "Service '%s' is invalid or has not been implemented yet",
@@ -994,7 +994,7 @@ tracker_metadata_get_count (TrackerMetadata        *object,
 				  field,
                                   query_condition);
 
-	if (!tracker_ontology_is_valid_service_type (service_type)) {
+	if (!tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
 					     "Service '%s' is invalid or has not been implemented yet",

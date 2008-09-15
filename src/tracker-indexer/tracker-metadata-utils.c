@@ -296,13 +296,13 @@ tracker_metadata_utils_get_embedded (const char      *path,
 	gchar **values, *service_type;
 	gint i;
 
-	service_type = tracker_ontology_get_service_type_for_mime (mimetype);
+	service_type = tracker_ontology_service_get_by_mime (mimetype);
 
 	if (!service_type) {
 		return;
 	}
 
-	if (!tracker_ontology_service_type_has_metadata (service_type)) {
+	if (!tracker_ontology_service_has_metadata (service_type)) {
 		g_free (service_type);
 		return;
 	}
@@ -742,7 +742,7 @@ tracker_metadata_utils_get_text (const gchar *path)
 	gchar *text = NULL;
 
 	mimetype = tracker_file_get_mime_type (path);
-	service_type = tracker_ontology_get_service_type_for_mime (mimetype);
+	service_type = tracker_ontology_service_get_by_mime (mimetype);
 
 	/* No need to filter text based files - index them directly */
 	if (service_type &&

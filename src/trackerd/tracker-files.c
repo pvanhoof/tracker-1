@@ -292,7 +292,7 @@ tracker_files_get_service_type (TrackerFiles           *object,
 	}
 
 	/* Get service from mime */
-	value = tracker_ontology_get_service_type_for_mime (mime);
+	value = tracker_ontology_service_get_by_mime (mime);
 
 	if (value) {
 
@@ -503,7 +503,7 @@ tracker_files_get_by_service_type (TrackerFiles           *object,
                                   offset,
                                   max_hits);
 
-	if (!tracker_ontology_is_valid_service_type (service)) {
+	if (!tracker_ontology_service_is_valid (service)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error, 
                                              "Service '%s' is invalid or has not been implemented yet", 

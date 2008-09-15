@@ -97,6 +97,8 @@ tracker_generic_date_to_iso8601 (const gchar *date,
         return result;
 }
 
+#ifndef DISABLE_DEBUG 
+
 static void
 debug_impl (const gchar *msg, ...)
 {
@@ -108,6 +110,8 @@ debug_impl (const gchar *msg, ...)
         
         g_fprintf (stderr, "\n");
 }
+
+#endif /* DISABLE_DEBUG */
 
 static void
 initialize_extractors (void)

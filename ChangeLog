@@ -1,3 +1,28 @@
+2008-09-15  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-ontology.[ch]:
+	* src/libtracker-db/tracker-db-index-manager.c:
+	* src/libtracker-db/tracker-db-manager.c: 
+	* src/tracker-indexer/modules/files.c:
+	* src/tracker-indexer/tracker-indexer-db.c:
+	* src/tracker-indexer/tracker-indexer.c: 
+	* src/tracker-indexer/tracker-metadata-utils.c:
+	* src/trackerd/tracker-db.c: 
+	* src/trackerd/tracker-files.c: 
+	* src/trackerd/tracker-keywords.c: 
+	* src/trackerd/tracker-metadata.c: 
+	* src/trackerd/tracker-query-tree.c:
+	* src/trackerd/tracker-rdf-query.c:
+	* src/trackerd/tracker-search.c:
+	* tests/libtracker-common/tracker-ontology-test.c:
+	* tests/libtracker-db/Makefile.am: Renamed a lot of the
+	tracker-ontology API to make it clearer and more consistent.
+
+	* src/tracker-extract/tracker-extract.c:
+	* tests/tracker-fts/tracker-fts-test.c: Fixed compiler warnings.
+	
+	* utils/qdbm/Makefile.am: Fixed linker errors.
+
 2008-09-12  Martyn Russell  <martyn@imendio.com>
 
 	* src/tracker-extract/tracker-extract.c: Disabled debugging by

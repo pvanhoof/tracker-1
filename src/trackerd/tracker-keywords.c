@@ -133,7 +133,7 @@ tracker_keywords_get_list (TrackerKeywords  *object,
 				  "service type:'%s'",
 				  service_type);
 
-	if (!tracker_ontology_is_valid_service_type (service_type)) {
+	if (!tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error, 
                                              "Service type '%s' is invalid or has not been implemented yet", 
@@ -182,7 +182,7 @@ tracker_keywords_get (TrackerKeywords        *object,
 				  service_type, 
 				  uri);
 
-	if (!tracker_ontology_is_valid_service_type (service_type)) {
+	if (!tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error, 
                                              "Service type '%s' is invalid or has not been implemented yet", 
@@ -258,7 +258,7 @@ tracker_keywords_add (TrackerKeywords        *object,
 				  service_type, 
 				  uri);
 
-	if (!tracker_ontology_is_valid_service_type (service_type)) {
+	if (!tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error, 
                                              "Service type '%s' is invalid or has not been implemented yet", 
@@ -337,7 +337,7 @@ tracker_keywords_remove (TrackerKeywords        *object,
 				  service_type, 
 				  uri);
 
-	if (!tracker_ontology_is_valid_service_type (service_type)) {
+	if (!tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error, 
                                              "Service type '%s' is invalid or has not been implemented yet", 
@@ -416,7 +416,7 @@ tracker_keywords_remove_all (TrackerKeywords        *object,
 				  service_type, 
 				  uri);
 
-	if (!tracker_ontology_is_valid_service_type (service_type)) {
+	if (!tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error, 
                                              "Service type '%s' is invalid or has not been implemented yet", 
@@ -509,7 +509,7 @@ tracker_keywords_search (TrackerKeywords        *object,
 				  offset,
 				  max_hits);
 
-	if (!tracker_ontology_is_valid_service_type (service_type)) {
+	if (!tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error, 
                                              "Service_Type '%s' is invalid or has not been implemented yet", 

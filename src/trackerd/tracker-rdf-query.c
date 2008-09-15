@@ -1103,7 +1103,7 @@ get_select_header (const char *service)
 	int type;
 		
 	result = g_string_new ("");
-	type = tracker_ontology_get_id_for_service_type (service);
+	type = tracker_ontology_service_get_id_by_name (service);
 
 	switch (type) {
 

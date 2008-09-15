@@ -346,7 +346,7 @@ load_service_file (TrackerDBInterface *iface,
 
 	for (i = 0; groups[i]; i++) {
 		g_message ("Trying to obtain service:'%s' in cache", groups[i]);
-		service = tracker_ontology_get_service_type_by_name (groups[i]);
+		service = tracker_ontology_service_get_by_name (groups[i]);
 
 		if (!service) {
 			tracker_db_interface_execute_procedure (iface,
@@ -1218,7 +1218,7 @@ function_get_service_name (TrackerDBInterface *interface,
 	GValue  result = { 0, };
 	gchar  *str;
 
-	str = tracker_ontology_get_service_type_by_id (g_value_get_int (&values[0]));
+	str = tracker_ontology_service_get_by_id (g_value_get_int (&values[0]));
 	g_value_init (&result, G_TYPE_STRING);
 	g_value_take_string (&result, str);
 
@@ -1233,7 +1233,7 @@ function_get_service_type (TrackerDBInterface *interface,
 	GValue result = { 0, };
 	gint   id;
 
-	id = tracker_ontology_get_id_for_service_type (g_value_get_string (&values[0]));
+	id = tracker_ontology_service_get_id_by_name (g_value_get_string (&values[0]));
 	g_value_init (&result, G_TYPE_INT);
 	g_value_set_int (&result, id);
 
@@ -1248,7 +1248,7 @@ function_get_max_service_type (TrackerDBInterface *interface,
 	GValue result = { 0, };
 	gint   id;
 
-	id = tracker_ontology_get_id_for_service_type (g_value_get_string (&values[0]));
+	id = tracker_ontology_service_get_id_by_name (g_value_get_string (&values[0]));
 	g_value_init (&result, G_TYPE_INT);
 	g_value_set_int (&result, id);
 
@@ -1661,7 +1661,7 @@ db_get_static_data (TrackerDBInterface *iface)
 				   id,
 				   g_slist_length (mimes));
 
-                        tracker_ontology_add_service_type (service,
+                        tracker_ontology_service_add (service,
 							   mimes,
 							   mime_prefixes);
 
@@ -1746,7 +1746,7 @@ db_get_static_xesam_data (TrackerDBInterface *iface)
 			 *   id,
 			 *   g_slist_length (mimes));
 			 *
-			 * tracker_ontology_add_service_type (service,
+			 * tracker_ontology_service_add (service,
 			 *				   mimes,
 			 *				   mime_prefixes);
 			 */
@@ -2583,7 +2583,7 @@ tracker_db_manager_get_db_interface_by_service (const gchar *service)
 	g_return_val_if_fail (initialized != FALSE, NULL);
 	g_return_val_if_fail (service != NULL, NULL);
 
-	type = tracker_ontology_get_db_by_service_type (service);
+	type = tracker_ontology_service_get_db_by_name (service);
 
 	switch (type) {
 	case TRACKER_DB_TYPE_EMAIL:
@@ -2641,7 +2641,7 @@ tracker_db_manager_get_db_interface_by_type (const gchar          *service,
 	g_return_val_if_fail (initialized != FALSE, NULL);
 	g_return_val_if_fail (service != NULL, NULL);
 
-	type = tracker_ontology_get_db_by_service_type (service);
+	type = tracker_ontology_service_get_db_by_name (service);
 
 	switch (type) {
 	case TRACKER_DB_TYPE_EMAIL:

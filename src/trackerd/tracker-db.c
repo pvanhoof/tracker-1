@@ -281,7 +281,7 @@ update_metadata_index (const gchar  *id,
 	}
 
 	/* We only do differential updates so only changed words scores are updated */
-	sid = tracker_ontology_get_id_for_service_type (service);
+	sid = tracker_ontology_service_get_id_by_name (service);
 #if 0
 	tracker_db_update_differential_index (old_table, new_table, id, sid);
 #endif
@@ -515,24 +515,24 @@ tracker_db_create_array_of_services (const gchar *service,
 	count = 0;
 
 	if (add_files) {
-		services[count++] = tracker_ontology_get_id_for_service_type ("Folders");
-		services[count++] = tracker_ontology_get_id_for_service_type ("Documents");
-		services[count++] = tracker_ontology_get_id_for_service_type ("Images");
-		services[count++] = tracker_ontology_get_id_for_service_type ("Videos");
-		services[count++] = tracker_ontology_get_id_for_service_type ("Music");
-		services[count++] = tracker_ontology_get_id_for_service_type ("Text");
-		services[count++] = tracker_ontology_get_id_for_service_type ("Development");
-		services[count++] = tracker_ontology_get_id_for_service_type ("Other");
+		services[count++] = tracker_ontology_service_get_id_by_name ("Folders");
+		services[count++] = tracker_ontology_service_get_id_by_name ("Documents");
+		services[count++] = tracker_ontology_service_get_id_by_name ("Images");
+		services[count++] = tracker_ontology_service_get_id_by_name ("Videos");
+		services[count++] = tracker_ontology_service_get_id_by_name ("Music");
+		services[count++] = tracker_ontology_service_get_id_by_name ("Text");
+		services[count++] = tracker_ontology_service_get_id_by_name ("Development");
+		services[count++] = tracker_ontology_service_get_id_by_name ("Other");
 	}
 
 	if (add_emails) {
-		services[count++] = tracker_ontology_get_id_for_service_type ("EvolutionEmails");
-		services[count++] = tracker_ontology_get_id_for_service_type ("KMailEmails");
-		services[count++] = tracker_ontology_get_id_for_service_type ("ThunderbirdEmails");
+		services[count++] = tracker_ontology_service_get_id_by_name ("EvolutionEmails");
+		services[count++] = tracker_ontology_service_get_id_by_name ("KMailEmails");
+		services[count++] = tracker_ontology_service_get_id_by_name ("ThunderbirdEmails");
 	}
 	
 	if (add_conversations) {
-		services[count++] = tracker_ontology_get_id_for_service_type ("GaimConversations");
+		services[count++] = tracker_ontology_service_get_id_by_name ("GaimConversations");
 	}
 
 	services[count] = 0;
@@ -667,7 +667,7 @@ tracker_db_get_field_name (const gchar *service,
 	gint key_field;
 
 	/* Replace with tracker_ontology_get_field_column_in_services */
-	key_field = tracker_ontology_metadata_key_in_service (service, meta_name);
+	key_field = tracker_ontology_service_get_key_metadata (service, meta_name);
 
 	if (key_field > 0) {
 		return g_strdup_printf ("KeyMetadata%d", key_field);
@@ -1553,7 +1553,7 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 		str = g_string_new ("");
 	}
 
-	key_field = tracker_ontology_metadata_key_in_service (res_service, key);
+	key_field = tracker_ontology_service_get_key_metadata (res_service, key);
 
 	update_index = 
 		tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_INDEX ||
@@ -1586,7 +1586,7 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 			/* Backup non-embedded data for embedded services */
 			if (do_backup && 
 			    !tracker_field_get_embedded (def) && 
-			    tracker_ontology_service_type_has_embedded (service_type)) {
+			    tracker_ontology_service_has_embedded (service_type)) {
 				backup_non_embedded_metadata (iface, 
 							      service_id, 
 							      tracker_field_get_id (def), 
@@ -1620,7 +1620,7 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 			/* Backup non-embedded data for embedded services */
 			if (do_backup &&
 			    !tracker_field_get_embedded (def) && 
-			    tracker_ontology_service_type_has_embedded (service_type)) {
+			    tracker_ontology_service_has_embedded (service_type)) {
 				backup_non_embedded_metadata (iface, service_id, tracker_field_get_id (def), values[i]);
 			}
 
@@ -1667,7 +1667,7 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 			/* Backup non-embedded data for embedded services */
 			if (do_backup && 
 			    !tracker_field_get_embedded (def) && 
-			    tracker_ontology_service_type_has_embedded (service_type)) {
+			    tracker_ontology_service_has_embedded (service_type)) {
 				backup_non_embedded_metadata (iface, 
 							      service_id, 
 							      tracker_field_get_id (def), 
@@ -1701,7 +1701,7 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 			/* Backup non-embedded data for embedded services */
 			if (do_backup && 
 			    !tracker_field_get_embedded (def) && 
-			    tracker_ontology_service_type_has_embedded (service_type)) {
+			    tracker_ontology_service_has_embedded (service_type)) {
 				backup_non_embedded_metadata (iface, 
 							      service_id, 
 							      tracker_field_get_id (def), 
@@ -1727,7 +1727,7 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 			/* Backup non-embedded data for embedded services */
 			if (do_backup && 
 			    !tracker_field_get_embedded (def) && 
-			    tracker_ontology_service_type_has_embedded (service_type)) {
+			    tracker_ontology_service_has_embedded (service_type)) {
 				backup_non_embedded_metadata (iface, 
 							      service_id, 
 							      tracker_field_get_id (def), 
@@ -1768,7 +1768,7 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 			/* backup non-embedded data for embedded services */
 			if (do_backup && 
 			    !tracker_field_get_embedded (def) && 
-			    tracker_ontology_service_type_has_embedded (service_type)) {
+			    tracker_ontology_service_has_embedded (service_type)) {
 				backup_non_embedded_metadata (iface,
 							      service_id, 
 							      tracker_field_get_id (def), 
@@ -1870,7 +1870,7 @@ tracker_db_metadata_delete_value (TrackerDBInterface *iface,
 	new_value = NULL;
 
 	if (!tracker_field_get_embedded (def) && 
-            tracker_ontology_service_type_has_embedded (service)) {
+            tracker_ontology_service_has_embedded (service)) {
 		backup_delete_non_embedded_metadata_value (iface, 
 							   id, 
 							   tracker_field_get_id (def), 
@@ -1884,7 +1884,7 @@ tracker_db_metadata_delete_value (TrackerDBInterface *iface,
 		return;
 	}
 
-	key_field = tracker_ontology_metadata_key_in_service (res_service, key);
+	key_field = tracker_ontology_service_get_key_metadata (res_service, key);
 
 	update_index = 
 		tracker_field_get_data_type (def) == TRACKER_FIELD_TYPE_INDEX ||
@@ -2035,7 +2035,7 @@ tracker_db_metadata_delete (TrackerDBInterface *iface,
 	}
 
 	if (!tracker_field_get_embedded (def) && 
-	     tracker_ontology_service_type_has_embedded (service)) {
+	     tracker_ontology_service_has_embedded (service)) {
 		backup_delete_non_embedded_metadata (iface,
 						     id, 
 						     tracker_field_get_id (def));
@@ -2048,7 +2048,7 @@ tracker_db_metadata_delete (TrackerDBInterface *iface,
 		return;
 	}
 
-	key_field = tracker_ontology_metadata_key_in_service (res_service, key);
+	key_field = tracker_ontology_service_get_key_metadata (res_service, key);
 
 	update_index = 
 		update_indexes && 
@@ -2568,7 +2568,7 @@ tracker_db_service_create (TrackerDBInterface *iface,
 	str_mtime = tracker_gint32_to_string (info->mtime);
 	str_offset = tracker_gint32_to_string (info->offset);
 
-	service_type_id = tracker_ontology_get_id_for_service_type (service);
+	service_type_id = tracker_ontology_service_get_id_by_name (service);
 
 	if (info->mime) {
 		g_debug ("service id for %s is %d and sid is %s with mime %s", 
@@ -2620,7 +2620,7 @@ tracker_db_service_create (TrackerDBInterface *iface,
 			g_object_unref (result_set_proc);
 		}
 
-                parent = tracker_ontology_get_parent_service (service);
+                parent = tracker_ontology_service_get_parent (service);
 		
 		if (parent) {
 			result_set_proc = tracker_db_exec_proc (iface, 
@@ -2675,7 +2675,7 @@ tracker_db_service_get_by_entity (TrackerDBInterface *iface,
 		tracker_db_result_set_get (result_set, 3, &service_type_id, -1);
 		g_object_unref (result_set);
 
-		result = tracker_ontology_get_service_type_by_id (service_type_id);
+		result = tracker_ontology_service_get_by_id (service_type_id);
 	}
 
 	return result;
@@ -2726,7 +2726,7 @@ tracker_db_file_get_id_as_string (TrackerDBInterface *iface,
 	g_return_val_if_fail (service != NULL, NULL);
 
 	/* Do we really need service here? */
-	service_id = tracker_ontology_get_id_for_service_type (service);
+	service_id = tracker_ontology_service_get_id_by_name (service);
 
 	if (service_id == -1) {
 		return NULL;

@@ -451,7 +451,7 @@ tracker_search_get_hit_count (TrackerSearch          *object,
 				  service,
 				  search_text);
 
-	if (!tracker_ontology_is_valid_service_type (service)) {
+	if (!tracker_ontology_service_is_valid (service)) {
 		g_set_error (&actual_error,
 			     TRACKER_DBUS_ERROR,
 			     0,
@@ -547,7 +547,7 @@ tracker_search_get_hit_count_all (TrackerSearch          *object,
 
 		g_value_init (&value, G_TYPE_STRING);
 		g_value_take_string (&value, 
-				     tracker_ontology_get_service_type_by_id (count.service_type_id));
+				     tracker_ontology_service_get_by_id (count.service_type_id));
 		_tracker_db_result_set_set_value (result_set, 0, &value);
 		g_value_unset (&value);
 
@@ -605,7 +605,7 @@ tracker_search_text (TrackerSearch          *object,
 				  offset,
 				  max_hits);
 
-	if (!tracker_ontology_is_valid_service_type (service)) {
+	if (!tracker_ontology_service_is_valid (service)) {
 		g_set_error (&actual_error,
 			     TRACKER_DBUS_ERROR,
 			     0,
@@ -709,7 +709,7 @@ tracker_search_text_detailed (TrackerSearch          *object,
 				  offset,
 				  max_hits);
 
-	if (!tracker_ontology_is_valid_service_type (service)) {
+	if (!tracker_ontology_service_is_valid (service)) {
 		g_set_error (&actual_error,
 			     TRACKER_DBUS_ERROR,
 			     0,
@@ -781,7 +781,7 @@ tracker_search_get_snippet (TrackerSearch          *object,
 				  search_text,
 				  id);
 
-	if (!tracker_ontology_is_valid_service_type (service)) {
+	if (!tracker_ontology_service_is_valid (service)) {
 		g_set_error (&actual_error,
 			     TRACKER_DBUS_ERROR,
 			     0,
@@ -946,7 +946,7 @@ tracker_search_metadata (TrackerSearch          *object,
 				  offset,
 				  max_hits);
 
-	if (!tracker_ontology_is_valid_service_type (service)) {
+	if (!tracker_ontology_service_is_valid (service)) {
 		g_set_error (&actual_error,
 			     TRACKER_DBUS_ERROR,
 			     0,
@@ -1012,7 +1012,7 @@ tracker_search_matching_fields (TrackerSearch         *object,
 				  search_text,
 				  id);
 
-	if (!tracker_ontology_is_valid_service_type (service)) {
+	if (!tracker_ontology_service_is_valid (service)) {
 		g_set_error (&actual_error,
 			     TRACKER_DBUS_ERROR,
 			     0,
@@ -1104,7 +1104,7 @@ tracker_search_query (TrackerSearch          *object,
 				  sort_by_service ? "yes" : "no",
 				  sort_desc ? "yes" : "no");
 
-	if (!tracker_ontology_is_valid_service_type (service)) {
+	if (!tracker_ontology_service_is_valid (service)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
 					     0,

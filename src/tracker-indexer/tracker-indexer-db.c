@@ -542,8 +542,8 @@ tracker_db_get_property_values (TrackerService     *service_def,
 
 	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service_def),
 							     TRACKER_DB_CONTENT_TYPE_METADATA);
-	metadata_key = tracker_ontology_metadata_key_in_service (tracker_service_get_name (service_def),
-								 tracker_field_get_name (field_def));
+	metadata_key = tracker_ontology_service_get_key_metadata (tracker_service_get_name (service_def),
+								  tracker_field_get_name (field_def));
 
 	if (metadata_key > 0) {
 		gchar *query;
@@ -691,8 +691,8 @@ tracker_db_set_metadata (TrackerService *service,
 		break;
 	}
 
-	metadata_key = tracker_ontology_metadata_key_in_service (tracker_service_get_name (service),
-								 tracker_field_get_name (field));
+	metadata_key = tracker_ontology_service_get_key_metadata (tracker_service_get_name (service),
+								  tracker_field_get_name (field));
 	if (metadata_key > 0) {
 		tracker_db_interface_execute_query (iface, NULL,
 						    "update Services set KeyMetadata%d = '%s' where id = %d",
@@ -768,8 +768,8 @@ tracker_db_delete_metadata (TrackerService *service,
 		break;
 	}
 
-	metadata_key = tracker_ontology_metadata_key_in_service (tracker_service_get_name (service),
-								 tracker_field_get_name (field));
+	metadata_key = tracker_ontology_service_get_key_metadata (tracker_service_get_name (service),
+								  tracker_field_get_name (field));
 	if (metadata_key > 0) {
 		tracker_db_interface_execute_query (iface, NULL,
 						    "update Services set KeyMetadata%d = '%s' where id = %d",

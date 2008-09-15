@@ -862,7 +862,7 @@ tracker_query_tree_get_hit_counts (TrackerQueryTree *tree)
 		/* Update service's parent count too (if it has a
                  * parent).
                  */
-		parent_id = tracker_ontology_get_parent_id_for_service_id (rank.service_type_id);
+		parent_id = tracker_ontology_service_get_parent_id_by_id (rank.service_type_id);
 
 		if (parent_id != -1) {
                         p = g_hash_table_lookup (table, GINT_TO_POINTER (parent_id));

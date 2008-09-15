@@ -184,7 +184,7 @@ tracker_ontology_shutdown (void)
 }
 
 void 
-tracker_ontology_add_service_type (TrackerService *service,
+tracker_ontology_service_add (TrackerService *service,
 				   GSList         *mimes,
 				   GSList         *mime_prefixes)
 {
@@ -222,13 +222,13 @@ tracker_ontology_add_service_type (TrackerService *service,
 }
 
 TrackerService *
-tracker_ontology_get_service_type_by_name (const gchar *service_str)
+tracker_ontology_service_get_by_name (const gchar *service_str)
 {
 	return ontology_hash_lookup_by_str (service_table, service_str);
 }
 
 gchar *
-tracker_ontology_get_service_type_by_id (gint id)
+tracker_ontology_service_get_by_id (gint id)
 {
 	TrackerService *service;
 
@@ -242,7 +242,7 @@ tracker_ontology_get_service_type_by_id (gint id)
 }
 
 gchar *
-tracker_ontology_get_service_type_for_mime (const gchar *mime) 
+tracker_ontology_service_get_by_mime (const gchar *mime) 
 {
 	gpointer             id;
 	ServiceMimePrefixes *item;
@@ -251,7 +251,7 @@ tracker_ontology_get_service_type_for_mime (const gchar *mime)
 	/* Try a complete mime */
 	id = g_hash_table_lookup (mime_service, mime);
 	if (id) {
-		return tracker_ontology_get_service_type_by_id (GPOINTER_TO_INT (id));
+		return tracker_ontology_service_get_by_id (GPOINTER_TO_INT (id));
 	}
 
 	/* Try in prefixes */
@@ -260,7 +260,7 @@ tracker_ontology_get_service_type_for_mime (const gchar *mime)
 	     prefix_service = prefix_service->next) {
 		item = prefix_service->data;
 		if (g_str_has_prefix (mime, item->prefix)) {
-			return tracker_ontology_get_service_type_by_id (item->service);
+			return tracker_ontology_service_get_by_id (item->service);
 		}
 	}
 	
@@ -269,7 +269,7 @@ tracker_ontology_get_service_type_for_mime (const gchar *mime)
 }
 
 gint
-tracker_ontology_get_id_for_service_type (const char *service_str)
+tracker_ontology_service_get_id_by_name (const char *service_str)
 {
 	TrackerService *service;
 
@@ -283,7 +283,7 @@ tracker_ontology_get_id_for_service_type (const char *service_str)
 }
 
 gchar *
-tracker_ontology_get_parent_service (const gchar *service_str)
+tracker_ontology_service_get_parent (const gchar *service_str)
 {
 	TrackerService *service;
 	const gchar    *parent = NULL;
@@ -298,7 +298,7 @@ tracker_ontology_get_parent_service (const gchar *service_str)
 }
 
 gchar *
-tracker_ontology_get_parent_service_by_id (gint id)
+tracker_ontology_service_get_parent_by_id (gint id)
 {
 	TrackerService *service;
 
@@ -312,7 +312,7 @@ tracker_ontology_get_parent_service_by_id (gint id)
 }
 
 gint
-tracker_ontology_get_parent_id_for_service_id (gint id)
+tracker_ontology_service_get_parent_id_by_id (gint id)
 {
 	TrackerService *service;
 	const gchar    *parent = NULL;
@@ -337,14 +337,14 @@ tracker_ontology_get_parent_id_for_service_id (gint id)
 }
 
 TrackerDBType
-tracker_ontology_get_db_by_service_type (const gchar *service)
+tracker_ontology_service_get_db_by_name (const gchar *service_str)
 {
 	TrackerDBType  type;
 	gchar         *str;
 
-	g_return_val_if_fail (service != NULL, TRACKER_DB_TYPE_FILES);
+	g_return_val_if_fail (service_str != NULL, TRACKER_DB_TYPE_FILES);
 
-	str = g_utf8_strdown (service, -1);
+	str = g_utf8_strdown (service_str, -1);
 
 	if (g_str_has_suffix (str, "emails") || 
 	    g_str_has_suffix (str, "attachments")) {
@@ -363,7 +363,13 @@ tracker_ontology_get_db_by_service_type (const gchar *service)
 }
 
 gboolean
-tracker_ontology_service_type_has_embedded (const gchar *service_str)
+tracker_ontology_service_is_valid (const gchar *service_str)
+{
+	return tracker_ontology_service_get_id_by_name (service_str) != -1;
+}
+
+gboolean
+tracker_ontology_service_has_embedded (const gchar *service_str)
 {
 	TrackerService *service;
 
@@ -377,13 +383,7 @@ tracker_ontology_service_type_has_embedded (const gchar *service_str)
 }
 
 gboolean
-tracker_ontology_is_valid_service_type (const gchar *service_str)
-{
-	return tracker_ontology_get_id_for_service_type (service_str) != -1;
-}
-
-gboolean
-tracker_ontology_service_type_has_metadata (const gchar *service_str) 
+tracker_ontology_service_has_metadata (const gchar *service_str) 
 {
 	TrackerService *service;
 
@@ -397,7 +397,7 @@ tracker_ontology_service_type_has_metadata (const gchar *service_str)
 }
 
 gboolean
-tracker_ontology_service_type_has_thumbnails (const gchar *service_str)
+tracker_ontology_service_has_thumbnails (const gchar *service_str)
 {
 	TrackerService *service;
 
@@ -411,7 +411,7 @@ tracker_ontology_service_type_has_thumbnails (const gchar *service_str)
 }
 
 gboolean 
-tracker_ontology_service_type_has_text (const char *service_str) 
+tracker_ontology_service_has_text (const char *service_str) 
 {
 	TrackerService *service;
 
@@ -425,8 +425,8 @@ tracker_ontology_service_type_has_text (const char *service_str)
 }
 
 gint
-tracker_ontology_metadata_key_in_service (const gchar *service_str, 
-					  const gchar *meta_name)
+tracker_ontology_service_get_key_metadata (const gchar *service_str, 
+					   const gchar *meta_name)
 {
 	TrackerService *service;
 	gint            i;
@@ -508,10 +508,9 @@ tracker_ontology_registered_field_types (const gchar *service_type)
 	const gchar    *prefix;
 	const gchar    *parent_name = NULL;
 	const gchar    *parent_prefix = NULL;
-	
 
 	if (service_type) {
-		service = tracker_ontology_get_service_type_by_name (service_type);
+		service = tracker_ontology_service_get_by_name (service_type);
 		if (!service) {
 			return NULL;
 		}
@@ -524,10 +523,10 @@ tracker_ontology_registered_field_types (const gchar *service_type)
 		}
 		
 		/* Prefix for properties of the parent */
-		parent_name = tracker_ontology_get_parent_service (service_type);
+		parent_name = tracker_ontology_service_get_parent (service_type);
 
 		if (parent_name && (g_strcmp0 (parent_name, " ") != 0)) {
-			parent = tracker_ontology_get_service_type_by_name (parent_name);
+			parent = tracker_ontology_service_get_by_name (parent_name);
 		
 			if (parent) {
 			
@@ -665,8 +664,8 @@ tracker_ontology_get_field_column_in_services (TrackerField *field,
 	gint         key_field;
 
 	meta_name = tracker_field_get_name (field);
-	key_field = tracker_ontology_metadata_key_in_service (service_type, 
-							      meta_name);
+	key_field = tracker_ontology_service_get_key_metadata (service_type, 
+							       meta_name);
 
 	if (key_field > 0) {
 		return g_strdup_printf ("KeyMetadata%d", key_field);

@@ -995,7 +995,9 @@ config_load_int (TrackerConfig *config,
 	if (!error) {
 		g_object_set (G_OBJECT (config), property, value, NULL);
 	} else {
-		g_clear_error (&error);
+		g_warning ("Couldn't load config option '%s' (int) in group '%s', %s",
+			   property, group, error->message);
+		g_error_free (error);
 	}
 }
 
@@ -1013,6 +1015,8 @@ config_load_boolean (TrackerConfig *config,
 	if (!error) {
 		g_object_set (G_OBJECT (config), property, value, NULL);
 	} else {
+		g_warning ("Couldn't load config option '%s' (bool) in group '%s', %s",
+			   property, group, error->message);
 		g_clear_error (&error);
 	}
 }
@@ -1031,7 +1035,9 @@ config_load_string (TrackerConfig *config,
 	if (!error) {
 		g_object_set (G_OBJECT (config), property, value, NULL);
 	} else {
-		g_clear_error (&error);
+		g_warning ("Couldn't load config option '%s' (string) in group '%s', %s",
+			   property, group, error->message);
+		g_error_free (error);
 	}
 
 	g_free (value);
@@ -1143,6 +1149,7 @@ config_load (TrackerConfig *config)
 	GError	             *error = NULL;
 	gchar	             *filename;
 	gchar	             *directory;
+	gboolean              value;
 
 	key_file = g_key_file_new ();
 
@@ -1225,6 +1232,44 @@ config_load (TrackerConfig *config)
 
 	/* Services */
 	config_load_boolean (config, "enable-xesam", key_file, GROUP_SERVICES, KEY_ENABLE_XESAM);
+
+	/* 
+	 * Legacy options no longer supported: 
+	 */
+	value = g_key_file_get_boolean (key_file, "Emails", "IndexEvolutionEmails", &error);
+	if (!error) {
+		gchar * const modules[2] = { "evolution", NULL };
+	
+		g_message ("Legacy config option 'IndexEvolutionEmails' found");
+		g_message ("  This option has been replaced by 'DisabledModules'");
+
+		if (!value) {
+			tracker_config_add_disabled_modules (config, modules);
+			g_message ("  Option 'DisabledModules' added '%s'", modules[0]);
+		} else {
+			tracker_config_remove_disabled_modules (config, modules[0]);
+			g_message ("  Option 'DisabledModules' removed '%s'", modules[0]);
+		}
+	} else {
+		g_clear_error (&error);
+	}
+
+	value = g_key_file_get_boolean (key_file, "Emails", "IndexThunderbirdEmails", &error);
+	if (!error) {
+		g_message ("Legacy config option 'IndexThunderbirdEmails' found");
+		g_message ("  This option is no longer supported and has no effect");
+	} else {
+		g_clear_error (&error);
+	}
+
+	value = g_key_file_get_boolean (key_file, "Indexing", "SkipMountPoints", &error);
+	if (!error) {
+		g_message ("Legacy config option 'SkipMountPoints' found");
+		tracker_config_set_index_mounted_directories (config, !value);
+		g_message ("  Option 'IndexMountedDirectories' set to %s", !value ? "true" : "false");
+	} else {
+		g_clear_error (&error);
+	}
 
 	g_key_file_free (key_file);
 }
@@ -2140,4 +2185,27 @@ tracker_config_add_disabled_modules (TrackerConfig *config,
 						 new_modules);
 
 	g_object_notify (G_OBJECT (config), "disabled-modules");
+}
+
+void
+tracker_config_remove_disabled_modules (TrackerConfig *config,
+					const gchar   *module)
+{
+	TrackerConfigPrivate *priv;
+	GSList               *l;
+
+	g_return_if_fail (TRACKER_IS_CONFIG (config));
+	g_return_if_fail (module != NULL);
+
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
+
+	l = g_slist_find_custom (priv->disabled_modules,
+				 module,
+				 (GCompareFunc) strcmp);
+
+	if (l) {
+		g_free (l->data);
+		priv->disabled_modules = g_slist_delete_link (priv->disabled_modules, l);
+		g_object_notify (G_OBJECT (config), "disabled-modules");
+	}
 }

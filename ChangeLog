@@ -1,3 +1,8 @@
+2008-09-15  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-config.[ch]: Support legacy
+	options SkipMountPoints, IndexEvolutionEmail and IndexThunderbirdEmail.
+
 2008-09-15  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/tracker-metadata-utils.c (tracker_metadata_read)

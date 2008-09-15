@@ -58,14 +58,6 @@ gint            tracker_ontology_service_get_key_metadata       (const gchar    
 gboolean        tracker_ontology_service_get_show_directories   (const gchar    *service_str);
 gboolean        tracker_ontology_service_get_show_files         (const gchar    *service_str);
 
-/* Service paths */
-GSList *        tracker_ontology_service_get_paths              (const gchar    *service_str);
-gchar *         tracker_ontology_service_get_by_path            (const gchar    *path);
-void            tracker_ontology_service_add_path               (const gchar    *service_str,
-								 const gchar    *path);
-void            tracker_ontology_service_remove_path            (const gchar    *service_str,
-								 const gchar    *path);
-
 /* Field mechanics */
 void            tracker_ontology_field_add                      (TrackerField   *field);
 TrackerField *  tracker_ontology_get_field_by_name              (const gchar    *name);

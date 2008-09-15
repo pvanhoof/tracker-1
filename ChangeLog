@@ -1,5 +1,16 @@
 2008-09-15  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-ontology.[ch]: Removed the
+	service_directory_table GHashTable and the service_directory_list
+	GList because they are unused and the API to add/remove and get
+	paths is unused too. Fixed a memory leak in
+	tracker_ontology_get_field_names_registered(). Don't collate
+	strings before looking up the service names and field names. This
+	operation is done a lot and was created/freeing memory each time
+	we lookup. This is not necessary.
+
+2008-09-15  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-ontology.[ch]:
 	* src/libtracker-db/tracker-db-manager.c:
 	* src/tracker-indexer/tracker-indexer-db.c:

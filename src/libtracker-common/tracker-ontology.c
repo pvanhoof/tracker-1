@@ -74,7 +74,6 @@ ontology_mime_prefix_foreach (gpointer data,
  * 
  * If this breaks things, we can reinstate it.
  */
-
 static gpointer
 ontology_hash_lookup_by_collated_str (GHashTable  *hash_table, 
 				      const gchar *str)
@@ -199,7 +198,8 @@ tracker_ontology_service_add (TrackerService *service,
 	name = tracker_service_get_name (service);
 
 	g_hash_table_insert (service_names, 
-			     g_utf8_collate_key (name, -1), 
+			     /* g_utf8_collate_key (name, -1),  */
+			     g_strdup (name),
 			     g_object_ref (service));
 	g_hash_table_insert (service_ids, 
 			     g_strdup_printf ("%d", id), 
@@ -594,11 +594,16 @@ tracker_ontology_service_get_show_files (const gchar *service_str)
 void
 tracker_ontology_field_add (TrackerField *field)
 {
+	const gchar *name;
+
 	g_return_if_fail (TRACKER_IS_FIELD (field));
-	g_return_if_fail (tracker_field_get_name (field) != NULL);
 	
+	name = tracker_field_get_name (field);
+	g_return_if_fail (name != NULL);
+
 	g_hash_table_insert (field_names, 
-			     g_utf8_collate_key (tracker_field_get_name (field), -1),
+			     /* g_utf8_collate_key (tracker_field_get_name (field), -1), */
+			     g_strdup (name),
 			     g_object_ref (field));
 }
 

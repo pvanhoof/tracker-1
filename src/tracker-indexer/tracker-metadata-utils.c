@@ -32,10 +32,7 @@
 #include <libtracker-common/tracker-os-dependant.h>
 #include <libtracker-common/tracker-ontology.h>
 
-/* This is temporarily disabled until hildon-thumbnailer is enabled.
- * There are performance concerns with this enabled.
- */
-#undef THUMBNAIL_RETRIEVAL_ENABLED
+#define THUMBNAIL_RETRIEVAL_ENABLED
 
 #ifdef HAVE_HILDON_THUMBNAIL
 #include <hildon-thumbnail-factory.h>

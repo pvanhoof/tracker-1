@@ -801,7 +801,7 @@ tracker_env_check_xdg_dirs (void)
 	/* Check the default XDG_DATA_HOME location */
         g_message ("  XDG_DATA_HOME is '%s'", user_data_dir);
 
-	if (path_has_write_access_or_was_created (user_data_dir)) {
+	if (user_data_dir && path_has_write_access_or_was_created (user_data_dir)) {
 		return TRUE;
 	}
 

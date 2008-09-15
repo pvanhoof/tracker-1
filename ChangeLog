@@ -1,5 +1,19 @@
 2008-09-15  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-file-utils.c:
+	(tracker_env_check_xdg_dirs): Don't warn when the XDG_DATA_HOME
+	environment variable is empty (and NULL).
+	
+	* src/libtracker-common/tracker-ontology.c:
+	(tracker_ontology_service_add): Don't add service names and field
+	names in to the hash table collated, they can be looked up then.
+	
+	* src/tracker-indexer/tracker-metadata-utils.c: Re-enable
+	thumbnail extraction now we know it isn't slowing us down in the
+	indexer. 
+
+2008-09-15  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-ontology.[ch]: Removed the
 	service_directory_table GHashTable and the service_directory_list
 	GList because they are unused and the API to add/remove and get

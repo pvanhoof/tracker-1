@@ -80,7 +80,7 @@ tracker_metadata_insert (TrackerMetadata *metadata,
 {
         TrackerField *field;
 
-        field = tracker_ontology_get_field_def (field_name);
+        field = tracker_ontology_get_field_by_name (field_name);
 
 	g_return_if_fail (TRACKER_IS_FIELD (field));
         g_return_if_fail (tracker_field_get_multiple_values (field) == FALSE);
@@ -97,7 +97,7 @@ tracker_metadata_insert_multiple_values (TrackerMetadata *metadata,
 {
         TrackerField *field;
 
-        field = tracker_ontology_get_field_def (field_name);
+        field = tracker_ontology_get_field_by_name (field_name);
 
 	g_return_if_fail (TRACKER_IS_FIELD (field));
         g_return_if_fail (tracker_field_get_multiple_values (field) == TRUE);
@@ -113,7 +113,7 @@ tracker_metadata_lookup (TrackerMetadata *metadata,
 {
         TrackerField *field;
 
-        field = tracker_ontology_get_field_def (field_name);
+        field = tracker_ontology_get_field_by_name (field_name);
 
 	g_return_val_if_fail (TRACKER_IS_FIELD (field), NULL);
         g_return_val_if_fail (tracker_field_get_multiple_values (field) == FALSE, NULL);
@@ -127,7 +127,7 @@ tracker_metadata_lookup_multiple_values (TrackerMetadata *metadata,
 {
         TrackerField *field;
 
-        field = tracker_ontology_get_field_def (field_name);
+        field = tracker_ontology_get_field_by_name (field_name);
 
 	g_return_val_if_fail (TRACKER_IS_FIELD (field), NULL);
         g_return_val_if_fail (tracker_field_get_multiple_values (field) == TRUE, NULL);

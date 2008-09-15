@@ -214,7 +214,7 @@ db_save_full_text (TrackerDBInterface *iface,
 		bytes_compressed = length;
 	}
 
-	field_id = tracker_ontology_get_field_id ("File:Contents");
+	field_id = tracker_ontology_field_get_id ("File:Contents");
 
 	if (!field_id) {
 		g_warning ("Metadata not found for type:'File:Contents'");
@@ -666,7 +666,7 @@ tracker_db_get_field_name (const gchar *service,
 {
 	gint key_field;
 
-	/* Replace with tracker_ontology_get_field_column_in_services */
+	/* Replace with tracker_ontology_get_field_name_by_service_name */
 	key_field = tracker_ontology_service_get_key_metadata (service, meta_name);
 
 	if (key_field > 0) {
@@ -1205,7 +1205,7 @@ tracker_db_metadata_get (TrackerDBInterface *iface,
 	g_return_val_if_fail (id, NULL);
 	g_return_val_if_fail (key, NULL);
 
-	def = tracker_ontology_get_field_def (key);
+	def = tracker_ontology_get_field_by_name (key);
 
 	if (!def) {
 		g_warning ("Metadata not found for id:'%s' and type:'%s'", id, key);
@@ -1528,7 +1528,7 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 		return NULL;
 	}
 
-	def = tracker_ontology_get_field_def (key);
+	def = tracker_ontology_get_field_by_name (key);
 
 	if (!def) {
 		g_warning ("Metadata type:'%s' not found", key);
@@ -1860,7 +1860,7 @@ tracker_db_metadata_delete_value (TrackerDBInterface *iface,
 	g_return_if_fail (private != NULL);
 
 	/* Get type details */
-	def = tracker_ontology_get_field_def (key);
+	def = tracker_ontology_get_field_by_name (key);
 
 	if (!def) {
 		return;
@@ -2028,7 +2028,7 @@ tracker_db_metadata_delete (TrackerDBInterface *iface,
 	g_return_if_fail (key != NULL);
 
 	/* Get type details */
-	def = tracker_ontology_get_field_def(key);
+	def = tracker_ontology_get_field_by_name(key);
 
 	if (!def) {
 		return;
@@ -2920,7 +2920,7 @@ tracker_db_get_metadata_field (TrackerDBInterface *iface,
 	g_return_val_if_fail (service != NULL, NULL);
 	g_return_val_if_fail (field_name != NULL, NULL);
 
-	def = tracker_ontology_get_field_def (field_name);
+	def = tracker_ontology_get_field_by_name (field_name);
 
 	if (def) {
 		gchar       *alias;
@@ -2962,7 +2962,7 @@ tracker_db_get_metadata_field (TrackerDBInterface *iface,
 			gchar *str;
 			gchar *display_field;
 
-			display_field = tracker_ontology_get_display_field (def);
+			display_field = tracker_ontology_field_get_display_name (def);
 			str = g_strdup_printf ("M%d.%s", field_count, display_field);
 			tracker_field_data_set_select_field (field_data, str);
 			tracker_field_data_set_needs_join (field_data, TRUE);

@@ -338,7 +338,7 @@ result_set_to_metadata (TrackerDBResultSet *result_set,
 			tracker_db_result_set_get (result_set, 0, &metadata_id, 1, &value, -1);
 		}
 		
-		field_def = tracker_ontology_get_field_def_by_id (metadata_id);
+		field_def = tracker_ontology_get_field_by_id (metadata_id);
 		if (!field_def) {
 			g_critical ("Field id %d in database but not in tracker-ontology",
 				    metadata_id);
@@ -789,7 +789,7 @@ tracker_db_set_text (TrackerService *service,
 	gchar *id_str;
 
 	id_str = tracker_guint32_to_string (id);
-	field = tracker_ontology_get_field_def ("File:Contents");
+	field = tracker_ontology_get_field_by_name ("File:Contents");
 	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service),
 							     TRACKER_DB_CONTENT_TYPE_CONTENTS);
 
@@ -812,7 +812,7 @@ tracker_db_get_text (TrackerService *service,
 	TrackerDBResultSet *result_set;
 
 	service_id_str = tracker_guint32_to_string (id);
-	field = tracker_ontology_get_field_def ("File:Contents");
+	field = tracker_ontology_get_field_by_name ("File:Contents");
 	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service),
 							     TRACKER_DB_CONTENT_TYPE_CONTENTS);
 
@@ -842,7 +842,7 @@ tracker_db_delete_text (TrackerService *service,
 	gchar *service_id_str;
 
 	service_id_str = tracker_guint32_to_string (id);
-	field = tracker_ontology_get_field_def ("File:Contents");
+	field = tracker_ontology_get_field_by_name ("File:Contents");
 	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service),
 							     TRACKER_DB_CONTENT_TYPE_CONTENTS);
 

@@ -731,7 +731,7 @@ tracker_files_get_metadata_for_files_in_folder (TrackerFiles           *object,
 
 	/* Get fields for metadata list provided */
 	for (i = 0; i < g_strv_length (fields); i++) {
-		defs[i] = tracker_ontology_get_field_def (fields[i]);
+		defs[i] = tracker_ontology_get_field_by_name (fields[i]);
 
 		if (!defs[i]) {
 			tracker_dbus_request_failed (request_id,
@@ -787,7 +787,7 @@ tracker_files_get_metadata_for_files_in_folder (TrackerFiles           *object,
 		} else {
 			gchar *display_field;
 
-			display_field = tracker_ontology_get_display_field (defs[i-1]);
+			display_field = tracker_ontology_field_get_display_name (defs[i-1]);
 			g_string_append_printf (sql, ", M%d.%s ", i, display_field);
 			g_free (display_field);
 			needs_join[i - 1] = TRUE;

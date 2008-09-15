@@ -1,5 +1,20 @@
 2008-09-15  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-ontology.[ch]:
+	* src/libtracker-db/tracker-db-manager.c:
+	* src/tracker-indexer/tracker-indexer-db.c:
+	* src/tracker-indexer/tracker-indexer.c:
+	* src/tracker-indexer/tracker-metadata.c:
+	* src/trackerd/tracker-db.c:
+	* src/trackerd/tracker-files.c:
+	* src/trackerd/tracker-metadata.c:
+	* src/trackerd/tracker-xesam-live-search.c:
+	* tests/libtracker-common/tracker-ontology-test.c: More ontology
+	API improvements and added parameter checks for a lot of public
+	functions which were missing them.
+
+2008-09-15  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-ontology.c:
 	* src/libtracker-common/tracker-ontology.h:
 	* src/libtracker-db/tracker-db-index-manager.c:

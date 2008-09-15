@@ -252,7 +252,7 @@ load_metadata_file (TrackerDBInterface *iface,
 	groups = g_key_file_get_groups (key_file, NULL);
 
 	for (i = 0; groups[i]; i++) {
-		def = tracker_ontology_get_field_def (groups[i]);
+		def = tracker_ontology_get_field_by_name (groups[i]);
 
 		if (!def) {
 			tracker_db_interface_execute_procedure (iface, 
@@ -1620,7 +1620,7 @@ db_get_static_data (TrackerDBInterface *iface)
 				   tracker_field_get_name (def),
 				   tracker_field_get_weight (def));
 
-			tracker_ontology_add_field (def);
+			tracker_ontology_field_add (def);
 			g_object_unref (def);
 
 			valid = tracker_db_result_set_iter_next (result_set);
@@ -1702,7 +1702,7 @@ db_get_static_xesam_data (TrackerDBInterface *iface)
 			 *                 tracker_field_get_name (def),
 			 *                 tracker_field_get_data_type (def));
 			 *
-			 * tracker_ontology_add_field (def);
+			 * tracker_ontology_field_add (def);
 			 */
 			valid = tracker_db_result_set_iter_next (result_set);
 			g_object_unref (def);

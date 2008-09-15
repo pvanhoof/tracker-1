@@ -180,7 +180,7 @@ tracker_metadata_get (TrackerMetadata        *object,
 	/* Checking keys */
 	for (i = 0; i < g_strv_length (keys); i++) {
 		
-		if (tracker_ontology_get_field_def (keys[i]) == NULL) {
+		if (tracker_ontology_get_field_by_name (keys[i]) == NULL) {
 			tracker_dbus_request_failed (request_id,
 						     &actual_error,
 						     "Metadata field '%s' not registered in the system", 
@@ -288,7 +288,7 @@ tracker_metadata_set (TrackerMetadata        *object,
 		TrackerField *field_def;
 		gchar       **value;
 
-		field_def = tracker_ontology_get_field_def (keys[i]);
+		field_def = tracker_ontology_get_field_by_name (keys[i]);
 
 		if (field_def == NULL) {
 			tracker_dbus_request_failed (request_id,
@@ -360,7 +360,7 @@ tracker_metadata_get_type_details (TrackerMetadata        *object,
 				  "metadata type:'%s'",
 				  metadata);
 
-	def = tracker_ontology_get_field_def (metadata);
+	def = tracker_ontology_get_field_by_name (metadata);
 	if (!def) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error, 

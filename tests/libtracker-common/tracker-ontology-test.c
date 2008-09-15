@@ -176,7 +176,7 @@ tracker_services_general_setup ()
 	tracker_ontology_service_add (gossip_def, NULL, NULL); 
 	tracker_ontology_service_add (new_gaim_def, NULL, NULL); 
 
-        tracker_ontology_add_field (field_title);
+        tracker_ontology_field_add (field_title);
 
 	g_slist_free (mimes);
 	g_slist_free (mime_prefixes);
@@ -319,9 +319,9 @@ test_field_in_ontology (void)
 {
         TrackerField *field;
 
-        field = tracker_ontology_get_field_def ("App.Title");
+        field = tracker_ontology_get_field_by_name ("App.Title");
         g_assert (field);
-        g_assert (!tracker_ontology_get_field_def ("nooooo"));
+        g_assert (!tracker_ontology_get_field_by_name ("nooooo"));
 }
 
 static void

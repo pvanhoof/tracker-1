@@ -683,7 +683,7 @@ get_hit_data (TrackerXesamLiveSearch  *self,
 							  column, 
 							  &cur_value);
 
-			field_def = tracker_ontology_get_field_def (fields[column-1]);
+			field_def = tracker_ontology_get_field_by_name (fields[column-1]);
 			data_type = tracker_field_get_data_type (field_def);
 
 			if (tracker_field_get_multiple_values (field_def)) {

@@ -1497,7 +1497,7 @@ handle_metadata_add (TrackerIndexer *indexer,
 		return FALSE;
 	}
 
-	field_def = tracker_ontology_get_field_def (property);
+	field_def = tracker_ontology_get_field_by_name (property);
 	if (!field_def) {
 		g_set_error (error, 
 			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
@@ -1633,7 +1633,7 @@ handle_metadata_remove (TrackerIndexer *indexer,
 		return FALSE;
 	}
 
-	field_def = tracker_ontology_get_field_def (property);
+	field_def = tracker_ontology_get_field_by_name (property);
 	if (!field_def) {
 		g_set_error (error, 
 			     g_quark_from_string (TRACKER_INDEXER_ERROR), 

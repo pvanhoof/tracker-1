@@ -1,5 +1,11 @@
 2008-09-16  Martyn Russell  <martyn@imendio.com>
 
+	* configure.ac:
+	* tests/tracker-indexer/Makefile.am: Fixed the test cases for the
+	indexer since pvanhoof's merge requires tracker-dbus.
+
+2008-09-16  Martyn Russell  <martyn@imendio.com>
+
 	* src/tracker-indexer/tracker-metadata-utils.c:
 	(get_file_thumbnail): Mereged pvanhoof's last commit.
 

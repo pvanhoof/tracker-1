@@ -23,6 +23,7 @@
 #define __TRACKER_DBUS_H__
 
 #include <glib.h>
+
 #include <dbus/dbus-glib-bindings.h>
 
 G_BEGIN_DECLS

@@ -806,7 +806,7 @@ tracker_metadata_utils_get_thumbnail (const gchar *path,
 			g_error_free (error);
 		}
 
-		for (i = 0; i < count; i++)
+		for (i = 0; i <= count; i++)
 			g_free (batch[i]);
 
 		count = 0;

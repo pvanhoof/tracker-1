@@ -23,12 +23,14 @@
 #define __TRACKER_DBUS_H__
 
 #include <glib.h>
+#include <dbus/dbus-glib-bindings.h>
 
 G_BEGIN_DECLS
 
-gboolean tracker_dbus_init             (void);
-void     tracker_dbus_shutdown         (void);
-gboolean tracker_dbus_register_object  (GObject *object);
+gboolean    tracker_dbus_init             (void);
+void        tracker_dbus_shutdown         (void);
+gboolean    tracker_dbus_register_object  (GObject *object);
+DBusGProxy* tracker_dbus_get_thumbnailer  (void);
 
 G_END_DECLS
 

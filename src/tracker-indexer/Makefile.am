@@ -10,8 +10,7 @@ INCLUDES =								\
 	-I$(top_srcdir)/src						\
 	$(DBUS_CFLAGS)							\
 	$(PANGO_CFLAGS)							\
-	$(GMODULE_CFLAGS)						\
-	$(HILDON_THUMBNAIL_CFLAGS)
+	$(GMODULE_CFLAGS)						
 
 libexec_PROGRAMS = tracker-indexer
 
@@ -43,7 +42,6 @@ tracker_indexer_LDADD =							\
 	$(PANGO_LIBS)							\
 	$(GIO_LIBS)							\
 	$(GLIB2_LIBS)							\
-	$(HILDON_THUMBNAIL_LIBS)					\
 	-lz								\
 	-lm
 

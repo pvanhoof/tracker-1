@@ -34,8 +34,8 @@
 
 #define THUMBNAIL_RETRIEVAL_ENABLED
 
-#ifdef HAVE_HILDON_THUMBNAIL
-#include <hildon-thumbnail-factory.h>
+#ifndef TEST
+#include "tracker-dbus.h"
 #endif
 
 #include "tracker-metadata-utils.h"
@@ -756,56 +756,60 @@ tracker_metadata_utils_get_text (const gchar *path)
 	return text;
 }
 
+#ifndef TEST
+static void
+have_thumbnail (DBusGProxy *proxy, DBusGProxyCall *call, void *user_data)
+{
+	GError *error = NULL;
+	guint   OUT_handle;
+
+	dbus_g_proxy_end_call (proxy, call, &error, 
+			       G_TYPE_UINT, &OUT_handle, 
+			       G_TYPE_INVALID);
+
+}
+#endif
+
 static void
 tracker_metadata_utils_get_thumbnail (const gchar *path,
 				      const gchar *mime)
 {
-#ifdef THUMBNAIL_RETRIEVAL_ENABLED
-#ifdef HAVE_HILDON_THUMBNAIL
-	hildon_thumbnail_factory_load (path, mime, 128, 128, NULL, NULL);
-#else
-	ProcessContext *context;
+#ifndef TEST
+	static gchar   *batch[51];
+	static guint    count = 0;
+	static gboolean not_available = FALSE;
 
-	GString *thumbnail;
-	gchar *argv[5];
-
-	argv[0] = g_strdup (LIBEXEC_PATH G_DIR_SEPARATOR_S "tracker-thumbnailer");
-	argv[1] = g_filename_from_utf8 (path, -1, NULL, NULL, NULL);
-	argv[2] = g_strdup (mime);
-	argv[3] = g_strdup ("normal");
-	argv[4] = NULL;
-
-	context = create_process_context ((const gchar **) argv);
-
-	if (!context) {
+	if (not_available)
 		return;
+
+	if (count < 50) {
+		batch[count++] = g_strdup (path);
 	}
 
-	thumbnail = g_string_new (NULL);
-	context->data = thumbnail;
+	if (count == 50) {
+		guint       i;
+		GError     *error = NULL;
+		DBusGProxy *proxy = tracker_dbus_get_thumbnailer ();
 
-	g_io_add_watch (context->stdout_channel,
-			G_IO_IN | G_IO_PRI | G_IO_ERR | G_IO_HUP,
-			tracker_text_read,
-			context);
+		batch[51] = NULL;
 
-	g_main_loop_run (context->data_incoming_loop);
+		dbus_g_proxy_begin_call (proxy, "Queue", 
+					 have_thumbnail, 
+					 NULL, NULL, 
+					 G_TYPE_STRV, batch, 
+					 G_TYPE_UINT, 0, 
+					 G_TYPE_INVALID);
 
-	g_free (argv[0]);
-	g_free (argv[1]);
-	g_free (argv[2]);
-	g_free (argv[3]);
 
-	destroy_process_context (context);
+		if (error) {
+			not_available = TRUE;
+			g_error_free (error);
+		}
 
-	if (!thumbnail->str || !*thumbnail->str) {
-		g_string_free (thumbnail, TRUE);
-		return;
+		for (i = 0; i < count; i++)
+			g_free (batch[i]);
+
+		count = 0;
 	}
-
-	g_debug ("Got thumbnail '%s' for '%s'", thumbnail->str, path);
-
-	g_string_free (thumbnail, TRUE);
-#endif /* HAVE_HILDON_THUMBNAIL */
-#endif /* THUMBNIAL_RETRIEVAL_ENABLED */
+#endif
 }

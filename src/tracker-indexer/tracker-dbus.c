@@ -21,16 +21,19 @@
 
 #include <string.h>
 
-#include <dbus/dbus-glib-bindings.h>
-
 #include <libtracker-common/tracker-log.h>
 
 #include "tracker-dbus.h"
 #include "tracker-indexer.h"
 #include "tracker-indexer-glue.h"
 
+#define THUMBNAILER_SERVICE      "org.freedesktop.thumbnailer"
+#define THUMBNAILER_PATH         "/org/freedesktop/thumbnailer/Generic"
+#define THUMBNAILER_INTERFACE    "org.freedesktop.thumbnailer.Generic"
+
 static DBusGConnection *connection;
 static DBusGProxy      *proxy;
+static DBusGProxy      *thumb_proxy;
 
 static gboolean
 dbus_register_service (DBusGProxy  *proxy,
@@ -104,6 +107,12 @@ dbus_register_object (GObject               *object,
         return TRUE;
 }
 
+DBusGProxy*
+tracker_dbus_get_thumbnailer (void)
+{
+	return thumb_proxy;
+}
+
 static gboolean 
 dbus_register_names (void)
 {
@@ -141,6 +150,10 @@ dbus_register_names (void)
                 return FALSE;
         }
 
+        thumb_proxy = dbus_g_proxy_new_for_name (connection,
+                                                 THUMBNAILER_SERVICE,
+                                                 THUMBNAILER_PATH,
+                                                 THUMBNAILER_INTERFACE);
         return TRUE;
 }
 

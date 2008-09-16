@@ -1,3 +1,12 @@
+2008-09-16  Philip Van Hoof  <pvanhoof@gnome.org>
+
+	* src/tracker-indexer/tracker-metadata-utils.c:
+	* src/tracker-indexer/tracker-dbus.[ch]:
+	* src/tracker-indexer/Makefile.am:
+	* tests/tracker-indexer/Makefile.am:  Support for thumbnailing using
+	org.freedeskop.thumbnailer.Generic (DBus names might change as the
+	specification changes: http://live.gnome.org/ThumbnailerSpec)
+
 2008-09-15  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-config.[ch]: Support legacy

@@ -5,7 +5,7 @@ noinst_PROGRAMS = $(TEST_PROGS)
 TEST_PROGS += tracker-metadata-utils
 
 INCLUDES = 				\
-	-g 				\
+	-g -DTEST			\
 	-DG_LOG_DOMAIN=\"Tracker\"	\
 	-DLIBDIR=\""$(libdir)"\"	\
 	-DLIBEXEC_PATH=\""$(libexecdir)"\"	\
@@ -13,14 +13,13 @@ INCLUDES = 				\
 	-I$(top_srcdir)/tests/common	\
 	$(GMODULE_CFLAGS)		\
 	$(GTHREAD_CFLAGS)		\
-	$(GLIB2_CFLAGS)			\
-	$(HILDON_THUMBNAIL_CFLAGS)
+	$(GLIB2_CFLAGS)			
 
 
 tracker_metadata_utils_SOURCES = 	\
 	tracker-metadata-utils-test.c 	\
 	tracker-metadata-utils.c 	\
-	tracker-metadata.c 
+	tracker-metadata.c 		
 
 tracker_metadata_utils_LDADD =	                                        \
 	$(top_builddir)/src/libtracker-db/libtracker-db.la 		\
@@ -29,6 +28,5 @@ tracker_metadata_utils_LDADD =	                                        \
 	$(GMODULE_LIBS)							\
 	$(GTHREAD_LIBS)							\
 	$(GIO_LIBS)							\
-	$(GLIB2_LIBS)							\
-	$(HILDON_THUMBNAIL_LIBS)
+	$(GLIB2_LIBS)							
 

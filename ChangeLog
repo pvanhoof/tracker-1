@@ -1,5 +1,10 @@
 2008-09-16  Martyn Russell  <martyn@imendio.com>
 
+	* src/tracker-indexer/tracker-metadata-utils.c:
+	(get_file_thumbnail): Mereged pvanhoof's last commit.
+
+2008-09-16  Martyn Russell  <martyn@imendio.com>
+
 	* src/tracker-extract/tracker-extract-png.c: Reworked the code
 	here and fixed adding NULL values with sensible keys to the hash
 	table. 

@@ -25,18 +25,16 @@
 
 #include <gio/gio.h>
 
-#define THUMBNAIL_RETRIEVAL_ENABLED
-
-#ifdef HAVE_HILDON_THUMBNAIL
-#include <hildon-thumbnail-factory.h>
-#endif
-
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-os-dependant.h>
 #include <libtracker-common/tracker-ontology.h>
 
 #include "tracker-metadata-utils.h"
+#include "tracker-dbus.h"
+
+#define THUMBNAIL_RETRIEVAL_ENABLED
+#define HAVE_HILDON_THUMBNAIL
 
 #define METADATA_FILE_NAME_DELIMITED "File:NameDelimited"
 #define METADATA_FILE_EXT            "File:Ext"
@@ -614,14 +612,64 @@ get_file_content (const gchar *path)
         return s ? g_string_free (s, FALSE) : NULL;
 }
 
+#ifdef THUMBNAIL_RETRIEVAL_ENABLED
+#ifdef HAVE_HILDON_THUMBNAIL
+
+static void
+get_file_thumbnail_queue_cb (DBusGProxy     *proxy, 
+			     DBusGProxyCall *call,
+			     gpointer        user_data)
+{
+	GError *error = NULL;
+	guint   handle;
+
+	/* FIXME: What is the point of this? */
+	dbus_g_proxy_end_call (proxy, call, &error, 
+			       G_TYPE_UINT, &handle, 
+			       G_TYPE_INVALID);
+}
+
+#endif /* HAVE_HILDON_THUMBNAIL */
+
 static void
 get_file_thumbnail (const gchar *path,
 		    const gchar *mime)
 {
-#ifdef THUMBNAIL_RETRIEVAL_ENABLED
 #ifdef HAVE_HILDON_THUMBNAIL
-	hildon_thumbnail_factory_load (path, mime, 128, 128, NULL, NULL);
-#else
+	static gchar   *batch[51];
+	static guint    count = 0;
+	static gboolean not_available = FALSE;
+
+	if (not_available) {
+		return;
+	}
+
+	if (count < 51) {
+		batch[count++] = g_strdup (path);
+	}
+
+	if (count == 51) {
+		guint i;
+
+		batch[51] = NULL;
+
+		g_debug ("Requesting thumbnails");
+
+		dbus_g_proxy_begin_call (tracker_dbus_get_thumbnailer (),
+					 "Queue", 
+					 get_file_thumbnail_queue_cb, 
+					 NULL, NULL, 
+					 G_TYPE_STRV, batch, 
+					 G_TYPE_UINT, 0, 
+					 G_TYPE_INVALID);
+
+		for (i = 0; i <= count; i++) {
+			g_free (batch[i]);
+		}
+
+		count = 0;
+	}
+#else /* HAVE_HILDON_THUMBNAIL */
 	ProcessContext *context;
 
 	GString *thumbnail;
@@ -660,8 +708,9 @@ get_file_thumbnail (const gchar *path,
 
 	g_string_free (thumbnail, TRUE);
 #endif /* HAVE_HILDON_THUMBNAIL */
-#endif /* THUMBNIAL_RETRIEVAL_ENABLED */
 }
+
+#endif /* THUMBNIAL_RETRIEVAL_ENABLED */
 
 static gchar *
 get_file_content_by_filter (const gchar *path,
@@ -771,7 +820,6 @@ tracker_metadata_utils_get_data (const gchar *path)
 	tracker_metadata_insert (metadata, METADATA_FILE_MIMETYPE, mimetype);
 
 	if (mimetype) {
-
 		/* FIXME: 
 		 * We should determine here for which items we do and for which
 		 * items we don't want to pre-create the thumbnail. */

@@ -1400,7 +1400,7 @@ item_delete (TrackerIndexer *indexer,
 
 	service_type = tracker_module_config_get_index_service (info->module_name);
 
-	g_debug ("Deleting item:'%s/%s'", dirname, basename);
+	g_debug ("Deleting item:'%s'", info->file->path);
 
 	if (!service_type || !service_type[0]) {
 		gchar *name;
@@ -1426,7 +1426,9 @@ item_delete (TrackerIndexer *indexer,
 	tracker_db_check_service (service_def, dirname, basename, &service_id, NULL);
 
 	if (service_id < 1) {
-		g_debug ("  Can not delete file, it doesnt exist in DB");
+		g_debug ("  File does not exist anyway "
+			 "(dirname:'%s', basename:'%s')",
+			 dirname, basename);
 		return;
 	}
 
@@ -1754,20 +1756,6 @@ should_index_file (TrackerIndexer *indexer,
 		return TRUE;
 	}
 
-	/* Here we do a quick check to see if this is an email URI or
-	 * not. For emails we don't check for the parent cache the
-	 * same way, we simply index it. If the first character is not
-	 * '/' then the path is usually something like:
-	 *
-	 *   email://1192717939.16218.20@petunia//INBOX;uid=(null)
-	 *
-	 * What we should do, is check the summary mtime to know if
-	 * we should index the content I think.
-	 */
-	if (info->file->path[0] != G_DIR_SEPARATOR) {
-		return TRUE;
-	}
-
 	/* So, if we are here, then the file or directory DID exist
 	 * in the database already. Now we need to check if the
 	 * parent directory mtime matches the mtime we have for it in
@@ -1926,9 +1914,31 @@ process_file (TrackerIndexer *indexer,
 						  &basename)) {
 		return TRUE;
 	}
-		
-	/* For normal files, we do some checks, for moves we don't need these */
-	if (G_LIKELY (!info->other_file)) {
+	
+	/* 
+	 * FIRST:
+	 * ======
+	 * We don't check if we should index files for MOVE events.
+	 *
+	 * SECOND: 
+	 * =======
+	 * Here we do a quick check to see if this is an email URI or
+	 * not. For emails we don't check if we should index them, we
+	 * always do since it is ONLY summary files we index and we
+	 * need to look at them to know if anything changed anyway.
+	 * The only improvement we could have here is an mtime check.
+	 * This is yet to do.
+	 *
+	 * The info->file->path is the REAL location. The dirname and
+	 * basename which are returned by the module are combined to
+	 * look like:
+	 *
+	 *   email://1192717939.16218.20@petunia//INBOX;uid=(null)
+	 *
+	 * We simply check the dirname[0] to make sure it isn't an
+	 * email based dirname.
+	 */
+	if (G_LIKELY (!info->other_file) && dirname[0] == G_DIR_SEPARATOR) {
 		if (!should_index_file (indexer, info, dirname, basename)) {
 			g_debug ("File is already up to date: '%s'", info->file->path);
 

@@ -1,5 +1,30 @@
 2008-09-16  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-db/tracker-db-interface.c:
+	(_tracker_db_result_set_set_value): Always set GValue to the the
+	column type before setting the GValue. This saves us checking if
+	it was set in the first place and sometimes the column type set
+	initially is not the same as the type we get returned. Which is
+	what was causing the G_VALUE_HOLDS_INT (value) assertion (when we
+	were trying to set a double for GetMetadataIDValueNumeric.
+	
+	* src/tracker-indexer/tracker-indexer-module.c:
+	(tracker_indexer_module_file_get_uri): Don't spam warnings about
+	not being able to get the basename and/or dirname. This happens
+	all the time for the email module because we don't process ALL
+	files, only summary files for IMAP (for example). This means that
+	the module may return NULL for basename and dirname. We shouldn't
+	error the situation as a result.
+	
+	* src/tracker-indexer/tracker-indexer.c: (item_delete),
+	(should_index_file), (process_file): Don't try to check if we
+	should index email files, instead just do it right now. Before it
+	would spam critical warnings about files not existing in the
+	database. Also, make the item_delete() debug more consistent with
+	other functions and clearer too.
+
+2008-09-16  Martyn Russell  <martyn@imendio.com>
+
 	* configure.ac:
 	* tests/tracker-indexer/Makefile.am: Fixed the test cases for the
 	indexer since pvanhoof's merge requires tracker-dbus.

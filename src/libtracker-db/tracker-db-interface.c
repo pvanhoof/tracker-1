@@ -484,8 +484,8 @@ _tracker_db_result_set_set_value (TrackerDBResultSet *result_set,
 	g_return_if_fail (column < priv->columns);
 
 	/* Assign a GType if it didn't have any */
-	if (G_UNLIKELY (priv->col_types[column] == 0))
-		priv->col_types[column] = G_VALUE_TYPE (value);
+	/* if (G_UNLIKELY (priv->col_types[column] == 0)) */
+	priv->col_types[column] = G_VALUE_TYPE (value);
 
 	row = g_ptr_array_index (priv->array, priv->current_row);
 

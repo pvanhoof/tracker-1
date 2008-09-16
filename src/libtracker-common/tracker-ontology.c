@@ -396,8 +396,6 @@ tracker_ontology_get_field_names_registered (const gchar *service_str)
 	const gchar    *prefix;
 	const gchar    *parent_prefix;
 
-	g_return_val_if_fail (service_str != NULL, NULL);
-
 	parent_prefix = NULL;
 
 	if (service_str) {

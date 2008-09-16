@@ -1,5 +1,17 @@
 2008-09-16  Martyn Russell  <martyn@imendio.com>
 
+	* src/libtracker-common/tracker-ontology.c:
+	(tracker_ontology_get_field_names_registered): Removed the NULL
+	check since it is valid to pass NULL. Thanks to Ivan's tests to
+	pointing this out before building :)
+	
+	* configure.ac:
+	* tests/Makefile.am:
+	* tests/tracker-indexer/Makefile.am: Fixed tests for make
+	distcheck. 
+
+2008-09-16  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-db/tracker-db-interface.c:
 	(_tracker_db_result_set_set_value): Always set GValue to the the
 	column type before setting the GValue. This saves us checking if

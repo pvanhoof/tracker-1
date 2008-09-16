@@ -19,24 +19,22 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
 
 #include <string.h>
 
 #include <gio/gio.h>
 
+#define THUMBNAIL_RETRIEVAL_ENABLED
+
+#ifdef HAVE_HILDON_THUMBNAIL
+#include <hildon-thumbnail-factory.h>
+#endif
+
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-os-dependant.h>
 #include <libtracker-common/tracker-ontology.h>
-
-#define THUMBNAIL_RETRIEVAL_ENABLED
-
-#ifndef TEST
-#include "tracker-dbus.h"
-#endif
 
 #include "tracker-metadata-utils.h"
 
@@ -56,23 +54,25 @@
 
 typedef struct {
 	GPid pid;
+	guint stdout_watch_id;
 	GIOChannel *stdin_channel;
 	GIOChannel *stdout_channel;
 	GMainLoop  *data_incoming_loop;
 	gpointer data;
 } ProcessContext;
 
-static void tracker_metadata_utils_get_thumbnail (const gchar *path,
-						  const gchar *mime);
+static void get_file_thumbnail (const gchar *path,
+				const gchar *mime);
 
 static ProcessContext *metadata_context = NULL;
 
 static void
-destroy_process_context (ProcessContext *context)
+process_context_destroy (ProcessContext *context)
 {
 	g_io_channel_shutdown (context->stdin_channel, FALSE, NULL);
 	g_io_channel_unref (context->stdin_channel);
 
+	g_source_remove (context->stdout_watch_id);
 	g_io_channel_shutdown (context->stdout_channel, FALSE, NULL);
 	g_io_channel_unref (context->stdout_channel);
 
@@ -88,9 +88,9 @@ destroy_process_context (ProcessContext *context)
 }
 
 static void
-process_watch_cb (GPid     pid,
-		  gint     status,
-		  gpointer user_data)
+process_context_child_watch_cb (GPid     pid,
+				gint     status,
+				gpointer user_data)
 {
 	g_debug ("Process '%d' exited with code: %d->'%s'", 
 		 pid, 
@@ -98,13 +98,14 @@ process_watch_cb (GPid     pid,
 		 g_strerror (status));
 
 	if (user_data == metadata_context) {
-		destroy_process_context (metadata_context);
+		process_context_destroy (metadata_context);
 		metadata_context = NULL;
 	}
 }
 
 static ProcessContext *
-create_process_context (const gchar **argv)
+process_context_create (const gchar **argv,
+			GIOFunc       stdout_watch_func)
 {
 	ProcessContext *context;
 	GIOChannel *stdin_channel, *stdout_channel;
@@ -129,33 +130,43 @@ create_process_context (const gchar **argv)
 	context->stdin_channel = stdin_channel;
 	context->stdout_channel = stdout_channel;
 	context->data_incoming_loop = g_main_loop_new (NULL, FALSE);
-
+	context->stdout_watch_id = g_io_add_watch (stdout_channel,
+						   G_IO_IN | G_IO_PRI | G_IO_ERR | G_IO_HUP,
+						   stdout_watch_func,
+						   context);
+	
 	flags = g_io_channel_get_flags (context->stdout_channel);
 	flags |= G_IO_FLAG_NONBLOCK;
 
 	g_io_channel_set_flags (context->stdout_channel, flags, NULL);
 
-	g_child_watch_add (context->pid, process_watch_cb, context);
+	g_child_watch_add (context->pid, process_context_child_watch_cb, context);
 
 	return context;
 }
 
 static gboolean
-tracker_metadata_read (GIOChannel   *channel,
-		       GIOCondition  condition,
-		       gpointer      user_data)
+metadata_read_cb (GIOChannel   *channel,
+		  GIOCondition  condition,
+		  gpointer      user_data)
 {
 	GPtrArray *array;
-	GIOStatus status = G_IO_STATUS_NORMAL;
+	GIOStatus status;
 	gchar *line;
 
 	if (!metadata_context) {
 		return FALSE;
 	}
 
-	if (condition & G_IO_IN || condition & G_IO_PRI) {
-		array = metadata_context->data;
+	if ((condition & G_IO_HUP) || (condition & G_IO_ERR)) {
+		return FALSE;
+	}
 
+	array = metadata_context->data;
+	status = G_IO_STATUS_NORMAL;
+	line = NULL;
+
+	if ((condition & G_IO_IN) || (condition & G_IO_PRI)) {
 		do {
 			status = g_io_channel_read_line (metadata_context->stdout_channel, 
 							 &line, 
@@ -173,21 +184,16 @@ tracker_metadata_read (GIOChannel   *channel,
 		if (status == G_IO_STATUS_EOF ||
 		    status == G_IO_STATUS_ERROR ||
 		    (status == G_IO_STATUS_NORMAL && !*line)) {
-			/* all extractor output has been processed */
+			/* All extractor output has been processed */
 			g_main_loop_quit (metadata_context->data_incoming_loop);
-			return TRUE;
 		}
-	}
-
-	if (condition & G_IO_HUP || condition & G_IO_ERR) {
-		return FALSE;
 	}
 
 	return TRUE;
 }
 
 static gboolean
-create_metadata_context (void)
+metadata_setup (void)
 {
 	const gchar *argv[2] = { 
 		LIBEXEC_PATH G_DIR_SEPARATOR_S "tracker-extract", 
@@ -195,27 +201,22 @@ create_metadata_context (void)
 	};
 
 	if (metadata_context) {
-		destroy_process_context (metadata_context);
+		process_context_destroy (metadata_context);
 		metadata_context = NULL;
 	}
 
-	metadata_context = create_process_context (argv);
+	metadata_context = process_context_create (argv, metadata_read_cb);
 
 	if (!metadata_context) {
 		return FALSE;
 	}
 
-	g_io_add_watch (metadata_context->stdout_channel,
-			G_IO_IN | G_IO_PRI | G_IO_ERR | G_IO_HUP,
-			tracker_metadata_read,
-			metadata_context);
-
 	return TRUE;
 }
 
 static gchar **
-tracker_metadata_query_file (const gchar *path,
-			     const gchar *mimetype)
+metadata_query_file (const gchar *path,
+		     const gchar *mimetype)
 {
 	gchar *utf_path, *str;
 	GPtrArray *array;
@@ -226,7 +227,7 @@ tracker_metadata_query_file (const gchar *path,
 		return NULL;
 	}
 
-	if (!metadata_context && !create_metadata_context ()) {
+	if (!metadata_context && !metadata_setup ()) {
 		return NULL;
 	}
 
@@ -243,7 +244,7 @@ tracker_metadata_query_file (const gchar *path,
 	str = g_strdup_printf ("%s\n%s\n", utf_path, mimetype);
 	g_free (utf_path);
 
-	/* write path and mimetype */
+	/* Write path and mimetype */
 	g_io_channel_write_chars (metadata_context->stdin_channel, str, -1, NULL, NULL);
 	status = g_io_channel_flush (metadata_context->stdin_channel, &error);
 
@@ -256,7 +257,7 @@ tracker_metadata_query_file (const gchar *path,
 		 */
 		g_error_free (error);
 
-		create_metadata_context ();
+		metadata_setup ();
 		metadata_context->data = array;
 
 		g_io_channel_write_chars (metadata_context->stdin_channel, str, -1, NULL, NULL);
@@ -286,9 +287,9 @@ tracker_metadata_query_file (const gchar *path,
 }
 
 static void
-tracker_metadata_utils_get_embedded (const char      *path,
-				     const char      *mimetype,
-				     TrackerMetadata *metadata)
+metadata_utils_get_embedded (const char      *path,
+			     const char      *mimetype,
+			     TrackerMetadata *metadata)
 {
 	gchar **values, *service_type;
 	gint i;
@@ -306,7 +307,7 @@ tracker_metadata_utils_get_embedded (const char      *path,
 
         g_free (service_type);
 
-	values = tracker_metadata_query_file (path, mimetype);
+	values = metadata_query_file (path, mimetype);
 
 	if (!values) {
 		return;
@@ -349,68 +350,10 @@ tracker_metadata_utils_get_embedded (const char      *path,
 	g_strfreev (values);
 }
 
-TrackerMetadata *
-tracker_metadata_utils_get_data (const gchar *path)
-{
-        TrackerMetadata *metadata;
-	struct stat st;
-	const gchar *ext;
-	gchar *mimetype;
-
-	if (g_lstat (path, &st) < 0) {
-                return NULL;
-        }
-
-        metadata = tracker_metadata_new ();
-	ext = strrchr (path, '.');
-
-	if (ext) {
-		tracker_metadata_insert (metadata, METADATA_FILE_EXT, g_strdup (ext + 1));
-	}
-
-	mimetype = tracker_file_get_mime_type (path);
-
-        tracker_metadata_insert (metadata, METADATA_FILE_NAME, g_filename_display_basename (path));
-	tracker_metadata_insert (metadata, METADATA_FILE_PATH, g_path_get_dirname (path));
-	tracker_metadata_insert (metadata, METADATA_FILE_NAME_DELIMITED,
-                                 g_filename_to_utf8 (path, -1, NULL, NULL, NULL));
-	tracker_metadata_insert (metadata, METADATA_FILE_MIMETYPE, mimetype);
-
-	if (mimetype) {
-
-		/* FIXME: 
-		 * We should determine here for which items we do and for which
-		 * items we don't want to pre-create the thumbnail. */
-
-		tracker_metadata_utils_get_thumbnail (path, mimetype);
-	}
-
-	if (S_ISLNK (st.st_mode)) {
-		gchar *link_path;
-
-		link_path = g_file_read_link (path, NULL);
-		tracker_metadata_insert (metadata, METADATA_FILE_LINK,
-                                         g_filename_to_utf8 (link_path, -1, NULL, NULL, NULL));
-		g_free (link_path);
-	}
-
-	/* FIXME: These should be dealt directly as integer/times/whatever, not strings */
-	tracker_metadata_insert (metadata, METADATA_FILE_SIZE,
-                                 tracker_guint_to_string (st.st_size));
-	tracker_metadata_insert (metadata, METADATA_FILE_MODIFIED,
-                                 tracker_date_to_string (st.st_mtime));
-	tracker_metadata_insert (metadata, METADATA_FILE_ACCESSED,
-                                 tracker_date_to_string (st.st_atime));
-
-	tracker_metadata_utils_get_embedded (path, mimetype, metadata);
-
-        return metadata;
-}
-
 static gboolean
-tracker_text_read (GIOChannel   *channel,
-		   GIOCondition  condition,
-		   gpointer      user_data)
+get_file_content_read_cb (GIOChannel   *channel,
+			  GIOCondition  condition,
+			  gpointer      user_data)
 {
 	ProcessContext *context;
 	GString *text;
@@ -444,67 +387,6 @@ tracker_text_read (GIOChannel   *channel,
 	}
 
 	return TRUE;
-}
-
-static gchar *
-call_text_filter (const gchar *path,
-		  const gchar *mime)
-{
-	ProcessContext *context;
-	gchar *str, *text_filter_file;
-	gchar **argv;
-	GString *text;
-
-#ifdef OS_WIN32
-	str = g_strconcat (mime, "_filter.bat", NULL);
-#else
-	str = g_strconcat (mime, "_filter", NULL);
-#endif
-
-	text_filter_file = g_build_filename (LIBDIR,
-					     "tracker",
-					     "filters",
-					     str,
-					     NULL);
-
-	g_free (str);
-
-	if (!g_file_test (text_filter_file, G_FILE_TEST_EXISTS)) {
-		g_free (text_filter_file);
-		return NULL;
-	}
-
-	argv = g_new0 (gchar *, 3);
-	argv[0] = text_filter_file;
-	argv[1] = (gchar *) path;
-
-	g_message ("Extracting text for:'%s' using filter:'%s'", argv[1], argv[0]);
-
-	context = create_process_context ((const gchar **) argv);
-
-	g_free (text_filter_file);
-	g_free (argv);
-
-	if (!context) {
-		return NULL;
-	}
-
-	text = g_string_new (NULL);
-	context->data = text;
-
-	g_io_add_watch (context->stdout_channel,
-			G_IO_IN | G_IO_PRI | G_IO_ERR | G_IO_HUP,
-			tracker_text_read,
-			context);
-
-	/* It will block here until all incoming
-	 * text has been processed
-	 */
-	g_main_loop_run (context->data_incoming_loop);
-
-	destroy_process_context (context);
-
-	return g_string_free (text, FALSE);
 }
 
 static gboolean 
@@ -732,6 +614,111 @@ get_file_content (const gchar *path)
         return s ? g_string_free (s, FALSE) : NULL;
 }
 
+static void
+get_file_thumbnail (const gchar *path,
+		    const gchar *mime)
+{
+#ifdef THUMBNAIL_RETRIEVAL_ENABLED
+#ifdef HAVE_HILDON_THUMBNAIL
+	hildon_thumbnail_factory_load (path, mime, 128, 128, NULL, NULL);
+#else
+	ProcessContext *context;
+
+	GString *thumbnail;
+	gchar *argv[5];
+
+	argv[0] = g_strdup (LIBEXEC_PATH G_DIR_SEPARATOR_S "tracker-thumbnailer");
+	argv[1] = g_filename_from_utf8 (path, -1, NULL, NULL, NULL);
+	argv[2] = g_strdup (mime);
+	argv[3] = g_strdup ("normal");
+	argv[4] = NULL;
+
+	context = process_context_create ((const gchar **) argv, get_file_content_read_cb);
+
+	if (!context) {
+		return;
+	}
+
+	thumbnail = g_string_new (NULL);
+	context->data = thumbnail;
+
+	g_main_loop_run (context->data_incoming_loop);
+
+	g_free (argv[0]);
+	g_free (argv[1]);
+	g_free (argv[2]);
+	g_free (argv[3]);
+
+	process_context_destroy (context);
+
+	if (!thumbnail->str || !*thumbnail->str) {
+		g_string_free (thumbnail, TRUE);
+		return;
+	}
+
+	g_debug ("Got thumbnail '%s' for '%s'", thumbnail->str, path);
+
+	g_string_free (thumbnail, TRUE);
+#endif /* HAVE_HILDON_THUMBNAIL */
+#endif /* THUMBNIAL_RETRIEVAL_ENABLED */
+}
+
+static gchar *
+get_file_content_by_filter (const gchar *path,
+			    const gchar *mime)
+{
+	ProcessContext *context;
+	gchar *str, *text_filter_file;
+	gchar **argv;
+	GString *text;
+
+#ifdef OS_WIN32
+	str = g_strconcat (mime, "_filter.bat", NULL);
+#else
+	str = g_strconcat (mime, "_filter", NULL);
+#endif
+
+	text_filter_file = g_build_filename (LIBDIR,
+					     "tracker",
+					     "filters",
+					     str,
+					     NULL);
+
+	g_free (str);
+
+	if (!g_file_test (text_filter_file, G_FILE_TEST_EXISTS)) {
+		g_free (text_filter_file);
+		return NULL;
+	}
+
+	argv = g_new0 (gchar *, 3);
+	argv[0] = text_filter_file;
+	argv[1] = (gchar *) path;
+
+	g_message ("Extracting text for:'%s' using filter:'%s'", argv[1], argv[0]);
+
+	context = process_context_create ((const gchar **) argv, get_file_content_read_cb);
+
+	g_free (text_filter_file);
+	g_free (argv);
+
+	if (!context) {
+		return NULL;
+	}
+
+	text = g_string_new (NULL);
+	context->data = text;
+
+	/* It will block here until all incoming
+	 * text has been processed
+	 */
+	g_main_loop_run (context->data_incoming_loop);
+
+	process_context_destroy (context);
+
+	return g_string_free (text, FALSE);
+}
+
 gchar *
 tracker_metadata_utils_get_text (const gchar *path)
 {
@@ -747,7 +734,7 @@ tracker_metadata_utils_get_text (const gchar *path)
              strcmp (service_type, "Development") == 0)) {
                 text = get_file_content (path);
 	} else {
-		text = call_text_filter (path, mimetype);
+		text = get_file_content_by_filter (path, mimetype);
 	}
 
 	g_free (mimetype);
@@ -756,60 +743,60 @@ tracker_metadata_utils_get_text (const gchar *path)
 	return text;
 }
 
-#ifndef TEST
-static void
-have_thumbnail (DBusGProxy *proxy, DBusGProxyCall *call, void *user_data)
+TrackerMetadata *
+tracker_metadata_utils_get_data (const gchar *path)
 {
-	GError *error = NULL;
-	guint   OUT_handle;
+        TrackerMetadata *metadata;
+	struct stat st;
+	const gchar *ext;
+	gchar *mimetype;
 
-	dbus_g_proxy_end_call (proxy, call, &error, 
-			       G_TYPE_UINT, &OUT_handle, 
-			       G_TYPE_INVALID);
+	if (g_lstat (path, &st) < 0) {
+                return NULL;
+        }
 
-}
-#endif
+        metadata = tracker_metadata_new ();
+	ext = strrchr (path, '.');
 
-static void
-tracker_metadata_utils_get_thumbnail (const gchar *path,
-				      const gchar *mime)
-{
-#ifndef TEST
-	static gchar   *batch[51];
-	static guint    count = 0;
-	static gboolean not_available = FALSE;
-
-	if (not_available)
-		return;
-
-	if (count < 51) {
-		batch[count++] = g_strdup (path);
+	if (ext) {
+		tracker_metadata_insert (metadata, METADATA_FILE_EXT, g_strdup (ext + 1));
 	}
 
-	if (count == 51) {
-		guint       i;
-		GError     *error = NULL;
-		DBusGProxy *proxy = tracker_dbus_get_thumbnailer ();
+	mimetype = tracker_file_get_mime_type (path);
 
-		batch[51] = NULL;
+        tracker_metadata_insert (metadata, METADATA_FILE_NAME, g_filename_display_basename (path));
+	tracker_metadata_insert (metadata, METADATA_FILE_PATH, g_path_get_dirname (path));
+	tracker_metadata_insert (metadata, METADATA_FILE_NAME_DELIMITED,
+                                 g_filename_to_utf8 (path, -1, NULL, NULL, NULL));
+	tracker_metadata_insert (metadata, METADATA_FILE_MIMETYPE, mimetype);
 
-		dbus_g_proxy_begin_call (proxy, "Queue", 
-					 have_thumbnail, 
-					 NULL, NULL, 
-					 G_TYPE_STRV, batch, 
-					 G_TYPE_UINT, 0, 
-					 G_TYPE_INVALID);
+	if (mimetype) {
 
+		/* FIXME: 
+		 * We should determine here for which items we do and for which
+		 * items we don't want to pre-create the thumbnail. */
 
-		if (error) {
-			not_available = TRUE;
-			g_error_free (error);
-		}
-
-		for (i = 0; i < count; i++)
-			g_free (batch[i]);
-
-		count = 0;
+		get_file_thumbnail (path, mimetype);
 	}
-#endif
+
+	if (S_ISLNK (st.st_mode)) {
+		gchar *link_path;
+
+		link_path = g_file_read_link (path, NULL);
+		tracker_metadata_insert (metadata, METADATA_FILE_LINK,
+                                         g_filename_to_utf8 (link_path, -1, NULL, NULL, NULL));
+		g_free (link_path);
+	}
+
+	/* FIXME: These should be dealt directly as integer/times/whatever, not strings */
+	tracker_metadata_insert (metadata, METADATA_FILE_SIZE,
+                                 tracker_guint_to_string (st.st_size));
+	tracker_metadata_insert (metadata, METADATA_FILE_MODIFIED,
+                                 tracker_date_to_string (st.st_mtime));
+	tracker_metadata_insert (metadata, METADATA_FILE_ACCESSED,
+                                 tracker_date_to_string (st.st_atime));
+
+	metadata_utils_get_embedded (path, mimetype, metadata);
+
+        return metadata;
 }

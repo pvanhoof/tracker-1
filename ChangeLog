@@ -1,3 +1,26 @@
+2008-09-16  Martyn Russell  <martyn@imendio.com>
+
+	* src/tracker-extract/tracker-extract-png.c: Reworked the code
+	here and fixed adding NULL values with sensible keys to the hash
+	table. 
+	
+	* src/tracker-extract/tracker-extract.c:
+	(tracker_get_file_metadata): Check the key and value separately so
+	we don't just get one warning for either not knowing which is
+	NULL.
+	
+	* src/tracker-indexer/tracker-indexer-module.c: 
+	(tracker_indexer_module_file_get_uri): Removed the '\n' from the
+	debug statement.
+	
+	* src/tracker-indexer/tracker-metadata-utils.c: Fixed a nasty
+	crash where the watch is not removed when cleaning up IO channels.
+	Grouped the functions more logically so it is clearer what this
+	module does by function names.
+
+	* src/tracker-indexer/tracker-metadata-utils.h: Removed unused
+	function signatures and structs/enums.
+
 2008-09-16  Philip Van Hoof  <pvanhoof@gnome.org>
 
 	* src/tracker-indexer/tracker-metadata-utils.c:

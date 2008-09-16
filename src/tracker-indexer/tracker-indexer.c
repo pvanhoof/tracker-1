@@ -1426,7 +1426,7 @@ item_delete (TrackerIndexer *indexer,
 	tracker_db_check_service (service_def, dirname, basename, &service_id, NULL);
 
 	if (service_id < 1) {
-		g_debug ("Can not delete file, it doesnt exist in DB");
+		g_debug ("  Can not delete file, it doesnt exist in DB");
 		return;
 	}
 
@@ -1751,6 +1751,20 @@ should_index_file (TrackerIndexer *indexer,
 				       basename, 
 				       NULL, 
 				       &mtime)) {
+		return TRUE;
+	}
+
+	/* Here we do a quick check to see if this is an email URI or
+	 * not. For emails we don't check for the parent cache the
+	 * same way, we simply index it. If the first character is not
+	 * '/' then the path is usually something like:
+	 *
+	 *   email://1192717939.16218.20@petunia//INBOX;uid=(null)
+	 *
+	 * What we should do, is check the summary mtime to know if
+	 * we should index the content I think.
+	 */
+	if (info->file->path[0] != G_DIR_SEPARATOR) {
 		return TRUE;
 	}
 

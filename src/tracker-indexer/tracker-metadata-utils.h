@@ -26,33 +26,8 @@
 
 G_BEGIN_DECLS
 
-typedef enum {
-        TRACKER_METADATA_ACTION_NEW,
-        TRACKER_METADATA_ACTION_DELETE,
-        TRACKER_METADATA_ACTION_UPDATE
-} MetadataMergeAction;
-
-typedef struct {
-        MetadataMergeAction action;
-        gchar *metadata_type;
-	/* Metadata type with single value */
-        gchar *old_value;
-        gchar *new_value;
-	/* Metadata type with ultiple value */
-	GList *old_values;
-	GList *new_values;
-} MetadataActionItem;
-
-void              tracker_metadata_utils_action_item_free (MetadataActionItem *item,
-							   gpointer user_data);
-
-TrackerMetadata * tracker_metadata_utils_get_data      (const gchar *path);
-gchar *           tracker_metadata_utils_get_text      (const gchar *path);
-
-GSList *          tracker_metadata_utils_calculate_merge (TrackerMetadata *old_metadata,
-							  TrackerMetadata *new_metadata);
-
-
+TrackerMetadata *tracker_metadata_utils_get_data (const gchar *path);
+gchar *          tracker_metadata_utils_get_text (const gchar *path);
 
 G_END_DECLS
 

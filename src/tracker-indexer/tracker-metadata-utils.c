@@ -782,11 +782,11 @@ tracker_metadata_utils_get_thumbnail (const gchar *path,
 	if (not_available)
 		return;
 
-	if (count < 50) {
+	if (count < 51) {
 		batch[count++] = g_strdup (path);
 	}
 
-	if (count == 50) {
+	if (count == 51) {
 		guint       i;
 		GError     *error = NULL;
 		DBusGProxy *proxy = tracker_dbus_get_thumbnailer ();
@@ -806,7 +806,7 @@ tracker_metadata_utils_get_thumbnail (const gchar *path,
 			g_error_free (error);
 		}
 
-		for (i = 0; i <= count; i++)
+		for (i = 0; i < count; i++)
 			g_free (batch[i]);
 
 		count = 0;

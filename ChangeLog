@@ -1,3 +1,8 @@
+2008-09-17  Ivan Frade  <ivan.frade@nokia.com>
+
+	* tests/tracker-indexer/Makefile.am: Using BUILD_SOURCES
+	automake's var to fix the build.
+	
 2008-09-17  Martyn Russell  <martyn@imendio.com>
 
 	* tests/tracker-indexer/Makefile.am: Tried fixing the ln -s

@@ -616,24 +616,23 @@ tracker_ontology_get_field_by_name (const gchar *name)
 TrackerField *  
 tracker_ontology_get_field_by_id (gint id)
 {
-	GList *values;
-	GList *l;
+	TrackerField *field = NULL;
+	GList        *values;
+	GList        *l;
 
 	/* TODO Create a hashtable with id -> field def. More efficient */
 
 	values = g_hash_table_get_values (field_names);
 	
-	for (l = values; l; l = l->next) {
-		TrackerField *field;
-
-		field = l->data;
-
-		if (atoi (tracker_field_get_id (field)) == id) {
-			return field;
+	for (l = values; l && !field; l = l->next) {
+		if (atoi (tracker_field_get_id (l->data)) == id) {
+			field = l->data;
 		}
 	}
 
-	return NULL;
+	g_list_free (values);
+
+	return field;
 }
 
 gchar *

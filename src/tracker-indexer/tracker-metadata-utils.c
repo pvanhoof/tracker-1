@@ -203,7 +203,8 @@ metadata_setup (void)
 		metadata_context = NULL;
 	}
 
-	metadata_context = process_context_create (argv, metadata_read_cb);
+	metadata_context = process_context_create (argv, 
+						   metadata_read_cb);
 
 	if (!metadata_context) {
 		return FALSE;
@@ -286,14 +287,14 @@ metadata_query_file (const gchar *path,
 
 static void
 metadata_utils_get_embedded (const char      *path,
-			     const char      *mimetype,
+			     const char      *mime_type,
 			     TrackerMetadata *metadata)
 {
-	gchar **values, *service_type;
-	gint i;
+	gchar **values;
+	gchar  *service_type;
+	gint    i;
 
-	service_type = tracker_ontology_get_service_by_mime (mimetype);
-
+	service_type = tracker_ontology_get_service_by_mime (mime_type);
 	if (!service_type) {
 		return;
 	}
@@ -305,7 +306,7 @@ metadata_utils_get_embedded (const char      *path,
 
         g_free (service_type);
 
-	values = metadata_query_file (path, mimetype);
+	values = metadata_query_file (path, mime_type);
 
 	if (!values) {
 		return;
@@ -568,9 +569,9 @@ get_file_content (const gchar *path)
                            path,
                            error->message);
                 g_error_free (error);
-                g_object_unref (file);
+		g_string_free (s, TRUE);
                 g_object_unref (stream);
-                g_string_free (s, TRUE);
+                g_object_unref (file);
 
                 return NULL;
         }
@@ -601,8 +602,8 @@ get_file_content (const gchar *path)
 	s = g_string_truncate (s, bytes_valid);
 #endif  /* TRY_LOCALE_TO_UTF8_CONVERSION */
 
-        g_object_unref (file);
         g_object_unref (stream);
+        g_object_unref (file);
 
 	if (s->len < 1) {
 		g_string_free (s, TRUE);
@@ -681,7 +682,8 @@ get_file_thumbnail (const gchar *path,
 	argv[3] = g_strdup ("normal");
 	argv[4] = NULL;
 
-	context = process_context_create ((const gchar **) argv, get_file_content_read_cb);
+	context = process_context_create ((const gchar **) argv, 
+					  get_file_content_read_cb)
 
 	if (!context) {
 		return;
@@ -746,7 +748,8 @@ get_file_content_by_filter (const gchar *path,
 
 	g_message ("Extracting text for:'%s' using filter:'%s'", argv[1], argv[0]);
 
-	context = process_context_create ((const gchar **) argv, get_file_content_read_cb);
+	context = process_context_create ((const gchar **) argv, 
+					  get_file_content_read_cb);
 
 	g_free (text_filter_file);
 	g_free (argv);
@@ -771,11 +774,12 @@ get_file_content_by_filter (const gchar *path,
 gchar *
 tracker_metadata_utils_get_text (const gchar *path)
 {
-	gchar *mimetype, *service_type;
-	gchar *text = NULL;
+	gchar *mime_type;
+	gchar *service_type;
+	gchar *text;
 
-	mimetype = tracker_file_get_mime_type (path);
-	service_type = tracker_ontology_get_service_by_mime (mimetype);
+	mime_type = tracker_file_get_mime_type (path);
+	service_type = tracker_ontology_get_service_by_mime (mime_type);
 
 	/* No need to filter text based files - index them directly */
 	if (service_type &&
@@ -783,11 +787,11 @@ tracker_metadata_utils_get_text (const gchar *path)
              strcmp (service_type, "Development") == 0)) {
                 text = get_file_content (path);
 	} else {
-		text = get_file_content_by_filter (path, mimetype);
+		text = get_file_content_by_filter (path, mime_type);
 	}
 
-	g_free (mimetype);
 	g_free (service_type);
+	g_free (mime_type);
 
 	return text;
 }
@@ -798,7 +802,7 @@ tracker_metadata_utils_get_data (const gchar *path)
         TrackerMetadata *metadata;
 	struct stat st;
 	const gchar *ext;
-	gchar *mimetype;
+	gchar *mime_type;
 
 	if (g_lstat (path, &st) < 0) {
                 return NULL;
@@ -811,20 +815,23 @@ tracker_metadata_utils_get_data (const gchar *path)
 		tracker_metadata_insert (metadata, METADATA_FILE_EXT, g_strdup (ext + 1));
 	}
 
-	mimetype = tracker_file_get_mime_type (path);
+	mime_type = tracker_file_get_mime_type (path);
 
-        tracker_metadata_insert (metadata, METADATA_FILE_NAME, g_filename_display_basename (path));
-	tracker_metadata_insert (metadata, METADATA_FILE_PATH, g_path_get_dirname (path));
+        tracker_metadata_insert (metadata, METADATA_FILE_NAME, 
+				 g_filename_display_basename (path));
+	tracker_metadata_insert (metadata, METADATA_FILE_PATH, 
+				 g_path_get_dirname (path));
 	tracker_metadata_insert (metadata, METADATA_FILE_NAME_DELIMITED,
                                  g_filename_to_utf8 (path, -1, NULL, NULL, NULL));
-	tracker_metadata_insert (metadata, METADATA_FILE_MIMETYPE, mimetype);
+	tracker_metadata_insert (metadata, METADATA_FILE_MIMETYPE, 
+				 mime_type);
 
-	if (mimetype) {
+	if (mime_type) {
 		/* FIXME: 
 		 * We should determine here for which items we do and for which
 		 * items we don't want to pre-create the thumbnail. */
 
-		get_file_thumbnail (path, mimetype);
+		get_file_thumbnail (path, mime_type);
 	}
 
 	if (S_ISLNK (st.st_mode)) {
@@ -844,7 +851,7 @@ tracker_metadata_utils_get_data (const gchar *path)
 	tracker_metadata_insert (metadata, METADATA_FILE_ACCESSED,
                                  tracker_date_to_string (st.st_atime));
 
-	metadata_utils_get_embedded (path, mimetype, metadata);
+	metadata_utils_get_embedded (path, mime_type, metadata);
 
         return metadata;
 }

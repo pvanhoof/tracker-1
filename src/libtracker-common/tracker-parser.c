@@ -65,7 +65,6 @@ typedef enum {
 static inline TrackerParserWordType
 get_word_type (gunichar c)
 {
-
 	/* Fast ascii handling */
 	if (IS_ASCII (c)) {
 		if (IS_ASCII_ALPHA_LOWER (c)) {
@@ -95,15 +94,15 @@ get_word_type (gunichar c)
 		if (IS_NEWLINE (c)) {
 			return TRACKER_PARSER_WORD_NEWLINE;
 		}
-	} else 	{
+	} else {
 		if (g_unichar_isalpha (c)) {
 			if (!g_unichar_isupper (c)) {
-				return  TRACKER_PARSER_WORD_ALPHA_LOWER;
+				return TRACKER_PARSER_WORD_ALPHA_LOWER;
 			} else {
-				return  TRACKER_PARSER_WORD_ALPHA_HIGHER;
+				return TRACKER_PARSER_WORD_ALPHA_HIGHER;
 			}
 		} else if (g_unichar_isdigit (c)) {
-			return  TRACKER_PARSER_WORD_NUM;
+			return TRACKER_PARSER_WORD_NUM;
 		}
 	}
 
@@ -216,7 +215,7 @@ analyze_text (const gchar      *text,
 
 	*index_word = NULL;
 
-	if (!text) {
+	if (text == NULL || text[0] == '\0') {
                 return NULL;
         }
 
@@ -234,7 +233,8 @@ analyze_text (const gchar      *text,
                 c = g_utf8_get_char (p);
                 type = get_word_type (c);
 
-                if (type == TRACKER_PARSER_WORD_IGNORE || type == TRACKER_PARSER_WORD_NEWLINE ||
+                if (type == TRACKER_PARSER_WORD_IGNORE || 
+		    type == TRACKER_PARSER_WORD_NEWLINE ||
                     (delimit_hyphen &&
                      (type == TRACKER_PARSER_WORD_HYPHEN ||
                       type == TRACKER_PARSER_WORD_UNDERSCORE))) {
@@ -890,7 +890,7 @@ tracker_parser_next (TrackerParser *parser,
 
 
 gchar *
-tracker_parser_text_to_string (const gchar     *txt,
+tracker_parser_text_to_string (const gchar     *text,
                                TrackerLanguage *language,
                                gint             max_word_length,
                                gint             min_word_length,
@@ -903,37 +903,36 @@ tracker_parser_text_to_string (const gchar     *txt,
 	guint32      i = 0;
         gint         len;
 
-        g_return_val_if_fail (language != NULL, NULL);
+        g_return_val_if_fail (TRACKER_IS_LANGUAGE (language), NULL);
 
-	if (!txt) {
+	if (text == NULL || text[0] == '\0') {
                 return NULL;
         }
 
-        p = txt;
-        len = strlen (txt);
+        p = text;
+        len = strlen (text);
         len = MIN (len, 500);
 
-        if (!g_utf8_validate (txt, len, NULL)) {
+        if (!g_utf8_validate (text, len, NULL)) {
                 return NULL;
         }
 
-        if (text_needs_pango (txt)) {
+        if (text_needs_pango (text)) {
                 /* CJK text does not need stemming or other
                  * treatment.
                  */
                 PangoLogAttr *attrs;
-                guint	      nb_bytes, str_len, word_start;
+                guint	      str_len, word_start;
                 GString	     *strs;
 
-                nb_bytes = strlen (txt);
-                str_len = g_utf8_strlen (txt, -1);
+                str_len = g_utf8_strlen (text, -1);
 
                 strs = g_string_new (" ");
 
                 attrs = g_new0 (PangoLogAttr, str_len + 1);
 
-                pango_get_log_attrs (txt,
-                                     nb_bytes,
+                pango_get_log_attrs (text,
+                                     len,
                                      0,
                                      pango_language_from_string ("C"),
                                      attrs,
@@ -945,8 +944,8 @@ tracker_parser_text_to_string (const gchar     *txt,
                         if (attrs[i].is_word_end) {
                                 gchar *start_word, *end_word;
 
-                                start_word = g_utf8_offset_to_pointer (txt, word_start);
-                                end_word = g_utf8_offset_to_pointer (txt, i);
+                                start_word = g_utf8_offset_to_pointer (text, word_start);
+                                end_word = g_utf8_offset_to_pointer (text, i);
 
                                 if (start_word != end_word) {
                                         /* Normalize word */
@@ -1069,7 +1068,7 @@ tracker_parser_text_fast (GHashTable  *word_table,
 
 GHashTable *
 tracker_parser_text (GHashTable      *word_table,
-                     const gchar     *txt,
+                     const gchar     *text,
                      gint             weight,
                      TrackerLanguage *language,
                      gint             max_words_to_index,
@@ -1096,26 +1095,25 @@ tracker_parser_text (GHashTable      *word_table,
 		total_words = g_hash_table_size (word_table);
 	}
 
-	if (!txt || weight == 0) {
+	if (text == NULL || text[0] == '\0' || weight == 0) {
 		return word_table;
 	}
 
-	p = txt;
+	p = text;
 	i = 0;
 
-	if (text_needs_pango (txt)) {
+	if (text_needs_pango (text)) {
 		/* CJK text does not need stemming or other treatment */
 		PangoLogAttr *attrs;
-		guint	      nb_bytes, str_len, word_start;
+		guint	      len, str_len, word_start;
 
-                nb_bytes = strlen (txt);
-
-                str_len = g_utf8_strlen (txt, -1);
+                len = strlen (text);
+                str_len = g_utf8_strlen (text, -1);
 
 		attrs = g_new0 (PangoLogAttr, str_len + 1);
 
-		pango_get_log_attrs (txt,
-                                     nb_bytes,
+		pango_get_log_attrs (text,
+                                     len,
                                      0,
                                      pango_language_from_string ("C"),
                                      attrs,
@@ -1127,8 +1125,8 @@ tracker_parser_text (GHashTable      *word_table,
 			if (attrs[i].is_word_end) {
 				gchar *start_word, *end_word;
 
-				start_word = g_utf8_offset_to_pointer (txt, word_start);
-				end_word = g_utf8_offset_to_pointer (txt, i);
+				start_word = g_utf8_offset_to_pointer (text, word_start);
+				end_word = g_utf8_offset_to_pointer (text, i);
 
 				if (start_word != end_word) {
 					gchar    *str;

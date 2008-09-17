@@ -259,26 +259,22 @@ tracker_file_get_mime_type (const gchar *path)
 	info = g_file_query_info (file,
 				  G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
 				  G_FILE_QUERY_INFO_NONE,
-				  NULL, &error);
+				  NULL, 
+				  &error);
 
-	if (error) {
+	if (G_UNLIKELY (error)) {
 		g_warning ("Could not guess mimetype, %s\n", 
 			   error->message);
 		g_error_free (error);
-
-		return g_strdup ("unknown");
+		content_type = NULL;
+	} else {
+		content_type = g_strdup (g_file_info_get_content_type (info));
 	}
-
-	content_type = g_strdup (g_file_info_get_content_type (info));
 
 	g_object_unref (info);
 	g_object_unref (file);
 
-	if (!content_type) {
-		return g_strdup ("unknown");
-	}
-
-	return content_type;
+	return content_type ? content_type : g_strdup ("unknown");
 }
 
 static gchar *
@@ -728,7 +724,7 @@ path_has_write_access (const gchar *path,
                                   &error);
         g_object_unref (file);
       
-	if (error) {
+	if (G_UNLIKELY (error)) {
                 if (error->code == G_IO_ERROR_NOT_FOUND) {
                         if (exists) {
                                 *exists = FALSE;
@@ -742,14 +738,15 @@ path_has_write_access (const gchar *path,
 
 		g_error_free (error);
                        
-		return FALSE;
+		writable = FALSE;
+	} else {
+		if (exists) {
+			*exists = TRUE;
+		}
+
+		writable = g_file_info_get_attribute_boolean (info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
 	}
 
-        if (exists) {
-                *exists = TRUE;
-        }
-
-        writable = g_file_info_get_attribute_boolean (info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
         g_object_unref (info);
 
         return writable;

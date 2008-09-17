@@ -924,8 +924,8 @@ index_metadata_item (TrackerField        *field,
 		tracker_db_delete_metadata (data->service, data->id, field, (gchar *)value);
 	}
 
-	g_free (parsed_value);
 	g_strfreev (arr);
+	g_free (parsed_value);
 }
 
 static void
@@ -1274,8 +1274,8 @@ item_create_or_update (TrackerIndexer  *indexer,
 
 	if (tracker_db_check_service (service_def, dirname, basename, &id, NULL)) {
 		TrackerMetadata *old_metadata;
-		gchar           *old_text;
-		gchar           *new_text;
+		gchar *old_text;
+		gchar *new_text;
 
 		/* Update case */
 		g_debug ("Updating file '%s'", info->file->path);
@@ -1298,6 +1298,7 @@ item_create_or_update (TrackerIndexer  *indexer,
 
 		g_free (old_text);
 		g_free (new_text);
+		tracker_metadata_free (old_metadata);		
 
 		return;
 	}

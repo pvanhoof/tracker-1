@@ -151,7 +151,9 @@ tracker_db_check_service (TrackerService *service,
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
-	guint db_id, db_mtime;
+	gchar *db_mtime_str;
+	guint db_id;
+	guint db_mtime;
 	gboolean found = FALSE;
 
 	db_id = db_mtime = 0;
@@ -167,10 +169,15 @@ tracker_db_check_service (TrackerService *service,
 	if (result_set) {
 		tracker_db_result_set_get (result_set,
 					   0, &db_id,
-					   1, &db_mtime,
+					   1, &db_mtime_str,
 					   -1);
 		g_object_unref (result_set);
 		found = TRUE;
+
+		if (db_mtime_str) {
+			db_mtime = tracker_string_to_date (db_mtime_str);
+			g_free (db_mtime_str);
+		}
 	}
 
 	if (id) {
@@ -323,52 +330,59 @@ result_set_to_metadata (TrackerDBResultSet *result_set,
 			gboolean            numeric,
 			gboolean            only_embedded)
 {
-	gboolean      valid = TRUE;
-	TrackerField *field_def;
-	gint          metadata_id;
+	TrackerField *field;
 	gchar        *value;
 	gint          numeric_value;
+	gint          metadata_id;
+	gboolean      valid = TRUE;
 
 	while (valid) {
-		
 		if (numeric) {
-			tracker_db_result_set_get (result_set, 0, &metadata_id, 1, &numeric_value, -1);
+			tracker_db_result_set_get (result_set, 
+						   0, &metadata_id, 
+						   1, &numeric_value, 
+						   -1);
 			value = g_strdup_printf ("%d", numeric_value);
 		} else {
-			tracker_db_result_set_get (result_set, 0, &metadata_id, 1, &value, -1);
+			tracker_db_result_set_get (result_set, 
+						   0, &metadata_id, 
+						   1, &value, 
+						   -1);
 		}
 		
-		field_def = tracker_ontology_get_field_by_id (metadata_id);
-		if (!field_def) {
+		field = tracker_ontology_get_field_by_id (metadata_id);
+		if (!field) {
 			g_critical ("Field id %d in database but not in tracker-ontology",
 				    metadata_id);
 			g_free (value);
 			return;
 		}
 		
-		if (tracker_field_get_embedded (field_def) || !only_embedded) {
+		if (tracker_field_get_embedded (field) || !only_embedded) {
+			if (tracker_field_get_multiple_values (field)) {
+				GList *new_values;
+				const GList *old_values; 
 
-			if (tracker_field_get_multiple_values (field_def)) {
-			
-				GList *new_values = NULL;
-				const GList *old_values = NULL; 
+				new_values = NULL;
 				old_values = tracker_metadata_lookup_multiple_values (metadata,
-										      tracker_field_get_name (field_def));
+										      tracker_field_get_name (field));
 				if (old_values) {
-					new_values = g_list_copy ((GList *)old_values);
+					new_values = g_list_copy ((GList *) old_values);
 				}
 				
-				new_values = g_list_prepend (new_values, g_strdup (value));
+				new_values = g_list_prepend (new_values, value);
 				tracker_metadata_insert_multiple_values (metadata, 
-									 tracker_field_get_name (field_def),
+									 tracker_field_get_name (field),
 									 new_values);
-				
 			} else {
-				tracker_metadata_insert (metadata, tracker_field_get_name (field_def), g_strdup (value));
+				tracker_metadata_insert (metadata, 
+							 tracker_field_get_name (field), 
+							 value);
 			}
+		} else {
+			g_free (value);
 		}
 
-		g_free (value);
 		valid = tracker_db_result_set_iter_next (result_set);
 	}
 }
@@ -530,9 +544,9 @@ tracker_db_get_parsed_metadata (TrackerService *service,
 }
 
 gchar **
-tracker_db_get_property_values (TrackerService     *service_def,
-				guint32             id,
-				TrackerField       *field_def)
+tracker_db_get_property_values (TrackerService *service_def,
+				guint32         id,
+				TrackerField   *field)
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set = NULL;
@@ -543,7 +557,7 @@ tracker_db_get_property_values (TrackerService     *service_def,
 	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service_def),
 							     TRACKER_DB_CONTENT_TYPE_METADATA);
 	metadata_key = tracker_ontology_service_get_key_metadata (tracker_service_get_name (service_def),
-								  tracker_field_get_name (field_def));
+								  tracker_field_get_name (field));
 
 	if (metadata_key > 0) {
 		gchar *query;
@@ -561,12 +575,12 @@ tracker_db_get_property_values (TrackerService     *service_def,
 
 		id_str = tracker_guint32_to_string (id);
 		
-		switch (tracker_field_get_data_type (field_def)) {
+		switch (tracker_field_get_data_type (field)) {
 		case TRACKER_FIELD_TYPE_KEYWORD:
 			result_set = tracker_db_interface_execute_procedure (iface, NULL,
 									     "GetMetadataKeyword",
 									     id_str,
-									     tracker_field_get_id (field_def),
+									     tracker_field_get_id (field),
 									     NULL);
 			break;
 		case TRACKER_FIELD_TYPE_INDEX:
@@ -575,7 +589,7 @@ tracker_db_get_property_values (TrackerService     *service_def,
 			result_set = tracker_db_interface_execute_procedure (iface, NULL,
 									     "GetMetadata",
 									     id_str,
-									     tracker_field_get_id (field_def),
+									     tracker_field_get_id (field),
 									     NULL);
 			break;
 		case TRACKER_FIELD_TYPE_INTEGER:
@@ -583,7 +597,7 @@ tracker_db_get_property_values (TrackerService     *service_def,
 			result_set = tracker_db_interface_execute_procedure (iface, NULL,
 									     "GetMetadataNumeric",
 									     id_str,
-									     tracker_field_get_id (field_def),
+									     tracker_field_get_id (field),
 									     NULL);
 			is_numeric = TRUE;
 			break;

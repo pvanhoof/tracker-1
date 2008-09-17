@@ -1,3 +1,33 @@
+2008-09-17  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-file-utils.c:
+	(tracker_file_get_mime_type), (path_has_write_access): Fixed
+	GFileInfo memory leaks.
+	
+	* src/libtracker-common/tracker-ontology.c:
+	(tracker_ontology_get_field_by_id): Fixed GList memory leak from
+	g_hash_table_get_values() call.
+	
+	* src/libtracker-common/tracker-parser.c: (analyze_text),
+	(tracker_parser_text_to_string), (tracker_parser_text): Make sure
+	we check the text string is not just an empty string. Also, don't
+	call strlen twice in some cases.
+	
+	* src/tracker-indexer/tracker-indexer-db.c:
+	(tracker_db_check_service), For some reason, the mtime comes back
+	as a string, even though it is supposed to be an integer. So we
+	call tracker_string_to_date() on it now.
+
+	(result_set_to_metadata), In this function, don't strdup() a
+	strdup() only to free the first one. Only free if it is unused and
+	make use of the already strdup'd string.
+	
+	* src/tracker-indexer/tracker-indexer.c: (item_create_or_update):
+	Fixed a memory leak here were the TrackerMetadata was not freed
+	when updating an indexed item.
+	
+	* src/tracker-indexer/tracker-metadata-utils.c: Some code clean ups.
+
 2008-09-16  Martyn Russell  <martyn@imendio.com>
 
 	* src/libtracker-common/tracker-ontology.c:

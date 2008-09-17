@@ -1,5 +1,10 @@
 2008-09-17  Martyn Russell  <martyn@imendio.com>
 
+	* tests/tracker-indexer/Makefile.am: Tried fixing the ln -s
+	generated files hack which breaks the build right now.
+
+2008-09-17  Martyn Russell  <martyn@imendio.com>
+
 	* src/libtracker-common/tracker-file-utils.c:
 	(tracker_file_get_mime_type), (path_has_write_access): Fixed
 	GFileInfo memory leaks.

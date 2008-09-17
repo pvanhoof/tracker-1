@@ -18,14 +18,13 @@ INCLUDES = 								\
 	$(GTHREAD_CFLAGS)						\
 	$(GLIB2_CFLAGS)			
 
-generated_files = 							\
+$(generated_files):
+	ln -sf $(top_srcdir)/src/tracker-indexer/$@ $@
+
+generated_files =							\
 	tracker-indexer-glue.h						\
 	tracker-marshal.c						\
 	tracker-marshal.h
-
-$(generated_files):
-	rm -rf $@
-	ln -s $(top_srcdir)/src/tracker-indexer/$@ $@
 
 CLEANFILES = $(generated_files)
 

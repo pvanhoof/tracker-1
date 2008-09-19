@@ -1,5 +1,10 @@
 2008-09-19  Martyn Russell  <martyn@imendio.com>
 
+	* src/tracker-indexer/tracker-indexer.c: Call service_def
+	'service' and field_def 'field'.
+
+2008-09-19  Martyn Russell  <martyn@imendio.com>
+
 	* src/trackerd/tracker-processor.c: Reduce the size of the list of
 	files we send to the indexer down to 1000 from 5000. DBus isn't
 	supposed to be optimized for > 4kb chunks.
@@ -13,7 +18,7 @@
 	* src/tracker-indexer/tracker-metadata-utils.c: (get_file_content):
 	Don't write until the end of the buf, use a length, we know it and it
 	should be faster if the GString function doesn't need to calculate the
-	length too.
+	length too.k
 
 2008-09-17  Ivan Frade  <ivan.frade@nokia.com>
 

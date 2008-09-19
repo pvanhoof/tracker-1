@@ -1194,7 +1194,7 @@ merge_word_table (gpointer key,
 
 static void
 item_update_content (TrackerIndexer *indexer,
-		     TrackerService *service_def,
+		     TrackerService *service,
 		     guint32         id,
 		     const gchar    *old_text,
 		     const gchar    *new_text)
@@ -1235,16 +1235,16 @@ item_update_content (TrackerIndexer *indexer,
 	
 	update_words_no_parsing (indexer, 
 				 id, 
-				 tracker_service_get_id (service_def), 
+				 tracker_service_get_id (service), 
 				 new_words);
 	
 	/* Remove old text and set new one in the db */
 	if (old_text) {
-		tracker_db_delete_text (service_def, id);
+		tracker_db_delete_text (service, id);
 	}
 	
 	if (new_text) {
-		tracker_db_set_text (service_def, id, new_text);
+		tracker_db_set_text (service, id, new_text);
 	}
 	
 	g_hash_table_unref (old_words);
@@ -1258,7 +1258,7 @@ item_create_or_update (TrackerIndexer  *indexer,
 		       const gchar     *basename,
 		       TrackerMetadata *metadata)
 {
-	TrackerService *service_def;
+	TrackerService *service;
 	gchar *service_type;
 	gchar *text;
 	guint32 id;
@@ -1270,14 +1270,14 @@ item_create_or_update (TrackerIndexer  *indexer,
 		return;
 	}
 
-	service_def = tracker_ontology_get_service_by_name (service_type);
+	service = tracker_ontology_get_service_by_name (service_type);
 	g_free (service_type);
 
-	if (!service_def) {
+	if (!service) {
 		return;
 	}
 
-	if (tracker_db_check_service (service_def, dirname, basename, &id, NULL)) {
+	if (tracker_db_check_service (service, dirname, basename, &id, NULL)) {
 		TrackerMetadata *old_metadata;
 		gchar *old_text;
 		gchar *new_text;
@@ -1289,17 +1289,17 @@ item_create_or_update (TrackerIndexer  *indexer,
 		 * Using DB directly: get old (embedded) metadata,
 		 * unindex, index the new metadata 
 		 */
-		old_metadata = tracker_db_get_all_metadata (service_def, id, TRUE);
-		unindex_metadata (indexer, id, service_def, old_metadata);
-		index_metadata (indexer, id, service_def, metadata);
+		old_metadata = tracker_db_get_all_metadata (service, id, TRUE);
+		unindex_metadata (indexer, id, service, old_metadata);
+		index_metadata (indexer, id, service, metadata);
 
 		/* Take the old text -> the new one, calculate
 		 * difference and add the words.
 		 */
-		old_text = tracker_db_get_text (service_def, id);
+		old_text = tracker_db_get_text (service, id);
 		new_text = tracker_indexer_module_file_get_text (info->module, info->file);
 		
-		item_update_content (indexer, service_def, id, old_text, new_text);
+		item_update_content (indexer, service, id, old_text, new_text);
 
 		g_free (old_text);
 		g_free (new_text);
@@ -1313,16 +1313,16 @@ item_create_or_update (TrackerIndexer  *indexer,
 	/* Service wasn't previously indexed */
 	id = tracker_db_get_new_service_id (indexer->private->common);
 	
-	tracker_db_create_service (service_def,
+	tracker_db_create_service (service,
 				   id,
 				   dirname,
 				   basename,
 				   metadata);
 	
 	tracker_db_create_event (indexer->private->cache, id, "Create");
-	tracker_db_increment_stats (indexer->private->common, service_def);
+	tracker_db_increment_stats (indexer->private->common, service);
 	
-	index_metadata (indexer, id, service_def, metadata);
+	index_metadata (indexer, id, service, metadata);
 	
 	text = tracker_indexer_module_file_get_text (info->module, info->file);
 	
@@ -1330,12 +1330,12 @@ item_create_or_update (TrackerIndexer  *indexer,
 		/* Save in the index */
 		index_text_with_parsing (indexer,
 					 id,
-					 tracker_service_get_id (service_def),
+					 tracker_service_get_id (service),
 					 text,
 					 1);
 		
 		/* Save in the DB */
-		tracker_db_set_text (service_def, id, text);
+		tracker_db_set_text (service, id, text);
 		g_free (text);
 	}
 }
@@ -1346,7 +1346,7 @@ item_move (TrackerIndexer  *indexer,
 	   const gchar     *dirname,
 	   const gchar     *basename)
 {
-	TrackerService *service_def;
+	TrackerService *service;
 	TrackerMetadata *metadata;
 	gchar *service_type;
 	guint32 id;
@@ -1358,10 +1358,10 @@ item_move (TrackerIndexer  *indexer,
 		return;
 	}
 
-	service_def = tracker_ontology_get_service_by_name (service_type);
+	service = tracker_ontology_get_service_by_name (service_type);
 	g_free (service_type);
 
-	if (!service_def) {
+	if (!service) {
 		return;
 	}
 
@@ -1370,7 +1370,7 @@ item_move (TrackerIndexer  *indexer,
 		 info->other_file->path);
 
 	/* Get 'source' ID */
-	if (!tracker_db_check_service (service_def, 
+	if (!tracker_db_check_service (service, 
 				       dirname, 
 				       basename, 
 				       &id, 
@@ -1380,7 +1380,7 @@ item_move (TrackerIndexer  *indexer,
 		return;
 	}
 
-	tracker_db_move_service (service_def, 
+	tracker_db_move_service (service, 
 				 info->file->path, 
 				 info->other_file->path);
 
@@ -1388,9 +1388,9 @@ item_move (TrackerIndexer  *indexer,
 	 * Using DB directly: get old (embedded) metadata, unindex,
 	 * index the new metadata 
 	 */
-	metadata = tracker_db_get_all_metadata (service_def, id, TRUE);
-	unindex_metadata (indexer, id, service_def, metadata);
-	index_metadata (indexer, id, service_def, metadata);
+	metadata = tracker_db_get_all_metadata (service, id, TRUE);
+	unindex_metadata (indexer, id, service, metadata);
+	index_metadata (indexer, id, service, metadata);
 }
 
 static void
@@ -1399,7 +1399,7 @@ item_delete (TrackerIndexer *indexer,
 	     const gchar    *dirname,
 	     const gchar    *basename)
 {
-	TrackerService *service_def;
+	TrackerService *service;
 	gchar *content, *metadata;
 	const gchar *service_type;
 	guint service_id, service_type_id;
@@ -1422,14 +1422,14 @@ item_delete (TrackerIndexer *indexer,
 		}
 
 		name = tracker_ontology_get_service_by_id (service_type_id);
-		service_def = tracker_ontology_get_service_by_name (name);
+		service = tracker_ontology_get_service_by_name (name);
 		g_free (name);
 	} else {
-		service_def = tracker_ontology_get_service_by_name (service_type);
-		service_type_id = tracker_service_get_id (service_def);
+		service = tracker_ontology_get_service_by_name (service_type);
+		service_type_id = tracker_service_get_id (service);
 	}
 
-	tracker_db_check_service (service_def, dirname, basename, &service_id, NULL);
+	tracker_db_check_service (service, dirname, basename, &service_id, NULL);
 
 	if (service_id < 1) {
 		g_debug ("  File does not exist anyway "
@@ -1439,7 +1439,7 @@ item_delete (TrackerIndexer *indexer,
 	}
 
 	/* Get content, unindex the words and delete the contents */
-	content = tracker_db_get_text (service_def, service_id);
+	content = tracker_db_get_text (service, service_id);
 	if (content) {
 		unindex_text_with_parsing (indexer, 
 					   service_id, 
@@ -1447,11 +1447,11 @@ item_delete (TrackerIndexer *indexer,
 					   content, 
 					   1);
 		g_free (content);
-		tracker_db_delete_text (service_def, service_id);
+		tracker_db_delete_text (service, service_id);
 	}
 
 	/* Get metadata from DB to remove it from the index */
-	metadata = tracker_db_get_parsed_metadata (service_def, 
+	metadata = tracker_db_get_parsed_metadata (service, 
 						   service_id);
 	unindex_text_no_parsing (indexer, 
 				 service_id, 
@@ -1463,7 +1463,7 @@ item_delete (TrackerIndexer *indexer,
 	/* The weight depends on metadata, but a number high enough
 	 * force deletion.
 	 */
-	metadata = tracker_db_get_unparsed_metadata (service_def, 
+	metadata = tracker_db_get_unparsed_metadata (service, 
 						     service_id);
 	unindex_text_with_parsing (indexer, 
 				   service_id, 
@@ -1473,10 +1473,10 @@ item_delete (TrackerIndexer *indexer,
 	g_free (metadata);
 
 	/* Delete service */
-        tracker_db_delete_service (service_def, service_id);
-	tracker_db_delete_all_metadata (service_def, service_id);
+        tracker_db_delete_service (service, service_id);
+	tracker_db_delete_all_metadata (service, service_id);
 
-	tracker_db_decrement_stats (indexer->private->common, service_def);
+	tracker_db_decrement_stats (indexer->private->common, service);
 }
 
 static gboolean
@@ -1487,16 +1487,16 @@ handle_metadata_add (TrackerIndexer *indexer,
 		     GStrv           values,
 		     GError        **error)
 {
-	TrackerService *service_def;
-	TrackerField *field_def;
+	TrackerService *service;
+	TrackerField *field;
 	guint service_id, i;
 	gchar *joined, *dirname = NULL, *basename =NULL;
 	gint len;
 
 	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
-	service_def = tracker_ontology_get_service_by_name (service_type);
-	if (!service_def) {
+	service = tracker_ontology_get_service_by_name (service_type);
+	if (!service) {
 		g_set_error (error, 
 			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
 			     TRACKER_INDEXER_ERROR_CODE,
@@ -1505,8 +1505,8 @@ handle_metadata_add (TrackerIndexer *indexer,
 		return FALSE;
 	}
 
-	field_def = tracker_ontology_get_field_by_name (property);
-	if (!field_def) {
+	field = tracker_ontology_get_field_by_name (property);
+	if (!field) {
 		g_set_error (error, 
 			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
 			     TRACKER_INDEXER_ERROR_CODE,
@@ -1515,7 +1515,7 @@ handle_metadata_add (TrackerIndexer *indexer,
 		return FALSE;
 	}
 
-	if (tracker_field_get_embedded (field_def)) {
+	if (tracker_field_get_embedded (field)) {
 		g_set_error (error, 
 			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
 			     TRACKER_INDEXER_ERROR_CODE,
@@ -1526,7 +1526,7 @@ handle_metadata_add (TrackerIndexer *indexer,
 
 	len = g_strv_length (values);
 
-	if (!tracker_field_get_multiple_values (field_def) && len > 1) {
+	if (!tracker_field_get_multiple_values (field) && len > 1) {
 		g_set_error (error, 
 			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
 			     TRACKER_INDEXER_ERROR_CODE,
@@ -1538,7 +1538,7 @@ handle_metadata_add (TrackerIndexer *indexer,
 
 	tracker_file_get_path_and_name (uri, &dirname, &basename);
 
-	tracker_db_check_service (service_def,
+	tracker_db_check_service (service,
 				  dirname,
 				  basename,
 				  &service_id,
@@ -1554,64 +1554,64 @@ handle_metadata_add (TrackerIndexer *indexer,
 		return FALSE;
 	}
 
-	if (!tracker_field_get_multiple_values (field_def)) {
+	if (!tracker_field_get_multiple_values (field)) {
 		/* Remove old value from DB and index */
 		gchar **old_contents;
 
-		old_contents = tracker_db_get_property_values (service_def, 
+		old_contents = tracker_db_get_property_values (service, 
 							       service_id, 
-							       field_def);
+							       field);
 		len = g_strv_length (old_contents);
 
 		if (old_contents && len > 1) {
 			g_critical ("Seems to be multiple values in field:'%s' that doesn allow that",
-				    tracker_field_get_name (field_def));
+				    tracker_field_get_name (field));
 		} else if (old_contents && len == 1) {
-			if (tracker_field_get_filtered (field_def)) {
+			if (tracker_field_get_filtered (field)) {
 				unindex_text_with_parsing (indexer,
 							   service_id,
-							   tracker_service_get_id (service_def),
+							   tracker_service_get_id (service),
 							   old_contents[0],
-							   tracker_field_get_weight (field_def));
+							   tracker_field_get_weight (field));
 			} else {
 				unindex_text_no_parsing (indexer,
 							 service_id,
-							 tracker_service_get_id (service_def),
+							 tracker_service_get_id (service),
 							 old_contents[0],
-							 tracker_field_get_weight (field_def));
+							 tracker_field_get_weight (field));
 			}
-			tracker_db_delete_metadata (service_def, service_id, field_def, old_contents[0]);
+			tracker_db_delete_metadata (service, service_id, field, old_contents[0]);
 			g_strfreev (old_contents);
 		}
 	}
 
 	for (i = 0; values[i] != NULL; i++) {
 		g_debug ("Setting metadata: service_type '%s' id '%d' field '%s' value '%s'",
-			 tracker_service_get_name (service_def),
+			 tracker_service_get_name (service),
 			 service_id,
-			 tracker_field_get_name (field_def),
+			 tracker_field_get_name (field),
 			 values[i]);
 
-		tracker_db_set_metadata (service_def,
+		tracker_db_set_metadata (service,
 					 service_id,
-					 field_def,
+					 field,
 					 values[i],
 					 NULL);
 	}
 
 	joined = g_strjoinv (" ", values);
-	if (tracker_field_get_filtered (field_def)) {
+	if (tracker_field_get_filtered (field)) {
 		index_text_no_parsing (indexer,
 				       service_id,
-				       tracker_service_get_id (service_def),
+				       tracker_service_get_id (service),
 				       joined,
-				       tracker_field_get_weight (field_def));
+				       tracker_field_get_weight (field));
 	} else {
 		index_text_with_parsing (indexer,
 					 service_id,
-					 tracker_service_get_id (service_def),
+					 tracker_service_get_id (service),
 					 joined,
-					 tracker_field_get_weight (field_def));
+					 tracker_field_get_weight (field));
 	}
 	g_free (joined);
 
@@ -1626,13 +1626,13 @@ handle_metadata_remove (TrackerIndexer *indexer,
 			GStrv           values,
 			GError        **error)
 {
-	TrackerService *service_def;
-	TrackerField *field_def;
+	TrackerService *service;
+	TrackerField *field;
 	guint service_id, i;
 	gchar *joined = NULL, *dirname = NULL, *basename = NULL;
 
-	service_def = tracker_ontology_get_service_by_name (service_type);
-	if (!service_def) {
+	service = tracker_ontology_get_service_by_name (service_type);
+	if (!service) {
 		g_set_error (error, 
 			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
 			     TRACKER_INDEXER_ERROR_CODE,
@@ -1641,8 +1641,8 @@ handle_metadata_remove (TrackerIndexer *indexer,
 		return FALSE;
 	}
 
-	field_def = tracker_ontology_get_field_by_name (property);
-	if (!field_def) {
+	field = tracker_ontology_get_field_by_name (property);
+	if (!field) {
 		g_set_error (error, 
 			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
 			     TRACKER_INDEXER_ERROR_CODE,
@@ -1651,7 +1651,7 @@ handle_metadata_remove (TrackerIndexer *indexer,
 		return FALSE;
 	}
 
-	if (tracker_field_get_embedded (field_def)) {
+	if (tracker_field_get_embedded (field)) {
 		g_set_error (error, 
 			     g_quark_from_string (TRACKER_INDEXER_ERROR), 
 			     TRACKER_INDEXER_ERROR_CODE,
@@ -1662,7 +1662,7 @@ handle_metadata_remove (TrackerIndexer *indexer,
 
 	tracker_file_get_path_and_name (uri, &dirname, &basename);
 
-	tracker_db_check_service (service_def, dirname, basename, &service_id, NULL);
+	tracker_db_check_service (service, dirname, basename, &service_id, NULL);
 
 	g_free (dirname);
 	g_free (basename);
@@ -1681,22 +1681,22 @@ handle_metadata_remove (TrackerIndexer *indexer,
 	 */
 	if (g_strv_length (values) > 0) {
 		for (i = 0; values[i] != NULL; i++) {
-			tracker_db_delete_metadata (service_def,
+			tracker_db_delete_metadata (service,
 						    service_id,
-						    field_def,
+						    field,
 						    values[i]);
 		}
 		joined = g_strjoinv (" ", values);
 	} else {
 		gchar **old_contents;
 		
-		old_contents = tracker_db_get_property_values (service_def, 
+		old_contents = tracker_db_get_property_values (service, 
 							       service_id, 
-							       field_def);
+							       field);
 		if (old_contents) {
-			tracker_db_delete_metadata (service_def,
+			tracker_db_delete_metadata (service,
 						    service_id,
-						    field_def,
+						    field,
 						    NULL);
 			
 			joined = g_strjoinv (" ", old_contents);
@@ -1705,18 +1705,18 @@ handle_metadata_remove (TrackerIndexer *indexer,
 	}
 
 	/* Now joined contains the words to unindex */
-	if (tracker_field_get_filtered (field_def)) {
+	if (tracker_field_get_filtered (field)) {
 		unindex_text_with_parsing (indexer,
 					   service_id,
-					   tracker_service_get_id (service_def),
+					   tracker_service_get_id (service),
 					   joined,
-					   tracker_field_get_weight (field_def));
+					   tracker_field_get_weight (field));
 	} else {
 		unindex_text_no_parsing (indexer,
 					 service_id,
-					 tracker_service_get_id (service_def),
+					 tracker_service_get_id (service),
 					 joined,
-					 tracker_field_get_weight (field_def));
+					 tracker_field_get_weight (field));
 	}
 
 	g_free (joined);

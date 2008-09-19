@@ -557,7 +557,8 @@ get_file_content (const gchar *path)
 			 has_more_data ? "yes" : "no",
 			 has_reached_max ? "yes" : "no");
 
-		s = g_string_append (s, buf);
+		/* The + 1 is for the NULL terminating byte */
+		s = g_string_append_len (s, buf, bytes_read + 1);
 	}
 
 	if (has_reached_max) {

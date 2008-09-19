@@ -106,7 +106,7 @@ struct TrackerIndexerPrivate {
 	GHashTable *mtime_cache;
 
 	GList *module_names;
-	gchar *current_module_name;
+	GQuark current_module;
 	GHashTable *indexer_modules;
 
 	gchar *db_dir;
@@ -293,7 +293,7 @@ signal_status (TrackerIndexer *indexer,
 		g_message ("Indexed %d/%d, module:'%s', %s left, %s elapsed (%s)",
 			   indexer->private->files_indexed,
 			   indexer->private->files_indexed + files_remaining,
-			   indexer->private->current_module_name,
+			   g_quark_to_string (indexer->private->current_module),
 			   str1,
 			   str2,
 			   why);
@@ -304,7 +304,7 @@ signal_status (TrackerIndexer *indexer,
 
 	g_signal_emit (indexer, signals[STATUS], 0,
 		       seconds_elapsed,
-		       indexer->private->current_module_name,
+		       g_quark_to_string (indexer->private->current_module),
 		       indexer->private->files_indexed,
 		       files_remaining);
 }
@@ -466,7 +466,6 @@ tracker_indexer_finalize (GObject *object)
 	g_free (priv->db_dir);
 
 	g_hash_table_unref (priv->indexer_modules);
-	g_free (priv->current_module_name);
 	g_list_free (priv->module_names);
 
 	g_queue_foreach (priv->modules_queue, (GFunc) g_free, NULL);
@@ -641,6 +640,9 @@ check_stopped (TrackerIndexer *indexer,
 
 	state_set_flags (indexer, TRACKER_INDEXER_STATE_STOPPED);
 
+	/* Clean up temporary data */
+	g_hash_table_remove_all (indexer->private->mtime_cache);
+
 	/* Print out how long it took us */
 	str = tracker_seconds_to_string (seconds_elapsed, FALSE);
 
@@ -807,6 +809,9 @@ tracker_indexer_init (TrackerIndexer *indexer)
 					 NULL);
 
 	priv->module_names = tracker_module_config_get_modules ();
+	for (l = priv->module_names; l; l = l->next) {
+ 		g_quark_from_string (l->data);
+	}
 
 	priv->indexer_modules = g_hash_table_new_full (g_str_hash,
 						       g_str_equal,
@@ -1850,10 +1855,10 @@ should_index_file (TrackerIndexer *indexer,
 						   NULL, 
 						   &mtime);
 		if (!exists) {
-			g_critical ("Expected path '%s/%s' to exist, not in database?",
-				    parent_dirname,
-				    parent_basename);
-
+			g_message ("Expected path '%s/%s' to exist, not in database?",
+				   parent_dirname,
+				   parent_basename);
+			
 			g_free (parent_basename);
 			g_free (parent_dirname);
 
@@ -1861,8 +1866,8 @@ should_index_file (TrackerIndexer *indexer,
 		}
 
 		if (g_lstat (dirname, &st) == -1) {
-			g_critical ("Expected path '%s' to exist, could not stat()",
-				    parent_dirname);
+			g_message ("Expected path '%s' to exist, could not stat()",
+				   parent_dirname);
 
 			g_free (parent_basename);
 			g_free (parent_dirname);
@@ -1906,8 +1911,7 @@ process_file (TrackerIndexer *indexer,
 	 */
 
 	/* Set the current module */
-	g_free (indexer->private->current_module_name);
-	indexer->private->current_module_name = g_strdup (info->module_name);
+	indexer->private->current_module = g_quark_from_string (info->module_name);
 	
 	if (!tracker_indexer_module_file_get_uri (info->module,
 						  info->file,
@@ -1915,7 +1919,7 @@ process_file (TrackerIndexer *indexer,
 						  &basename)) {
 		return TRUE;
 	}
-	
+
 	/* 
 	 * FIRST:
 	 * ======
@@ -1957,11 +1961,11 @@ process_file (TrackerIndexer *indexer,
 	 * metadata. For move PathInfo we use the db function to move
 	 * a service and set the metadata.
 	 */
-	metadata = tracker_indexer_module_file_get_metadata (info->module, info->file);
-
 	if (G_UNLIKELY (info->other_file)) {
 		item_move (indexer, info, dirname, basename);
 	} else {
+		metadata = tracker_indexer_module_file_get_metadata (info->module, info->file);
+
 		if (metadata) {
 			item_create_or_update (indexer, info, dirname, basename, metadata);
 			tracker_metadata_free (metadata);
@@ -2024,11 +2028,10 @@ process_module_emit_signals (TrackerIndexer *indexer,
 {
 	/* Signal the last module as finished */
 	g_signal_emit (indexer, signals[MODULE_FINISHED], 0,
-		       indexer->private->current_module_name);
+		       g_quark_to_string (indexer->private->current_module));
 
 	/* Set current module */
-	g_free (indexer->private->current_module_name);
-	indexer->private->current_module_name = g_strdup (next_module_name);
+	indexer->private->current_module = g_quark_from_string (next_module_name);
 
 	/* Signal the next module as started */
 	if (next_module_name) {

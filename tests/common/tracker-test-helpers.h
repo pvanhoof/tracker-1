@@ -27,7 +27,7 @@ G_BEGIN_DECLS
 gboolean     tracker_test_helpers_cmpstr_equal (const gchar *obtained,
 						const gchar *expected);
 const gchar *tracker_test_helpers_get_nonutf8  (void);
-void         tracker_test_helpers_free_nonutf8 (void);
+void	     tracker_test_helpers_free_nonutf8 (void);
 
 G_END_DECLS
 

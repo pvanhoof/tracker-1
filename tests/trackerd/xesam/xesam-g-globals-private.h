@@ -29,24 +29,24 @@
 
 G_BEGIN_DECLS
 
-XesamGSearch* xesam_g_search_new                    (XesamGSession 	*session,
-													 XesamGQuery    *query);
+XesamGSearch* xesam_g_search_new		    (XesamGSession	*session,
+													 XesamGQuery	*query);
 
-XesamGSearch* xesam_g_search_new_from_text          (XesamGSession 	*session,
-													 gchar 			*search_text);
+XesamGSearch* xesam_g_search_new_from_text	    (XesamGSession	*session,
+													 gchar			*search_text);
 
-XesamGHit*    xesam_g_hit_new                       (guint          id,
-                                                     GHashTable     *field_map,
-                                                     GPtrArray      *field_data);
+XesamGHit*    xesam_g_hit_new			    (guint	    id,
+						     GHashTable     *field_map,
+						     GPtrArray	    *field_data);
 
-XesamGHits*   xesam_g_hits_new                      (XesamGSearch   *search,
-                                                     guint          batch_offset,
-                                                     guint          count,
-                                                     GPtrArray      *hits_data);
+XesamGHits*   xesam_g_hits_new			    (XesamGSearch   *search,
+						     guint	    batch_offset,
+						     guint	    count,
+						     GPtrArray	    *hits_data);
 
-GHashTable*   xesam_g_session_get_field_map         (XesamGSession  *session);
+GHashTable*   xesam_g_session_get_field_map	    (XesamGSession  *session);
 
-GHashTable*   xesam_g_search_get_field_map          (XesamGSearch  *search);
+GHashTable*   xesam_g_search_get_field_map	    (XesamGSearch  *search);
 
 
 

@@ -43,7 +43,7 @@ static GHashTable *service_names;
 static GHashTable *mimes_to_service_ids;
 
 /* List of ServiceMimePrefixes */
-static GSList     *service_mime_prefixes;
+static GSList	  *service_mime_prefixes;
 
 /* Field descriptions */
 static GHashTable *field_names;
@@ -79,7 +79,7 @@ ontology_hash_lookup_by_collated_str (GHashTable  *hash_table,
 				      const gchar *str)
 {
 	gpointer  data;
-	gchar    *str_lower;
+	gchar	 *str_lower;
 
 	str_lower = g_utf8_collate_key (str, -1);
 	if (!str_lower) {
@@ -95,11 +95,11 @@ ontology_hash_lookup_by_collated_str (GHashTable  *hash_table,
 #endif
 
 static gpointer
-ontology_hash_lookup_by_id (GHashTable  *hash_table,
-			    gint         id)
+ontology_hash_lookup_by_id (GHashTable	*hash_table,
+			    gint	 id)
 {
 	gpointer  data;
-	gchar    *str;
+	gchar	 *str;
 
 	str = g_strdup_printf ("%d", id);
 	if (!str) {
@@ -183,14 +183,14 @@ tracker_ontology_shutdown (void)
 
 void
 tracker_ontology_service_add (TrackerService *service,
-			      GSList         *mimes,
-			      GSList         *mime_prefixes)
+			      GSList	     *mimes,
+			      GSList	     *mime_prefixes)
 {
 
-	GSList              *l;
+	GSList		    *l;
 	ServiceMimePrefixes *service_mime_prefix;
-	gint                 id;
-	const gchar         *name;
+	gint		     id;
+	const gchar	    *name;
 
 	g_return_if_fail (TRACKER_IS_SERVICE (service));
 
@@ -198,7 +198,7 @@ tracker_ontology_service_add (TrackerService *service,
 	name = tracker_service_get_name (service);
 
 	g_hash_table_insert (service_names,
-			     /* g_utf8_collate_key (name, -1),  */
+			     /* g_utf8_collate_key (name, -1),	*/
 			     g_strdup (name),
 			     g_object_ref (service));
 	g_hash_table_insert (service_ids,
@@ -246,9 +246,9 @@ tracker_ontology_get_service_by_id (gint id)
 gchar *
 tracker_ontology_get_service_by_mime (const gchar *mime)
 {
-	gpointer             id;
+	gpointer	     id;
 	ServiceMimePrefixes *item;
-	GSList              *prefix_service;
+	GSList		    *prefix_service;
 
 	g_return_val_if_fail (mime != NULL, g_strdup ("Other"));
 
@@ -348,7 +348,7 @@ TrackerDBType
 tracker_ontology_get_service_db_by_name (const gchar *service_str)
 {
 	TrackerDBType  type;
-	gchar         *str;
+	gchar	      *str;
 
 	g_return_val_if_fail (service_str != NULL, TRACKER_DB_TYPE_FILES);
 
@@ -374,8 +374,8 @@ GSList *
 tracker_ontology_get_service_names_registered (void)
 {
 	TrackerService *service;
-	GList          *services, *l;
-	GSList         *names = NULL;
+	GList	       *services, *l;
+	GSList	       *names = NULL;
 
 	services = g_hash_table_get_values (service_names);
 
@@ -390,9 +390,9 @@ tracker_ontology_get_service_names_registered (void)
 GSList *
 tracker_ontology_get_field_names_registered (const gchar *service_str)
 {
-	GList          *fields;
-	GList          *l;
-	GSList         *names;
+	GList	       *fields;
+	GList	       *l;
+	GSList	       *names;
 	const gchar    *prefix;
 	const gchar    *parent_prefix;
 
@@ -533,7 +533,7 @@ tracker_ontology_service_get_key_metadata (const gchar *service_str,
 					   const gchar *meta_name)
 {
 	TrackerService *service;
-	gint            i;
+	gint		i;
 	const GSList   *l;
 
 	g_return_val_if_fail (service_str != NULL, 0);
@@ -617,8 +617,8 @@ TrackerField *
 tracker_ontology_get_field_by_id (gint id)
 {
 	TrackerField *field = NULL;
-	GList        *values;
-	GList        *l;
+	GList	     *values;
+	GList	     *l;
 
 	/* TODO Create a hashtable with id -> field def. More efficient */
 
@@ -641,7 +641,7 @@ tracker_ontology_get_field_name_by_service_name (TrackerField *field,
 {
 	const gchar *field_name;
 	const gchar *meta_name;
-	gint         key_field;
+	gint	     key_field;
 
 	g_return_val_if_fail (TRACKER_IS_FIELD (field), NULL);
 	g_return_val_if_fail (service_str != NULL, NULL);

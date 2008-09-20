@@ -41,7 +41,7 @@
  * in the process_func() function.
  *
  * NOTE: Normally all indexing petitions will be sent over DBus, being
- *       everything just pushed in the files queue.
+ *	 everything just pushed in the files queue.
  */
 
 #include "config.h"
@@ -77,19 +77,19 @@
 #define TRACKER_INDEXER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_INDEXER, TrackerIndexerPrivate))
 
 /* Flush every 'x' seconds */
-#define FLUSH_FREQUENCY             60
+#define FLUSH_FREQUENCY		    60
 
 #define LOW_DISK_CHECK_FREQUENCY    10
 #define SIGNAL_STATUS_FREQUENCY     10
 
 /* Transaction every 'x' items */
-#define TRANSACTION_MAX             2000
+#define TRANSACTION_MAX		    2000
 
 /* Throttle defaults */
-#define THROTTLE_DEFAULT            0
+#define THROTTLE_DEFAULT	    0
 #define THROTTLE_DEFAULT_ON_BATTERY 5
 
-#define TRACKER_INDEXER_ERROR      "tracker-indexer-error-domain"
+#define TRACKER_INDEXER_ERROR	   "tracker-indexer-error-domain"
 #define TRACKER_INDEXER_ERROR_CODE  0
 
 typedef struct PathInfo PathInfo;
@@ -165,10 +165,10 @@ struct UpdateWordsForeachData {
 };
 
 enum TrackerIndexerState {
-	TRACKER_INDEXER_STATE_FLUSHING  = 1 << 0,
-	TRACKER_INDEXER_STATE_PAUSED    = 1 << 1,
+	TRACKER_INDEXER_STATE_FLUSHING	= 1 << 0,
+	TRACKER_INDEXER_STATE_PAUSED	= 1 << 1,
 	TRACKER_INDEXER_STATE_DISK_FULL = 1 << 2,
-	TRACKER_INDEXER_STATE_STOPPED   = 1 << 3
+	TRACKER_INDEXER_STATE_STOPPED	= 1 << 3
 };
 
 enum {
@@ -187,13 +187,13 @@ enum {
 	LAST_SIGNAL
 };
 
-static gboolean process_func           (gpointer             data);
-static void     check_disk_space_start (TrackerIndexer      *indexer);
-static void     state_set_flags        (TrackerIndexer      *indexer,
+static gboolean process_func	       (gpointer	     data);
+static void	check_disk_space_start (TrackerIndexer	    *indexer);
+static void	state_set_flags        (TrackerIndexer	    *indexer,
 					TrackerIndexerState  state);
-static void     state_unset_flags      (TrackerIndexer      *indexer,
+static void	state_unset_flags      (TrackerIndexer	    *indexer,
 					TrackerIndexerState  state);
-static void     state_check            (TrackerIndexer      *indexer);
+static void	state_check	       (TrackerIndexer	    *indexer);
 
 static guint signals[LAST_SIGNAL] = { 0, };
 
@@ -274,7 +274,7 @@ signal_status (TrackerIndexer *indexer,
 	       const gchar    *why)
 {
 	gdouble seconds_elapsed;
-	guint   files_remaining;
+	guint	files_remaining;
 
 	files_remaining = g_queue_get_length (indexer->private->file_queue);
 	seconds_elapsed = g_timer_elapsed (indexer->private->timer, NULL);
@@ -342,7 +342,7 @@ stop_scheduled_flush (TrackerIndexer *indexer)
 
 static void
 schedule_flush (TrackerIndexer *indexer,
-		gboolean        immediately)
+		gboolean	immediately)
 {
 	if (indexer->private->state != 0) {
 		return;
@@ -483,9 +483,9 @@ tracker_indexer_finalize (GObject *object)
 }
 
 static void
-tracker_indexer_get_property (GObject    *object,
-			      guint       prop_id,
-			      GValue     *value,
+tracker_indexer_get_property (GObject	 *object,
+			      guint	  prop_id,
+			      GValue	 *value,
 			      GParamSpec *pspec)
 {
 	TrackerIndexerPrivate *priv;
@@ -624,7 +624,7 @@ static void
 check_stopped (TrackerIndexer *indexer,
 	       gboolean        interrupted)
 {
-	gchar   *str;
+	gchar	*str;
 	gdouble  seconds_elapsed;
 
 	/* No more modules to query, we're done */
@@ -662,25 +662,25 @@ static gboolean
 check_is_disk_space_low (TrackerIndexer *indexer)
 {
 	const gchar *path;
-        struct statvfs st;
-        gint limit;
+	struct statvfs st;
+	gint limit;
 
-        limit = tracker_config_get_low_disk_space_limit (indexer->private->config);
+	limit = tracker_config_get_low_disk_space_limit (indexer->private->config);
 	path = indexer->private->db_dir;
 
-        if (limit < 1) {
-                return FALSE;
-        }
+	if (limit < 1) {
+		return FALSE;
+	}
 
-        if (statvfs (path, &st) == -1) {
+	if (statvfs (path, &st) == -1) {
 		g_warning ("Could not statvfs '%s'", path);
-                return FALSE;
-        }
+		return FALSE;
+	}
 
-        if (((long long) st.f_bavail * 100 / st.f_blocks) <= limit) {
+	if (((long long) st.f_bavail * 100 / st.f_blocks) <= limit) {
 		g_warning ("Disk space is low");
-                return TRUE;
-        }
+		return TRUE;
+	}
 
 	return FALSE;
 }
@@ -810,7 +810,7 @@ tracker_indexer_init (TrackerIndexer *indexer)
 
 	priv->module_names = tracker_module_config_get_modules ();
 	for (l = priv->module_names; l; l = l->next) {
- 		g_quark_from_string (l->data);
+		g_quark_from_string (l->data);
 	}
 
 	priv->indexer_modules = g_hash_table_new_full (g_str_hash,
@@ -882,8 +882,8 @@ add_directory (TrackerIndexer *indexer,
 }
 
 static void
-index_metadata_item (TrackerField        *field,
-		     const gchar         *value,
+index_metadata_item (TrackerField	 *field,
+		     const gchar	 *value,
 		     MetadataForeachData *data)
 {
 	TrackerDBIndex *index;
@@ -968,9 +968,9 @@ index_metadata_foreach (TrackerField *field,
 }
 
 static void
-index_metadata (TrackerIndexer  *indexer,
-		guint32          id,
-		TrackerService  *service,
+index_metadata (TrackerIndexer	*indexer,
+		guint32		 id,
+		TrackerService	*service,
 		TrackerMetadata *metadata)
 {
 	MetadataForeachData data;
@@ -988,7 +988,7 @@ index_metadata (TrackerIndexer  *indexer,
 
 static void
 unindex_metadata (TrackerIndexer  *indexer,
-		  guint32          id,
+		  guint32	   id,
 		  TrackerService  *service,
 		  TrackerMetadata *metadata)
 {
@@ -1008,16 +1008,16 @@ unindex_metadata (TrackerIndexer  *indexer,
 
 static void
 send_text_to_index (TrackerIndexer *indexer,
-		    gint            service_id,
-		    gint            service_type,
+		    gint	    service_id,
+		    gint	    service_type,
 		    const gchar    *text,
-		    gboolean        full_parsing,
-		    gint            weight_factor)
+		    gboolean	    full_parsing,
+		    gint	    weight_factor)
 {
 	TrackerDBIndex *index;
 	GHashTable     *parsed;
-	GHashTableIter  iter;
-	gpointer        key, value;
+	GHashTableIter	iter;
+	gpointer	key, value;
 
 	if (!text) {
 		return;
@@ -1059,10 +1059,10 @@ send_text_to_index (TrackerIndexer *indexer,
 
 static void
 index_text_with_parsing (TrackerIndexer *indexer,
-			 gint            service_id,
-			 gint            service_type_id,
-			 const gchar    *content,
-			 gint            weight_factor)
+			 gint		 service_id,
+			 gint		 service_type_id,
+			 const gchar	*content,
+			 gint		 weight_factor)
 {
 	send_text_to_index (indexer,
 			    service_id,
@@ -1074,10 +1074,10 @@ index_text_with_parsing (TrackerIndexer *indexer,
 
 static void
 unindex_text_with_parsing (TrackerIndexer *indexer,
-			   gint            service_id,
-			   gint            service_type_id,
-			   const gchar    *content,
-			   gint            weight_factor)
+			   gint		   service_id,
+			   gint		   service_type_id,
+			   const gchar	  *content,
+			   gint		   weight_factor)
 {
 	send_text_to_index (indexer,
 			    service_id,
@@ -1089,10 +1089,10 @@ unindex_text_with_parsing (TrackerIndexer *indexer,
 
 static void
 index_text_no_parsing (TrackerIndexer *indexer,
-		       gint            service_id,
-		       gint            service_type_id,
+		       gint	       service_id,
+		       gint	       service_type_id,
 		       const gchar    *content,
-		       gchar           weight_factor)
+		       gchar	       weight_factor)
 {
 	send_text_to_index (indexer,
 			    service_id,
@@ -1104,10 +1104,10 @@ index_text_no_parsing (TrackerIndexer *indexer,
 
 static void
 unindex_text_no_parsing (TrackerIndexer *indexer,
-			 gint            service_id,
-			 gint            service_type_id,
-			 const gchar    *content,
-			 gint            weight_factor)
+			 gint		 service_id,
+			 gint		 service_type_id,
+			 const gchar	*content,
+			 gint		 weight_factor)
 {
 	send_text_to_index (indexer,
 			    service_id,
@@ -1122,10 +1122,10 @@ update_word_foreach (gpointer key,
 		     gpointer value,
 		     gpointer user_data)
 {
-	TrackerDBIndex         *index;
+	TrackerDBIndex	       *index;
 	UpdateWordsForeachData *data;
-	gchar                  *word;
-	gint                    score;
+	gchar		       *word;
+	gint			score;
 
 	word = key;
 	score = GPOINTER_TO_INT (value);
@@ -1143,9 +1143,9 @@ update_word_foreach (gpointer key,
 
 static void
 update_words_no_parsing (TrackerIndexer *indexer,
-			 gint            service_id,
-			 gint            service_type_id,
-			 GHashTable     *words)
+			 gint		 service_id,
+			 gint		 service_type_id,
+			 GHashTable	*words)
 {
 	UpdateWordsForeachData user_data;
 
@@ -1163,7 +1163,7 @@ merge_word_table (gpointer key,
 	GHashTable *new_table;
 	gpointer    k;
 	gpointer    v;
-	gchar      *word;
+	gchar	   *word;
 	gint	    new_score;
 
 	word = key;
@@ -1178,12 +1178,12 @@ merge_word_table (gpointer key,
 		calculated_score = old_score - new_score;
 
 		if (calculated_score != 0) {
-                        g_hash_table_insert (new_table,
-                                             g_strdup (word),
-                                             GINT_TO_POINTER (calculated_score));
-                } else {
-                        /* The word is the same in old and new text */
-                        g_hash_table_remove (new_table, word);
+			g_hash_table_insert (new_table,
+					     g_strdup (word),
+					     GINT_TO_POINTER (calculated_score));
+		} else {
+			/* The word is the same in old and new text */
+			g_hash_table_remove (new_table, word);
 		}
 	} else {
 		g_hash_table_insert (new_table,
@@ -1195,7 +1195,7 @@ merge_word_table (gpointer key,
 static void
 item_update_content (TrackerIndexer *indexer,
 		     TrackerService *service,
-		     guint32         id,
+		     guint32	     id,
 		     const gchar    *old_text,
 		     const gchar    *new_text)
 {
@@ -1341,9 +1341,9 @@ item_create_or_update (TrackerIndexer  *indexer,
 
 static void
 item_move (TrackerIndexer  *indexer,
-	   PathInfo        *info,
-	   const gchar     *dirname,
-	   const gchar     *basename)
+	   PathInfo	   *info,
+	   const gchar	   *dirname,
+	   const gchar	   *basename)
 {
 	TrackerService *service;
 	TrackerMetadata *metadata;
@@ -1394,7 +1394,7 @@ item_move (TrackerIndexer  *indexer,
 
 static void
 item_delete (TrackerIndexer *indexer,
-	     PathInfo       *info,
+	     PathInfo	    *info,
 	     const gchar    *dirname,
 	     const gchar    *basename)
 {
@@ -1472,7 +1472,7 @@ item_delete (TrackerIndexer *indexer,
 	g_free (metadata);
 
 	/* Delete service */
-        tracker_db_delete_service (service, service_id);
+	tracker_db_delete_service (service, service_id);
 	tracker_db_delete_all_metadata (service, service_id);
 
 	tracker_db_decrement_stats (indexer->private->common, service);
@@ -1483,8 +1483,8 @@ handle_metadata_add (TrackerIndexer *indexer,
 		     const gchar    *service_type,
 		     const gchar    *uri,
 		     const gchar    *property,
-		     GStrv           values,
-		     GError        **error)
+		     GStrv	     values,
+		     GError	   **error)
 {
 	TrackerService *service;
 	TrackerField *field;
@@ -1622,8 +1622,8 @@ handle_metadata_remove (TrackerIndexer *indexer,
 			const gchar    *service_type,
 			const gchar    *uri,
 			const gchar    *property,
-			GStrv           values,
-			GError        **error)
+			GStrv		values,
+			GError	      **error)
 {
 	TrackerService *service;
 	TrackerField *field;
@@ -1725,9 +1725,9 @@ handle_metadata_remove (TrackerIndexer *indexer,
 
 static gboolean
 should_index_file (TrackerIndexer *indexer,
-		   PathInfo       *info,
-		   const gchar    *dirname,
-		   const gchar    *basename)
+		   PathInfo	  *info,
+		   const gchar	  *dirname,
+		   const gchar	  *basename)
 {
 	TrackerService *service;
 	gchar *service_type;
@@ -1782,8 +1782,8 @@ should_index_file (TrackerIndexer *indexer,
 	 * complete.
 	 *
 	 * Note: info->file->path = '/tmp/foo/bar'
-	 *       dirname          = '/tmp/foo'
-	 *       basename         = 'bar'
+	 *	 dirname	  = '/tmp/foo'
+	 *	 basename	  = 'bar'
 	 *
 	 * Example A. PathInfo is file.
 	 *   1) Lookup 'dirname', if exists then
@@ -1829,7 +1829,7 @@ should_index_file (TrackerIndexer *indexer,
 
 		g_debug ("%s:'%s' exists in cache, %s",
 			 is_dir ? "Path" : "Parent path",
- 			 str,
+			 str,
 			 should_index ? "should index" : "should not index");
 
 		return should_index;
@@ -1899,7 +1899,7 @@ should_index_file (TrackerIndexer *indexer,
 }
 static gboolean
 process_file (TrackerIndexer *indexer,
-	      PathInfo       *info)
+	      PathInfo	     *info)
 {
 	TrackerMetadata *metadata;
 	gchar *dirname;
@@ -2135,7 +2135,7 @@ process_func (gpointer data)
 
 	if (indexer->private->state != 0) {
 		/* Some flag has been set, meaning the idle function should stop */
- 		indexer->private->idle_id = 0;
+		indexer->private->idle_id = 0;
 		return FALSE;
 	}
 
@@ -2207,7 +2207,7 @@ state_set_flags (TrackerIndexer      *indexer,
 
 static void
 state_unset_flags (TrackerIndexer      *indexer,
-		   TrackerIndexerState  state)
+		   TrackerIndexerState	state)
 {
 	indexer->private->state &= ~(state);
 	state_check (indexer);
@@ -2215,7 +2215,7 @@ state_unset_flags (TrackerIndexer      *indexer,
 
 void
 tracker_indexer_set_running (TrackerIndexer *indexer,
-			     gboolean        running)
+			     gboolean	     running)
 {
 	TrackerIndexerState state;
 
@@ -2247,9 +2247,9 @@ tracker_indexer_stop (TrackerIndexer *indexer)
 }
 
 void
-tracker_indexer_pause (TrackerIndexer         *indexer,
+tracker_indexer_pause (TrackerIndexer	      *indexer,
 		       DBusGMethodInvocation  *context,
-		       GError                **error)
+		       GError		     **error)
 {
 	guint request_id;
 
@@ -2286,10 +2286,10 @@ pause_for_duration_cb (gpointer user_data)
 }
 
 void
-tracker_indexer_pause_for_duration (TrackerIndexer         *indexer,
-				    guint                   seconds,
+tracker_indexer_pause_for_duration (TrackerIndexer	   *indexer,
+				    guint		    seconds,
 				    DBusGMethodInvocation  *context,
-				    GError                **error)
+				    GError		  **error)
 {
 	guint request_id;
 
@@ -2324,9 +2324,9 @@ tracker_indexer_pause_for_duration (TrackerIndexer         *indexer,
 }
 
 void
-tracker_indexer_continue (TrackerIndexer         *indexer,
+tracker_indexer_continue (TrackerIndexer	 *indexer,
 			  DBusGMethodInvocation  *context,
-			  GError                **error)
+			  GError		**error)
 {
 	guint request_id;
 
@@ -2335,7 +2335,7 @@ tracker_indexer_continue (TrackerIndexer         *indexer,
 	tracker_dbus_async_return_if_fail (TRACKER_IS_INDEXER (indexer), context);
 
 	tracker_dbus_request_new (request_id,
-                                  "DBus request to continue the indexer");
+				  "DBus request to continue the indexer");
 
 	if (tracker_indexer_get_running (indexer) == FALSE) {
 		tracker_dbus_request_comment (request_id,
@@ -2429,12 +2429,12 @@ tracker_indexer_files_delete (TrackerIndexer *indexer,
 }
 
 void
-tracker_indexer_file_move (TrackerIndexer         *indexer,
-			   const gchar            *module_name,
-			   gchar                  *from,
-			   gchar                  *to,
+tracker_indexer_file_move (TrackerIndexer	  *indexer,
+			   const gchar		  *module_name,
+			   gchar		  *from,
+			   gchar		  *to,
 			   DBusGMethodInvocation  *context,
-			   GError                **error)
+			   GError		 **error)
 {
 	GModule *module;
 	guint request_id;
@@ -2472,15 +2472,15 @@ tracker_indexer_file_move (TrackerIndexer         *indexer,
 }
 
 void
-tracker_indexer_property_set (TrackerIndexer         *indexer,
-			      const gchar            *service_type,
-			      const gchar            *uri,
-			      const gchar            *property,
-			      GStrv                   values,
+tracker_indexer_property_set (TrackerIndexer	     *indexer,
+			      const gchar	     *service_type,
+			      const gchar	     *uri,
+			      const gchar	     *property,
+			      GStrv		      values,
 			      DBusGMethodInvocation  *context,
-			      GError                **error)
+			      GError		    **error)
 {
-	guint   request_id;
+	guint	request_id;
 	GError *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
@@ -2493,7 +2493,7 @@ tracker_indexer_property_set (TrackerIndexer         *indexer,
 	tracker_dbus_async_return_if_fail (g_strv_length (values) > 0, context);
 
 	tracker_dbus_request_new (request_id,
-                                  "DBus request to set %d values in property '%s' for file '%s' ",
+				  "DBus request to set %d values in property '%s' for file '%s' ",
 				  g_strv_length (values),
 				  property,
 				  uri);
@@ -2519,15 +2519,15 @@ tracker_indexer_property_set (TrackerIndexer         *indexer,
 }
 
 void
-tracker_indexer_property_remove (TrackerIndexer         *indexer,
-				 const gchar            *service_type,
-				 const gchar            *uri,
-				 const gchar            *property,
-				 GStrv                   values,
-				 DBusGMethodInvocation  *context,
-				 GError                **error)
+tracker_indexer_property_remove (TrackerIndexer		*indexer,
+				 const gchar		*service_type,
+				 const gchar		*uri,
+				 const gchar		*property,
+				 GStrv			 values,
+				 DBusGMethodInvocation	*context,
+				 GError		       **error)
 {
-	guint   request_id;
+	guint	request_id;
 	GError *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
@@ -2539,7 +2539,7 @@ tracker_indexer_property_remove (TrackerIndexer         *indexer,
 	tracker_dbus_async_return_if_fail (values != NULL, context);
 
 	tracker_dbus_request_new (request_id,
-                                  "DBus request to remove %d values in property '%s' for file '%s' ",
+				  "DBus request to remove %d values in property '%s' for file '%s' ",
 				  g_strv_length (values),
 				  property,
 				  uri);
@@ -2563,9 +2563,9 @@ tracker_indexer_property_remove (TrackerIndexer         *indexer,
 }
 
 void
-tracker_indexer_shutdown (TrackerIndexer         *indexer,
+tracker_indexer_shutdown (TrackerIndexer	 *indexer,
 			  DBusGMethodInvocation  *context,
-			  GError                **error)
+			  GError		**error)
 {
 	guint request_id;
 
@@ -2573,7 +2573,7 @@ tracker_indexer_shutdown (TrackerIndexer         *indexer,
 
 	request_id = tracker_dbus_get_next_request_id ();
 	tracker_dbus_request_new (request_id,
-                                  "DBus request to shutdown the indexer");
+				  "DBus request to shutdown the indexer");
 
 	tracker_indexer_stop (indexer);
 

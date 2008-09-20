@@ -28,7 +28,7 @@
 struct _TrackerXesamSessionPriv {
 	GHashTable *searches;
 	GHashTable *props;
-	gchar      *session_id;
+	gchar	   *session_id;
 };
 
 G_DEFINE_TYPE (TrackerXesamSession, tracker_xesam_session, G_TYPE_OBJECT)
@@ -209,7 +209,7 @@ tracker_xesam_session_class_init (TrackerXesamSessionClass *klass)
  **/
 void
 tracker_xesam_session_set_id (TrackerXesamSession *self,
-			      const gchar         *session_id)
+			      const gchar	  *session_id)
 {
 	TrackerXesamSessionPriv *priv = self->priv;
 
@@ -279,10 +279,10 @@ tracker_xesam_session_get_searches (TrackerXesamSession *self)
  **/
 void
 tracker_xesam_session_set_property (TrackerXesamSession  *self,
-				    const gchar          *prop,
-				    const GValue         *val,
-				    GValue              **new_val,
-				    GError              **error)
+				    const gchar		 *prop,
+				    const GValue	 *val,
+				    GValue		**new_val,
+				    GError		**error)
 {
 	TrackerXesamSessionPriv *priv = self->priv;
 	const gchar *read_only[11] = {"vendor.id", "vendor.version", "vendor.display",
@@ -332,9 +332,9 @@ tracker_xesam_session_set_property (TrackerXesamSession  *self,
  **/
 void
 tracker_xesam_session_get_property (TrackerXesamSession  *self,
-				    const gchar          *prop,
-				    GValue              **value,
-				    GError              **error)
+				    const gchar		 *prop,
+				    GValue		**value,
+				    GError		**error)
 {
 	TrackerXesamSessionPriv *priv = self->priv;
 
@@ -373,11 +373,11 @@ tracker_xesam_session_get_property (TrackerXesamSession  *self,
  **/
 TrackerXesamLiveSearch*
 tracker_xesam_session_create_search (TrackerXesamSession  *self,
-				     const gchar          *query_xml,
-				     gchar               **search_id,
-				     GError              **error)
+				     const gchar	  *query_xml,
+				     gchar		 **search_id,
+				     GError		 **error)
 {
-	TrackerXesamLiveSearch  *search;
+	TrackerXesamLiveSearch	*search;
 	TrackerXesamSessionPriv *priv = self->priv;
 
 	g_debug ("Creating search for xesam session: \n %s", query_xml);
@@ -419,8 +419,8 @@ tracker_xesam_session_create_search (TrackerXesamSession  *self,
  **/
 TrackerXesamLiveSearch*
 tracker_xesam_session_get_search (TrackerXesamSession  *self,
-				  const gchar          *search_id,
-				  GError              **error)
+				  const gchar	       *search_id,
+				  GError	      **error)
 {
 	TrackerXesamSessionPriv *priv = self->priv;
 	TrackerXesamLiveSearch *search = g_hash_table_lookup (priv->searches, search_id);

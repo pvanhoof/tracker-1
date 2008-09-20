@@ -49,52 +49,52 @@
 /* This is the number of files to be called back with from GIO at a
  * time so we don't get called back for every file.
  */
-#define FILES_GROUP_SIZE             100
+#define FILES_GROUP_SIZE	     100
 
 struct _TrackerCrawlerPrivate {
 	TrackerConfig  *config;
 
-	gchar          *module_name;
+	gchar	       *module_name;
 
 	/* Found data */
-	GQueue         *directories;
-	GQueue         *files;
+	GQueue	       *directories;
+	GQueue	       *files;
 
 	/* Idle handler for processing found data */
-	guint           idle_id;
+	guint		idle_id;
 
 	/* Options */
-	gboolean        use_module_paths;
+	gboolean	use_module_paths;
 
 	/* Actual paths that exist which we are crawling */
-	GSList         *paths;
-	GSList         *current_path;
-	gboolean        handled_paths;
+	GSList	       *paths;
+	GSList	       *current_path;
+	gboolean	handled_paths;
 
-	GSList         *recurse_paths;
-	GSList         *current_recurse_path;
-	gboolean        handled_recurse_paths;
+	GSList	       *recurse_paths;
+	GSList	       *current_recurse_path;
+	gboolean	handled_recurse_paths;
 
-	GList          *ignored_directory_patterns;
-	GList          *ignored_file_patterns;
-	GList          *index_file_patterns;
+	GList	       *ignored_directory_patterns;
+	GList	       *ignored_file_patterns;
+	GList	       *index_file_patterns;
 
 	/* Legacy NoWatchDirectoryRoots */
-	GSList         *no_watch_directory_roots;
-	GSList         *watch_directory_roots;
-	GSList         *crawl_directory_roots;
+	GSList	       *no_watch_directory_roots;
+	GSList	       *watch_directory_roots;
+	GSList	       *crawl_directory_roots;
 
 	/* Statistics */
-	GTimer         *timer;
-	guint           enumerations;
-	guint           directories_found;
-	guint           directories_ignored;
-	guint           files_found;
-	guint           files_ignored;
+	GTimer	       *timer;
+	guint		enumerations;
+	guint		directories_found;
+	guint		directories_ignored;
+	guint		files_found;
+	guint		files_ignored;
 
 	/* Status */
-	gboolean        running;
-	gboolean        finished;
+	gboolean	running;
+	gboolean	finished;
 };
 
 enum {
@@ -106,14 +106,14 @@ enum {
 
 typedef struct {
 	TrackerCrawler *crawler;
-	GFile          *parent;
+	GFile	       *parent;
 } EnumeratorData;
 
-static void tracker_crawler_finalize (GObject         *object);
+static void tracker_crawler_finalize (GObject	      *object);
 static void file_enumerate_next      (GFileEnumerator *enumerator,
 				      EnumeratorData  *ed);
 static void file_enumerate_children  (TrackerCrawler  *crawler,
-				      GFile           *file);
+				      GFile	      *file);
 
 static guint signals[LAST_SIGNAL] = { 0, };
 
@@ -273,12 +273,12 @@ tracker_crawler_new (TrackerConfig *config,
 
 static gboolean
 is_path_ignored (TrackerCrawler *crawler,
-		 const gchar    *path,
-		 gboolean        is_directory)
+		 const gchar	*path,
+		 gboolean	 is_directory)
 {
-	GList    *l;
-	gchar    *basename;
-        gboolean  ignore;
+	GList	 *l;
+	gchar	 *basename;
+	gboolean  ignore;
 
 	if (tracker_is_empty_string (path)) {
 		return TRUE;
@@ -372,7 +372,7 @@ is_path_ignored (TrackerCrawler *crawler,
 		}
 	}
 
-        ignore = FALSE;
+	ignore = FALSE;
 
 done:
 	g_free (basename);
@@ -382,7 +382,7 @@ done:
 
 static void
 add_file (TrackerCrawler *crawler,
-	  GFile          *file)
+	  GFile		 *file)
 {
 	gchar *path;
 
@@ -411,7 +411,7 @@ add_file (TrackerCrawler *crawler,
 
 static void
 add_directory (TrackerCrawler *crawler,
-	       GFile          *file)
+	       GFile	      *file)
 {
 	gchar *path;
 
@@ -441,15 +441,15 @@ add_directory (TrackerCrawler *crawler,
 static void
 process_file (TrackerCrawler *crawler,
 	      const gchar    *module_name,
-	      GFile          *file)
+	      GFile	     *file)
 {
 	g_signal_emit (crawler, signals[PROCESSING_FILE], 0, module_name, file);
 }
 
 static void
 process_directory (TrackerCrawler *crawler,
-		   const gchar    *module_name,
-		   GFile          *file)
+		   const gchar	  *module_name,
+		   GFile	  *file)
 {
 	g_signal_emit (crawler, signals[PROCESSING_DIRECTORY], 0, module_name, file);
 
@@ -459,9 +459,9 @@ process_directory (TrackerCrawler *crawler,
 static gboolean
 process_func (gpointer data)
 {
-	TrackerCrawler        *crawler;
+	TrackerCrawler	      *crawler;
 	TrackerCrawlerPrivate *priv;
-	GFile                 *file;
+	GFile		      *file;
 
 	crawler = TRACKER_CRAWLER (data);
 	priv = crawler->private;
@@ -569,7 +569,7 @@ process_func (gpointer data)
 
 static EnumeratorData *
 enumerator_data_new (TrackerCrawler *crawler,
-		     GFile          *parent)
+		     GFile	    *parent)
 {
 	EnumeratorData *ed;
 
@@ -591,7 +591,7 @@ enumerator_data_free (EnumeratorData *ed)
 static void
 file_enumerator_close_cb (GObject      *enumerator,
 			  GAsyncResult *result,
-			  gpointer      user_data)
+			  gpointer	user_data)
 {
 	TrackerCrawler *crawler;
 
@@ -610,12 +610,12 @@ file_enumerate_next_cb (GObject      *object,
 			GAsyncResult *result,
 			gpointer      user_data)
 {
-	TrackerCrawler  *crawler;
-	EnumeratorData  *ed;
+	TrackerCrawler	*crawler;
+	EnumeratorData	*ed;
 	GFileEnumerator *enumerator;
-	GFile           *parent, *child;
-	GFileInfo       *info;
-	GList           *files, *l;
+	GFile		*parent, *child;
+	GFileInfo	*info;
+	GList		*files, *l;
 
 	enumerator = G_FILE_ENUMERATOR (object);
 
@@ -687,14 +687,14 @@ file_enumerate_next (GFileEnumerator *enumerator,
 }
 
 static void
-file_enumerate_children_cb (GObject      *file,
+file_enumerate_children_cb (GObject	 *file,
 			    GAsyncResult *result,
-			    gpointer      user_data)
+			    gpointer	  user_data)
 {
-	TrackerCrawler  *crawler;
-	EnumeratorData  *ed;
+	TrackerCrawler	*crawler;
+	EnumeratorData	*ed;
 	GFileEnumerator *enumerator;
-	GFile           *parent;
+	GFile		*parent;
 
 	parent = G_FILE (file);
 	crawler = TRACKER_CRAWLER (user_data);
@@ -713,7 +713,7 @@ file_enumerate_children_cb (GObject      *file,
 
 static void
 file_enumerate_children (TrackerCrawler *crawler,
-			 GFile          *file)
+			 GFile		*file)
 {
 	crawler->private->enumerations++;
 
@@ -734,10 +734,10 @@ prune_none_existing_paths (TrackerCrawler *crawler)
 	priv = crawler->private;
 
 	if (priv->recurse_paths) {
-		GSList   *new_list;
-		GSList   *l;
-		GFile    *file;
-		gchar    *path;
+		GSList	 *new_list;
+		GSList	 *l;
+		GFile	 *file;
+		gchar	 *path;
 		gboolean  exists;
 
 		new_list = NULL;
@@ -773,14 +773,14 @@ gboolean
 tracker_crawler_start (TrackerCrawler *crawler)
 {
 	TrackerCrawlerPrivate *priv;
-	GFile                 *file;
-	GSList                *paths = NULL;
-	GList                 *recurse_directories;
-	GList                 *directories;
-	GList                 *l;
-	GSList                *sl;
-	gchar                 *path;
-	gboolean               exists;
+	GFile		      *file;
+	GSList		      *paths = NULL;
+	GList		      *recurse_directories;
+	GList		      *directories;
+	GList		      *l;
+	GSList		      *sl;
+	gchar		      *path;
+	gboolean	       exists;
 
 	g_return_val_if_fail (TRACKER_IS_CRAWLER (crawler), FALSE);
 
@@ -955,7 +955,7 @@ tracker_crawler_stop (TrackerCrawler *crawler)
  */
 void
 tracker_crawler_add_path (TrackerCrawler *crawler,
-			  const gchar    *path)
+			  const gchar	 *path)
 {
 	TrackerCrawlerPrivate *priv;
 
@@ -971,7 +971,7 @@ tracker_crawler_add_path (TrackerCrawler *crawler,
 
 void
 tracker_crawler_set_use_module_paths (TrackerCrawler *crawler,
-				      gboolean        use_paths)
+				      gboolean	      use_paths)
 {
 	TrackerCrawlerPrivate *priv;
 
@@ -984,8 +984,8 @@ tracker_crawler_set_use_module_paths (TrackerCrawler *crawler,
 
 gboolean
 tracker_crawler_is_path_ignored (TrackerCrawler *crawler,
-				 const gchar    *path,
-				 gboolean        is_directory)
+				 const gchar	*path,
+				 gboolean	 is_directory)
 {
 	g_return_val_if_fail (TRACKER_IS_CRAWLER (crawler), TRUE);
 

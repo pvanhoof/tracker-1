@@ -1,6 +1,6 @@
 /*************************************************************************************************
  * The basic API of QDBM
- *                                                      Copyright (C) 2000-2006 Mikio Hirabayashi
+ *							Copyright (C) 2000-2006 Mikio Hirabayashi
  * This file is part of QDBM, Quick Database Manager.
  * QDBM is free software; you can redistribute it and/or modify it under the terms of the GNU
  * Lesser General Public License as published by the Free Software Foundation; either version
@@ -14,10 +14,10 @@
  *************************************************************************************************/
 
 
-#ifndef _DEPOT_H                         /* duplication check */
+#ifndef _DEPOT_H			 /* duplication check */
 #define _DEPOT_H
 
-#if defined(__cplusplus)                 /* export for C++ */
+#if defined(__cplusplus)		 /* export for C++ */
 extern "C" {
 #endif
 
@@ -39,64 +39,64 @@ extern "C" {
  *************************************************************************************************/
 
 
-typedef struct {                         /* type of structure for a database handle */
-  char *name;                            /* name of the database file */
-  int wmode;                             /* whether to be writable */
-  int inode;                             /* inode of the database file */
-  time_t mtime;                          /* last modified time of the database */
-  int fd;                                /* file descriptor of the database file */
-  int fsiz;                              /* size of the database file */
-  char *map;                             /* pointer to the mapped memory */
-  int msiz;                              /* size of the mapped memory */
-  int *buckets;                          /* pointer to the bucket array */
-  int bnum;                              /* number of the bucket array */
-  int rnum;                              /* number of records */
-  int fatal;                             /* whether a fatal error occured */
-  int ioff;                              /* offset of the iterator */
-  int *fbpool;                           /* free block pool */
-  int fbpsiz;                            /* size of the free block pool */
-  int fbpinc;                            /* incrementor of update of the free block pool */
-  int align;                             /* basic size of alignment */
+typedef struct {			 /* type of structure for a database handle */
+  char *name;				 /* name of the database file */
+  int wmode;				 /* whether to be writable */
+  int inode;				 /* inode of the database file */
+  time_t mtime;				 /* last modified time of the database */
+  int fd;				 /* file descriptor of the database file */
+  int fsiz;				 /* size of the database file */
+  char *map;				 /* pointer to the mapped memory */
+  int msiz;				 /* size of the mapped memory */
+  int *buckets;				 /* pointer to the bucket array */
+  int bnum;				 /* number of the bucket array */
+  int rnum;				 /* number of records */
+  int fatal;				 /* whether a fatal error occured */
+  int ioff;				 /* offset of the iterator */
+  int *fbpool;				 /* free block pool */
+  int fbpsiz;				 /* size of the free block pool */
+  int fbpinc;				 /* incrementor of update of the free block pool */
+  int align;				 /* basic size of alignment */
 } DEPOT;
 
-enum {                                   /* enumeration for error codes */
-  DP_ENOERR,                             /* no error */
-  DP_EFATAL,                             /* with fatal error */
-  DP_EMODE,                              /* invalid mode */
-  DP_EBROKEN,                            /* broken database file */
-  DP_EKEEP,                              /* existing record */
-  DP_ENOITEM,                            /* no item found */
-  DP_EALLOC,                             /* memory allocation error */
-  DP_EMAP,                               /* memory mapping error */
-  DP_EOPEN,                              /* open error */
-  DP_ECLOSE,                             /* close error */
-  DP_ETRUNC,                             /* trunc error */
-  DP_ESYNC,                              /* sync error */
-  DP_ESTAT,                              /* stat error */
-  DP_ESEEK,                              /* seek error */
-  DP_EREAD,                              /* read error */
-  DP_EWRITE,                             /* write error */
-  DP_ELOCK,                              /* lock error */
-  DP_EUNLINK,                            /* unlink error */
-  DP_EMKDIR,                             /* mkdir error */
-  DP_ERMDIR,                             /* rmdir error */
-  DP_EMISC                               /* miscellaneous error */
+enum {					 /* enumeration for error codes */
+  DP_ENOERR,				 /* no error */
+  DP_EFATAL,				 /* with fatal error */
+  DP_EMODE,				 /* invalid mode */
+  DP_EBROKEN,				 /* broken database file */
+  DP_EKEEP,				 /* existing record */
+  DP_ENOITEM,				 /* no item found */
+  DP_EALLOC,				 /* memory allocation error */
+  DP_EMAP,				 /* memory mapping error */
+  DP_EOPEN,				 /* open error */
+  DP_ECLOSE,				 /* close error */
+  DP_ETRUNC,				 /* trunc error */
+  DP_ESYNC,				 /* sync error */
+  DP_ESTAT,				 /* stat error */
+  DP_ESEEK,				 /* seek error */
+  DP_EREAD,				 /* read error */
+  DP_EWRITE,				 /* write error */
+  DP_ELOCK,				 /* lock error */
+  DP_EUNLINK,				 /* unlink error */
+  DP_EMKDIR,				 /* mkdir error */
+  DP_ERMDIR,				 /* rmdir error */
+  DP_EMISC				 /* miscellaneous error */
 };
 
-enum {                                   /* enumeration for open modes */
-  DP_OREADER = 1 << 0,                   /* open as a reader */
-  DP_OWRITER = 1 << 1,                   /* open as a writer */
-  DP_OCREAT = 1 << 2,                    /* a writer creating */
-  DP_OTRUNC = 1 << 3,                    /* a writer truncating */
-  DP_ONOLCK = 1 << 4,                    /* open without locking */
-  DP_OLCKNB = 1 << 5,                    /* lock without blocking */
-  DP_OSPARSE = 1 << 6                    /* create as a sparse file */
+enum {					 /* enumeration for open modes */
+  DP_OREADER = 1 << 0,			 /* open as a reader */
+  DP_OWRITER = 1 << 1,			 /* open as a writer */
+  DP_OCREAT = 1 << 2,			 /* a writer creating */
+  DP_OTRUNC = 1 << 3,			 /* a writer truncating */
+  DP_ONOLCK = 1 << 4,			 /* open without locking */
+  DP_OLCKNB = 1 << 5,			 /* lock without blocking */
+  DP_OSPARSE = 1 << 6			 /* create as a sparse file */
 };
 
-enum {                                   /* enumeration for write modes */
-  DP_DOVER,                              /* overwrite an existing value */
-  DP_DKEEP,                              /* keep an existing value */
-  DP_DCAT                                /* concatenate values */
+enum {					 /* enumeration for write modes */
+  DP_DOVER,				 /* overwrite an existing value */
+  DP_DKEEP,				 /* keep an existing value */
+  DP_DCAT				 /* concatenate values */
 };
 
 
@@ -148,7 +148,7 @@ int dpclose(DEPOT *depot);
 /* Store a record.
    `depot' specifies a database handle connected as a writer.
    `kbuf' specifies the pointer to the region of a key.
-   `ksiz' specifies the size of the region of the key.  If it is negative, the size is assigned
+   `ksiz' specifies the size of the region of the key.	If it is negative, the size is assigned
    with `strlen(kbuf)'.
    `vbuf' specifies the pointer to the region of a value.
    `vsiz' specifies the size of the region of the value.  If it is negative, the size is
@@ -164,9 +164,9 @@ int dpput(DEPOT *depot, const char *kbuf, int ksiz, const char *vbuf, int vsiz, 
 /* Delete a record.
    `depot' specifies a database handle connected as a writer.
    `kbuf' specifies the pointer to the region of a key.
-   `ksiz' specifies the size of the region of the key.  If it is negative, the size is assigned
+   `ksiz' specifies the size of the region of the key.	If it is negative, the size is assigned
    with `strlen(kbuf)'.
-   If successful, the return value is true, else, it is false.  False is returned when no
+   If successful, the return value is true, else, it is false.	False is returned when no
    record corresponds to the specified key. */
 int dpout(DEPOT *depot, const char *kbuf, int ksiz);
 
@@ -174,7 +174,7 @@ int dpout(DEPOT *depot, const char *kbuf, int ksiz);
 /* Retrieve a record.
    `depot' specifies a database handle.
    `kbuf' specifies the pointer to the region of a key.
-   `ksiz' specifies the size of the region of the key.  If it is negative, the size is assigned
+   `ksiz' specifies the size of the region of the key.	If it is negative, the size is assigned
    with `strlen(kbuf)'.
    `start' specifies the offset address of the beginning of the region of the value to be read.
    `max' specifies the max size to be read.  If it is negative, the size to read is unlimited.
@@ -193,7 +193,7 @@ char *dpget(DEPOT *depot, const char *kbuf, int ksiz, int start, int max, int *s
 /* Retrieve a record and write the value into a buffer.
    `depot' specifies a database handle.
    `kbuf' specifies the pointer to the region of a key.
-   `ksiz' specifies the size of the region of the key.  If it is negative, the size is assigned
+   `ksiz' specifies the size of the region of the key.	If it is negative, the size is assigned
    with `strlen(kbuf)'.
    `start' specifies the offset address of the beginning of the region of the value to be read.
    `max' specifies the max size to be read.  It shuld be equal to or less than the size of the
@@ -210,7 +210,7 @@ int dpgetwb(DEPOT *depot, const char *kbuf, int ksiz, int start, int max, char *
 /* Get the size of the value of a record.
    `depot' specifies a database handle.
    `kbuf' specifies the pointer to the region of a key.
-   `ksiz' specifies the size of the region of the key.  If it is negative, the size is assigned
+   `ksiz' specifies the size of the region of the key.	If it is negative, the size is assigned
    with `strlen(kbuf)'.
    If successful, the return value is the size of the value of the corresponding record, else,
    it is -1.
@@ -380,7 +380,7 @@ int dpimportdb(DEPOT *depot, const char *name);
 /* Retrieve a record directly from a database file.
    `name' specifies the name of a database file.
    `kbuf' specifies the pointer to the region of a key.
-   `ksiz' specifies the size of the region of the key.  If it is negative, the size is assigned
+   `ksiz' specifies the size of the region of the key.	If it is negative, the size is assigned
    with `strlen(kbuf)'.
    `sp' specifies the pointer to a variable to which the size of the region of the return
    value is assigned.  If it is `NULL', it is not used.
@@ -397,7 +397,7 @@ char *dpsnaffle(const char *name, const char *kbuf, int ksiz, int *sp);
 
 /* Hash function used inside Depot.
    `kbuf' specifies the pointer to the region of a key.
-   `ksiz' specifies the size of the region of the key.  If it is negative, the size is assigned
+   `ksiz' specifies the size of the region of the key.	If it is negative, the size is assigned
    with `strlen(kbuf)'.
    The return value is the hash value of 31 bits length computed from the key.
    This function is useful when an application calculates the state of the inside bucket array. */
@@ -406,7 +406,7 @@ int dpinnerhash(const char *kbuf, int ksiz);
 
 /* Hash function which is independent from the hash functions used inside Depot.
    `kbuf' specifies the pointer to the region of a key.
-   `ksiz' specifies the size of the region of the key.  If it is negative, the size is assigned
+   `ksiz' specifies the size of the region of the key.	If it is negative, the size is assigned
    with `strlen(kbuf)'.
    The return value is the hash value of 31 bits length computed from the key.
    This function is useful when an application uses its own hash algorithm outside Depot. */
@@ -482,11 +482,11 @@ int dpsetflags(DEPOT *depot, int flags);
 
 #undef MYEXTERN
 
-#if defined(__cplusplus)                 /* export for C++ */
+#if defined(__cplusplus)		 /* export for C++ */
 }
 #endif
 
-#endif                                   /* duplication check */
+#endif					 /* duplication check */
 
 
 /* END OF FILE */

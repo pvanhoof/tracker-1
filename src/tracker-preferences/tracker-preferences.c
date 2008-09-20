@@ -70,9 +70,9 @@ static void tracker_preferences_cmd_remove_ignore_path (GtkWidget *widget, gpoin
 static void tracker_preferences_cmd_add_ignore_pattern (GtkWidget *widget, gpointer data);
 static void tracker_preferences_cmd_remove_ignore_pattern (GtkWidget *widget, gpointer data);
 static void append_item_to_list (TrackerPreferences *dialog, const gchar* const item,
-		                 const gchar* const widget);
+				 const gchar* const widget);
 static void remove_selection_from_list (TrackerPreferences *dialog,
-			                const gchar* const widget);
+					const gchar* const widget);
 static GSList *treeview_get_values (GtkTreeView *treeview);
 static gint _strcmp (gconstpointer a, gconstpointer b);
 static void initialize_listview (GtkWidget *treeview);
@@ -303,10 +303,10 @@ setup_page_general (TrackerPreferences *preferences)
 
 	widget = glade_xml_get_widget (priv->gxml, "comLanguage");
 	str_value = tracker_configuration_get_string ("/Indexing/Language", NULL);
-        if (str_value == NULL) {
-                /* no value for language? Default to "en" */
-                str_value = g_strdup( "en" ) ;
-        }
+	if (str_value == NULL) {
+		/* no value for language? Default to "en" */
+		str_value = g_strdup( "en" ) ;
+	}
 
 	gtk_combo_box_set_active (GTK_COMBO_BOX (widget), 2);
 
@@ -620,10 +620,10 @@ tracker_preferences_cmd_apply (GtkWidget *widget, gpointer data)
 	widget = glade_xml_get_widget (priv->gxml, "comLanguage");
 	gint i = gtk_combo_box_get_active (GTK_COMBO_BOX (widget));
 	str_value = tracker_configuration_get_string ("/Indexing/Language", NULL);
-        if (str_value == NULL) {
-                /* no value for language? Default to "en" */
-                str_value = g_strdup( "en" ) ;
-        }
+	if (str_value == NULL) {
+		/* no value for language? Default to "en" */
+		str_value = g_strdup( "en" ) ;
+	}
 	if (i != -1) {
 		if (strcmp (str_value, LanguageMap[i].language) != 0) {
 			flag_restart = TRUE;

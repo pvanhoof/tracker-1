@@ -1,6 +1,6 @@
 /*************************************************************************************************
  * Emulation of system calls
- *                                                      Copyright (C) 2000-2006 Mikio Hirabayashi
+ *							Copyright (C) 2000-2006 Mikio Hirabayashi
  * This file is part of QDBM, Quick Database Manager.
  * QDBM is free software; you can redistribute it and/or modify it under the terms of the GNU
  * Lesser General Public License as published by the Free Software Foundation; either version
@@ -111,12 +111,12 @@ static void *_qdbm_gettsd(void *ptr, int size, const void *initval){
   for(i = 0; i < _qdbm_ptknum; i++){
     if(_qdbm_ptkeys[i].ptr == ptr){
       if(!(val = pthread_getspecific(_qdbm_ptkeys[i].key))){
-        if(!(val = malloc(size))) return NULL;
-        memcpy(val, initval, size);
-        if(pthread_setspecific(_qdbm_ptkeys[i].key, val) != 0){
-          free(val);
-          return NULL;
-        }
+	if(!(val = malloc(size))) return NULL;
+	memcpy(val, initval, size);
+	if(pthread_setspecific(_qdbm_ptkeys[i].key, val) != 0){
+	  free(val);
+	  return NULL;
+	}
       }
       return val;
     }
@@ -163,10 +163,10 @@ void *_qdbm_mmap(void *start, size_t length, int prot, int flags, int fd, off_t 
   }
   if(fd < 0 || flags & MAP_FIXED) return MAP_FAILED;
   if(!(handle = CreateFileMapping((HANDLE)_get_osfhandle(fd), NULL,
-                                  (prot & PROT_WRITE) ? PAGE_READWRITE : PAGE_READONLY,
-                                  0, length, NULL))) return MAP_FAILED;
+				  (prot & PROT_WRITE) ? PAGE_READWRITE : PAGE_READONLY,
+				  0, length, NULL))) return MAP_FAILED;
   if(!(start = MapViewOfFile(handle, (prot & PROT_WRITE) ? FILE_MAP_WRITE : FILE_MAP_READ,
-                             0, 0, length))){
+			     0, 0, length))){
     CloseHandle(handle);
     return MAP_FAILED;
   }
@@ -278,9 +278,9 @@ int _qdbm_munmap(void *start, size_t length){
     while(wlen < (int)length){
       rv = write(fd, rp + wlen, length - wlen);
       if(rv == -1){
-        if(errno == EINTR) continue;
-        free(buf);
-        return -1;
+	if(errno == EINTR) continue;
+	free(buf);
+	return -1;
       }
       wlen += rv;
     }
@@ -307,8 +307,8 @@ int _qdbm_msync(const void *start, size_t length, int flags){
     while(wlen < (int)length){
       rv = write(fd, rp + wlen, length - wlen);
       if(rv == -1){
-        if(errno == EINTR) continue;
-        return -1;
+	if(errno == EINTR) continue;
+	return -1;
       }
       wlen += rv;
     }
@@ -404,8 +404,8 @@ int _qdbm_win32_fcntl(int fd, int cmd, struct flock *lock){
   if(!LockFileEx(fh, opt, 0, 1, 0, &ol)){
     if(GetLastError() == ERROR_CALL_NOT_IMPLEMENTED){
       while(TRUE){
-        if(LockFile(fh, 0, 0, 1, 0)) return 0;
-        Sleep(WINLOCKWAIT);
+	if(LockFile(fh, 0, 0, 1, 0)) return 0;
+	Sleep(WINLOCKWAIT);
       }
     }
     return -1;
@@ -491,8 +491,8 @@ int _qdbm_vmemavail(size_t size){
       rp = strchr(rp, ':') + 1;
       avail = strtod(rp, NULL) * 1024.0;
       if((rp = strstr(buf, "SwapFree:")) != NULL){
-        rp = strchr(rp, ':') + 1;
-        avail += strtod(rp, NULL) * 1024.0;
+	rp = strchr(rp, ':') + 1;
+	avail += strtod(rp, NULL) * 1024.0;
       }
       if(size >= avail) rv = FALSE;
     }
@@ -587,9 +587,9 @@ static char *_qdbm_deflate_impl(const char *ptr, int size, int *sp, int mode){
     if(bsiz + osiz > asiz){
       asiz = asiz * 2 + osiz;
       if(!(swap = realloc(buf, asiz))){
-        free(buf);
-        deflateEnd(&zs);
-        return NULL;
+	free(buf);
+	deflateEnd(&zs);
+	return NULL;
       }
       buf = swap;
     }
@@ -658,9 +658,9 @@ static char *_qdbm_inflate_impl(const char *ptr, int size, int *sp, int mode){
     if(bsiz + osiz >= asiz){
       asiz = asiz * 2 + osiz;
       if(!(swap = realloc(buf, asiz))){
-        free(buf);
-        inflateEnd(&zs);
-        return NULL;
+	free(buf);
+	inflateEnd(&zs);
+	return NULL;
       }
       buf = swap;
     }
@@ -839,9 +839,9 @@ static char *_qdbm_bzencode_impl(const char *ptr, int size, int *sp){
     if(bsiz + osiz > asiz){
       asiz = asiz * 2 + osiz;
       if(!(swap = realloc(buf, asiz))){
-        free(buf);
-        BZ2_bzCompressEnd(&zs);
-        return NULL;
+	free(buf);
+	BZ2_bzCompressEnd(&zs);
+	return NULL;
       }
       buf = swap;
     }
@@ -898,9 +898,9 @@ static char *_qdbm_bzdecode_impl(const char *ptr, int size, int *sp){
     if(bsiz + osiz >= asiz){
       asiz = asiz * 2 + osiz;
       if(!(swap = realloc(buf, asiz))){
-        free(buf);
-        BZ2_bzDecompressEnd(&zs);
-        return NULL;
+	free(buf);
+	BZ2_bzDecompressEnd(&zs);
+	return NULL;
       }
       buf = swap;
     }
@@ -960,18 +960,18 @@ char *(*_qdbm_bzdecode)(const char *, int, int *) = NULL;
 
 
 static char *_qdbm_iconv_impl(const char *ptr, int size,
-                              const char *icode, const char *ocode, int *sp, int *mp);
+			      const char *icode, const char *ocode, int *sp, int *mp);
 static const char *_qdbm_encname_impl(const char *ptr, int size);
 static int _qdbm_encmiss(const char *ptr, int size, const char *icode, const char *ocode);
 
 
 char *(*_qdbm_iconv)(const char *, int, const char *, const char *,
-                     int *, int *) = _qdbm_iconv_impl;
+		     int *, int *) = _qdbm_iconv_impl;
 const char *(*_qdbm_encname)(const char *, int) = _qdbm_encname_impl;
 
 
 static char *_qdbm_iconv_impl(const char *ptr, int size,
-                              const char *icode, const char *ocode, int *sp, int *mp){
+			      const char *icode, const char *ocode, int *sp, int *mp){
   iconv_t ic;
   char *obuf, *wp, *rp;
   size_t isiz, osiz;
@@ -990,16 +990,16 @@ static char *_qdbm_iconv_impl(const char *ptr, int size,
   while(isiz > 0){
     if(iconv(ic, (void *)&rp, &isiz, &wp, &osiz) == -1){
       if(errno == EILSEQ && (*rp == 0x5c || *rp == 0x7e)){
-        *wp = *rp;
-        wp++;
-        rp++;
-        isiz--;
+	*wp = *rp;
+	wp++;
+	rp++;
+	isiz--;
       } else if(errno == EILSEQ || errno == EINVAL){
-        rp++;
-        isiz--;
-        miss++;
+	rp++;
+	isiz--;
+	miss++;
       } else {
-        break;
+	break;
       }
     }
   }
@@ -1074,12 +1074,12 @@ static int _qdbm_encmiss(const char *ptr, int size, const char *icode, const cha
     wp = obuf;
     if(iconv(ic, (void *)&rp, &isiz, &wp, &osiz) == -1){
       if(errno == EILSEQ || errno == EINVAL){
-        rp++;
-        isiz--;
-        miss++;
-        if(miss >= ICONVMISSMAX) break;
+	rp++;
+	isiz--;
+	miss++;
+	if(miss >= ICONVMISSMAX) break;
       } else {
-        break;
+	break;
       }
     }
   }

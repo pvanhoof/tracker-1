@@ -31,12 +31,12 @@ G_BEGIN_DECLS
 
 typedef enum {
 	TRACKER_DB_UNKNOWN,
-        TRACKER_DB_COMMON,
-        TRACKER_DB_CACHE,
-        TRACKER_DB_FILE_METADATA,
-        TRACKER_DB_FILE_CONTENTS,
-        TRACKER_DB_EMAIL_METADATA,
-        TRACKER_DB_EMAIL_CONTENTS,
+	TRACKER_DB_COMMON,
+	TRACKER_DB_CACHE,
+	TRACKER_DB_FILE_METADATA,
+	TRACKER_DB_FILE_CONTENTS,
+	TRACKER_DB_EMAIL_METADATA,
+	TRACKER_DB_EMAIL_CONTENTS,
 	TRACKER_DB_XESAM,
 } TrackerDB;
 
@@ -55,26 +55,26 @@ typedef enum {
 #define TRACKER_DB_FOR_EMAIL_SERVICE	"Emails"
 #define TRACKER_DB_FOR_XESAM_SERVICE	"Xesam"
 
-GType        tracker_db_get_type                            (void) G_GNUC_CONST;
+GType	     tracker_db_get_type			    (void) G_GNUC_CONST;
 
-void         tracker_db_manager_init                        (TrackerDBManagerFlags  flags,
-							     gboolean              *first_time);
-void         tracker_db_manager_shutdown                    (void);
+void	     tracker_db_manager_init			    (TrackerDBManagerFlags  flags,
+							     gboolean		   *first_time);
+void	     tracker_db_manager_shutdown		    (void);
 
-void         tracker_db_manager_remove_all                  (void);
-void         tracker_db_manager_close_all                   (void);
+void	     tracker_db_manager_remove_all		    (void);
+void	     tracker_db_manager_close_all		    (void);
 
-const gchar *tracker_db_manager_get_file                    (TrackerDB              db);
+const gchar *tracker_db_manager_get_file		    (TrackerDB		    db);
 TrackerDBInterface *
-             tracker_db_manager_get_db_interface            (TrackerDB              db);
+	     tracker_db_manager_get_db_interface	    (TrackerDB		    db);
 TrackerDBInterface *
-             tracker_db_manager_get_db_interfaces           (gint num, ...);
+	     tracker_db_manager_get_db_interfaces	    (gint num, ...);
 TrackerDBInterface *
-             tracker_db_manager_get_db_interface_by_service (const gchar           *service);
+	     tracker_db_manager_get_db_interface_by_service (const gchar	   *service);
 TrackerDBInterface *
-             tracker_db_manager_get_db_interface_by_type    (const gchar           *service,
+	     tracker_db_manager_get_db_interface_by_type    (const gchar	   *service,
 							     TrackerDBContentType   content_type);
-gboolean     tracker_db_manager_are_db_too_big              (void);
+gboolean     tracker_db_manager_are_db_too_big		    (void);
 
 G_END_DECLS
 

@@ -15,9 +15,9 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with xesam-glib.  If not, write to:
- * 	The Free Software Foundation, Inc.,
- * 	51 Franklin Street, Fifth Floor
- * 	Boston, MA  02110-1301, USA.
+ *	The Free Software Foundation, Inc.,
+ *	51 Franklin Street, Fifth Floor
+ *	Boston, MA  02110-1301, USA.
  */
 
 #ifndef __G_TEST_EXTENSIONS_H__
@@ -34,11 +34,11 @@ typedef void (*GtxTestFunc) (gpointer fixture, gconstpointer test_data);
 typedef struct {
 	gpointer		fixture;
 	gconstpointer	test_data;
-	GtxTestFunc 	test_func;
+	GtxTestFunc	test_func;
 	GMainLoop		*loop;
 } GtxTestContext;
 
-gboolean	gtx_wait_for_signal				(GObject 		*object,
+gboolean	gtx_wait_for_signal				(GObject		*object,
 											 gint			max_wait_ms,
 											 const gchar	*detailed_signal,
 											 ...);

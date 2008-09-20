@@ -35,17 +35,17 @@ static void
 get_meta_table_data (gpointer value)
 {
 	gchar **meta;
-        gchar **p;
-	gint    i;
+	gchar **p;
+	gint	i;
 
 	meta = value;
 
 	for (p = meta, i = 0; *p; p++, i++) {
-                if (i == 0) {
-                        g_print ("  %s", *p);
-                } else {
+		if (i == 0) {
+			g_print ("  %s", *p);
+		} else {
 			g_print (" = %s", *p);
-                }
+		}
 	}
 
 	g_print ("\n");
@@ -57,15 +57,15 @@ main (int argc, char **argv)
 	TrackerClient  *client;
 	GOptionContext *context;
 	GPtrArray      *array;
-	GError         *error = NULL;
+	GError	       *error = NULL;
 
 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
 	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
 	textdomain (GETTEXT_PACKAGE);
 
-        /* Translators: this messagge will apper immediately after the  */
-        /* usage string - Usage: COMMAND [OPTION]... <THIS_MESSAGE>     */
-        context = g_option_context_new (_(" - Show number of indexed files for each service"));
+	/* Translators: this messagge will apper immediately after the	*/
+	/* usage string - Usage: COMMAND [OPTION]... <THIS_MESSAGE>	*/
+	context = g_option_context_new (_(" - Show number of indexed files for each service"));
 	g_option_context_parse (context, &argc, &argv, NULL);
 	g_option_context_free (context);
 
@@ -81,23 +81,23 @@ main (int argc, char **argv)
 
 	if (error) {
 		g_printerr ("%s, %s\n",
-                            _("Could not get Tracker statistics"),
-                            error->message);
+			    _("Could not get Tracker statistics"),
+			    error->message);
 		g_error_free (error);
 
-                return EXIT_FAILURE;
+		return EXIT_FAILURE;
 	}
 
-        if (!array) {
-                g_print ("%s\n",
+	if (!array) {
+		g_print ("%s\n",
 			 _("No statistics available"));
-        } else {
-                g_print ("%s\n",
+	} else {
+		g_print ("%s\n",
 			 _("Statistics:"));
 
-                g_ptr_array_foreach (array, (GFunc) get_meta_table_data, NULL);
-                g_ptr_array_free (array, TRUE);
-        }
+		g_ptr_array_foreach (array, (GFunc) get_meta_table_data, NULL);
+		g_ptr_array_free (array, TRUE);
+	}
 
 	tracker_disconnect (client);
 

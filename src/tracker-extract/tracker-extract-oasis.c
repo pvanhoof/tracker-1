@@ -29,14 +29,14 @@
 #include "tracker-extract.h"
 
 typedef enum {
-        READ_TITLE,
-        READ_SUBJECT,
-        READ_AUTHOR,
-        READ_KEYWORDS,
-        READ_COMMENTS,
-        READ_STATS,
-        READ_CREATED,
-        READ_FILE_OTHER
+	READ_TITLE,
+	READ_SUBJECT,
+	READ_AUTHOR,
+	READ_KEYWORDS,
+	READ_COMMENTS,
+	READ_STATS,
+	READ_CREATED,
+	READ_FILE_OTHER
 } tag_type;
 
 typedef struct {
@@ -44,23 +44,23 @@ typedef struct {
 	tag_type current;
 } ODTParseInfo;
 
-static void start_element_handler (GMarkupParseContext  *context,
-                                   const gchar          *element_name,
-                                   const gchar         **attribute_names,
-                                   const gchar         **attribute_values,
-                                   gpointer              user_data,
-                                   GError              **error);
-static void end_element_handler   (GMarkupParseContext  *context,
-                                   const gchar          *element_name,
-                                   gpointer              user_data,
-                                   GError              **error);
-static void text_handler          (GMarkupParseContext  *context,
-                                   const gchar          *text,
-                                   gsize                 text_len,
-                                   gpointer              user_data,
-                                   GError              **error);
-static void extract_oasis         (const gchar          *filename,
-                                   GHashTable           *metadata);
+static void start_element_handler (GMarkupParseContext	*context,
+				   const gchar		*element_name,
+				   const gchar	       **attribute_names,
+				   const gchar	       **attribute_values,
+				   gpointer		 user_data,
+				   GError	       **error);
+static void end_element_handler   (GMarkupParseContext	*context,
+				   const gchar		*element_name,
+				   gpointer		 user_data,
+				   GError	       **error);
+static void text_handler	  (GMarkupParseContext	*context,
+				   const gchar		*text,
+				   gsize		 text_len,
+				   gpointer		 user_data,
+				   GError	       **error);
+static void extract_oasis	  (const gchar		*filename,
+				   GHashTable		*metadata);
 
 static TrackerExtractorData data[] = {
 	{ "application/vnd.oasis.opendocument.*", extract_oasis },
@@ -69,14 +69,14 @@ static TrackerExtractorData data[] = {
 
 static void
 extract_oasis (const gchar *filename,
-               GHashTable  *metadata)
+	       GHashTable  *metadata)
 {
-	gchar         *argv[5];
-	gchar         *xml;
+	gchar	      *argv[5];
+	gchar	      *xml;
 	ODTParseInfo   info = {
-                metadata,
-                -1
-        };
+		metadata,
+		-1
+	};
 
 	argv[0] = g_strdup ("unzip");
 	argv[1] = g_strdup ("-p");
@@ -86,13 +86,13 @@ extract_oasis (const gchar *filename,
 
 	if (tracker_spawn (argv, 10, &xml, NULL)) {
 		GMarkupParseContext *context;
-		GMarkupParser        parser = {
-                        start_element_handler,
-                        end_element_handler,
-                        text_handler,
-                        NULL,
-                        NULL
-                };
+		GMarkupParser	     parser = {
+			start_element_handler,
+			end_element_handler,
+			text_handler,
+			NULL,
+			NULL
+		};
 
 		context = g_markup_parse_context_new (&parser, 0, &info, NULL);
 		g_markup_parse_context_parse (context, xml, -1, NULL);
@@ -109,13 +109,13 @@ extract_oasis (const gchar *filename,
 
 void
 start_element_handler (GMarkupParseContext  *context,
-                       const gchar          *element_name,
-                       const gchar         **attribute_names,
-                       const gchar         **attribute_values,
-                       gpointer              user_data,
-                       GError              **error)
+		       const gchar	    *element_name,
+		       const gchar	   **attribute_names,
+		       const gchar	   **attribute_values,
+		       gpointer		     user_data,
+		       GError		   **error)
 {
-        ODTParseInfo *data = user_data;
+	ODTParseInfo *data = user_data;
 
 	if (strcmp (element_name, "dc:title") == 0) {
 		data->current = READ_TITLE;
@@ -136,18 +136,18 @@ start_element_handler (GMarkupParseContext  *context,
 		GHashTable *metadata;
 		const gchar **a, **v;
 
-                metadata = data->metadata;
+		metadata = data->metadata;
 
 		for (a = attribute_names, v = attribute_values; *a; ++a, ++v) {
 			if (strcmp (*a, "meta:word-count") == 0) {
 				g_hash_table_insert (metadata,
-                                                     g_strdup ("Doc:WordCount"),
-                                                     g_strdup (*v));
+						     g_strdup ("Doc:WordCount"),
+						     g_strdup (*v));
 			}
 			else if (strcmp (*a, "meta:page-count") == 0) {
 				g_hash_table_insert (metadata,
-                                                     g_strdup ("Doc:PageCount"),
-                                                     g_strdup (*v));
+						     g_strdup ("Doc:PageCount"),
+						     g_strdup (*v));
 			}
 		}
 
@@ -166,74 +166,74 @@ start_element_handler (GMarkupParseContext  *context,
 
 void
 end_element_handler (GMarkupParseContext  *context,
-                     const gchar          *element_name,
-                     gpointer              user_data,
-                     GError              **error)
+		     const gchar	  *element_name,
+		     gpointer		   user_data,
+		     GError		 **error)
 {
 	((ODTParseInfo*) user_data)->current = -1;
 }
 
 void
 text_handler (GMarkupParseContext  *context,
-              const gchar          *text,
-              gsize                 text_len,
-              gpointer              user_data,
-              GError              **error)
+	      const gchar	   *text,
+	      gsize		    text_len,
+	      gpointer		    user_data,
+	      GError		  **error)
 {
-        ODTParseInfo *data;
+	ODTParseInfo *data;
 	GHashTable   *metadata;
 
-        data = user_data;
-        metadata = data->metadata;
+	data = user_data;
+	metadata = data->metadata;
 
 	switch (data->current) {
-        case READ_TITLE:
-                g_hash_table_insert (metadata,
-                                     g_strdup ("Doc:Title"),
-                                     g_strdup (text));
-                break;
-        case READ_SUBJECT:
-                g_hash_table_insert (metadata,
-                                     g_strdup ("Doc:Subject"),
-                                     g_strdup (text));
-                break;
-        case READ_AUTHOR:
-                g_hash_table_insert (metadata,
-                                     g_strdup ("Doc:Author"),
-                                     g_strdup (text));
-                break;
-        case READ_KEYWORDS: {
-                gchar *keywords;
+	case READ_TITLE:
+		g_hash_table_insert (metadata,
+				     g_strdup ("Doc:Title"),
+				     g_strdup (text));
+		break;
+	case READ_SUBJECT:
+		g_hash_table_insert (metadata,
+				     g_strdup ("Doc:Subject"),
+				     g_strdup (text));
+		break;
+	case READ_AUTHOR:
+		g_hash_table_insert (metadata,
+				     g_strdup ("Doc:Author"),
+				     g_strdup (text));
+		break;
+	case READ_KEYWORDS: {
+		gchar *keywords;
 
-                if ((keywords = g_hash_table_lookup (metadata, "Doc:Keywords"))) {
-                        g_hash_table_replace (metadata,
-                                              g_strdup ("Doc:Keywords"),
-                                              g_strconcat (keywords, ",", text, NULL));
-                } else {
-                        g_hash_table_insert (metadata,
-                                             g_strdup ("Doc:Keywords"),
-                                             g_strdup (text));
-                }
-        }
-                break;
-        case READ_COMMENTS:
-                g_hash_table_insert (metadata,
-                                     g_strdup ("Doc:Comments"),
-                                     g_strdup (text));
-                break;
-        case READ_CREATED:
-                g_hash_table_insert (metadata,
-                                     g_strdup ("Doc:Created"),
-                                     g_strdup (text));
-                break;
-        case READ_FILE_OTHER:
-                g_hash_table_insert (metadata,
-                                     g_strdup ("File:Other"),
-                                     g_strdup (text));
-                break;
+		if ((keywords = g_hash_table_lookup (metadata, "Doc:Keywords"))) {
+			g_hash_table_replace (metadata,
+					      g_strdup ("Doc:Keywords"),
+					      g_strconcat (keywords, ",", text, NULL));
+		} else {
+			g_hash_table_insert (metadata,
+					     g_strdup ("Doc:Keywords"),
+					     g_strdup (text));
+		}
+	}
+		break;
+	case READ_COMMENTS:
+		g_hash_table_insert (metadata,
+				     g_strdup ("Doc:Comments"),
+				     g_strdup (text));
+		break;
+	case READ_CREATED:
+		g_hash_table_insert (metadata,
+				     g_strdup ("Doc:Created"),
+				     g_strdup (text));
+		break;
+	case READ_FILE_OTHER:
+		g_hash_table_insert (metadata,
+				     g_strdup ("File:Other"),
+				     g_strdup (text));
+		break;
 
-        default:
-                break;
+	default:
+		break;
 	}
 }
 

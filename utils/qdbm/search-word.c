@@ -24,8 +24,8 @@
 
 #include <libtracker-db/tracker-db-index-item.h>
 
-static gchar        *filename;
-static gchar        *word;
+static gchar	    *filename;
+static gchar	    *word;
 
 static GOptionEntry  entries[] = {
 	{ "index-file", 'f', 0,
@@ -40,29 +40,29 @@ static GOptionEntry  entries[] = {
 };
 
 static TrackerDBIndexItem *
-get_word_hits (DEPOT       *index,
-               const gchar *word,
-               guint       *count)
+get_word_hits (DEPOT	   *index,
+	       const gchar *word,
+	       guint	   *count)
 {
 	TrackerDBIndexItem *items;
-	gchar              *tmp;
-	gint                tsiz;
+	gchar		   *tmp;
+	gint		    tsiz;
 
-        g_return_val_if_fail (word != NULL, NULL);
+	g_return_val_if_fail (word != NULL, NULL);
 
 	items = NULL;
 
-        if (count) {
-                *count = 0;
-        }
+	if (count) {
+		*count = 0;
+	}
 
 	if ((tmp = dpget (index, word, -1, 0, 1000000, &tsiz)) != NULL) {
 		if (tsiz >= (gint) sizeof (TrackerDBIndexItem)) {
 			items = (TrackerDBIndexItem *) tmp;
 
-                        if (count) {
-                                *count = tsiz / sizeof (TrackerDBIndexItem);
-                        }
+			if (count) {
+				*count = tsiz / sizeof (TrackerDBIndexItem);
+			}
 		}
 	}
 
@@ -71,11 +71,11 @@ get_word_hits (DEPOT       *index,
 
 static void
 show_term_in_index (const gchar *filename,
-                    const gchar *word)
+		    const gchar *word)
 {
     TrackerDBIndexItem *items;
-    DEPOT              *depot;
-    guint               hits, i;
+    DEPOT	       *depot;
+    guint		hits, i;
 
     hits = 0;
 
@@ -83,26 +83,26 @@ show_term_in_index (const gchar *filename,
 
     if (depot == NULL) {
 	   g_print ("Unable to open file: %s "
-                    "(Could be a lock problem: is tracker running?)\n",
-                    filename);
+		    "(Could be a lock problem: is tracker running?)\n",
+		    filename);
 	   g_print ("Using version %s of qdbm\n",
-                    dpversion);
+		    dpversion);
 	   return;
     }
 
     items = get_word_hits (depot, word, &hits);
 
     if (hits < 1 ) {
-            g_print ("No results for %s\n", word);
-            return;
+	    g_print ("No results for %s\n", word);
+	    return;
     }
 
     g_print (" - %s ", word);
 
     for (i = 0; i < hits; i++) {
-            g_print (" (id:%d  t:%d) ",
-                     items[i].id,
-                     tracker_db_index_item_get_service_type (&items[i]));
+	    g_print (" (id:%d  t:%d) ",
+		     items[i].id,
+		     tracker_db_index_item_get_service_type (&items[i]));
     }
 
     g_print ("\n");
@@ -114,43 +114,43 @@ show_term_in_index (const gchar *filename,
 int
 main (gint argc, gchar** argv)
 {
-        GOptionContext *context;
-        GError         *error = NULL;
+	GOptionContext *context;
+	GError	       *error = NULL;
 
 	context = g_option_context_new ("- QDBM index searcher");
 	g_option_context_add_main_entries (context, entries, NULL);
 	g_option_context_parse (context, &argc, &argv, &error);
 
 	if (error) {
-                gchar *help;
+		gchar *help;
 
 		g_printerr ("Invalid arguments, %s\n", error->message);
 
-                help = g_option_context_get_help (context, TRUE, NULL);
-                g_printerr (help);
+		help = g_option_context_get_help (context, TRUE, NULL);
+		g_printerr (help);
 
-                g_free (help);
+		g_free (help);
 		g_clear_error (&error);
-                g_option_context_free (context);
+		g_option_context_free (context);
 
 		return EXIT_FAILURE;
 	}
 
-        if (!filename || !word) {
-                gchar *help;
+	if (!filename || !word) {
+		gchar *help;
 
-                help = g_option_context_get_help (context, TRUE, NULL);
-                g_printerr (help);
+		help = g_option_context_get_help (context, TRUE, NULL);
+		g_printerr (help);
 
-                g_free (help);
-                g_option_context_free (context);
+		g_free (help);
+		g_option_context_free (context);
 
-                return EXIT_FAILURE;
-        }
+		return EXIT_FAILURE;
+	}
 
 	g_option_context_free (context);
 
-        show_term_in_index (filename, word);
+	show_term_in_index (filename, word);
 
-        return 0;
+	return 0;
 }

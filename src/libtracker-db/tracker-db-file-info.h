@@ -40,8 +40,8 @@ typedef enum {
 	TRACKER_DB_WATCH_OTHER
 } TrackerDBWatch;
 
-GType              tracker_db_watch_get_type  (void) G_GNUC_CONST;
-const gchar *      tracker_db_watch_to_string (TrackerDBWatch     watch);
+GType		   tracker_db_watch_get_type  (void) G_GNUC_CONST;
+const gchar *	   tracker_db_watch_to_string (TrackerDBWatch	  watch);
 
 /*
  * File Information
@@ -50,59 +50,59 @@ typedef struct _TrackerDBFileInfo TrackerDBFileInfo;
 
 struct _TrackerDBFileInfo {
 	/* File name/path related info */
-	gchar           *uri;
-	guint32          file_id;
+	gchar		*uri;
+	guint32		 file_id;
 
 	TrackerDBAction  action;
-	guint32          cookie;
-	gint             counter;
-	TrackerDBWatch   watch_type;
+	guint32		 cookie;
+	gint		 counter;
+	TrackerDBWatch	 watch_type;
 
 	/* Symlink info - File ID of link might not be in DB so need
-         * to store path/filename too.
-         */
-	gint32           link_id;
-	gchar           *link_path;
-	gchar           *link_name;
+	 * to store path/filename too.
+	 */
+	gint32		 link_id;
+	gchar		*link_path;
+	gchar		*link_name;
 
-	gchar           *mime;
-	gint             service_type_id;
-	guint32          file_size;
-	gchar           *permissions;
-	gint32           mtime;
-	gint32           atime;
-	gint32           indextime;
-	gint32           offset;
+	gchar		*mime;
+	gint		 service_type_id;
+	guint32		 file_size;
+	gchar		*permissions;
+	gint32		 mtime;
+	gint32		 atime;
+	gint32		 indextime;
+	gint32		 offset;
 
 	/* Options */
-	gchar           *moved_to_uri;
+	gchar		*moved_to_uri;
 
-	gint             aux_id;
+	gint		 aux_id;
 
-	guint            is_new : 1;
-	guint            is_directory : 1;
-	guint            is_link : 1;
-	guint            extract_embedded : 1;
-	guint            extract_contents : 1;
-	guint            extract_thumbs : 1;
-	guint            is_hidden : 1;
+	guint		 is_new : 1;
+	guint		 is_directory : 1;
+	guint		 is_link : 1;
+	guint		 extract_embedded : 1;
+	guint		 extract_contents : 1;
+	guint		 extract_thumbs : 1;
+	guint		 is_hidden : 1;
 
 	/* We ref count FileInfo as it has a complex lifespan and is
-         * tossed between various threads, lists, queues and hash
-         * tables.
-         */
-	gint             ref_count;
+	 * tossed between various threads, lists, queues and hash
+	 * tables.
+	 */
+	gint		 ref_count;
 };
 
-TrackerDBFileInfo *tracker_db_file_info_new      (const gchar       *uri,
+TrackerDBFileInfo *tracker_db_file_info_new	 (const gchar	    *uri,
 						  TrackerDBAction    action,
-						  gint               counter,
+						  gint		     counter,
 						  TrackerDBWatch     watch);
-void               tracker_db_file_info_free     (TrackerDBFileInfo *info);
-TrackerDBFileInfo *tracker_db_file_info_ref      (TrackerDBFileInfo *info);
-TrackerDBFileInfo *tracker_db_file_info_unref    (TrackerDBFileInfo *info);
-TrackerDBFileInfo *tracker_db_file_info_get      (TrackerDBFileInfo *info);
-gboolean           tracker_db_file_info_is_valid (TrackerDBFileInfo *info);
+void		   tracker_db_file_info_free	 (TrackerDBFileInfo *info);
+TrackerDBFileInfo *tracker_db_file_info_ref	 (TrackerDBFileInfo *info);
+TrackerDBFileInfo *tracker_db_file_info_unref	 (TrackerDBFileInfo *info);
+TrackerDBFileInfo *tracker_db_file_info_get	 (TrackerDBFileInfo *info);
+gboolean	   tracker_db_file_info_is_valid (TrackerDBFileInfo *info);
 
 
 #endif /* __TRACKER_DB_FILE_INFO_H__ */

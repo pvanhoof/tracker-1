@@ -25,24 +25,24 @@
 
 static gchar **
 dbus_query_result_to_strv (TrackerDBResultSet *result_set,
-			   gint                column,
-			   gint               *count,
-			   gboolean            numeric)
+			   gint		       column,
+			   gint		      *count,
+			   gboolean	       numeric)
 
 {
 	gchar **strv = NULL;
-        gint    rows = 0;
-	gint    i = 0;
+	gint	rows = 0;
+	gint	i = 0;
 
 	if (result_set) {
-		gchar    *str;
+		gchar	 *str;
 		gboolean  valid = TRUE;
-		gint      value;
+		gint	  value;
 
 		/* Make sure we rewind before iterating the result set */
 		tracker_db_result_set_rewind (result_set);
 
-                rows = tracker_db_result_set_get_n_rows (result_set);
+		rows = tracker_db_result_set_get_n_rows (result_set);
 		strv = g_new (gchar*, rows + 1);
 
 		while (valid) {
@@ -71,25 +71,25 @@ dbus_query_result_to_strv (TrackerDBResultSet *result_set,
 		strv[i] = NULL;
 	}
 
-        if (count) {
-                *count = i;
-        }
+	if (count) {
+		*count = i;
+	}
 
 	return strv;
 }
 
 gchar **
 tracker_dbus_query_result_to_strv (TrackerDBResultSet *result_set,
-				   gint                column,
-                                   gint               *count)
+				   gint		       column,
+				   gint		      *count)
 {
 	return dbus_query_result_to_strv (result_set, column, count, FALSE);
 }
 
 gchar **
 tracker_dbus_query_result_numeric_to_strv (TrackerDBResultSet *result_set,
-					   gint                column,
-					   gint               *count)
+					   gint		       column,
+					   gint		      *count)
 {
 	return dbus_query_result_to_strv (result_set, column, count, TRUE);
 }
@@ -101,8 +101,8 @@ tracker_dbus_query_result_columns_to_strv (TrackerDBResultSet *result_set,
 					   gboolean rewind)
 {
 	gchar **strv = NULL;
-	gint    i = 0;
-	gint    columns;
+	gint	i = 0;
+	gint	columns;
 
 	if (result_set) {
 		columns = tracker_db_result_set_get_n_columns (result_set);
@@ -127,7 +127,7 @@ tracker_dbus_query_result_columns_to_strv (TrackerDBResultSet *result_set,
 
 	for (i = offset_column ; i < until_column; i++) {
 		GValue value = {0, };
-		GValue  transform = {0, };
+		GValue	transform = {0, };
 
 		g_value_init (&transform, G_TYPE_STRING);
 
@@ -149,7 +149,7 @@ GHashTable *
 tracker_dbus_query_result_to_hash_table (TrackerDBResultSet *result_set)
 {
 	GHashTable *hash_table;
-	gint        field_count;
+	gint	    field_count;
 	gboolean    valid = FALSE;
 
 	hash_table = g_hash_table_new_full (g_str_hash,
@@ -181,7 +181,7 @@ tracker_dbus_query_result_to_hash_table (TrackerDBResultSet *result_set)
 		values = tracker_dbus_gvalue_slice_new (G_TYPE_STRV);
 
 		for (i = 1; i < field_count; i++) {
-			GValue  value = { 0, };
+			GValue	value = { 0, };
 			gchar  *str;
 
 			_tracker_db_result_set_get_value (result_set, i, &value);
@@ -208,18 +208,18 @@ tracker_dbus_query_result_to_hash_table (TrackerDBResultSet *result_set)
 		g_hash_table_insert (hash_table, key, values);
 
 		valid = tracker_db_result_set_iter_next (result_set);
-        }
+	}
 
-        return hash_table;
+	return hash_table;
 }
 
 GPtrArray *
 tracker_dbus_query_result_to_ptr_array (TrackerDBResultSet *result_set)
 {
-        GPtrArray *ptr_array;
+	GPtrArray *ptr_array;
 	gboolean   valid = FALSE;
-	gint       columns;
-        gint       i;
+	gint	   columns;
+	gint	   i;
 
 	ptr_array = g_ptr_array_new ();
 
@@ -234,13 +234,13 @@ tracker_dbus_query_result_to_ptr_array (TrackerDBResultSet *result_set)
 	}
 
 	while (valid) {
-		GSList  *list = NULL;
+		GSList	*list = NULL;
 		gchar  **p;
 
 		/* Append fields to the array */
 		for (i = 0; i < columns; i++) {
-			GValue   transform = { 0, };
-			GValue  value = { 0, };
+			GValue	 transform = { 0, };
+			GValue	value = { 0, };
 			gchar  *str;
 
 			g_value_init (&transform, G_TYPE_STRING);
@@ -278,6 +278,6 @@ tracker_dbus_query_result_to_ptr_array (TrackerDBResultSet *result_set)
 		valid = tracker_db_result_set_iter_next (result_set);
 	}
 
-        return ptr_array;
+	return ptr_array;
 }
 

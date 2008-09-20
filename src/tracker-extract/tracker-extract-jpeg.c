@@ -46,7 +46,7 @@ static TrackerExtractorData data[] = {
 };
 
 #ifdef HAVE_EXEMPI
-#define XMP_NAMESPACE        "http://ns.adobe.com/xap/1.0/\x00"
+#define XMP_NAMESPACE	     "http://ns.adobe.com/xap/1.0/\x00"
 #define XMP_NAMESPACE_LENGTH 29
 #endif /* HAVE_EXEMPI */
 
@@ -60,14 +60,14 @@ typedef gchar * (*PostProcessor) (const gchar *);
 
 typedef struct {
 	ExifTag       tag;
-	gchar        *name;
+	gchar	     *name;
 	PostProcessor post;
 } TagType;
 
-static gchar *date_to_iso8601   (const gchar *exif_date);
-static gchar *fix_focal_length  (const gchar *fl);
-static gchar *fix_flash         (const gchar *flash);
-static gchar *fix_fnumber       (const gchar *fn);
+static gchar *date_to_iso8601	(const gchar *exif_date);
+static gchar *fix_focal_length	(const gchar *fl);
+static gchar *fix_flash		(const gchar *flash);
+static gchar *fix_fnumber	(const gchar *fn);
 static gchar *fix_exposure_time (const gchar *et);
 
 static TagType tags[] = {
@@ -100,10 +100,10 @@ static TagType tags[] = {
 static gchar *
 date_to_iso8601 (const gchar *exif_date)
 {
-        /* From: ex; date "2007:04:15 15:35:58"
-         * To  : ex. "2007-04-15T17:35:58+0200 where +0200 is localtime
+	/* From: ex; date "2007:04:15 15:35:58"
+	 * To  : ex. "2007-04-15T17:35:58+0200 where +0200 is localtime
 	 */
-        return tracker_generic_date_to_iso8601 (exif_date, EXIF_DATE_FORMAT);
+	return tracker_generic_date_to_iso8601 (exif_date, EXIF_DATE_FORMAT);
 }
 
 static gchar *
@@ -115,11 +115,11 @@ fix_focal_length (const gchar *fl)
 static gchar *
 fix_flash (const gchar *flash)
 {
-        if (g_str_has_prefix (flash, "No")) {
-                return g_strdup ("0");
-        } else {
+	if (g_str_has_prefix (flash, "No")) {
+		return g_strdup ("0");
+	} else {
 		return g_strdup ("1");
-        }
+	}
 }
 
 static gchar *
@@ -156,7 +156,7 @@ fix_exposure_time (const gchar *et)
 
 		if (fraction > 0.0) {
 			gdouble val;
-			gchar   buf[G_ASCII_DTOSTR_BUF_SIZE];
+			gchar	buf[G_ASCII_DTOSTR_BUF_SIZE];
 
 			val = 1.0f / fraction;
 			g_ascii_dtostr (buf, sizeof(buf), val);
@@ -172,8 +172,8 @@ fix_exposure_time (const gchar *et)
 
 static void
 read_exif (const unsigned char *buffer,
-	   size_t               len,
-	   GHashTable          *metadata)
+	   size_t		len,
+	   GHashTable	       *metadata)
 {
 #ifdef HAVE_LIBEXIF
 	ExifData *exif;
@@ -182,24 +182,24 @@ read_exif (const unsigned char *buffer,
 	exif = exif_data_new_from_data ((unsigned char *) buffer, len);
 
 	for (p = tags; p->name; ++p) {
-                ExifEntry *entry;
+		ExifEntry *entry;
 
 		entry = exif_data_get_entry (exif, p->tag);
 
 		if (entry) {
-                        gchar buffer[1024];
+			gchar buffer[1024];
 
 			exif_entry_get_value (entry, buffer, 1024);
 
 			if (p->post) {
 				g_hash_table_insert (metadata,
 						     g_strdup (p->name),
-				                     (*p->post) (buffer));
-                        } else {
+						     (*p->post) (buffer));
+			} else {
 				g_hash_table_insert (metadata,
 						     g_strdup (p->name),
-				                     g_strdup (buffer));
-                        }
+						     g_strdup (buffer));
+			}
 		}
 	}
 #endif /* HAVE_LIBEXIF */
@@ -210,10 +210,10 @@ extract_jpeg (const gchar *filename,
 	      GHashTable  *metadata)
 {
 	struct jpeg_decompress_struct  cinfo;
-	struct jpeg_error_mgr          jerr;
+	struct jpeg_error_mgr	       jerr;
 	struct jpeg_marker_struct     *marker;
-	FILE                          *jpeg;
-	gint                           fd_jpeg;
+	FILE			      *jpeg;
+	gint			       fd_jpeg;
 
 	if ((fd_jpeg = g_open (filename, O_RDONLY)) == -1) {
 		return;

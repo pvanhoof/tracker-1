@@ -30,7 +30,7 @@ test_union_performance_xesam_view ()
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
-	GError             *error = NULL;
+	GError		   *error = NULL;
 
 	iface = tracker_db_manager_get_db_interfaces (7, TRACKER_DB_COMMON,
 							  TRACKER_DB_XESAM,
@@ -80,7 +80,7 @@ test_union_performance_xesam_union ()
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
-	GError             *error = NULL;
+	GError		   *error = NULL;
 
 	iface = tracker_db_manager_get_db_interfaces (7, TRACKER_DB_COMMON,
 							  TRACKER_DB_XESAM,

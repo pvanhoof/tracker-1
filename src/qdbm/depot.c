@@ -1,6 +1,6 @@
 /*************************************************************************************************
  * Implementation of Depot
- *                                                      Copyright (C) 2000-2006 Mikio Hirabayashi
+ *							Copyright (C) 2000-2006 Mikio Hirabayashi
  * This file is part of QDBM, Quick Database Manager.
  * QDBM is free software; you can redistribute it and/or modify it under the terms of the GNU
  * Lesser General Public License as published by the Free Software Foundation; either version
@@ -19,26 +19,26 @@
 #include "depot.h"
 #include "myconf.h"
 
-#define DP_FILEMODE    00644             /* permission of a creating file */
-#define DP_MAGICNUMB   "[DEPOT]\n\f"     /* magic number on environments of big endian */
-#define DP_MAGICNUML   "[depot]\n\f"     /* magic number on environments of little endian */
-#define DP_HEADSIZ     48                /* size of the reagion of the header */
-#define DP_LIBVEROFF   12                /* offset of the region for the library version */
-#define DP_FLAGSOFF    16                /* offset of the region for flags */
-#define DP_FSIZOFF     24                /* offset of the region for the file size */
-#define DP_BNUMOFF     32                /* offset of the region for the bucket number */
-#define DP_RNUMOFF     40                /* offset of the region for the record number */
-#define DP_DEFBNUM     8191              /* default bucket number */
-#define DP_FBPOOLSIZ   16                /* size of free block pool */
-#define DP_ENTBUFSIZ   128               /* size of the entity buffer */
-#define DP_STKBUFSIZ   256               /* size of the stack key buffer */
-#define DP_WRTBUFSIZ   8192              /* size of the writing buffer */
-#define DP_FSBLKSIZ    4096              /* size of a block of the file system */
+#define DP_FILEMODE    00644		 /* permission of a creating file */
+#define DP_MAGICNUMB   "[DEPOT]\n\f"	 /* magic number on environments of big endian */
+#define DP_MAGICNUML   "[depot]\n\f"	 /* magic number on environments of little endian */
+#define DP_HEADSIZ     48		 /* size of the reagion of the header */
+#define DP_LIBVEROFF   12		 /* offset of the region for the library version */
+#define DP_FLAGSOFF    16		 /* offset of the region for flags */
+#define DP_FSIZOFF     24		 /* offset of the region for the file size */
+#define DP_BNUMOFF     32		 /* offset of the region for the bucket number */
+#define DP_RNUMOFF     40		 /* offset of the region for the record number */
+#define DP_DEFBNUM     8191		 /* default bucket number */
+#define DP_FBPOOLSIZ   16		 /* size of free block pool */
+#define DP_ENTBUFSIZ   128		 /* size of the entity buffer */
+#define DP_STKBUFSIZ   256		 /* size of the stack key buffer */
+#define DP_WRTBUFSIZ   8192		 /* size of the writing buffer */
+#define DP_FSBLKSIZ    4096		 /* size of a block of the file system */
 #define DP_TMPFSUF     MYEXTSTR "dptmp"  /* suffix of a temporary file */
-#define DP_OPTBLOAD    0.25              /* ratio of bucket loading at optimization */
-#define DP_OPTRUNIT    256               /* number of records in a process of optimization */
-#define DP_NUMBUFSIZ   32                /* size of a buffer for a number */
-#define DP_IOBUFSIZ    8192              /* size of an I/O buffer */
+#define DP_OPTBLOAD    0.25		 /* ratio of bucket loading at optimization */
+#define DP_OPTRUNIT    256		 /* number of records in a process of optimization */
+#define DP_NUMBUFSIZ   32		 /* size of a buffer for a number */
+#define DP_IOBUFSIZ    8192		 /* size of an I/O buffer */
 
 /* get the first hash value */
 #define DP_FIRSTHASH(DP_res, DP_kbuf, DP_ksiz) \
@@ -77,20 +77,20 @@
     (DP_res) = ((DP_res) * 5157883) & 0x7FFFFFFF; \
   } while(FALSE)
 
-enum {                                   /* enumeration for a record header */
-  DP_RHIFLAGS,                           /* offset of flags */
-  DP_RHIHASH,                            /* offset of value of the second hash function */
-  DP_RHIKSIZ,                            /* offset of the size of the key */
-  DP_RHIVSIZ,                            /* offset of the size of the value */
-  DP_RHIPSIZ,                            /* offset of the size of the padding bytes */
-  DP_RHILEFT,                            /* offset of the offset of the left child */
-  DP_RHIRIGHT,                           /* offset of the offset of the right child */
-  DP_RHNUM                               /* number of elements of a header */
+enum {					 /* enumeration for a record header */
+  DP_RHIFLAGS,				 /* offset of flags */
+  DP_RHIHASH,				 /* offset of value of the second hash function */
+  DP_RHIKSIZ,				 /* offset of the size of the key */
+  DP_RHIVSIZ,				 /* offset of the size of the value */
+  DP_RHIPSIZ,				 /* offset of the size of the padding bytes */
+  DP_RHILEFT,				 /* offset of the offset of the left child */
+  DP_RHIRIGHT,				 /* offset of the offset of the right child */
+  DP_RHNUM				 /* number of elements of a header */
 };
 
-enum {                                   /* enumeration for the flag of a record */
-  DP_RECFDEL = 1 << 0,                   /* deleted */
-  DP_RECFREUSE = 1 << 1                  /* reusable */
+enum {					 /* enumeration for the flag of a record */
+  DP_RECFDEL = 1 << 0,			 /* deleted */
+  DP_RECFREUSE = 1 << 1			 /* reusable */
 };
 
 
@@ -113,11 +113,11 @@ static char *dprecval(DEPOT *depot, int off, int *head, int start, int max);
 static int dprecvalwb(DEPOT *depot, int off, int *head, int start, int max, char *vbuf);
 static int dpkeycmp(const char *abuf, int asiz, const char *bbuf, int bsiz);
 static int dprecsearch(DEPOT *depot, const char *kbuf, int ksiz, int hash, int *bip, int *offp,
-                       int *entp, int *head, char *ebuf, int *eep, int delhit);
+		       int *entp, int *head, char *ebuf, int *eep, int delhit);
 static int dprecrewrite(DEPOT *depot, int off, int rsiz, const char *kbuf, int ksiz,
-                        const char *vbuf, int vsiz, int hash, int left, int right);
+			const char *vbuf, int vsiz, int hash, int left, int right);
 static int dprecappend(DEPOT *depot, const char *kbuf, int ksiz, const char *vbuf, int vsiz,
-                       int hash, int left, int right);
+		       int hash, int left, int right);
 static int dprecover(DEPOT *depot, int off, int *head, const char *vbuf, int vsiz, int cat);
 static int dprecdelete(DEPOT *depot, int off, int *head, int reusable);
 static void dpfbpoolcoal(DEPOT *depot);
@@ -236,20 +236,20 @@ DEPOT *dpopen(const char *name, int omode, int bnum){
     if(omode & DP_OSPARSE){
       c = 0;
       if(!dpseekwrite(fd, fsiz - 1, &c, 1)){
-        close(fd);
-        return NULL;
+	close(fd);
+	return NULL;
       }
     } else {
       if(!(map = malloc(bnum * sizeof(int)))){
-        close(fd);
-        dpecodeset(DP_EALLOC, __FILE__, __LINE__);
-        return NULL;
+	close(fd);
+	dpecodeset(DP_EALLOC, __FILE__, __LINE__);
+	return NULL;
       }
       memset(map, 0, bnum * sizeof(int));
       if(!dpseekwrite(fd, DP_HEADSIZ, map, bnum * sizeof(int))){
-        free(map);
-        close(fd);
-        return NULL;
+	free(map);
+	close(fd);
+	return NULL;
       }
       free(map);
     }
@@ -386,94 +386,94 @@ int dpput(DEPOT *depot, const char *kbuf, int ksiz, const char *vbuf, int vsiz, 
     if(dmode == DP_DCAT) nsiz += head[DP_RHIVSIZ];
     if(off + rsiz >= depot->fsiz){
       if(rsiz < nsiz){
-        head[DP_RHIPSIZ] += nsiz - rsiz;
-        rsiz = nsiz;
-        depot->fsiz = off + rsiz;
+	head[DP_RHIPSIZ] += nsiz - rsiz;
+	rsiz = nsiz;
+	depot->fsiz = off + rsiz;
       }
     } else {
       while(nsiz > rsiz && off + rsiz < depot->fsiz){
-        if(!dprechead(depot, off + rsiz, next, NULL, NULL)) return FALSE;
-        if(!(next[DP_RHIFLAGS] & DP_RECFREUSE)) break;
-        head[DP_RHIPSIZ] += dprecsize(next);
-        rsiz += dprecsize(next);
+	if(!dprechead(depot, off + rsiz, next, NULL, NULL)) return FALSE;
+	if(!(next[DP_RHIFLAGS] & DP_RECFREUSE)) break;
+	head[DP_RHIPSIZ] += dprecsize(next);
+	rsiz += dprecsize(next);
       }
       for(i = 0; i < depot->fbpsiz; i += 2){
-        if(depot->fbpool[i] >= off && depot->fbpool[i] < off + rsiz){
-          depot->fbpool[i] = -1;
-          depot->fbpool[i+1] = -1;
-        }
+	if(depot->fbpool[i] >= off && depot->fbpool[i] < off + rsiz){
+	  depot->fbpool[i] = -1;
+	  depot->fbpool[i+1] = -1;
+	}
       }
     }
     if(nsiz <= rsiz){
       if(!dprecover(depot, off, head, vbuf, vsiz, dmode == DP_DCAT)){
-        depot->fatal = TRUE;
-        return FALSE;
+	depot->fatal = TRUE;
+	return FALSE;
       }
     } else {
       tval = NULL;
       if(dmode == DP_DCAT){
-        if(ee && DP_RHNUM * sizeof(int) + head[DP_RHIKSIZ] + head[DP_RHIVSIZ] <= DP_ENTBUFSIZ){
-          if(!(tval = malloc(head[DP_RHIVSIZ] + vsiz + 1))){
-            dpecodeset(DP_EALLOC, __FILE__, __LINE__);
-            depot->fatal = TRUE;
-            return FALSE;
-          }
-          memcpy(tval, ebuf + (DP_RHNUM * sizeof(int) + head[DP_RHIKSIZ]), head[DP_RHIVSIZ]);
-        } else {
-          if(!(tval = dprecval(depot, off, head, 0, -1))){
-            depot->fatal = TRUE;
-            return FALSE;
-          }
-          if(!(swap = realloc(tval, head[DP_RHIVSIZ] + vsiz + 1))){
-            free(tval);
-            dpecodeset(DP_EALLOC, __FILE__, __LINE__);
-            depot->fatal = TRUE;
-            return FALSE;
-          }
-          tval = swap;
-        }
-        memcpy(tval + head[DP_RHIVSIZ], vbuf, vsiz);
-        vsiz += head[DP_RHIVSIZ];
-        vbuf = tval;
+	if(ee && DP_RHNUM * sizeof(int) + head[DP_RHIKSIZ] + head[DP_RHIVSIZ] <= DP_ENTBUFSIZ){
+	  if(!(tval = malloc(head[DP_RHIVSIZ] + vsiz + 1))){
+	    dpecodeset(DP_EALLOC, __FILE__, __LINE__);
+	    depot->fatal = TRUE;
+	    return FALSE;
+	  }
+	  memcpy(tval, ebuf + (DP_RHNUM * sizeof(int) + head[DP_RHIKSIZ]), head[DP_RHIVSIZ]);
+	} else {
+	  if(!(tval = dprecval(depot, off, head, 0, -1))){
+	    depot->fatal = TRUE;
+	    return FALSE;
+	  }
+	  if(!(swap = realloc(tval, head[DP_RHIVSIZ] + vsiz + 1))){
+	    free(tval);
+	    dpecodeset(DP_EALLOC, __FILE__, __LINE__);
+	    depot->fatal = TRUE;
+	    return FALSE;
+	  }
+	  tval = swap;
+	}
+	memcpy(tval + head[DP_RHIVSIZ], vbuf, vsiz);
+	vsiz += head[DP_RHIVSIZ];
+	vbuf = tval;
       }
       mi = -1;
       min = -1;
       for(i = 0; i < depot->fbpsiz; i += 2){
-        if(depot->fbpool[i+1] < nsiz) continue;
-        if(mi == -1 || depot->fbpool[i+1] < min){
-          mi = i;
-          min = depot->fbpool[i+1];
-        }
+	if(depot->fbpool[i+1] < nsiz) continue;
+	if(mi == -1 || depot->fbpool[i+1] < min){
+	  mi = i;
+	  min = depot->fbpool[i+1];
+	}
       }
       if(mi >= 0){
-        mroff = depot->fbpool[mi];
-        mrsiz = depot->fbpool[mi+1];
-        depot->fbpool[mi] = -1;
-        depot->fbpool[mi+1] = -1;
+	mroff = depot->fbpool[mi];
+	mrsiz = depot->fbpool[mi+1];
+	depot->fbpool[mi] = -1;
+	depot->fbpool[mi+1] = -1;
       } else {
-        mroff = -1;
-        mrsiz = -1;
+	mroff = -1;
+	mrsiz = -1;
       }
       if(!dprecdelete(depot, off, head, TRUE)){
-        free(tval);
-        depot->fatal = TRUE;
-        return FALSE;
+	free(tval);
+	depot->fatal = TRUE;
+	return FALSE;
       }
       if(mroff > 0 && nsiz <= mrsiz){
-        if(!dprecrewrite(depot, mroff, mrsiz, kbuf, ksiz, vbuf, vsiz,
-                         hash, head[DP_RHILEFT], head[DP_RHIRIGHT])){
-          free(tval);
-          depot->fatal = TRUE;
-          return FALSE;
-        }
-        newoff = mroff;
+	if(!dprecrewrite(depot, mroff, mrsiz, kbuf, ksiz, vbuf, vsiz,
+			 hash, head[DP_RHILEFT], head[DP_RHIRIGHT])){
+	  free(tval);
+	  depot->fatal = TRUE;
+	  return FALSE;
+	}
+	newoff = mroff;
       } else {
-        if((newoff = dprecappend(depot, kbuf, ksiz, vbuf, vsiz,
-                                 hash, head[DP_RHILEFT], head[DP_RHIRIGHT])) == -1){
-          free(tval);
-          depot->fatal = TRUE;
-          return FALSE;
-        }
+	if((newoff = dprecappend(depot, kbuf, ksiz, vbuf, vsiz,
+				 hash, head[DP_RHILEFT], head[DP_RHIRIGHT])) == -1){
+	  free(tval);
+	  depot->fatal = TRUE;
+	  return FALSE;
+	}
       }
       free(tval);
     }
@@ -490,8 +490,8 @@ int dpput(DEPOT *depot, const char *kbuf, int ksiz, const char *vbuf, int vsiz, 
   if(newoff > 0){
     if(entoff > 0){
       if(!dpseekwritenum(depot->fd, entoff, newoff)){
-        depot->fatal = TRUE;
-        return FALSE;
+	depot->fatal = TRUE;
+	return FALSE;
       }
     } else {
       depot->buckets[bi] = newoff;
@@ -687,18 +687,18 @@ char *dpiternext(DEPOT *depot, int *sp){
       off += dprecsize(head);
     } else {
       if(ee && DP_RHNUM * sizeof(int) + head[DP_RHIKSIZ] <= DP_ENTBUFSIZ){
-        if(!(kbuf = malloc(head[DP_RHIKSIZ] + 1))){
-          dpecodeset(DP_EALLOC, __FILE__, __LINE__);
-          depot->fatal = TRUE;
-          return NULL;
-        }
-        memcpy(kbuf, ebuf + (DP_RHNUM * sizeof(int)), head[DP_RHIKSIZ]);
-        kbuf[head[DP_RHIKSIZ]] = '\0';
+	if(!(kbuf = malloc(head[DP_RHIKSIZ] + 1))){
+	  dpecodeset(DP_EALLOC, __FILE__, __LINE__);
+	  depot->fatal = TRUE;
+	  return NULL;
+	}
+	memcpy(kbuf, ebuf + (DP_RHNUM * sizeof(int)), head[DP_RHIKSIZ]);
+	kbuf[head[DP_RHIKSIZ]] = '\0';
       } else {
-        if(!(kbuf = dpreckey(depot, off, head))){
-          depot->fatal = TRUE;
-          return NULL;
-        }
+	if(!(kbuf = dpreckey(depot, off, head))){
+	  depot->fatal = TRUE;
+	  return NULL;
+	}
       }
       depot->ioff = off + dprecsize(head);
       if(sp) *sp = head[DP_RHIKSIZ];
@@ -829,42 +829,42 @@ int dpoptimize(DEPOT *depot, int bnum){
     }
     if(!(head[DP_RHIFLAGS] & DP_RECFDEL)){
       if(ee && DP_RHNUM * sizeof(int) + head[DP_RHIKSIZ] <= DP_ENTBUFSIZ){
-        if(!(kbufs[unum] = malloc(head[DP_RHIKSIZ] + 1))){
-          dpecodeset(DP_EALLOC, __FILE__, __LINE__);
-          err = TRUE;
-          break;
-        }
-        memcpy(kbufs[unum], ebuf + (DP_RHNUM * sizeof(int)), head[DP_RHIKSIZ]);
-        if(DP_RHNUM * sizeof(int) + head[DP_RHIKSIZ] + head[DP_RHIVSIZ] <= DP_ENTBUFSIZ){
-          if(!(vbufs[unum] = malloc(head[DP_RHIVSIZ] + 1))){
-            dpecodeset(DP_EALLOC, __FILE__, __LINE__);
-            err = TRUE;
-            break;
-          }
-          memcpy(vbufs[unum], ebuf + (DP_RHNUM * sizeof(int) + head[DP_RHIKSIZ]),
-                 head[DP_RHIVSIZ]);
-        } else {
-          vbufs[unum] = dprecval(depot, off, head, 0, -1);
-        }
+	if(!(kbufs[unum] = malloc(head[DP_RHIKSIZ] + 1))){
+	  dpecodeset(DP_EALLOC, __FILE__, __LINE__);
+	  err = TRUE;
+	  break;
+	}
+	memcpy(kbufs[unum], ebuf + (DP_RHNUM * sizeof(int)), head[DP_RHIKSIZ]);
+	if(DP_RHNUM * sizeof(int) + head[DP_RHIKSIZ] + head[DP_RHIVSIZ] <= DP_ENTBUFSIZ){
+	  if(!(vbufs[unum] = malloc(head[DP_RHIVSIZ] + 1))){
+	    dpecodeset(DP_EALLOC, __FILE__, __LINE__);
+	    err = TRUE;
+	    break;
+	  }
+	  memcpy(vbufs[unum], ebuf + (DP_RHNUM * sizeof(int) + head[DP_RHIKSIZ]),
+		 head[DP_RHIVSIZ]);
+	} else {
+	  vbufs[unum] = dprecval(depot, off, head, 0, -1);
+	}
       } else {
-        kbufs[unum] = dpreckey(depot, off, head);
-        vbufs[unum] = dprecval(depot, off, head, 0, -1);
+	kbufs[unum] = dpreckey(depot, off, head);
+	vbufs[unum] = dprecval(depot, off, head, 0, -1);
       }
       ksizs[unum] = head[DP_RHIKSIZ];
       vsizs[unum] = head[DP_RHIVSIZ];
       unum++;
       if(unum >= DP_OPTRUNIT){
-        for(i = 0; i < unum; i++){
-          if(kbufs[i] && vbufs[i]){
-            if(!dpput(tdepot, kbufs[i], ksizs[i], vbufs[i], vsizs[i], DP_DKEEP)) err = TRUE;
-          } else {
-            err = TRUE;
-          }
-          free(kbufs[i]);
-          free(vbufs[i]);
-          if(err) break;
-        }
-        unum = 0;
+	for(i = 0; i < unum; i++){
+	  if(kbufs[i] && vbufs[i]){
+	    if(!dpput(tdepot, kbufs[i], ksizs[i], vbufs[i], vsizs[i], DP_DKEEP)) err = TRUE;
+	  } else {
+	    err = TRUE;
+	  }
+	  free(kbufs[i]);
+	  free(vbufs[i]);
+	  if(err) break;
+	}
+	unum = 0;
       }
     }
     off += dprecsize(head);
@@ -1113,15 +1113,15 @@ int dprepair(const char *name){
       kbuf = malloc(ksiz + 1);
       vbuf = malloc(vsiz + 1);
       if(kbuf && vbuf){
-        if(dpseekread(fd, off + DP_RHNUM * sizeof(int), kbuf, ksiz) &&
-           dpseekread(fd, off + DP_RHNUM * sizeof(int) + ksiz, vbuf, vsiz)){
-          if(!dpput(tdepot, kbuf, ksiz, vbuf, vsiz, DP_DKEEP)) err = TRUE;
-        } else {
-          err = TRUE;
-        }
+	if(dpseekread(fd, off + DP_RHNUM * sizeof(int), kbuf, ksiz) &&
+	   dpseekread(fd, off + DP_RHNUM * sizeof(int) + ksiz, vbuf, vsiz)){
+	  if(!dpput(tdepot, kbuf, ksiz, vbuf, vsiz, DP_DKEEP)) err = TRUE;
+	} else {
+	  err = TRUE;
+	}
       } else {
-        if(!err) dpecodeset(DP_EALLOC, __FILE__, __LINE__);
-        err = TRUE;
+	if(!err) dpecodeset(DP_EALLOC, __FILE__, __LINE__);
+	err = TRUE;
       }
       free(vbuf);
       free(kbuf);
@@ -1167,22 +1167,22 @@ int dpexportdb(DEPOT *depot, const char *name){
   while(!err && (kbuf = dpiternext(depot, &ksiz)) != NULL){
     if((vbuf = dpget(depot, kbuf, ksiz, 0, -1, &vsiz)) != NULL){
       if((pbuf = malloc(ksiz + vsiz + DP_NUMBUFSIZ * 2)) != NULL){
-        psiz = 0;
-        psiz += sprintf(pbuf + psiz, "%X\n%X\n", ksiz, vsiz);
-        memcpy(pbuf + psiz, kbuf, ksiz);
-        psiz += ksiz;
-        pbuf[psiz++] = '\n';
-        memcpy(pbuf + psiz, vbuf, vsiz);
-        psiz += vsiz;
-        pbuf[psiz++] = '\n';
-        if(!dpwrite(fd, pbuf, psiz)){
-          dpecodeset(DP_EWRITE, __FILE__, __LINE__);
-          err = TRUE;
-        }
-        free(pbuf);
+	psiz = 0;
+	psiz += sprintf(pbuf + psiz, "%X\n%X\n", ksiz, vsiz);
+	memcpy(pbuf + psiz, kbuf, ksiz);
+	psiz += ksiz;
+	pbuf[psiz++] = '\n';
+	memcpy(pbuf + psiz, vbuf, vsiz);
+	psiz += vsiz;
+	pbuf[psiz++] = '\n';
+	if(!dpwrite(fd, pbuf, psiz)){
+	  dpecodeset(DP_EWRITE, __FILE__, __LINE__);
+	  err = TRUE;
+	}
+	free(pbuf);
       } else {
-        dpecodeset(DP_EALLOC, __FILE__, __LINE__);
-        err = TRUE;
+	dpecodeset(DP_EALLOC, __FILE__, __LINE__);
+	err = TRUE;
       }
       free(vbuf);
     } else {
@@ -1236,17 +1236,17 @@ int dpimportdb(DEPOT *depot, const char *name){
     vsiz = -1;
     for(i = 0; i < msiz; i++){
       if(mbuf[i] == '\n'){
-        mbuf[i] = '\0';
-        ksiz = strtol(mbuf, NULL, 16);
-        for(j = i + 1; j < msiz; j++){
-          if(mbuf[j] == '\n'){
-            mbuf[j] = '\0';
-            vsiz = strtol(mbuf + i + 1, NULL, 16);
-            hlen = j + 1;
-            break;
-          }
-        }
-        break;
+	mbuf[i] = '\0';
+	ksiz = strtol(mbuf, NULL, 16);
+	for(j = i + 1; j < msiz; j++){
+	  if(mbuf[j] == '\n'){
+	    mbuf[j] = '\0';
+	    vsiz = strtol(mbuf + i + 1, NULL, 16);
+	    hlen = j + 1;
+	    break;
+	  }
+	}
+	break;
       }
     }
     if(ksiz < 0 || vsiz < 0 || hlen < 4){
@@ -1258,15 +1258,15 @@ int dpimportdb(DEPOT *depot, const char *name){
       if(!dpput(depot, mbuf + hlen, ksiz, mbuf + hlen + ksiz + 1, vsiz, DP_DKEEP)) err = TRUE;
     } else {
       if((rbuf = malloc(ksiz + vsiz + 2)) != NULL){
-        if(dpseekread(fd, off + hlen, rbuf, ksiz + vsiz + 2)){
-          if(!dpput(depot, rbuf, ksiz, rbuf + ksiz + 1, vsiz, DP_DKEEP)) err = TRUE;
-        } else {
-          err = TRUE;
-        }
-        free(rbuf);
+	if(dpseekread(fd, off + hlen, rbuf, ksiz + vsiz + 2)){
+	  if(!dpput(depot, rbuf, ksiz, rbuf + ksiz + 1, vsiz, DP_DKEEP)) err = TRUE;
+	} else {
+	  err = TRUE;
+	}
+	free(rbuf);
       } else {
-        dpecodeset(DP_EALLOC, __FILE__, __LINE__);
-        err = TRUE;
+	dpecodeset(DP_EALLOC, __FILE__, __LINE__);
+	err = TRUE;
       }
     }
     off += hlen + ksiz + vsiz + 2;
@@ -1346,39 +1346,39 @@ char *dpsnaffle(const char *name, const char* kbuf, int ksiz, int *sp){
     } else {
       tksiz = head[DP_RHIKSIZ];
       if(!(tkbuf = malloc(tksiz + 1))){
-        dpecodeset(DP_EALLOC, __FILE__, __LINE__);
-        err = TRUE;
-        break;
+	dpecodeset(DP_EALLOC, __FILE__, __LINE__);
+	err = TRUE;
+	break;
       }
       if(!dpseekread(fd, off + DP_RHNUM * sizeof(int), tkbuf, tksiz)){
-        free(tkbuf);
-        err = TRUE;
-        break;
+	free(tkbuf);
+	err = TRUE;
+	break;
       }
       tkbuf[tksiz] = '\0';
       kcmp = dpkeycmp(kbuf, ksiz, tkbuf, tksiz);
       free(tkbuf);
       if(kcmp > 0){
-        off = head[DP_RHILEFT];
+	off = head[DP_RHILEFT];
       } else if(kcmp < 0){
-        off = head[DP_RHIRIGHT];
+	off = head[DP_RHIRIGHT];
       } else if(head[DP_RHIFLAGS] & DP_RECFDEL){
-        break;
+	break;
       } else {
-        vsiz = head[DP_RHIVSIZ];
-        if(!(vbuf = malloc(vsiz + 1))){
-          dpecodeset(DP_EALLOC, __FILE__, __LINE__);
-          err = TRUE;
-          break;
-        }
-        if(!dpseekread(fd, off + DP_RHNUM * sizeof(int) + head[DP_RHIKSIZ], vbuf, vsiz)){
-          free(vbuf);
-          vbuf = NULL;
-          err = TRUE;
-          break;
-        }
-        vbuf[vsiz] = '\0';
-        break;
+	vsiz = head[DP_RHIVSIZ];
+	if(!(vbuf = malloc(vsiz + 1))){
+	  dpecodeset(DP_EALLOC, __FILE__, __LINE__);
+	  err = TRUE;
+	  break;
+	}
+	if(!dpseekread(fd, off + DP_RHNUM * sizeof(int) + head[DP_RHIKSIZ], vbuf, vsiz)){
+	  free(vbuf);
+	  vbuf = NULL;
+	  err = TRUE;
+	  break;
+	}
+	vbuf[vsiz] = '\0';
+	break;
       }
     }
   }
@@ -1769,11 +1769,11 @@ static int dppadsize(DEPOT *depot, int ksiz, int vsiz){
     if(vsiz + pad >= DP_FSBLKSIZ){
       if(vsiz <= DP_FSBLKSIZ) pad = 0;
       if(depot->fsiz % DP_FSBLKSIZ == 0){
-        return (pad / DP_FSBLKSIZ) * DP_FSBLKSIZ + DP_FSBLKSIZ -
-          (depot->fsiz + DP_RHNUM * sizeof(int) + ksiz + vsiz) % DP_FSBLKSIZ;
+	return (pad / DP_FSBLKSIZ) * DP_FSBLKSIZ + DP_FSBLKSIZ -
+	  (depot->fsiz + DP_RHNUM * sizeof(int) + ksiz + vsiz) % DP_FSBLKSIZ;
       } else {
-        return (pad / (DP_FSBLKSIZ / 2)) * (DP_FSBLKSIZ / 2) + (DP_FSBLKSIZ / 2) -
-          (depot->fsiz + DP_RHNUM * sizeof(int) + ksiz + vsiz) % (DP_FSBLKSIZ / 2);
+	return (pad / (DP_FSBLKSIZ / 2)) * (DP_FSBLKSIZ / 2) + (DP_FSBLKSIZ / 2) -
+	  (depot->fsiz + DP_RHNUM * sizeof(int) + ksiz + vsiz) % (DP_FSBLKSIZ / 2);
       }
     } else {
       return pad >= DP_RHNUM * sizeof(int) ? pad : DP_RHNUM * sizeof(int);
@@ -1812,9 +1812,9 @@ static int dprechead(DEPOT *depot, int off, int *head, char *ebuf, int *eep){
       if(!dpseekread(depot->fd, off, ebuf, DP_ENTBUFSIZ)) return FALSE;
       memcpy(head, ebuf, DP_RHNUM * sizeof(int));
       if(head[DP_RHIKSIZ] < 0 || head[DP_RHIVSIZ] < 0 || head[DP_RHIPSIZ] < 0 ||
-         head[DP_RHILEFT] < 0 || head[DP_RHIRIGHT] < 0){
-        dpecodeset(DP_EBROKEN, __FILE__, __LINE__);
-        return FALSE;
+	 head[DP_RHILEFT] < 0 || head[DP_RHIRIGHT] < 0){
+	dpecodeset(DP_EBROKEN, __FILE__, __LINE__);
+	return FALSE;
       }
       return TRUE;
     }
@@ -1929,7 +1929,7 @@ static int dpkeycmp(const char *abuf, int asiz, const char *bbuf, int bsiz){
    `delhit' specifies whether a deleted record corresponds or not.
    The return value is 0 if successful, 1 if there is no corresponding record, -1 on error. */
 static int dprecsearch(DEPOT *depot, const char *kbuf, int ksiz, int hash, int *bip, int *offp,
-                       int *entp, int *head, char *ebuf, int *eep, int delhit){
+		       int *entp, int *head, char *ebuf, int *eep, int delhit){
   int off, entoff, thash, kcmp;
   char stkey[DP_STKBUFSIZ], *tkey;
   assert(depot && kbuf && ksiz >= 0 && hash >= 0 && bip && offp && entp && head && ebuf && eep);
@@ -1951,31 +1951,31 @@ static int dprecsearch(DEPOT *depot, const char *kbuf, int ksiz, int hash, int *
       off = head[DP_RHIRIGHT];
     } else {
       if(*eep && DP_RHNUM * sizeof(int) + head[DP_RHIKSIZ] <= DP_ENTBUFSIZ){
-        kcmp = dpkeycmp(kbuf, ksiz, ebuf + (DP_RHNUM * sizeof(int)), head[DP_RHIKSIZ]);
+	kcmp = dpkeycmp(kbuf, ksiz, ebuf + (DP_RHNUM * sizeof(int)), head[DP_RHIKSIZ]);
       } else if(head[DP_RHIKSIZ] > DP_STKBUFSIZ){
-        if(!(tkey = dpreckey(depot, off, head))) return -1;
-        kcmp = dpkeycmp(kbuf, ksiz, tkey, head[DP_RHIKSIZ]);
-        free(tkey);
+	if(!(tkey = dpreckey(depot, off, head))) return -1;
+	kcmp = dpkeycmp(kbuf, ksiz, tkey, head[DP_RHIKSIZ]);
+	free(tkey);
       } else {
-        if(!dpseekread(depot->fd, off + DP_RHNUM * sizeof(int), stkey, head[DP_RHIKSIZ]))
-          return -1;
-        kcmp = dpkeycmp(kbuf, ksiz, stkey, head[DP_RHIKSIZ]);
+	if(!dpseekread(depot->fd, off + DP_RHNUM * sizeof(int), stkey, head[DP_RHIKSIZ]))
+	  return -1;
+	kcmp = dpkeycmp(kbuf, ksiz, stkey, head[DP_RHIKSIZ]);
       }
       if(kcmp > 0){
-        entoff = off + DP_RHILEFT * sizeof(int);
-        off = head[DP_RHILEFT];
+	entoff = off + DP_RHILEFT * sizeof(int);
+	off = head[DP_RHILEFT];
       } else if(kcmp < 0){
-        entoff = off + DP_RHIRIGHT * sizeof(int);
-        off = head[DP_RHIRIGHT];
+	entoff = off + DP_RHIRIGHT * sizeof(int);
+	off = head[DP_RHIRIGHT];
       } else {
-        if(!delhit && (head[DP_RHIFLAGS] & DP_RECFDEL)){
-          entoff = off + DP_RHILEFT * sizeof(int);
-          off = head[DP_RHILEFT];
-        } else {
-          *offp = off;
-          *entp = entoff;
-          return 0;
-        }
+	if(!delhit && (head[DP_RHIFLAGS] & DP_RECFDEL)){
+	  entoff = off + DP_RHILEFT * sizeof(int);
+	  off = head[DP_RHILEFT];
+	} else {
+	  *offp = off;
+	  *entp = entoff;
+	  return 0;
+	}
       }
     }
   }
@@ -1998,7 +1998,7 @@ static int dprecsearch(DEPOT *depot, const char *kbuf, int ksiz, int hash, int *
    `right' specifies the offset of the right child.
    The return value is true if successful, or, false on failure. */
 static int dprecrewrite(DEPOT *depot, int off, int rsiz, const char *kbuf, int ksiz,
-                        const char *vbuf, int vsiz, int hash, int left, int right){
+			const char *vbuf, int vsiz, int hash, int left, int right){
   char ebuf[DP_WRTBUFSIZ];
   int i, head[DP_RHNUM], asiz, hoff, koff, voff, mi, min, size;
   assert(depot && off >= 1 && rsiz > 0 && kbuf && ksiz >= 0 && vbuf && vsiz >= 0);
@@ -2044,15 +2044,15 @@ static int dprecrewrite(DEPOT *depot, int off, int rsiz, const char *kbuf, int k
     min = -1;
     for(i = 0; i < depot->fbpsiz; i += 2){
       if(depot->fbpool[i] == -1){
-        depot->fbpool[i] = off;
-        depot->fbpool[i+1] = size;
-        dpfbpoolcoal(depot);
-        mi = -1;
-        break;
+	depot->fbpool[i] = off;
+	depot->fbpool[i+1] = size;
+	dpfbpoolcoal(depot);
+	mi = -1;
+	break;
       }
       if(mi == -1 || depot->fbpool[i+1] < min){
-        mi = i;
-        min = depot->fbpool[i+1];
+	mi = i;
+	min = depot->fbpool[i+1];
       }
     }
     if(mi >= 0 && size > min){
@@ -2076,7 +2076,7 @@ static int dprecrewrite(DEPOT *depot, int off, int rsiz, const char *kbuf, int k
    `right' specifies the offset of the right child.
    The return value is the offset of the record, or, -1 on failure. */
 static int dprecappend(DEPOT *depot, const char *kbuf, int ksiz, const char *vbuf, int vsiz,
-                       int hash, int left, int right){
+		       int hash, int left, int right){
   char ebuf[DP_WRTBUFSIZ], *hbuf;
   int head[DP_RHNUM], asiz, psiz, off;
   assert(depot && kbuf && ksiz >= 0 && vbuf && vsiz >= 0);
@@ -2170,15 +2170,15 @@ static int dprecdelete(DEPOT *depot, int off, int *head, int reusable){
     min = -1;
     for(i = 0; i < depot->fbpsiz; i += 2){
       if(depot->fbpool[i] == -1){
-        depot->fbpool[i] = off;
-        depot->fbpool[i+1] = size;
-        dpfbpoolcoal(depot);
-        mi = -1;
-        break;
+	depot->fbpool[i] = off;
+	depot->fbpool[i+1] = size;
+	dpfbpoolcoal(depot);
+	mi = -1;
+	break;
       }
       if(mi == -1 || depot->fbpool[i+1] < min){
-        mi = i;
-        min = depot->fbpool[i+1];
+	mi = i;
+	min = depot->fbpool[i+1];
       }
     }
     if(mi >= 0 && size > min){
@@ -2188,7 +2188,7 @@ static int dprecdelete(DEPOT *depot, int off, int *head, int reusable){
     }
   }
   return dpseekwritenum(depot->fd, off + DP_RHIFLAGS * sizeof(int),
-                        DP_RECFDEL | (reusable ? DP_RECFREUSE : 0));
+			DP_RECFDEL | (reusable ? DP_RECFREUSE : 0));
 }
 
 

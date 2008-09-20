@@ -32,23 +32,23 @@ typedef void (* TrackerMetadataForeach) (TrackerField *field,
 					 gpointer      user_data);
 
 TrackerMetadata *      tracker_metadata_new    (void);
-void                   tracker_metadata_free   (TrackerMetadata *metadata);
+void		       tracker_metadata_free   (TrackerMetadata *metadata);
 
-void                   tracker_metadata_insert                 (TrackerMetadata *metadata,
-								const gchar     *field_name,
-								gchar           *value);
-void                   tracker_metadata_insert_multiple_values (TrackerMetadata *metadata,
-								const gchar     *field_name,
-								GList           *list);
+void		       tracker_metadata_insert		       (TrackerMetadata *metadata,
+								const gchar	*field_name,
+								gchar		*value);
+void		       tracker_metadata_insert_multiple_values (TrackerMetadata *metadata,
+								const gchar	*field_name,
+								GList		*list);
 
-G_CONST_RETURN gchar * tracker_metadata_lookup                 (TrackerMetadata *metadata,
-								const gchar     *field_name);
+G_CONST_RETURN gchar * tracker_metadata_lookup		       (TrackerMetadata *metadata,
+								const gchar	*field_name);
 G_CONST_RETURN GList * tracker_metadata_lookup_multiple_values (TrackerMetadata *metadata,
-								const gchar     *field_name);
+								const gchar	*field_name);
 
-void                   tracker_metadata_foreach (TrackerMetadata        *metadata,
+void		       tracker_metadata_foreach (TrackerMetadata	*metadata,
 						 TrackerMetadataForeach  func,
-						 gpointer                user_data);
+						 gpointer		 user_data);
 
 G_END_DECLS
 

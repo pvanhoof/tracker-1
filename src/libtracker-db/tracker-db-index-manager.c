@@ -35,49 +35,49 @@
 #define MAX_INDEX_FILE_SIZE 2000000000
 
 typedef struct {
-        TrackerDBIndexType  type;
-	TrackerDBIndex     *index;
-        const gchar        *file;
-        const gchar        *name;
-        gchar              *abs_filename;
+	TrackerDBIndexType  type;
+	TrackerDBIndex	   *index;
+	const gchar	   *file;
+	const gchar	   *name;
+	gchar		   *abs_filename;
 } TrackerDBIndexDefinition;
 
-static gboolean                  initialized;
-static gchar                    *data_dir;
+static gboolean			 initialized;
+static gchar			*data_dir;
 
 static TrackerDBIndexDefinition  indexes[] = {
-        { TRACKER_DB_INDEX_UNKNOWN,
+	{ TRACKER_DB_INDEX_UNKNOWN,
 	  NULL,
-          NULL,
-          NULL,
-          NULL },
-        { TRACKER_DB_INDEX_FILE,
 	  NULL,
-          "file-index.db",
-          "file-index",
-          NULL },
-        { TRACKER_DB_INDEX_FILE_UPDATE,
 	  NULL,
-          "file-index-update.db",
-          "file-index-update",
-          NULL },
-        { TRACKER_DB_INDEX_EMAIL,
+	  NULL },
+	{ TRACKER_DB_INDEX_FILE,
 	  NULL,
-          "email-index.db",
-          "email-index",
-          NULL }
+	  "file-index.db",
+	  "file-index",
+	  NULL },
+	{ TRACKER_DB_INDEX_FILE_UPDATE,
+	  NULL,
+	  "file-index-update.db",
+	  "file-index-update",
+	  NULL },
+	{ TRACKER_DB_INDEX_EMAIL,
+	  NULL,
+	  "email-index.db",
+	  "email-index",
+	  NULL }
 };
 
 static gboolean
 has_tmp_merge_files (TrackerDBIndexType type)
 {
-	GFile           *file;
+	GFile		*file;
 	GFileEnumerator *enumerator;
-	GFileInfo       *info;
-	GError          *error = NULL;
-	gchar           *prefix;
-	gchar           *dirname;
-	gboolean         found;
+	GFileInfo	*info;
+	GError		*error = NULL;
+	gchar		*prefix;
+	gchar		*dirname;
+	gboolean	 found;
 
 	if (type == TRACKER_DB_INDEX_UNKNOWN) {
 		return FALSE;
@@ -139,22 +139,22 @@ has_tmp_merge_files (TrackerDBIndexType type)
 
 gboolean
 tracker_db_index_manager_init (TrackerDBIndexManagerFlags  flags,
-			       gint                        min_bucket,
-			       gint                        max_bucket)
+			       gint			   min_bucket,
+			       gint			   max_bucket)
 {
-	gchar    *final_index_filename;
-	gchar    *name;
+	gchar	 *final_index_filename;
+	gchar	 *name;
 	gboolean  need_reindex = FALSE;
 	gboolean  force_reindex;
 	gboolean  readonly;
-	guint     i;
+	guint	  i;
 
 	g_return_val_if_fail (min_bucket >= 0, FALSE);
 	g_return_val_if_fail (max_bucket >= min_bucket, FALSE);
 
-        if (initialized) {
-                return TRUE;
-        }
+	if (initialized) {
+		return TRUE;
+	}
 
 	g_message ("Setting index database locations");
 
@@ -239,7 +239,7 @@ tracker_db_index_manager_init (TrackerDBIndexManagerFlags  flags,
 							 readonly);
 	}
 
-        initialized = TRUE;
+	initialized = TRUE;
 
 	return TRUE;
 }
@@ -249,9 +249,9 @@ tracker_db_index_manager_shutdown (void)
 {
 	guint i;
 
-        if (!initialized) {
-                return;
-        }
+	if (!initialized) {
+		return;
+	}
 
 	for (i = 1; i < G_N_ELEMENTS (indexes); i++) {
 		g_object_unref (indexes[i].index);
@@ -263,7 +263,7 @@ tracker_db_index_manager_shutdown (void)
 
 	g_free (data_dir);
 
-        initialized = FALSE;
+	initialized = FALSE;
 }
 
 TrackerDBIndex *
@@ -275,7 +275,7 @@ tracker_db_index_manager_get_index (TrackerDBIndexType type)
 TrackerDBIndex *
 tracker_db_index_manager_get_index_by_service (const gchar *service)
 {
-	TrackerDBType      type;
+	TrackerDBType	   type;
 	TrackerDBIndexType index_type;
 
 	g_return_val_if_fail (initialized == TRUE, NULL);
@@ -302,9 +302,9 @@ tracker_db_index_manager_get_index_by_service (const gchar *service)
 TrackerDBIndex *
 tracker_db_index_manager_get_index_by_service_id (gint id)
 {
-	TrackerDBType       type;
+	TrackerDBType	    type;
 	TrackerDBIndexType  index_type;
-	gchar              *service;
+	gchar		   *service;
 
 	g_return_val_if_fail (initialized == TRUE, NULL);
 
@@ -339,14 +339,14 @@ tracker_db_index_manager_get_index_by_service_id (gint id)
 const gchar *
 tracker_db_index_manager_get_filename (TrackerDBIndexType type)
 {
-        return indexes[type].abs_filename;
+	return indexes[type].abs_filename;
 }
 
 gboolean
 tracker_db_index_manager_are_indexes_too_big (void)
 {
-        gboolean too_big;
-	guint    i;
+	gboolean too_big;
+	guint	 i;
 
 	g_return_val_if_fail (initialized == TRUE, FALSE);
 
@@ -354,7 +354,7 @@ tracker_db_index_manager_are_indexes_too_big (void)
 		too_big = tracker_file_get_size (indexes[i].abs_filename) > MAX_INDEX_FILE_SIZE;
 	}
 
-        if (too_big) {
+	if (too_big) {
 		g_critical ("One or more index files are too big, indexing disabled");
 		return TRUE;
 	}

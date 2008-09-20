@@ -35,8 +35,8 @@ gint
 main (gint argc, gchar *argv[])
 {
 	TrackerClient *client;
-	GError        *error = NULL;
-	gchar         *status;
+	GError	      *error = NULL;
+	gchar	      *status;
 
 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
 	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
@@ -51,11 +51,11 @@ main (gint argc, gchar *argv[])
 		return EXIT_FAILURE;
 	}
 
-        status = tracker_get_status (client, &error);
+	status = tracker_get_status (client, &error);
 
 	if (error) {
 		g_printerr ("%s, %s\n",
-                            _("Could not get Tracker status"),
+			    _("Could not get Tracker status"),
 			    error->message);
 		g_error_free (error);
 

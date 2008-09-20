@@ -21,25 +21,25 @@
 #ifndef _libinotify_inotify_handle_h_
 #define _libinotify_inotify_handle_h_
 
-#define IN_FLAG_NONE                    0x00000000
-#define IN_FLAG_FILE_BASED              0x00000001
-#define IN_FLAG_SYNTH_CREATE            0x00000002
-#define IN_FLAG_SYNTH_DELETE            0x00000004
+#define IN_FLAG_NONE			0x00000000
+#define IN_FLAG_FILE_BASED		0x00000001
+#define IN_FLAG_SYNTH_CREATE		0x00000002
+#define IN_FLAG_SYNTH_DELETE		0x00000004
 
-#define IN_SYNTHETIC                    0x00001000
+#define IN_SYNTHETIC			0x00001000
 
 #include <glib.h>
 
 typedef struct _INotifyHandle INotifyHandle;
 typedef void (*INotifyCallback)( INotifyHandle *inh,
-                                 const char *monitor_name,
-                                 const char *filename,
-                                 guint32 event_type,
-                                 guint32 cookie,
-                                 gpointer user_data );
+				 const char *monitor_name,
+				 const char *filename,
+				 guint32 event_type,
+				 guint32 cookie,
+				 gpointer user_data );
 
 INotifyHandle *inotify_handle_new( const char *filename, guint32 mask,
-                                   unsigned long flags );
+				   unsigned long flags );
 void inotify_handle_ref( INotifyHandle *inh );
 void inotify_handle_unref( INotifyHandle *inh );
 gint32 inotify_handle_get_wd( INotifyHandle *inh );
@@ -50,8 +50,8 @@ const char *inotify_handle_get_basename( INotifyHandle *inh );
 void inotify_handle_set_parent( INotifyHandle *inh, INotifyHandle *parent );
 INotifyHandle *inotify_handle_get_parent( INotifyHandle *inh );
 void inotify_handle_set_callback( INotifyHandle *inh, INotifyCallback callback,
-                                  gpointer user_data );
+				  gpointer user_data );
 void inotify_handle_invoke_callback( INotifyHandle *inh, const char *filename,
-                                     guint32 event_type, guint32 cookie );
+				     guint32 event_type, guint32 cookie );
 
 #endif /* _libinotify_inotify_handle_h_ */

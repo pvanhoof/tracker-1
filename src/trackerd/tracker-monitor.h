@@ -29,46 +29,46 @@
 
 G_BEGIN_DECLS
 
-#define TRACKER_TYPE_MONITOR            (tracker_monitor_get_type ())
-#define TRACKER_MONITOR(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), TRACKER_TYPE_MONITOR, TrackerMonitor))
-#define TRACKER_MONITOR_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), TRACKER_TYPE_MONITOR, TrackerMonitorClass))
-#define TRACKER_IS_MONITOR(object)      (G_TYPE_CHECK_INSTANCE_TYPE ((object), TRACKER_TYPE_MONITOR))
+#define TRACKER_TYPE_MONITOR		(tracker_monitor_get_type ())
+#define TRACKER_MONITOR(object)		(G_TYPE_CHECK_INSTANCE_CAST ((object), TRACKER_TYPE_MONITOR, TrackerMonitor))
+#define TRACKER_MONITOR_CLASS(klass)	(G_TYPE_CHECK_CLASS_CAST ((klass), TRACKER_TYPE_MONITOR, TrackerMonitorClass))
+#define TRACKER_IS_MONITOR(object)	(G_TYPE_CHECK_INSTANCE_TYPE ((object), TRACKER_TYPE_MONITOR))
 #define TRACKER_IS_MONITOR_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), TRACKER_TYPE_MONITOR))
-#define TRACKER_MONITOR_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), TRACKER_TYPE_MONITOR, TrackerMonitorClass))
+#define TRACKER_MONITOR_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS ((obj), TRACKER_TYPE_MONITOR, TrackerMonitorClass))
 
-typedef struct _TrackerMonitor         TrackerMonitor;
+typedef struct _TrackerMonitor	       TrackerMonitor;
 typedef struct _TrackerMonitorClass    TrackerMonitorClass;
 typedef struct _TrackerMonitorPrivate  TrackerMonitorPrivate;
 
 struct _TrackerMonitor {
-	GObject                parent;
+	GObject		       parent;
 	TrackerMonitorPrivate *private;
 };
 
 struct _TrackerMonitorClass {
-	GObjectClass           parent;
+	GObjectClass	       parent;
 };
 
-GType           tracker_monitor_get_type             (void);
-TrackerMonitor *tracker_monitor_new                  (TrackerConfig  *config);
-gboolean        tracker_monitor_get_enabled          (TrackerMonitor *monitor);
-void            tracker_monitor_set_enabled          (TrackerMonitor *monitor,
-						      gboolean        enabled);
-gboolean        tracker_monitor_add                  (TrackerMonitor *monitor,
+GType		tracker_monitor_get_type	     (void);
+TrackerMonitor *tracker_monitor_new		     (TrackerConfig  *config);
+gboolean	tracker_monitor_get_enabled	     (TrackerMonitor *monitor);
+void		tracker_monitor_set_enabled	     (TrackerMonitor *monitor,
+						      gboolean	      enabled);
+gboolean	tracker_monitor_add		     (TrackerMonitor *monitor,
 						      const gchar    *module_name,
-						      GFile          *file);
-gboolean        tracker_monitor_remove               (TrackerMonitor *monitor,
+						      GFile	     *file);
+gboolean	tracker_monitor_remove		     (TrackerMonitor *monitor,
 						      const gchar    *module_name,
-						      GFile          *file);
-gboolean        tracker_monitor_is_watched           (TrackerMonitor *monitor,
+						      GFile	     *file);
+gboolean	tracker_monitor_is_watched	     (TrackerMonitor *monitor,
 						      const gchar    *module_name,
-						      GFile          *file);
-gboolean        tracker_monitor_is_watched_by_string (TrackerMonitor *monitor,
+						      GFile	     *file);
+gboolean	tracker_monitor_is_watched_by_string (TrackerMonitor *monitor,
 						      const gchar    *module_name,
 						      const gchar    *path);
-guint           tracker_monitor_get_count            (TrackerMonitor *monitor,
+guint		tracker_monitor_get_count	     (TrackerMonitor *monitor,
 						      const gchar    *module_name);
-guint           tracker_monitor_get_ignored          (TrackerMonitor *monitor);
+guint		tracker_monitor_get_ignored	     (TrackerMonitor *monitor);
 
 G_END_DECLS
 

@@ -32,27 +32,27 @@ typedef struct _LanguageMapEntry {
 
 extern const LanguageMapEntry LanguageMap[];
 
-void     tracker_configuration_load        (void);
-void     tracker_configuration_save        (void);
-void     tracker_configuration_free        (void);
+void	 tracker_configuration_load	   (void);
+void	 tracker_configuration_save	   (void);
+void	 tracker_configuration_free	   (void);
 gboolean tracker_configuration_get_boolean (const gchar * const   key,
-                                            GError              **error);
-void     tracker_configuration_set_boolean (const gchar * const   key,
-                                            const gboolean        value);
-gint     tracker_configuration_get_integer (const gchar * const   key,
-                                            GError              **error);
-void     tracker_configuration_set_integer (const gchar * const   key,
-                                            const gint            value);
+					    GError		**error);
+void	 tracker_configuration_set_boolean (const gchar * const   key,
+					    const gboolean	  value);
+gint	 tracker_configuration_get_integer (const gchar * const   key,
+					    GError		**error);
+void	 tracker_configuration_set_integer (const gchar * const   key,
+					    const gint		  value);
 gchar *  tracker_configuration_get_string  (const gchar * const   key,
-                                            GError              **error);
-void     tracker_configuration_set_string  (const gchar * const   key,
-                                            const gchar * const   value);
+					    GError		**error);
+void	 tracker_configuration_set_string  (const gchar * const   key,
+					    const gchar * const   value);
 GSList * tracker_configuration_get_list    (const gchar * const   key,
-                                            GType                 g_type,
-                                            GError              **error);
-void     tracker_configuration_set_list    (const gchar * const   key,
-                                            GType                 g_type,
-                                            GSList               *value);
+					    GType		  g_type,
+					    GError		**error);
+void	 tracker_configuration_set_list    (const gchar * const   key,
+					    GType		  g_type,
+					    GSList		 *value);
 
 G_END_DECLS
 

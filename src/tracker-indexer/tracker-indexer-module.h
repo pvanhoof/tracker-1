@@ -28,30 +28,30 @@
 
 G_BEGIN_DECLS
 
-GModule *               tracker_indexer_module_load                   (const gchar  *module_name);
+GModule *		tracker_indexer_module_load		      (const gchar  *module_name);
 
-void                    tracker_indexer_module_init                   (GModule      *module);
-void                    tracker_indexer_module_shutdown               (GModule      *module);
+void			tracker_indexer_module_init		      (GModule	    *module);
+void			tracker_indexer_module_shutdown		      (GModule	    *module);
 
-G_CONST_RETURN gchar *  tracker_indexer_module_get_name               (GModule      *module);
+G_CONST_RETURN gchar *	tracker_indexer_module_get_name		      (GModule	    *module);
 
-TrackerFile *           tracker_indexer_module_file_new               (GModule      *module,
+TrackerFile *		tracker_indexer_module_file_new		      (GModule	    *module,
 								       const gchar  *path);
-void                    tracker_indexer_module_file_free              (GModule      *module,
+void			tracker_indexer_module_file_free	      (GModule	    *module,
 								       TrackerFile  *file);
 
-gboolean                tracker_indexer_module_file_get_uri           (GModule      *module,
+gboolean		tracker_indexer_module_file_get_uri	      (GModule	    *module,
 								       TrackerFile  *file,
-								       gchar       **dirname,
-								       gchar       **basename);
-gchar *                 tracker_indexer_module_file_get_service_type  (GModule      *module,
+								       gchar	   **dirname,
+								       gchar	   **basename);
+gchar *			tracker_indexer_module_file_get_service_type  (GModule	    *module,
 								       TrackerFile  *file);
-TrackerMetadata *       tracker_indexer_module_file_get_metadata      (GModule      *module,
+TrackerMetadata *	tracker_indexer_module_file_get_metadata      (GModule	    *module,
 								       TrackerFile  *file);
-gchar *                 tracker_indexer_module_file_get_text          (GModule      *module,
+gchar *			tracker_indexer_module_file_get_text	      (GModule	    *module,
 								       TrackerFile  *file);
 
-gboolean                tracker_indexer_module_file_iter_contents     (GModule      *module,
+gboolean		tracker_indexer_module_file_iter_contents     (GModule	    *module,
 								       TrackerFile  *file);
 
 G_END_DECLS

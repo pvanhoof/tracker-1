@@ -1,6 +1,6 @@
 /*************************************************************************************************
  * System configurations for QDBM
- *                                                      Copyright (C) 2000-2006 Mikio Hirabayashi
+ *							Copyright (C) 2000-2006 Mikio Hirabayashi
  * This file is part of QDBM, Quick Database Manager.
  * QDBM is free software; you can redistribute it and/or modify it under the terms of the GNU
  * Lesser General Public License as published by the Free Software Foundation; either version
@@ -14,10 +14,10 @@
  *************************************************************************************************/
 
 
-#ifndef _MYCONF_H                        /* duplication check */
+#ifndef _MYCONF_H			 /* duplication check */
 #define _MYCONF_H
 
-#if defined(__cplusplus)                 /* export for C++ */
+#if defined(__cplusplus)		 /* export for C++ */
 extern "C" {
 #endif
 
@@ -191,30 +191,30 @@ extern "C" {
 
 #if defined(_SYS_MSVC_) || defined(_SYS_MINGW_)
 
-#define MYPATHCHR       '\\'
-#define MYPATHSTR       "\\"
-#define MYEXTCHR        '.'
-#define MYEXTSTR        "."
-#define MYCDIRSTR       "."
-#define MYPDIRSTR       ".."
+#define MYPATHCHR	'\\'
+#define MYPATHSTR	"\\"
+#define MYEXTCHR	'.'
+#define MYEXTSTR	"."
+#define MYCDIRSTR	"."
+#define MYPDIRSTR	".."
 
 #elif defined(_SYS_RISCOS_)
 
-#define MYPATHCHR       '.'
-#define MYPATHSTR       "."
-#define MYEXTCHR        '/'
-#define MYEXTSTR        "/"
-#define MYCDIRSTR       "@"
-#define MYPDIRSTR       "^"
+#define MYPATHCHR	'.'
+#define MYPATHSTR	"."
+#define MYEXTCHR	'/'
+#define MYEXTSTR	"/"
+#define MYCDIRSTR	"@"
+#define MYPDIRSTR	"^"
 
 #else
 
-#define MYPATHCHR       '/'
-#define MYPATHSTR       "/"
-#define MYEXTCHR        '.'
-#define MYEXTSTR        "."
-#define MYCDIRSTR       "."
-#define MYPDIRSTR       ".."
+#define MYPATHCHR	'/'
+#define MYPATHSTR	"/"
+#define MYEXTCHR	'.'
+#define MYEXTSTR	"."
+#define MYCDIRSTR	"."
+#define MYPDIRSTR	".."
 
 #endif
 
@@ -246,8 +246,8 @@ int _qdbm_win32_lstat(const char *pathname, struct stat *buf);
 #undef O_TEXT
 #undef setmode
 
-#define O_BINARY           0
-#define O_TEXT             1
+#define O_BINARY	   0
+#define O_TEXT		   1
 
 #define \
   setmode(fd, mode) \
@@ -264,13 +264,13 @@ int _qdbm_win32_lstat(const char *pathname, struct stat *buf);
 
 #if defined(MYPTHREAD)
 
-#define _qdbm_ptsafe       TRUE
+#define _qdbm_ptsafe	   TRUE
 
 void *_qdbm_settsd(void *ptr, int size, const void *initval);
 
 #else
 
-#define _qdbm_ptsafe       FALSE
+#define _qdbm_ptsafe	   FALSE
 
 #define \
   _qdbm_settsd(ptr, size, initval) \
@@ -573,9 +573,9 @@ extern const char *(*_qdbm_encname)(const char *, int);
 
 
 #undef TRUE
-#define TRUE           1
+#define TRUE	       1
 #undef FALSE
-#define FALSE          0
+#define FALSE	       0
 
 #define sizeof(a)      ((int)sizeof(a))
 
@@ -583,11 +583,11 @@ int _qdbm_dummyfunc(void);
 
 
 
-#if defined(__cplusplus)                 /* export for C++ */
+#if defined(__cplusplus)		 /* export for C++ */
 }
 #endif
 
-#endif                                   /* duplication check */
+#endif					 /* duplication check */
 
 
 /* END OF FILE */

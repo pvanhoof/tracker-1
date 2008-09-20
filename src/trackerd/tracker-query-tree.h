@@ -30,11 +30,11 @@ G_BEGIN_DECLS
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-language.h>
 
-#define TRACKER_TYPE_QUERY_TREE         (tracker_query_tree_get_type())
-#define TRACKER_QUERY_TREE(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_QUERY_TREE, TrackerQueryTree))
-#define TRACKER_QUERY_TREE_CLASS(c)     (G_TYPE_CHECK_CLASS_CAST ((c),    TRACKER_TYPE_QUERY_TREE, TrackerQueryTreeClass))
-#define TRACKER_IS_QUERY_TREE(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), TRACKER_TYPE_QUERY_TREE))
-#define TRACKER_IS_QUERY_TREE_CLASS(c)  (G_TYPE_CHECK_CLASS_TYPE ((c),    TRACKER_TYPE_QUERY_TREE))
+#define TRACKER_TYPE_QUERY_TREE		(tracker_query_tree_get_type())
+#define TRACKER_QUERY_TREE(o)		(G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_QUERY_TREE, TrackerQueryTree))
+#define TRACKER_QUERY_TREE_CLASS(c)	(G_TYPE_CHECK_CLASS_CAST ((c),	  TRACKER_TYPE_QUERY_TREE, TrackerQueryTreeClass))
+#define TRACKER_IS_QUERY_TREE(o)	(G_TYPE_CHECK_INSTANCE_TYPE ((o), TRACKER_TYPE_QUERY_TREE))
+#define TRACKER_IS_QUERY_TREE_CLASS(c)	(G_TYPE_CHECK_CLASS_TYPE ((c),	  TRACKER_TYPE_QUERY_TREE))
 #define TRACKER_QUERY_TREE_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o),  TRACKER_TYPE_QUERY_TREE, TrackerQueryTreeClass))
 
 typedef struct TrackerQueryTree TrackerQueryTree;
@@ -54,24 +54,24 @@ struct TrackerHitCount {
 	guint count;
 };
 
-GType                 tracker_query_tree_get_type       (void);
-TrackerQueryTree *    tracker_query_tree_new            (const gchar      *query_str,
-							 TrackerConfig    *config,
+GType		      tracker_query_tree_get_type	(void);
+TrackerQueryTree *    tracker_query_tree_new		(const gchar	  *query_str,
+							 TrackerConfig	  *config,
 							 TrackerLanguage  *language,
-                                                         GArray           *services);
-G_CONST_RETURN gchar *tracker_query_tree_get_query      (TrackerQueryTree *tree);
-void                  tracker_query_tree_set_query      (TrackerQueryTree *tree,
-                                                         const gchar      *query_str);
+							 GArray		  *services);
+G_CONST_RETURN gchar *tracker_query_tree_get_query	(TrackerQueryTree *tree);
+void		      tracker_query_tree_set_query	(TrackerQueryTree *tree,
+							 const gchar	  *query_str);
 
-GArray *              tracker_query_tree_get_services   (TrackerQueryTree *tree);
-void                  tracker_query_tree_set_services   (TrackerQueryTree *tree,
-                                                         GArray           *services);
-GSList *              tracker_query_tree_get_words      (TrackerQueryTree *tree);
-GArray *              tracker_query_tree_get_hits       (TrackerQueryTree *tree,
-                                                         guint             offset,
-                                                         guint             limit);
-gint                  tracker_query_tree_get_hit_count  (TrackerQueryTree *tree);
-GArray *              tracker_query_tree_get_hit_counts (TrackerQueryTree *tree);
+GArray *	      tracker_query_tree_get_services	(TrackerQueryTree *tree);
+void		      tracker_query_tree_set_services	(TrackerQueryTree *tree,
+							 GArray		  *services);
+GSList *	      tracker_query_tree_get_words	(TrackerQueryTree *tree);
+GArray *	      tracker_query_tree_get_hits	(TrackerQueryTree *tree,
+							 guint		   offset,
+							 guint		   limit);
+gint		      tracker_query_tree_get_hit_count	(TrackerQueryTree *tree);
+GArray *	      tracker_query_tree_get_hit_counts (TrackerQueryTree *tree);
 
 G_END_DECLS
 

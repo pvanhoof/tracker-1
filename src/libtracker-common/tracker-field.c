@@ -31,28 +31,28 @@
 typedef struct _TrackerFieldPriv TrackerFieldPriv;
 
 struct _TrackerFieldPriv {
-	gchar         *id;
+	gchar	      *id;
 	gchar	      *name;
 
 	TrackerFieldType  data_type;
-	gchar         *field_name;
-	gint           weight;
+	gchar	      *field_name;
+	gint	       weight;
 	gboolean       embedded;
 	gboolean       multiple_values;
 	gboolean       delimited;
 	gboolean       filtered;
 	gboolean       store_metadata;
 
-	GSList        *child_ids;
+	GSList	      *child_ids;
 };
 
 static void field_finalize     (GObject      *object);
 static void field_get_property (GObject      *object,
-				guint         param_id,
-				GValue       *value,
+				guint	      param_id,
+				GValue	     *value,
 				GParamSpec   *pspec);
 static void field_set_property (GObject      *object,
-				guint         param_id,
+				guint	      param_id,
 				const GValue *value,
 				GParamSpec   *pspec);
 
@@ -122,19 +122,19 @@ G_DEFINE_TYPE (TrackerField, tracker_field, G_TYPE_OBJECT);
 const gchar *
 tracker_field_type_to_string (TrackerFieldType fieldtype)
 {
-        GType       type;
-        GEnumClass *enum_class;
-        GEnumValue *enum_value;
+	GType	    type;
+	GEnumClass *enum_class;
+	GEnumValue *enum_value;
 
-        type = tracker_field_type_get_type ();
-        enum_class = G_ENUM_CLASS (g_type_class_peek (type));
-        enum_value = g_enum_get_value (enum_class, fieldtype);
+	type = tracker_field_type_get_type ();
+	enum_class = G_ENUM_CLASS (g_type_class_peek (type));
+	enum_value = g_enum_get_value (enum_class, fieldtype);
 
-        if (!enum_value) {
+	if (!enum_value) {
 		return NULL;
-        }
+	}
 
-        return enum_value->value_nick;
+	return enum_value->value_nick;
 }
 
 static void
@@ -142,7 +142,7 @@ tracker_field_class_init (TrackerFieldClass *klass)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-	object_class->finalize     = field_finalize;
+	object_class->finalize	   = field_finalize;
 	object_class->get_property = field_get_property;
 	object_class->set_property = field_set_property;
 
@@ -257,7 +257,7 @@ field_finalize (GObject *object)
 
 static void
 field_get_property (GObject    *object,
-		    guint       param_id,
+		    guint	param_id,
 		    GValue     *value,
 		    GParamSpec *pspec)
 {
@@ -306,10 +306,10 @@ field_get_property (GObject    *object,
 }
 
 static void
-field_set_property (GObject      *object,
-		    guint         param_id,
+field_set_property (GObject	 *object,
+		    guint	  param_id,
 		    const GValue *value,
-		    GParamSpec   *pspec)
+		    GParamSpec	 *pspec)
 {
 	switch (param_id) {
 	case PROP_ID:
@@ -611,7 +611,7 @@ tracker_field_set_field_name (TrackerField *field,
 
 void
 tracker_field_set_weight (TrackerField *field,
-			  gint          value)
+			  gint		value)
 {
 	TrackerFieldPriv *priv;
 	g_return_if_fail (TRACKER_IS_FIELD (field));
@@ -628,7 +628,7 @@ tracker_field_set_weight (TrackerField *field,
 
 void
 tracker_field_set_embedded (TrackerField *field,
-			    gboolean      value)
+			    gboolean	  value)
 {
 	TrackerFieldPriv *priv;
 
@@ -642,7 +642,7 @@ tracker_field_set_embedded (TrackerField *field,
 
 void
 tracker_field_set_multiple_values (TrackerField *field,
-				   gboolean      value)
+				   gboolean	 value)
 {
 	TrackerFieldPriv *priv;
 
@@ -656,7 +656,7 @@ tracker_field_set_multiple_values (TrackerField *field,
 
 void
 tracker_field_set_delimited (TrackerField *field,
-			     gboolean      value)
+			     gboolean	   value)
 {
 	TrackerFieldPriv *priv;
 
@@ -670,7 +670,7 @@ tracker_field_set_delimited (TrackerField *field,
 
 void
 tracker_field_set_filtered (TrackerField *field,
-			    gboolean      value)
+			    gboolean	  value)
 {
 	TrackerFieldPriv *priv;
 
@@ -684,7 +684,7 @@ tracker_field_set_filtered (TrackerField *field,
 
 void
 tracker_field_set_store_metadata (TrackerField *field,
-				  gboolean      value)
+				  gboolean	value)
 {
 	TrackerFieldPriv *priv;
 
@@ -710,7 +710,7 @@ tracker_field_set_child_ids (TrackerField *field,
 	g_slist_free (priv->child_ids);
 
 	if (value) {
-		GSList       *new_list;
+		GSList	     *new_list;
 		const GSList *l;
 
 		new_list = NULL;

@@ -51,7 +51,7 @@ process_one_event( struct inotify_event *ine )
   {
     inotify_debug( "  dispatch to %p", list->data );
     inotify_handle_invoke_callback( list->data, filename,
-                                    ine->mask, ine->cookie );
+				    ine->mask, ine->cookie );
   }
 
   if( ine->mask & IN_IGNORED )
@@ -83,8 +83,8 @@ inotify_watch_func( GIOChannel *source, GIOCondition condition, gpointer data )
 
       if( namesize > size )
       {
-        // XXX might be false if lots of events stack up
-        inotify_fatal( "namesize > size!" );
+	// XXX might be false if lots of events stack up
+	inotify_fatal( "namesize > size!" );
       }
 
       size -= namesize;
@@ -162,7 +162,7 @@ inotify_monitor_add_raw( INotifyHandle *inh )
      */
     if( wd2 != wd )
       inotify_warn( "race condition in inotify_monitor_add! (%d vs %d)",
-                                                                 wd, wd2 );
+								 wd, wd2 );
 
     if( wd2 < 0 )
     {
@@ -174,18 +174,18 @@ inotify_monitor_add_raw( INotifyHandle *inh )
 
       if( inotify_listhash_length( wd2 ) == 0 )
       {
-        /* We're not supposed to be watching this inode. */
-        inotify_rm_watch( inotify_monitor_fd, wd2 );
+	/* We're not supposed to be watching this inode. */
+	inotify_rm_watch( inotify_monitor_fd, wd2 );
       }
       else
       {
-        /* If we did hit an inode we're already watching then we just
-         * modified its mask.  Ow.  We could go hunting with the list of
-         * filenames that we have in the listhash in hopes that one of them
-         * still references the inode that we're looking for but this is
-         * such a rare case and going hunting is likely to cause further
-         * errors anyway...
-         */
+	/* If we did hit an inode we're already watching then we just
+	 * modified its mask.  Ow.  We could go hunting with the list of
+	 * filenames that we have in the listhash in hopes that one of them
+	 * still references the inode that we're looking for but this is
+	 * such a rare case and going hunting is likely to cause further
+	 * errors anyway...
+	 */
       }
     }
 
@@ -213,7 +213,7 @@ inotify_monitor_remove_raw( INotifyHandle *inh )
   }
 
   /* We currently have no way of safely reducing the event mask on an
-   * inode that we're watching.  As such, just leave it alone.  This means
+   * inode that we're watching.  As such, just leave it alone.	This means
    * that we'll receive extra events (which we'll filter out), but at least
    * we won't potentially put ourselves in an inconsistent state.
    */
@@ -221,15 +221,15 @@ inotify_monitor_remove_raw( INotifyHandle *inh )
 
 static void
 inotify_internal_callback( INotifyHandle *inh, const char *monitor_name,
-                           const char *filename, guint32 event_type,
-                           guint32 cookie, gpointer user_data )
+			   const char *filename, guint32 event_type,
+			   guint32 cookie, gpointer user_data )
 {
   INotifyHandle *child = user_data;
   int result;
 
   inotify_debug( "Got event for %s:%x while watching for %s on %s",
-                 filename, event_type, inotify_handle_get_basename( child ),
-                 monitor_name );
+		 filename, event_type, inotify_handle_get_basename( child ),
+		 monitor_name );
 
   event_type &= ~IN_ISDIR;
 
@@ -239,25 +239,25 @@ inotify_internal_callback( INotifyHandle *inh, const char *monitor_name,
     {
       case IN_CREATE:
       case IN_MOVED_TO:
-        result = inotify_monitor_add_raw( child );
+	result = inotify_monitor_add_raw( child );
 
-        /* If child exists... */
-        if( result == 0 )
-          inotify_handle_invoke_callback( child, NULL, event_type, cookie );
+	/* If child exists... */
+	if( result == 0 )
+	  inotify_handle_invoke_callback( child, NULL, event_type, cookie );
 
-        break;
+	break;
 
       case IN_DELETE:
       case IN_DELETE_SELF:
       case IN_MOVE_SELF:
       case IN_MOVED_FROM:
-        /* Parent just disappeared.  Report that we've also been deleted. */
-        inotify_handle_invoke_callback( child, NULL, event_type, cookie );
+	/* Parent just disappeared.  Report that we've also been deleted. */
+	inotify_handle_invoke_callback( child, NULL, event_type, cookie );
 
-        /* Then unregister our watch with the kernel. */
-        inotify_monitor_remove_raw( child );
+	/* Then unregister our watch with the kernel. */
+	inotify_monitor_remove_raw( child );
 
-        break;
+	break;
     }
 
     return;
@@ -275,13 +275,13 @@ inotify_internal_callback( INotifyHandle *inh, const char *monitor_name,
       inotify_handle_invoke_callback( child, NULL, event_type, cookie );
 
       if( result != 0 )
-        inotify_handle_invoke_callback( child, NULL, IN_DELETE, cookie );
+	inotify_handle_invoke_callback( child, NULL, IN_DELETE, cookie );
 
       break;
 
     case IN_DELETE:
     case IN_MOVED_FROM:
-      /* We just disappeared.  Report that we've been deleted.  We must
+      /* We just disappeared.  Report that we've been deleted.	We must
        * send the event manually since the remove_raw might cause the
        * event not to be delivered normally.
        */
@@ -295,7 +295,7 @@ inotify_internal_callback( INotifyHandle *inh, const char *monitor_name,
 
 INotifyHandle *
 inotify_monitor_add( const char *filename, guint32 mask, unsigned long flags,
-                     INotifyCallback callback, gpointer user_data )
+		     INotifyCallback callback, gpointer user_data )
 {
   INotifyHandle *pinh, *inh;
   int result;
@@ -324,13 +324,13 @@ inotify_monitor_add( const char *filename, guint32 mask, unsigned long flags,
 
     flags = IN_FLAG_FILE_BASED | IN_FLAG_SYNTH_CREATE;
     mask = IN_MOVED_FROM | IN_MOVED_TO | IN_CREATE | IN_DELETE |
-           IN_DELETE_SELF | IN_MOVE_SELF | IN_SYNTHETIC;
+	   IN_DELETE_SELF | IN_MOVE_SELF | IN_SYNTHETIC;
 
     inotify_debug( "Adding internal callback %p for %p(%s)",
-                   inotify_internal_callback, inh, parent );
+		   inotify_internal_callback, inh, parent );
 
     pinh = inotify_monitor_add( parent, mask, flags,
-                                inotify_internal_callback, inh );
+				inotify_internal_callback, inh );
 
     inotify_handle_set_parent( inh, pinh );
 

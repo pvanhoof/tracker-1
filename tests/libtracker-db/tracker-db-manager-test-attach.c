@@ -25,9 +25,9 @@
 
 
 typedef enum {
-        NO_INIT,
-        INIT_NO_REINDEX,
-        INIT_REINDEX
+	NO_INIT,
+	INIT_NO_REINDEX,
+	INIT_REINDEX
 } Status;
 
 static gboolean db_manager_status = NO_INIT;
@@ -35,39 +35,39 @@ static gboolean db_manager_status = NO_INIT;
 void
 ensure_db_manager_is_reindex (gboolean must_reindex)
 {
-        gint first;
+	gint first;
 
-        if (db_manager_status == NO_INIT) {
-                if (must_reindex) {
-                        tracker_db_manager_init (TRACKER_DB_MANAGER_FORCE_REINDEX,
-                                                 &first);
-                        db_manager_status = INIT_REINDEX;
-                } else {
-                        tracker_db_manager_init (0, &first);
-                        db_manager_status = INIT_NO_REINDEX;
-                }
-                return;
-        }
+	if (db_manager_status == NO_INIT) {
+		if (must_reindex) {
+			tracker_db_manager_init (TRACKER_DB_MANAGER_FORCE_REINDEX,
+						 &first);
+			db_manager_status = INIT_REINDEX;
+		} else {
+			tracker_db_manager_init (0, &first);
+			db_manager_status = INIT_NO_REINDEX;
+		}
+		return;
+	}
 
-        if (db_manager_status == INIT_NO_REINDEX && !must_reindex) {
-                // tracker_db_manager is already correctly initialised
-                return;
-        }
+	if (db_manager_status == INIT_NO_REINDEX && !must_reindex) {
+		// tracker_db_manager is already correctly initialised
+		return;
+	}
 
-        if (db_manager_status == INIT_REINDEX && must_reindex) {
-                // tracker_db_manager is already correctly initialised
-                return ;
-        }
+	if (db_manager_status == INIT_REINDEX && must_reindex) {
+		// tracker_db_manager is already correctly initialised
+		return ;
+	}
 
-        tracker_db_manager_shutdown ();
-        if (must_reindex) {
-                tracker_db_manager_init (TRACKER_DB_MANAGER_FORCE_REINDEX,
-                                         &first);
-                db_manager_status = INIT_REINDEX;
-        } else {
-                tracker_db_manager_init (0, &first);
-                db_manager_status = INIT_NO_REINDEX;
-        }
+	tracker_db_manager_shutdown ();
+	if (must_reindex) {
+		tracker_db_manager_init (TRACKER_DB_MANAGER_FORCE_REINDEX,
+					 &first);
+		db_manager_status = INIT_REINDEX;
+	} else {
+		tracker_db_manager_init (0, &first);
+		db_manager_status = INIT_NO_REINDEX;
+	}
 }
 
 
@@ -77,84 +77,84 @@ ensure_db_manager_is_reindex (gboolean must_reindex)
 void
 test_assert_tables_in_db (TrackerDB db, gchar *query)
 {
-        g_assert (test_assert_query_run (db, query));
+	g_assert (test_assert_query_run (db, query));
 }
 
 static void
 test_creation_common_db_no_reindex ()
 {
-        ensure_db_manager_is_reindex (FALSE);
-        test_assert_tables_in_db (TRACKER_DB_COMMON, "SELECT * FROM MetaDataTypes");
+	ensure_db_manager_is_reindex (FALSE);
+	test_assert_tables_in_db (TRACKER_DB_COMMON, "SELECT * FROM MetaDataTypes");
 }
 
 
 static void
 test_creation_xesam_db_no_reindex_multiple_interfaces ()
 {
-        TrackerDBInterface *iface;
+	TrackerDBInterface *iface;
 
-        ensure_db_manager_is_reindex (FALSE);
+	ensure_db_manager_is_reindex (FALSE);
 
-        iface = tracker_db_manager_get_db_interfaces (2,
-        											  TRACKER_DB_XESAM,
-        											  TRACKER_DB_COMMON);
+	iface = tracker_db_manager_get_db_interfaces (2,
+												  TRACKER_DB_XESAM,
+												  TRACKER_DB_COMMON);
 
-        test_assert_query_run_on_iface (iface, "SELECT * FROM XesamServiceTypes");
+	test_assert_query_run_on_iface (iface, "SELECT * FROM XesamServiceTypes");
 }
 
 
 static void
 test_creation_xesam_db_no_reindex ()
 {
-        ensure_db_manager_is_reindex (FALSE);
-        test_assert_tables_in_db (TRACKER_DB_XESAM, "SELECT * FROM XesamServiceTypes");
+	ensure_db_manager_is_reindex (FALSE);
+	test_assert_tables_in_db (TRACKER_DB_XESAM, "SELECT * FROM XesamServiceTypes");
 }
 
 static void
 test_creation_file_meta_db_no_reindex ()
 {
-        ensure_db_manager_is_reindex (FALSE);
-        test_assert_tables_in_db (TRACKER_DB_FILE_METADATA, "SELECT * FROM ServiceMetaData");
+	ensure_db_manager_is_reindex (FALSE);
+	test_assert_tables_in_db (TRACKER_DB_FILE_METADATA, "SELECT * FROM ServiceMetaData");
 }
 
 static void
 test_creation_file_contents_db_no_reindex ()
 {
-        ensure_db_manager_is_reindex (FALSE);
-        test_assert_tables_in_db (TRACKER_DB_FILE_CONTENTS, "SELECT * FROM ServiceContents");
+	ensure_db_manager_is_reindex (FALSE);
+	test_assert_tables_in_db (TRACKER_DB_FILE_CONTENTS, "SELECT * FROM ServiceContents");
 }
 
 
 int
 main (int argc, char **argv) {
 
-        int result;
+	int result;
 
 	g_type_init ();
-        g_thread_init (NULL);
+	g_thread_init (NULL);
 	g_test_init (&argc, &argv, NULL);
 
 
-        // Tests with attach and no-reindex
-        g_test_add_func ("/libtracker-db/tracker-db-manager/attach/no-reindex/common_db_tables",
-                        test_creation_common_db_no_reindex);
+	// Tests with attach and no-reindex
+	g_test_add_func ("/libtracker-db/tracker-db-manager/attach/no-reindex/common_db_tables",
+			test_creation_common_db_no_reindex);
 
-        g_test_add_func ("/libtracker-db/tracker-db-manager/attach/no-reindex/xesam_db_tables",
-                         test_creation_xesam_db_no_reindex);
+	g_test_add_func ("/libtracker-db/tracker-db-manager/attach/no-reindex/xesam_db_tables",
+			 test_creation_xesam_db_no_reindex);
 
-        g_test_add_func ("/libtracker-db/tracker-db-manager/attach/no-reindex/xesam_db_tables/multiple_interfaces",
-                         test_creation_xesam_db_no_reindex_multiple_interfaces);
+	g_test_add_func ("/libtracker-db/tracker-db-manager/attach/no-reindex/xesam_db_tables/multiple_interfaces",
+			 test_creation_xesam_db_no_reindex_multiple_interfaces);
 
-        g_test_add_func ("/libtracker-db/tracker-db-manager/attach/no-reindex/file_meta_db_tables",
-                         test_creation_file_meta_db_no_reindex);
+	g_test_add_func ("/libtracker-db/tracker-db-manager/attach/no-reindex/file_meta_db_tables",
+			 test_creation_file_meta_db_no_reindex);
 
-        g_test_add_func ("/libtracker-db/tracker-db-manager/attach/no-reindex/file_contents_db_tables",
-                         test_creation_file_contents_db_no_reindex);
+	g_test_add_func ("/libtracker-db/tracker-db-manager/attach/no-reindex/file_contents_db_tables",
+			 test_creation_file_contents_db_no_reindex);
 
 
-        result = g_test_run ();
+	result = g_test_run ();
 
-        /* End */
+	/* End */
 
-        return result;
+	return result;
 }

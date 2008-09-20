@@ -51,8 +51,8 @@
 #define C_STANDARD_STRFTIME_CHARACTERS "aAbBcdHIjmMpSUwWxXyYZ"
 #define C_STANDARD_NUMERIC_STRFTIME_CHARACTERS "dHIjmMSUwWyY"
 #define SUS_EXTENDED_STRFTIME_MODIFIERS "EO"
-#define BINARY_EXEC_MIME_TYPE      "application/x-executable"
-#define MAX_SYMLINKS_FOLLOWED      32
+#define BINARY_EXEC_MIME_TYPE	   "application/x-executable"
+#define MAX_SYMLINKS_FOLLOWED	   32
 #define GSEARCH_DATE_FORMAT_LOCALE "locale"
 #define GSEARCH_DATE_FORMAT_ISO    "iso"
 
@@ -251,9 +251,9 @@ tracker_search_gconf_add_dir (const gchar * dir)
 	g_return_if_fail (client != NULL);
 
 	gconf_client_add_dir (client,
-	                      dir,
-	                      GCONF_CLIENT_PRELOAD_RECURSIVE,
-	                      &error);
+			      dir,
+			      GCONF_CLIENT_PRELOAD_RECURSIVE,
+			      &error);
 
 	tracker_search_gconf_handle_error (&error);
 }
@@ -274,18 +274,18 @@ tracker_search_gconf_watch_key (const gchar * dir,
 	g_return_if_fail (client != NULL);
 
 	gconf_client_add_dir (client,
-	                      dir,
-	                      GCONF_CLIENT_PRELOAD_NONE,
-	                      &error);
+			      dir,
+			      GCONF_CLIENT_PRELOAD_NONE,
+			      &error);
 
 	tracker_search_gconf_handle_error (&error);
 
 	gconf_client_notify_add (client,
-	                         key,
-	                         callback,
-	                         user_data,
-	                         NULL,
-	                         &error);
+				 key,
+				 callback,
+				 user_data,
+				 NULL,
+				 &error);
 
 	tracker_search_gconf_handle_error (&error);
 }
@@ -325,9 +325,9 @@ is_path_hidden (const gchar * path)
 gboolean
 is_quick_search_excluded_path (const gchar * path)
 {
-	GSList     * exclude_path_list;
-	GSList     * tmp_list;
-	gchar      * dir;
+	GSList	   * exclude_path_list;
+	GSList	   * tmp_list;
+	gchar	   * dir;
 	gboolean     results = FALSE;
 
 	dir = g_strdup (path);
@@ -347,7 +347,7 @@ is_quick_search_excluded_path (const gchar * path)
 
 	/* Check path against the Quick-Search-Excluded-Paths list. */
 	exclude_path_list = tracker_search_gconf_get_list ("/apps/tracker-search-tool/quick_search_excluded_paths",
-	                                                GCONF_VALUE_STRING);
+							GCONF_VALUE_STRING);
 
 	for (tmp_list = exclude_path_list; tmp_list; tmp_list = tmp_list->next) {
 
@@ -403,9 +403,9 @@ is_quick_search_excluded_path (const gchar * path)
 gboolean
 is_second_scan_excluded_path (const gchar * path)
 {
-	GSList     * exclude_path_list;
-	GSList     * tmp_list;
-	gchar      * dir;
+	GSList	   * exclude_path_list;
+	GSList	   * tmp_list;
+	gchar	   * dir;
 	gboolean     results = FALSE;
 
 	dir = g_strdup (path);
@@ -425,7 +425,7 @@ is_second_scan_excluded_path (const gchar * path)
 
 	/* Check path against the Quick-Search-Excluded-Paths list. */
 	exclude_path_list = tracker_search_gconf_get_list ("/apps/tracker-search-tool/quick_search_second_scan_excluded_paths",
-	                                                GCONF_VALUE_STRING);
+							GCONF_VALUE_STRING);
 
 	for (tmp_list = exclude_path_list; tmp_list; tmp_list = tmp_list->next) {
 
@@ -519,32 +519,32 @@ tracker_string_replace (const gchar * haystack,
 			gchar * needle,
 			gchar * replacement)
 {
-        GString * str;
-        gint pos, needle_len;
+	GString * str;
+	gint pos, needle_len;
 
 	g_return_val_if_fail (haystack && needle, NULL);
 
 	needle_len = strlen (needle);
 
-        str = g_string_new ("");
+	str = g_string_new ("");
 
-        for (pos = 0; haystack[pos]; pos++)
-        {
-                if (strncmp (&haystack[pos], needle, needle_len) == 0)
-                {
+	for (pos = 0; haystack[pos]; pos++)
+	{
+		if (strncmp (&haystack[pos], needle, needle_len) == 0)
+		{
 
 			if (replacement) {
-	                        str = g_string_append (str, replacement);
+				str = g_string_append (str, replacement);
 			}
 
-                        pos += needle_len - 1;
+			pos += needle_len - 1;
 
-                } else {
-                        str = g_string_append_c (str, haystack[pos]);
+		} else {
+			str = g_string_append_c (str, haystack[pos]);
 		}
-        }
+	}
 
-        return g_string_free (str, FALSE);
+	return g_string_free (str, FALSE);
 }
 
 static gint
@@ -633,7 +633,7 @@ remove_mnemonic_character (const gchar * string)
 
 gchar *
 get_readable_date (const gchar * format_string,
-                   const time_t file_time_raw)
+		   const time_t file_time_raw)
 {
 	struct tm * file_time;
 	gchar * format;
@@ -826,7 +826,7 @@ tracker_search_strdup_strftime (const gchar * format,
 gchar *
 get_file_type_description (const gchar * file,
 			   const char *mime,
-                           GnomeVFSFileInfo * file_info)
+			   GnomeVFSFileInfo * file_info)
 {
 	gchar * desc;
 
@@ -853,8 +853,8 @@ get_file_type_description (const gchar * file,
 		}
 
 		if (g_file_test (absolute_symlink, G_FILE_TEST_EXISTS) != TRUE) {
-                       if ((g_ascii_strcasecmp (mime, "x-special/socket") != 0) &&
-                           (g_ascii_strcasecmp (mime, "x-special/fifo") != 0)) {
+		       if ((g_ascii_strcasecmp (mime, "x-special/socket") != 0) &&
+			   (g_ascii_strcasecmp (mime, "x-special/fifo") != 0)) {
 				g_free (absolute_symlink);
 				g_free (desc);
 				return g_strdup (_("link (broken)"));
@@ -887,13 +887,13 @@ tracker_search_load_thumbnail_frame (void)
 
 static void
 tracker_search_draw_frame_row (GdkPixbuf * frame_image,
-                            gint target_width,
-                            gint source_width,
-                            gint source_v_position,
-                            gint dest_v_position,
-                            GdkPixbuf * result_pixbuf,
-                            gint left_offset,
-                            gint height)
+			    gint target_width,
+			    gint source_width,
+			    gint source_v_position,
+			    gint dest_v_position,
+			    GdkPixbuf * result_pixbuf,
+			    gint left_offset,
+			    gint height)
 {
 	gint remaining_width;
 	gint h_offset;
@@ -904,7 +904,7 @@ tracker_search_draw_frame_row (GdkPixbuf * frame_image,
 	while (remaining_width > 0) {
 		slab_width = remaining_width > source_width ? source_width : remaining_width;
 		gdk_pixbuf_copy_area (frame_image, left_offset, source_v_position, slab_width,
-		                      height, result_pixbuf, left_offset + h_offset, dest_v_position);
+				      height, result_pixbuf, left_offset + h_offset, dest_v_position);
 		remaining_width -= slab_width;
 		h_offset += slab_width;
 	}
@@ -912,13 +912,13 @@ tracker_search_draw_frame_row (GdkPixbuf * frame_image,
 
 static void
 tracker_search_draw_frame_column (GdkPixbuf * frame_image,
-                               gint target_height,
-                               gint source_height,
-                               gint source_h_position,
-                               gint dest_h_position,
-                               GdkPixbuf * result_pixbuf,
-                               gint top_offset,
-                               gint width)
+			       gint target_height,
+			       gint source_height,
+			       gint source_h_position,
+			       gint dest_h_position,
+			       GdkPixbuf * result_pixbuf,
+			       gint top_offset,
+			       gint width)
 {
 	gint remaining_height;
 	gint v_offset;
@@ -929,7 +929,7 @@ tracker_search_draw_frame_column (GdkPixbuf * frame_image,
 	while (remaining_height > 0) {
 		slab_height = remaining_height > source_height ? source_height : remaining_height;
 		gdk_pixbuf_copy_area (frame_image, source_h_position, top_offset, width, slab_height,
-		                      result_pixbuf, dest_h_position, top_offset + v_offset);
+				      result_pixbuf, dest_h_position, top_offset + v_offset);
 		remaining_height -= slab_height;
 		v_offset += slab_height;
 	}
@@ -937,13 +937,13 @@ tracker_search_draw_frame_column (GdkPixbuf * frame_image,
 
 static GdkPixbuf *
 tracker_search_stretch_frame_image (GdkPixbuf *frame_image,
-                                 gint left_offset,
-                                 gint top_offset,
-                                 gint right_offset,
-                                 gint bottom_offset,
-                                 gint dest_width,
-                                 gint dest_height,
-                                 gboolean fill_flag)
+				 gint left_offset,
+				 gint top_offset,
+				 gint right_offset,
+				 gint bottom_offset,
+				 gint dest_width,
+				 gint dest_height,
+				 gboolean fill_flag)
 {
 	GdkPixbuf * result_pixbuf;
 	guchar * pixels_ptr;
@@ -980,38 +980,38 @@ tracker_search_stretch_frame_image (GdkPixbuf *frame_image,
 	/* Draw the left top corner  and top row */
 	gdk_pixbuf_copy_area (frame_image, 0, 0, left_offset, top_offset, result_pixbuf, 0,  0);
 	tracker_search_draw_frame_row (frame_image, target_width, target_frame_width, 0, 0,
-	                            result_pixbuf, left_offset, top_offset);
+				    result_pixbuf, left_offset, top_offset);
 
 	/* Draw the right top corner and left column */
 	gdk_pixbuf_copy_area (frame_image, frame_width - right_offset, 0, right_offset, top_offset,
-	                      result_pixbuf, dest_width - right_offset,  0);
+			      result_pixbuf, dest_width - right_offset,  0);
 	tracker_search_draw_frame_column (frame_image, target_height, target_frame_height, 0, 0,
-	                               result_pixbuf, top_offset, left_offset);
+				       result_pixbuf, top_offset, left_offset);
 
 	/* Draw the bottom right corner and bottom row */
 	gdk_pixbuf_copy_area (frame_image, frame_width - right_offset, frame_height - bottom_offset,
-	                      right_offset, bottom_offset, result_pixbuf, dest_width - right_offset,
+			      right_offset, bottom_offset, result_pixbuf, dest_width - right_offset,
 			      dest_height - bottom_offset);
 	tracker_search_draw_frame_row (frame_image, target_width, target_frame_width,
-	                            frame_height - bottom_offset, dest_height - bottom_offset,
+				    frame_height - bottom_offset, dest_height - bottom_offset,
 				    result_pixbuf, left_offset, bottom_offset);
 
 	/* Draw the bottom left corner and the right column */
 	gdk_pixbuf_copy_area (frame_image, 0, frame_height - bottom_offset, left_offset, bottom_offset,
-	                      result_pixbuf, 0,  dest_height - bottom_offset);
+			      result_pixbuf, 0,  dest_height - bottom_offset);
 	tracker_search_draw_frame_column (frame_image, target_height, target_frame_height,
-	                               frame_width - right_offset, dest_width - right_offset,
+				       frame_width - right_offset, dest_width - right_offset,
 				       result_pixbuf, top_offset, right_offset);
 	return result_pixbuf;
 }
 
 static GdkPixbuf *
 tracker_search_embed_image_in_frame (GdkPixbuf * source_image,
-                                  GdkPixbuf * frame_image,
-                                  gint left_offset,
-                                  gint top_offset,
-                                  gint right_offset,
-                                  gint bottom_offset)
+				  GdkPixbuf * frame_image,
+				  gint left_offset,
+				  gint top_offset,
+				  gint right_offset,
+				  gint bottom_offset)
 {
 	GdkPixbuf * result_pixbuf;
 	gint source_width, source_height;
@@ -1024,7 +1024,7 @@ tracker_search_embed_image_in_frame (GdkPixbuf * source_image,
 	dest_height = source_height + top_offset + bottom_offset;
 
 	result_pixbuf = tracker_search_stretch_frame_image (frame_image, left_offset, top_offset, right_offset, bottom_offset,
-						         dest_width, dest_height, FALSE);
+							 dest_width, dest_height, FALSE);
 
 	gdk_pixbuf_copy_area (source_image, 0, 0, source_width, source_height, result_pixbuf, left_offset, top_offset);
 
@@ -1110,16 +1110,16 @@ tracker_search_icon_lookup (GSearchWindow * gsearch,
 	uri = gnome_vfs_get_uri_from_local_path (file);
 
 	if ((strncmp (mime, "image/", 6) != 0) ||
-    	    ((int)file_info->size < (int)gsearch->show_thumbnails_file_size_limit)) {
-	    	if (gsearch->thumbnail_factory == NULL) {
-		    	gsearch->thumbnail_factory = gnome_thumbnail_factory_new (GNOME_THUMBNAIL_SIZE_NORMAL);
+	    ((int)file_info->size < (int)gsearch->show_thumbnails_file_size_limit)) {
+		if (gsearch->thumbnail_factory == NULL) {
+			gsearch->thumbnail_factory = gnome_thumbnail_factory_new (GNOME_THUMBNAIL_SIZE_NORMAL);
 		}
 		lookup_flags = GNOME_ICON_LOOKUP_FLAGS_SHOW_SMALL_IMAGES_AS_THEMSELVES |
-		               GNOME_ICON_LOOKUP_FLAGS_ALLOW_SVG_AS_THEMSELVES;
+			       GNOME_ICON_LOOKUP_FLAGS_ALLOW_SVG_AS_THEMSELVES;
 	}
 
 	icon_name = gnome_icon_lookup (gtk_icon_theme_get_default (),
-	                               gsearch->thumbnail_factory,
+				       gsearch->thumbnail_factory,
 				       uri,
 				       NULL,
 				       file_info,
@@ -1132,9 +1132,9 @@ tracker_search_icon_lookup (GSearchWindow * gsearch,
 
 GdkPixbuf *
 get_file_pixbuf (GSearchWindow * gsearch,
-                 const gchar * file,
+		 const gchar * file,
 		 const char *mime,
-                 GnomeVFSFileInfo * file_info)
+		 GnomeVFSFileInfo * file_info)
 {
 	GdkPixbuf * pixbuf = NULL;
 	gchar * icon_name = NULL;
@@ -1144,7 +1144,7 @@ get_file_pixbuf (GSearchWindow * gsearch,
 	}
 
 	else if ((g_file_test (file, G_FILE_TEST_IS_EXECUTABLE)) &&
-	         (g_ascii_strcasecmp (mime, "application/x-executable-binary") == 0)) {
+		 (g_ascii_strcasecmp (mime, "application/x-executable-binary") == 0)) {
 		icon_name = g_strdup (ICON_THEME_EXECUTABLE_ICON);
 	}
 	else if (g_ascii_strcasecmp (mime, "x-special/device-char") == 0) {
@@ -1230,11 +1230,11 @@ get_file_pixbuf (GSearchWindow * gsearch,
 
 gboolean
 open_file_with_xdg_open (GtkWidget * window,
-                         const gchar * file)
+			 const gchar * file)
 {
 	gboolean  result;
-	gchar     *quoted_filename = g_shell_quote (file);
-	gchar     *command = g_strconcat ("xdg-open ", quoted_filename, NULL);
+	gchar	  *quoted_filename = g_shell_quote (file);
+	gchar	  *command = g_strconcat ("xdg-open ", quoted_filename, NULL);
 
 	g_free (quoted_filename);
 	result = g_spawn_command_line_async (command, NULL);
@@ -1245,10 +1245,10 @@ open_file_with_xdg_open (GtkWidget * window,
 
 gboolean
 open_file_with_nautilus (GtkWidget * window,
-                         const gchar * file)
+			 const gchar * file)
 {
 	GnomeDesktopItem * ditem;
- 	GdkScreen * screen;
+	GdkScreen * screen;
 	GError *error = NULL;
 	gchar * command;
 	gchar * contents;
@@ -1257,11 +1257,11 @@ open_file_with_nautilus (GtkWidget * window,
 	escaped = g_shell_quote (file);
 
 	command = g_strconcat ("nautilus ",
-	                       "--sm-disable ",
-	                       "--no-desktop ",
-	                       "--no-default-window ",
-	                       escaped,
-	                       NULL);
+			       "--sm-disable ",
+			       "--no-desktop ",
+			       "--no-default-window ",
+			       escaped,
+			       NULL);
 
 	contents = g_strdup_printf ("[Desktop Entry]\n"
 				    "Name=Nautilus\n"
@@ -1273,10 +1273,10 @@ open_file_with_nautilus (GtkWidget * window,
 				    command);
 
 	ditem = gnome_desktop_item_new_from_string (NULL,
-	                                            contents,
-	                                            strlen (contents),
-	                                            GNOME_DESKTOP_ITEM_LOAD_NO_TRANSLATIONS ,
-	                                            NULL);
+						    contents,
+						    strlen (contents),
+						    GNOME_DESKTOP_ITEM_LOAD_NO_TRANSLATIONS ,
+						    NULL);
 
 	if (ditem == NULL) {
 		g_free (contents);
@@ -1288,10 +1288,10 @@ open_file_with_nautilus (GtkWidget * window,
 	screen = gtk_widget_get_screen (window);
 
 	gnome_desktop_item_set_launch_time (ditem,
-	                                    gtk_get_current_event_time ());
+					    gtk_get_current_event_time ());
 
 	gnome_desktop_item_launch_on_screen (ditem, NULL,
-	                                     GNOME_DESKTOP_ITEM_LAUNCH_ONLY_ONE,
+					     GNOME_DESKTOP_ITEM_LAUNCH_ONLY_ONE,
 					     screen, -1, &error);
 
 	gnome_desktop_item_unref (ditem);
@@ -1308,7 +1308,7 @@ open_file_with_nautilus (GtkWidget * window,
 
 gboolean
 open_file_with_application (GtkWidget * window,
-                            const gchar * file)
+			    const gchar * file)
 {
 	GnomeVFSMimeApplication * application;
 	const char * mime;
@@ -1320,8 +1320,8 @@ open_file_with_application (GtkWidget * window,
 		if (application) {
 			const char *desktop_file;
 			GnomeDesktopItem *ditem;
-		 	GdkScreen *screen;
-		 	GError *error = NULL;
+			GdkScreen *screen;
+			GError *error = NULL;
 			GList *uris = NULL;
 			gboolean result;
 			char *uri;
@@ -1342,7 +1342,7 @@ open_file_with_application (GtkWidget * window,
 					g_error_free (error);
 				}
 				else {
-				 	screen = gtk_widget_get_screen (window);
+					screen = gtk_widget_get_screen (window);
 					gnome_desktop_item_set_launch_time (ditem, gtk_get_current_event_time ());
 					gnome_desktop_item_launch_on_screen (ditem, uris,
 						GNOME_DESKTOP_ITEM_LAUNCH_APPEND_PATHS, screen, -1, &error);
@@ -1379,14 +1379,14 @@ launch_file (const gchar * file)
 
 gchar *
 tracker_search_get_unique_filename (const gchar * path,
-                                 const gchar * suffix)
+				 const gchar * suffix)
 {
 	const gint num_of_words = 12;
-	gchar     * words[] = {
+	gchar	  * words[] = {
 		    "foo",
 		    "bar",
 		    "blah",
-	   	    "cranston",
+		    "cranston",
 		    "frobate",
 		    "hadjaha",
 		    "greasy",
@@ -1422,7 +1422,7 @@ tracker_search_get_unique_filename (const gchar * path,
 
 GtkWidget *
 tracker_search_button_new_with_stock_icon (const gchar * string,
-                                        const gchar * stock_id)
+					const gchar * stock_id)
 {
 	GtkWidget * align;
 	GtkWidget * button;
@@ -1563,7 +1563,7 @@ tracker_search_get_stored_window_geometry (gint * width,
 
 void
 tracker_set_atk_relationship(GtkWidget *obj1, int relation_type,
-                             GtkWidget *obj2)
+			     GtkWidget *obj2)
 {
 	AtkObject *atk_obj1, *atk_obj2, *targets[1];
 	AtkRelationSet *atk_rel_set;

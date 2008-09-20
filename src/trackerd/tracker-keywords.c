@@ -42,12 +42,12 @@ typedef struct {
 } TrackerKeywordsPrivate;
 
 enum {
-        KEYWORD_ADDED,
-        KEYWORD_REMOVED,
-        LAST_SIGNAL
+	KEYWORD_ADDED,
+	KEYWORD_REMOVED,
+	LAST_SIGNAL
 };
 
-static void tracker_keywords_finalize (GObject      *object);
+static void tracker_keywords_finalize (GObject	    *object);
 
 static guint signals[LAST_SIGNAL] = {0};
 
@@ -62,24 +62,24 @@ tracker_keywords_class_init (TrackerKeywordsClass *klass)
 
 	object_class->finalize = tracker_keywords_finalize;
 
-        signals[KEYWORD_ADDED] =
-                g_signal_new ("keyword-added",
-                              G_TYPE_FROM_CLASS (klass),
-                              G_SIGNAL_RUN_LAST,
-                              0,
-                              NULL, NULL,
-                              tracker_marshal_VOID__STRING_STRING_STRING,
-                              G_TYPE_NONE,
-                              3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
-        signals[KEYWORD_REMOVED] =
-                g_signal_new ("keyword-removed",
-                              G_TYPE_FROM_CLASS (klass),
-                              G_SIGNAL_RUN_LAST,
-                              0,
-                              NULL, NULL,
-                              tracker_marshal_VOID__STRING_STRING_STRING,
-                              G_TYPE_NONE,
-                              3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
+	signals[KEYWORD_ADDED] =
+		g_signal_new ("keyword-added",
+			      G_TYPE_FROM_CLASS (klass),
+			      G_SIGNAL_RUN_LAST,
+			      0,
+			      NULL, NULL,
+			      tracker_marshal_VOID__STRING_STRING_STRING,
+			      G_TYPE_NONE,
+			      3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
+	signals[KEYWORD_REMOVED] =
+		g_signal_new ("keyword-removed",
+			      G_TYPE_FROM_CLASS (klass),
+			      G_SIGNAL_RUN_LAST,
+			      0,
+			      NULL, NULL,
+			      tracker_marshal_VOID__STRING_STRING_STRING,
+			      G_TYPE_NONE,
+			      3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
 
 	g_type_class_add_private (object_class, sizeof (TrackerKeywordsPrivate));
 }
@@ -114,15 +114,15 @@ tracker_keywords_new (void)
  */
 void
 tracker_keywords_get_list (TrackerKeywords  *object,
-			   const gchar      *service_type,
+			   const gchar	    *service_type,
 			   DBusGMethodInvocation *context,
-			   GError          **error)
+			   GError	   **error)
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
-	guint               request_id;
-	GError             *actual_error = NULL;
-	GPtrArray          *values;
+	guint		    request_id;
+	GError		   *actual_error = NULL;
+	GPtrArray	   *values;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -136,8 +136,8 @@ tracker_keywords_get_list (TrackerKeywords  *object,
 	if (!tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
-                                             "Service type '%s' is invalid or has not been implemented yet",
-                                             service_type);
+					     "Service type '%s' is invalid or has not been implemented yet",
+					     service_type);
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
 		return;
@@ -158,18 +158,18 @@ tracker_keywords_get_list (TrackerKeywords  *object,
 }
 
 void
-tracker_keywords_get (TrackerKeywords        *object,
-		      const gchar            *service_type,
-		      const gchar            *uri,
+tracker_keywords_get (TrackerKeywords	     *object,
+		      const gchar	     *service_type,
+		      const gchar	     *uri,
 		      DBusGMethodInvocation  *context,
-		      GError                **error)
+		      GError		    **error)
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
-	guint               request_id;
-	gchar              *id;
-	GError             *actual_error = NULL;
-	gchar             **values;
+	guint		    request_id;
+	gchar		   *id;
+	GError		   *actual_error = NULL;
+	gchar		  **values;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -185,15 +185,15 @@ tracker_keywords_get (TrackerKeywords        *object,
 	if (!tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
-                                             "Service type '%s' is invalid or has not been implemented yet",
-                                             service_type);
+					     "Service type '%s' is invalid or has not been implemented yet",
+					     service_type);
 	}
 
-        if (!actual_error && tracker_is_empty_string (uri)) {
+	if (!actual_error && tracker_is_empty_string (uri)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
-                                             "URI is empty");
-        }
+					     "URI is empty");
+	}
 
 	if (actual_error) {
 		dbus_g_method_return_error (context, actual_error);
@@ -234,17 +234,17 @@ tracker_keywords_get (TrackerKeywords        *object,
 }
 
 void
-tracker_keywords_add (TrackerKeywords        *object,
-		      const gchar            *service_type,
-		      const gchar            *uri,
-		      gchar                 **keywords,
+tracker_keywords_add (TrackerKeywords	     *object,
+		      const gchar	     *service_type,
+		      const gchar	     *uri,
+		      gchar		    **keywords,
 		      DBusGMethodInvocation  *context,
-		      GError                 **error)
+		      GError		     **error)
 {
 	TrackerDBInterface  *iface;
-	guint                request_id;
-	gchar               *id;
-	GError              *actual_error = NULL;
+	guint		     request_id;
+	gchar		    *id;
+	GError		    *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -261,21 +261,21 @@ tracker_keywords_add (TrackerKeywords        *object,
 	if (!tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
-                                             "Service type '%s' is invalid or has not been implemented yet",
-                                             service_type);
+					     "Service type '%s' is invalid or has not been implemented yet",
+					     service_type);
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
 		return;
 	}
 
-        if (tracker_is_empty_string (uri)) {
+	if (tracker_is_empty_string (uri)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
-                                             "URI is empty");
+					     "URI is empty");
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
 		return;
-        }
+	}
 
 	iface = tracker_db_manager_get_db_interface_by_service (service_type);
 	id = tracker_db_file_get_id_as_string (iface, service_type, uri);
@@ -313,17 +313,17 @@ tracker_keywords_add (TrackerKeywords        *object,
 }
 
 void
-tracker_keywords_remove (TrackerKeywords        *object,
-			 const gchar            *service_type,
-			 const gchar            *uri,
-			 gchar                 **keywords,
-			 DBusGMethodInvocation  *context,
-			 GError                **error)
+tracker_keywords_remove (TrackerKeywords	*object,
+			 const gchar		*service_type,
+			 const gchar		*uri,
+			 gchar		       **keywords,
+			 DBusGMethodInvocation	*context,
+			 GError		       **error)
 {
 	TrackerDBInterface  *iface;
-	guint                request_id;
-	gchar               *service_id;
-	GError              *actual_error = NULL;
+	guint		     request_id;
+	gchar		    *service_id;
+	GError		    *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -340,21 +340,21 @@ tracker_keywords_remove (TrackerKeywords        *object,
 	if (!tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
-                                             "Service type '%s' is invalid or has not been implemented yet",
-                                             service_type);
+					     "Service type '%s' is invalid or has not been implemented yet",
+					     service_type);
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
 		return;
 	}
 
-        if (tracker_is_empty_string (uri)) {
+	if (tracker_is_empty_string (uri)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
-                                             "URI is empty");
+					     "URI is empty");
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
 		return;
-        }
+	}
 
 	/* Check the uri exists, so we dont start the indexer in vain */
 	iface = tracker_db_manager_get_db_interface_by_service (service_type);
@@ -393,17 +393,17 @@ tracker_keywords_remove (TrackerKeywords        *object,
 }
 
 void
-tracker_keywords_remove_all (TrackerKeywords        *object,
-			     const gchar            *service_type,
-			     const gchar            *uri,
+tracker_keywords_remove_all (TrackerKeywords	    *object,
+			     const gchar	    *service_type,
+			     const gchar	    *uri,
 			     DBusGMethodInvocation  *context,
-			     GError                **error)
+			     GError		   **error)
 {
 	TrackerDBInterface *iface;
-	guint               request_id;
-	gchar             **values;
-	gchar              *service_id;
-	GError             *actual_error = NULL;
+	guint		    request_id;
+	gchar		  **values;
+	gchar		   *service_id;
+	GError		   *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -419,21 +419,21 @@ tracker_keywords_remove_all (TrackerKeywords        *object,
 	if (!tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
-                                             "Service type '%s' is invalid or has not been implemented yet",
-                                             service_type);
+					     "Service type '%s' is invalid or has not been implemented yet",
+					     service_type);
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
 		return;
 	}
 
-        if (tracker_is_empty_string (uri)) {
+	if (tracker_is_empty_string (uri)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
-                                             "URI is empty");
+					     "URI is empty");
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
 		return;
-        }
+	}
 
 	/* Check the uri exists, so we dont start the indexer in vain */
 	iface = tracker_db_manager_get_db_interface_by_service (service_type);
@@ -474,26 +474,26 @@ tracker_keywords_remove_all (TrackerKeywords        *object,
 }
 
 void
-tracker_keywords_search (TrackerKeywords        *object,
-			 gint                    live_query_id,
-			 const gchar            *service_type,
-			 const gchar           **keywords,
-			 gint                    offset,
-			 gint                    max_hits,
-			 DBusGMethodInvocation  *context,
-			 GError                **error)
+tracker_keywords_search (TrackerKeywords	*object,
+			 gint			 live_query_id,
+			 const gchar		*service_type,
+			 const gchar	       **keywords,
+			 gint			 offset,
+			 gint			 max_hits,
+			 DBusGMethodInvocation	*context,
+			 GError		       **error)
 {
 	TrackerDBInterface  *iface;
 	TrackerDBResultSet  *result_set;
-	guint                request_id;
-	const gchar        **p;
-	GString             *search;
-	GString             *select;
-	GString             *where;
-	gchar               *related_metadata;
-	gchar               *query;
-	gchar              **values;
-	GError              *actual_error = NULL;
+	guint		     request_id;
+	const gchar	   **p;
+	GString		    *search;
+	GString		    *select;
+	GString		    *where;
+	gchar		    *related_metadata;
+	gchar		    *query;
+	gchar		   **values;
+	GError		    *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -512,8 +512,8 @@ tracker_keywords_search (TrackerKeywords        *object,
 	if (!tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
-                                             "Service_Type '%s' is invalid or has not been implemented yet",
-                                             service_type);
+					     "Service_Type '%s' is invalid or has not been implemented yet",
+					     service_type);
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
 		return;
@@ -556,7 +556,7 @@ tracker_keywords_search (TrackerKeywords        *object,
 	g_string_free (search, TRUE);
 
 	g_string_append_printf (where,
-				"  and  (S.ServiceTypeID in (select TypeId from ServiceTypes where TypeName = '%s' or Parent = '%s')) ",
+				"  and	(S.ServiceTypeID in (select TypeId from ServiceTypes where TypeName = '%s' or Parent = '%s')) ",
 				service_type,
 				service_type);
 

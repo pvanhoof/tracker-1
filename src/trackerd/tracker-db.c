@@ -50,7 +50,7 @@
 #define ZLIBBUFSIZ 8192
 
 typedef struct {
-	TrackerConfig   *config;
+	TrackerConfig	*config;
 	TrackerLanguage *language;
 } TrackerDBPrivate;
 
@@ -77,13 +77,13 @@ private_free (gpointer data)
 
 static gchar *
 compress_string (const gchar *ptr,
-		 gint         size,
-		 gint        *compressed_size)
+		 gint	      size,
+		 gint	     *compressed_size)
 {
 	z_stream       zs;
-	gchar         *buf, *swap;
+	gchar	      *buf, *swap;
 	unsigned char  obuf[ZLIBBUFSIZ];
-	gint           rv, asiz, bsiz, osiz;
+	gint	       rv, asiz, bsiz, osiz;
 
 	if (size < 0) {
 		size = strlen (ptr);
@@ -168,7 +168,7 @@ compress_string (const gchar *ptr,
 
 static gboolean
 db_exec_proc_no_reply (TrackerDBInterface *iface,
-		       const gchar        *procedure,
+		       const gchar	  *procedure,
 		       ...)
 {
 	TrackerDBResultSet *result_set;
@@ -193,12 +193,12 @@ db_exec_proc_no_reply (TrackerDBInterface *iface,
 
 static void
 db_save_full_text (TrackerDBInterface *iface,
-		   const gchar        *str_file_id,
-		   const gchar        *text,
-		   gint                length)
+		   const gchar	      *str_file_id,
+		   const gchar	      *text,
+		   gint		       length)
 {
-	gchar       *compressed, *value = NULL;
-	gint         bytes_compressed;
+	gchar	    *compressed, *value = NULL;
+	gint	     bytes_compressed;
 	const gchar *field_id;
 
 	compressed = compress_string (text, length, &bytes_compressed);
@@ -243,9 +243,9 @@ update_metadata_index (const gchar  *id,
 		       const gchar  *new_value)
 {
 	TrackerDBPrivate *private;
-	GHashTable       *old_table;
-	GHashTable       *new_table;
-	gint              sid;
+	GHashTable	 *old_table;
+	GHashTable	 *new_table;
+	gint		  sid;
 
 	g_return_if_fail (TRACKER_IS_FIELD (def));
 
@@ -260,9 +260,9 @@ update_metadata_index (const gchar  *id,
 						 old_value,
 						 tracker_field_get_weight (def),
 						 private->language,
- 						 tracker_config_get_max_words_to_index (private->config),
- 						 tracker_config_get_max_word_length (private->config),
- 						 tracker_config_get_min_word_length (private->config),
+						 tracker_config_get_max_words_to_index (private->config),
+						 tracker_config_get_max_word_length (private->config),
+						 tracker_config_get_min_word_length (private->config),
 						 tracker_field_get_filtered (def),
 						 tracker_field_get_delimited (def));
 	}
@@ -273,9 +273,9 @@ update_metadata_index (const gchar  *id,
 						 new_value,
 						 tracker_field_get_weight (def),
 						 private->language,
- 						 tracker_config_get_max_words_to_index (private->config),
- 						 tracker_config_get_max_word_length (private->config),
- 						 tracker_config_get_min_word_length (private->config),
+						 tracker_config_get_max_words_to_index (private->config),
+						 tracker_config_get_max_word_length (private->config),
+						 tracker_config_get_min_word_length (private->config),
 						 tracker_field_get_filtered (def),
 						 tracker_field_get_delimited (def));
 	}
@@ -292,10 +292,10 @@ update_metadata_index (const gchar  *id,
 
 static gchar *
 get_backup_id (TrackerDBInterface *iface,
-	       const gchar        *id)
+	       const gchar	  *id)
 {
 	TrackerDBResultSet *result_set;
-	gchar              *backup_id = NULL;
+	gchar		   *backup_id = NULL;
 
 	result_set = tracker_db_exec_proc (iface,
 					   "GetBackupServiceByID",
@@ -323,9 +323,9 @@ get_backup_id (TrackerDBInterface *iface,
 
 static inline void
 backup_non_embedded_metadata (TrackerDBInterface *iface,
-			      const gchar        *id,
-			      const gchar        *key_id,
-			      const gchar        *value)
+			      const gchar	 *id,
+			      const gchar	 *key_id,
+			      const gchar	 *value)
 {
 	gchar *backup_id;
 
@@ -344,9 +344,9 @@ backup_non_embedded_metadata (TrackerDBInterface *iface,
 
 static inline void
 backup_delete_non_embedded_metadata_value (TrackerDBInterface *iface,
-					   const gchar        *id,
-					   const gchar        *key_id,
-					   const gchar        *value)
+					   const gchar	      *id,
+					   const gchar	      *key_id,
+					   const gchar	      *value)
 {
 	gchar *backup_id;
 
@@ -365,8 +365,8 @@ backup_delete_non_embedded_metadata_value (TrackerDBInterface *iface,
 
 static inline void
 backup_delete_non_embedded_metadata (TrackerDBInterface *iface,
-				     const gchar        *id,
-				     const gchar        *key_id)
+				     const gchar	*id,
+				     const gchar	*key_id)
 {
 	gchar *backup_id;
 
@@ -387,8 +387,8 @@ remove_value (const gchar *str,
 	      const gchar *del_str)
 {
 	GString  *s = NULL;
-	gchar   **p;
-	gchar   **strv;
+	gchar	**p;
+	gchar	**strv;
 
 	strv = g_strsplit (str, "|", -1);
 
@@ -418,13 +418,13 @@ remove_value (const gchar *str,
 /* Deprecated */
 static guint32
 db_create_event (TrackerDBInterface *iface,
-		 const gchar        *service_id_str,
-		 const gchar        *type)
+		 const gchar	    *service_id_str,
+		 const gchar	    *type)
 {
 	TrackerDBResultSet *result_set;
-	gchar	           *eid;
-	gint	            i;
-	guint32	            id = 0;
+	gchar		   *eid;
+	gint		    i;
+	guint32		    id = 0;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), 0);
 
@@ -474,11 +474,11 @@ db_create_event (TrackerDBInterface *iface,
 
 GArray *
 tracker_db_create_array_of_services (const gchar *service,
-				     gboolean     basic_services)
+				     gboolean	  basic_services)
 {
-	GArray   *array;
-	gint      services[12];
-	gint      count;
+	GArray	 *array;
+	gint	  services[12];
+	gint	  count;
 	gboolean  add_files;
 	gboolean  add_emails;
 	gboolean  add_conversations;
@@ -544,7 +544,7 @@ tracker_db_create_array_of_services (const gchar *service,
 }
 
 void
-tracker_db_init (TrackerConfig   *config,
+tracker_db_init (TrackerConfig	 *config,
 		 TrackerLanguage *language,
 		 TrackerDBIndex  *file_index,
 		 TrackerDBIndex  *email_index)
@@ -590,11 +590,11 @@ tracker_db_shutdown (void)
 
 gboolean
 tracker_db_exec_no_reply (TrackerDBInterface *iface,
-			  const gchar        *query,
+			  const gchar	     *query,
 			  ...)
 {
 	TrackerDBResultSet *result_set;
-	va_list             args;
+	va_list		    args;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), FALSE);
 	g_return_val_if_fail (query != NULL, FALSE);
@@ -616,11 +616,11 @@ tracker_db_exec_no_reply (TrackerDBInterface *iface,
 
 TrackerDBResultSet *
 tracker_db_exec (TrackerDBInterface *iface,
-		 const gchar        *query,
+		 const gchar	    *query,
 		 ...)
 {
 	TrackerDBResultSet *result_set;
-	va_list             args;
+	va_list		    args;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
 	g_return_val_if_fail (query != NULL, NULL);
@@ -641,11 +641,11 @@ tracker_db_exec (TrackerDBInterface *iface,
 
 TrackerDBResultSet *
 tracker_db_exec_proc (TrackerDBInterface *iface,
-		      const gchar        *procedure,
+		      const gchar	 *procedure,
 		      ...)
 {
 	TrackerDBResultSet *result_set;
-	va_list             args;
+	va_list		    args;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
 	g_return_val_if_fail (procedure != NULL, NULL);
@@ -673,11 +673,11 @@ tracker_db_get_field_name (const gchar *service,
 		return g_strdup_printf ("KeyMetadata%d", key_field);
 	}
 
-	if (strcasecmp (meta_name, "File:Path") == 0)     return g_strdup ("Path");
-	if (strcasecmp (meta_name, "File:Name") == 0)     return g_strdup ("Name");
-	if (strcasecmp (meta_name, "File:Mime") == 0)     return g_strdup ("Mime");
-	if (strcasecmp (meta_name, "File:Size") == 0)     return g_strdup ("Size");
-	if (strcasecmp (meta_name, "File:Rank") == 0)     return g_strdup ("Rank");
+	if (strcasecmp (meta_name, "File:Path") == 0)	  return g_strdup ("Path");
+	if (strcasecmp (meta_name, "File:Name") == 0)	  return g_strdup ("Name");
+	if (strcasecmp (meta_name, "File:Mime") == 0)	  return g_strdup ("Mime");
+	if (strcasecmp (meta_name, "File:Size") == 0)	  return g_strdup ("Size");
+	if (strcasecmp (meta_name, "File:Rank") == 0)	  return g_strdup ("Rank");
 	if (strcasecmp (meta_name, "File:Modified") == 0) return g_strdup ("IndexTime");
 
 	return NULL;
@@ -685,25 +685,25 @@ tracker_db_get_field_name (const gchar *service,
 
 TrackerDBResultSet *
 tracker_db_search_text (TrackerDBInterface *iface,
-			const gchar        *service,
-			const gchar        *search_string,
-			gint                offset,
-			gint                limit,
-			gboolean            save_results,
-			gboolean            detailed)
+			const gchar	   *service,
+			const gchar	   *search_string,
+			gint		    offset,
+			gint		    limit,
+			gboolean	    save_results,
+			gboolean	    detailed)
 {
 	TrackerDBPrivate    *private;
 	TrackerQueryTree    *tree;
 	TrackerDBResultSet  *result_set, *result;
-	gchar 		   **array;
-	GArray              *hits;
-	gint 		     count;
+	gchar		   **array;
+	GArray		    *hits;
+	gint		     count;
 	gboolean	     detailed_emails = FALSE, detailed_apps = FALSE;
 	gint		     service_array[255];
-	const gchar         *procedure;
-	GArray              *services = NULL;
-	GSList              *duds = NULL;
-	guint                i = 0;
+	const gchar	    *procedure;
+	GArray		    *services = NULL;
+	GSList		    *duds = NULL;
+	guint		     i = 0;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
 	g_return_val_if_fail (service != NULL, NULL);
@@ -726,7 +726,7 @@ tracker_db_search_text (TrackerDBInterface *iface,
 
 	if (result_set) {
 		gboolean valid = TRUE;
-		gint     type_id;
+		gint	 type_id;
 
 		while (valid) {
 			tracker_db_result_set_get (result_set, 0, &type_id, -1);
@@ -760,8 +760,8 @@ tracker_db_search_text (TrackerDBInterface *iface,
 	count = 0;
 
 	for (i = 0; i < hits->len; i++) {
-		TrackerDBIndexItemRank  rank;
-		gchar                  *str_id;
+		TrackerDBIndexItemRank	rank;
+		gchar		       *str_id;
 
 		if (count >= limit) {
 			break;
@@ -853,7 +853,7 @@ tracker_db_search_text (TrackerDBInterface *iface,
 	if (duds) {
 		TrackerDBIndex *file_index;
 		TrackerDBIndex *email_index;
-		GSList         *words, *w;
+		GSList	       *words, *w;
 
 		words = tracker_query_tree_get_words (tree);
 		file_index = tracker_db_index_manager_get_index (TRACKER_DB_INDEX_FILE);
@@ -891,16 +891,16 @@ tracker_db_search_text (TrackerDBInterface *iface,
 
 TrackerDBResultSet *
 tracker_db_search_text_and_mime (TrackerDBInterface  *iface,
-				 const gchar         *text,
-				 gchar              **mime_array)
+				 const gchar	     *text,
+				 gchar		    **mime_array)
 {
 	TrackerDBPrivate   *private;
 	TrackerQueryTree   *tree;
 	TrackerDBResultSet *result_set1;
-	GArray             *hits;
-	GArray             *services;
-	gint                count = 0;
-	guint               i;
+	GArray		   *hits;
+	GArray		   *services;
+	gint		    count = 0;
+	guint		    i;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
 	g_return_val_if_fail (text != NULL, NULL);
@@ -920,8 +920,8 @@ tracker_db_search_text_and_mime (TrackerDBInterface  *iface,
 
 	for (i = 0, count = 0; i < hits->len; i++) {
 		TrackerDBResultSet     *result_set2;
-		TrackerDBIndexItemRank  rank;
-		gchar                  *str_id, *mimetype;
+		TrackerDBIndexItemRank	rank;
+		gchar		       *str_id, *mimetype;
 
 		rank = g_array_index (hits, TrackerDBIndexItemRank, i);
 
@@ -988,17 +988,17 @@ tracker_db_search_text_and_mime (TrackerDBInterface  *iface,
 
 TrackerDBResultSet *
 tracker_db_search_text_and_location (TrackerDBInterface *iface,
-				     const gchar        *text,
-				     const gchar        *location)
+				     const gchar	*text,
+				     const gchar	*location)
 {
 	TrackerDBPrivate   *private;
 	TrackerDBResultSet *result_set1;
 	TrackerQueryTree   *tree;
-	GArray             *hits;
-	GArray             *services;
-	gchar	           *location_prefix;
-	gint 	            count;
-	guint               i;
+	GArray		   *hits;
+	GArray		   *services;
+	gchar		   *location_prefix;
+	gint		    count;
+	guint		    i;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
 	g_return_val_if_fail (text != NULL, NULL);
@@ -1019,8 +1019,8 @@ tracker_db_search_text_and_location (TrackerDBInterface *iface,
 
 	for (i = 0, count = 0; i < hits->len; i++) {
 		TrackerDBResultSet     *result_set2;
-		TrackerDBIndexItemRank  rank;
-		gchar                  *str_id, *path;
+		TrackerDBIndexItemRank	rank;
+		gchar		       *str_id, *path;
 
 		rank = g_array_index (hits, TrackerDBIndexItemRank, i);
 
@@ -1088,18 +1088,18 @@ tracker_db_search_text_and_location (TrackerDBInterface *iface,
 
 TrackerDBResultSet *
 tracker_db_search_text_and_mime_and_location (TrackerDBInterface  *iface,
-					      const gchar         *text,
-					      gchar              **mime_array,
-					      const gchar         *location)
+					      const gchar	  *text,
+					      gchar		 **mime_array,
+					      const gchar	  *location)
 {
 	TrackerDBPrivate   *private;
 	TrackerDBResultSet *result_set1;
 	TrackerQueryTree   *tree;
-	GArray             *hits;
-	GArray             *services;
-	gchar	           *location_prefix;
-	gint 	            count;
-	guint               i;
+	GArray		   *hits;
+	GArray		   *services;
+	gchar		   *location_prefix;
+	gint		    count;
+	guint		    i;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
 	g_return_val_if_fail (text != NULL, NULL);
@@ -1120,8 +1120,8 @@ tracker_db_search_text_and_mime_and_location (TrackerDBInterface  *iface,
 
 	for (i = 0, count = 0; i < hits->len; i++) {
 		TrackerDBResultSet     *result_set2;
-		TrackerDBIndexItemRank  rank;
-		gchar                  *str_id, *path, *mimetype;
+		TrackerDBIndexItemRank	rank;
+		gchar		       *str_id, *path, *mimetype;
 
 		rank = g_array_index (hits, TrackerDBIndexItemRank, i);
 
@@ -1195,8 +1195,8 @@ tracker_db_search_text_and_mime_and_location (TrackerDBInterface  *iface,
 
 TrackerDBResultSet *
 tracker_db_metadata_get (TrackerDBInterface *iface,
-			 const gchar        *id,
-			 const gchar        *key)
+			 const gchar	    *id,
+			 const gchar	    *key)
 {
 	TrackerField *def;
 	const gchar  *proc = NULL;
@@ -1247,14 +1247,14 @@ tracker_db_metadata_get (TrackerDBInterface *iface,
 
 TrackerDBResultSet *
 tracker_db_metadata_get_array (TrackerDBInterface *iface,
-			       const gchar        *service_type,
-			       const gchar        *service_id,
-			       gchar             ** keys)
+			       const gchar	  *service_type,
+			       const gchar	  *service_id,
+			       gchar		 ** keys)
 {
 	TrackerDBResultSet *result_set;
-	GString            *sql, *sql_join;
-	gchar              *query;
-	guint               i;
+	GString		   *sql, *sql_join;
+	gchar		   *query;
+	guint		    i;
 
 	/* Build SQL select clause */
 	sql = g_string_new (" SELECT DISTINCT ");
@@ -1320,11 +1320,11 @@ tracker_db_metadata_get_array (TrackerDBInterface *iface,
  */
 gchar *
 tracker_db_metadata_get_delimited (TrackerDBInterface *iface,
-				   const gchar        *id,
-				   const gchar        *key)
+				   const gchar	      *id,
+				   const gchar	      *key)
 {
 	TrackerDBResultSet *result_set;
-	GString            *s = NULL;
+	GString		   *s = NULL;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
 	g_return_val_if_fail (id != NULL, NULL);
@@ -1333,7 +1333,7 @@ tracker_db_metadata_get_delimited (TrackerDBInterface *iface,
 	result_set = tracker_db_metadata_get (iface, id, key);
 
 	if (result_set) {
-		gchar    *str;
+		gchar	 *str;
 		gboolean  valid = TRUE;
 
 		while (valid) {
@@ -1361,7 +1361,7 @@ tracker_db_metadata_get_delimited (TrackerDBInterface *iface,
 
 gchar *
 tracker_db_metadata_get_related_names (TrackerDBInterface *iface,
-				       const gchar        *name)
+				       const gchar	  *name)
 {
 	TrackerDBResultSet *result_set;
 
@@ -1377,7 +1377,7 @@ tracker_db_metadata_get_related_names (TrackerDBInterface *iface,
 	if (result_set) {
 		GString  *s = NULL;
 		gboolean  valid = TRUE;
-		gint      id;
+		gint	  id;
 
 		while (valid) {
 			tracker_db_result_set_get (result_set, 1, &id, -1);
@@ -1402,7 +1402,7 @@ tracker_db_metadata_get_related_names (TrackerDBInterface *iface,
 
 TrackerDBResultSet *
 tracker_db_xesam_get_metadata_names (TrackerDBInterface *iface,
-				     const gchar        *name)
+				     const gchar	*name)
 {
 	TrackerDBResultSet *result_set;
 
@@ -1476,11 +1476,11 @@ tracker_db_metadata_get_table (TrackerFieldType type)
 
 void
 tracker_db_metadata_set_single (TrackerDBInterface *iface,
-				const gchar        *service_type,
-				const gchar        *service_id,
-				const gchar        *key,
-				const gchar        *value,
-				gboolean            do_backup)
+				const gchar	   *service_type,
+				const gchar	   *service_id,
+				const gchar	   *key,
+				const gchar	   *value,
+				gboolean	    do_backup)
 {
 	gchar *array[2];
 
@@ -1498,22 +1498,22 @@ tracker_db_metadata_set_single (TrackerDBInterface *iface,
 
 gchar *
 tracker_db_metadata_set (TrackerDBInterface  *iface,
-			 const gchar         *service_type,
-			 const gchar         *service_id,
-			 const gchar         *key,
-			 gchar              **values,
-			 gboolean             do_backup)
+			 const gchar	     *service_type,
+			 const gchar	     *service_id,
+			 const gchar	     *key,
+			 gchar		    **values,
+			 gboolean	      do_backup)
 {
 	TrackerDBPrivate *private;
-	TrackerField     *def;
-	gchar 	         *old_value;
-	gchar            *new_value;
-	gchar            *res_service;
-	gboolean          update_index;
-	gint	          key_field;
-	guint             i;
-	guint             length;
-	GString          *str;
+	TrackerField	 *def;
+	gchar		 *old_value;
+	gchar		 *new_value;
+	gchar		 *res_service;
+	gboolean	  update_index;
+	gint		  key_field;
+	guint		  i;
+	guint		  length;
+	GString		 *str;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
 	g_return_val_if_fail (service_type != NULL, NULL);
@@ -1837,19 +1837,19 @@ tracker_db_metadata_set (TrackerDBInterface  *iface,
 
 void
 tracker_db_metadata_delete_value (TrackerDBInterface *iface,
-				  const gchar        *service,
-				  const gchar        *id,
-				  const gchar        *key,
-				  const gchar        *value)
+				  const gchar	     *service,
+				  const gchar	     *id,
+				  const gchar	     *key,
+				  const gchar	     *value)
 {
 	TrackerDBPrivate *private;
-	TrackerField     *def;
-	gchar            *old_value;
-	gchar            *new_value;
-	gchar            *mvalue;
-	gchar            *res_service;
-	gboolean          update_index;
-	gint              key_field;
+	TrackerField	 *def;
+	gchar		 *old_value;
+	gchar		 *new_value;
+	gchar		 *mvalue;
+	gchar		 *res_service;
+	gboolean	  update_index;
+	gint		  key_field;
 
 	g_return_if_fail (TRACKER_IS_DB_INTERFACE (iface));
 	g_return_if_fail (service != NULL);
@@ -1870,7 +1870,7 @@ tracker_db_metadata_delete_value (TrackerDBInterface *iface,
 	new_value = NULL;
 
 	if (!tracker_field_get_embedded (def) &&
-            tracker_ontology_service_has_embedded (service)) {
+	    tracker_ontology_service_has_embedded (service)) {
 		backup_delete_non_embedded_metadata_value (iface,
 							   id,
 							   tracker_field_get_id (def),
@@ -1960,7 +1960,7 @@ tracker_db_metadata_delete_value (TrackerDBInterface *iface,
 
 	if (key_field > 0) {
 		TrackerDBResultSet *result_set;
-		gchar              *value;
+		gchar		   *value;
 
 		result_set = tracker_db_metadata_get (iface, id, key);
 
@@ -2014,13 +2014,13 @@ tracker_db_metadata_delete (TrackerDBInterface *iface,
 			    const gchar        *service,
 			    const gchar        *id,
 			    const gchar        *key,
-			    gboolean            update_indexes)
+			    gboolean		update_indexes)
 {
 	TrackerField *def;
-	gchar        *old_value = NULL;
-	gchar        *res_service;
+	gchar	     *old_value = NULL;
+	gchar	     *res_service;
 	gboolean      update_index;
-	gint          key_field;
+	gint	      key_field;
 
 	g_return_if_fail (TRACKER_IS_DB_INTERFACE (iface));
 	g_return_if_fail (service != NULL);
@@ -2124,7 +2124,7 @@ tracker_db_metadata_delete (TrackerDBInterface *iface,
 
 TrackerDBResultSet *
 tracker_db_live_search_get_hit_count (TrackerDBInterface *iface,
-				      const gchar        *search_id)
+				      const gchar	 *search_id)
 {
 	/* SELECT count(*)
 	 * FROM LiveSearches
@@ -2141,10 +2141,10 @@ tracker_db_live_search_get_hit_count (TrackerDBInterface *iface,
 
 void
 tracker_db_live_search_start (TrackerDBInterface *iface,
-			      const gchar        *from_query,
-			      const gchar        *join_query,
-			      const gchar        *where_query,
-			      const gchar        *search_id)
+			      const gchar	 *from_query,
+			      const gchar	 *join_query,
+			      const gchar	 *where_query,
+			      const gchar	 *search_id)
 {
 	/* INSERT
 	 * INTO LiveSearches
@@ -2172,7 +2172,7 @@ tracker_db_live_search_start (TrackerDBInterface *iface,
 
 void
 tracker_db_live_search_stop (TrackerDBInterface *iface,
-			     const gchar        *search_id)
+			     const gchar	*search_id)
 {
 	/* DELETE
 	 * FROM LiveSearches as X
@@ -2260,51 +2260,51 @@ tracker_db_live_search_get_new_ids (TrackerDBInterface *iface,
 	result_set = tracker_db_exec (iface,
 				      "SELECT E.ServiceID, E.EventType "
 				      "%s%s cache.LiveSearches as X, Events as E " /* FROM   A1 */
-				       "%s"                                  /* JOINS  A2 */
-				       "%s"                                  /* WHERE  A3 */
+				       "%s"				     /* JOINS  A2 */
+				       "%s"				     /* WHERE  A3 */
 				      "%sX.ServiceID = E.ServiceID "
-				      "AND X.SearchID = '%s' "               /*        A4 */
+				      "AND X.SearchID = '%s' "		     /*        A4 */
 				      "AND E.EventType = 'Update' "
 				      "UNION "
 				      "SELECT E.ServiceID, E.EventType "
-				      "%s%s Events as E "                    /* FROM   B1 */
-				      "%s"                                   /* JOINS  B2 */
-				      "%s"                                   /* WHERE  B3 */
+				      "%s%s Events as E "		     /* FROM   B1 */
+				      "%s"				     /* JOINS  B2 */
+				      "%s"				     /* WHERE  B3 */
 				      "%sE.ServiceID = S.ID "
 				      "AND E.EventType = 'Create' ",
 				      from_query ? from_query : "FROM",      /*        A1 */
-				      from_query ? "," : "",                 /*        A1 */
-				      query_joins,                           /*        A2 */
+				      from_query ? "," : "",		     /*        A1 */
+				      query_joins,			     /*        A2 */
 				      where_query ? where_query : "WHERE",   /*        A3 */
-				      where_query ? "AND " : "",             /*        A3 */
-				      search_id,                             /*        A4 */
+				      where_query ? "AND " : "",	     /*        A3 */
+				      search_id,			     /*        A4 */
 				      from_query ? from_query : "FROM",      /*        B1 */
-				      from_query ? "," : "",                 /*        B1 */
-				      query_joins,                           /*        B2 */
+				      from_query ? "," : "",		     /*        B1 */
+				      query_joins,			     /*        B2 */
 				      where_query ? where_query : "WHERE",   /*        B3 */
-				      where_query ? "AND " : "");            /*        B3 */
+				      where_query ? "AND " : "");	     /*        B3 */
 
 	tracker_db_exec_no_reply (iface,
 				  "INSERT INTO cache.LiveSearches "
-				   "SELECT E.ServiceID, '%s' "               /*        B0 */
-				  "%s%s Events as E "                        /* FROM   B1 */
-				  "%s"                                       /* JOINS  B2 */
-				   "%s"                                      /* WHERE  B3 */
+				   "SELECT E.ServiceID, '%s' "		     /*        B0 */
+				  "%s%s Events as E "			     /* FROM   B1 */
+				  "%s"					     /* JOINS  B2 */
+				   "%s"					     /* WHERE  B3 */
 				  "%sE.ServiceID = S.ID"
 				  "AND E.EventType = 'Create' ",
-				  search_id,                                 /*        B0 */
-				  from_query ? from_query : "FROM",          /*        B1 */
-				  from_query ? "," : "",                     /*        B1 */
-				  query_joins,                               /*        B2 */
-				  where_query ? where_query : "WHERE",       /*        B3 */
-				  where_query ? "AND " : "");                /*        B3 */
+				  search_id,				     /*        B0 */
+				  from_query ? from_query : "FROM",	     /*        B1 */
+				  from_query ? "," : "",		     /*        B1 */
+				  query_joins,				     /*        B2 */
+				  where_query ? where_query : "WHERE",	     /*        B3 */
+				  where_query ? "AND " : "");		     /*        B3 */
 
 	return result_set;
 }
 
 TrackerDBResultSet*
 tracker_db_live_search_get_deleted_ids (TrackerDBInterface *iface,
-					const gchar        *search_id)
+					const gchar	   *search_id)
 {
 	/* SELECT E.ServiceID
 	 * FROM Events as E, LiveSearches as X
@@ -2345,10 +2345,10 @@ add_live_search_metadata_field (TrackerDBInterface *iface,
 {
 	TrackerDBResultSet *result_set;
 	TrackerFieldData   *field_data;
-	gboolean            field_exists;
-	const GSList       *l;
-	GList              *reply;
-	gboolean            valid;
+	gboolean	    field_exists;
+	const GSList	   *l;
+	GList		   *reply;
+	gboolean	    valid;
 
 	reply = NULL;
 	field_exists = FALSE;
@@ -2414,15 +2414,15 @@ add_live_search_metadata_field (TrackerDBInterface *iface,
 
 TrackerDBResultSet *
 tracker_db_live_search_get_hit_data (TrackerDBInterface *iface,
-				     const gchar        *search_id,
-				     GStrv               field_names)
+				     const gchar	*search_id,
+				     GStrv		 field_names)
 {
 	TrackerDBResultSet *result;
-	GSList             *fields = NULL;
-	GSList             *l = NULL;
-	GString            *sql_select;
-	GString            *sql_join;
-	gint                i = 0;
+	GSList		   *fields = NULL;
+	GSList		   *l = NULL;
+	GString		   *sql_select;
+	GString		   *sql_join;
+	gint		    i = 0;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
 	g_return_val_if_fail (search_id != NULL, NULL);
@@ -2497,25 +2497,25 @@ tracker_db_xesam_delete_handled_events (TrackerDBInterface *iface)
 /* Deprecated */
 guint32
 tracker_db_service_create (TrackerDBInterface *iface,
-			   const gchar        *service,
+			   const gchar	      *service,
 			   TrackerDBFileInfo  *info)
 {
 	TrackerDBPrivate   *private;
 	TrackerDBResultSet *result_set;
 	TrackerDBResultSet *result_set_proc;
-	gint	            i;
-	guint32	            id = 0;
-	gchar	           *sid;
-	gchar	           *str_mtime;
-	const gchar        *str_is_dir;
-	const gchar        *str_is_link;
-	gchar	           *str_filesize;
-	gchar              *str_offset;
-	gchar              *str_aux;
-	gint	            service_type_id;
-	gchar	           *str_service_type_id;
-	gchar              *path = NULL;
-	gchar              *name = NULL;
+	gint		    i;
+	guint32		    id = 0;
+	gchar		   *sid;
+	gchar		   *str_mtime;
+	const gchar	   *str_is_dir;
+	const gchar	   *str_is_link;
+	gchar		   *str_filesize;
+	gchar		   *str_offset;
+	gchar		   *str_aux;
+	gint		    service_type_id;
+	gchar		   *str_service_type_id;
+	gchar		   *path = NULL;
+	gchar		   *name = NULL;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), 0);
 	g_return_val_if_fail (info, 0);
@@ -2576,7 +2576,7 @@ tracker_db_service_create (TrackerDBInterface *iface,
 	} else {
 		g_debug ("service id for %s is %d and sid is %s",
 			 service, service_type_id, sid);
-        }
+	}
 
 	str_service_type_id = tracker_gint_to_string (service_type_id);
 	str_aux = tracker_gint_to_string (info->aux_id);
@@ -2620,7 +2620,7 @@ tracker_db_service_create (TrackerDBInterface *iface,
 			g_object_unref (result_set_proc);
 		}
 
-                parent = tracker_ontology_get_service_parent (service);
+		parent = tracker_ontology_get_service_parent (service);
 
 		if (parent) {
 			result_set_proc = tracker_db_exec_proc (iface,
@@ -2657,11 +2657,11 @@ tracker_db_service_create (TrackerDBInterface *iface,
  */
 gchar *
 tracker_db_service_get_by_entity (TrackerDBInterface *iface,
-				  const gchar        *id)
+				  const gchar	     *id)
 {
 	TrackerDBResultSet *result_set;
-	gint                service_type_id;
-	gchar              *result = NULL;
+	gint		    service_type_id;
+	gchar		   *result = NULL;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
 	g_return_val_if_fail (id != NULL, NULL);
@@ -2684,11 +2684,11 @@ tracker_db_service_get_by_entity (TrackerDBInterface *iface,
 
 guint32
 tracker_db_file_get_id (TrackerDBInterface *iface,
-			const gchar        *uri)
+			const gchar	   *uri)
 {
 	TrackerDBResultSet *result_set;
-	gchar              *path, *name;
-	guint32	            id;
+	gchar		   *path, *name;
+	guint32		    id;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), 0);
 	g_return_val_if_fail (uri != NULL, 0);
@@ -2716,10 +2716,10 @@ tracker_db_file_get_id (TrackerDBInterface *iface,
 
 gchar *
 tracker_db_file_get_id_as_string (TrackerDBInterface *iface,
-				  const gchar        *service,
-				  const gchar        *uri)
+				  const gchar	     *service,
+				  const gchar	     *uri)
 {
-	gint    service_id;
+	gint	service_id;
 	guint32	id;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
@@ -2743,10 +2743,10 @@ tracker_db_file_get_id_as_string (TrackerDBInterface *iface,
 
 gchar **
 tracker_db_files_get (TrackerDBInterface *iface,
-		      const gchar        *uri)
+		      const gchar	 *uri)
 {
 	TrackerDBResultSet *result_set;
-	GPtrArray          *array;
+	GPtrArray	   *array;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
 	g_return_val_if_fail (uri != NULL, NULL);
@@ -2758,7 +2758,7 @@ tracker_db_files_get (TrackerDBInterface *iface,
 	array = g_ptr_array_new ();
 
 	if (result_set) {
-		gchar    *name, *prefix;
+		gchar	 *name, *prefix;
 		gboolean  valid = TRUE;
 
 		while (valid) {
@@ -2784,13 +2784,13 @@ tracker_db_files_get (TrackerDBInterface *iface,
 
 TrackerDBResultSet *
 tracker_db_files_get_by_service (TrackerDBInterface *iface,
-				 const gchar        *service,
-				 gint                offset,
-				 gint                limit)
+				 const gchar	    *service,
+				 gint		     offset,
+				 gint		     limit)
 {
 	TrackerDBResultSet *result_set;
-	gchar              *str_limit;
-	gchar              *str_offset;
+	gchar		   *str_limit;
+	gchar		   *str_offset;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
 	g_return_val_if_fail (service != NULL, NULL);
@@ -2814,17 +2814,17 @@ tracker_db_files_get_by_service (TrackerDBInterface *iface,
 
 TrackerDBResultSet *
 tracker_db_files_get_by_mime (TrackerDBInterface  *iface,
-			      gchar              **mimes,
-			      gint                 n,
-			      gint                 offset,
-			      gint                 limit,
-			      gboolean             vfs)
+			      gchar		 **mimes,
+			      gint		   n,
+			      gint		   offset,
+			      gint		   limit,
+			      gboolean		   vfs)
 {
 	TrackerDBResultSet *result_set;
-	gint	            i;
-	gchar              *service;
-	gchar	           *query;
-	GString	           *str;
+	gint		    i;
+	gchar		   *service;
+	gchar		   *query;
+	GString		   *str;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
 	g_return_val_if_fail (mimes != NULL, NULL);
@@ -2860,8 +2860,8 @@ tracker_db_files_get_by_mime (TrackerDBInterface  *iface,
 
 TrackerDBResultSet *
 tracker_db_metadata_get_types (TrackerDBInterface *iface,
-			       const gchar        *class,
-			       gboolean            writeable)
+			       const gchar	  *class,
+			       gboolean		   writeable)
 {
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
 	g_return_val_if_fail (class != NULL, NULL);
@@ -2893,10 +2893,10 @@ tracker_db_metadata_get_types (TrackerDBInterface *iface,
 
 TrackerDBResultSet *
 tracker_db_keywords_get_list (TrackerDBInterface *iface,
-			      const gchar        *service)
+			      const gchar	 *service)
 {
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
- 	g_return_val_if_fail (service != NULL, NULL);
+	g_return_val_if_fail (service != NULL, NULL);
 
 	return tracker_db_exec_proc (iface,
 				     "GetKeywordList",
@@ -2907,14 +2907,14 @@ tracker_db_keywords_get_list (TrackerDBInterface *iface,
 
 TrackerFieldData *
 tracker_db_get_metadata_field (TrackerDBInterface *iface,
-			       const gchar        *service,
-			       const gchar        *field_name,
-			       gint                field_count,
-			       gboolean            is_select,
-			       gboolean            is_condition)
+			       const gchar	  *service,
+			       const gchar	  *field_name,
+			       gint		   field_count,
+			       gboolean		   is_select,
+			       gboolean		   is_condition)
 {
 	TrackerFieldData *field_data = NULL;
-	TrackerField     *def;
+	TrackerField	 *def;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INTERFACE (iface), NULL);
 	g_return_val_if_fail (service != NULL, NULL);
@@ -2923,10 +2923,10 @@ tracker_db_get_metadata_field (TrackerDBInterface *iface,
 	def = tracker_ontology_get_field_by_name (field_name);
 
 	if (def) {
-		gchar       *alias;
+		gchar	    *alias;
 		const gchar *table_name;
-		gchar       *this_field_name;
-		gchar       *where_field;
+		gchar	    *this_field_name;
+		gchar	    *where_field;
 
 		field_data = g_object_new (TRACKER_TYPE_FIELD_DATA,
 					   "is-select", is_select,
@@ -2990,8 +2990,8 @@ tracker_db_get_option_int (const gchar *option)
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
-	gchar              *str;
-	gint                value = 0;
+	gchar		   *str;
+	gint		    value = 0;
 
 	g_return_val_if_fail (option != NULL, 0);
 
@@ -3022,11 +3022,11 @@ tracker_db_get_option_int (const gchar *option)
 
 void
 tracker_db_set_option_int (const gchar *option,
-			   gint         value)
+			   gint		value)
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
-	gchar              *str;
+	gchar		   *str;
 
 	g_return_if_fail (option != NULL);
 

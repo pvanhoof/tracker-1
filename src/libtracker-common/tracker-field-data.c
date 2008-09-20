@@ -31,30 +31,30 @@
 typedef struct _TrackerFieldDataPriv TrackerFieldDataPriv;
 
 struct _TrackerFieldDataPriv {
-	gchar 		 *alias;
+	gchar		 *alias;
 
-	gchar	 	 *table_name;
-	gchar 	 	 *field_name;
+	gchar		 *table_name;
+	gchar		 *field_name;
 
-	gchar	 	 *select_field;
-	gchar	 	 *where_field;
-	gchar	 	 *id_field;
+	gchar		 *select_field;
+	gchar		 *where_field;
+	gchar		 *id_field;
 
 	TrackerFieldType  data_type;
 
-	gboolean          multiple_values;
-	gboolean          is_select;
-	gboolean          is_condition;
-	gboolean          needs_join;
+	gboolean	  multiple_values;
+	gboolean	  is_select;
+	gboolean	  is_condition;
+	gboolean	  needs_join;
 };
 
-static void field_data_finalize     (GObject      *object);
-static void field_data_get_property (GObject      *object,
-				     guint         param_id,
-				     GValue       *value,
+static void field_data_finalize     (GObject	  *object);
+static void field_data_get_property (GObject	  *object,
+				     guint	   param_id,
+				     GValue	  *value,
 				     GParamSpec   *pspec);
-static void field_data_set_property (GObject      *object,
-				     guint         param_id,
+static void field_data_set_property (GObject	  *object,
+				     guint	   param_id,
 				     const GValue *value,
 				     GParamSpec   *pspec);
 
@@ -80,7 +80,7 @@ tracker_field_data_class_init (TrackerFieldDataClass *klass)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-	object_class->finalize     = field_data_finalize;
+	object_class->finalize	   = field_data_finalize;
 	object_class->get_property = field_data_get_property;
 	object_class->set_property = field_data_set_property;
 
@@ -192,7 +192,7 @@ field_data_finalize (GObject *object)
 
 static void
 field_data_get_property (GObject    *object,
-			 guint       param_id,
+			 guint	     param_id,
 			 GValue     *value,
 			 GParamSpec *pspec)
 {
@@ -242,7 +242,7 @@ field_data_get_property (GObject    *object,
 
 static void
 field_data_set_property (GObject      *object,
-			 guint         param_id,
+			 guint	       param_id,
 			 const GValue *value,
 			 GParamSpec   *pspec)
 {
@@ -463,7 +463,7 @@ tracker_field_data_set_alias (TrackerFieldData *field_data,
 
 void
 tracker_field_data_set_table_name (TrackerFieldData *field_data,
-				   const gchar      *value)
+				   const gchar	    *value)
 {
 	TrackerFieldDataPriv *priv;
 
@@ -484,7 +484,7 @@ tracker_field_data_set_table_name (TrackerFieldData *field_data,
 
 void
 tracker_field_data_set_field_name (TrackerFieldData *field_data,
-				   const gchar      *value)
+				   const gchar	    *value)
 {
 	TrackerFieldDataPriv *priv;
 
@@ -547,7 +547,7 @@ tracker_field_data_set_where_field (TrackerFieldData *field_data,
 
 void
 tracker_field_data_set_id_field (TrackerFieldData *field_data,
-				 const gchar      *value)
+				 const gchar	  *value)
 {
 	TrackerFieldDataPriv *priv;
 
@@ -582,7 +582,7 @@ tracker_field_data_set_data_type (TrackerFieldData *field_data,
 
 void
 tracker_field_data_set_multiple_values (TrackerFieldData *field_data,
-					gboolean          value)
+					gboolean	  value)
 {
 	TrackerFieldDataPriv *priv;
 
@@ -596,7 +596,7 @@ tracker_field_data_set_multiple_values (TrackerFieldData *field_data,
 
 void
 tracker_field_data_set_is_select (TrackerFieldData *field_data,
-				  gboolean          value)
+				  gboolean	    value)
 {
 	TrackerFieldDataPriv *priv;
 
@@ -610,7 +610,7 @@ tracker_field_data_set_is_select (TrackerFieldData *field_data,
 
 void
 tracker_field_data_set_is_condition (TrackerFieldData *field_data,
-				     gboolean          value)
+				     gboolean	       value)
 {
 	TrackerFieldDataPriv *priv;
 
@@ -624,7 +624,7 @@ tracker_field_data_set_is_condition (TrackerFieldData *field_data,
 
 void
 tracker_field_data_set_needs_join (TrackerFieldData *field_data,
-				   gboolean          value)
+				   gboolean	     value)
 {
 	TrackerFieldDataPriv *priv;
 

@@ -28,14 +28,14 @@ G_BEGIN_DECLS
 
 #ifdef HAVE_HAL
 
-#define TRACKER_TYPE_HAL         (tracker_hal_get_type ())
-#define TRACKER_HAL(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_HAL, TrackerHal))
-#define TRACKER_HAL_CLASS(k)     (G_TYPE_CHECK_CLASS_CAST ((k), TRACKER_TYPE_HAL, TrackerHalClass))
-#define TRACKER_IS_HAL(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), TRACKER_TYPE_HAL))
+#define TRACKER_TYPE_HAL	 (tracker_hal_get_type ())
+#define TRACKER_HAL(o)		 (G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_HAL, TrackerHal))
+#define TRACKER_HAL_CLASS(k)	 (G_TYPE_CHECK_CLASS_CAST ((k), TRACKER_TYPE_HAL, TrackerHalClass))
+#define TRACKER_IS_HAL(o)	 (G_TYPE_CHECK_INSTANCE_TYPE ((o), TRACKER_TYPE_HAL))
 #define TRACKER_IS_HAL_CLASS(k)  (G_TYPE_CHECK_CLASS_TYPE ((k), TRACKER_TYPE_HAL))
 #define TRACKER_HAL_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o), TRACKER_TYPE_HAL, TrackerHalClass))
 
-typedef struct _TrackerHal      TrackerHal;
+typedef struct _TrackerHal	TrackerHal;
 typedef struct _TrackerHalClass TrackerHalClass;
 
 struct _TrackerHal {
@@ -46,11 +46,11 @@ struct _TrackerHalClass {
 	GObjectClass parent_class;
 };
 
-GType       tracker_hal_get_type                    (void) G_GNUC_CONST;
+GType	    tracker_hal_get_type		    (void) G_GNUC_CONST;
 
-TrackerHal *tracker_hal_new                         (void);
-gboolean    tracker_hal_get_battery_in_use          (TrackerHal *hal);
-gboolean    tracker_hal_get_battery_exists          (TrackerHal *hal);
+TrackerHal *tracker_hal_new			    (void);
+gboolean    tracker_hal_get_battery_in_use	    (TrackerHal *hal);
+gboolean    tracker_hal_get_battery_exists	    (TrackerHal *hal);
 GSList *    tracker_hal_get_mounted_directory_roots (TrackerHal *hal);
 GSList *    tracker_hal_get_removable_device_roots  (TrackerHal *hal);
 

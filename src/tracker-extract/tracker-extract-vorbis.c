@@ -120,23 +120,23 @@ tracker_metadata_ogg_write (const char *meta_name, const char *value)
 void
 tracker_extract_vorbis (const char *filename, GHashTable *metadata)
 {
-        gint           fd;
-	FILE           *oggFile;
+	gint	       fd;
+	FILE	       *oggFile;
 	OggVorbis_File vf;
-	gint           i;
+	gint	       i;
 
 #if defined(__linux__)
-        if ((fd = g_open (filename, (O_RDONLY | O_NOATIME))) == -1) {
+	if ((fd = g_open (filename, (O_RDONLY | O_NOATIME))) == -1) {
 #else
-        if ((fd = g_open (filename, O_RDONLY)) == -1) {
+	if ((fd = g_open (filename, O_RDONLY)) == -1) {
 #endif
-                return;
-        }
+		return;
+	}
 
 	oggFile = fdopen (fd, "r");
 
 	if (!oggFile) {
-                close (fd);
+		close (fd);
 		return;
 	}
 
@@ -201,4 +201,4 @@ tracker_extract_vorbis (const char *filename, GHashTable *metadata)
 
 #else
 #warning "Not building ogg/vorbis metadata extractor"
-#endif  /* HAVE_VORBIS */
+#endif	/* HAVE_VORBIS */

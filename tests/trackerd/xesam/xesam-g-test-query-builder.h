@@ -15,9 +15,9 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with xesam-glib.  If not, write to:
- * 	The Free Software Foundation, Inc.,
- * 	51 Franklin Street, Fifth Floor
- * 	Boston, MA  02110-1301, USA.
+ *	The Free Software Foundation, Inc.,
+ *	51 Franklin Street, Fifth Floor
+ *	Boston, MA  02110-1301, USA.
  */
 
 #ifndef __XESAM_G_TEST_QUERY_BUILDER_H__
@@ -50,9 +50,9 @@ struct _XesamGTestQueryBuilderClass {
 	GObjectClass parent;
 };
 
-XesamGTestQueryBuilder* 	xesam_g_test_query_builder_new			(void);
+XesamGTestQueryBuilder*		xesam_g_test_query_builder_new			(void);
 
-GType 						xesam_g_test_query_builder_get_type		(void);
+GType						xesam_g_test_query_builder_get_type		(void);
 
 void						xesam_g_test_query_builder_expect_data	(XesamGTestQueryBuilder	*self,
 																	 XesamGQueryToken		token,

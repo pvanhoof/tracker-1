@@ -33,14 +33,14 @@
 #include <tracker-indexer/tracker-module.h>
 
 #define METADATA_FILE_NAME_DELIMITED "File:NameDelimited"
-#define METADATA_FILE_EXT            "File:Ext"
-#define METADATA_FILE_PATH           "File:Path"
-#define METADATA_FILE_NAME           "File:Name"
-#define METADATA_FILE_LINK           "File:Link"
-#define METADATA_FILE_MIMETYPE       "File:Mime"
-#define METADATA_FILE_SIZE           "File:Size"
-#define METADATA_FILE_MODIFIED       "File:Modified"
-#define METADATA_FILE_ACCESSED       "File:Accessed"
+#define METADATA_FILE_EXT	     "File:Ext"
+#define METADATA_FILE_PATH	     "File:Path"
+#define METADATA_FILE_NAME	     "File:Name"
+#define METADATA_FILE_LINK	     "File:Link"
+#define METADATA_FILE_MIMETYPE	     "File:Mime"
+#define METADATA_FILE_SIZE	     "File:Size"
+#define METADATA_FILE_MODIFIED	     "File:Modified"
+#define METADATA_FILE_ACCESSED	     "File:Accessed"
 
 G_CONST_RETURN gchar *
 tracker_module_get_name (void)
@@ -52,14 +52,14 @@ tracker_module_get_name (void)
 gchar *
 tracker_module_file_get_service_type (TrackerFile *file)
 {
-        gchar *mime_type;
-        gchar *service_type;
+	gchar *mime_type;
+	gchar *service_type;
 
-        mime_type = tracker_file_get_mime_type (file->path);
-        service_type = tracker_ontology_get_service_by_mime (mime_type);
-        g_free (mime_type);
+	mime_type = tracker_file_get_mime_type (file->path);
+	service_type = tracker_ontology_get_service_by_mime (mime_type);
+	g_free (mime_type);
 
-        return service_type;
+	return service_type;
 }
 
 static gboolean
@@ -135,11 +135,11 @@ tracker_module_file_get_metadata (TrackerFile *file)
 
 	path = file->path;
 
-        if (check_exclude_file (path)) {
-                return NULL;
-        }
+	if (check_exclude_file (path)) {
+		return NULL;
+	}
 
-        return tracker_metadata_utils_get_data (path);
+	return tracker_metadata_utils_get_data (path);
 }
 
 gchar *
@@ -149,9 +149,9 @@ tracker_module_file_get_text (TrackerFile *file)
 
 	path = file->path;
 
-        if (check_exclude_file (path)) {
-                return NULL;
-        }
+	if (check_exclude_file (path)) {
+		return NULL;
+	}
 
-        return tracker_metadata_utils_get_text (path);
+	return tracker_metadata_utils_get_text (path);
 }

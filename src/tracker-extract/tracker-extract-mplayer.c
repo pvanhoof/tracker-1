@@ -31,7 +31,7 @@
 #include "tracker-extract.h"
 
 static void extract_mplayer (const gchar *filename,
-                             GHashTable  *metadata);
+			     GHashTable  *metadata);
 
 static TrackerExtractorData data[] = {
 	{ "audio/*", extract_mplayer },
@@ -76,17 +76,17 @@ static gchar *info_tags[][3] = {
 
 static void
 copy_hash_table_entry (gpointer key,
-                       gpointer value,
-                       gpointer user_data)
+		       gpointer value,
+		       gpointer user_data)
 {
 	g_hash_table_insert (user_data,
-                             g_strdup (key),
-                             g_strdup (value));
+			     g_strdup (key),
+			     g_strdup (value));
 }
 
 static void
 extract_mplayer (const gchar *filename,
-                 GHashTable  *metadata)
+		 GHashTable  *metadata)
 {
 	gchar *argv[10];
 	gchar *mplayer;
@@ -104,14 +104,14 @@ extract_mplayer (const gchar *filename,
 
 	if (tracker_spawn (argv, 10, &mplayer, NULL)) {
 		GPatternSpec  *pattern_ID_AUDIO_ID;
-                GPatternSpec  *pattern_ID_VIDEO_ID;
+		GPatternSpec  *pattern_ID_VIDEO_ID;
 		GPatternSpec  *pattern_ID_AUDIO;
-                GPatternSpec  *pattern_ID_VIDEO;
-                GPatternSpec  *pattern_ID_CLIP_INFO_NAME;
-                GPatternSpec  *pattern_ID_CLIP_INFO_VALUE;
-                GPatternSpec  *pattern_ID_LENGTH;
+		GPatternSpec  *pattern_ID_VIDEO;
+		GPatternSpec  *pattern_ID_CLIP_INFO_NAME;
+		GPatternSpec  *pattern_ID_CLIP_INFO_VALUE;
+		GPatternSpec  *pattern_ID_LENGTH;
 		GHashTable    *tmp_metadata_audio;
-                GHashTable    *tmp_metadata_video;
+		GHashTable    *tmp_metadata_video;
 		gboolean       has_audio, has_video;
 		gchar	      *duration;
 		gchar	     **lines, **line;

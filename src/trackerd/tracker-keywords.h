@@ -24,20 +24,20 @@
 
 #include <glib-object.h>
 
-#define TRACKER_KEYWORDS_SERVICE         "org.freedesktop.Tracker"
-#define TRACKER_KEYWORDS_PATH            "/org/freedesktop/Tracker/Keywords"
-#define TRACKER_KEYWORDS_INTERFACE       "org.freedesktop.Tracker.Keywords"
+#define TRACKER_KEYWORDS_SERVICE	 "org.freedesktop.Tracker"
+#define TRACKER_KEYWORDS_PATH		 "/org/freedesktop/Tracker/Keywords"
+#define TRACKER_KEYWORDS_INTERFACE	 "org.freedesktop.Tracker.Keywords"
 
 G_BEGIN_DECLS
 
-#define TRACKER_TYPE_KEYWORDS            (tracker_keywords_get_type ())
-#define TRACKER_KEYWORDS(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), TRACKER_TYPE_KEYWORDS, TrackerKeywords))
-#define TRACKER_KEYWORDS_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), TRACKER_TYPE_KEYWORDS, TrackerKeywordsClass))
-#define TRACKER_IS_KEYWORDS(object)      (G_TYPE_CHECK_INSTANCE_TYPE ((object), TRACKER_TYPE_KEYWORDS))
+#define TRACKER_TYPE_KEYWORDS		 (tracker_keywords_get_type ())
+#define TRACKER_KEYWORDS(object)	 (G_TYPE_CHECK_INSTANCE_CAST ((object), TRACKER_TYPE_KEYWORDS, TrackerKeywords))
+#define TRACKER_KEYWORDS_CLASS(klass)	 (G_TYPE_CHECK_CLASS_CAST ((klass), TRACKER_TYPE_KEYWORDS, TrackerKeywordsClass))
+#define TRACKER_IS_KEYWORDS(object)	 (G_TYPE_CHECK_INSTANCE_TYPE ((object), TRACKER_TYPE_KEYWORDS))
 #define TRACKER_IS_KEYWORDS_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), TRACKER_TYPE_KEYWORDS))
 #define TRACKER_KEYWORDS_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), TRACKER_TYPE_KEYWORDS, TrackerKeywordsClass))
 
-typedef struct TrackerKeywords      TrackerKeywords;
+typedef struct TrackerKeywords	    TrackerKeywords;
 typedef struct TrackerKeywordsClass TrackerKeywordsClass;
 
 struct TrackerKeywords {
@@ -48,42 +48,42 @@ struct TrackerKeywordsClass {
 	GObjectClass parent;
 };
 
-GType            tracker_keywords_get_type   (void);
-TrackerKeywords *tracker_keywords_new        (void);
-void             tracker_keywords_get_list   (TrackerKeywords        *object,
-					      const gchar            *service_type,
+GType		 tracker_keywords_get_type   (void);
+TrackerKeywords *tracker_keywords_new	     (void);
+void		 tracker_keywords_get_list   (TrackerKeywords	     *object,
+					      const gchar	     *service_type,
 					      DBusGMethodInvocation  *context,
-					      GError                **error);
-void             tracker_keywords_get        (TrackerKeywords        *object,
-					      const gchar            *service_type,
-					      const gchar            *uri,
+					      GError		    **error);
+void		 tracker_keywords_get	     (TrackerKeywords	     *object,
+					      const gchar	     *service_type,
+					      const gchar	     *uri,
 					      DBusGMethodInvocation  *context,
-					      GError                **error);
-void             tracker_keywords_add        (TrackerKeywords        *object,
-					      const gchar            *service_type,
-					      const gchar            *uri,
-					      gchar                 **keywords,
+					      GError		    **error);
+void		 tracker_keywords_add	     (TrackerKeywords	     *object,
+					      const gchar	     *service_type,
+					      const gchar	     *uri,
+					      gchar		    **keywords,
 					      DBusGMethodInvocation  *context,
-					      GError                **error);
-void             tracker_keywords_remove     (TrackerKeywords        *object,
-					      const gchar            *service_type,
-					      const gchar            *uri,
-					      gchar                 **keywords,
+					      GError		    **error);
+void		 tracker_keywords_remove     (TrackerKeywords	     *object,
+					      const gchar	     *service_type,
+					      const gchar	     *uri,
+					      gchar		    **keywords,
 					      DBusGMethodInvocation  *context,
-					      GError                **error);
-void             tracker_keywords_remove_all (TrackerKeywords        *object,
-					      const gchar            *service_type,
-					      const gchar            *uri,
+					      GError		    **error);
+void		 tracker_keywords_remove_all (TrackerKeywords	     *object,
+					      const gchar	     *service_type,
+					      const gchar	     *uri,
 					      DBusGMethodInvocation  *context,
-					      GError                **error);
-void             tracker_keywords_search     (TrackerKeywords        *object,
-					      gint                    live_query_id,
-					      const gchar            *service_type,
-					      const gchar           **keywords,
-					      gint                    offset,
-					      gint                    max_hits,
+					      GError		    **error);
+void		 tracker_keywords_search     (TrackerKeywords	     *object,
+					      gint		      live_query_id,
+					      const gchar	     *service_type,
+					      const gchar	    **keywords,
+					      gint		      offset,
+					      gint		      max_hits,
 					      DBusGMethodInvocation  *context,
-					      GError                **error);
+					      GError		    **error);
 
 
 G_END_DECLS

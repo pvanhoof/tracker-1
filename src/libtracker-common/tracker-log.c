@@ -36,19 +36,19 @@
 #include "tracker-log.h"
 
 static gboolean  initialized;
-static GMutex   *mutex;
-static FILE     *fd;
-static gint      verbosity;
-static guint     log_handler_id;
+static GMutex	*mutex;
+static FILE	*fd;
+static gint	 verbosity;
+static guint	 log_handler_id;
 
 static inline void
 log_output (const gchar    *domain,
 	    GLogLevelFlags  log_level,
 	    const gchar    *message)
 {
-	time_t        now;
-	gchar         time_str[64];
-	gchar        *output;
+	time_t	      now;
+	gchar	      time_str[64];
+	gchar	     *output;
 	struct tm    *local_time;
 	GTimeVal      current_time;
 	const gchar  *log_level_str;
@@ -115,7 +115,7 @@ static void
 tracker_log_handler (const gchar    *domain,
 		     GLogLevelFlags  log_level,
 		     const gchar    *message,
-		     gpointer        user_data)
+		     gpointer	     user_data)
 {
 	if (((log_level & G_LOG_LEVEL_DEBUG) && verbosity < 3) ||
 	    ((log_level & G_LOG_LEVEL_INFO) && verbosity < 2) ||
@@ -131,7 +131,7 @@ tracker_log_handler (const gchar    *domain,
 
 gboolean
 tracker_log_init (const gchar *filename,
-		  gint         this_verbosity)
+		  gint	       this_verbosity)
 {
 	g_return_val_if_fail (filename != NULL, FALSE);
 

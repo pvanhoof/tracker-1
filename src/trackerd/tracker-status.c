@@ -63,7 +63,7 @@ private_free (gpointer data)
 gboolean
 tracker_status_init (TrackerConfig *config)
 {
-	GType                 type;
+	GType		      type;
 	TrackerStatusPrivate *private;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), FALSE);
@@ -125,56 +125,56 @@ tracker_status_shutdown (void)
 GType
 tracker_status_get_type (void)
 {
-        static GType type = 0;
+	static GType type = 0;
 
-        if (type == 0) {
-                static const GEnumValue values[] = {
-                        { TRACKER_STATUS_INITIALIZING,
-                          "TRACKER_STATUS_INITIALIZING",
-                          "Initializing" },
-                        { TRACKER_STATUS_WATCHING,
-                          "TRACKER_STATUS_WATCHING",
-                          "Watching" },
-                        { TRACKER_STATUS_INDEXING,
-                          "TRACKER_STATUS_INDEXING",
-                          "Indexing" },
-                        { TRACKER_STATUS_PENDING,
-                          "TRACKER_STATUS_PENDING",
-                          "Pending" },
-                        { TRACKER_STATUS_OPTIMIZING,
-                          "TRACKER_STATUS_OPTIMIZING",
-                          "Optimizing" },
-                        { TRACKER_STATUS_IDLE,
-                          "TRACKER_STATUS_IDLE",
-                          "Idle" },
-                        { TRACKER_STATUS_SHUTDOWN,
-                          "TRACKER_STATUS_SHUTDOWN",
-                          "Shutdown" },
-                        { 0, NULL, NULL }
-                };
+	if (type == 0) {
+		static const GEnumValue values[] = {
+			{ TRACKER_STATUS_INITIALIZING,
+			  "TRACKER_STATUS_INITIALIZING",
+			  "Initializing" },
+			{ TRACKER_STATUS_WATCHING,
+			  "TRACKER_STATUS_WATCHING",
+			  "Watching" },
+			{ TRACKER_STATUS_INDEXING,
+			  "TRACKER_STATUS_INDEXING",
+			  "Indexing" },
+			{ TRACKER_STATUS_PENDING,
+			  "TRACKER_STATUS_PENDING",
+			  "Pending" },
+			{ TRACKER_STATUS_OPTIMIZING,
+			  "TRACKER_STATUS_OPTIMIZING",
+			  "Optimizing" },
+			{ TRACKER_STATUS_IDLE,
+			  "TRACKER_STATUS_IDLE",
+			  "Idle" },
+			{ TRACKER_STATUS_SHUTDOWN,
+			  "TRACKER_STATUS_SHUTDOWN",
+			  "Shutdown" },
+			{ 0, NULL, NULL }
+		};
 
-                type = g_enum_register_static ("TrackerStatus", values);
-        }
+		type = g_enum_register_static ("TrackerStatus", values);
+	}
 
-        return type;
+	return type;
 }
 
 const gchar *
 tracker_status_to_string (TrackerStatus status)
 {
-        GType       type;
-        GEnumClass *enum_class;
-        GEnumValue *enum_value;
+	GType	    type;
+	GEnumClass *enum_class;
+	GEnumValue *enum_value;
 
-        type = tracker_status_get_type ();
-        enum_class = G_ENUM_CLASS (g_type_class_peek (type));
-        enum_value = g_enum_get_value (enum_class, status);
+	type = tracker_status_get_type ();
+	enum_class = G_ENUM_CLASS (g_type_class_peek (type));
+	enum_value = g_enum_get_value (enum_class, status);
 
-        if (!enum_value) {
-                enum_value = g_enum_get_value (enum_class, TRACKER_STATUS_IDLE);
-        }
+	if (!enum_value) {
+		enum_value = g_enum_get_value (enum_class, TRACKER_STATUS_IDLE);
+	}
 
-        return enum_value->value_nick;
+	return enum_value->value_nick;
 }
 
 TrackerStatus
@@ -185,7 +185,7 @@ tracker_status_get (void)
 	private = g_static_private_get (&private_key);
 	g_return_val_if_fail (private != NULL, TRACKER_STATUS_INITIALIZING);
 
-        return private->status;
+	return private->status;
 }
 
 const gchar *
@@ -196,7 +196,7 @@ tracker_status_get_as_string (void)
 	private = g_static_private_get (&private_key);
 	g_return_val_if_fail (private != NULL, tracker_status_to_string (TRACKER_STATUS_INITIALIZING));
 
-        return tracker_status_to_string (private->status);
+	return tracker_status_to_string (private->status);
 }
 
 void
@@ -207,20 +207,20 @@ tracker_status_set (TrackerStatus new_status)
 	private = g_static_private_get (&private_key);
 	g_return_if_fail (private != NULL);
 
-        private->status = new_status;
+	private->status = new_status;
 }
 
 void
 tracker_status_signal (void)
 {
 	TrackerStatusPrivate *private;
-        GObject              *object;
-	gboolean              pause_on_battery;
+	GObject		     *object;
+	gboolean	      pause_on_battery;
 
 	private = g_static_private_get (&private_key);
 	g_return_if_fail (private != NULL);
 
-        object = tracker_dbus_get_object (TRACKER_TYPE_DAEMON);
+	object = tracker_dbus_get_object (TRACKER_TYPE_DAEMON);
 
 	/* There are times on startup whe we haven't initialized the
 	 * DBus objects yet so signalling status is not practical.
@@ -229,22 +229,22 @@ tracker_status_signal (void)
 		return;
 	}
 
-        if (private->is_first_time_index) {
-                pause_on_battery =
+	if (private->is_first_time_index) {
+		pause_on_battery =
 			tracker_config_get_disable_indexing_on_battery_init (private->config);
-        } else {
+	} else {
 		pause_on_battery =
 			tracker_config_get_disable_indexing_on_battery (private->config);
 	}
 
-        g_signal_emit_by_name (object,
-                               "index-state-change",
-                               tracker_status_to_string (private->status),
-                               private->is_first_time_index,
-                               private->in_merge,
-                               private->is_paused_manually,
-                               pause_on_battery,
-                               private->is_paused_for_io,
+	g_signal_emit_by_name (object,
+			       "index-state-change",
+			       tracker_status_to_string (private->status),
+			       private->is_first_time_index,
+			       private->in_merge,
+			       private->is_paused_manually,
+			       pause_on_battery,
+			       private->is_paused_for_io,
 			       !private->is_readonly);
 }
 
@@ -252,22 +252,22 @@ void
 tracker_status_set_and_signal (TrackerStatus new_status)
 {
 	TrackerStatusPrivate *private;
-        gboolean              emit;
+	gboolean	      emit;
 
 	private = g_static_private_get (&private_key);
 	g_return_if_fail (private != NULL);
 
-        emit = private->status != new_status;
+	emit = private->status != new_status;
 
-        if (!emit) {
-                return;
-        }
+	if (!emit) {
+		return;
+	}
 
 	g_message ("State change from '%s' --> '%s'",
 		   tracker_status_to_string (private->status),
 		   tracker_status_to_string (new_status));
 
-        tracker_status_set (new_status);
+	tracker_status_set (new_status);
 	tracker_status_signal ();
 }
 
@@ -286,7 +286,7 @@ void
 tracker_status_set_is_readonly (gboolean value)
 {
 	TrackerStatusPrivate *private;
-	gboolean              emit;
+	gboolean	      emit;
 
 	private = g_static_private_get (&private_key);
 	g_return_if_fail (private != NULL);
@@ -319,7 +319,7 @@ void
 tracker_status_set_is_running (gboolean value)
 {
 	TrackerStatusPrivate *private;
-	gboolean              emit;
+	gboolean	      emit;
 
 	private = g_static_private_get (&private_key);
 	g_return_if_fail (private != NULL);
@@ -352,7 +352,7 @@ void
 tracker_status_set_is_first_time_index (gboolean value)
 {
 	TrackerStatusPrivate *private;
-	gboolean              emit;
+	gboolean	      emit;
 
 	private = g_static_private_get (&private_key);
 	g_return_if_fail (private != NULL);
@@ -385,7 +385,7 @@ void
 tracker_status_set_in_merge (gboolean value)
 {
 	TrackerStatusPrivate *private;
-	gboolean              emit;
+	gboolean	      emit;
 
 	private = g_static_private_get (&private_key);
 	g_return_if_fail (private != NULL);
@@ -418,7 +418,7 @@ void
 tracker_status_set_is_paused_manually (gboolean value)
 {
 	TrackerStatusPrivate *private;
-	gboolean              emit;
+	gboolean	      emit;
 
 	private = g_static_private_get (&private_key);
 	g_return_if_fail (private != NULL);
@@ -451,7 +451,7 @@ void
 tracker_status_set_is_paused_for_io (gboolean value)
 {
 	TrackerStatusPrivate *private;
-	gboolean              emit;
+	gboolean	      emit;
 
 	private = g_static_private_get (&private_key);
 	g_return_if_fail (private != NULL);

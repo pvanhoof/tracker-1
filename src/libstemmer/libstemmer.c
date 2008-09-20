@@ -67,8 +67,8 @@ sb_stemmer_new(const char * algorithm, const char * charenc)
     stemmer->env = stemmer->create();
     if (stemmer->env == NULL)
     {
-        sb_stemmer_delete(stemmer);
-        return NULL;
+	sb_stemmer_delete(stemmer);
+	return NULL;
     }
 
     return stemmer;
@@ -90,8 +90,8 @@ sb_stemmer_stem(struct sb_stemmer * stemmer, const sb_symbol * word, int size)
     int ret;
     if (SN_set_current(stemmer->env, size, (const symbol *)(word)))
     {
-        stemmer->env->l = 0;
-        return NULL;
+	stemmer->env->l = 0;
+	return NULL;
     }
     ret = stemmer->stem(stemmer->env);
     if (ret < 0) return NULL;

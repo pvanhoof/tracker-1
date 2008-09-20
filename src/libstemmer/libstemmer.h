@@ -67,7 +67,7 @@ struct sb_stemmer * sb_stemmer_new(const char * algorithm, const char * charenc)
  *  It is safe to pass a null pointer to this function - this will have
  *  no effect.
  */
-void                sb_stemmer_delete(struct sb_stemmer * stemmer);
+void		    sb_stemmer_delete(struct sb_stemmer * stemmer);
 
 /** Stem a word.
  *
@@ -85,7 +85,7 @@ const sb_symbol *   sb_stemmer_stem(struct sb_stemmer * stemmer,
 /** Get the length of the result of the last stemmed word.
  *  This should not be called before sb_stemmer_stem() has been called.
  */
-int                 sb_stemmer_length(struct sb_stemmer * stemmer);
+int		    sb_stemmer_length(struct sb_stemmer * stemmer);
 
 #ifdef __cplusplus
 }

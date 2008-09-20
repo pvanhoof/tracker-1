@@ -258,31 +258,31 @@ tracker_configuration_free (void)
 	g_key_file_free (configuration);
 }
 
-#define TRACKER_CONFIGURATION_GET_(TypeName, GTypeName, Null)                                   \
-GTypeName                                                                                       \
-tracker_configuration_get_##TypeName (const gchar * const key, GError ** error)                 \
-{                                                                                               \
-	gchar **data = g_strsplit (key, "/", 3);                                                \
-	GTypeName value = Null;                                                                 \
-                                                                                                \
-	if (g_key_file_has_key (configuration, data[1], data[2], error)) {                      \
-		value = g_key_file_get_##TypeName (configuration, data[1], data[2], error);     \
-	}                                                                                       \
-                                                                                                \
-	g_strfreev (data);                                                                      \
-	return value;                                                                           \
+#define TRACKER_CONFIGURATION_GET_(TypeName, GTypeName, Null)					\
+GTypeName											\
+tracker_configuration_get_##TypeName (const gchar * const key, GError ** error)			\
+{												\
+	gchar **data = g_strsplit (key, "/", 3);						\
+	GTypeName value = Null;									\
+												\
+	if (g_key_file_has_key (configuration, data[1], data[2], error)) {			\
+		value = g_key_file_get_##TypeName (configuration, data[1], data[2], error);	\
+	}											\
+												\
+	g_strfreev (data);									\
+	return value;										\
 }
 
-#define TRACKER_CONFIGURATION_SET_(TypeName, GTypeName)                                         \
-void                                                                                            \
-tracker_configuration_set_##TypeName (const gchar * const key, const GTypeName value)           \
-{                                                                                               \
-	gchar **data = g_strsplit (key, "/", 3);                                                \
-                                                                                                \
-	g_key_file_set_##TypeName (configuration, data[1], data[2], value);                     \
-                                                                                                \
-	g_strfreev (data);                                                                      \
-	dirty = TRUE;                                                                           \
+#define TRACKER_CONFIGURATION_SET_(TypeName, GTypeName)						\
+void												\
+tracker_configuration_set_##TypeName (const gchar * const key, const GTypeName value)		\
+{												\
+	gchar **data = g_strsplit (key, "/", 3);						\
+												\
+	g_key_file_set_##TypeName (configuration, data[1], data[2], value);			\
+												\
+	g_strfreev (data);									\
+	dirty = TRUE;										\
 }
 
 TRACKER_CONFIGURATION_GET_(boolean, gboolean, FALSE)
@@ -297,69 +297,69 @@ TRACKER_CONFIGURATION_SET_(string, gchar *)
 #undef TRACKER_CONFIGURATION_GET_
 #undef TRACKER_CONFIGURATION_SET_
 
-#define TRACKER_CONFIGURATION_LIST_GET_(TypeName, GTypeName)                                                    \
-static GSList *                                                                                                 \
-tracker_configuration_get_##TypeName##_list (const gchar * const key, GError ** error)                          \
-{                                                                                                               \
-	gchar **data = NULL;                                                                                    \
-	GSList *retval = NULL;                                                                                  \
-                                                                                                                \
-	g_return_val_if_fail (key, NULL);                                                                       \
-                                                                                                                \
-	data = g_strsplit (key, "/", 3);                                                                        \
-                                                                                                                \
-	if (g_key_file_has_key (configuration, data[1], data[2], error)) {                                      \
-		gsize length = 0;                                                                               \
-		GTypeName *values = NULL;                                                                       \
-                                                                                                                \
-		values = g_key_file_get_##TypeName##_list (configuration, data[1], data[2], &length, error);    \
-                                                                                                                \
-		if (values) {                                                                                   \
-			gsize i = 0;                                                                            \
-                                                                                                                \
-			for (i = 0; i < length; i++) {                                                          \
-				GTypeName *value = g_new0 (GTypeName, 1);                                       \
-				*value = values[i];                                                             \
-                                                                                                                \
-				retval = g_slist_prepend (retval, value);                                       \
-			}                                                                                       \
-                                                                                                                \
-			g_free (values);                                                                        \
-		}                                                                                               \
-	}                                                                                                       \
-                                                                                                                \
-	g_strfreev (data);                                                                                      \
-	return g_slist_reverse (retval);                                                                        \
+#define TRACKER_CONFIGURATION_LIST_GET_(TypeName, GTypeName)							\
+static GSList *													\
+tracker_configuration_get_##TypeName##_list (const gchar * const key, GError ** error)				\
+{														\
+	gchar **data = NULL;											\
+	GSList *retval = NULL;											\
+														\
+	g_return_val_if_fail (key, NULL);									\
+														\
+	data = g_strsplit (key, "/", 3);									\
+														\
+	if (g_key_file_has_key (configuration, data[1], data[2], error)) {					\
+		gsize length = 0;										\
+		GTypeName *values = NULL;									\
+														\
+		values = g_key_file_get_##TypeName##_list (configuration, data[1], data[2], &length, error);	\
+														\
+		if (values) {											\
+			gsize i = 0;										\
+														\
+			for (i = 0; i < length; i++) {								\
+				GTypeName *value = g_new0 (GTypeName, 1);					\
+				*value = values[i];								\
+														\
+				retval = g_slist_prepend (retval, value);					\
+			}											\
+														\
+			g_free (values);									\
+		}												\
+	}													\
+														\
+	g_strfreev (data);											\
+	return g_slist_reverse (retval);									\
 }
 
-#define TRACKER_CONFIGURATION_LIST_SET_(TypeName, GTypeName)                                    \
-static void                                                                                     \
-tracker_configuration_set_##TypeName##_list (const gchar * const key, GSList * value)           \
-{                                                                                               \
-	gchar **data = NULL;                                                                    \
-	GTypeName *list = NULL;                                                                 \
-	guint length = 0;                                                                       \
-                                                                                                \
-	g_return_if_fail (key);                                                                 \
-	g_return_if_fail (value);                                                               \
-                                                                                                \
-	data = g_strsplit (key, "/", 3);                                                        \
-	length = g_slist_length (value);                                                        \
-	list = g_new0 (GTypeName, length);                                                      \
-                                                                                                \
-	guint i;                                                                                \
-	const GSList *tmp;                                                                      \
-	for (i = 0, tmp = value; tmp; tmp = tmp->next, i++) {                                   \
-		if (tmp->data) {                                                                \
-			GTypeName *n = tmp->data;                                               \
-			list[i] = *n;                                                           \
-		}                                                                               \
-	}                                                                                       \
-                                                                                                \
-	g_key_file_set_##TypeName##_list (configuration, data[1], data[2], list, length);       \
-                                                                                                \
-	g_free (list);                                                                          \
-	g_strfreev (data);                                                                      \
+#define TRACKER_CONFIGURATION_LIST_SET_(TypeName, GTypeName)					\
+static void											\
+tracker_configuration_set_##TypeName##_list (const gchar * const key, GSList * value)		\
+{												\
+	gchar **data = NULL;									\
+	GTypeName *list = NULL;									\
+	guint length = 0;									\
+												\
+	g_return_if_fail (key);									\
+	g_return_if_fail (value);								\
+												\
+	data = g_strsplit (key, "/", 3);							\
+	length = g_slist_length (value);							\
+	list = g_new0 (GTypeName, length);							\
+												\
+	guint i;										\
+	const GSList *tmp;									\
+	for (i = 0, tmp = value; tmp; tmp = tmp->next, i++) {					\
+		if (tmp->data) {								\
+			GTypeName *n = tmp->data;						\
+			list[i] = *n;								\
+		}										\
+	}											\
+												\
+	g_key_file_set_##TypeName##_list (configuration, data[1], data[2], list, length);	\
+												\
+	g_free (list);										\
+	g_strfreev (data);									\
 }
 
 TRACKER_CONFIGURATION_LIST_GET_(boolean, gboolean)

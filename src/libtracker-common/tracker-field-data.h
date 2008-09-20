@@ -28,11 +28,11 @@
 
 G_BEGIN_DECLS
 
-#define TRACKER_TYPE_FIELD_DATA         (tracker_field_data_get_type ())
-#define TRACKER_FIELD_DATA(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_FIELD_DATA, TrackerFieldData))
-#define TRACKER_FIELD_DATA_CLASS(k)     (G_TYPE_CHECK_CLASS_CAST ((k), TRACKER_TYPE_FIELD_DATA, TrackerFieldDataClass))
-#define TRACKER_IS_FIELD_DATA(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), TRACKER_TYPE_FIELD_DATA))
-#define TRACKER_IS_FIELD_DATA_CLASS(k)  (G_TYPE_CHECK_CLASS_TYPE ((k), TRACKER_TYPE_FIELD_DATA))
+#define TRACKER_TYPE_FIELD_DATA		(tracker_field_data_get_type ())
+#define TRACKER_FIELD_DATA(o)		(G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_FIELD_DATA, TrackerFieldData))
+#define TRACKER_FIELD_DATA_CLASS(k)	(G_TYPE_CHECK_CLASS_CAST ((k), TRACKER_TYPE_FIELD_DATA, TrackerFieldDataClass))
+#define TRACKER_IS_FIELD_DATA(o)	(G_TYPE_CHECK_INSTANCE_TYPE ((o), TRACKER_TYPE_FIELD_DATA))
+#define TRACKER_IS_FIELD_DATA_CLASS(k)	(G_TYPE_CHECK_CLASS_TYPE ((k), TRACKER_TYPE_FIELD_DATA))
 #define TRACKER_FIELD_DATA_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o), TRACKER_TYPE_FIELD_DATA, TrackerFieldDataClass))
 
 typedef struct _TrackerFieldData      TrackerFieldData;
@@ -46,44 +46,44 @@ struct _TrackerFieldDataClass {
 	GObjectClass parent_class;
 };
 
-GType             tracker_field_data_get_type            (void) G_GNUC_CONST;
+GType		  tracker_field_data_get_type		 (void) G_GNUC_CONST;
 
-TrackerFieldData *tracker_field_data_new                 (void);
+TrackerFieldData *tracker_field_data_new		 (void);
 
-const gchar *     tracker_field_data_get_alias           (TrackerFieldData *field_data);
-const gchar *     tracker_field_data_get_table_name      (TrackerFieldData *field_data);
-const gchar *     tracker_field_data_get_field_name      (TrackerFieldData *field_data);
-const gchar *     tracker_field_data_get_select_field    (TrackerFieldData *field_data);
-const gchar *     tracker_field_data_get_where_field     (TrackerFieldData *field_data);
-const gchar *     tracker_field_data_get_id_field        (TrackerFieldData *field_data);
-TrackerFieldType  tracker_field_data_get_data_type       (TrackerFieldData *field_data);
-gboolean          tracker_field_data_get_multiple_values (TrackerFieldData *field_data);
-gboolean          tracker_field_data_get_is_select       (TrackerFieldData *field_data);
-gboolean          tracker_field_data_get_is_condition    (TrackerFieldData *field_data);
-gboolean          tracker_field_data_get_needs_join      (TrackerFieldData *field_data);
+const gchar *	  tracker_field_data_get_alias		 (TrackerFieldData *field_data);
+const gchar *	  tracker_field_data_get_table_name	 (TrackerFieldData *field_data);
+const gchar *	  tracker_field_data_get_field_name	 (TrackerFieldData *field_data);
+const gchar *	  tracker_field_data_get_select_field	 (TrackerFieldData *field_data);
+const gchar *	  tracker_field_data_get_where_field	 (TrackerFieldData *field_data);
+const gchar *	  tracker_field_data_get_id_field	 (TrackerFieldData *field_data);
+TrackerFieldType  tracker_field_data_get_data_type	 (TrackerFieldData *field_data);
+gboolean	  tracker_field_data_get_multiple_values (TrackerFieldData *field_data);
+gboolean	  tracker_field_data_get_is_select	 (TrackerFieldData *field_data);
+gboolean	  tracker_field_data_get_is_condition	 (TrackerFieldData *field_data);
+gboolean	  tracker_field_data_get_needs_join	 (TrackerFieldData *field_data);
 
-void              tracker_field_data_set_alias           (TrackerFieldData *field_data,
-							  const gchar      *value);
-void              tracker_field_data_set_table_name      (TrackerFieldData *field_data,
-							  const gchar      *value);
-void              tracker_field_data_set_field_name      (TrackerFieldData *field_data,
-							  const gchar      *value);
-void              tracker_field_data_set_select_field    (TrackerFieldData *field_data,
-							  const gchar      *value);
-void              tracker_field_data_set_where_field     (TrackerFieldData *field_data,
-							  const gchar      *value);
-void              tracker_field_data_set_id_field        (TrackerFieldData *field_data,
-							  const gchar      *value);
-void              tracker_field_data_set_data_type       (TrackerFieldData *field_data,
+void		  tracker_field_data_set_alias		 (TrackerFieldData *field_data,
+							  const gchar	   *value);
+void		  tracker_field_data_set_table_name	 (TrackerFieldData *field_data,
+							  const gchar	   *value);
+void		  tracker_field_data_set_field_name	 (TrackerFieldData *field_data,
+							  const gchar	   *value);
+void		  tracker_field_data_set_select_field	 (TrackerFieldData *field_data,
+							  const gchar	   *value);
+void		  tracker_field_data_set_where_field	 (TrackerFieldData *field_data,
+							  const gchar	   *value);
+void		  tracker_field_data_set_id_field	 (TrackerFieldData *field_data,
+							  const gchar	   *value);
+void		  tracker_field_data_set_data_type	 (TrackerFieldData *field_data,
 							  TrackerFieldType  value);
-void              tracker_field_data_set_multiple_values (TrackerFieldData *field_data,
-							  gboolean          value);
-void              tracker_field_data_set_is_select       (TrackerFieldData *field_data,
-							  gboolean          value);
-void              tracker_field_data_set_is_condition    (TrackerFieldData *field_data,
-							  gboolean          value);
-void              tracker_field_data_set_needs_join      (TrackerFieldData *field_data,
-							  gboolean          value);
+void		  tracker_field_data_set_multiple_values (TrackerFieldData *field_data,
+							  gboolean	    value);
+void		  tracker_field_data_set_is_select	 (TrackerFieldData *field_data,
+							  gboolean	    value);
+void		  tracker_field_data_set_is_condition	 (TrackerFieldData *field_data,
+							  gboolean	    value);
+void		  tracker_field_data_set_needs_join	 (TrackerFieldData *field_data,
+							  gboolean	    value);
 
 G_END_DECLS
 

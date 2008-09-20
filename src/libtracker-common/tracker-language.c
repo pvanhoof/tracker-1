@@ -33,37 +33,37 @@
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_LANGUAGE, TrackerLanguagePriv))
 
 typedef struct _TrackerLanguagePriv TrackerLanguagePriv;
-typedef struct _Languages           Languages;
+typedef struct _Languages	    Languages;
 
 struct _TrackerLanguagePriv {
 	TrackerConfig *config;
 
 	GHashTable    *stop_words;
 
-	GMutex        *stemmer_mutex;
+	GMutex	      *stemmer_mutex;
 	gpointer       stemmer;
 };
 
 struct _Languages {
-        gchar *code;
-        gchar *name;
+	gchar *code;
+	gchar *name;
 };
 
 static Languages all_langs[] = {
-        { "da", "danish" },
-        { "nl", "dutch" },
-        { "en", "english" },
-        { "fi", "finnish" },
-        { "fr", "french" },
-        { "de", "german" },
+	{ "da", "danish" },
+	{ "nl", "dutch" },
+	{ "en", "english" },
+	{ "fi", "finnish" },
+	{ "fr", "french" },
+	{ "de", "german" },
 	{ "hu", "hungarian" },
-        { "it", "italian" },
-        { "nb", "norwegian" },
-        { "pt", "portuguese" },
-        { "ru", "russian" },
-        { "es", "spanish" },
-        { "sv", "swedish" },
-        { NULL, NULL },
+	{ "it", "italian" },
+	{ "nb", "norwegian" },
+	{ "pt", "portuguese" },
+	{ "ru", "russian" },
+	{ "es", "spanish" },
+	{ "sv", "swedish" },
+	{ NULL, NULL },
 };
 
 /* GObject properties */
@@ -74,17 +74,17 @@ enum {
 	PROP_STOP_WORDS
 };
 
-static void         language_finalize          (GObject       *object);
-static void         language_get_property      (GObject       *object,
-						guint          param_id,
-						GValue        *value,
+static void	    language_finalize	       (GObject       *object);
+static void	    language_get_property      (GObject       *object,
+						guint	       param_id,
+						GValue	      *value,
 						GParamSpec    *pspec);
-static void         language_set_property      (GObject       *object,
-						guint          param_id,
+static void	    language_set_property      (GObject       *object,
+						guint	       param_id,
 						const GValue  *value,
 						GParamSpec    *pspec);
 static const gchar *language_get_name_for_code (const gchar   *language_code);
-static void         language_notify_cb         (TrackerConfig *config,
+static void	    language_notify_cb	       (TrackerConfig *config,
 						GParamSpec    *param,
 						gpointer       user_data);
 
@@ -122,7 +122,7 @@ static void
 tracker_language_init (TrackerLanguage *language)
 {
 	TrackerLanguagePriv *priv;
-	const gchar         *stem_language;
+	const gchar	    *stem_language;
 
 	priv = GET_PRIV (language);
 
@@ -248,13 +248,13 @@ language_get_name_for_code (const gchar *language_code)
 
 static void
 language_add_stopwords (TrackerLanguage *language,
-			const gchar     *filename)
+			const gchar	*filename)
 {
 	TrackerLanguagePriv  *priv;
-	GMappedFile          *mapped_file;
-	GError               *error = NULL;
-	gchar                *content;
-	gchar               **words, **p;
+	GMappedFile	     *mapped_file;
+	GError		     *error = NULL;
+	gchar		     *content;
+	gchar		    **words, **p;
 
 	priv = GET_PRIV (language);
 
@@ -286,8 +286,8 @@ language_set_stopword_list (TrackerLanguage *language,
 			    const gchar     *language_code)
 {
 	TrackerLanguagePriv *priv;
-	gchar               *stopword_filename;
-	const gchar         *stem_language;
+	gchar		    *stopword_filename;
+	const gchar	    *stem_language;
 
 	g_return_if_fail (TRACKER_IS_LANGUAGE (language));
 
@@ -327,8 +327,8 @@ language_set_stopword_list (TrackerLanguage *language,
 
 static void
 language_notify_cb (TrackerConfig *config,
-		    GParamSpec    *param,
-		    gpointer       user_data)
+		    GParamSpec	  *param,
+		    gpointer	   user_data)
 {
 	TrackerLanguage *language;
 
@@ -415,10 +415,10 @@ tracker_language_set_config (TrackerLanguage *language,
 const gchar *
 tracker_language_stem_word (TrackerLanguage *language,
 			    const gchar     *word,
-			    gint             word_length)
+			    gint	     word_length)
 {
 	TrackerLanguagePriv *priv;
-	const gchar         *stem_word;
+	const gchar	    *stem_word;
 
 	g_return_val_if_fail (TRACKER_IS_LANGUAGE (language), NULL);
 
@@ -461,28 +461,28 @@ gchar *
 tracker_language_get_default_code (void)
 {
 	const gchar **local_languages;
-        const gchar **p;
+	const gchar **p;
 
 	/* Get langauges for user's locale */
 	local_languages = (const gchar**) g_get_language_names ();
 
 	for (p = local_languages; *p; p++) {
-                const gchar *code;
-                gint         i = 0;
+		const gchar *code;
+		gint	     i = 0;
 
-                if (!*p || *p[0] == '\0') {
-                        continue;
-                }
+		if (!*p || *p[0] == '\0') {
+			continue;
+		}
 
-                code = all_langs[i].code;
+		code = all_langs[i].code;
 
-                while (code) {
-                        if (g_str_has_prefix (*p, code)) {
-                                return g_strndup (*p, strlen (code));
-                        }
+		while (code) {
+			if (g_str_has_prefix (*p, code)) {
+				return g_strndup (*p, strlen (code));
+			}
 
-                        code = all_langs[i++].code;
-                }
+			code = all_langs[i++].code;
+		}
 	}
 
 	return g_strdup ("en");

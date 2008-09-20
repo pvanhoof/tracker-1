@@ -29,16 +29,16 @@
 #include <exempi/xmp.h>
 #include <exempi/xmpconsts.h>
 
-static void tracker_xmp_iter        (XmpPtr          xmp,
+static void tracker_xmp_iter	    (XmpPtr	     xmp,
 				     XmpIteratorPtr  iter,
 				     GHashTable     *metadata,
-				     gboolean        append);
+				     gboolean	     append);
 
 static void tracker_xmp_iter_simple (GHashTable  *metadata,
 				     const gchar *schema,
 				     const gchar *path,
 				     const gchar *value,
-				     gboolean     append);
+				     gboolean	  append);
 
 
 static void
@@ -85,7 +85,7 @@ tracker_xmp_iter_alt_text (XmpPtr xmp, GHashTable *metadata, const gchar *schema
 /* We have a simple element, but need to iterate over the qualifiers */
 static void
 tracker_xmp_iter_simple_qual (XmpPtr xmp, GHashTable *metadata,
-                              const gchar *schema, const gchar *path, const gchar *value, gboolean append)
+			      const gchar *schema, const gchar *path, const gchar *value, gboolean append)
 {
 	XmpIteratorPtr iter = xmp_iterator_new (xmp, schema, path, XMP_ITER_JUSTCHILDREN | XMP_ITER_JUSTLEAFNAME);
 
@@ -131,7 +131,7 @@ tracker_xmp_iter_simple_qual (XmpPtr xmp, GHashTable *metadata,
 /* We have a simple element. Add any metadata we know about to the hash table  */
 static void
 tracker_xmp_iter_simple (GHashTable *metadata,
-                         const gchar *schema, const gchar *path, const gchar *value, gboolean append)
+			 const gchar *schema, const gchar *path, const gchar *value, gboolean append)
 {
 	gchar *name = g_strdup (strchr (path, ':') + 1);
 	const gchar *index = strrchr (name, '[');

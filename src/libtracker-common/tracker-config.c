@@ -39,7 +39,7 @@
 #define KEY_VERBOSITY				 "Verbosity"
 #define KEY_INITIAL_SLEEP			 "InitialSleep"
 #define KEY_LOW_MEMORY_MODE			 "LowMemoryMode"
-#define KEY_NFS_LOCKING                          "NFSLocking"
+#define KEY_NFS_LOCKING				 "NFSLocking"
 #define GROUP_WATCHES				 "Watches"
 #define KEY_WATCH_DIRECTORY_ROOTS		 "WatchDirectoryRoots"
 #define KEY_CRAWL_DIRECTORY_ROOTS		 "CrawlDirectory"
@@ -51,7 +51,7 @@
 #define KEY_ENABLE_INDEXING			 "EnableIndexing"
 #define KEY_ENABLE_CONTENT_INDEXING		 "EnableFileContentIndexing"
 #define KEY_ENABLE_THUMBNAILS			 "EnableThumbnails"
-#define KEY_DISABLED_MODULES                     "DisabledModules"
+#define KEY_DISABLED_MODULES			 "DisabledModules"
 #define KEY_FAST_MERGES				 "FastMerges"
 #define KEY_NO_INDEX_FILE_TYPES			 "NoIndexFileTypes"
 #define KEY_MIN_WORD_LENGTH			 "MinWorldLength"
@@ -61,7 +61,7 @@
 #define KEY_DISABLE_INDEXING_ON_BATTERY		 "BatteryIndex"
 #define KEY_DISABLE_INDEXING_ON_BATTERY_INIT	 "BatteryIndexInitial"
 #define KEY_LOW_DISK_SPACE_LIMIT		 "LowDiskSpaceLimit"
-#define KEY_INDEX_MOUNTED_DIRECTORIES	         "IndexMountedDirectories"
+#define KEY_INDEX_MOUNTED_DIRECTORIES		 "IndexMountedDirectories"
 #define KEY_INDEX_REMOVABLE_DEVICES		 "IndexRemovableMedia"
 
 #define GROUP_PERFORMANCE			 "Performance"
@@ -77,7 +77,7 @@
 #define DEFAULT_VERBOSITY			 0
 #define DEFAULT_INITIAL_SLEEP			 45	  /* 0->1000 */
 #define DEFAULT_LOW_MEMORY_MODE			 FALSE
-#define DEFAULT_NFS_LOCKING                      FALSE
+#define DEFAULT_NFS_LOCKING			 FALSE
 #define DEFAULT_ENABLE_WATCHES			 TRUE
 #define DEFAULT_THROTTLE			 0	  /* 0->20 */
 #define DEFAULT_ENABLE_INDEXING			 TRUE
@@ -90,8 +90,8 @@
 #define DEFAULT_ENABLE_STEMMER			 TRUE
 #define DEFAULT_DISABLE_INDEXING_ON_BATTERY	 TRUE
 #define DEFAULT_DISABLE_INDEXING_ON_BATTERY_INIT FALSE
-#define DEFAULT_INDEX_MOUNTED_DIRECTORIES  	 TRUE
-#define DEFAULT_INDEX_REMOVABLE_DEVICES	         TRUE
+#define DEFAULT_INDEX_MOUNTED_DIRECTORIES	 TRUE
+#define DEFAULT_INDEX_REMOVABLE_DEVICES		 TRUE
 #define DEFAULT_LOW_DISK_SPACE_LIMIT		 1	  /* 0->100 / -1 */
 #define DEFAULT_MAX_TEXT_TO_INDEX		 1048576  /* Bytes */
 #define DEFAULT_MAX_WORDS_TO_INDEX		 10000
@@ -101,7 +101,7 @@
 typedef struct _TrackerConfigPrivate TrackerConfigPrivate;
 
 struct _TrackerConfigPrivate {
-	GFile        *file;
+	GFile	     *file;
 	GFileMonitor *monitor;
 
 	/* General */
@@ -121,7 +121,7 @@ struct _TrackerConfigPrivate {
 	gboolean      enable_indexing;
 	gboolean      enable_content_indexing;
 	gboolean      enable_thumbnails;
-	GSList       *disabled_modules;
+	GSList	     *disabled_modules;
 	gboolean      fast_merges;
 	GSList	     *no_index_file_types;
 	gint	      min_word_length;
@@ -153,7 +153,7 @@ static void config_set_property (GObject      *object,
 				 guint	       param_id,
 				 const GValue *value,
 				 GParamSpec   *pspec);
-static void config_load         (TrackerConfig *config);
+static void config_load		(TrackerConfig *config);
 
 enum {
 	PROP_0,
@@ -768,7 +768,7 @@ config_dir_ensure_exists_and_return (void)
 
 static gboolean
 config_create_with_defaults (const gchar *filename,
-			     GKeyFile    *key_file)
+			     GKeyFile	 *key_file)
 {
 	GError	     *error = NULL;
 	gchar	     *content = NULL;
@@ -1051,7 +1051,7 @@ config_load_string_list (TrackerConfig *config,
 			 const gchar   *key)
 {
 	TrackerConfigPrivate  *priv;
-	GSList                *l;
+	GSList		      *l;
 	gchar		     **value;
 
 	priv = TRACKER_CONFIG_GET_PRIVATE (config);
@@ -1113,13 +1113,13 @@ config_load_string_list (TrackerConfig *config,
 
 static void
 config_changed_cb (GFileMonitor     *monitor,
-		   GFile            *file,
-		   GFile            *other_file,
+		   GFile	    *file,
+		   GFile	    *other_file,
 		   GFileMonitorEvent event_type,
-		   gpointer          user_data)
+		   gpointer	     user_data)
 {
 	TrackerConfig *config;
-	gchar         *filename;
+	gchar	      *filename;
 
 	config = TRACKER_CONFIG (user_data);
 
@@ -1145,11 +1145,11 @@ static void
 config_load (TrackerConfig *config)
 {
 	TrackerConfigPrivate *priv;
-	GKeyFile             *key_file;
-	GError	             *error = NULL;
-	gchar	             *filename;
-	gchar	             *directory;
-	gboolean              value;
+	GKeyFile	     *key_file;
+	GError		     *error = NULL;
+	gchar		     *filename;
+	gchar		     *directory;
+	gboolean	      value;
 
 	key_file = g_key_file_new ();
 
@@ -1964,7 +1964,7 @@ tracker_config_set_index_mounted_directories (TrackerConfig *config,
 
 void
 tracker_config_set_index_removable_devices (TrackerConfig *config,
-					  gboolean       value)
+					  gboolean	 value)
 {
 	TrackerConfigPrivate *priv;
 
@@ -2053,7 +2053,7 @@ tracker_config_add_watch_directory_roots (TrackerConfig *config,
 					  gchar * const *roots)
 {
 	TrackerConfigPrivate *priv;
-	GSList               *l;
+	GSList		     *l;
 	gchar		     *validated_root;
 	gchar * const	     *p;
 
@@ -2089,7 +2089,7 @@ tracker_config_add_crawl_directory_roots (TrackerConfig *config,
 					  gchar * const *roots)
 {
 	TrackerConfigPrivate *priv;
-	GSList               *l;
+	GSList		     *l;
 	gchar		     *validated_root;
 	gchar * const	     *p;
 
@@ -2125,8 +2125,8 @@ tracker_config_add_no_watch_directory_roots (TrackerConfig *config,
 					     gchar * const *roots)
 {
 	TrackerConfigPrivate *priv;
-	GSList               *l;
-	gchar                *validated_root;
+	GSList		     *l;
+	gchar		     *validated_root;
 	gchar * const	     *p;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
@@ -2161,7 +2161,7 @@ tracker_config_add_disabled_modules (TrackerConfig *config,
 				     gchar * const *modules)
 {
 	TrackerConfigPrivate *priv;
-	GSList               *new_modules;
+	GSList		     *new_modules;
 	gchar * const	     *p;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
@@ -2192,7 +2192,7 @@ tracker_config_remove_disabled_modules (TrackerConfig *config,
 					const gchar   *module)
 {
 	TrackerConfigPrivate *priv;
-	GSList               *l;
+	GSList		     *l;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 	g_return_if_fail (module != NULL);

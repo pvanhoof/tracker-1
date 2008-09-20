@@ -36,7 +36,7 @@ static void
 init_dbus_glib_types (void)
 {
 	DBusGConnection *connection;
-	GError 			*error;
+	GError			*error;
 	error = NULL;
 	connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
 	dbus_g_connection_unref (connection);

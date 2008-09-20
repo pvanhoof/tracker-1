@@ -21,11 +21,11 @@
 /* These defines are required to allow lrintf() without warnings when
  * building.
  */
-#define _ISOC9X_SOURCE  1
-#define _ISOC99_SOURCE  1
+#define _ISOC9X_SOURCE	1
+#define _ISOC99_SOURCE	1
 
-#define __USE_ISOC9X    1
-#define __USE_ISOC99    1
+#define __USE_ISOC9X	1
+#define __USE_ISOC99	1
 
 #include <string.h>
 #include <math.h>
@@ -65,15 +65,15 @@ struct TreeNode {
 	TreeNode      *left;
 	TreeNode      *right;
 	OperationType  op;
-	gchar         *term;
+	gchar	      *term;
 };
 
 struct TrackerQueryTreePrivate {
-	gchar           *query_str;
-	TreeNode        *tree;
-        TrackerConfig   *config;
-        TrackerLanguage *language;
-	GArray          *services;
+	gchar		*query_str;
+	TreeNode	*tree;
+	TrackerConfig	*config;
+	TrackerLanguage *language;
+	GArray		*services;
 };
 
 struct ComposeHitsData {
@@ -94,16 +94,16 @@ enum {
 };
 
 static void tracker_query_tree_class_init   (TrackerQueryTreeClass *class);
-static void tracker_query_tree_init         (TrackerQueryTree      *tree);
-static void tracker_query_tree_finalize     (GObject               *object);
-static void tracker_query_tree_set_property (GObject               *object,
-                                             guint                  prop_id,
-                                             const GValue          *value,
-                                             GParamSpec            *pspec);
-static void tracker_query_tree_get_property (GObject               *object,
-                                             guint                  prop_id,
-                                             GValue                *value,
-                                             GParamSpec            *pspec);
+static void tracker_query_tree_init	    (TrackerQueryTree	   *tree);
+static void tracker_query_tree_finalize     (GObject		   *object);
+static void tracker_query_tree_set_property (GObject		   *object,
+					     guint		    prop_id,
+					     const GValue	   *value,
+					     GParamSpec		   *pspec);
+static void tracker_query_tree_get_property (GObject		   *object,
+					     guint		    prop_id,
+					     GValue		   *value,
+					     GParamSpec		   *pspec);
 
 G_DEFINE_TYPE (TrackerQueryTree, tracker_query_tree, G_TYPE_OBJECT)
 
@@ -192,7 +192,7 @@ tracker_query_tree_finalize (GObject *object)
 
 static void
 tracker_query_tree_set_property (GObject      *object,
-				 guint         prop_id,
+				 guint	       prop_id,
 				 const GValue *value,
 				 GParamSpec   *pspec)
 {
@@ -212,7 +212,7 @@ tracker_query_tree_set_property (GObject      *object,
 
 static void
 tracker_query_tree_get_property (GObject      *object,
-				 guint         prop_id,
+				 guint	       prop_id,
 				 GValue       *value,
 				 GParamSpec   *pspec)
 {
@@ -233,42 +233,42 @@ tracker_query_tree_get_property (GObject      *object,
 }
 
 TrackerQueryTree *
-tracker_query_tree_new (const gchar     *query_str,
-                        TrackerConfig   *config,
-                        TrackerLanguage *language,
-			GArray          *services)
+tracker_query_tree_new (const gchar	*query_str,
+			TrackerConfig	*config,
+			TrackerLanguage *language,
+			GArray		*services)
 {
-        TrackerQueryTree        *object;
-        TrackerQueryTreePrivate *priv;
+	TrackerQueryTree	*object;
+	TrackerQueryTreePrivate *priv;
 
-        /* We accept one or both index and services, but not NULL for
-         * both since we require at least one of them.
-         */
+	/* We accept one or both index and services, but not NULL for
+	 * both since we require at least one of them.
+	 */
 	g_return_val_if_fail (query_str != NULL, NULL);
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
 	g_return_val_if_fail (TRACKER_IS_LANGUAGE (language), NULL);
-        g_return_val_if_fail (services != NULL, NULL);
+	g_return_val_if_fail (services != NULL, NULL);
 
-        /* NOTE: The "query" has to come AFTER the "config" and
-         * "language" properties since setting the query actually
-         * uses the priv->config and priv->language settings.
-         * Changing this order results in warnings.
-         */
+	/* NOTE: The "query" has to come AFTER the "config" and
+	 * "language" properties since setting the query actually
+	 * uses the priv->config and priv->language settings.
+	 * Changing this order results in warnings.
+	 */
 
 	object = g_object_new (TRACKER_TYPE_QUERY_TREE, NULL);
 
-        priv = TRACKER_QUERY_TREE_GET_PRIVATE (object);
+	priv = TRACKER_QUERY_TREE_GET_PRIVATE (object);
 
-        priv->config = g_object_ref (config);
-        priv->language = g_object_ref (language);
+	priv->config = g_object_ref (config);
+	priv->language = g_object_ref (language);
 
-        if (services) {
-                tracker_query_tree_set_services (object, services);
-        }
+	if (services) {
+		tracker_query_tree_set_services (object, services);
+	}
 
-        tracker_query_tree_set_query (object, query_str);
+	tracker_query_tree_set_query (object, query_str);
 
-        return object;
+	return object;
 }
 
 #if 0
@@ -376,12 +376,12 @@ create_query_tree (TrackerQueryTree *tree)
 		default:
 			/* search term */
 			parsed_str = tracker_parser_text_to_string (strings[i],
-                                                                    priv->language,
-                                                                    tracker_config_get_max_word_length (priv->config),
-                                                                    tracker_config_get_min_word_length (priv->config),
-                                                                    TRUE,
-                                                                    FALSE,
-                                                                    FALSE);
+								    priv->language,
+								    tracker_config_get_max_word_length (priv->config),
+								    tracker_config_get_min_word_length (priv->config),
+								    TRUE,
+								    FALSE,
+								    FALSE);
 			node = tree_node_leaf_new (g_strstrip (parsed_str));
 			g_queue_push_head (queue, node);
 			last_element_is_term = TRUE;
@@ -454,7 +454,7 @@ tracker_query_tree_get_query (TrackerQueryTree *tree)
 
 void
 tracker_query_tree_set_services (TrackerQueryTree *tree,
-				 GArray           *services)
+				 GArray		  *services)
 {
 	TrackerQueryTreePrivate *priv;
 	GArray *copy = NULL;
@@ -505,20 +505,20 @@ get_tree_words (TreeNode *node, GSList **list)
 
 static gint
 get_idf_score (TrackerDBIndexItem *details,
-               gfloat              idf)
+	       gfloat		   idf)
 {
 	guint32 score;
-	gfloat  f;
+	gfloat	f;
 
-        score = tracker_db_index_item_get_score (details);
-        f = idf * score * SCORE_MULTIPLIER;
+	score = tracker_db_index_item_get_score (details);
+	f = idf * score * SCORE_MULTIPLIER;
 
-        return (f > 1.0) ? lrintf (f) : 1;
+	return (f > 1.0) ? lrintf (f) : 1;
 }
 
 static gboolean
 in_array (GArray *array,
-          gint    element)
+	  gint	  element)
 {
 	guint i;
 
@@ -541,15 +541,15 @@ search_hit_data_free (gpointer data)
 
 static void
 add_search_term_hits_to_hash_table (TrackerDBIndexItem *items,
-                                    guint               item_count,
-                                    GArray             *services,
-                                    GHashTable         *result)
+				    guint		item_count,
+				    GArray	       *services,
+				    GHashTable	       *result)
 {
-        guint i;
+	guint i;
 
 	for (i = 0; i < item_count; i++) {
 		SearchHitData *data;
-		gint           service;
+		gint	       service;
 
 		service = tracker_db_index_item_get_service_type (&items[i]);
 
@@ -568,58 +568,58 @@ get_search_term_hits (TrackerQueryTree *tree,
 		      const gchar      *term)
 {
 	TrackerQueryTreePrivate *priv;
-	TrackerDBIndexItem      *items;
-	guint                    item_count;
-	GHashTable              *result;
-        GHashTable              *indexes_checked;
-        guint                    i;
+	TrackerDBIndexItem	*items;
+	guint			 item_count;
+	GHashTable		*result;
+	GHashTable		*indexes_checked;
+	guint			 i;
 
 	priv = TRACKER_QUERY_TREE_GET_PRIVATE (tree);
 
 	result = g_hash_table_new_full (NULL,
-                                        NULL,
-                                        NULL,
+					NULL,
+					NULL,
 					search_hit_data_free);
 
-        if (!priv->services) {
-                return result;
-        }
+	if (!priv->services) {
+		return result;
+	}
 
-        /* Make sure we don't get information from the same
-         * index more than once.
-         */
-        indexes_checked = g_hash_table_new (g_direct_hash,
-                                            g_direct_equal);
+	/* Make sure we don't get information from the same
+	 * index more than once.
+	 */
+	indexes_checked = g_hash_table_new (g_direct_hash,
+					    g_direct_equal);
 
-        for (i = 0; i < priv->services->len; i++) {
-                TrackerDBIndex *index;
-                guint           id;
+	for (i = 0; i < priv->services->len; i++) {
+		TrackerDBIndex *index;
+		guint		id;
 
-                id = g_array_index (priv->services, gint, i);
-                index = tracker_db_index_manager_get_index_by_service_id (id);
+		id = g_array_index (priv->services, gint, i);
+		index = tracker_db_index_manager_get_index_by_service_id (id);
 
-                if (g_hash_table_lookup (indexes_checked, index)) {
-                        continue;
-                }
+		if (g_hash_table_lookup (indexes_checked, index)) {
+			continue;
+		}
 
-                g_hash_table_insert (indexes_checked,
-                                     index,
-                                     GINT_TO_POINTER (1));
+		g_hash_table_insert (indexes_checked,
+				     index,
+				     GINT_TO_POINTER (1));
 
-                items = tracker_db_index_get_word_hits (index, term, &item_count);
+		items = tracker_db_index_get_word_hits (index, term, &item_count);
 
-                if (!items) {
-                        continue;
-                }
+		if (!items) {
+			continue;
+		}
 
-                add_search_term_hits_to_hash_table (items,
-                                                    item_count,
-                                                    priv->services,
-                                                    result);
-                g_free (items);
-        }
+		add_search_term_hits_to_hash_table (items,
+						    item_count,
+						    priv->services,
+						    result);
+		g_free (items);
+	}
 
-        g_hash_table_unref (indexes_checked);
+	g_hash_table_unref (indexes_checked);
 
 	return result;
 }
@@ -629,7 +629,7 @@ compose_hits_foreach (gpointer key,
 		      gpointer value,
 		      gpointer user_data)
 {
-	SearchHitData   *hit1, *hit2, *hit;
+	SearchHitData	*hit1, *hit2, *hit;
 	ComposeHitsData *data;
 
 	data = (ComposeHitsData *) user_data;
@@ -679,8 +679,8 @@ compose_hits (OperationType  op,
 		data.dest_table = g_hash_table_ref (data.other_table);
 	} else {
 		data.dest_table = g_hash_table_new_full (NULL,
-                                                         NULL,
-                                                         NULL,
+							 NULL,
+							 NULL,
 							 search_hit_data_free);
 	}
 
@@ -691,7 +691,7 @@ compose_hits (OperationType  op,
 
 static GHashTable *
 get_node_hits (TrackerQueryTree *tree,
-	       TreeNode         *node)
+	       TreeNode		*node)
 {
 	GHashTable *left_table, *right_table, *result;
 
@@ -765,8 +765,8 @@ tracker_query_tree_get_words (TrackerQueryTree *tree)
 
 GArray *
 tracker_query_tree_get_hits (TrackerQueryTree *tree,
-			     guint             offset,
-			     guint             limit)
+			     guint	       offset,
+			     guint	       limit)
 {
 	TrackerQueryTreePrivate *priv;
 	GHashTable *table;
@@ -846,32 +846,32 @@ tracker_query_tree_get_hit_counts (TrackerQueryTree *tree)
 
 	for (i = 0; i < hits->len; i++) {
 		TrackerDBIndexItemRank rank;
-                gpointer p;
+		gpointer p;
 		gint count, parent_id;
 
 		rank = g_array_index (hits, TrackerDBIndexItemRank, i);
-                p = g_hash_table_lookup (table,
-                                         GINT_TO_POINTER (rank.service_type_id));
+		p = g_hash_table_lookup (table,
+					 GINT_TO_POINTER (rank.service_type_id));
 		count = GPOINTER_TO_INT (p);
 		count++;
 
 		g_hash_table_insert (table,
-                                     GINT_TO_POINTER (rank.service_type_id),
-                                     GINT_TO_POINTER (count));
+				     GINT_TO_POINTER (rank.service_type_id),
+				     GINT_TO_POINTER (count));
 
 		/* Update service's parent count too (if it has a
-                 * parent).
-                 */
+		 * parent).
+		 */
 		parent_id = tracker_ontology_get_service_parent_id_by_id (rank.service_type_id);
 
 		if (parent_id != -1) {
-                        p = g_hash_table_lookup (table, GINT_TO_POINTER (parent_id));
+			p = g_hash_table_lookup (table, GINT_TO_POINTER (parent_id));
 			count = GPOINTER_TO_INT (p);
 			count++;
 
 			g_hash_table_insert (table,
-                                             GINT_TO_POINTER (parent_id),
-                                             GINT_TO_POINTER (count));
+					     GINT_TO_POINTER (parent_id),
+					     GINT_TO_POINTER (count));
 		}
 	}
 

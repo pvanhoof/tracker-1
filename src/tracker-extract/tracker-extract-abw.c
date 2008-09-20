@@ -37,7 +37,7 @@
 #include "tracker-extract.h"
 
 static void extract_abw (const gchar *filename,
-                         GHashTable  *metadata);
+			 GHashTable  *metadata);
 
 static TrackerExtractorData data[] = {
 	{ "application/x-abiword", extract_abw },
@@ -46,70 +46,70 @@ static TrackerExtractorData data[] = {
 
 static void
 extract_abw (const gchar *filename,
-             GHashTable  *metadata)
+	     GHashTable  *metadata)
 {
-        gint  fd;
+	gint  fd;
 	FILE *f;
 
 #if defined(__linux__)
-        if ((fd = g_open (filename, (O_RDONLY | O_NOATIME))) == -1) {
+	if ((fd = g_open (filename, (O_RDONLY | O_NOATIME))) == -1) {
 #else
-        if ((fd = g_open (filename, O_RDONLY)) == -1) {
+	if ((fd = g_open (filename, O_RDONLY)) == -1) {
 #endif
-                return;
-        }
+		return;
+	}
 
-   	if ((f = fdopen (fd, "r"))) {
-                gchar  *line;
-                gsize  length;
-                gssize read_char;
+	if ((f = fdopen (fd, "r"))) {
+		gchar  *line;
+		gsize  length;
+		gssize read_char;
 
 		line = NULL;
-                length = 0;
+		length = 0;
 
-                while ((read_char = getline (&line, &length, f)) != -1) {
+		while ((read_char = getline (&line, &length, f)) != -1) {
 			if (g_str_has_suffix (line, "</m>\n")) {
 				line[read_char - 5] = '\0';
 			}
 			if (g_str_has_prefix (line, "<m key=\"dc.title\">")) {
 				g_hash_table_insert (metadata,
-                                                     g_strdup ("Doc:Title"),
-                                                     g_strdup (line + 18));
+						     g_strdup ("Doc:Title"),
+						     g_strdup (line + 18));
 			}
 			else if (g_str_has_prefix (line, "<m key=\"dc.subject\">")) {
 				g_hash_table_insert (metadata,
-                                                     g_strdup ("Doc:Subject"),
-                                                     g_strdup (line + 20));
+						     g_strdup ("Doc:Subject"),
+						     g_strdup (line + 20));
 			}
 			else if (g_str_has_prefix (line, "<m key=\"dc.creator\">")) {
 				g_hash_table_insert (metadata,
-                                                     g_strdup ("Doc:Author"),
-                                                     g_strdup (line + 20));
+						     g_strdup ("Doc:Author"),
+						     g_strdup (line + 20));
 			}
 			else if (g_str_has_prefix (line, "<m key=\"abiword.keywords\">")) {
 				g_hash_table_insert (metadata,
-                                                     g_strdup ("Doc:Keywords"),
-                                                     g_strdup (line + 26));
+						     g_strdup ("Doc:Keywords"),
+						     g_strdup (line + 26));
 			}
 			else if (g_str_has_prefix (line, "<m key=\"dc.description\">")) {
 				g_hash_table_insert (metadata,
-                                                     g_strdup ("Doc:Comments"),
-                                                     g_strdup (line + 24));
+						     g_strdup ("Doc:Comments"),
+						     g_strdup (line + 24));
 			}
 
 			g_free (line);
 			line = NULL;
-                        length = 0;
+			length = 0;
 		}
 
-                if (line) {
-                        g_free (line);
-                }
+		if (line) {
+			g_free (line);
+		}
 
-                fclose (f);
-        } else {
-                close (fd);
-        }
+		fclose (f);
+	} else {
+		close (fd);
+	}
 }
 
 TrackerExtractorData *

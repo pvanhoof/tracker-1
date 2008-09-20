@@ -27,9 +27,9 @@
 #include "tracker-indexer.h"
 #include "tracker-indexer-glue.h"
 
-#define THUMBNAILER_SERVICE      "org.freedesktop.thumbnailer"
-#define THUMBNAILER_PATH         "/org/freedesktop/thumbnailer/Generic"
-#define THUMBNAILER_INTERFACE    "org.freedesktop.thumbnailer.Generic"
+#define THUMBNAILER_SERVICE	 "org.freedesktop.thumbnailer"
+#define THUMBNAILER_PATH	 "/org/freedesktop/thumbnailer/Generic"
+#define THUMBNAILER_INTERFACE	 "org.freedesktop.thumbnailer.Generic"
 
 static DBusGConnection *connection;
 static DBusGProxy      *proxy;
@@ -39,40 +39,40 @@ static gboolean
 dbus_register_service (DBusGProxy  *proxy,
 		       const gchar *name)
 {
-        GError *error = NULL;
-        guint   result;
+	GError *error = NULL;
+	guint	result;
 
-        g_message ("Registering DBus service...\n"
+	g_message ("Registering DBus service...\n"
 		   "  Name:'%s'",
 		   name);
 
-        if (!org_freedesktop_DBus_request_name (proxy,
-                                                name,
-                                                DBUS_NAME_FLAG_DO_NOT_QUEUE,
-                                                &result, &error)) {
-                g_critical ("Could not aquire name:'%s', %s",
+	if (!org_freedesktop_DBus_request_name (proxy,
+						name,
+						DBUS_NAME_FLAG_DO_NOT_QUEUE,
+						&result, &error)) {
+		g_critical ("Could not aquire name:'%s', %s",
 			    name,
 			    error ? error->message : "no error given");
-                g_error_free (error);
+		g_error_free (error);
 
-                return FALSE;
+		return FALSE;
 	}
 
-        if (result != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER) {
-                g_critical ("DBus service name:'%s' is already taken, "
+	if (result != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER) {
+		g_critical ("DBus service name:'%s' is already taken, "
 			    "perhaps the application is already running?",
 			    name);
-                return FALSE;
+		return FALSE;
 	}
 
-        return TRUE;
+	return TRUE;
 }
 
 static void
 name_owner_changed_cb (DBusGProxy *proxy,
-		       gchar      *name,
-		       gchar      *old_owner,
-		       gchar      *new_owner,
+		       gchar	  *name,
+		       gchar	  *old_owner,
+		       gchar	  *new_owner,
 		       gpointer    user_data)
 {
 	if (strcmp (name, TRACKER_DAEMON_SERVICE) == 0 && (!new_owner || !*new_owner)) {
@@ -84,18 +84,18 @@ name_owner_changed_cb (DBusGProxy *proxy,
 }
 
 static gboolean
-dbus_register_object (GObject               *object,
-		      DBusGConnection       *connection,
-                      DBusGProxy            *proxy,
-                      const DBusGObjectInfo *info,
-                      const gchar           *path)
+dbus_register_object (GObject		    *object,
+		      DBusGConnection	    *connection,
+		      DBusGProxy	    *proxy,
+		      const DBusGObjectInfo *info,
+		      const gchar	    *path)
 {
-        g_message ("Registering DBus object...");
-        g_message ("  Path:'%s'", path);
-        g_message ("  Object Type:'%s'", G_OBJECT_TYPE_NAME (object));
+	g_message ("Registering DBus object...");
+	g_message ("  Path:'%s'", path);
+	g_message ("  Object Type:'%s'", G_OBJECT_TYPE_NAME (object));
 
-        dbus_g_object_type_install_info (G_OBJECT_TYPE (object), info);
-        dbus_g_connection_register_g_object (connection, path, object);
+	dbus_g_object_type_install_info (G_OBJECT_TYPE (object), info);
+	dbus_g_connection_register_g_object (connection, path, object);
 
 	dbus_g_proxy_add_signal (proxy, "NameOwnerChanged",
 				 G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
@@ -104,7 +104,7 @@ dbus_register_object (GObject               *object,
 	dbus_g_proxy_connect_signal (proxy, "NameOwnerChanged",
 				     G_CALLBACK (name_owner_changed_cb),
 				     object, NULL);
-        return TRUE;
+	return TRUE;
 }
 
 DBusGProxy*
@@ -116,7 +116,7 @@ tracker_dbus_get_thumbnailer (void)
 static gboolean
 dbus_register_names (void)
 {
-        GError *error = NULL;
+	GError *error = NULL;
 
 	if (connection) {
 		g_critical ("The DBusGConnection is already set, have we already initialized?");
@@ -128,42 +128,42 @@ dbus_register_names (void)
 		return FALSE;
 	}
 
-        connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
+	connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
 
-        if (!connection) {
-                g_critical ("Could not connect to the DBus session bus, %s",
+	if (!connection) {
+		g_critical ("Could not connect to the DBus session bus, %s",
 			    error ? error->message : "no error given.");
 		g_clear_error (&error);
-                return FALSE;
-        }
+		return FALSE;
+	}
 
-        /* The definitions below (DBUS_SERVICE_DBUS, etc) are
-         * predefined for us to just use (dbus_g_proxy_...)
-         */
-        proxy = dbus_g_proxy_new_for_name (connection,
-                                           DBUS_SERVICE_DBUS,
-                                           DBUS_PATH_DBUS,
-                                           DBUS_INTERFACE_DBUS);
+	/* The definitions below (DBUS_SERVICE_DBUS, etc) are
+	 * predefined for us to just use (dbus_g_proxy_...)
+	 */
+	proxy = dbus_g_proxy_new_for_name (connection,
+					   DBUS_SERVICE_DBUS,
+					   DBUS_PATH_DBUS,
+					   DBUS_INTERFACE_DBUS);
 
-        /* Register the service name for org.freedesktop.Tracker */
-        if (!dbus_register_service (proxy, TRACKER_INDEXER_SERVICE)) {
-                return FALSE;
-        }
+	/* Register the service name for org.freedesktop.Tracker */
+	if (!dbus_register_service (proxy, TRACKER_INDEXER_SERVICE)) {
+		return FALSE;
+	}
 
-        thumb_proxy = dbus_g_proxy_new_for_name (connection,
-                                                 THUMBNAILER_SERVICE,
-                                                 THUMBNAILER_PATH,
-                                                 THUMBNAILER_INTERFACE);
-        return TRUE;
+	thumb_proxy = dbus_g_proxy_new_for_name (connection,
+						 THUMBNAILER_SERVICE,
+						 THUMBNAILER_PATH,
+						 THUMBNAILER_INTERFACE);
+	return TRUE;
 }
 
 gboolean
 tracker_dbus_init (void)
 {
-        /* Don't reinitialize */
-        if (connection && proxy) {
-                return TRUE;
-        }
+	/* Don't reinitialize */
+	if (connection && proxy) {
+		return TRUE;
+	}
 
 	/* Register names and get proxy/connection details */
 	if (!dbus_register_names ()) {

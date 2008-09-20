@@ -29,11 +29,11 @@
 G_BEGIN_DECLS
 
 void tracker_xesam_query_to_sql (TrackerDBInterface  *iface,
-                                 const gchar         *query,
-                                 gchar              **from,
-                                 gchar              **join,
-                                 gchar              **where,
-                                 GError             **error);
+				 const gchar	     *query,
+				 gchar		    **from,
+				 gchar		    **join,
+				 gchar		    **where,
+				 GError		    **error);
 G_END_DECLS
 
 #endif /* __TRACKERD_XESAM_QUERY_H__ */

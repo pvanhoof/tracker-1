@@ -34,10 +34,10 @@
 guint32
 tracker_db_get_new_service_id (TrackerDBInterface *iface)
 {
-	guint32             files_max;
+	guint32		    files_max;
 	TrackerDBResultSet *result_set;
 	TrackerDBInterface *temp_iface;
-	static guint32      max = 0;
+	static guint32	    max = 0;
 
 	if (G_LIKELY (max != 0)) {
 		return ++max;
@@ -144,10 +144,10 @@ tracker_db_create_event (TrackerDBInterface *iface,
 
 gboolean
 tracker_db_check_service (TrackerService *service,
-			  const gchar    *dirname,
-			  const gchar    *basename,
-			  guint32        *id,
-			  time_t         *mtime)
+			  const gchar	 *dirname,
+			  const gchar	 *basename,
+			  guint32	 *id,
+			  time_t	 *mtime)
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
@@ -220,9 +220,9 @@ tracker_db_get_service_type (const gchar *dirname,
 
 gboolean
 tracker_db_create_service (TrackerService  *service,
-			   guint32          id,
-			   const gchar     *dirname,
-			   const gchar     *basename,
+			   guint32	    id,
+			   const gchar	   *dirname,
+			   const gchar	   *basename,
 			   TrackerMetadata *metadata)
 {
 	TrackerDBInterface *iface;
@@ -278,14 +278,14 @@ tracker_db_create_service (TrackerService  *service,
 
 static gchar *
 db_get_metadata (TrackerService *service,
-		 guint           service_id,
-		 gboolean        keywords)
+		 guint		 service_id,
+		 gboolean	 keywords)
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
-	gchar              *query;
-	GString            *result;
-	gchar              *str = NULL;
+	gchar		   *query;
+	GString		   *result;
+	gchar		   *str = NULL;
 
 	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service),
 							     TRACKER_DB_CONTENT_TYPE_METADATA);
@@ -327,13 +327,13 @@ db_get_metadata (TrackerService *service,
 static void
 result_set_to_metadata (TrackerDBResultSet *result_set,
 			TrackerMetadata    *metadata,
-			gboolean            numeric,
-			gboolean            only_embedded)
+			gboolean	    numeric,
+			gboolean	    only_embedded)
 {
 	TrackerField *field;
-	gchar        *value;
-	gint          numeric_value;
-	gint          metadata_id;
+	gchar	     *value;
+	gint	      numeric_value;
+	gint	      metadata_id;
 	gboolean      valid = TRUE;
 
 	while (valid) {
@@ -389,12 +389,12 @@ result_set_to_metadata (TrackerDBResultSet *result_set,
 
 TrackerMetadata *
 tracker_db_get_all_metadata (TrackerService *service,
-			     guint32         service_id,
-			     gboolean        only_embedded)
+			     guint32	     service_id,
+			     gboolean	     only_embedded)
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set = NULL;
-	gchar              *service_id_str;
+	gchar		   *service_id_str;
 	TrackerMetadata    *metadata;
 
 	metadata = tracker_metadata_new ();
@@ -405,19 +405,19 @@ tracker_db_get_all_metadata (TrackerService *service,
 
 	result_set = tracker_db_interface_execute_procedure (iface, NULL, "GetMetadataIDValue", service_id_str, NULL);
 	if (result_set) {
-	        result_set_to_metadata (result_set, metadata, FALSE, only_embedded);
+		result_set_to_metadata (result_set, metadata, FALSE, only_embedded);
 		g_object_unref (result_set);
 	}
 
 	result_set = tracker_db_interface_execute_procedure (iface, NULL, "GetMetadataIDValueKeyword", service_id_str, NULL);
 	if (result_set) {
-	        result_set_to_metadata (result_set, metadata, FALSE, only_embedded);
+		result_set_to_metadata (result_set, metadata, FALSE, only_embedded);
 		g_object_unref (result_set);
 	}
 
 	result_set = tracker_db_interface_execute_procedure (iface, NULL, "GetMetadataIDValueNumeric", service_id_str, NULL);
 	if (result_set) {
-	        result_set_to_metadata (result_set, metadata, TRUE, only_embedded);
+		result_set_to_metadata (result_set, metadata, TRUE, only_embedded);
 		g_object_unref (result_set);
 	}
 
@@ -428,7 +428,7 @@ tracker_db_get_all_metadata (TrackerService *service,
 
 void
 tracker_db_delete_service (TrackerService *service,
-			   guint32         service_id)
+			   guint32	   service_id)
 {
 
 	TrackerDBInterface *iface;
@@ -455,8 +455,8 @@ tracker_db_delete_service (TrackerService *service,
 
 void
 tracker_db_move_service (TrackerService *service,
-			 const gchar    *from,
-			 const gchar    *to)
+			 const gchar	*from,
+			 const gchar	*to)
 {
 	TrackerDBInterface *iface;
 	GError *error = NULL;
@@ -499,7 +499,7 @@ tracker_db_move_service (TrackerService *service,
 
 void
 tracker_db_delete_all_metadata (TrackerService *service,
-				guint32         service_id)
+				guint32		service_id)
 {
 	TrackerDBInterface *iface;
 	gchar *service_id_str;
@@ -531,28 +531,28 @@ tracker_db_delete_all_metadata (TrackerService *service,
 
 gchar *
 tracker_db_get_unparsed_metadata (TrackerService *service,
-				  guint           service_id)
+				  guint		  service_id)
 {
 	return db_get_metadata (service, service_id, TRUE);
 }
 
 gchar *
 tracker_db_get_parsed_metadata (TrackerService *service,
-				guint           service_id)
+				guint		service_id)
 {
 	return db_get_metadata (service, service_id, FALSE);
 }
 
 gchar **
 tracker_db_get_property_values (TrackerService *service_def,
-				guint32         id,
+				guint32		id,
 				TrackerField   *field)
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set = NULL;
-	gint                metadata_key;
-	gchar             **final_result = NULL;
-	gboolean            is_numeric = FALSE;
+	gint		    metadata_key;
+	gchar		  **final_result = NULL;
+	gboolean	    is_numeric = FALSE;
 
 	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service_def),
 							     TRACKER_DB_CONTENT_TYPE_METADATA);
@@ -633,10 +633,10 @@ tracker_db_get_property_values (TrackerService *service_def,
 
 void
 tracker_db_set_metadata (TrackerService *service,
-			 guint32         id,
-			 TrackerField   *field,
-			 const gchar    *value,
-			 const gchar    *parsed_value)
+			 guint32	 id,
+			 TrackerField	*field,
+			 const gchar	*value,
+			 const gchar	*parsed_value)
 {
 	TrackerDBInterface *iface;
 	gint metadata_key;
@@ -720,7 +720,7 @@ tracker_db_set_metadata (TrackerService *service,
 
 void
 tracker_db_delete_metadata (TrackerService *service,
-			    guint32         id,
+			    guint32	    id,
 			    TrackerField   *field,
 			    const gchar    *value)
 {
@@ -795,7 +795,7 @@ tracker_db_delete_metadata (TrackerService *service,
 
 void
 tracker_db_set_text (TrackerService *service,
-		     guint32         id,
+		     guint32	     id,
 		     const gchar    *text)
 {
 	TrackerDBInterface *iface;
@@ -818,11 +818,11 @@ tracker_db_set_text (TrackerService *service,
 
 gchar *
 tracker_db_get_text (TrackerService *service,
-		     guint32         id)
+		     guint32	     id)
 {
 	TrackerDBInterface *iface;
-	TrackerField       *field;
-	gchar              *service_id_str, *contents = NULL;
+	TrackerField	   *field;
+	gchar		   *service_id_str, *contents = NULL;
 	TrackerDBResultSet *result_set;
 
 	service_id_str = tracker_guint32_to_string (id);
@@ -849,7 +849,7 @@ tracker_db_get_text (TrackerService *service,
 
 void
 tracker_db_delete_text (TrackerService *service,
-			guint32         id)
+			guint32		id)
 {
 	TrackerDBInterface *iface;
 	TrackerField *field;

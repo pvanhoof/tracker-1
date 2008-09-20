@@ -141,7 +141,7 @@ inotify_handle_get_parent( INotifyHandle *inh )
 
 void
 inotify_handle_set_callback( INotifyHandle *inh, INotifyCallback callback,
-                             gpointer user_data )
+			     gpointer user_data )
 {
   inh->callback = callback;
   inh->user_data = user_data;
@@ -149,12 +149,12 @@ inotify_handle_set_callback( INotifyHandle *inh, INotifyCallback callback,
 
 static guint32
 inotify_handle_event_applicable( INotifyHandle *inh, guint32 type,
-                                 const char *filename )
+				 const char *filename )
 {
   enum inh_state state = inh->state;
 
   inotify_debug( "Juding applicability of event %x on %p/%s",
-                 type, inh, filename );
+		 type, inh, filename );
 
   if( type & IN_SYNTHETIC )
   {
@@ -163,45 +163,45 @@ inotify_handle_event_applicable( INotifyHandle *inh, guint32 type,
     /* Synthetic events should not be delivered except as the first event. */
     if( state != inh_state_initial )
     {
-      inotify_debug( "  dropping synthetic event on non-initial state" );
+      inotify_debug( "	dropping synthetic event on non-initial state" );
       return 0;
     }
 
     /* Synthetic create event... */
     if( type & IN_CREATE )
     {
-      inotify_debug( "  synthetic create event" );
+      inotify_debug( "	synthetic create event" );
 
       inh->state = inh_state_created;
 
       /* Only deliver if the user wants to receive synthetic create events. */
       if( inh->flags & IN_FLAG_SYNTH_CREATE )
       {
-        inotify_debug( "  user wants it -- delivering" );
-        return IN_CREATE | (IN_SYNTHETIC & inh->mask);
+	inotify_debug( "  user wants it -- delivering" );
+	return IN_CREATE | (IN_SYNTHETIC & inh->mask);
       }
       else
       {
-        inotify_debug( "  user doesn't want it -- dropping" );
-        return 0;
+	inotify_debug( "  user doesn't want it -- dropping" );
+	return 0;
       }
     }
 
     if( type & IN_DELETE )
     {
-      inotify_debug( "  synthetic delete event" );
+      inotify_debug( "	synthetic delete event" );
       inh->state = inh_state_deleted;
 
       /* Only deliver if the user wants to receive synthetic delete events. */
       if( inh->flags & IN_FLAG_SYNTH_DELETE )
       {
-        inotify_debug( "  user wants it -- delivering" );
-        return IN_DELETE | (IN_SYNTHETIC & inh->mask);
+	inotify_debug( "  user wants it -- delivering" );
+	return IN_DELETE | (IN_SYNTHETIC & inh->mask);
       }
       else
       {
-        inotify_debug( "  user doesn't want it -- dropping" );
-        return 0;
+	inotify_debug( "  user doesn't want it -- dropping" );
+	return 0;
       }
     }
 
@@ -231,9 +231,9 @@ inotify_handle_event_applicable( INotifyHandle *inh, guint32 type,
       inh->state = inh_state_created;
 
       if( state == inh_state_created )
-        inotify_warn( "Create on already-existing file" );
+	inotify_warn( "Create on already-existing file" );
 
-      inotify_debug( "  event is create-type.  passing through" );
+      inotify_debug( "	event is create-type.  passing through" );
 
       return type;
 
@@ -244,19 +244,19 @@ inotify_handle_event_applicable( INotifyHandle *inh, guint32 type,
 
       if( state == inh_state_deleted )
       {
-        inotify_debug( "  dropping remove event on already-removed file" );
-        return 0;
+	inotify_debug( "  dropping remove event on already-removed file" );
+	return 0;
       }
 
-      inotify_debug( "  event is delete-type.  passing through" );
+      inotify_debug( "	event is delete-type.  passing through" );
 
       return type;
 
     default:
       if( state != inh_state_created )
-        inotify_warn( "Received direct event on non-created inh" );
+	inotify_warn( "Received direct event on non-created inh" );
 
-      inotify_debug( "  event is other type.  passing through" );
+      inotify_debug( "	event is other type.  passing through" );
 
       return type;
   }
@@ -264,11 +264,11 @@ inotify_handle_event_applicable( INotifyHandle *inh, guint32 type,
 
 void
 inotify_handle_invoke_callback( INotifyHandle *inh, const char *filename,
-                                guint32 type, guint32 cookie )
+				guint32 type, guint32 cookie )
 {
   type = inotify_handle_event_applicable( inh, type, filename );
 
   if( type != 0 && inh->callback )
     inh->callback( inh, inh->filename, filename, type,
-                   cookie, inh->user_data );
+		   cookie, inh->user_data );
 }

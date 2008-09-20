@@ -40,30 +40,30 @@ typedef enum {
 	TRACKER_XESAM_ERROR_PARSING_FAILED,
 } TrackerXesamError;
 
-GQuark   tracker_xesam_manager_error_quark            (void);
+GQuark	 tracker_xesam_manager_error_quark	      (void);
 
-void     tracker_xesam_manager_init                   (void);
-void     tracker_xesam_manager_shutdown               (void);
+void	 tracker_xesam_manager_init		      (void);
+void	 tracker_xesam_manager_shutdown		      (void);
 
 TrackerXesamSession*
-         tracker_xesam_manager_create_session         (TrackerXesam            *xesam,
-						       gchar                  **session_id,
-						       GError                 **error);
-void     tracker_xesam_manager_close_session          (const gchar             *session_id,
-						       GError                 **error);
+	 tracker_xesam_manager_create_session	      (TrackerXesam	       *xesam,
+						       gchar		      **session_id,
+						       GError		      **error);
+void	 tracker_xesam_manager_close_session	      (const gchar	       *session_id,
+						       GError		      **error);
 TrackerXesamSession*
-         tracker_xesam_manager_get_session            (const gchar             *session_id,
-						       GError                 **error);
+	 tracker_xesam_manager_get_session	      (const gchar	       *session_id,
+						       GError		      **error);
 TrackerXesamSession*
-         tracker_xesam_manager_get_session_for_search (const gchar             *search_id,
+	 tracker_xesam_manager_get_session_for_search (const gchar	       *search_id,
 						       TrackerXesamLiveSearch **search_in,
-						       GError                 **error);
+						       GError		      **error);
 TrackerXesamLiveSearch*
-         tracker_xesam_manager_get_live_search        (const gchar             *search_id,
-						       GError                 **error);
+	 tracker_xesam_manager_get_live_search	      (const gchar	       *search_id,
+						       GError		      **error);
 gchar *  tracker_xesam_manager_generate_unique_key    (void);
-gboolean tracker_xesam_manager_is_uri_in_xesam_dir    (const gchar             *uri);
-void     tracker_xesam_manager_wakeup                 (void);
+gboolean tracker_xesam_manager_is_uri_in_xesam_dir    (const gchar	       *uri);
+void	 tracker_xesam_manager_wakeup		      (void);
 
 G_END_DECLS
 

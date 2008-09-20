@@ -71,15 +71,15 @@ struct _TrackerMonitorPrivate {
 
 	gboolean       enabled;
 
-	guint          black_list_timeout_id;
+	guint	       black_list_timeout_id;
 	GHashTable    *black_list_count;
 	GHashTable    *black_list_timestamps;
 
-	GType          monitor_backend;
+	GType	       monitor_backend;
 
-	guint          monitor_limit;
+	guint	       monitor_limit;
 	gboolean       monitor_limit_warned;
-	guint          monitors_ignored;
+	guint	       monitors_ignored;
 
 	/* For FAM, the _CHANGES_DONE event is not signalled, so we
 	 * have to just use the _CHANGED event instead.
@@ -87,14 +87,14 @@ struct _TrackerMonitorPrivate {
 	gboolean       use_changed_event;
 
 	/* Timeout id for pausing when we get IO */
-	guint          unpause_timeout_id;
+	guint	       unpause_timeout_id;
 
 #ifdef USE_LIBINOTIFY
 	GHashTable    *event_pairs;
 	GHashTable    *event_time_by_cookie;
 	GHashTable    *event_type_by_cookie;
 
-	guint          event_check_timeout_id;
+	guint	       event_check_timeout_id;
 #endif /* USE_LIBINOTIFY */
 };
 
@@ -111,23 +111,23 @@ enum {
 	PROP_ENABLED
 };
 
-static void           tracker_monitor_finalize     (GObject        *object);
-static void           tracker_monitor_set_property (GObject        *object,
-						    guint           prop_id,
+static void	      tracker_monitor_finalize	   (GObject	   *object);
+static void	      tracker_monitor_set_property (GObject	   *object,
+						    guint	    prop_id,
 						    const GValue   *value,
-						    GParamSpec     *pspec);
-static void           tracker_monitor_get_property (GObject        *object,
-						    guint           prop_id,
-						    GValue         *value,
-						    GParamSpec     *pspec);
-static gboolean       black_list_check_items_cb    (gpointer        data);
-static void           black_list_print_all         (TrackerMonitor *monitor);
-static guint          get_inotify_limit            (void);
+						    GParamSpec	   *pspec);
+static void	      tracker_monitor_get_property (GObject	   *object,
+						    guint	    prop_id,
+						    GValue	   *value,
+						    GParamSpec	   *pspec);
+static gboolean       black_list_check_items_cb    (gpointer	    data);
+static void	      black_list_print_all	   (TrackerMonitor *monitor);
+static guint	      get_inotify_limit		   (void);
 
 #ifdef USE_LIBINOTIFY
 static INotifyHandle *libinotify_monitor_directory (TrackerMonitor *monitor,
-						    GFile          *file);
-static void           libinotify_monitor_cancel    (gpointer        data);
+						    GFile	   *file);
+static void	      libinotify_monitor_cancel    (gpointer	    data);
 #endif /* USE_LIBINOTIFY */
 
 static guint signals[LAST_SIGNAL] = { 0, };
@@ -210,10 +210,10 @@ static void
 tracker_monitor_init (TrackerMonitor *object)
 {
 	TrackerMonitorPrivate *priv;
-	GFile                 *file;
-	GFileMonitor          *monitor;
-	GList                 *all_modules, *l;
-	const gchar           *name;
+	GFile		      *file;
+	GFileMonitor	      *monitor;
+	GList		      *all_modules, *l;
+	const gchar	      *name;
 
 	object->private = TRACKER_MONITOR_GET_PRIVATE (object);
 
@@ -412,8 +412,8 @@ tracker_monitor_finalize (GObject *object)
 }
 
 static void
-tracker_monitor_set_property (GObject      *object,
-			      guint         prop_id,
+tracker_monitor_set_property (GObject	   *object,
+			      guint	    prop_id,
 			      const GValue *value,
 			      GParamSpec   *pspec)
 {
@@ -429,9 +429,9 @@ tracker_monitor_set_property (GObject      *object,
 }
 
 static void
-tracker_monitor_get_property (GObject      *object,
-			      guint         prop_id,
-			      GValue       *value,
+tracker_monitor_get_property (GObject	   *object,
+			      guint	    prop_id,
+			      GValue	   *value,
 			      GParamSpec   *pspec)
 {
 	TrackerMonitorPrivate *priv;
@@ -451,10 +451,10 @@ tracker_monitor_get_property (GObject      *object,
 static guint
 get_inotify_limit (void)
 {
-	GError      *error = NULL;
+	GError	    *error = NULL;
 	const gchar *filename;
-	gchar       *contents = NULL;
-	guint        limit;
+	gchar	    *contents = NULL;
+	guint	     limit;
 
 	filename = "/proc/sys/fs/inotify/max_user_watches";
 
@@ -479,10 +479,10 @@ get_inotify_limit (void)
 
 static const gchar *
 get_queue_from_gfile (GHashTable *modules,
-		      GFile      *file)
+		      GFile	 *file)
 {
 	GHashTable  *hash_table;
-	GList       *all_modules, *l;
+	GList	    *all_modules, *l;
 	const gchar *module_name = NULL;
 
 	all_modules = g_hash_table_get_keys (modules);
@@ -502,8 +502,8 @@ get_queue_from_gfile (GHashTable *modules,
 
 static const gchar *
 get_module_name_from_gfile (TrackerMonitor *monitor,
-			    GFile          *file,
-			    gboolean       *is_directory)
+			    GFile	   *file,
+			    gboolean	   *is_directory)
 {
 	const gchar *module_name;
 
@@ -553,15 +553,15 @@ static gboolean
 black_list_check_items_cb (gpointer data)
 {
 	TrackerMonitor *monitor;
-	GHashTableIter  iter;
-	GTimeVal        t;
-	gchar          *path;
-	gpointer        key;
-	gpointer        value;
-	gsize           seconds;
-	gsize           seconds_now;
-	gsize           seconds_diff;
-	guint           count;
+	GHashTableIter	iter;
+	GTimeVal	t;
+	gchar	       *path;
+	gpointer	key;
+	gpointer	value;
+	gsize		seconds;
+	gsize		seconds_now;
+	gsize		seconds_diff;
+	guint		count;
 
 	monitor = data;
 
@@ -633,10 +633,10 @@ black_list_check_items_cb (gpointer data)
 
 static gboolean
 black_list_file_check (TrackerMonitor *monitor,
-		       GFile          *file)
+		       GFile	      *file)
 {
 	gpointer data;
-	guint    count;
+	guint	 count;
 
 	data = g_hash_table_lookup (monitor->private->black_list_count, file);
 	count = GPOINTER_TO_UINT (data);
@@ -646,12 +646,12 @@ black_list_file_check (TrackerMonitor *monitor,
 
 static void
 black_list_file_increment (TrackerMonitor *monitor,
-			   GFile          *file)
+			   GFile	  *file)
 {
 	GTimeVal  t;
-	gchar    *path;
+	gchar	 *path;
 	gpointer  data;
-	guint     count;
+	guint	  count;
 
 	data = g_hash_table_lookup (monitor->private->black_list_count, file);
 	count = GPOINTER_TO_UINT (data);
@@ -687,12 +687,12 @@ black_list_file_increment (TrackerMonitor *monitor,
 static void
 black_list_print_all (TrackerMonitor *monitor)
 {
-	GHashTableIter  iter;
-	gchar          *path;
-	gpointer        key;
-	gpointer        value;
-	guint           count;
-	gboolean        none = TRUE;
+	GHashTableIter	iter;
+	gchar	       *path;
+	gpointer	key;
+	gpointer	value;
+	guint		count;
+	gboolean	none = TRUE;
 
 	g_message ("Summary of black list: (with >= %d events)",
 		   BLACK_LIST_MAX_HITS);
@@ -730,8 +730,8 @@ indexer_pause_cb (DBusGProxy *proxy,
 
 static void
 indexer_continue_cb (DBusGProxy *proxy,
-		     GError     *error,
-		     gpointer    user_data)
+		     GError	*error,
+		     gpointer	 user_data)
 {
 	if (error) {
 		g_message ("Could not continue the indexer, %s",
@@ -845,9 +845,9 @@ static gboolean
 libinotify_event_check_timeout_cb (gpointer data)
 {
 	TrackerMonitor *monitor;
-	GTimeVal        t;
-	GHashTableIter  iter;
-	gpointer        key, value;
+	GTimeVal	t;
+	GHashTableIter	iter;
+	gpointer	key, value;
 
 	monitor = data;
 
@@ -857,10 +857,10 @@ libinotify_event_check_timeout_cb (gpointer data)
 
 	g_hash_table_iter_init (&iter, monitor->private->event_time_by_cookie);
 	while (g_hash_table_iter_next (&iter, &key, &value)) {
-		glong        seconds;
-		glong        seconds_then;
+		glong	     seconds;
+		glong	     seconds_then;
 		guint32      event_type;
-		GFile       *file;
+		GFile	    *file;
 		const gchar *module_name;
 		gboolean     is_directory;
 		gpointer     p;
@@ -946,18 +946,18 @@ static void
 libinotify_monitor_event_cb (INotifyHandle *handle,
 			     const char    *monitor_name,
 			     const char    *filename,
-			     guint32        event_type,
-			     guint32        cookie,
-			     gpointer       user_data)
+			     guint32	    event_type,
+			     guint32	    cookie,
+			     gpointer	    user_data)
 {
 	TrackerMonitor *monitor;
-	GFile          *file;
-	GFile          *other_file;
+	GFile	       *file;
+	GFile	       *other_file;
 	const gchar    *module_name;
-	gchar          *str1;
-	gchar          *str2;
-	gboolean        is_directory;
-	gchar          *event_type_str;
+	gchar	       *str1;
+	gchar	       *str2;
+	gboolean	is_directory;
+	gchar	       *event_type_str;
 
 	monitor = user_data;
 
@@ -1193,10 +1193,10 @@ libinotify_monitor_event_cb (INotifyHandle *handle,
 
 static INotifyHandle *
 libinotify_monitor_directory (TrackerMonitor *monitor,
-			      GFile          *file)
+			      GFile	     *file)
 {
 	INotifyHandle *handle;
-	gchar         *path;
+	gchar	      *path;
 	guint32	       mask;
 	unsigned long  flags;
 	gboolean       is_directory;
@@ -1259,17 +1259,17 @@ monitor_event_to_string (GFileMonitorEvent event_type)
 }
 
 static void
-monitor_event_cb (GFileMonitor      *file_monitor,
-		  GFile             *file,
-		  GFile             *other_file,
+monitor_event_cb (GFileMonitor	    *file_monitor,
+		  GFile		    *file,
+		  GFile		    *other_file,
 		  GFileMonitorEvent  event_type,
-		  gpointer           user_data)
+		  gpointer	     user_data)
 {
 	TrackerMonitor *monitor;
 	const gchar    *module_name;
-	gchar          *str1;
-	gchar          *str2;
-	gboolean        is_directory;
+	gchar	       *str1;
+	gchar	       *str2;
+	gboolean	is_directory;
 
 	monitor = user_data;
 
@@ -1382,7 +1382,7 @@ monitor_event_cb (GFileMonitor      *file_monitor,
 TrackerMonitor *
 tracker_monitor_new (TrackerConfig *config)
 {
-	TrackerMonitor        *monitor;
+	TrackerMonitor	      *monitor;
 	TrackerMonitorPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
@@ -1406,7 +1406,7 @@ tracker_monitor_get_enabled (TrackerMonitor *monitor)
 
 void
 tracker_monitor_set_enabled (TrackerMonitor *monitor,
-			     gboolean        enabled)
+			     gboolean	     enabled)
 {
 	g_return_if_fail (TRACKER_IS_MONITOR (monitor));
 
@@ -1418,18 +1418,18 @@ tracker_monitor_set_enabled (TrackerMonitor *monitor,
 gboolean
 tracker_monitor_add (TrackerMonitor *monitor,
 		     const gchar    *module_name,
-		     GFile          *file)
+		     GFile	    *file)
 {
 #ifdef USE_LIBINOTIFY
 	INotifyHandle *file_monitor;
 #else  /* USE_LIBINOTIFY */
 	GFileMonitor *file_monitor;
-	GError       *error = NULL;
+	GError	     *error = NULL;
 #endif /* USE_LIBINOTIFY */
 	GHashTable   *monitors;
-	GSList       *ignored_roots;
-	GSList       *l;
-	gchar        *path;
+	GSList	     *ignored_roots;
+	GSList	     *l;
+	gchar	     *path;
 
 	g_return_val_if_fail (TRACKER_IS_MONITOR (monitor), FALSE);
 	g_return_val_if_fail (module_name != NULL, FALSE);
@@ -1533,11 +1533,11 @@ tracker_monitor_add (TrackerMonitor *monitor,
 gboolean
 tracker_monitor_remove (TrackerMonitor *monitor,
 			const gchar    *module_name,
-			GFile          *file)
+			GFile	       *file)
 {
 	GFileMonitor *file_monitor;
 	GHashTable   *monitors;
-	gchar        *path;
+	gchar	     *path;
 
 	g_return_val_if_fail (TRACKER_IS_MONITOR (monitor), FALSE);
 	g_return_val_if_fail (module_name != NULL, FALSE);
@@ -1579,7 +1579,7 @@ tracker_monitor_remove (TrackerMonitor *monitor,
 gboolean
 tracker_monitor_is_watched (TrackerMonitor *monitor,
 			    const gchar    *module_name,
-			    GFile          *file)
+			    GFile	   *file)
 {
 	GHashTable *monitors;
 
@@ -1602,7 +1602,7 @@ tracker_monitor_is_watched_by_string (TrackerMonitor *monitor,
 				      const gchar    *module_name,
 				      const gchar    *path)
 {
-	GFile      *file;
+	GFile	   *file;
 	GHashTable *monitors;
 	gboolean    watched;
 
@@ -1626,7 +1626,7 @@ tracker_monitor_is_watched_by_string (TrackerMonitor *monitor,
 
 guint
 tracker_monitor_get_count (TrackerMonitor *monitor,
-			   const gchar    *module_name)
+			   const gchar	  *module_name)
 {
 	guint count;
 

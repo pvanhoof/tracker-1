@@ -1,7 +1,7 @@
 /*
 ** 2001 September 22
 **
-** The author disclaims copyright to this source code.  In place of
+** The author disclaims copyright to this source code.	In place of
 ** a legal notice, here is a blessing:
 **
 **    May you do good and not evil.
@@ -30,13 +30,13 @@ typedef struct fts3HashElem fts3HashElem;
 ** this structure opaque.
 */
 struct fts3Hash {
-  char keyClass;          /* HASH_INT, _POINTER, _STRING, _BINARY */
-  char copyKey;           /* True if copy of key made on insert */
-  int count;              /* Number of entries in this table */
-  fts3HashElem *first;    /* The first element of the array */
-  int htsize;             /* Number of buckets in the hash table */
-  struct _fts3ht {        /* the hash table */
-    int count;               /* Number of entries with this hash */
+  char keyClass;	  /* HASH_INT, _POINTER, _STRING, _BINARY */
+  char copyKey;		  /* True if copy of key made on insert */
+  int count;		  /* Number of entries in this table */
+  fts3HashElem *first;	  /* The first element of the array */
+  int htsize;		  /* Number of buckets in the hash table */
+  struct _fts3ht {	  /* the hash table */
+    int count;		     /* Number of entries with this hash */
     fts3HashElem *chain;     /* Pointer to first entry with this hash */
   } *ht;
 };
@@ -49,19 +49,19 @@ struct fts3Hash {
 */
 struct fts3HashElem {
   fts3HashElem *next, *prev; /* Next and previous elements in the table */
-  void *data;                /* Data associated with this element */
+  void *data;		     /* Data associated with this element */
   void *pKey; int nKey;      /* Key associated with this element */
 };
 
 /*
 ** There are 2 different modes of operation for a hash table:
 **
-**   FTS3_HASH_STRING        pKey points to a string that is nKey bytes long
-**                           (including the null-terminator, if any).  Case
-**                           is respected in comparisons.
+**   FTS3_HASH_STRING	     pKey points to a string that is nKey bytes long
+**			     (including the null-terminator, if any).  Case
+**			     is respected in comparisons.
 **
-**   FTS3_HASH_BINARY        pKey points to binary data nKey bytes long.
-**                           memcmp() is used to compare keys.
+**   FTS3_HASH_BINARY	     pKey points to binary data nKey bytes long.
+**			     memcmp() is used to compare keys.
 **
 ** A copy of the key is made if the copyKey parameter to fts3HashInit is 1.
 */
@@ -99,7 +99,7 @@ void sqlite3Fts3HashClear(fts3Hash*);
 #define fts3HashFirst(H)  ((H)->first)
 #define fts3HashNext(E)   ((E)->next)
 #define fts3HashData(E)   ((E)->data)
-#define fts3HashKey(E)    ((E)->pKey)
+#define fts3HashKey(E)	  ((E)->pKey)
 #define fts3HashKeysize(E) ((E)->nKey)
 
 /*

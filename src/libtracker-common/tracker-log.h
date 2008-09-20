@@ -27,8 +27,8 @@
 G_BEGIN_DECLS
 
 gboolean tracker_log_init     (const char *filename,
-			       gint        verbosity);
-void     tracker_log_shutdown (void);
+			       gint	   verbosity);
+void	 tracker_log_shutdown (void);
 
 G_END_DECLS
 

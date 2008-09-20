@@ -39,7 +39,7 @@ G_BEGIN_DECLS
 
 #define TRACKER_TYPE_XESAM_STRV_ARRAY (dbus_g_type_get_collection ("GPtrArray", G_TYPE_STRV))
 
-typedef struct _TrackerXesamSession      TrackerXesamSession;
+typedef struct _TrackerXesamSession	 TrackerXesamSession;
 typedef struct _TrackerXesamSessionClass TrackerXesamSessionClass;
 typedef struct _TrackerXesamSessionPriv  TrackerXesamSessionPriv;
 
@@ -52,29 +52,29 @@ struct _TrackerXesamSessionClass {
 	GObjectClass parent_class;
 };
 
-void                    tracker_xesam_session_set_property  (TrackerXesamSession  *self,
-							     const gchar          *prop,
-							     const GValue         *val,
-							     GValue              **new_val,
-							     GError              **error);
-void                    tracker_xesam_session_get_property  (TrackerXesamSession  *self,
-							     const gchar          *prop,
-							     GValue              **value,
-							     GError              **error);
+void			tracker_xesam_session_set_property  (TrackerXesamSession  *self,
+							     const gchar	  *prop,
+							     const GValue	  *val,
+							     GValue		 **new_val,
+							     GError		 **error);
+void			tracker_xesam_session_get_property  (TrackerXesamSession  *self,
+							     const gchar	  *prop,
+							     GValue		 **value,
+							     GError		 **error);
 TrackerXesamLiveSearch* tracker_xesam_session_create_search (TrackerXesamSession  *self,
-							     const gchar          *query_xml,
-							     gchar               **search_id,
-							     GError              **error);
+							     const gchar	  *query_xml,
+							     gchar		 **search_id,
+							     GError		 **error);
 TrackerXesamLiveSearch* tracker_xesam_session_get_search    (TrackerXesamSession  *self,
-							     const gchar          *search_id,
-							     GError              **error);
-GList *                 tracker_xesam_session_get_searches  (TrackerXesamSession  *self);
-void                    tracker_xesam_session_set_id        (TrackerXesamSession  *self,
-							     const gchar          *session_id);
-const gchar*            tracker_xesam_session_get_id        (TrackerXesamSession  *self);
-TrackerXesamSession*    tracker_xesam_session_new           (void);
-GType                   tracker_xesam_session_get_type      (void);
-GHashTable*             tracker_xesam_session_get_props     (TrackerXesamSession *self);
+							     const gchar	  *search_id,
+							     GError		 **error);
+GList *			tracker_xesam_session_get_searches  (TrackerXesamSession  *self);
+void			tracker_xesam_session_set_id	    (TrackerXesamSession  *self,
+							     const gchar	  *session_id);
+const gchar*		tracker_xesam_session_get_id	    (TrackerXesamSession  *self);
+TrackerXesamSession*	tracker_xesam_session_new	    (void);
+GType			tracker_xesam_session_get_type	    (void);
+GHashTable*		tracker_xesam_session_get_props     (TrackerXesamSession *self);
 
 G_END_DECLS
 

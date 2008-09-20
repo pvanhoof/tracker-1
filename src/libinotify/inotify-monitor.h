@@ -24,10 +24,10 @@
 #include "inotify-handle.h"
 
 INotifyHandle *inotify_monitor_add( const char *filename,
-                                    guint32 mask,
-                                    unsigned long flags,
-                                    INotifyCallback callback,
-                                    gpointer user_data );
+				    guint32 mask,
+				    unsigned long flags,
+				    INotifyCallback callback,
+				    gpointer user_data );
 void inotify_monitor_remove( INotifyHandle *inh );
 gboolean inotify_is_available( void );
 

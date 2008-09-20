@@ -33,27 +33,27 @@
 #include "tracker-dbus.h"
 #include "tracker-main.h"
 
-static gboolean            initialized;
+static gboolean		   initialized;
 static TrackerDBInterface *xesam_db_iface;
-static GHashTable         *xesam_sessions;
-static gchar              *xesam_dir;
-static gboolean            indexing_finished;
-static guint               live_search_handler_id;
+static GHashTable	  *xesam_sessions;
+static gchar		  *xesam_dir;
+static gboolean		   indexing_finished;
+static guint		   live_search_handler_id;
 
 static void
 indexer_status_cb (DBusGProxy  *proxy,
-		   gdouble      seconds_elapsed,
+		   gdouble	seconds_elapsed,
 		   const gchar *current_module_name,
-		   guint        items_done,
-		   guint        items_remaining,
-		   gpointer     user_data)
+		   guint	items_done,
+		   guint	items_remaining,
+		   gpointer	user_data)
 {
 	tracker_xesam_manager_wakeup ();
 }
 
 static void
 indexer_started_cb (DBusGProxy *proxy,
-		    gpointer    user_data)
+		    gpointer	user_data)
 {
 	/* So now when we get status updates we DO NOT process live
 	 * events and update live searches. The indexer is using the cache.
@@ -64,10 +64,10 @@ indexer_started_cb (DBusGProxy *proxy,
 
 static void
 indexer_finished_cb (DBusGProxy *proxy,
-		     gdouble     seconds_elapsed,
-		     guint       items_done,
-		     gboolean    interrupted,
-		     gpointer    user_data)
+		     gdouble	 seconds_elapsed,
+		     guint	 items_done,
+		     gboolean	 interrupted,
+		     gpointer	 user_data)
 {
 	/* So now when we get status updates we can process live
 	 * events and update live searches.
@@ -181,8 +181,8 @@ tracker_xesam_manager_shutdown (void)
 
 TrackerXesamSession *
 tracker_xesam_manager_create_session (TrackerXesam  *xesam,
-				      gchar        **session_id,
-				      GError       **error)
+				      gchar	   **session_id,
+				      GError	   **error)
 {
 	TrackerXesamSession *session;
 
@@ -202,7 +202,7 @@ tracker_xesam_manager_create_session (TrackerXesam  *xesam,
 
 void
 tracker_xesam_manager_close_session (const gchar  *session_id,
-				     GError      **error)
+				     GError	 **error)
 {
 	gpointer inst = g_hash_table_lookup (xesam_sessions, session_id);
 
@@ -217,7 +217,7 @@ tracker_xesam_manager_close_session (const gchar  *session_id,
 }
 
 TrackerXesamSession *
-tracker_xesam_manager_get_session (const gchar  *session_id,
+tracker_xesam_manager_get_session (const gchar	*session_id,
 				   GError      **error)
 {
 	TrackerXesamSession *session = g_hash_table_lookup (xesam_sessions, session_id);
@@ -235,12 +235,12 @@ tracker_xesam_manager_get_session (const gchar  *session_id,
 }
 
 TrackerXesamSession *
-tracker_xesam_manager_get_session_for_search (const gchar             *search_id,
+tracker_xesam_manager_get_session_for_search (const gchar	      *search_id,
 					      TrackerXesamLiveSearch **search_in,
-					      GError                 **error)
+					      GError		     **error)
 {
 	TrackerXesamSession *session = NULL;
-	GList               *sessions;
+	GList		    *sessions;
 
 	sessions = g_hash_table_get_values (xesam_sessions);
 
@@ -278,10 +278,10 @@ tracker_xesam_manager_get_session_for_search (const gchar             *search_id
 
 TrackerXesamLiveSearch *
 tracker_xesam_manager_get_live_search (const gchar  *search_id,
-				       GError      **error)
+				       GError	   **error)
 {
 	TrackerXesamLiveSearch *search = NULL;
-	GList                  *sessions;
+	GList		       *sessions;
 
 	sessions = g_hash_table_get_values (xesam_sessions);
 
@@ -314,7 +314,7 @@ tracker_xesam_manager_get_live_search (const gchar  *search_id,
 static gboolean
 live_search_handler (gpointer data)
 {
-	GList    *sessions;
+	GList	 *sessions;
 	gboolean  reason_to_live = FALSE;
 
 	sessions = g_hash_table_get_values (xesam_sessions);
@@ -329,9 +329,9 @@ live_search_handler (gpointer data)
 
 		while (searches) {
 			TrackerXesamLiveSearch *search;
-			GArray                 *added = NULL;
-			GArray                 *removed = NULL;
-			GArray                 *modified = NULL;
+			GArray		       *added = NULL;
+			GArray		       *removed = NULL;
+			GArray		       *modified = NULL;
 
 			g_debug ("Search being handled, ID :%s",
 				 tracker_xesam_live_search_get_id (searches->data));
@@ -436,8 +436,8 @@ gchar *
 tracker_xesam_manager_generate_unique_key (void)
 {
 	static guint  serial = 0;
-	gchar        *key;
-	guint         t, ut, p, u, r;
+	gchar	     *key;
+	guint	      t, ut, p, u, r;
 	GTimeVal      tv;
 
 	g_get_current_time (&tv);

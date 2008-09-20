@@ -28,27 +28,27 @@
 G_BEGIN_DECLS
 
 gchar *tracker_rdf_query_to_sql (TrackerDBInterface  *iface,
-				 const gchar         *query,
-				 const gchar         *service,
-				 gchar              **fields,
-				 gint                 field_count,
-				 const gchar         *search_text,
-				 const gchar         *keyword,
-				 gboolean             sort_by_service,
-				 gchar              **sort_fields,
-				 gint                 sort_field_count,
-				 gboolean             sort_desc,
-				 gint                 offset,
-				 gint                 limit,
-				 GError             **error);
+				 const gchar	     *query,
+				 const gchar	     *service,
+				 gchar		    **fields,
+				 gint		      field_count,
+				 const gchar	     *search_text,
+				 const gchar	     *keyword,
+				 gboolean	      sort_by_service,
+				 gchar		    **sort_fields,
+				 gint		      sort_field_count,
+				 gboolean	      sort_desc,
+				 gint		      offset,
+				 gint		      limit,
+				 GError		    **error);
 
-void tracker_rdf_filter_to_sql  (TrackerDBInterface  *iface,
-				 const gchar         *query,
-				 const gchar         *service,
-				 GSList             **fields,
-				 gchar              **from,
-				 gchar              **where,
-				 GError             **error);
+void tracker_rdf_filter_to_sql	(TrackerDBInterface  *iface,
+				 const gchar	     *query,
+				 const gchar	     *service,
+				 GSList		    **fields,
+				 gchar		    **from,
+				 gchar		    **where,
+				 GError		    **error);
 
 G_END_DECLS
 

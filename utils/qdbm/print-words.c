@@ -26,7 +26,7 @@
 
 #define USAGE "Usage: print -f qdbm-file\n"
 
-static gchar        *filename;
+static gchar	    *filename;
 static gboolean      print_services;
 
 static GOptionEntry  entries[] = {
@@ -42,29 +42,29 @@ static GOptionEntry  entries[] = {
 };
 
 static TrackerDBIndexItem *
-get_word_hits (DEPOT       *index,
-               const gchar *word,
-               guint       *count)
+get_word_hits (DEPOT	   *index,
+	       const gchar *word,
+	       guint	   *count)
 {
 	TrackerDBIndexItem *details;
-	gint                tsiz;
-	gchar              *tmp;
+	gint		    tsiz;
+	gchar		   *tmp;
 
-        g_return_val_if_fail (word != NULL, NULL);
+	g_return_val_if_fail (word != NULL, NULL);
 
 	details = NULL;
 
-        if (count) {
-                *count = 0;
-        }
+	if (count) {
+		*count = 0;
+	}
 
 	if ((tmp = dpget (index, word, -1, 0, 100, &tsiz)) != NULL) {
 		if (tsiz >= (gint) sizeof (TrackerDBIndexItem)) {
 			details = (TrackerDBIndexItem *) tmp;
 
-                        if (count) {
-                                *count = tsiz / sizeof (TrackerDBIndexItem);
-                        }
+			if (count) {
+				*count = tsiz / sizeof (TrackerDBIndexItem);
+			}
 		}
 	}
 
@@ -74,19 +74,19 @@ get_word_hits (DEPOT       *index,
 static void
 load_terms_from_index (gchar *filename)
 {
-    DEPOT              *depot;
-    gchar              *key;
-    guint               hits, i;
+    DEPOT	       *depot;
+    gchar	       *key;
+    guint		hits, i;
     TrackerDBIndexItem *results;
 
     depot = dpopen (filename, DP_OREADER | DP_ONOLCK, -1);
 
     if (depot == NULL) {
 	   g_print ("Unable to open file: %s "
-                    "(Could be a lock problem: is tracker running?)\n",
-                    filename);
+		    "(Could be a lock problem: is tracker running?)\n",
+		    filename);
 	   g_print ("Using version %s of qdbm\n",
-                    dpversion);
+		    dpversion);
 	   return;
     }
 
@@ -95,21 +95,21 @@ load_terms_from_index (gchar *filename)
     key = dpiternext (depot, NULL);
 
     while (key != NULL) {
-            g_print (" - %s ", key);
+	    g_print (" - %s ", key);
 
-            if (print_services) {
-                    results = get_word_hits (depot, key, &hits);
-                    for (i = 0; i < hits; i++) {
-                            g_print (" (id:%d  t:%d s:%d) ",
-                                     tracker_db_index_item_get_id (&results[i]),
-                                     tracker_db_index_item_get_service_type (&results[i]),
-                                     tracker_db_index_item_get_score (&results[i]));
-                    }
-            }
+	    if (print_services) {
+		    results = get_word_hits (depot, key, &hits);
+		    for (i = 0; i < hits; i++) {
+			    g_print (" (id:%d  t:%d s:%d) ",
+				     tracker_db_index_item_get_id (&results[i]),
+				     tracker_db_index_item_get_service_type (&results[i]),
+				     tracker_db_index_item_get_score (&results[i]));
+		    }
+	    }
 
-            g_print ("\n");
-            g_free (key);
-            key = dpiternext (depot, NULL);
+	    g_print ("\n");
+	    g_free (key);
+	    key = dpiternext (depot, NULL);
     }
 
     g_print ("Total: %d terms.\n", dprnum (depot));
@@ -119,43 +119,43 @@ load_terms_from_index (gchar *filename)
 int
 main (gint argc, gchar** argv)
 {
-        GOptionContext *context;
-        GError         *error = NULL;
+	GOptionContext *context;
+	GError	       *error = NULL;
 
 	context = g_option_context_new ("- QDBM index printer");
 	g_option_context_add_main_entries (context, entries, NULL);
 	g_option_context_parse (context, &argc, &argv, &error);
 
 	if (error) {
-                gchar *help;
+		gchar *help;
 
 		g_printerr ("Invalid arguments, %s\n", error->message);
 
-                help = g_option_context_get_help (context, TRUE, NULL);
-                g_printerr (help);
+		help = g_option_context_get_help (context, TRUE, NULL);
+		g_printerr (help);
 
-                g_free (help);
+		g_free (help);
 		g_clear_error (&error);
-                g_option_context_free (context);
+		g_option_context_free (context);
 
 		return EXIT_FAILURE;
 	}
 
-        if (!filename) {
-                gchar *help;
+	if (!filename) {
+		gchar *help;
 
-                help = g_option_context_get_help (context, TRUE, NULL);
-                g_printerr (help);
+		help = g_option_context_get_help (context, TRUE, NULL);
+		g_printerr (help);
 
-                g_free (help);
-                g_option_context_free (context);
+		g_free (help);
+		g_option_context_free (context);
 
-                return EXIT_FAILURE;
-        }
+		return EXIT_FAILURE;
+	}
 
 	g_option_context_free (context);
 
-        load_terms_from_index (filename);
+	load_terms_from_index (filename);
 
-        return EXIT_SUCCESS;
+	return EXIT_SUCCESS;
 }

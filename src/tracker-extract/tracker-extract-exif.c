@@ -30,11 +30,11 @@
 static gchar *
 date_to_iso8601 (gchar *exif_date)
 {
-        /* ex; date "2007:04:15 15:35:58"
-           To
-           ex. "2007-04-15T17:35:58+0200 where +0200 is localtime
-        */
-        return tracker_generic_date_to_iso8601 (exif_date, EXIF_DATE_FORMAT);
+	/* ex; date "2007:04:15 15:35:58"
+	   To
+	   ex. "2007-04-15T17:35:58+0200 where +0200 is localtime
+	*/
+	return tracker_generic_date_to_iso8601 (exif_date, EXIF_DATE_FORMAT);
 }
 
 
@@ -48,11 +48,11 @@ fix_focal_length (gchar *fl)
 static gchar *
 fix_flash (gchar *flash)
 {
-        if (g_str_has_prefix (flash, "No")) {
-                return g_strdup ("0");
-        } else {
+	if (g_str_has_prefix (flash, "No")) {
+		return g_strdup ("0");
+	} else {
 		return g_strdup ("1");
-        }
+	}
 }
 
 
@@ -96,7 +96,7 @@ typedef gchar * (*PostProcessor) (gchar *);
 
 typedef struct {
 	ExifTag       tag;
-	gchar         *name;
+	gchar	      *name;
 	PostProcessor post;
 } TagType;
 
@@ -138,20 +138,20 @@ tracker_extract_exif (const gchar *filename, GHashTable *metadata)
 	exif = exif_data_new_from_file (filename);
 
 	for (p = tags; p->name; ++p) {
-                ExifEntry *entry = exif_data_get_entry (exif, p->tag);
+		ExifEntry *entry = exif_data_get_entry (exif, p->tag);
 
 		if (entry) {
-                        gchar buffer[1024];
+			gchar buffer[1024];
 
 			exif_entry_get_value (entry, buffer, 1024);
 
 			if (p->post) {
 				g_hash_table_insert (metadata, g_strdup (p->name),
-				                     g_strdup ((*p->post) (buffer)));
-                        } else {
+						     g_strdup ((*p->post) (buffer)));
+			} else {
 				g_hash_table_insert (metadata, g_strdup (p->name),
-				                     g_strdup (buffer));
-                        }
+						     g_strdup (buffer));
+			}
 		}
 	}
 }

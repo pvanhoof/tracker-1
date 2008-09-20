@@ -29,11 +29,11 @@
 
 G_BEGIN_DECLS
 
-#define TRACKER_TYPE_PROCESSOR         (tracker_processor_get_type())
-#define TRACKER_PROCESSOR(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_PROCESSOR, TrackerProcessor))
-#define TRACKER_PROCESSOR_CLASS(c)     (G_TYPE_CHECK_CLASS_CAST ((c),    TRACKER_TYPE_PROCESSOR, TrackerProcessorClass))
+#define TRACKER_TYPE_PROCESSOR	       (tracker_processor_get_type())
+#define TRACKER_PROCESSOR(o)	       (G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_PROCESSOR, TrackerProcessor))
+#define TRACKER_PROCESSOR_CLASS(c)     (G_TYPE_CHECK_CLASS_CAST ((c),	 TRACKER_TYPE_PROCESSOR, TrackerProcessorClass))
 #define TRACKER_IS_PROCESSOR(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), TRACKER_TYPE_PROCESSOR))
-#define TRACKER_IS_PROCESSOR_CLASS(c)  (G_TYPE_CHECK_CLASS_TYPE ((c),    TRACKER_TYPE_PROCESSOR))
+#define TRACKER_IS_PROCESSOR_CLASS(c)  (G_TYPE_CHECK_CLASS_TYPE ((c),	 TRACKER_TYPE_PROCESSOR))
 #define TRACKER_PROCESSOR_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o),  TRACKER_TYPE_PROCESSOR, TrackerProcessorClass))
 
 typedef struct TrackerProcessor        TrackerProcessor;
@@ -41,50 +41,50 @@ typedef struct TrackerProcessorClass   TrackerProcessorClass;
 typedef struct TrackerProcessorPrivate TrackerProcessorPrivate;
 
 struct TrackerProcessor {
-	GObject                  parent;
+	GObject			 parent;
 	TrackerProcessorPrivate *private;
 };
 
 struct TrackerProcessorClass {
-	GObjectClass             parent;
+	GObjectClass		 parent;
 
 	void (*finished) (TrackerProcessor *processor);
 };
 
-GType             tracker_processor_get_type                (void) G_GNUC_CONST;
+GType		  tracker_processor_get_type		    (void) G_GNUC_CONST;
 
-TrackerProcessor *tracker_processor_new                     (TrackerConfig    *config,
+TrackerProcessor *tracker_processor_new			    (TrackerConfig    *config,
 							     TrackerHal       *hal);
-void              tracker_processor_start                   (TrackerProcessor *processor);
-void              tracker_processor_stop                    (TrackerProcessor *processor);
+void		  tracker_processor_start		    (TrackerProcessor *processor);
+void		  tracker_processor_stop		    (TrackerProcessor *processor);
 
 /* Required API for org.freedesktop.Tracker.Files */
-void              tracker_processor_files_check             (TrackerProcessor *processor,
+void		  tracker_processor_files_check		    (TrackerProcessor *processor,
 							     const gchar      *module_name,
-							     GFile            *file,
-							     gboolean          is_directory);
-void              tracker_processor_files_update            (TrackerProcessor *processor,
+							     GFile	      *file,
+							     gboolean	       is_directory);
+void		  tracker_processor_files_update	    (TrackerProcessor *processor,
 							     const gchar      *module_name,
-							     GFile            *file,
-							     gboolean          is_directory);
-void              tracker_processor_files_delete            (TrackerProcessor *processor,
+							     GFile	      *file,
+							     gboolean	       is_directory);
+void		  tracker_processor_files_delete	    (TrackerProcessor *processor,
 							     const gchar      *module_name,
-							     GFile            *file,
-							     gboolean          is_directory);
-void              tracker_processor_files_move              (TrackerProcessor *processor,
+							     GFile	      *file,
+							     gboolean	       is_directory);
+void		  tracker_processor_files_move		    (TrackerProcessor *processor,
 							     const gchar      *module_name,
-							     GFile            *file,
-							     GFile            *other_file,
-							     gboolean          is_directory);
+							     GFile	      *file,
+							     GFile	      *other_file,
+							     gboolean	       is_directory);
 
 /* Statistics */
-guint             tracker_processor_get_directories_found   (TrackerProcessor *processor);
-guint             tracker_processor_get_directories_ignored (TrackerProcessor *processor);
-guint             tracker_processor_get_directories_total   (TrackerProcessor *processor);
-guint             tracker_processor_get_files_found         (TrackerProcessor *processor);
-guint             tracker_processor_get_files_ignored       (TrackerProcessor *processor);
-guint             tracker_processor_get_files_total         (TrackerProcessor *processor);
-gdouble           tracker_processor_get_seconds_elapsed     (TrackerProcessor *processor);
+guint		  tracker_processor_get_directories_found   (TrackerProcessor *processor);
+guint		  tracker_processor_get_directories_ignored (TrackerProcessor *processor);
+guint		  tracker_processor_get_directories_total   (TrackerProcessor *processor);
+guint		  tracker_processor_get_files_found	    (TrackerProcessor *processor);
+guint		  tracker_processor_get_files_ignored	    (TrackerProcessor *processor);
+guint		  tracker_processor_get_files_total	    (TrackerProcessor *processor);
+gdouble		  tracker_processor_get_seconds_elapsed     (TrackerProcessor *processor);
 
 G_END_DECLS
 

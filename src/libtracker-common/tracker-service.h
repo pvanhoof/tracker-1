@@ -44,14 +44,14 @@ typedef enum {
 GType tracker_db_type_get_type (void) G_GNUC_CONST;
 
 
-#define TRACKER_TYPE_SERVICE         (tracker_service_get_type ())
-#define TRACKER_SERVICE(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_SERVICE, TrackerService))
+#define TRACKER_TYPE_SERVICE	     (tracker_service_get_type ())
+#define TRACKER_SERVICE(o)	     (G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_SERVICE, TrackerService))
 #define TRACKER_SERVICE_CLASS(k)     (G_TYPE_CHECK_CLASS_CAST ((k), TRACKER_TYPE_SERVICE, TrackerServiceClass))
-#define TRACKER_IS_SERVICE(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), TRACKER_TYPE_SERVICE))
+#define TRACKER_IS_SERVICE(o)	     (G_TYPE_CHECK_INSTANCE_TYPE ((o), TRACKER_TYPE_SERVICE))
 #define TRACKER_IS_SERVICE_CLASS(k)  (G_TYPE_CHECK_CLASS_TYPE ((k), TRACKER_TYPE_SERVICE))
 #define TRACKER_SERVICE_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o), TRACKER_TYPE_SERVICE, TrackerServiceClass))
 
-typedef struct _TrackerService      TrackerService;
+typedef struct _TrackerService	    TrackerService;
 typedef struct _TrackerServiceClass TrackerServiceClass;
 
 struct _TrackerService {
@@ -62,53 +62,53 @@ struct _TrackerServiceClass {
 	GObjectClass parent_class;
 };
 
-GType           tracker_service_get_type                     (void) G_GNUC_CONST;
+GType		tracker_service_get_type		     (void) G_GNUC_CONST;
 
-TrackerService *tracker_service_new                          (void);
+TrackerService *tracker_service_new			     (void);
 
-gint            tracker_service_get_id                       (TrackerService *service);
-const gchar *   tracker_service_get_name                     (TrackerService *service);
-const gchar *   tracker_service_get_parent                   (TrackerService *service);
-const gchar *   tracker_service_get_property_prefix          (TrackerService *service);
-const gchar *   tracker_service_get_content_metadata         (TrackerService *service);
-const GSList *  tracker_service_get_key_metadata             (TrackerService *service);
-TrackerDBType   tracker_service_get_db_type                  (TrackerService *service);
-gboolean        tracker_service_get_enabled                  (TrackerService *service);
-gboolean        tracker_service_get_embedded                 (TrackerService *service);
-gboolean        tracker_service_get_has_metadata             (TrackerService *service);
-gboolean        tracker_service_get_has_full_text            (TrackerService *service);
-gboolean        tracker_service_get_has_thumbs               (TrackerService *service);
-gboolean        tracker_service_get_show_service_files       (TrackerService *service);
-gboolean        tracker_service_get_show_service_directories (TrackerService *service);
+gint		tracker_service_get_id			     (TrackerService *service);
+const gchar *	tracker_service_get_name		     (TrackerService *service);
+const gchar *	tracker_service_get_parent		     (TrackerService *service);
+const gchar *	tracker_service_get_property_prefix	     (TrackerService *service);
+const gchar *	tracker_service_get_content_metadata	     (TrackerService *service);
+const GSList *	tracker_service_get_key_metadata	     (TrackerService *service);
+TrackerDBType	tracker_service_get_db_type		     (TrackerService *service);
+gboolean	tracker_service_get_enabled		     (TrackerService *service);
+gboolean	tracker_service_get_embedded		     (TrackerService *service);
+gboolean	tracker_service_get_has_metadata	     (TrackerService *service);
+gboolean	tracker_service_get_has_full_text	     (TrackerService *service);
+gboolean	tracker_service_get_has_thumbs		     (TrackerService *service);
+gboolean	tracker_service_get_show_service_files	     (TrackerService *service);
+gboolean	tracker_service_get_show_service_directories (TrackerService *service);
 
-void            tracker_service_set_id                       (TrackerService *service,
-							      gint            value);
-void            tracker_service_set_name                     (TrackerService *service,
+void		tracker_service_set_id			     (TrackerService *service,
+							      gint	      value);
+void		tracker_service_set_name		     (TrackerService *service,
 							      const gchar    *value);
-void            tracker_service_set_parent                   (TrackerService *service,
+void		tracker_service_set_parent		     (TrackerService *service,
 							      const gchar    *value);
-void            tracker_service_set_property_prefix          (TrackerService *service,
+void		tracker_service_set_property_prefix	     (TrackerService *service,
 							      const gchar    *value);
-void            tracker_service_set_content_metadata         (TrackerService *service,
+void		tracker_service_set_content_metadata	     (TrackerService *service,
 							      const gchar    *value);
-void            tracker_service_set_key_metadata             (TrackerService *service,
+void		tracker_service_set_key_metadata	     (TrackerService *service,
 							      const GSList   *value);
-void            tracker_service_set_db_type                  (TrackerService *service,
+void		tracker_service_set_db_type		     (TrackerService *service,
 							      TrackerDBType   value);
-void            tracker_service_set_enabled                  (TrackerService *service,
-							      gboolean        value);
-void            tracker_service_set_embedded                 (TrackerService *service,
-							      gboolean        value);
-void            tracker_service_set_has_metadata             (TrackerService *service,
-							      gboolean        value);
-void            tracker_service_set_has_full_text            (TrackerService *service,
-							      gboolean        value);
-void            tracker_service_set_has_thumbs               (TrackerService *service,
-							      gboolean        value);
-void            tracker_service_set_show_service_files       (TrackerService *service,
-							      gboolean        value);
-void            tracker_service_set_show_service_directories (TrackerService *service,
-							      gboolean        value);
+void		tracker_service_set_enabled		     (TrackerService *service,
+							      gboolean	      value);
+void		tracker_service_set_embedded		     (TrackerService *service,
+							      gboolean	      value);
+void		tracker_service_set_has_metadata	     (TrackerService *service,
+							      gboolean	      value);
+void		tracker_service_set_has_full_text	     (TrackerService *service,
+							      gboolean	      value);
+void		tracker_service_set_has_thumbs		     (TrackerService *service,
+							      gboolean	      value);
+void		tracker_service_set_show_service_files	     (TrackerService *service,
+							      gboolean	      value);
+void		tracker_service_set_show_service_directories (TrackerService *service,
+							      gboolean	      value);
 
 G_END_DECLS
 

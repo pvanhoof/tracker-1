@@ -1,5 +1,9 @@
 2008-09-20  Martyn Russell  <martyn@imendio.com>
 
+	*.[ch]: Tabbify code.
+
+2008-09-20  Martyn Russell  <martyn@imendio.com>
+
 	*.[ch]: Removed all trailing whitespace.
 
 2008-09-20  Ivan Frade  <ivan.frade@nokia.com>

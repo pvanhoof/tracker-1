@@ -15,9 +15,9 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with xesam-glib.  If not, write to:
- * 	The Free Software Foundation, Inc.,
- * 	51 Franklin Street, Fifth Floor
- * 	Boston, MA  02110-1301, USA.
+ *	The Free Software Foundation, Inc.,
+ *	51 Franklin Street, Fifth Floor
+ *	Boston, MA  02110-1301, USA.
  */
 
 #include "xesam-g-test-query-builder.h"
@@ -78,7 +78,7 @@ static gboolean xesam_g_test_query_builder_real_close_query
 														   GError					**error);
 
 static ExpectedElementData*
-			expected_element_data_new 					(guint					element_detail,
+			expected_element_data_new					(guint					element_detail,
 														 const gchar			*attr1,
 														 const gchar			*attr2,
 														 const gboolean			*bool_attr,

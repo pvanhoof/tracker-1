@@ -1,7 +1,7 @@
 /*
 ** 2006 Oct 10
 **
-** The author disclaims copyright to this source code.  In place of
+** The author disclaims copyright to this source code.	In place of
 ** a legal notice, here is a blessing:
 **
 **    May you do good and not evil.
@@ -17,10 +17,10 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif  /* __cplusplus */
+#endif	/* __cplusplus */
 
 int sqlite3Fts3Init(sqlite3 *db);
 
 #ifdef __cplusplus
 }  /* extern "C" */
-#endif  /* __cplusplus */
+#endif	/* __cplusplus */

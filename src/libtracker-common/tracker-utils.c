@@ -34,7 +34,7 @@ tracker_is_empty_string (const char *str)
 
 /* Removes a substring modifing haystack in place */
 gchar *
-tracker_string_remove (gchar       *haystack,
+tracker_string_remove (gchar	   *haystack,
 		       const gchar *needle)
 {
 	gchar *current, *pos, *next, *end;
@@ -56,15 +56,15 @@ tracker_string_remove (gchar       *haystack,
 			next = end;
 		}
 
-                while (pos < next) {
+		while (pos < next) {
 			*current = *pos;
-                        current++;
-                        pos++;
-                }
+			current++;
+			pos++;
+		}
 
-                if (*pos == '\0') {
-                        *current = *pos;
-                }
+		if (*pos == '\0') {
+			*current = *pos;
+		}
 	}
 
 	return haystack;
@@ -75,30 +75,30 @@ tracker_string_replace (const gchar *haystack,
 			const gchar *needle,
 			const gchar *replacement)
 {
-        GString *str;
-        gint     pos, needle_len;
+	GString *str;
+	gint	 pos, needle_len;
 
 	g_return_val_if_fail (haystack != NULL, NULL);
 	g_return_val_if_fail (needle != NULL, NULL);
 
 	needle_len = strlen (needle);
 
-        str = g_string_new ("");
+	str = g_string_new ("");
 
 	/* FIXME: should use strstr */
-        for (pos = 0; haystack[pos]; pos++) {
-                if (strncmp (&haystack[pos], needle, needle_len) == 0) {
+	for (pos = 0; haystack[pos]; pos++) {
+		if (strncmp (&haystack[pos], needle, needle_len) == 0) {
 			if (replacement) {
-	                        str = g_string_append (str, replacement);
+				str = g_string_append (str, replacement);
 			}
 
-                        pos += needle_len - 1;
-                } else {
-                        str = g_string_append_c (str, haystack[pos]);
+			pos += needle_len - 1;
+		} else {
+			str = g_string_append_c (str, haystack[pos]);
 		}
-        }
+	}
 
-        return g_string_free (str, FALSE);
+	return g_string_free (str, FALSE);
 }
 
 gchar *
@@ -148,20 +148,20 @@ tracker_seconds_to_string (gdouble  seconds_elapsed,
 			   gboolean short_string)
 {
 	GString *s;
-	gchar   *str;
+	gchar	*str;
 	gdouble  total;
-	gint     days, hours, minutes, seconds;
+	gint	 days, hours, minutes, seconds;
 
 	g_return_val_if_fail (seconds_elapsed >= 0.0, g_strdup (_("unknown time")));
 
-	total    = seconds_elapsed;
+	total	 = seconds_elapsed;
 
 	seconds  = (gint) total % 60;
-	total   /= 60;
+	total	/= 60;
 	minutes  = (gint) total % 60;
-	total   /= 60;
-	hours    = (gint) total % 24;
-	days     = (gint) total / 24;
+	total	/= 60;
+	hours	 = (gint) total % 24;
+	days	 = (gint) total / 24;
 
 	s = g_string_new ("");
 
@@ -221,20 +221,20 @@ tracker_seconds_to_string (gdouble  seconds_elapsed,
 
 void
 tracker_throttle (TrackerConfig *config,
-		  gint           multiplier)
+		  gint		 multiplier)
 {
-        gint throttle;
+	gint throttle;
 
 	g_return_if_fail (TRACKER_IS_CONFIG (config));
 
 	/* Get the throttle, add 5 (minimum value) so we don't do
 	 * nothing and then multiply it by the factor given
 	 */
-        throttle  = tracker_config_get_throttle (config);
+	throttle  = tracker_config_get_throttle (config);
 	throttle += 5;
-        throttle *= multiplier;
+	throttle *= multiplier;
 
-        if (throttle > 0) {
-                g_usleep (throttle);
-        }
+	if (throttle > 0) {
+		g_usleep (throttle);
+	}
 }

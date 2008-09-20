@@ -24,20 +24,20 @@
 
 #include <glib-object.h>
 
-#define TRACKER_FILES_SERVICE         "org.freedesktop.Tracker"
-#define TRACKER_FILES_PATH            "/org/freedesktop/Tracker/Files"
+#define TRACKER_FILES_SERVICE	      "org.freedesktop.Tracker"
+#define TRACKER_FILES_PATH	      "/org/freedesktop/Tracker/Files"
 #define TRACKER_FILES_INTERFACE       "org.freedesktop.Tracker.Files"
 
 G_BEGIN_DECLS
 
-#define TRACKER_TYPE_FILES            (tracker_files_get_type ())
-#define TRACKER_FILES(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), TRACKER_TYPE_FILES, TrackerFiles))
+#define TRACKER_TYPE_FILES	      (tracker_files_get_type ())
+#define TRACKER_FILES(object)	      (G_TYPE_CHECK_INSTANCE_CAST ((object), TRACKER_TYPE_FILES, TrackerFiles))
 #define TRACKER_FILES_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), TRACKER_TYPE_FILES, TrackerFilesClass))
 #define TRACKER_IS_FILES(object)      (G_TYPE_CHECK_INSTANCE_TYPE ((object), TRACKER_TYPE_FILES))
 #define TRACKER_IS_FILES_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), TRACKER_TYPE_FILES))
 #define TRACKER_FILES_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), TRACKER_TYPE_FILES, TrackerFilesClass))
 
-typedef struct TrackerFiles      TrackerFiles;
+typedef struct TrackerFiles	 TrackerFiles;
 typedef struct TrackerFilesClass TrackerFilesClass;
 
 struct TrackerFiles {
@@ -48,88 +48,88 @@ struct TrackerFilesClass {
 	GObjectClass parent;
 };
 
-GType         tracker_files_get_type                             (void);
-TrackerFiles *tracker_files_new                                  (TrackerProcessor       *processor);
-void          tracker_files_exist                                (TrackerFiles           *object,
-								  const gchar            *uri,
-								  gboolean                auto_create,
+GType	      tracker_files_get_type				 (void);
+TrackerFiles *tracker_files_new					 (TrackerProcessor	 *processor);
+void	      tracker_files_exist				 (TrackerFiles		 *object,
+								  const gchar		 *uri,
+								  gboolean		  auto_create,
 								  DBusGMethodInvocation  *context,
-								  GError                **error);
-void          tracker_files_create                               (TrackerFiles           *object,
-								  const gchar            *uri,
-								  gboolean                is_directory,
-								  const gchar            *mime,
-								  gint                    size,
-								  gint                    mtime,
+								  GError		**error);
+void	      tracker_files_create				 (TrackerFiles		 *object,
+								  const gchar		 *uri,
+								  gboolean		  is_directory,
+								  const gchar		 *mime,
+								  gint			  size,
+								  gint			  mtime,
 								  DBusGMethodInvocation  *context,
-								  GError                **error);
-void          tracker_files_delete                               (TrackerFiles           *object,
-								  const gchar            *uri,
+								  GError		**error);
+void	      tracker_files_delete				 (TrackerFiles		 *object,
+								  const gchar		 *uri,
 								  DBusGMethodInvocation  *context,
-								  GError                **error);
-void          tracker_files_get_service_type                     (TrackerFiles           *object,
-								  const gchar            *uri,
+								  GError		**error);
+void	      tracker_files_get_service_type			 (TrackerFiles		 *object,
+								  const gchar		 *uri,
 								  DBusGMethodInvocation  *context,
-								  GError                **error);
-void          tracker_files_get_text_contents                    (TrackerFiles           *object,
-								  const gchar            *uri,
-								  gint                    offset,
-								  gint                    max_length,
+								  GError		**error);
+void	      tracker_files_get_text_contents			 (TrackerFiles		 *object,
+								  const gchar		 *uri,
+								  gint			  offset,
+								  gint			  max_length,
 								  DBusGMethodInvocation  *context,
-								  GError                **error);
-void          tracker_files_search_text_contents                 (TrackerFiles           *object,
-								  const gchar            *uri,
-								  const gchar            *text,
-								  gint                    max_length,
+								  GError		**error);
+void	      tracker_files_search_text_contents		 (TrackerFiles		 *object,
+								  const gchar		 *uri,
+								  const gchar		 *text,
+								  gint			  max_length,
 								  DBusGMethodInvocation  *context,
-								  GError                **error);
-void          tracker_files_get_by_service_type                  (TrackerFiles           *object,
-								  gint                    live_query_id,
-								  const gchar            *service,
-								  gint                    offset,
-								  gint                    max_hits,
+								  GError		**error);
+void	      tracker_files_get_by_service_type			 (TrackerFiles		 *object,
+								  gint			  live_query_id,
+								  const gchar		 *service,
+								  gint			  offset,
+								  gint			  max_hits,
 								  DBusGMethodInvocation  *context,
-								  GError                **error);
-void          tracker_files_get_by_mime_type                     (TrackerFiles           *object,
-								  gint                    live_query_id,
-								  gchar                 **mime_types,
-								  gint                    offset,
-								  gint                    max_hits,
+								  GError		**error);
+void	      tracker_files_get_by_mime_type			 (TrackerFiles		 *object,
+								  gint			  live_query_id,
+								  gchar			**mime_types,
+								  gint			  offset,
+								  gint			  max_hits,
 								  DBusGMethodInvocation  *context,
-								  GError                **error);
-void          tracker_files_get_by_mime_type_vfs                 (TrackerFiles           *object,
-								  gint                    live_query_id,
-								  gchar                 **mime_types,
-								  gint                    offset,
-								  gint                    max_hits,
+								  GError		**error);
+void	      tracker_files_get_by_mime_type_vfs		 (TrackerFiles		 *object,
+								  gint			  live_query_id,
+								  gchar			**mime_types,
+								  gint			  offset,
+								  gint			  max_hits,
 								  DBusGMethodInvocation  *context,
-								  GError                **error);
-void          tracker_files_get_mtime                            (TrackerFiles           *object,
-								  const gchar            *uri,
+								  GError		**error);
+void	      tracker_files_get_mtime				 (TrackerFiles		 *object,
+								  const gchar		 *uri,
 								  DBusGMethodInvocation  *context,
-								  GError                **error);
-void          tracker_files_get_metadata_for_files_in_folder     (TrackerFiles           *object,
-								  gint                    live_query_id,
-								  const gchar            *uri,
-								  gchar                 **fields,
+								  GError		**error);
+void	      tracker_files_get_metadata_for_files_in_folder	 (TrackerFiles		 *object,
+								  gint			  live_query_id,
+								  const gchar		 *uri,
+								  gchar			**fields,
 								  DBusGMethodInvocation  *context,
-								  GError                **error);
-void          tracker_files_search_by_text_and_mime              (TrackerFiles           *object,
-								  const gchar            *text,
-								  gchar                 **mime_types,
+								  GError		**error);
+void	      tracker_files_search_by_text_and_mime		 (TrackerFiles		 *object,
+								  const gchar		 *text,
+								  gchar			**mime_types,
 								  DBusGMethodInvocation  *context,
-								  GError                **error);
-void          tracker_files_search_by_text_and_location          (TrackerFiles           *object,
-								  const gchar            *text,
-								  const gchar            *uri,
+								  GError		**error);
+void	      tracker_files_search_by_text_and_location		 (TrackerFiles		 *object,
+								  const gchar		 *text,
+								  const gchar		 *uri,
 								  DBusGMethodInvocation  *context,
-								  GError                **error);
-void          tracker_files_search_by_text_and_mime_and_location (TrackerFiles           *object,
-								  const gchar            *text,
-								  gchar                 **mime_types,
-								  const gchar            *uri,
+								  GError		**error);
+void	      tracker_files_search_by_text_and_mime_and_location (TrackerFiles		 *object,
+								  const gchar		 *text,
+								  gchar			**mime_types,
+								  const gchar		 *uri,
 								  DBusGMethodInvocation  *context,
-								  GError                **error);
+								  GError		**error);
 
 
 

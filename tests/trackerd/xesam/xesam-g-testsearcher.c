@@ -15,9 +15,9 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with xesam-glib.  If not, write to:
- * 	The Free Software Foundation, Inc.,
- * 	51 Franklin Street, Fifth Floor
- * 	Boston, MA  02110-1301, USA.
+ *	The Free Software Foundation, Inc.,
+ *	51 Franklin Street, Fifth Floor
+ *	Boston, MA  02110-1301, USA.
  */
 
 #include "xesam-g-testsearcher.h"
@@ -53,7 +53,7 @@ struct _XesamGTestSearcherPrivate {
 	Properties		*props;
 };
 
-static void xesam_g_test_searcher_real_new_session 		(XesamGSearcher		*base,
+static void xesam_g_test_searcher_real_new_session		(XesamGSearcher		*base,
 														 XesamGSearcherGotHandle callback,
 														 gpointer			user_data);
 
@@ -62,38 +62,38 @@ static void xesam_g_test_searcher_real_close_session	(XesamGSearcher		*base,
 														 XesamGSearcherVoidResponse callback,
 														 gpointer			user_data);
 
-static void xesam_g_test_searcher_real_get_property 	(XesamGSearcher		*base,
+static void xesam_g_test_searcher_real_get_property	(XesamGSearcher		*base,
 														 const gchar			*session_handle,
 														 const gchar			*prop_name,
 														 XesamGSearcherGotProperty callback,
 														 gpointer			user_data);
 
-static void xesam_g_test_searcher_real_set_property 	(XesamGSearcher		*base,
+static void xesam_g_test_searcher_real_set_property	(XesamGSearcher		*base,
 														 const gchar		*session_handle,
 														 const gchar		*prop_name,
 														 const GValue		*value,
 														 XesamGSearcherGotProperty callback,
 														 gpointer			user_data);
 
-static void xesam_g_test_searcher_real_new_search 		(XesamGSearcher		*base,
+static void xesam_g_test_searcher_real_new_search		(XesamGSearcher		*base,
 														 const gchar			*session_handle,
 														 const gchar			*query,
 														 XesamGSearcherGotHandle callback,
 														 gpointer			user_data);
 
-static void xesam_g_test_searcher_real_start_search 	(XesamGSearcher		*base,
+static void xesam_g_test_searcher_real_start_search	(XesamGSearcher		*base,
 														 const gchar			*search_handle,
 														 XesamGSearcherVoidResponse callback,
 														 gpointer			user_data);
 
-static void xesam_g_test_searcher_real_close_search 	(XesamGSearcher		*base,
+static void xesam_g_test_searcher_real_close_search	(XesamGSearcher		*base,
 														 const gchar			*search_handle,
 														 XesamGSearcherVoidResponse callback,
 														 gpointer			user_data);
 
 static void xesam_g_test_searcher_real_get_hits			(XesamGSearcher		*base,
 														 const gchar			*search_handle,
-														 guint 				count,
+														 guint				count,
 														 XesamGSearcherGotHits callback,
 														 gpointer			user_data);
 
@@ -121,7 +121,7 @@ static XesamGSearcherIface* xesam_g_test_searcher_xesam_g_searcher_parent_iface 
 static void
 xesam_g_test_searcher_real_new_session (XesamGSearcher	*base,
 										XesamGSearcherGotHandle callback,
-										gpointer 		user_data)
+										gpointer		user_data)
 {
 	static int session_num = 0;
 
@@ -309,7 +309,7 @@ xesam_g_test_searcher_new (void)
 static void
 xesam_g_test_searcher_finalize (GObject *obj)
 {
-	Properties 					*props;
+	Properties					*props;
 	XesamGTestSearcher			*self;
 	XesamGTestSearcherPrivate	*priv;
 

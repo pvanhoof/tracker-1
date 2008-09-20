@@ -43,7 +43,7 @@ static gchar *tags[][2] = {
 };
 
 static void extract_totem (const gchar *filename,
-                           GHashTable  *metadata);
+			   GHashTable  *metadata);
 
 static TrackerExtractorData data[] = {
 	{ "audio/*", extract_totem },
@@ -53,7 +53,7 @@ static TrackerExtractorData data[] = {
 
 static void
 extract_totem (const gchar *filename,
-               GHashTable  *metadata)
+	       GHashTable  *metadata)
 {
 	gchar *argv[3];
 	gchar *totem;

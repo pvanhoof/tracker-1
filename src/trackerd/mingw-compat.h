@@ -10,8 +10,8 @@
 
 #define getc_unlocked(s) getc(s)
 
-#define RLIMIT_CPU      0               /* CPU time in seconds */
-#define RLIMIT_AS       6               /* address space (virt. memory) limit */
+#define RLIMIT_CPU	0		/* CPU time in seconds */
+#define RLIMIT_AS	6		/* address space (virt. memory) limit */
 typedef unsigned long rlim_t;
 
 struct rlimit {
@@ -20,8 +20,8 @@ struct rlimit {
 };
 
 #define localtime_r( _clock, _result ) \
-        ( *(_result) = *localtime( (_clock) ), \
-          (_result) )
+	( *(_result) = *localtime( (_clock) ), \
+	  (_result) )
 
 #include <time.h>
 #include <sys/time.h>
@@ -29,7 +29,7 @@ struct rlimit {
 
 struct timezone {
        int tz_minuteswest; /* minutes west of Greenwich */
-       int tz_dsttime;     /* type of dst correction */
+       int tz_dsttime;	   /* type of dst correction */
      };
 
 static int gettimeofday (struct timeval *tv, struct timezone *tz)

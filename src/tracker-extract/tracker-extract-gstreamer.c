@@ -25,9 +25,9 @@
  * from Totem:
  *
  * Copyright (C) 2003-2006 the GStreamer project
- *      Julien Moutte <julien@moutte.net>
- *      Ronald Bultje <rbultje@ronald.bitfreak.net>
- *      Tim-Philipp Müller <tim centricular net>
+ *	Julien Moutte <julien@moutte.net>
+ *	Ronald Bultje <rbultje@ronald.bitfreak.net>
+ *	Tim-Philipp Müller <tim centricular net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -81,7 +81,7 @@ typedef struct {
 	gboolean	has_audio;
 	gboolean	has_video;
 
-	ExtractMime     mime;
+	ExtractMime	mime;
 
 	gint		video_height;
 	gint		video_width;
@@ -103,9 +103,9 @@ static TrackerExtractorData data[] = {
 };
 
 static void
-caps_set (GObject           *object,
+caps_set (GObject	    *object,
 	  MetadataExtractor *extractor,
-	  const gchar       *type)
+	  const gchar	    *type)
 {
 	GstPad	     *pad;
 	GstStructure *s;
@@ -146,21 +146,21 @@ caps_set (GObject           *object,
 }
 
 static void
-caps_set_audio (GObject           *object,
+caps_set_audio (GObject		  *object,
 		MetadataExtractor *extractor)
 {
-        g_return_if_fail (object);
-        g_return_if_fail (extractor);
+	g_return_if_fail (object);
+	g_return_if_fail (extractor);
 
 	caps_set (object, extractor, "audio");
 }
 
 static void
-caps_set_video (GObject           *object,
+caps_set_video (GObject		  *object,
 		MetadataExtractor *extractor)
 {
-        g_return_if_fail (object);
-        g_return_if_fail (extractor);
+	g_return_if_fail (object);
+	g_return_if_fail (extractor);
 
 	caps_set (object, extractor, "video");
 }
@@ -192,7 +192,7 @@ update_stream_info (MetadataExtractor *extractor)
 			continue;
 		}
 
-                type = -1;
+		type = -1;
 
 		g_object_get (info, "type", &type, NULL);
 		pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (info), "type");
@@ -234,15 +234,15 @@ update_stream_info (MetadataExtractor *extractor)
 }
 
 static void
-gst_bus_cb (GstBus            *bus,
-	    GstMessage        *message,
+gst_bus_cb (GstBus	      *bus,
+	    GstMessage	      *message,
 	    MetadataExtractor *extractor)
 {
 	GstMessageType msg_type;
 
 	g_return_if_fail (bus);
-        g_return_if_fail (message);
-        g_return_if_fail (extractor);
+	g_return_if_fail (message);
+	g_return_if_fail (extractor);
 
 	msg_type = GST_MESSAGE_TYPE (message);
 
@@ -263,8 +263,8 @@ gst_bus_cb (GstBus            *bus,
 	switch (msg_type) {
 	case GST_MESSAGE_ERROR: {
 		GstMessage *message  = NULL;
-		GError     *gsterror = NULL;
-		gchar      *debug    = NULL;
+		GError	   *gsterror = NULL;
+		gchar	   *debug    = NULL;
 
 		gst_message_parse_error (message, &gsterror, &debug);
 		g_warning ("Error: %s (%s)", gsterror->message, debug);
@@ -278,7 +278,7 @@ gst_bus_cb (GstBus            *bus,
 	case GST_MESSAGE_STATE_CHANGED: {
 		GstState old_state, new_state;
 
-                old_state = new_state = GST_STATE_NULL;
+		old_state = new_state = GST_STATE_NULL;
 
 		gst_message_parse_state_changed (message,
 						 &old_state,
@@ -328,7 +328,7 @@ gst_bus_cb (GstBus            *bus,
 		GstTagList	  *tag_list, *result;
 		GstElementFactory *f;
 
-                tag_list = NULL;
+		tag_list = NULL;
 
 		gst_message_parse_tag (message, &tag_list);
 
@@ -351,7 +351,7 @@ gst_bus_cb (GstBus            *bus,
 			GstTagList  **cache;
 			const gchar  *klass;
 
- 			cache = NULL;
+			cache = NULL;
 			klass = gst_element_factory_get_klass (f);
 
 			if (g_strrstr (klass, "Audio")) {
@@ -384,8 +384,8 @@ gst_bus_cb (GstBus            *bus,
 
 static void
 add_int64_info (GHashTable *metadata,
-		gchar      *key,
-		gint64      info)
+		gchar	   *key,
+		gint64	    info)
 {
 	gchar *str_info;
 
@@ -395,8 +395,8 @@ add_int64_info (GHashTable *metadata,
 
 static void
 add_uint_info (GHashTable *metadata,
-	       gchar      *key,
-	       guint       info)
+	       gchar	  *key,
+	       guint	   info)
 {
 	gchar *str_info;
 
@@ -405,9 +405,9 @@ add_uint_info (GHashTable *metadata,
 }
 
 static void
-add_string_gst_tag (GHashTable  *metadata,
+add_string_gst_tag (GHashTable	*metadata,
 		    const gchar *key,
-		    GstTagList  *tag_list,
+		    GstTagList	*tag_list,
 		    const gchar *tag)
 {
 	gchar	 *s;
@@ -446,9 +446,9 @@ add_uint_gst_tag (GHashTable  *metadata,
 }
 
 static void
-add_double_gst_tag (GHashTable  *metadata,
+add_double_gst_tag (GHashTable	*metadata,
 		    const gchar *key,
-		    GstTagList  *tag_list,
+		    GstTagList	*tag_list,
 		    const gchar *tag)
 {
 	gboolean ret;
@@ -515,10 +515,10 @@ get_media_duration (MetadataExtractor *extractor)
 
 static void
 extract_metadata (MetadataExtractor *extractor,
-		  GHashTable        *metadata)
+		  GHashTable	    *metadata)
 {
-        g_return_if_fail (extractor);
-        g_return_if_fail (metadata);
+	g_return_if_fail (extractor);
+	g_return_if_fail (metadata);
 
 	if (extractor->audio_channels >= 0) {
 		add_uint_info (metadata,
@@ -629,10 +629,10 @@ extract_metadata (MetadataExtractor *extractor,
 
 static gboolean
 poll_for_state_change (MetadataExtractor *extractor,
-		       GstState           state)
+		       GstState		  state)
 {
-	GstBus         *bus;
-	GstMessageType  events, saved_events;
+	GstBus	       *bus;
+	GstMessageType	events, saved_events;
 
 	g_return_val_if_fail (extractor, FALSE);
 	g_return_val_if_fail (extractor->playbin, FALSE);
@@ -670,7 +670,7 @@ poll_for_state_change (MetadataExtractor *extractor,
 		case GST_MESSAGE_STATE_CHANGED: {
 			GstState old, new, pending;
 
-                        old = new = pending = GST_STATE_NULL;
+			old = new = pending = GST_STATE_NULL;
 
 			if (src == extractor->playbin) {
 				gst_message_parse_state_changed (message, &old, &new, &pending);
@@ -685,7 +685,7 @@ poll_for_state_change (MetadataExtractor *extractor,
 		}
 
 		case GST_MESSAGE_ERROR: {
-			gchar  *debug    = NULL;
+			gchar  *debug	 = NULL;
 			GError *gsterror = NULL;
 
 			gst_message_parse_error (message, &gsterror, &debug);
@@ -742,7 +742,7 @@ poll_for_state_change (MetadataExtractor *extractor,
 static void
 tracker_extract_gstreamer (const gchar *uri,
 			   GHashTable  *metadata,
-			   ExtractMime  type)
+			   ExtractMime	type)
 {
 	MetadataExtractor *extractor;
 	gchar		  *mrl;

@@ -51,55 +51,55 @@
 static DBusGConnection *connection;
 static DBusGProxy      *proxy;
 static DBusGProxy      *proxy_for_indexer;
-static GSList          *objects;
-static guint            indexer_resume_timeout_id;
+static GSList	       *objects;
+static guint		indexer_resume_timeout_id;
 
 static gboolean
 dbus_register_service (DBusGProxy  *proxy,
 		       const gchar *name)
 {
-        GError *error = NULL;
-        guint   result;
+	GError *error = NULL;
+	guint	result;
 
-        g_message ("Registering DBus service...\n"
+	g_message ("Registering DBus service...\n"
 		   "  Name:'%s'",
 		   name);
 
-        if (!org_freedesktop_DBus_request_name (proxy,
-                                                name,
-                                                DBUS_NAME_FLAG_DO_NOT_QUEUE,
-                                                &result, &error)) {
-                g_critical ("Could not aquire name:'%s', %s",
+	if (!org_freedesktop_DBus_request_name (proxy,
+						name,
+						DBUS_NAME_FLAG_DO_NOT_QUEUE,
+						&result, &error)) {
+		g_critical ("Could not aquire name:'%s', %s",
 			    name,
 			    error ? error->message : "no error given");
-                g_error_free (error);
+		g_error_free (error);
 
-                return FALSE;
+		return FALSE;
 	}
 
-        if (result != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER) {
-                g_critical ("DBus service name:'%s' is already taken, "
+	if (result != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER) {
+		g_critical ("DBus service name:'%s' is already taken, "
 			    "perhaps the daemon is already running?",
 			    name);
-                return FALSE;
+		return FALSE;
 	}
 
-        return TRUE;
+	return TRUE;
 }
 
 static void
-dbus_register_object (DBusGConnection       *connection,
-                      DBusGProxy            *proxy,
-		      GObject               *object,
-                      const DBusGObjectInfo *info,
-                      const gchar           *path)
+dbus_register_object (DBusGConnection	    *connection,
+		      DBusGProxy	    *proxy,
+		      GObject		    *object,
+		      const DBusGObjectInfo *info,
+		      const gchar	    *path)
 {
-        g_message ("Registering DBus object...");
-        g_message ("  Path:'%s'", path);
-        g_message ("  Type:'%s'", G_OBJECT_TYPE_NAME (object));
+	g_message ("Registering DBus object...");
+	g_message ("  Path:'%s'", path);
+	g_message ("  Type:'%s'", G_OBJECT_TYPE_NAME (object));
 
-        dbus_g_object_type_install_info (G_OBJECT_TYPE (object), info);
-        dbus_g_connection_register_g_object (connection, path, object);
+	dbus_g_object_type_install_info (G_OBJECT_TYPE (object), info);
+	dbus_g_connection_register_g_object (connection, path, object);
 }
 
 static void
@@ -112,7 +112,7 @@ dbus_name_owner_changed (gpointer  data,
 static gboolean
 dbus_register_names (TrackerConfig *config)
 {
-        GError *error = NULL;
+	GError *error = NULL;
 
 	if (connection) {
 		g_critical ("The DBusGConnection is already set, have we already initialized?");
@@ -124,36 +124,36 @@ dbus_register_names (TrackerConfig *config)
 		return FALSE;
 	}
 
-        connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
+	connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
 
-        if (!connection) {
-                g_critical ("Could not connect to the DBus session bus, %s",
+	if (!connection) {
+		g_critical ("Could not connect to the DBus session bus, %s",
 			    error ? error->message : "no error given.");
 		g_clear_error (&error);
-                return FALSE;
-        }
+		return FALSE;
+	}
 
-        /* The definitions below (DBUS_SERVICE_DBUS, etc) are
-         * predefined for us to just use (dbus_g_proxy_...)
-         */
-        proxy = dbus_g_proxy_new_for_name (connection,
-                                           DBUS_SERVICE_DBUS,
-                                           DBUS_PATH_DBUS,
-                                           DBUS_INTERFACE_DBUS);
+	/* The definitions below (DBUS_SERVICE_DBUS, etc) are
+	 * predefined for us to just use (dbus_g_proxy_...)
+	 */
+	proxy = dbus_g_proxy_new_for_name (connection,
+					   DBUS_SERVICE_DBUS,
+					   DBUS_PATH_DBUS,
+					   DBUS_INTERFACE_DBUS);
 
-        /* Register the service name for org.freedesktop.Tracker */
-        if (!dbus_register_service (proxy, TRACKER_DAEMON_SERVICE)) {
-                return FALSE;
-        }
+	/* Register the service name for org.freedesktop.Tracker */
+	if (!dbus_register_service (proxy, TRACKER_DAEMON_SERVICE)) {
+		return FALSE;
+	}
 
 	/* Register the service name for org.freedesktop.xesam if XESAM is enabled */
-        if (tracker_config_get_enable_xesam (config)) {
+	if (tracker_config_get_enable_xesam (config)) {
 		if (!dbus_register_service (proxy, TRACKER_XESAM_SERVICE)) {
 			return FALSE;
 		}
-        }
+	}
 
-        return TRUE;
+	return TRUE;
 }
 
 static void
@@ -198,7 +198,7 @@ dbus_request_new_cb (guint    request_id,
 		     gpointer user_data)
 {
 	DBusGProxy *proxy;
-	GError     *error = NULL;
+	GError	   *error = NULL;
 	gboolean    set_paused = TRUE;
 
 	if (tracker_status_get () != TRACKER_STATUS_INDEXING) {
@@ -260,12 +260,12 @@ dbus_request_new_cb (guint    request_id,
 gboolean
 tracker_dbus_init (TrackerConfig *config)
 {
-        g_return_val_if_fail (TRACKER_IS_CONFIG (config), FALSE);
+	g_return_val_if_fail (TRACKER_IS_CONFIG (config), FALSE);
 
-        /* Don't reinitialize */
-        if (objects) {
-                return TRUE;
-        }
+	/* Don't reinitialize */
+	if (objects) {
+		return TRUE;
+	}
 
 	/* Register names and get proxy/connection details */
 	if (!dbus_register_names (config)) {
@@ -283,7 +283,7 @@ tracker_dbus_init (TrackerConfig *config)
 void
 tracker_dbus_shutdown (void)
 {
-        if (objects) {
+	if (objects) {
 		g_slist_foreach (objects, (GFunc) g_object_unref, NULL);
 		g_slist_free (objects);
 		objects = NULL;
@@ -303,10 +303,10 @@ tracker_dbus_shutdown (void)
 }
 
 gboolean
-tracker_dbus_register_objects (TrackerConfig    *config,
-			       TrackerLanguage  *language,
-			       TrackerDBIndex   *file_index,
-			       TrackerDBIndex   *email_index,
+tracker_dbus_register_objects (TrackerConfig	*config,
+			       TrackerLanguage	*language,
+			       TrackerDBIndex	*file_index,
+			       TrackerDBIndex	*email_index,
 			       TrackerProcessor *processor)
 {
 	gpointer object;
@@ -321,78 +321,78 @@ tracker_dbus_register_objects (TrackerConfig    *config,
 		return FALSE;
 	}
 
-        /* Add org.freedesktop.Tracker */
+	/* Add org.freedesktop.Tracker */
 	object = tracker_daemon_new (config, processor);
 	if (!object) {
 		g_critical ("Could not create TrackerDaemon object to register");
 		return FALSE;
 	}
 
-        dbus_register_object (connection,
+	dbus_register_object (connection,
 			      proxy,
 			      G_OBJECT (object),
 			      &dbus_glib_tracker_daemon_object_info,
 			      TRACKER_DAEMON_PATH);
-        objects = g_slist_prepend (objects, object);
+	objects = g_slist_prepend (objects, object);
 
-        /* Add org.freedesktop.Tracker.Files */
+	/* Add org.freedesktop.Tracker.Files */
 	object = tracker_files_new (processor);
 	if (!object) {
 		g_critical ("Could not create TrackerFiles object to register");
 		return FALSE;
 	}
 
-        dbus_register_object (connection,
+	dbus_register_object (connection,
 			      proxy,
 			      G_OBJECT (object),
 			      &dbus_glib_tracker_files_object_info,
 			      TRACKER_FILES_PATH);
-        objects = g_slist_prepend (objects, object);
+	objects = g_slist_prepend (objects, object);
 
-        /* Add org.freedesktop.Tracker.Keywords */
+	/* Add org.freedesktop.Tracker.Keywords */
 	object = tracker_keywords_new ();
 	if (!object) {
 		g_critical ("Could not create TrackerKeywords object to register");
 		return FALSE;
 	}
 
-        dbus_register_object (connection,
+	dbus_register_object (connection,
 			      proxy,
 			      G_OBJECT (object),
 			      &dbus_glib_tracker_keywords_object_info,
 			      TRACKER_KEYWORDS_PATH);
-        objects = g_slist_prepend (objects, object);
+	objects = g_slist_prepend (objects, object);
 
-        /* Add org.freedesktop.Tracker.Metadata */
+	/* Add org.freedesktop.Tracker.Metadata */
 	object = tracker_metadata_new ();
 	if (!object) {
 		g_critical ("Could not create TrackerMetadata object to register");
 		return FALSE;
 	}
 
-        dbus_register_object (connection,
+	dbus_register_object (connection,
 			      proxy,
 			      G_OBJECT (object),
 			      &dbus_glib_tracker_metadata_object_info,
 			      TRACKER_METADATA_PATH);
-        objects = g_slist_prepend (objects, object);
+	objects = g_slist_prepend (objects, object);
 
-        /* Add org.freedesktop.Tracker.Search */
+	/* Add org.freedesktop.Tracker.Search */
 	object = tracker_search_new (config, language, file_index, email_index);
 	if (!object) {
 		g_critical ("Could not create TrackerSearch object to register");
 		return FALSE;
 	}
 
-        dbus_register_object (connection,
+	dbus_register_object (connection,
 			      proxy,
 			      G_OBJECT (object),
 			      &dbus_glib_tracker_search_object_info,
 			      TRACKER_SEARCH_PATH);
-        objects = g_slist_prepend (objects, object);
+	objects = g_slist_prepend (objects, object);
 
 	/* Register the XESAM object if enabled */
-        if (tracker_config_get_enable_xesam (config)) {
+	if (tracker_config_get_enable_xesam (config)) {
 		object = tracker_xesam_new ();
 		if (!object) {
 			g_critical ("Could not create TrackerXesam object to register");
@@ -414,26 +414,26 @@ tracker_dbus_register_objects (TrackerConfig    *config,
 					     G_CALLBACK (tracker_xesam_name_owner_changed),
 					     g_object_ref (G_OBJECT (object)),
 					     dbus_name_owner_changed);
-        }
+	}
 
-        /* Reverse list since we added objects at the top each time */
-        objects = g_slist_reverse (objects);
+	/* Reverse list since we added objects at the top each time */
+	objects = g_slist_reverse (objects);
 
-        return TRUE;
+	return TRUE;
 }
 
 GObject *
 tracker_dbus_get_object (GType type)
 {
-        GSList *l;
+	GSList *l;
 
-        for (l = objects; l; l = l->next) {
-                if (G_OBJECT_TYPE (l->data) == type) {
-                        return l->data;
+	for (l = objects; l; l = l->next) {
+		if (G_OBJECT_TYPE (l->data) == type) {
+			return l->data;
 		}
 	}
 
-        return NULL;
+	return NULL;
 }
 
 DBusGProxy *
@@ -448,7 +448,7 @@ tracker_dbus_indexer_get_proxy (void)
 		/* Get proxy for Service / Path / Interface of the indexer */
 		proxy_for_indexer = dbus_g_proxy_new_for_name (connection,
 							       "org.freedesktop.Tracker.Indexer",
- 							       "/org/freedesktop/Tracker/Indexer",
+							       "/org/freedesktop/Tracker/Indexer",
 							       "org.freedesktop.Tracker.Indexer");
 
 		if (!proxy_for_indexer) {

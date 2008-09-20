@@ -24,26 +24,26 @@
 
 #include <glib.h>
 
-gint     tracker_file_open                         (const gchar *uri,
-						    gboolean     readahead);
-void     tracker_file_close                        (gint         fd,
-						    gboolean     no_longer_needed);
-gboolean tracker_file_unlink                       (const gchar *uri);
-gboolean tracker_file_is_valid                     (const gchar *uri);
-gboolean tracker_file_is_directory                 (const gchar *uri);
-gboolean tracker_file_is_indexable                 (const gchar *uri);
-guint32  tracker_file_get_size                     (const gchar *uri);
-gint32   tracker_file_get_mtime                    (const gchar *uri);
-gchar *  tracker_file_get_mime_type                (const gchar *uri);
-void     tracker_file_get_path_and_name            (const gchar *uri,
+gint	 tracker_file_open			   (const gchar *uri,
+						    gboolean	 readahead);
+void	 tracker_file_close			   (gint	 fd,
+						    gboolean	 no_longer_needed);
+gboolean tracker_file_unlink			   (const gchar *uri);
+gboolean tracker_file_is_valid			   (const gchar *uri);
+gboolean tracker_file_is_directory		   (const gchar *uri);
+gboolean tracker_file_is_indexable		   (const gchar *uri);
+guint32  tracker_file_get_size			   (const gchar *uri);
+gint32	 tracker_file_get_mtime			   (const gchar *uri);
+gchar *  tracker_file_get_mime_type		   (const gchar *uri);
+void	 tracker_file_get_path_and_name		   (const gchar *uri,
 						    gchar **path,
 						    gchar **name);
-void     tracker_path_remove                       (const gchar *uri);
-gboolean tracker_path_is_in_path                   (const gchar *path,
+void	 tracker_path_remove			   (const gchar *uri);
+gboolean tracker_path_is_in_path		   (const gchar *path,
 						    const gchar *in_path);
-void     tracker_path_hash_table_filter_duplicates (GHashTable  *roots);
-GSList * tracker_path_list_filter_duplicates       (GSList      *roots);
-gchar *  tracker_path_evaluate_name                (const gchar *uri);
-gboolean tracker_env_check_xdg_dirs                (void);
+void	 tracker_path_hash_table_filter_duplicates (GHashTable	*roots);
+GSList * tracker_path_list_filter_duplicates	   (GSList	*roots);
+gchar *  tracker_path_evaluate_name		   (const gchar *uri);
+gboolean tracker_env_check_xdg_dirs		   (void);
 
 #endif /* __LIBTRACKER_COMMON_FILE_UTILS_H__ */

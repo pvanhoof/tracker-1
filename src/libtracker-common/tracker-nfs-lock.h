@@ -26,10 +26,10 @@
 
 G_BEGIN_DECLS
 
-void     tracker_nfs_lock_init     (gboolean nfs);
-void     tracker_nfs_lock_shutdown (void);
+void	 tracker_nfs_lock_init	   (gboolean nfs);
+void	 tracker_nfs_lock_shutdown (void);
 gboolean tracker_nfs_lock_obtain   (void);
-void     tracker_nfs_lock_release  (void);
+void	 tracker_nfs_lock_release  (void);
 
 G_END_DECLS
 

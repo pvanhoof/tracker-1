@@ -41,7 +41,7 @@
 
 #include "tracker-extract.h"
 
-#define MAX_FILE_READ     1024 * 1024 * 10
+#define MAX_FILE_READ	  1024 * 1024 * 10
 #define MAX_MP3_SCAN_DEEP 16768
 
 typedef struct {
@@ -237,7 +237,7 @@ static const guint ch_mask = 0xC0000000;
 static const guint pad_mask = 0x20000;
 
 static guint bitrate_table[16][6] = {
-	{0  , 0  , 0  , 0  , 0  , 0},
+	{0  , 0  , 0  , 0  , 0	, 0},
 	{32 , 32 , 32 , 32 , 32 , 8},
 	{64 , 48 , 40 , 64 , 48 , 16},
 	{96 , 56 , 48 , 96 , 56 , 24},
@@ -252,7 +252,7 @@ static guint bitrate_table[16][6] = {
 	{384, 256, 224, 384, 256, 128},
 	{416, 320, 256, 416, 320, 256},
 	{448, 384, 320, 448, 384, 320},
-	{-1,  -1,  -1,  -1,  -1,  -1}
+	{-1,  -1,  -1,	-1,  -1,  -1}
 };
 
 static gint freq_table[4][3] = {
@@ -269,7 +269,7 @@ static TrackerExtractorData data[] = {
 
 static gchar *
 get_utf8 (const gchar *txt,
-	  gint         size,
+	  gint	       size,
 	  gpointer     p1,
 	  gpointer     p2,
 	  gpointer     p3)
@@ -294,7 +294,7 @@ get_id3 (const gchar *data,
 
 	pos = &data[size - 128];
 
-  	if (strncmp ("TAG", pos, 3) != 0) {
+	if (strncmp ("TAG", pos, 3) != 0) {
 		return FALSE;
 	}
 
@@ -305,16 +305,16 @@ get_id3 (const gchar *data,
 	id3->artist = get_utf8 (pos, 30, NULL, NULL, NULL);
 	pos += 30;
 	id3->album = get_utf8 (pos, 30, NULL, NULL, NULL);
-  	pos += 30;
-  	id3->year = get_utf8 (pos, 4, NULL, NULL, NULL);
+	pos += 30;
+	id3->year = get_utf8 (pos, 4, NULL, NULL, NULL);
 
-  	pos += 4;
-  	id3->comment = get_utf8 (pos, 30, NULL, NULL, NULL);
-  	pos += 30;
-  	id3->genre = "";
+	pos += 4;
+	id3->comment = get_utf8 (pos, 30, NULL, NULL, NULL);
+	pos += 30;
+	id3->genre = "";
 
-  	if ((guint) pos[0] < G_N_ELEMENTS (genre_names)) {
-    		id3->genre = g_strdup (genre_names[(unsigned) pos[0]]);
+	if ((guint) pos[0] < G_N_ELEMENTS (genre_names)) {
+		id3->genre = g_strdup (genre_names[(unsigned) pos[0]]);
 	}
 
 	return TRUE;
@@ -322,7 +322,7 @@ get_id3 (const gchar *data,
 
 static void
 mp3_parse (const gchar *data,
-	   size_t       size,
+	   size_t	size,
 	   GHashTable  *metadata)
 {
 	guint header;
@@ -500,14 +500,14 @@ get_id3v24_tags (const gchar *data,
 		 size_t       size,
 		 GHashTable  *metadata)
 {
-	gint    unsync;
-	gint    extendedHdr;
-	gint    experimental;
-	gint    footer;
-	guint   tsize;
-	guint   pos;
-	guint   ehdrSize;
-	guint   padding;
+	gint	unsync;
+	gint	extendedHdr;
+	gint	experimental;
+	gint	footer;
+	guint	tsize;
+	guint	pos;
+	guint	ehdrSize;
+	guint	padding;
 	Matches tmap[] = {
 		{"COMM", "Audio:Comment"},
 		{"TCOP", "File:Copyright"},
@@ -674,14 +674,14 @@ get_id3v23_tags (const gchar *data,
 		 size_t       size,
 		 GHashTable  *metadata)
 {
-	gint    unsync;
-	gint    extendedHdr;
-	gint    experimental;
-	guint   tsize;
-	guint   pos;
-	guint   ehdrSize;
-	guint   padding;
- 	Matches tmap[] = {
+	gint	unsync;
+	gint	extendedHdr;
+	gint	experimental;
+	guint	tsize;
+	guint	pos;
+	guint	ehdrSize;
+	guint	padding;
+	Matches tmap[] = {
 		{"COMM", "Audio:Comment"},
 		{"TCOP", "File:Copyright"},
 		{"TDAT", "Audio:ReleaseDate"},
@@ -843,12 +843,12 @@ get_id3v23_tags (const gchar *data,
 
 static void
 get_id3v2_tags (const gchar *data,
-		size_t       size,
+		size_t	     size,
 		GHashTable  *metadata)
 {
-	gint    unsync;
-	guint   tsize;
-	guint   pos;
+	gint	unsync;
+	guint	tsize;
+	guint	pos;
 	Matches tmap[] = {
 		{"TAL", "Audio:Title"},
 		{"TT1", "Audio:Artist"},
@@ -893,7 +893,7 @@ get_id3v2_tags (const gchar *data,
 		 ((data[8] & 0x7F) << 07) |
 		 ((data[9] & 0x7F) << 00));
 
-	if (tsize + 10 > size)  {
+	if (tsize + 10 > size)	{
 		return;
 	}
 
@@ -975,11 +975,11 @@ static void
 extract_mp3 (const gchar *filename,
 	     GHashTable  *metadata)
 {
-	gint         file;
-	void        *buffer;
+	gint	     file;
+	void	    *buffer;
 	struct stat  fstatbuf;
-	size_t       size;
-  	id3tag       info;
+	size_t	     size;
+	id3tag	     info;
 
 	info.title = NULL;
 	info.artist = NULL;
@@ -1006,17 +1006,17 @@ extract_mp3 (const gchar *filename,
 	}
 
 	if (size >  MAX_FILE_READ) {
-		size =  MAX_FILE_READ;
+		size =	MAX_FILE_READ;
 	}
 
 #ifndef OS_WIN32
 	buffer = mmap (NULL, size, PROT_READ, MAP_PRIVATE, file, 0);
 #endif
 
-  	if (buffer == NULL || buffer == (void*) -1) {
+	if (buffer == NULL || buffer == (void*) -1) {
 		close(file);
 		return;
-  	}
+	}
 
 	if (!get_id3 (buffer, size, &info)) {
 		/* Do nothing? */
@@ -1098,9 +1098,9 @@ extract_mp3 (const gchar *filename,
 	}
 
 #ifndef OS_WIN32
-  	munmap (buffer, size);
+	munmap (buffer, size);
 #endif
-  	close(file);
+	close(file);
 }
 
 TrackerExtractorData *

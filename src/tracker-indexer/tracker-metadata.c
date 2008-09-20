@@ -24,26 +24,26 @@
 #include "tracker-metadata.h"
 
 struct TrackerMetadata {
-        GHashTable *table;
+	GHashTable *table;
 };
 
 TrackerMetadata *
 tracker_metadata_new (void)
 {
-        TrackerMetadata *metadata;
+	TrackerMetadata *metadata;
 
-        metadata = g_slice_new (TrackerMetadata);
-        metadata->table = g_hash_table_new_full (g_direct_hash,
-                                                 g_direct_equal,
-                                                 (GDestroyNotify) g_object_unref,
+	metadata = g_slice_new (TrackerMetadata);
+	metadata->table = g_hash_table_new_full (g_direct_hash,
+						 g_direct_equal,
+						 (GDestroyNotify) g_object_unref,
 						 NULL);
-        return metadata;
+	return metadata;
 }
 
 static gboolean
 remove_metadata_foreach (gpointer key,
-                         gpointer value,
-                         gpointer user_data)
+			 gpointer value,
+			 gpointer user_data)
 {
 	TrackerField *field;
 
@@ -66,81 +66,81 @@ void
 tracker_metadata_free (TrackerMetadata *metadata)
 {
 	g_hash_table_foreach_remove (metadata->table,
-                                     remove_metadata_foreach,
-                                     NULL);
+				     remove_metadata_foreach,
+				     NULL);
 
 	g_hash_table_destroy (metadata->table);
-        g_slice_free (TrackerMetadata, metadata);
+	g_slice_free (TrackerMetadata, metadata);
 }
 
 void
 tracker_metadata_insert (TrackerMetadata *metadata,
-                         const gchar     *field_name,
-			 gchar           *value)
+			 const gchar	 *field_name,
+			 gchar		 *value)
 {
-        TrackerField *field;
+	TrackerField *field;
 
-        field = tracker_ontology_get_field_by_name (field_name);
+	field = tracker_ontology_get_field_by_name (field_name);
 
 	g_return_if_fail (TRACKER_IS_FIELD (field));
-        g_return_if_fail (tracker_field_get_multiple_values (field) == FALSE);
+	g_return_if_fail (tracker_field_get_multiple_values (field) == FALSE);
 
-        g_hash_table_insert (metadata->table,
-                             g_object_ref (field),
+	g_hash_table_insert (metadata->table,
+			     g_object_ref (field),
 			     value);
 }
 
 void
 tracker_metadata_insert_multiple_values (TrackerMetadata *metadata,
-                                         const gchar     *field_name,
-                                         GList           *list)
+					 const gchar	 *field_name,
+					 GList		 *list)
 {
-        TrackerField *field;
+	TrackerField *field;
 
-        field = tracker_ontology_get_field_by_name (field_name);
+	field = tracker_ontology_get_field_by_name (field_name);
 
 	g_return_if_fail (TRACKER_IS_FIELD (field));
-        g_return_if_fail (tracker_field_get_multiple_values (field) == TRUE);
+	g_return_if_fail (tracker_field_get_multiple_values (field) == TRUE);
 
-        g_hash_table_insert (metadata->table,
-                             g_object_ref (field),
-                             list);
+	g_hash_table_insert (metadata->table,
+			     g_object_ref (field),
+			     list);
 }
 
 G_CONST_RETURN gchar *
 tracker_metadata_lookup (TrackerMetadata *metadata,
-                         const gchar     *field_name)
+			 const gchar	 *field_name)
 {
-        TrackerField *field;
+	TrackerField *field;
 
-        field = tracker_ontology_get_field_by_name (field_name);
+	field = tracker_ontology_get_field_by_name (field_name);
 
 	g_return_val_if_fail (TRACKER_IS_FIELD (field), NULL);
-        g_return_val_if_fail (tracker_field_get_multiple_values (field) == FALSE, NULL);
+	g_return_val_if_fail (tracker_field_get_multiple_values (field) == FALSE, NULL);
 
-        return g_hash_table_lookup (metadata->table, field);
+	return g_hash_table_lookup (metadata->table, field);
 }
 
 G_CONST_RETURN GList *
 tracker_metadata_lookup_multiple_values (TrackerMetadata *metadata,
-                                         const gchar     *field_name)
+					 const gchar	 *field_name)
 {
-        TrackerField *field;
+	TrackerField *field;
 
-        field = tracker_ontology_get_field_by_name (field_name);
+	field = tracker_ontology_get_field_by_name (field_name);
 
 	g_return_val_if_fail (TRACKER_IS_FIELD (field), NULL);
-        g_return_val_if_fail (tracker_field_get_multiple_values (field) == TRUE, NULL);
+	g_return_val_if_fail (tracker_field_get_multiple_values (field) == TRUE, NULL);
 
-        return g_hash_table_lookup (metadata->table, field);
+	return g_hash_table_lookup (metadata->table, field);
 }
 
 void
-tracker_metadata_foreach (TrackerMetadata        *metadata,
-                          TrackerMetadataForeach  func,
-                          gpointer                user_data)
+tracker_metadata_foreach (TrackerMetadata	 *metadata,
+			  TrackerMetadataForeach  func,
+			  gpointer		  user_data)
 {
-        g_hash_table_foreach (metadata->table,
-                              (GHFunc) func,
-                              user_data);
+	g_hash_table_foreach (metadata->table,
+			      (GHFunc) func,
+			      user_data);
 }

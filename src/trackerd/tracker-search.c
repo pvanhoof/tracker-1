@@ -47,10 +47,10 @@
 #define DEFAULT_SEARCH_MAX_HITS 1024
 
 typedef struct {
-	TrackerConfig   *config;
+	TrackerConfig	*config;
 	TrackerLanguage *language;
-        TrackerDBIndex  *file_index;
-        TrackerDBIndex  *email_index;
+	TrackerDBIndex	*file_index;
+	TrackerDBIndex	*email_index;
 } TrackerSearchPrivate;
 
 static void tracker_search_finalize (GObject *object);
@@ -95,7 +95,7 @@ tracker_search_new (TrackerConfig   *config,
 		    TrackerDBIndex  *file_index,
 		    TrackerDBIndex  *email_index)
 {
-	TrackerSearch        *object;
+	TrackerSearch	     *object;
 	TrackerSearchPrivate *priv;
 
 	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
@@ -121,19 +121,19 @@ tracker_search_new (TrackerConfig   *config,
 static gint
 search_sanity_check_max_hits (gint max_hits)
 {
-        if (max_hits < 1) {
-                return DEFAULT_SEARCH_MAX_HITS;
-        }
+	if (max_hits < 1) {
+		return DEFAULT_SEARCH_MAX_HITS;
+	}
 
-        return max_hits;
+	return max_hits;
 }
 
 static const gchar *
 search_utf8_p_from_offset_skipping_decomp (const gchar *str,
-					   gint         offset)
+					   gint		offset)
 {
 	const gchar *p, *q;
-	gchar       *casefold, *normal;
+	gchar	    *casefold, *normal;
 
 	g_return_val_if_fail (str != NULL, NULL);
 
@@ -154,17 +154,17 @@ search_utf8_p_from_offset_skipping_decomp (const gchar *str,
 
 static const char *
 search_utf8_strcasestr_array (const gchar  *haystack,
-			      gchar       **needles)
+			      gchar	  **needles)
 {
-	gsize         needle_len;
-	gsize         haystack_len;
+	gsize	      needle_len;
+	gsize	      haystack_len;
 	const gchar  *ret = NULL;
 	const gchar  *needle;
-	gchar       **array;
-	gchar        *p;
-	gchar        *casefold;
-	gchar        *caseless_haystack;
-	gint          i;
+	gchar	    **array;
+	gchar	     *p;
+	gchar	     *casefold;
+	gchar	     *caseless_haystack;
+	gint	      i;
 
 	g_return_val_if_fail (haystack != NULL, NULL);
 
@@ -215,7 +215,7 @@ static gint
 search_get_word_break (const char *a)
 {
 	gchar **words;
-	gint    value;
+	gint	value;
 
 	words = g_strsplit_set (a, "\t\n\v\f\r !\"#$%&'()*/<=>?[\\]^`{|}~+,.:;@\"[]" , -1);
 
@@ -234,7 +234,7 @@ static gboolean
 search_is_word_break (const char a)
 {
 	const gchar *breaks = "\t\n\v\f\r !\"#$%&'()*/<=>?[\\]^`{|}~+,.:;@\"[]";
-	gint         i;
+	gint	     i;
 
 	for (i = 0; breaks[i]; i++) {
 		if (a == breaks[i]) {
@@ -247,13 +247,13 @@ search_is_word_break (const char a)
 
 static char *
 search_highlight_terms (const gchar  *text,
-			gchar       **terms)
+			gchar	    **terms)
 {
-	GStrv         p;
+	GStrv	      p;
 	GString      *s;
 	const gchar  *str;
-	gchar        *text_copy;
-	gint          term_len;
+	gchar	     *text_copy;
+	gint	      term_len;
 
 	if (!text || !terms) {
 		return NULL;
@@ -264,7 +264,7 @@ search_highlight_terms (const gchar  *text,
 
 	for (p = terms; *p; p++) {
 		const gchar  *text_p;
-		gchar       **single_term;
+		gchar	    **single_term;
 
 		single_term = g_new (gchar*, 2);
 		single_term[0] = g_strdup (*p);
@@ -303,14 +303,14 @@ search_highlight_terms (const gchar  *text,
 
 static gchar *
 search_get_snippet (const gchar  *text,
-		    gchar       **terms,
-		    gint          length)
+		    gchar	**terms,
+		    gint	  length)
 {
 	const gchar *ptr = NULL;
 	const gchar *end_ptr;
 	const gchar *tmp;
-	gint         i;
-	gint         text_len;
+	gint	     i;
+	gint	     text_len;
 
 	if (!text || !terms) {
 		return NULL;
@@ -428,17 +428,17 @@ search_get_snippet (const gchar  *text,
 }
 
 void
-tracker_search_get_hit_count (TrackerSearch          *object,
-			      const gchar            *service,
-			      const gchar            *search_text,
+tracker_search_get_hit_count (TrackerSearch	     *object,
+			      const gchar	     *service,
+			      const gchar	     *search_text,
 			      DBusGMethodInvocation  *context,
-			      GError                **error)
+			      GError		    **error)
 {
 	TrackerSearchPrivate *priv;
 	TrackerQueryTree     *tree;
-	GError               *actual_error = NULL;
-	GArray               *array;
-	guint                 request_id;
+	GError		     *actual_error = NULL;
+	GArray		     *array;
+	guint		      request_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -489,20 +489,20 @@ tracker_search_get_hit_count (TrackerSearch          *object,
 }
 
 void
-tracker_search_get_hit_count_all (TrackerSearch          *object,
-				  const gchar            *search_text,
+tracker_search_get_hit_count_all (TrackerSearch		 *object,
+				  const gchar		 *search_text,
 				  DBusGMethodInvocation  *context,
-				  GError                **error)
+				  GError		**error)
 {
 	TrackerSearchPrivate  *priv;
 	TrackerDBResultSet    *result_set = NULL;
 	TrackerQueryTree      *tree;
-	GError                *actual_error = NULL;
-	GArray                *hit_counts;
-	guint                  request_id;
-	guint                  i;
-	GArray                *array;
-	GPtrArray             *values = NULL;
+	GError		      *actual_error = NULL;
+	GArray		      *hit_counts;
+	guint		       request_id;
+	guint		       i;
+	GArray		      *array;
+	GPtrArray	      *values = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -536,7 +536,7 @@ tracker_search_get_hit_count_all (TrackerSearch          *object,
 
 	for (i = 0; i < hit_counts->len; i++) {
 		TrackerHitCount count;
-		GValue          value = { 0, };
+		GValue		value = { 0, };
 
 		if (G_UNLIKELY (!result_set)) {
 			result_set = _tracker_db_result_set_new (2);
@@ -575,20 +575,20 @@ tracker_search_get_hit_count_all (TrackerSearch          *object,
 }
 
 void
-tracker_search_text (TrackerSearch          *object,
-		     gint                    live_query_id,
-		     const gchar            *service,
-		     const gchar            *search_text,
-		     gint                    offset,
-		     gint                    max_hits,
+tracker_search_text (TrackerSearch	    *object,
+		     gint		     live_query_id,
+		     const gchar	    *service,
+		     const gchar	    *search_text,
+		     gint		     offset,
+		     gint		     max_hits,
 		     DBusGMethodInvocation  *context,
-		     GError                **error)
+		     GError		   **error)
 {
-	GError              *actual_error = NULL;
+	GError		    *actual_error = NULL;
 	TrackerDBInterface  *iface;
 	TrackerDBResultSet  *result_set;
-	guint                request_id;
-	gchar              **strv = NULL;
+	guint		     request_id;
+	gchar		   **strv = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -637,10 +637,10 @@ tracker_search_text (TrackerSearch          *object,
 					     FALSE);
 
 	if (result_set) {
-		gchar    *prefix, *name;
+		gchar	 *prefix, *name;
 		gboolean  valid = TRUE;
-		gint      row_count;
-		gint      i;
+		gint	  row_count;
+		gint	  i;
 
 		row_count = tracker_db_result_set_get_n_rows (result_set) + 1;
 		strv = g_new (gchar*, row_count);
@@ -679,20 +679,20 @@ tracker_search_text (TrackerSearch          *object,
 }
 
 void
-tracker_search_text_detailed (TrackerSearch          *object,
-			      gint                    live_query_id,
-			      const gchar            *service,
-			      const gchar            *search_text,
-			      gint                    offset,
-			      gint                    max_hits,
+tracker_search_text_detailed (TrackerSearch	     *object,
+			      gint		      live_query_id,
+			      const gchar	     *service,
+			      const gchar	     *search_text,
+			      gint		      offset,
+			      gint		      max_hits,
 			      DBusGMethodInvocation  *context,
-			      GError                **error)
+			      GError		    **error)
 {
-	GError             *actual_error = NULL;
+	GError		   *actual_error = NULL;
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
-	guint               request_id;
-	GPtrArray          *values = NULL;
+	guint		    request_id;
+	GPtrArray	   *values = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -754,19 +754,19 @@ tracker_search_text_detailed (TrackerSearch          *object,
 }
 
 void
-tracker_search_get_snippet (TrackerSearch          *object,
-			    const gchar            *service,
-			    const gchar            *id,
-			    const gchar            *search_text,
+tracker_search_get_snippet (TrackerSearch	   *object,
+			    const gchar		   *service,
+			    const gchar		   *id,
+			    const gchar		   *search_text,
 			    DBusGMethodInvocation  *context,
-			    GError                **error)
+			    GError		  **error)
 {
-	GError             *actual_error = NULL;
+	GError		   *actual_error = NULL;
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
-	guint               request_id;
-	gchar              *snippet = NULL;
-	gchar              *service_id;
+	guint		    request_id;
+	gchar		   *snippet = NULL;
+	gchar		   *service_id;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -824,8 +824,8 @@ tracker_search_get_snippet (TrackerSearch          *object,
 
 	if (result_set) {
 		TrackerSearchPrivate  *priv;
-		gchar                **strv;
-		gchar                 *text;
+		gchar		     **strv;
+		gchar		      *text;
 
 		priv = TRACKER_SEARCH_GET_PRIVATE (object);
 
@@ -857,19 +857,19 @@ tracker_search_get_snippet (TrackerSearch          *object,
 }
 
 void
-tracker_search_files_by_text (TrackerSearch         *object,
-			      gint                   live_query_id,
-			      const gchar           *search_text,
-			      gint                   offset,
-			      gint                   max_hits,
-			      gboolean               group_results,
+tracker_search_files_by_text (TrackerSearch	    *object,
+			      gint		     live_query_id,
+			      const gchar	    *search_text,
+			      gint		     offset,
+			      gint		     max_hits,
+			      gboolean		     group_results,
 			      DBusGMethodInvocation  *context,
-			      GError                **error)
+			      GError		    **error)
 {
 	/* TrackerDBInterface *iface; */
 	TrackerDBResultSet *result_set;
-	guint               request_id;
-	GHashTable         *values = NULL;
+	guint		    request_id;
+	GHashTable	   *values = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -894,10 +894,10 @@ tracker_search_files_by_text (TrackerSearch         *object,
 	result_set = NULL;
 
 	/* result_set = tracker_db_search_files_by_text (iface,  */
-	/* 					      search_text,  */
-	/* 					      offset,  */
-	/* 					      search_sanity_check_max_hits (max_hits), */
-	/* 					      group_results); */
+	/*					      search_text,  */
+	/*					      offset,  */
+	/*					      search_sanity_check_max_hits (max_hits), */
+	/*					      group_results); */
 
 	values = tracker_dbus_query_result_to_hash_table (result_set);
 
@@ -913,20 +913,20 @@ tracker_search_files_by_text (TrackerSearch         *object,
 }
 
 void
-tracker_search_metadata (TrackerSearch          *object,
-			 const gchar            *service,
-			 const gchar            *field,
-			 const gchar            *search_text,
-			 gint                    offset,
-			 gint                    max_hits,
-			 DBusGMethodInvocation  *context,
-			 GError                **error)
+tracker_search_metadata (TrackerSearch		*object,
+			 const gchar		*service,
+			 const gchar		*field,
+			 const gchar		*search_text,
+			 gint			 offset,
+			 gint			 max_hits,
+			 DBusGMethodInvocation	*context,
+			 GError		       **error)
 {
-	GError             *actual_error = NULL;
+	GError		   *actual_error = NULL;
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
-	guint               request_id;
-	gchar             **values;
+	guint		    request_id;
+	gchar		  **values;
 
 	/* FIXME: This function is completely redundant */
 
@@ -966,11 +966,11 @@ tracker_search_metadata (TrackerSearch          *object,
 	result_set = NULL;
 
 	/* result_set = tracker_db_search_metadata (iface,  */
-	/* 					 service,  */
-	/* 					 field,  */
-	/* 					 text,  */
-	/* 					 offset,  */
-	/* 					 search_sanity_check_max_hits (max_hits)); */
+	/*					 service,  */
+	/*					 field,  */
+	/*					 text,	*/
+	/*					 offset,  */
+	/*					 search_sanity_check_max_hits (max_hits)); */
 
 	values = tracker_dbus_query_result_to_strv (result_set, 0, NULL);
 
@@ -986,18 +986,18 @@ tracker_search_metadata (TrackerSearch          *object,
 }
 
 void
-tracker_search_matching_fields (TrackerSearch         *object,
-				const gchar           *service,
-				const gchar           *id,
-				const gchar           *search_text,
+tracker_search_matching_fields (TrackerSearch	      *object,
+				const gchar	      *service,
+				const gchar	      *id,
+				const gchar	      *search_text,
 				DBusGMethodInvocation  *context,
-				GError                **error)
+				GError		      **error)
 {
-	GError             *actual_error = NULL;
+	GError		   *actual_error = NULL;
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
-	guint               request_id;
-	GHashTable         *values = NULL;
+	guint		    request_id;
+	GHashTable	   *values = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -1042,9 +1042,9 @@ tracker_search_matching_fields (TrackerSearch         *object,
 	result_set = NULL;
 
 	/* result_set = tracker_db_search_matching_metadata (iface,  */
-	/* 						  service,  */
-	/* 						  id,  */
-	/* 						  search_text); */
+	/*						  service,  */
+	/*						  id,  */
+	/*						  search_text); */
 
 	values = tracker_dbus_query_result_to_hash_table (result_set);
 
@@ -1060,26 +1060,26 @@ tracker_search_matching_fields (TrackerSearch         *object,
 }
 
 void
-tracker_search_query (TrackerSearch          *object,
-		      gint                    live_query_id,
-		      const gchar            *service,
-		      gchar                 **fields,
-		      const gchar            *search_text,
-		      const gchar            *keyword,
-		      const gchar            *query_condition,
-		      gboolean                sort_by_service,
-		      gchar                 **sort_fields,
-		      gboolean                sort_desc,
-		      gint                    offset,
-		      gint                    max_hits,
+tracker_search_query (TrackerSearch	     *object,
+		      gint		      live_query_id,
+		      const gchar	     *service,
+		      gchar		    **fields,
+		      const gchar	     *search_text,
+		      const gchar	     *keyword,
+		      const gchar	     *query_condition,
+		      gboolean		      sort_by_service,
+		      gchar		    **sort_fields,
+		      gboolean		      sort_desc,
+		      gint		      offset,
+		      gint		      max_hits,
 		      DBusGMethodInvocation  *context,
-		      GError                **error)
+		      GError		    **error)
 {
-	GError             *actual_error = NULL;
+	GError		   *actual_error = NULL;
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set;
-	guint               request_id;
-	GPtrArray          *values = NULL;
+	guint		    request_id;
+	GPtrArray	   *values = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -1196,16 +1196,16 @@ tracker_search_query (TrackerSearch          *object,
 }
 
 void
-tracker_search_suggest (TrackerSearch          *object,
-			const gchar            *search_text,
-			gint                    max_dist,
+tracker_search_suggest (TrackerSearch	       *object,
+			const gchar	       *search_text,
+			gint			max_dist,
 			DBusGMethodInvocation  *context,
-			GError                **error)
+			GError		      **error)
 {
-	GError               *actual_error = NULL;
+	GError		     *actual_error = NULL;
 	TrackerSearchPrivate *priv;
-	guint                 request_id;
-	gchar                *value;
+	guint		      request_id;
+	gchar		     *value;
 
 	request_id = tracker_dbus_get_next_request_id ();
 

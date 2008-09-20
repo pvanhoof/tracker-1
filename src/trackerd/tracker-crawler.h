@@ -27,40 +27,40 @@
 
 G_BEGIN_DECLS
 
-#define TRACKER_TYPE_CRAWLER            (tracker_crawler_get_type ())
-#define TRACKER_CRAWLER(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), TRACKER_TYPE_CRAWLER, TrackerCrawler))
-#define TRACKER_CRAWLER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), TRACKER_TYPE_CRAWLER, TrackerCrawlerClass))
-#define TRACKER_IS_CRAWLER(object)      (G_TYPE_CHECK_INSTANCE_TYPE ((object), TRACKER_TYPE_CRAWLER))
+#define TRACKER_TYPE_CRAWLER		(tracker_crawler_get_type ())
+#define TRACKER_CRAWLER(object)		(G_TYPE_CHECK_INSTANCE_CAST ((object), TRACKER_TYPE_CRAWLER, TrackerCrawler))
+#define TRACKER_CRAWLER_CLASS(klass)	(G_TYPE_CHECK_CLASS_CAST ((klass), TRACKER_TYPE_CRAWLER, TrackerCrawlerClass))
+#define TRACKER_IS_CRAWLER(object)	(G_TYPE_CHECK_INSTANCE_TYPE ((object), TRACKER_TYPE_CRAWLER))
 #define TRACKER_IS_CRAWLER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), TRACKER_TYPE_CRAWLER))
-#define TRACKER_CRAWLER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), TRACKER_TYPE_CRAWLER, TrackerCrawlerClass))
+#define TRACKER_CRAWLER_GET_CLASS(obj)	(G_TYPE_INSTANCE_GET_CLASS ((obj), TRACKER_TYPE_CRAWLER, TrackerCrawlerClass))
 
-typedef struct _TrackerCrawler         TrackerCrawler;
+typedef struct _TrackerCrawler	       TrackerCrawler;
 typedef struct _TrackerCrawlerClass    TrackerCrawlerClass;
 typedef struct _TrackerCrawlerPrivate  TrackerCrawlerPrivate;
 
 struct _TrackerCrawler {
-	GObject                parent;
+	GObject		       parent;
 	TrackerCrawlerPrivate *private;
 };
 
 struct _TrackerCrawlerClass {
-	GObjectClass           parent;
+	GObjectClass	       parent;
 };
 
-GType           tracker_crawler_get_type             (void);
-TrackerCrawler *tracker_crawler_new                  (TrackerConfig  *config,
+GType		tracker_crawler_get_type	     (void);
+TrackerCrawler *tracker_crawler_new		     (TrackerConfig  *config,
 						      const gchar    *module_name);
-gboolean        tracker_crawler_start                (TrackerCrawler *crawler);
-void            tracker_crawler_stop                 (TrackerCrawler *crawler);
-gboolean        tracker_crawler_is_path_ignored      (TrackerCrawler *crawler,
+gboolean	tracker_crawler_start		     (TrackerCrawler *crawler);
+void		tracker_crawler_stop		     (TrackerCrawler *crawler);
+gboolean	tracker_crawler_is_path_ignored      (TrackerCrawler *crawler,
 						      const gchar    *path,
-						      gboolean        is_directory);
+						      gboolean	      is_directory);
 
 /* Convenience API for old .cfg file */
-void            tracker_crawler_add_path             (TrackerCrawler *crawler,
+void		tracker_crawler_add_path	     (TrackerCrawler *crawler,
 						      const gchar    *path);
-void            tracker_crawler_set_use_module_paths (TrackerCrawler *crawler,
-						      gboolean        use_paths);
+void		tracker_crawler_set_use_module_paths (TrackerCrawler *crawler,
+						      gboolean	      use_paths);
 
 G_END_DECLS
 

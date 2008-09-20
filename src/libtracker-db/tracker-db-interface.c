@@ -115,10 +115,10 @@ tracker_db_blob_get_type (void)
 
 /* TrackerDBResultSet */
 static void
-tracker_db_result_set_set_property (GObject       *object,
-				    guint          prop_id,
+tracker_db_result_set_set_property (GObject	  *object,
+				    guint	   prop_id,
 				    const GValue  *value,
-				    GParamSpec    *pspec)
+				    GParamSpec	  *pspec)
 {
 	TrackerDBResultSetPrivate *priv;
 
@@ -136,7 +136,7 @@ tracker_db_result_set_set_property (GObject       *object,
 
 static void
 tracker_db_result_set_get_property (GObject    *object,
-				    guint       prop_id,
+				    guint	prop_id,
 				    GValue     *value,
 				    GParamSpec *pspec)
 {
@@ -235,9 +235,9 @@ ensure_result_set_state (TrackerDBResultSet *result_set)
 
 TrackerDBResultSet *
 tracker_db_interface_execute_vquery (TrackerDBInterface  *interface,
-				     GError             **error,
-				     const gchar         *query,
-				     va_list              args)
+				     GError		**error,
+				     const gchar	 *query,
+				     va_list		  args)
 {
 	TrackerDBResultSet *result_set = NULL;
 	gchar *str;
@@ -264,9 +264,9 @@ tracker_db_interface_execute_vquery (TrackerDBInterface  *interface,
 
 
 TrackerDBResultSet *
-tracker_db_interface_execute_query (TrackerDBInterface  *interface,
-				    GError             **error,
-				    const gchar         *query,
+tracker_db_interface_execute_query (TrackerDBInterface	*interface,
+				    GError	       **error,
+				    const gchar		*query,
 				    ...)
 {
 	TrackerDBResultSet *result_set;
@@ -284,7 +284,7 @@ tracker_db_interface_execute_query (TrackerDBInterface  *interface,
 
 void
 tracker_db_interface_set_procedure_table (TrackerDBInterface *interface,
-					  GHashTable         *procedure_table)
+					  GHashTable	     *procedure_table)
 {
 	g_return_if_fail (TRACKER_IS_DB_INTERFACE (interface));
 	g_return_if_fail (procedure_table != NULL);
@@ -302,9 +302,9 @@ tracker_db_interface_set_procedure_table (TrackerDBInterface *interface,
 
 TrackerDBResultSet *
 tracker_db_interface_execute_vprocedure (TrackerDBInterface  *interface,
-					 GError             **error,
-					 const gchar         *procedure,
-					 va_list              args)
+					 GError		    **error,
+					 const gchar	     *procedure,
+					 va_list	      args)
 {
 	TrackerDBResultSet *result_set;
 
@@ -330,9 +330,9 @@ tracker_db_interface_execute_vprocedure (TrackerDBInterface  *interface,
 
 TrackerDBResultSet *
 tracker_db_interface_execute_vprocedure_len (TrackerDBInterface  *interface,
-					     GError             **error,
-					     const gchar         *procedure,
-					     va_list              args)
+					     GError		**error,
+					     const gchar	 *procedure,
+					     va_list		  args)
 {
 	TrackerDBResultSet *result_set;
 
@@ -356,8 +356,8 @@ tracker_db_interface_execute_vprocedure_len (TrackerDBInterface  *interface,
 
 TrackerDBResultSet *
 tracker_db_interface_execute_procedure (TrackerDBInterface  *interface,
-					GError             **error,
-					const gchar         *procedure,
+					GError		   **error,
+					const gchar	    *procedure,
 					...)
 {
 	TrackerDBResultSet *result_set;
@@ -374,9 +374,9 @@ tracker_db_interface_execute_procedure (TrackerDBInterface  *interface,
 }
 
 TrackerDBResultSet *
-tracker_db_interface_execute_procedure_len (TrackerDBInterface  *interface,
-					    GError             **error,
-					    const gchar         *procedure,
+tracker_db_interface_execute_procedure_len (TrackerDBInterface	*interface,
+					    GError	       **error,
+					    const gchar		*procedure,
 					    ...)
 {
 	TrackerDBResultSet *result_set;
@@ -467,8 +467,8 @@ _tracker_db_result_set_append (TrackerDBResultSet *result_set)
 
 void
 _tracker_db_result_set_set_value (TrackerDBResultSet *result_set,
-				  guint               column,
-				  const GValue       *value)
+				  guint		      column,
+				  const GValue	     *value)
 {
 	TrackerDBResultSetPrivate *priv;
 	gpointer *row = NULL;
@@ -521,7 +521,7 @@ _tracker_db_result_set_set_value (TrackerDBResultSet *result_set,
 }
 
 static void
-fill_in_value (GValue   *value,
+fill_in_value (GValue	*value,
 	       gpointer  data)
 {
 	switch (G_VALUE_TYPE (value)) {
@@ -539,8 +539,8 @@ fill_in_value (GValue   *value,
 
 void
 _tracker_db_result_set_get_value (TrackerDBResultSet *result_set,
-				  guint               column,
-				  GValue             *value)
+				  guint		      column,
+				  GValue	     *value)
 {
 	TrackerDBResultSetPrivate *priv;
 	gpointer *row;

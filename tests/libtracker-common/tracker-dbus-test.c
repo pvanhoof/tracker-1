@@ -26,68 +26,68 @@
 static void
 slist_to_strv (gboolean utf8)
 {
-        GSList *input = NULL;
-        gint    i;
-        gchar **input_as_strv;
-        gint    strings = 5;
+	GSList *input = NULL;
+	gint	i;
+	gchar **input_as_strv;
+	gint	strings = 5;
 
-        for (i = 0; i < strings; i++) {
-                if (utf8) {
-                        input = g_slist_prepend (input, g_strdup_printf ("%d", i));
-                } else {
-                        input = g_slist_prepend (input, g_strdup (tracker_test_helpers_get_nonutf8 ()));
-                }
-        }
-        g_assert_cmpint (g_slist_length (input), ==, strings);
+	for (i = 0; i < strings; i++) {
+		if (utf8) {
+			input = g_slist_prepend (input, g_strdup_printf ("%d", i));
+		} else {
+			input = g_slist_prepend (input, g_strdup (tracker_test_helpers_get_nonutf8 ()));
+		}
+	}
+	g_assert_cmpint (g_slist_length (input), ==, strings);
 
-        input_as_strv = tracker_dbus_slist_to_strv (input);
+	input_as_strv = tracker_dbus_slist_to_strv (input);
 
-        g_assert_cmpint (g_strv_length (input_as_strv), ==, (utf8 ? strings : 0));
+	g_assert_cmpint (g_strv_length (input_as_strv), ==, (utf8 ? strings : 0));
 
-        g_slist_foreach (input, (GFunc)g_free, NULL);
-        g_slist_free (input);
+	g_slist_foreach (input, (GFunc)g_free, NULL);
+	g_slist_free (input);
 
-        g_strfreev (input_as_strv);
+	g_strfreev (input_as_strv);
 }
 
 static void
 test_slist_to_strv (void)
 {
-        slist_to_strv (TRUE);
+	slist_to_strv (TRUE);
 }
 
 static void
 test_slist_to_strv_nonutf8 (void)
 {
-        slist_to_strv (FALSE);
+	slist_to_strv (FALSE);
 }
 
 static void
 async_queue_to_strv (gboolean utf8)
 {
-        GQueue *queue;
-        gint i;
-        gchar **queue_as_strv;
-        gint strings = 5;
+	GQueue *queue;
+	gint i;
+	gchar **queue_as_strv;
+	gint strings = 5;
 
-        queue = g_queue_new ();
+	queue = g_queue_new ();
 
-        for (i = 0; i < strings; i++) {
-                if (utf8) {
-                        g_queue_push_tail (queue, g_strdup_printf ("%d", i));
-                } else {
-                        g_queue_push_tail (queue, g_strdup (tracker_test_helpers_get_nonutf8 ()));
-                }
-        }
-        g_assert_cmpint (g_queue_get_length (queue), ==, strings);
+	for (i = 0; i < strings; i++) {
+		if (utf8) {
+			g_queue_push_tail (queue, g_strdup_printf ("%d", i));
+		} else {
+			g_queue_push_tail (queue, g_strdup (tracker_test_helpers_get_nonutf8 ()));
+		}
+	}
+	g_assert_cmpint (g_queue_get_length (queue), ==, strings);
 
-        queue_as_strv = tracker_dbus_queue_str_to_strv (queue, g_queue_get_length (queue));
+	queue_as_strv = tracker_dbus_queue_str_to_strv (queue, g_queue_get_length (queue));
 
-        g_assert_cmpint (g_strv_length (queue_as_strv), ==, (utf8 ? strings : 0));
+	g_assert_cmpint (g_strv_length (queue_as_strv), ==, (utf8 ? strings : 0));
 
-        // Queue empty by tracker_dbus_async_queue_to_strv
-        g_queue_free (queue);
-        g_strfreev (queue_as_strv);
+	// Queue empty by tracker_dbus_async_queue_to_strv
+	g_queue_free (queue);
+	g_strfreev (queue_as_strv);
 
 }
 
@@ -95,13 +95,13 @@ async_queue_to_strv (gboolean utf8)
 static void
 test_async_queue_to_strv (void)
 {
-        async_queue_to_strv (TRUE);
+	async_queue_to_strv (TRUE);
 }
 
 static void
 test_async_queue_to_strv_nonutf8 (void)
 {
-        async_queue_to_strv (FALSE);
+	async_queue_to_strv (FALSE);
 }
 
 static void
@@ -133,14 +133,14 @@ test_dbus_request_failed (void)
 	GError *error = NULL;
 
 	/* Default case: we set the error */
-        if (g_test_trap_fork (0, G_TEST_TRAP_SILENCE_STDERR)) {
+	if (g_test_trap_fork (0, G_TEST_TRAP_SILENCE_STDERR)) {
 		tracker_dbus_request_failed (1, &error, "Test Error message");
 	}
 	g_test_trap_assert_stderr ("*Test Error message*");
 
 	/* Second common case: we have already the error and want only the log line */
 	error = g_error_new (1000, -1, "The indexer founded an error");
-        if (g_test_trap_fork (0, G_TEST_TRAP_SILENCE_STDERR)) {
+	if (g_test_trap_fork (0, G_TEST_TRAP_SILENCE_STDERR)) {
 		tracker_dbus_request_failed (1, &error, NULL);
 	}
 	g_test_trap_assert_stderr ("*The indexer founded an error*");
@@ -149,7 +149,7 @@ test_dbus_request_failed (void)
 
 	/* Wrong use: error set and we add a new message */
 	error = g_error_new (1000, -1, "The indexer founded an error");
-        if (g_test_trap_fork (0, G_TEST_TRAP_SILENCE_STDERR)) {
+	if (g_test_trap_fork (0, G_TEST_TRAP_SILENCE_STDERR)) {
 		tracker_dbus_request_failed (1, &error, "Dont do this");
 	}
 	g_test_trap_assert_stderr ("*GError set over the top of a previous GError or uninitialized memory*");
@@ -157,7 +157,7 @@ test_dbus_request_failed (void)
 
 	error = NULL;
 	/* Wrong use: no error, no message */
-        if (g_test_trap_fork (0, G_TEST_TRAP_SILENCE_STDERR)) {
+	if (g_test_trap_fork (0, G_TEST_TRAP_SILENCE_STDERR)) {
 		tracker_dbus_request_failed (1, &error, NULL);
 	}
 	g_test_trap_assert_stderr ("*Unset error and no error message*");
@@ -166,22 +166,22 @@ test_dbus_request_failed (void)
 int
 main (int argc, char **argv) {
 
-        int result;
+	int result;
 
 	g_type_init ();
-        g_thread_init (NULL);
+	g_thread_init (NULL);
 	g_test_init (&argc, &argv, NULL);
 
-        g_test_add_func ("/libtracker-common/tracker-dbus/slist_to_strv_ok", test_slist_to_strv);
-        g_test_add_func ("/libtracker-common/tracker-dbus/slist_to_strv_nonutf8", test_slist_to_strv_nonutf8);
-        g_test_add_func ("/libtracker-common/tracker-dbus/async_queue_to_strv_ok", test_async_queue_to_strv);
-        g_test_add_func ("/libtracker-common/tracker-dbus/async_queue_to_strv_nonutf8", test_async_queue_to_strv_nonutf8);
+	g_test_add_func ("/libtracker-common/tracker-dbus/slist_to_strv_ok", test_slist_to_strv);
+	g_test_add_func ("/libtracker-common/tracker-dbus/slist_to_strv_nonutf8", test_slist_to_strv_nonutf8);
+	g_test_add_func ("/libtracker-common/tracker-dbus/async_queue_to_strv_ok", test_async_queue_to_strv);
+	g_test_add_func ("/libtracker-common/tracker-dbus/async_queue_to_strv_nonutf8", test_async_queue_to_strv_nonutf8);
 	g_test_add_func ("/libtracker-common/tracker-dbus/free_ptr_array", test_results_ptr_array_free);
 	g_test_add_func ("/libtracker-common/tracker-dbus/dbus_request_failed", test_dbus_request_failed);
 
-        result = g_test_run ();
+	result = g_test_run ();
 
 	tracker_test_helpers_free_nonutf8 ();
 
-        return result;
+	return result;
 }

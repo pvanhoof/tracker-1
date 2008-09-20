@@ -38,7 +38,7 @@
 
 typedef struct {
 	/* General */
-	gchar      *description;
+	gchar	   *description;
 	gboolean    enabled;
 
 	/* Monitors */
@@ -49,14 +49,14 @@ typedef struct {
 	GHashTable *ignored_directories;
 	GHashTable *ignored_files;
 
-	GList      *ignored_directory_patterns;
-	GList      *ignored_file_patterns;
+	GList	   *ignored_directory_patterns;
+	GList	   *ignored_file_patterns;
 
 	/* Index */
-	gchar      *index_service;
+	gchar	   *index_service;
 	GHashTable *index_mime_types;
 	GHashTable *index_files;
-	GList      *index_file_patterns;
+	GList	   *index_file_patterns;
 
 	/* Specific Options, FIXME: Finish */
 
@@ -92,11 +92,11 @@ module_destroy_notify (gpointer data)
 			 NULL);
 	g_list_free (mc->ignored_directory_patterns);
 
- 	g_hash_table_unref (mc->ignored_files);
- 	g_hash_table_unref (mc->ignored_directories);
+	g_hash_table_unref (mc->ignored_files);
+	g_hash_table_unref (mc->ignored_directories);
 
- 	g_hash_table_unref (mc->monitor_recurse_directories);
- 	g_hash_table_unref (mc->monitor_directories);
+	g_hash_table_unref (mc->monitor_recurse_directories);
+	g_hash_table_unref (mc->monitor_directories);
 
 	g_free (mc->description);
 
@@ -164,9 +164,9 @@ static void
 set_ignored_file_patterns (ModuleConfig *mc)
 {
 	GPatternSpec *spec;
-	GList        *ignored_files;
-	GList        *l;
-	GList        *patterns = NULL;
+	GList	     *ignored_files;
+	GList	     *l;
+	GList	     *patterns = NULL;
 
 	g_list_foreach (mc->ignored_file_patterns,
 			(GFunc) g_pattern_spec_free,
@@ -191,9 +191,9 @@ static void
 set_ignored_directory_patterns (ModuleConfig *mc)
 {
 	GPatternSpec *spec;
-	GList        *ignored_directories;
-	GList        *l;
-	GList        *patterns = NULL;
+	GList	     *ignored_directories;
+	GList	     *l;
+	GList	     *patterns = NULL;
 
 	g_list_foreach (mc->ignored_directory_patterns,
 			(GFunc) g_pattern_spec_free,
@@ -218,9 +218,9 @@ static void
 set_index_file_patterns (ModuleConfig *mc)
 {
 	GPatternSpec *spec;
-	GList        *index_files;
-	GList        *l;
-	GList        *patterns = NULL;
+	GList	     *index_files;
+	GList	     *l;
+	GList	     *patterns = NULL;
 
 	g_list_foreach (mc->index_file_patterns,
 			(GFunc) g_pattern_spec_free,
@@ -242,11 +242,11 @@ set_index_file_patterns (ModuleConfig *mc)
 }
 
 static gboolean
-load_boolean (GKeyFile    *key_file,
+load_boolean (GKeyFile	  *key_file,
 	      const gchar *group,
 	      const gchar *key)
 {
-	GError   *error = NULL;
+	GError	 *error = NULL;
 	gboolean  boolean;
 
 	boolean = g_key_file_get_boolean (key_file, group, key, &error);
@@ -268,10 +268,10 @@ load_boolean (GKeyFile    *key_file,
 }
 
 static gchar *
-load_string (GKeyFile    *key_file,
+load_string (GKeyFile	 *key_file,
 	      const gchar *group,
 	      const gchar *key,
-	      gboolean     expand_string_as_path)
+	      gboolean	   expand_string_as_path)
 {
 	GError *error = NULL;
 	gchar  *str;
@@ -310,11 +310,11 @@ load_string_list (GKeyFile    *key_file,
 		  gboolean     expand_strings_as_paths,
 		  gboolean     remove_hierarchy_dups)
 {
-	GError      *error = NULL;
+	GError	    *error = NULL;
 	GHashTable  *table;
-	gchar      **str;
-	gchar      **p;
-	gsize        size;
+	gchar	   **str;
+	gchar	   **p;
+	gsize	     size;
 
 	table = g_hash_table_new_full (g_str_hash,
 				       g_str_equal,
@@ -382,7 +382,7 @@ static ModuleConfig *
 load_file (const gchar *filename)
 {
 	GKeyFile     *key_file;
-	GError       *error = NULL;
+	GError	     *error = NULL;
 	ModuleConfig *mc;
 
 	key_file = g_key_file_new ();
@@ -470,15 +470,15 @@ load_file (const gchar *filename)
 static gboolean
 load_directory (void)
 {
-	GFile           *file;
+	GFile		*file;
 	GFileEnumerator *enumerator;
-	GFileInfo       *info;
-	GError          *error = NULL;
-	gchar           *path;
-	gchar           *filename;
-	const gchar     *name;
-	const gchar     *extension;
-	glong            extension_len;
+	GFileInfo	*info;
+	GError		*error = NULL;
+	gchar		*path;
+	gchar		*filename;
+	const gchar	*name;
+	const gchar	*extension;
+	glong		 extension_len;
 
 	path = get_directory ();
 	file = g_file_new_for_path (path);
@@ -509,7 +509,7 @@ load_directory (void)
 	for (info = g_file_enumerator_next_file (enumerator, NULL, &error);
 	     info && !error;
 	     info = g_file_enumerator_next_file (enumerator, NULL, &error)) {
-		GFile        *child;
+		GFile	     *child;
 		ModuleConfig *mc;
 
 		name = g_file_info_get_name (info);
@@ -557,10 +557,10 @@ load_directory (void)
 
 static void
 changed_cb (GFileMonitor     *monitor,
-	    GFile            *file,
-	    GFile            *other_file,
+	    GFile	     *file,
+	    GFile	     *other_file,
 	    GFileMonitorEvent event_type,
-	    gpointer          user_data)
+	    gpointer	      user_data)
 {
 	gchar *filename;
 

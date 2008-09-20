@@ -293,7 +293,7 @@ get_text_area_size(SexyIconEntry *entry, GtkAllocation *alloc)
 	alloc->x      = xborder;
 	alloc->y      = yborder;
 	alloc->width  = widget->allocation.width - xborder * 2;
-	alloc->height = requisition.height       - yborder * 2;
+	alloc->height = requisition.height	 - yborder * 2;
 }
 
 static void
@@ -323,7 +323,7 @@ get_icon_allocation(SexyIconEntry *icon_entry,
 	else
 	{
 		allocation->x = text_area_alloc->x + text_area_alloc->width -
-		                allocation->width - ICON_MARGIN;
+				allocation->width - ICON_MARGIN;
 	}
 }
 
@@ -395,7 +395,7 @@ sexy_icon_entry_size_request(GtkWidget *widget, GtkRequisition *requisition)
 	int i;
 
 	gtkentry = GTK_ENTRY(widget);
-	entry    = SEXY_ICON_ENTRY(widget);
+	entry	 = SEXY_ICON_ENTRY(widget);
 
 	for (i = 0; i < MAX_ICONS; i++)
 	{
@@ -429,7 +429,7 @@ place_windows(SexyIconEntry *icon_entry, GtkAllocation *widget_alloc)
 	if (left_icon_alloc.width > 0)
 	{
 		text_area_alloc.x = left_icon_alloc.x + left_icon_alloc.width +
-		                    ICON_MARGIN;
+				    ICON_MARGIN;
 	}
 
 	if (right_icon_alloc.width > 0)
@@ -505,13 +505,13 @@ colorshift_pixbuf(GdkPixbuf *dest, GdkPixbuf *src, int shift)
 	int val;
 	guchar r, g, b;
 
-	has_alpha       = gdk_pixbuf_get_has_alpha(src);
-	width           = gdk_pixbuf_get_width(src);
-	height          = gdk_pixbuf_get_height(src);
-	src_rowstride   = gdk_pixbuf_get_rowstride(src);
-	dest_rowstride  = gdk_pixbuf_get_rowstride(dest);
+	has_alpha	= gdk_pixbuf_get_has_alpha(src);
+	width		= gdk_pixbuf_get_width(src);
+	height		= gdk_pixbuf_get_height(src);
+	src_rowstride	= gdk_pixbuf_get_rowstride(src);
+	dest_rowstride	= gdk_pixbuf_get_rowstride(dest);
 	original_pixels = gdk_pixbuf_get_pixels(src);
-	target_pixels   = gdk_pixbuf_get_pixels(dest);
+	target_pixels	= gdk_pixbuf_get_pixels(dest);
 
 	for (i = 0; i < height; i++)
 	{
@@ -655,7 +655,7 @@ update_icon(GObject *obj, GParamSpec *param, SexyIconEntry *entry)
 		const char *name = g_param_spec_get_name(param);
 
 		if (strcmp(name, "pixbuf")   && strcmp(name, "stock")  &&
-			strcmp(name, "image")    && strcmp(name, "pixmap") &&
+			strcmp(name, "image")	 && strcmp(name, "pixmap") &&
 			strcmp(name, "icon_set") && strcmp(name, "pixbuf_animation"))
 		{
 			return;
@@ -761,7 +761,7 @@ sexy_icon_entry_button_release(GtkWidget *widget, GdkEventButton *event)
 
 			if (event->button == 1 &&
 				sexy_icon_entry_get_icon_highlight(entry, i) &&
-				event->x >= 0     && event->y >= 0 &&
+				event->x >= 0	  && event->y >= 0 &&
 				event->x <= width && event->y <= height)
 			{
 				entry->priv->icons[i].hovered = TRUE;

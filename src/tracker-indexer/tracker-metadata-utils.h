@@ -27,7 +27,7 @@
 G_BEGIN_DECLS
 
 TrackerMetadata *tracker_metadata_utils_get_data (const gchar *path);
-gchar *          tracker_metadata_utils_get_text (const gchar *path);
+gchar *		 tracker_metadata_utils_get_text (const gchar *path);
 
 G_END_DECLS
 

@@ -34,11 +34,11 @@ struct TrackerExtractorData {
 	const gchar *mime;
 
 	void (* extractor) (const gchar *filename,
-			    GHashTable  *metadata);
+			    GHashTable	*metadata);
 };
 
-gchar *               tracker_generic_date_to_iso8601 (const gchar  *date,
-                                                       const gchar  *format);
+gchar *		      tracker_generic_date_to_iso8601 (const gchar  *date,
+						       const gchar  *format);
 TrackerExtractorData *tracker_get_extractor_data      (void);
 
 G_END_DECLS

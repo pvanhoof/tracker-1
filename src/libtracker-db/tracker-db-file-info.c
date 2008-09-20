@@ -42,74 +42,74 @@ static gint deallocated;
 GType
 tracker_db_watch_get_type (void)
 {
-        static GType etype = 0;
+	static GType etype = 0;
 
-        if (etype == 0) {
-                static const GEnumValue values[] = {
-                        { TRACKER_DB_WATCH_ROOT,
-                          "TRACKER_DB_WATCH_ROOT",
-                          "Watching Root" },
-                        { TRACKER_DB_WATCH_SUBFOLDER,
-                          "TRACKER_DB_WATCH_SUBFOLDER",
-                          "Watching Subfolder" },
-                        { TRACKER_DB_WATCH_SPECIAL_FOLDER,
-                          "TRACKER_DB_WATCH_SPECIAL_FOLDER",
-                          "Watching Special Folder" },
-                        { TRACKER_DB_WATCH_SPECIAL_FILE,
-                          "TRACKER_DB_WATCH_SPECIAL_FILE",
-                          "Watching Special File" },
-                        { TRACKER_DB_WATCH_NO_INDEX,
-                          "TRACKER_DB_WATCH_NO_INDEX",
-                          "Watching No Index" },
-                        { TRACKER_DB_WATCH_OTHER,
-                          "TRACKER_DB_WATCH_OTHER",
-                          "Watching Other" },
-                        { 0, NULL, NULL }
-                };
+	if (etype == 0) {
+		static const GEnumValue values[] = {
+			{ TRACKER_DB_WATCH_ROOT,
+			  "TRACKER_DB_WATCH_ROOT",
+			  "Watching Root" },
+			{ TRACKER_DB_WATCH_SUBFOLDER,
+			  "TRACKER_DB_WATCH_SUBFOLDER",
+			  "Watching Subfolder" },
+			{ TRACKER_DB_WATCH_SPECIAL_FOLDER,
+			  "TRACKER_DB_WATCH_SPECIAL_FOLDER",
+			  "Watching Special Folder" },
+			{ TRACKER_DB_WATCH_SPECIAL_FILE,
+			  "TRACKER_DB_WATCH_SPECIAL_FILE",
+			  "Watching Special File" },
+			{ TRACKER_DB_WATCH_NO_INDEX,
+			  "TRACKER_DB_WATCH_NO_INDEX",
+			  "Watching No Index" },
+			{ TRACKER_DB_WATCH_OTHER,
+			  "TRACKER_DB_WATCH_OTHER",
+			  "Watching Other" },
+			{ 0, NULL, NULL }
+		};
 
-                etype = g_enum_register_static ("TrackerDBWatch", values);
+		etype = g_enum_register_static ("TrackerDBWatch", values);
 
-                /* Since we don't reference this enum anywhere, we do
-                 * it here to make sure it exists when we call
-                 * g_type_class_peek(). This wouldn't be necessary if
-                 * it was a param in a GObject for example.
-                 *
-                 * This does mean that we are leaking by 1 reference
-                 * here and should clean it up, but it doesn't grow so
-                 * this is acceptable.
-                 */
+		/* Since we don't reference this enum anywhere, we do
+		 * it here to make sure it exists when we call
+		 * g_type_class_peek(). This wouldn't be necessary if
+		 * it was a param in a GObject for example.
+		 *
+		 * This does mean that we are leaking by 1 reference
+		 * here and should clean it up, but it doesn't grow so
+		 * this is acceptable.
+		 */
 
-                g_type_class_ref (etype);
-        }
+		g_type_class_ref (etype);
+	}
 
-        return etype;
+	return etype;
 }
 
 const gchar *
 tracker_db_watch_to_string (TrackerDBWatch watch)
 {
-        GType       type;
-        GEnumClass *enum_class;
-        GEnumValue *enum_value;
+	GType	    type;
+	GEnumClass *enum_class;
+	GEnumValue *enum_value;
 
-        type = tracker_db_action_get_type ();
-        enum_class = G_ENUM_CLASS (g_type_class_peek (type));
-        enum_value = g_enum_get_value (enum_class, watch);
+	type = tracker_db_action_get_type ();
+	enum_class = G_ENUM_CLASS (g_type_class_peek (type));
+	enum_value = g_enum_get_value (enum_class, watch);
 
-        if (!enum_value) {
-                enum_value = g_enum_get_value (enum_class, TRACKER_DB_WATCH_OTHER);
-        }
+	if (!enum_value) {
+		enum_value = g_enum_get_value (enum_class, TRACKER_DB_WATCH_OTHER);
+	}
 
-        return enum_value->value_nick;
+	return enum_value->value_nick;
 }
 
 /*
  * TrackerDBFileInfo
  */
 TrackerDBFileInfo *
-tracker_db_file_info_new (const char      *uri,
+tracker_db_file_info_new (const char	  *uri,
 			  TrackerDBAction  action,
-			  gint             counter,
+			  gint		   counter,
 			  TrackerDBWatch   watch)
 {
 	TrackerDBFileInfo *info;
@@ -217,12 +217,12 @@ tracker_db_file_info_unref (TrackerDBFileInfo *info)
 
 #if 0
 static TrackerDBFileInfo *
-db_file_info_get_pending (guint32          file_id,
-			  const gchar     *uri,
-			  const gchar     *mime,
-			  gint             counter,
+db_file_info_get_pending (guint32	   file_id,
+			  const gchar	  *uri,
+			  const gchar	  *mime,
+			  gint		   counter,
 			  TrackerDBAction  action,
-			  gboolean         is_directory)
+			  gboolean	   is_directory)
 {
 	TrackerDBFileInfo *info;
 
@@ -269,7 +269,7 @@ TrackerDBFileInfo *
 tracker_db_file_info_get (TrackerDBFileInfo *info)
 {
 	struct stat  finfo;
-	gchar       *str, *uri_in_locale;
+	gchar	    *str, *uri_in_locale;
 
 	if (!info || !info->uri) {
 		return info;
@@ -329,18 +329,18 @@ tracker_db_file_info_get (TrackerDBFileInfo *info)
 gboolean
 tracker_db_file_info_is_valid (TrackerDBFileInfo *info)
 {
-        g_return_val_if_fail (info != NULL, FALSE);
-        g_return_val_if_fail (info->uri != NULL, FALSE);
+	g_return_val_if_fail (info != NULL, FALSE);
+	g_return_val_if_fail (info->uri != NULL, FALSE);
 
-        if (!g_utf8_validate (info->uri, -1, NULL)) {
-                g_warning ("Expected UTF-8 validation of TrackerDBFileInfo URI");
-                return FALSE;
-        }
+	if (!g_utf8_validate (info->uri, -1, NULL)) {
+		g_warning ("Expected UTF-8 validation of TrackerDBFileInfo URI");
+		return FALSE;
+	}
 
-        if (info->action == TRACKER_DB_ACTION_IGNORE) {
-                return FALSE;
-        }
+	if (info->action == TRACKER_DB_ACTION_IGNORE) {
+		return FALSE;
+	}
 
-        return TRUE;
+	return TRUE;
 }
 

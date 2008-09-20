@@ -35,7 +35,7 @@
 G_BEGIN_DECLS
 
 #define TRACKER_DBUS_ERROR_DOMAIN "TrackerDBus"
-#define TRACKER_DBUS_ERROR        tracker_dbus_error_quark()
+#define TRACKER_DBUS_ERROR	  tracker_dbus_error_quark()
 
 #define tracker_dbus_async_return_if_fail(expr,context)			\
 	G_STMT_START {							\
@@ -59,7 +59,7 @@ G_BEGIN_DECLS
 	G_STMT_START {							\
 		if G_LIKELY(expr) { } else {				\
 			g_set_error (error,				\
-				     TRACKER_DBUS_ERROR,                \
+				     TRACKER_DBUS_ERROR,		\
 				     0,					\
 				     _("Assertion `%s' failed"),	\
 				     #expr);				\
@@ -70,48 +70,48 @@ G_BEGIN_DECLS
 
 typedef struct TrackerDBusRequestHandler TrackerDBusRequestHandler;
 
-typedef void (*TrackerDBusRequestFunc)   (guint    request_id,
+typedef void (*TrackerDBusRequestFunc)	 (guint    request_id,
 					  gpointer user_data);
 
 typedef struct {
-        guint    id;
-        gpointer data1;
-        gpointer data2;
+	guint	 id;
+	gpointer data1;
+	gpointer data2;
 } TrackerDBusData;
 
-GQuark           tracker_dbus_error_quark            (void);
-TrackerDBusData *tracker_dbus_data_new               (const gpointer              arg1,
-						      const gpointer              arg2);
+GQuark		 tracker_dbus_error_quark	     (void);
+TrackerDBusData *tracker_dbus_data_new		     (const gpointer		  arg1,
+						      const gpointer		  arg2);
 
 /* Utils */
-GValue *         tracker_dbus_gvalue_slice_new       (GType                       type);
-void             tracker_dbus_gvalue_slice_free      (GValue                     *value);
-gchar **         tracker_dbus_slist_to_strv          (GSList                     *list);
-gchar **         tracker_dbus_queue_str_to_strv      (GQueue                     *queue,
-						      gint                        max);
-gchar **         tracker_dbus_queue_gfile_to_strv    (GQueue                     *queue,
-						      gint                        max);
-void             tracker_dbus_results_ptr_array_free (GPtrArray                 **ptr_array);
+GValue *	 tracker_dbus_gvalue_slice_new	     (GType			  type);
+void		 tracker_dbus_gvalue_slice_free      (GValue			 *value);
+gchar **	 tracker_dbus_slist_to_strv	     (GSList			 *list);
+gchar **	 tracker_dbus_queue_str_to_strv      (GQueue			 *queue,
+						      gint			  max);
+gchar **	 tracker_dbus_queue_gfile_to_strv    (GQueue			 *queue,
+						      gint			  max);
+void		 tracker_dbus_results_ptr_array_free (GPtrArray			**ptr_array);
 
 /* Requests */
-guint            tracker_dbus_get_next_request_id    (void);
+guint		 tracker_dbus_get_next_request_id    (void);
 
 TrackerDBusRequestHandler *
-                 tracker_dbus_request_add_hook       (TrackerDBusRequestFunc      new,
-						      TrackerDBusRequestFunc      done,
-						      gpointer                    user_data);
-void             tracker_dbus_request_remove_hook    (TrackerDBusRequestHandler  *handler);
+		 tracker_dbus_request_add_hook	     (TrackerDBusRequestFunc	  new,
+						      TrackerDBusRequestFunc	  done,
+						      gpointer			  user_data);
+void		 tracker_dbus_request_remove_hook    (TrackerDBusRequestHandler  *handler);
 
-void             tracker_dbus_request_new            (gint                        request_id,
-						      const gchar                *format,
+void		 tracker_dbus_request_new	     (gint			  request_id,
+						      const gchar		 *format,
 						      ...);
-void             tracker_dbus_request_success        (gint                        request_id);
-void             tracker_dbus_request_failed         (gint                        request_id,
-						      GError                    **error,
-						      const gchar                *format,
+void		 tracker_dbus_request_success	     (gint			  request_id);
+void		 tracker_dbus_request_failed	     (gint			  request_id,
+						      GError			**error,
+						      const gchar		 *format,
 						      ...);
-void             tracker_dbus_request_comment        (gint                        request_id,
-						      const gchar                *format,
+void		 tracker_dbus_request_comment	     (gint			  request_id,
+						      const gchar		 *format,
 						      ...);
 
 G_END_DECLS

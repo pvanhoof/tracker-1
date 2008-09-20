@@ -53,49 +53,49 @@
 /* XESAM Query Condition
  * <query>
  *	<and>
- *        	<greaterThan>
- *           		<field name="File:Size" />
- *           		<integer>1000000<integer>
- *         	</greaterThan>
- *         	<equals>
- *            		<field name="File:Path" />
- *            		<string>/home/jamie<string>
- *          	</equals>
+ *		<greaterThan>
+ *			<field name="File:Size" />
+ *			<integer>1000000<integer>
+ *		</greaterThan>
+ *		<equals>
+ *			<field name="File:Path" />
+ *			<string>/home/jamie<string>
+ *		</equals>
  *	</and>
  * </query>
 */
 
 /* Main elements */
-#define ELEMENT_XESAM_QUERY 	        "query"
-#define ELEMENT_XESAM_USER_QUERY        "userQuery"
-#define ELEMENT_XESAM_FIELD 		"field"
-#define ELEMENT_XESAM_FULL_TEXT_FIELDS  "fullTextFields"
-#define ELEMENT_XESAM_REQUEST 		"request"
+#define ELEMENT_XESAM_QUERY		"query"
+#define ELEMENT_XESAM_USER_QUERY	"userQuery"
+#define ELEMENT_XESAM_FIELD		"field"
+#define ELEMENT_XESAM_FULL_TEXT_FIELDS	"fullTextFields"
+#define ELEMENT_XESAM_REQUEST		"request"
 
 /* Operators */
-#define ELEMENT_XESAM_AND 		"and"
-#define ELEMENT_XESAM_OR	 	"or"
-#define ELEMENT_XESAM_EQUALS 		"equals"
+#define ELEMENT_XESAM_AND		"and"
+#define ELEMENT_XESAM_OR		"or"
+#define ELEMENT_XESAM_EQUALS		"equals"
 #define ELEMENT_XESAM_GREATER_THAN	"greaterThan"
 #define ELEMENT_XESAM_GREATER_OR_EQUAL	"greaterOrEqual"
-#define ELEMENT_XESAM_LESS_THAN 	"lessThan"
+#define ELEMENT_XESAM_LESS_THAN		"lessThan"
 #define ELEMENT_XESAM_LESS_OR_EQUAL	"lessOrEqual"
 
 /* Extension operators - "contains" does a substring or full text
  * match, "in_Set" does string in list match
  */
-#define ELEMENT_XESAM_CONTAINS 		"contains"
-#define ELEMENT_XESAM_REGEX        	"regex"
-#define ELEMENT_XESAM_STARTS_WITH 	"startsWith"
+#define ELEMENT_XESAM_CONTAINS		"contains"
+#define ELEMENT_XESAM_REGEX		"regex"
+#define ELEMENT_XESAM_STARTS_WITH	"startsWith"
 #define ELEMENT_XESAM_IN_SET		"inSet"
-#define ELEMENT_XESAM_FULL_TEXT         "fullText"
+#define ELEMENT_XESAM_FULL_TEXT		"fullText"
 
 /* Types */
-#define ELEMENT_XESAM_INTEGER 		"integer"
-#define ELEMENT_XESAM_DATE 		"date"
-#define ELEMENT_XESAM_STRING 		"string"
-#define ELEMENT_XESAM_FLOAT 		"float"
-#define ELEMENT_XESAM_BOOLEAN           "boolean"
+#define ELEMENT_XESAM_INTEGER		"integer"
+#define ELEMENT_XESAM_DATE		"date"
+#define ELEMENT_XESAM_STRING		"string"
+#define ELEMENT_XESAM_FLOAT		"float"
+#define ELEMENT_XESAM_BOOLEAN		"boolean"
 
 #define ELEMENT_IS(name) (strcmp (element_name, (name)) == 0)
 
@@ -170,42 +170,42 @@ typedef enum {
 
 typedef struct {
 	GMarkupParseContext *context;
-	GMarkupParser       *parser;
-	GSList              *stack;
-	GSList              *fields;
-	gboolean             query_okay;
-	gint                 statement_count;
-	LogicOperators       current_logic_operator;
-	Operators            current_operator;
-	gchar               *current_field;
-	gchar               *current_value;
+	GMarkupParser	    *parser;
+	GSList		    *stack;
+	GSList		    *fields;
+	gboolean	     query_okay;
+	gint		     statement_count;
+	LogicOperators	     current_logic_operator;
+	Operators	     current_operator;
+	gchar		    *current_field;
+	gchar		    *current_value;
 	TrackerDBInterface  *iface;
-	GString             *sql_select;
-	GString             *sql_from;
-	GString             *sql_where;
-	GString             *sql_order;
-	GString             *sql_join;
-	gchar               *service;
+	GString		    *sql_select;
+	GString		    *sql_from;
+	GString		    *sql_where;
+	GString		    *sql_order;
+	GString		    *sql_join;
+	gchar		    *service;
 } ParserData;
 
-static void start_element_handler (GMarkupParseContext  *context,
-				   const gchar          *element_name,
-				   const gchar         **attribute_names,
-				   const gchar         **attribute_values,
-				   gpointer              user_data,
-				   GError              **error);
-static void end_element_handler   (GMarkupParseContext  *context,
-				   const gchar          *element_name,
-				   gpointer              user_data,
-				   GError              **error);
-static void text_handler          (GMarkupParseContext  *context,
-				   const gchar          *text,
-				   gsize                 text_len,
-				   gpointer              user_data,
-				   GError              **error);
-static void error_handler         (GMarkupParseContext  *context,
-				   GError               *error,
-				   gpointer              user_data);
+static void start_element_handler (GMarkupParseContext	*context,
+				   const gchar		*element_name,
+				   const gchar	       **attribute_names,
+				   const gchar	       **attribute_values,
+				   gpointer		 user_data,
+				   GError	       **error);
+static void end_element_handler   (GMarkupParseContext	*context,
+				   const gchar		*element_name,
+				   gpointer		 user_data,
+				   GError	       **error);
+static void text_handler	  (GMarkupParseContext	*context,
+				   const gchar		*text,
+				   gsize		 text_len,
+				   gpointer		 user_data,
+				   GError	       **error);
+static void error_handler	  (GMarkupParseContext	*context,
+				   GError		*error,
+				   gpointer		 user_data);
 
 static GQuark error_quark;
 
@@ -259,15 +259,15 @@ is_end_logic (ParseState state)
 }
 
 static void
-set_error (GError              **err,
-           GMarkupParseContext  *context,
-           int                   error_code,
-           const char           *format,
-           ...)
+set_error (GError	       **err,
+	   GMarkupParseContext	*context,
+	   int			 error_code,
+	   const char		*format,
+	   ...)
 {
-	gint     line, ch;
+	gint	 line, ch;
 	va_list  args;
-	gchar   *str;
+	gchar	*str;
 
 	g_markup_parse_context_get_position (context, &line, &ch);
 
@@ -287,10 +287,10 @@ set_error (GError              **err,
 }
 
 static gboolean
-set_error_on_fail (gboolean              condition,
-		   GMarkupParseContext  *context,
-		   const gchar          *msg,
-		   GError              **err)
+set_error_on_fail (gboolean		 condition,
+		   GMarkupParseContext	*context,
+		   const gchar		*msg,
+		   GError	       **err)
 {
 	if (!condition) {
 		set_error (err, context, 1, msg);
@@ -321,11 +321,11 @@ get_attribute_value (const gchar *name,
 
 static const gchar *
 get_attribute_value_required (GMarkupParseContext  *context,
-			      const gchar          *tag,
-			      const gchar          *name,
-			      const gchar         **names,
-			      const gchar         **values,
-			      GError              **error)
+			      const gchar	   *tag,
+			      const gchar	   *name,
+			      const gchar	  **names,
+			      const gchar	  **values,
+			      GError		  **error)
 {
 	const gchar *value;
 
@@ -377,17 +377,17 @@ pop_stack_until (ParserData *data, ParseState state)
 }
 
 static GList *
-add_metadata_field (ParserData  *data,
+add_metadata_field (ParserData	*data,
 		    const gchar *xesam_name,
-		    gboolean     is_select,
-		    gboolean     is_condition)
+		    gboolean	 is_select,
+		    gboolean	 is_condition)
 {
 	TrackerDBResultSet *result_set;
 	TrackerFieldData   *field_data;
-	gboolean            field_exists;
-	const GSList       *l;
-	GList              *reply;
-	gboolean            valid;
+	gboolean	    field_exists;
+	const GSList	   *l;
+	GList		   *reply;
+	gboolean	    valid;
 
 	reply = NULL;
 	field_exists = FALSE;
@@ -569,7 +569,7 @@ start_element_handler (GMarkupParseContext  *context,
 		push_stack (data, STATE_FIELD); /* We don't need to differentiate */
 
 	} else if (ELEMENT_IS (ELEMENT_XESAM_AND)) {
-                const gchar *negate;
+		const gchar *negate;
 
 		if (set_error_on_fail (state == STATE_QUERY ||
 				       is_logic (state) ||
@@ -604,7 +604,7 @@ start_element_handler (GMarkupParseContext  *context,
 		data->current_logic_operator = LOP_AND;
 		push_stack (data, STATE_AND);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_OR)) {
-                const gchar *negate;
+		const gchar *negate;
 
 		if (set_error_on_fail (state == STATE_QUERY ||
 				       is_logic (state) ||
@@ -639,7 +639,7 @@ start_element_handler (GMarkupParseContext  *context,
 		data->current_logic_operator = LOP_OR;
 		push_stack (data, STATE_OR);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_EQUALS)) {
-                const gchar *negate;
+		const gchar *negate;
 
 		if (set_error_on_fail (state == STATE_QUERY ||
 				       is_logic (state) ||
@@ -663,7 +663,7 @@ start_element_handler (GMarkupParseContext  *context,
 		    data->current_operator = OP_EQUALS;
 		    push_stack (data, STATE_EQUALS);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_GREATER_THAN)) {
-                const gchar *negate;
+		const gchar *negate;
 
 		if (set_error_on_fail (state == STATE_QUERY ||
 				       is_logic (state) ||
@@ -687,7 +687,7 @@ start_element_handler (GMarkupParseContext  *context,
 		data->current_operator = OP_GREATER;
 		push_stack (data, STATE_GREATER_THAN);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_GREATER_OR_EQUAL)) {
-                const gchar *negate;
+		const gchar *negate;
 
 		if (set_error_on_fail (state == STATE_QUERY ||
 				       is_logic (state) ||
@@ -711,7 +711,7 @@ start_element_handler (GMarkupParseContext  *context,
 		data->current_operator = OP_GREATER_EQUAL;
 		push_stack (data, STATE_GREATER_OR_EQUAL);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_LESS_THAN)) {
-                const gchar *negate;
+		const gchar *negate;
 
 		if (set_error_on_fail (state == STATE_QUERY ||
 				       is_logic (state) ||
@@ -734,7 +734,7 @@ start_element_handler (GMarkupParseContext  *context,
 		data->current_operator = OP_LESS;
 		push_stack (data, STATE_LESS_THAN);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_LESS_OR_EQUAL)) {
-                const gchar *negate;
+		const gchar *negate;
 
 		if (set_error_on_fail (state == STATE_QUERY ||
 				       is_logic (state) ||
@@ -758,7 +758,7 @@ start_element_handler (GMarkupParseContext  *context,
 		data->current_operator = OP_LESS_EQUAL;
 		push_stack (data, STATE_LESS_OR_EQUAL);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_CONTAINS)) {
-                const gchar *negate;
+		const gchar *negate;
 
 		if (set_error_on_fail (state == STATE_QUERY ||
 				       is_logic (state) ||
@@ -782,7 +782,7 @@ start_element_handler (GMarkupParseContext  *context,
 		data->current_operator = OP_CONTAINS;
 		push_stack (data, STATE_CONTAINS);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_REGEX)) {
-                const gchar *negate;
+		const gchar *negate;
 
 		if (set_error_on_fail (state == STATE_QUERY ||
 				       is_logic (state) ||
@@ -805,7 +805,7 @@ start_element_handler (GMarkupParseContext  *context,
 		data->current_operator = OP_REGEX;
 		push_stack (data, STATE_REGEX);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_STARTS_WITH)) {
-                const gchar *negate;
+		const gchar *negate;
 
 		if (set_error_on_fail (state == STATE_QUERY ||
 				       is_logic (state) ||
@@ -829,7 +829,7 @@ start_element_handler (GMarkupParseContext  *context,
 		data->current_operator = OP_STARTS;
 		push_stack (data, STATE_STARTS_WITH);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_IN_SET)) {
-                const gchar *negate;
+		const gchar *negate;
 
 		if (set_error_on_fail (state == STATE_QUERY ||
 				       is_logic (state) ||
@@ -853,7 +853,7 @@ start_element_handler (GMarkupParseContext  *context,
 		data->current_operator = OP_SET;
 		push_stack (data, STATE_IN_SET);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_FULL_TEXT)) {
-                const gchar *negate;
+		const gchar *negate;
 
 		if (set_error_on_fail (state == STATE_QUERY ||
 				       is_logic (state) ||
@@ -949,11 +949,11 @@ static gboolean
 build_sql (ParserData *data)
 {
 	ParseState  state;
-	gchar 	   *avalue, *value, *sub;
-	GList      *field_data;
-	GList      *field_data_list;
+	gchar	   *avalue, *value, *sub;
+	GList	   *field_data;
+	GList	   *field_data_list;
 	GString    *str;
-	gint        i;
+	gint	    i;
 
 	g_return_val_if_fail (data->current_field &&
 			      data->current_operator != OP_NONE &&
@@ -992,7 +992,7 @@ build_sql (ParserData *data)
 
 	while (field_data) {
 		const gchar  *where_field;
-		gchar       **s;
+		gchar	    **s;
 
 		i++;
 		str = g_string_new ("");
@@ -1353,7 +1353,7 @@ text_handler (GMarkupParseContext *context,
 		case STATE_STRING:
 		case STATE_DATE:
 		case STATE_FLOAT:
-          	case STATE_BOOLEAN:
+		case STATE_BOOLEAN:
 
 			data->current_value = g_strstrip (g_strndup (text, text_len));
 			break;
@@ -1373,23 +1373,23 @@ error_handler (GMarkupParseContext *context,
 }
 
 void
-tracker_xesam_query_to_sql (TrackerDBInterface  *iface,
-			    const gchar         *query,
-			    gchar              **from,
-			    gchar              **join,
-			    gchar              **where,
-			    GError             **error)
+tracker_xesam_query_to_sql (TrackerDBInterface	*iface,
+			    const gchar		*query,
+			    gchar	       **from,
+			    gchar	       **join,
+			    gchar	       **where,
+			    GError	       **error)
 {
 	static gboolean  inited = FALSE;
-	ParserData       data;
-	gchar           *result;
-	gchar           *table_name;
+	ParserData	 data;
+	gchar		*result;
+	gchar		*table_name;
 
-        g_return_if_fail (TRACKER_IS_DB_INTERFACE (iface));
-        g_return_if_fail (query != NULL);
-        g_return_if_fail (from != NULL);
-        g_return_if_fail (join != NULL);
-        g_return_if_fail (where != NULL);
+	g_return_if_fail (TRACKER_IS_DB_INTERFACE (iface));
+	g_return_if_fail (query != NULL);
+	g_return_if_fail (from != NULL);
+	g_return_if_fail (join != NULL);
+	g_return_if_fail (where != NULL);
 
 	if (!inited) {
 		error_quark = g_quark_from_static_string ("XESAM-parser-error-quark");

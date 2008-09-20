@@ -28,16 +28,16 @@
 
 #ifdef LIBINOTIFY_DEBUG
 # define inotify_debug(x, ...) g_log("libinotify", G_LOG_LEVEL_DEBUG, \
-                                     x, ## __VA_ARGS__)
+				     x, ## __VA_ARGS__)
 #else
 # define inotify_debug(x, ...) 0
 #endif
 
 #define inotify_warn(x, ...) g_log("libinotify", G_LOG_LEVEL_WARNING, \
-                                   x, ## __VA_ARGS__)
+				   x, ## __VA_ARGS__)
 
 #define inotify_fatal(x, ...) g_log("libinotify", G_LOG_LEVEL_ERROR, \
-                                    x, ## __VA_ARGS__)
+				    x, ## __VA_ARGS__)
 
 static inline void
 inotify_debug_initialise()
@@ -45,7 +45,7 @@ inotify_debug_initialise()
 #ifdef LIBINOTIFY_DEBUG
   if( getenv( "DEBUG_LIBINOTIFY" ) == NULL )
     g_log_set_handler( "libinotify", G_LOG_LEVEL_DEBUG,
-                       (GLogFunc) strlen, NULL );
+		       (GLogFunc) strlen, NULL );
 #endif
 }
 

@@ -37,57 +37,57 @@ typedef enum {
 } TrackerParserEncoding;
 
 typedef struct {
-	const gchar           *txt;
-	gint                   txt_size;
+	const gchar	      *txt;
+	gint		       txt_size;
 
 	TrackerLanguage       *language;
-	gboolean               enable_stemmer;
-	gboolean               enable_stop_words;
-	guint                  max_words_to_index;
-    	guint                  max_word_length;
-	guint                  min_word_length;
-	gboolean               delimit_words;
+	gboolean	       enable_stemmer;
+	gboolean	       enable_stop_words;
+	guint		       max_words_to_index;
+	guint		       max_word_length;
+	guint		       min_word_length;
+	gboolean	       delimit_words;
 	gboolean	       parse_reserved_words;
 
 	/* Private members */
 	gchar			*word;
 	gint			word_length;
-	guint                   word_position;
-	TrackerParserEncoding   encoding;
-	const gchar             *cursor;
+	guint			word_position;
+	TrackerParserEncoding	encoding;
+	const gchar		*cursor;
 
 	/* Pango members for CJK text parsing */
-	PangoLogAttr          *attrs;
-	guint                  attr_length;
-	guint                  attr_pos;
+	PangoLogAttr	      *attrs;
+	guint		       attr_length;
+	guint		       attr_pos;
 } TrackerParser;
 
-TrackerParser *tracker_parser_new             (TrackerLanguage *language,
-					       gint             max_word_length,
-					       gint             min_word_length);
-void           tracker_parser_reset           (TrackerParser   *parser,
+TrackerParser *tracker_parser_new	      (TrackerLanguage *language,
+					       gint		max_word_length,
+					       gint		min_word_length);
+void	       tracker_parser_reset	      (TrackerParser   *parser,
 					       const gchar     *txt,
-					       gint             txt_size,
-					       gboolean         delimit_words,
-					       gboolean         enable_stemmer,
-					       gboolean         enable_stop_words,
+					       gint		txt_size,
+					       gboolean		delimit_words,
+					       gboolean		enable_stemmer,
+					       gboolean		enable_stop_words,
 					       gboolean		parse_reserved_words);
-const gchar *  tracker_parser_next            (TrackerParser   *parser,
-					       gint            *position,
-					       gint            *byte_offset_start,
-					       gint            *byte_offset_end,
+const gchar *  tracker_parser_next	      (TrackerParser   *parser,
+					       gint	       *position,
+					       gint	       *byte_offset_start,
+					       gint	       *byte_offset_end,
 					       gboolean        *new_paragraph,
 					       gboolean        *stop_word,
 					       gint	       *word_length);
-void           tracker_parser_set_posititon   (TrackerParser   *parser,
-					       gint             position);
+void	       tracker_parser_set_posititon   (TrackerParser   *parser,
+					       gint		position);
 gboolean       tracker_parser_is_stop_word    (TrackerParser   *parser,
 					       const gchar     *word);
 gchar *        tracker_parser_process_word    (TrackerParser   *parser,
 					       const char      *word,
-					       gint             length,
-					       gboolean         do_strip);
-void           tracker_parser_free            (TrackerParser   *parser);
+					       gint		length,
+					       gboolean		do_strip);
+void	       tracker_parser_free	      (TrackerParser   *parser);
 
 
 /*
@@ -101,33 +101,33 @@ void           tracker_parser_free            (TrackerParser   *parser);
  *
  *   text   - the text to be parsed
  *   weight - used to multiply the count of a word's occurance to create
- *            a weighted rank score
+ *	      a weighted rank score
  *
  * Returns the word_table.
  */
-GHashTable *   tracker_parser_text            (GHashTable      *word_table,
+GHashTable *   tracker_parser_text	      (GHashTable      *word_table,
 					       const gchar     *txt,
-					       gint             weight,
+					       gint		weight,
 					       TrackerLanguage *language,
-					       gint             max_words_to_index,
-					       gint             max_word_length,
-					       gint             min_word_length,
-					       gboolean         filter_words,
-					       gboolean         delimit_words);
+					       gint		max_words_to_index,
+					       gint		max_word_length,
+					       gint		min_word_length,
+					       gboolean		filter_words,
+					       gboolean		delimit_words);
 GHashTable *   tracker_parser_text_fast       (GHashTable      *word_table,
 					       const char      *txt,
-					       gint             weight);
+					       gint		weight);
 gchar *        tracker_parser_text_to_string  (const gchar     *txt,
 					       TrackerLanguage *language,
-					       gint             max_word_length,
-					       gint             min_word_length,
-					       gboolean         filter_words,
-					       gboolean         filter_numbers,
-					       gboolean         delimit);
+					       gint		max_word_length,
+					       gint		min_word_length,
+					       gboolean		filter_words,
+					       gboolean		filter_numbers,
+					       gboolean		delimit);
 gchar **       tracker_parser_text_into_array (const gchar     *text,
 					       TrackerLanguage *language,
-					       gint             max_word_length,
-					       gint             min_word_length);
+					       gint		max_word_length,
+					       gint		min_word_length);
 
 
 G_END_DECLS

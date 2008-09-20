@@ -79,22 +79,22 @@ static guint   shutdown_timeout_id = 0;
 
 gchar *
 tracker_generic_date_to_iso8601 (const gchar *date,
-                                 const gchar *format)
+				 const gchar *format)
 {
-        gchar *result;
-        struct tm date_tm;
+	gchar *result;
+	struct tm date_tm;
 
-        memset (&date_tm, 0, sizeof (struct tm));
+	memset (&date_tm, 0, sizeof (struct tm));
 
-        if (strptime (date, format, &date_tm) == NULL) {
-                return NULL;
-        }
+	if (strptime (date, format, &date_tm) == NULL) {
+		return NULL;
+	}
 
-        result = g_malloc (sizeof (char)*25);
+	result = g_malloc (sizeof (char)*25);
 
-        strftime (result, 25, ISO8601_FORMAT , &date_tm);
+	strftime (result, 25, ISO8601_FORMAT , &date_tm);
 
-        return result;
+	return result;
 }
 
 #ifndef DISABLE_DEBUG
@@ -102,13 +102,13 @@ tracker_generic_date_to_iso8601 (const gchar *date,
 static void
 debug_impl (const gchar *msg, ...)
 {
-        va_list args;
+	va_list args;
 
-        va_start (args, msg);
-        g_vfprintf (stderr, msg, args);
-        va_end (args);
+	va_start (args, msg);
+	g_vfprintf (stderr, msg, args);
+	va_end (args);
 
-        g_fprintf (stderr, "\n");
+	g_fprintf (stderr, "\n");
 }
 
 #endif /* DISABLE_DEBUG */
@@ -116,24 +116,24 @@ debug_impl (const gchar *msg, ...)
 static void
 initialize_extractors (void)
 {
-	GDir        *dir;
-	GError      *error;
+	GDir	    *dir;
+	GError	    *error;
 	const gchar *name;
-	GArray      *generic_extractors;
+	GArray	    *generic_extractors;
 
 	if (extractors != NULL) {
 		return;
-        }
+	}
 
 	if (!g_module_supported ()) {
 		g_error ("Modules are not supported for this platform");
 		return;
 	}
 
-        error = NULL;
+	error = NULL;
 
 	extractors = g_array_sized_new (FALSE,
-                                        TRUE,
+					TRUE,
 					sizeof (TrackerExtractorData),
 					10);
 
@@ -141,7 +141,7 @@ initialize_extractors (void)
 	 * temporarily extractors with mimetypes such as "audio / *"
 	 */
 	generic_extractors = g_array_sized_new (FALSE,
-                                                TRUE,
+						TRUE,
 						sizeof (TrackerExtractorData),
 						10);
 
@@ -150,17 +150,17 @@ initialize_extractors (void)
 	if (!dir) {
 		g_error ("Error opening modules directory: %s", error->message);
 		g_error_free (error);
-                g_array_free (extractors, TRUE);
-                extractors = NULL;
-                g_array_free (generic_extractors, TRUE);
+		g_array_free (extractors, TRUE);
+		extractors = NULL;
+		g_array_free (generic_extractors, TRUE);
 		return;
 	}
 
 	while ((name = g_dir_read_name (dir)) != NULL) {
-		GModule                  *module;
-		gchar                    *module_path;
+		GModule			 *module;
+		gchar			 *module_path;
 		TrackerExtractorDataFunc func;
-		TrackerExtractorData     *data;
+		TrackerExtractorData	 *data;
 
 		if (!g_str_has_suffix (name, "." G_MODULE_SUFFIX)) {
 			continue;
@@ -199,14 +199,14 @@ initialize_extractors (void)
 	 * the list, so the specific ones are used first
 	 */
 	g_array_append_vals (extractors,
-                             generic_extractors->data,
-                             generic_extractors->len);
+			     generic_extractors->data,
+			     generic_extractors->len);
 	g_array_free (generic_extractors, TRUE);
 }
 
 static GHashTable *
 tracker_get_file_metadata (const gchar *uri,
-                           const gchar *mime)
+			   const gchar *mime)
 {
 	GHashTable *meta_table;
 	gchar	   *uri_in_locale;
@@ -215,27 +215,27 @@ tracker_get_file_metadata (const gchar *uri,
 		return NULL;
 	}
 
-        debug ("Extractor - Getting metadata from file:'%s' with mime:'%s'",
-               uri,
-               mime);
+	debug ("Extractor - Getting metadata from file:'%s' with mime:'%s'",
+	       uri,
+	       mime);
 
 	uri_in_locale = g_filename_from_utf8 (uri, -1, NULL, NULL, NULL);
 
 	if (!uri_in_locale) {
-                g_warning ("Could not convert uri:'%s' from UTF-8 to locale", uri);
+		g_warning ("Could not convert uri:'%s' from UTF-8 to locale", uri);
 		return NULL;
 	}
 
 	if (!g_file_test (uri_in_locale, G_FILE_TEST_EXISTS)) {
-                g_warning ("File does not exist '%s'", uri_in_locale);
+		g_warning ("File does not exist '%s'", uri_in_locale);
 		g_free (uri_in_locale);
 		return NULL;
 	}
 
 	meta_table = g_hash_table_new_full (g_str_hash,
-                                            g_str_equal,
-                                            g_free,
-                                            g_free);
+					    g_str_equal,
+					    g_free,
+					    g_free);
 
 	if (mime) {
 		guint i;
@@ -253,17 +253,17 @@ tracker_get_file_metadata (const gchar *uri,
 
 				g_free (uri_in_locale);
 
-                                debug ("Extractor - Found %d metadata items",
-                                       g_hash_table_size (meta_table));
+				debug ("Extractor - Found %d metadata items",
+				       g_hash_table_size (meta_table));
 
 				return meta_table;
 			}
 		}
 
-                debug ("Extractor - Could not find any extractors to handle metadata type.");
+		debug ("Extractor - Could not find any extractors to handle metadata type.");
 	} else {
-                debug ("Extractor - No mime available, not extracting data");
-        }
+		debug ("Extractor - No mime available, not extracting data");
+	}
 
 	g_free (uri_in_locale);
 
@@ -272,8 +272,8 @@ tracker_get_file_metadata (const gchar *uri,
 
 static void
 print_meta_table_data (gpointer key,
-                       gpointer value,
-                       gpointer user_data)
+		       gpointer value,
+		       gpointer user_data)
 {
 	gchar *value_utf8;
 
@@ -290,10 +290,10 @@ print_meta_table_data (gpointer key,
 			value_utf8 = g_strstrip (value_utf8);
 
 			debug ("Extractor - Found '%s' = '%s'",
-                               (gchar*) key,
-                               value_utf8);
+			       (gchar*) key,
+			       value_utf8);
 
-                        g_print ("%s=%s;\n", (gchar*) key, value_utf8);
+			g_print ("%s=%s;\n", (gchar*) key, value_utf8);
 		}
 
 		g_free (value_utf8);
@@ -305,7 +305,7 @@ shutdown_app_timeout (gpointer user_data)
 {
 	GMainLoop *main_loop;
 
-        debug ("Extractor - Timed out, shutting down");
+	debug ("Extractor - Timed out, shutting down");
 
 	main_loop = (GMainLoop *) user_data;
 	g_main_loop_quit (main_loop);
@@ -316,7 +316,7 @@ shutdown_app_timeout (gpointer user_data)
 static void
 reset_shutdown_timeout (GMainLoop *main_loop)
 {
-        debug ("Extractor - Resetting timeout");
+	debug ("Extractor - Resetting timeout");
 
 	if (shutdown_timeout_id != 0) {
 		g_source_remove (shutdown_timeout_id);
@@ -327,13 +327,13 @@ reset_shutdown_timeout (GMainLoop *main_loop)
 
 static gboolean
 process_input_cb (GIOChannel   *channel,
-		  GIOCondition  condition,
-		  gpointer      user_data)
+		  GIOCondition	condition,
+		  gpointer	user_data)
 {
 	GHashTable *meta;
 	gchar *filename, *mimetype;
 
-        debug ("Extractor - Processing input");
+	debug ("Extractor - Processing input");
 
 	reset_shutdown_timeout ((GMainLoop *) user_data);
 
@@ -371,12 +371,12 @@ main (int argc, char *argv[])
 	GMainLoop  *main_loop;
 	GIOChannel *input;
 
-        debug ("Extractor - Initializing...");
+	debug ("Extractor - Initializing...");
 	tracker_memory_setrlimits ();
 
 	if (!g_thread_supported ()) {
 		g_thread_init (NULL);
-        }
+	}
 
 	g_set_application_name ("tracker-extract");
 
@@ -390,10 +390,10 @@ main (int argc, char *argv[])
 
 	reset_shutdown_timeout (main_loop);
 
-        debug ("Extractor - Waiting for work");
+	debug ("Extractor - Waiting for work");
 	g_main_loop_run (main_loop);
 
-        debug ("Extractor - Finished");
+	debug ("Extractor - Finished");
 
 	return EXIT_SUCCESS;
 }

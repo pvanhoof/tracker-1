@@ -39,21 +39,21 @@
 #include "tracker-extract.h"
 
 static void extract_msoffice (const gchar *filename,
-                              GHashTable  *metadata);
+			      GHashTable  *metadata);
 
 static TrackerExtractorData data[] = {
- 	{ "application/msword",	  extract_msoffice },
- 	{ "application/vnd.ms-*", extract_msoffice },
+	{ "application/msword",	  extract_msoffice },
+	{ "application/vnd.ms-*", extract_msoffice },
 	{ NULL, NULL }
 };
 
 static void
 add_gvalue_in_hash_table (GHashTable   *table,
-                          const gchar  *key,
-                          GValue const *val)
+			  const gchar  *key,
+			  GValue const *val)
 {
 	g_return_if_fail (table != NULL);
-        g_return_if_fail (key != NULL);
+	g_return_if_fail (key != NULL);
 
 	if (val) {
 		gchar *s = g_strdup_value_contents (val);
@@ -63,9 +63,9 @@ add_gvalue_in_hash_table (GHashTable   *table,
 				gchar *str_val;
 
 				/* Some fun: strings are always
-                                 * written "str" with double quotes
-                                 * around, but not numbers!
-                                 */
+				 * written "str" with double quotes
+				 * around, but not numbers!
+				 */
 				if (s[0] == '"') {
 					size_t len;
 
@@ -75,14 +75,14 @@ add_gvalue_in_hash_table (GHashTable   *table,
 						str_val = (len > 2 ? g_strndup (s + 1, len - 2) : NULL);
 					} else {
 						/* We have a string
-                                                 * that begins with a
-                                                 * double quote but
-                                                 * which finishes by
-                                                 * something different...
-                                                 * We copy the string
-                                                 * from the
-                                                 * beginning.
-                                                 */
+						 * that begins with a
+						 * double quote but
+						 * which finishes by
+						 * something different...
+						 * We copy the string
+						 * from the
+						 * beginning.
+						 */
 						str_val = g_strdup (s);
 					}
 				} else {
@@ -102,15 +102,15 @@ add_gvalue_in_hash_table (GHashTable   *table,
 
 static void
 metadata_cb (gpointer key,
-             gpointer value,
-             gpointer user_data)
+	     gpointer value,
+	     gpointer user_data)
 {
-        gchar        *name;
+	gchar	     *name;
 	GsfDocProp   *property;
 	GHashTable   *metadata;
 	GValue const *val;
 
-        name = key;
+	name = key;
 	property = value;
 	metadata = user_data;
 	val = gsf_doc_prop_get_val (property);
@@ -138,15 +138,15 @@ metadata_cb (gpointer key,
 
 static void
 doc_metadata_cb (gpointer key,
-                 gpointer value,
-                 gpointer user_data)
+		 gpointer value,
+		 gpointer user_data)
 {
-        gchar        *name;
+	gchar	     *name;
 	GsfDocProp   *property;
 	GHashTable   *metadata;
 	GValue const *val;
 
-        name = key;
+	name = key;
 	property = value;
 	metadata = user_data;
 	val = gsf_doc_prop_get_val (property);
@@ -158,7 +158,7 @@ doc_metadata_cb (gpointer key,
 
 static void
 extract_msoffice (const gchar *filename,
-                  GHashTable  *metadata)
+		  GHashTable  *metadata)
 {
 	GsfInput  *input;
 	GsfInfile *infile;
@@ -183,7 +183,7 @@ extract_msoffice (const gchar *filename,
 
 	stream = gsf_infile_child_by_name (infile, "\05SummaryInformation");
 	if (stream) {
-                GsfDocMetaData *md;
+		GsfDocMetaData *md;
 
 		md = gsf_doc_meta_data_new ();
 
@@ -200,7 +200,7 @@ extract_msoffice (const gchar *filename,
 
 	stream = gsf_infile_child_by_name (infile, "\05DocumentSummaryInformation");
 	if (stream) {
-                GsfDocMetaData *md;
+		GsfDocMetaData *md;
 
 		md = gsf_doc_meta_data_new ();
 

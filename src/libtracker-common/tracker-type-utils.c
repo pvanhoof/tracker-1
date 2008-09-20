@@ -41,7 +41,7 @@ static const char imonths[] = {
 static gboolean
 is_int (const gchar *str)
 {
-	gint     i, len;
+	gint	 i, len;
 
 	if (!str || str[0] == '\0') {
 		return FALSE;
@@ -418,16 +418,16 @@ tracker_string_to_date (const gchar *timestamp)
 	long	  val;
 	time_t	  t;
 
-        g_return_val_if_fail (timestamp, -1);
+	g_return_val_if_fail (timestamp, -1);
 
 	/* We should have a valid iso 8601 date in format
 	 * YYYY-MM-DDThh:mm:ss with optional TZ
 	 */
-        if (!is_valid_8601_datetime (timestamp)) {
+	if (!is_valid_8601_datetime (timestamp)) {
 		return -1;
 	}
 
-        memset (&tm, 0, sizeof (struct tm));
+	memset (&tm, 0, sizeof (struct tm));
 	val = strtoul (timestamp, (gchar**) &timestamp, 10);
 
 	if (*timestamp == '-') {
@@ -465,11 +465,11 @@ tracker_string_to_date (const gchar *timestamp)
 		tm.tm_sec = strtoul (timestamp, (gchar**) &timestamp, 10);
 	}
 
-        /* mktime() always assumes that "tm" is in locale time but we
+	/* mktime() always assumes that "tm" is in locale time but we
 	 * want to keep control on time, so we go to UTC
 	 */
 	t  = mktime (&tm);
-        t -= timezone;
+	t -= timezone;
 
 	if (*timestamp == '+' ||
 	    *timestamp == '-') {
@@ -477,44 +477,44 @@ tracker_string_to_date (const gchar *timestamp)
 
 		sign = *timestamp++ == '+' ? -1 : 1;
 
-                /* We have format hh:mm or hhmm */
-                /* Now, we are reading hours */
-                if (timestamp[0] &&
+		/* We have format hh:mm or hhmm */
+		/* Now, we are reading hours */
+		if (timestamp[0] &&
 		    timestamp[1]) {
-                        if (g_ascii_isdigit (timestamp[0]) &&
+			if (g_ascii_isdigit (timestamp[0]) &&
 			    g_ascii_isdigit (timestamp[1])) {
-                                gchar buff[3];
+				gchar buff[3];
 
-                                buff[0] = timestamp[0];
-                                buff[1] = timestamp[1];
-                                buff[2] = '\0';
+				buff[0] = timestamp[0];
+				buff[1] = timestamp[1];
+				buff[2] = '\0';
 
-                                val = strtoul (buff, NULL, 10);
-                                t += sign * (3600 * val);
-                                timestamp += 2;
-                        }
+				val = strtoul (buff, NULL, 10);
+				t += sign * (3600 * val);
+				timestamp += 2;
+			}
 
-                        if (*timestamp == ':' || *timestamp == '\'') {
-                                timestamp++;
-                        }
-                }
+			if (*timestamp == ':' || *timestamp == '\'') {
+				timestamp++;
+			}
+		}
 
-                /* Now, we are reading minutes */
-                if (timestamp[0] &&
+		/* Now, we are reading minutes */
+		if (timestamp[0] &&
 		    timestamp[1]) {
-                        if (g_ascii_isdigit (timestamp[0]) &&
+			if (g_ascii_isdigit (timestamp[0]) &&
 			    g_ascii_isdigit (timestamp[1])) {
-                                gchar buff[3];
+				gchar buff[3];
 
-                                buff[0] = timestamp[0];
-                                buff[1] = timestamp[1];
-                                buff[2] = '\0';
+				buff[0] = timestamp[0];
+				buff[1] = timestamp[1];
+				buff[2] = '\0';
 
-                                val = strtoul (buff, NULL, 10);
-                                t += sign * (60 * val);
-                                timestamp += 2;
-                        }
-                }
+				val = strtoul (buff, NULL, 10);
+				t += sign * (60 * val);
+				timestamp += 2;
+			}
+		}
 	}
 
 	return t;
@@ -523,7 +523,7 @@ tracker_string_to_date (const gchar *timestamp)
 gchar *
 tracker_date_to_string (time_t date_time)
 {
-	gchar  	  buffer[30];
+	gchar	  buffer[30];
 	struct tm local_time;
 	size_t	  count;
 
@@ -535,13 +535,13 @@ tracker_date_to_string (time_t date_time)
 	/* Output is ISO 8160 format : "YYYY-MM-DDThh:mm:ss+zz:zz" */
 	count = strftime (buffer, sizeof (buffer), "%FT%T%z", &local_time);
 
-        return count > 0 ? g_strdup (buffer) : NULL;
+	return count > 0 ? g_strdup (buffer) : NULL;
 }
 
 gchar *
 tracker_glong_to_string (glong i)
 {
-        return g_strdup_printf ("%ld", i);
+	return g_strdup_printf ("%ld", i);
 }
 
 gchar *
@@ -559,21 +559,21 @@ tracker_guint_to_string (guint i)
 gchar *
 tracker_gint32_to_string (gint32 i)
 {
-        return g_strdup_printf ("%" G_GINT32_FORMAT, i);
+	return g_strdup_printf ("%" G_GINT32_FORMAT, i);
 }
 
 gchar *
 tracker_guint32_to_string (guint32 i)
 {
-        return g_strdup_printf ("%" G_GUINT32_FORMAT, i);
+	return g_strdup_printf ("%" G_GUINT32_FORMAT, i);
 }
 
 gboolean
 tracker_string_to_uint (const gchar *s,
-			guint       *value)
+			guint	    *value)
 {
 	unsigned long int  n;
-	gchar             *end;
+	gchar		  *end;
 
 	g_return_val_if_fail (s != NULL, FALSE);
 	g_return_val_if_fail (value != NULL, FALSE);
@@ -597,10 +597,10 @@ tracker_string_to_uint (const gchar *s,
 
 gint
 tracker_string_in_string_list (const gchar  *str,
-			       gchar       **strv)
+			       gchar	   **strv)
 {
 	gchar **p;
-	gint    i;
+	gint	i;
 
 	g_return_val_if_fail (str != NULL, -1);
 
@@ -622,8 +622,8 @@ tracker_string_list_to_gslist (gchar **strv,
 			       gsize   size)
 {
 	GSList *list;
-	gsize   i;
-	gsize   size_used;
+	gsize	i;
+	gsize	size_used;
 
 	g_return_val_if_fail (strv != NULL, NULL);
 
@@ -652,8 +652,8 @@ tracker_string_list_to_string (gchar **strv,
 			       gchar   sep)
 {
 	GString *string;
-	gsize    i;
-	gsize    size_used;
+	gsize	 i;
+	gsize	 size_used;
 
 	g_return_val_if_fail (strv != NULL, NULL);
 
@@ -696,16 +696,16 @@ tracker_string_to_string_list (const gchar *str)
 gchar **
 tracker_gslist_to_string_list (GSList *list)
 {
-	GSList  *l;
+	GSList	*l;
 	gchar  **strv;
-	gint     i;
+	gint	 i;
 
 	strv = g_new0 (gchar*, g_slist_length (list) + 1);
 
 	for (l = list, i = 0; l; l = l->next) {
- 		if (!l->data) {
+		if (!l->data) {
 			continue;
-  		}
+		}
 
 		strv[i++] = g_strdup (l->data);
 	}
@@ -728,9 +728,9 @@ tracker_gslist_copy_with_string_data (GSList *list)
 	new_list = NULL;
 
 	for (l = list; l; l = l->next) {
- 		if (!l->data) {
+		if (!l->data) {
 			continue;
-  		}
+		}
 
 		new_list = g_slist_prepend (new_list, g_strdup (l->data));
 	}

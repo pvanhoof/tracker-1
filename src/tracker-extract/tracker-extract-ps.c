@@ -39,9 +39,9 @@
 #include "tracker-extract.h"
 
 static void extract_ps_gz (const gchar *filename,
-                           GHashTable  *metadata);
-static void extract_ps    (const gchar *filename,
-                           GHashTable  *metadata);
+			   GHashTable  *metadata);
+static void extract_ps	  (const gchar *filename,
+			   GHashTable  *metadata);
 
 static TrackerExtractorData data[] = {
 	{ "application/x-gzpostscript",	extract_ps_gz },
@@ -63,16 +63,16 @@ static TrackerExtractorData data[] = {
 
 static ssize_t
 igetdelim (gchar  **linebuf,
-           size_t  *linebufsz,
-           gint     delimiter,
-           FILE    *file)
+	   size_t  *linebufsz,
+	   gint     delimiter,
+	   FILE    *file)
 {
 	gint ch;
 	gint idx;
 
 	if ((file == NULL || linebuf == NULL || *linebuf == NULL || *linebufsz == 0) &&
-            !(*linebuf == NULL && *linebufsz == 0)) {
-                errno = EINVAL;
+	    !(*linebuf == NULL && *linebufsz == 0)) {
+		errno = EINVAL;
 		return -1;
 	}
 
@@ -87,9 +87,9 @@ igetdelim (gchar  **linebuf,
 		*linebufsz += GROWBY;
 	}
 
-        idx = 0;
+	idx = 0;
 
-        while ((ch = fgetc (file)) != EOF) {
+	while ((ch = fgetc (file)) != EOF) {
 		/* Grow the line buffer as necessary */
 		while (idx > *linebufsz - 2) {
 			*linebuf = g_realloc (*linebuf, *linebufsz += GROWBY);
@@ -103,22 +103,22 @@ igetdelim (gchar  **linebuf,
 
 		if ((gchar) ch == delimiter) {
 			break;
-                }
+		}
 	}
 
 	if (idx != 0) {
 		(*linebuf)[idx] = 0;
 	} else if ( ch == EOF ) {
 		return -1;
-        }
+	}
 
 	return idx;
 }
 
 static gint
 getline (gchar **s,
-         guint  *lim,
-         FILE   *stream)
+	 guint	*lim,
+	 FILE	*stream)
 {
 	return igetdelim (s, lim, '\n', stream);
 }
@@ -128,168 +128,168 @@ getline (gchar **s,
 static gchar *
 hour_day_str_day (const gchar *date)
 {
-        /* From: ex. date: "(18:07 Tuesday 22 May 2007)"
-         * To  : ex. ISO8601 date: "2007-05-22T18:07:10-0600"
-         */
-        return tracker_generic_date_to_iso8601 (date, "(%H:%M %A %d %B %Y)");
+	/* From: ex. date: "(18:07 Tuesday 22 May 2007)"
+	 * To  : ex. ISO8601 date: "2007-05-22T18:07:10-0600"
+	 */
+	return tracker_generic_date_to_iso8601 (date, "(%H:%M %A %d %B %Y)");
 }
 
 static gchar *
 day_str_month_day (const gchar *date)
 {
-        /* From: ex. date: "Tue May 22 18:07:10 2007"
-         * To  : ex. ISO8601 date: "2007-05-22T18:07:10-0600"
-         */
-        return tracker_generic_date_to_iso8601 (date, "%A %B %d %H:%M:%S %Y");
+	/* From: ex. date: "Tue May 22 18:07:10 2007"
+	 * To  : ex. ISO8601 date: "2007-05-22T18:07:10-0600"
+	 */
+	return tracker_generic_date_to_iso8601 (date, "%A %B %d %H:%M:%S %Y");
 }
 
 static gchar *
 day_month_year_date (const gchar *date)
 {
-        /* From: ex. date: "22 May 1997 18:07:10 -0600"
-         * To  : ex. ISO8601 date: "2007-05-22T18:07:10-0600"
-         */
-        return tracker_generic_date_to_iso8601 (date, "%d %B %Y %H:%M:%S %z");
+	/* From: ex. date: "22 May 1997 18:07:10 -0600"
+	 * To  : ex. ISO8601 date: "2007-05-22T18:07:10-0600"
+	 */
+	return tracker_generic_date_to_iso8601 (date, "%d %B %Y %H:%M:%S %z");
 }
 
 static gchar *
 hour_month_day_date (const gchar *date)
 {
-        /* From: ex. date: "6:07 PM May 22, 2007"
-         * To  : ex. ISO8601 date: "2007-05-22T18:07:10-0600"
-         */
-        return tracker_generic_date_to_iso8601 (date, "%I:%M %p %B %d, %Y");
+	/* From: ex. date: "6:07 PM May 22, 2007"
+	 * To  : ex. ISO8601 date: "2007-05-22T18:07:10-0600"
+	 */
+	return tracker_generic_date_to_iso8601 (date, "%I:%M %p %B %d, %Y");
 }
 
 static gchar *
 date_to_iso8601 (const gchar *date)
 {
-        if (date && date[1] && date[2]) {
-                if (date[0] == '(') {
-                        /* we have probably a date like
-                           "(18:07 Tuesday 22 May 2007)" */
-                        return hour_day_str_day (date);
-                } else if (g_ascii_isalpha (date[0])) {
-                        /* we have probably a date like
-                           "Tue May 22 18:07:10 2007" */
-                        return day_str_month_day (date);
+	if (date && date[1] && date[2]) {
+		if (date[0] == '(') {
+			/* we have probably a date like
+			   "(18:07 Tuesday 22 May 2007)" */
+			return hour_day_str_day (date);
+		} else if (g_ascii_isalpha (date[0])) {
+			/* we have probably a date like
+			   "Tue May 22 18:07:10 2007" */
+			return day_str_month_day (date);
 
-                } else if (date[1] == ' ' || date[2] == ' ') {
-                        /* we have probably a date like
-                           "22 May 1997 18:07:10 -0600" */
-                        return day_month_year_date (date);
+		} else if (date[1] == ' ' || date[2] == ' ') {
+			/* we have probably a date like
+			   "22 May 1997 18:07:10 -0600" */
+			return day_month_year_date (date);
 
-                } else if (date[1] == ':' || date[2] == ':') {
-                        /* we have probably a date like
-                           "6:07 PM May 22, 2007" */
-                        return hour_month_day_date (date);
-                }
-        }
+		} else if (date[1] == ':' || date[2] == ':') {
+			/* we have probably a date like
+			   "6:07 PM May 22, 2007" */
+			return hour_month_day_date (date);
+		}
+	}
 
-        return NULL;
+	return NULL;
 }
 
 static void
 extract_ps (const gchar *filename,
-            GHashTable  *metadata)
+	    GHashTable	*metadata)
 {
-        gint fd;
+	gint fd;
 	FILE *f;
 
 #if defined(__linux__)
-        if ((fd = g_open (filename, (O_RDONLY | O_NOATIME))) == -1) {
+	if ((fd = g_open (filename, (O_RDONLY | O_NOATIME))) == -1) {
 #else
-        if ((fd = g_open (filename, O_RDONLY)) == -1) {
+	if ((fd = g_open (filename, O_RDONLY)) == -1) {
 #endif
-                return;
-        }
+		return;
+	}
 
 	if ((f = fdopen (fd, "r"))) {
-                gchar  *line;
-                gsize   length;
-                gssize  read_char;
+		gchar  *line;
+		gsize	length;
+		gssize	read_char;
 
 		line = NULL;
-                length = 0;
+		length = 0;
 
-                while ((read_char = getline (&line, &length, f)) != -1) {
-                        gboolean pageno_atend    = FALSE;
-                        gboolean header_finished = FALSE;
+		while ((read_char = getline (&line, &length, f)) != -1) {
+			gboolean pageno_atend	 = FALSE;
+			gboolean header_finished = FALSE;
 
 			line[read_char - 1] = '\0';  /* overwrite '\n' char */
 
 			if (!header_finished && strncmp (line, "%%Copyright:", 12) == 0) {
-                                g_hash_table_insert (metadata,
-                                                     g_strdup ("File:Other"),
-                                                     g_strdup (line + 13));
+				g_hash_table_insert (metadata,
+						     g_strdup ("File:Other"),
+						     g_strdup (line + 13));
 
 			} else if (!header_finished && strncmp (line, "%%Title:", 8) == 0) {
 				g_hash_table_insert (metadata,
-                                                     g_strdup ("Doc:Title"),
-                                                     g_strdup (line + 9));
+						     g_strdup ("Doc:Title"),
+						     g_strdup (line + 9));
 
 			} else if (!header_finished && strncmp (line, "%%Creator:", 10) == 0) {
 				g_hash_table_insert (metadata,
-                                                     g_strdup ("Doc:Author"),
-                                                     g_strdup (line + 11));
+						     g_strdup ("Doc:Author"),
+						     g_strdup (line + 11));
 
 			} else if (!header_finished && strncmp (line, "%%CreationDate:", 15) == 0) {
-                                gchar *date;
+				gchar *date;
 
-                                date = date_to_iso8601 (line + 16);
+				date = date_to_iso8601 (line + 16);
 
-                                if (date) {
-                                        g_hash_table_insert (metadata,
-                                                             g_strdup ("Doc:Created"),
-                                                             date);
-                                }
+				if (date) {
+					g_hash_table_insert (metadata,
+							     g_strdup ("Doc:Created"),
+							     date);
+				}
 
 			} else if (strncmp (line, "%%Pages:", 8) == 0) {
-                                if (strcmp (line + 9, "(atend)") == 0) {
+				if (strcmp (line + 9, "(atend)") == 0) {
 					pageno_atend = TRUE;
 				} else {
 					g_hash_table_insert (metadata,
-                                                             g_strdup ("Doc:PageCount"),
-                                                             g_strdup (line + 9));
-                                }
+							     g_strdup ("Doc:PageCount"),
+							     g_strdup (line + 9));
+				}
 			} else if (strncmp (line, "%%EndComments", 14) == 0) {
 				header_finished = TRUE;
 
 				if (!pageno_atend) {
 					break;
-                                }
+				}
 			}
 
 			g_free (line);
 			line = NULL;
-                        length = 0;
+			length = 0;
 		}
 
-                if (line) {
-                        g_free (line);
-                }
+		if (line) {
+			g_free (line);
+		}
 
-                fclose (f);
+		fclose (f);
 	} else {
-                close (fd);
-        }
+		close (fd);
+	}
 }
 
 static void
 extract_ps_gz (const gchar *filename,
-               GHashTable  *metadata)
+	       GHashTable  *metadata)
 {
-	FILE        *fz;
-	GError      *error = NULL;
-	gchar       *gunzipped;
-	gint         fdz;
-	gint         fd;
-        gboolean     stat;
+	FILE	    *fz;
+	GError	    *error = NULL;
+	gchar	    *gunzipped;
+	gint	     fdz;
+	gint	     fd;
+	gboolean     stat;
 	const gchar *argv[4];
 
 	fd = g_file_open_tmp ("tracker-extract-ps-gunzipped.XXXXXX",
-                              &gunzipped,
-                              &error);
+			      &gunzipped,
+			      &error);
 
 	if (error) {
 		g_error_free (error);
@@ -302,20 +302,20 @@ extract_ps_gz (const gchar *filename,
 	argv[3] = NULL;
 
 	stat = g_spawn_async_with_pipes (g_get_tmp_dir (),
-                                         (gchar **) argv,
-                                         NULL,
-                                         G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL,
-                                         tracker_spawn_child_func,
-                                         GINT_TO_POINTER (10),
-                                         NULL,
-                                         NULL,
-                                         &fdz,
-                                         NULL,
-                                         &error);
+					 (gchar **) argv,
+					 NULL,
+					 G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL,
+					 tracker_spawn_child_func,
+					 GINT_TO_POINTER (10),
+					 NULL,
+					 NULL,
+					 &fdz,
+					 NULL,
+					 &error);
 
 	if (!stat) {
 		g_unlink (gunzipped);
-                g_clear_error (&error);
+		g_clear_error (&error);
 		return;
 	}
 
@@ -327,9 +327,9 @@ extract_ps_gz (const gchar *filename,
 			size_t b, accum;
 			size_t max;
 
-                        /* 20 MiB should be enough! */
-                        accum = 0;
-                        max = 20u << 20;
+			/* 20 MiB should be enough! */
+			accum = 0;
+			max = 20u << 20;
 
 			while ((b = fread (buf, 1, 8192, fz)) && accum <= max) {
 				accum += b;

@@ -15,9 +15,9 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with xesam-glib.  If not, write to:
- * 	The Free Software Foundation, Inc.,
- * 	51 Franklin Street, Fifth Floor
- * 	Boston, MA  02110-1301, USA.
+ *	The Free Software Foundation, Inc.,
+ *	51 Franklin Street, Fifth Floor
+ *	Boston, MA  02110-1301, USA.
  */
 
 /*
@@ -32,14 +32,14 @@
 
 G_BEGIN_DECLS
 
-GValue* 		init_value_if_null 				(GValue **value,
+GValue*			init_value_if_null				(GValue **value,
 												 GType value_type);
 
-gchar*			g_property_to_xesam_property 	(gchar 	*g_prop_name);
+gchar*			g_property_to_xesam_property	(gchar	*g_prop_name);
 
 void			free_ptr_array_of_values		(GPtrArray *array);
 
-GValue* 		xesam_g_clone_value				(const GValue *orig);
+GValue*			xesam_g_clone_value				(const GValue *orig);
 
 const gchar*	digit_as_const_char				(guint			digit);
 

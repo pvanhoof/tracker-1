@@ -75,8 +75,8 @@ static GObjectClass *parent_class = NULL;
 #define GIGABYTE_FACTOR (1024.0 * 1024.0 * 1024.0)
 
 /* forward declerations */
-static void  tracker_metadata_tile_class_init       (TrackerMetadataTileClass *class);
-static void  tracker_metadata_tile_init             (TrackerMetadataTile      *tile);
+static void  tracker_metadata_tile_class_init	    (TrackerMetadataTileClass *class);
+static void  tracker_metadata_tile_init		    (TrackerMetadataTile      *tile);
 static gboolean tracker_metadata_tile_expose_event(GtkWidget *widget, GdkEventExpose *event);
 static void tracker_metadata_tile_show (TrackerMetadataTile *tile);
 static void _property_to_label (GtkWidget *label, const char *prop, const char *string);
@@ -143,8 +143,8 @@ static char *email_keys[] =
 	"Email:Sender",
 	"Email:Subject",
 	"Email:Date",
- 	"Email:SentTo",
- 	"Email:CC",
+	"Email:SentTo",
+	"Email:CC",
 	"Email:Attachments",
 	NULL
 };
@@ -153,29 +153,29 @@ enum {
 	EMAIL_SENDER,
 	EMAIL_SUBJECT,
 	EMAIL_DATE,
- 	EMAIL_SENTTO,
- 	EMAIL_CC,
+	EMAIL_SENTTO,
+	EMAIL_CC,
 	EMAIL_ATTACHMENTS,
 	EMAIL_N_KEYS
 };
 
 static char *webhistory_keys[] =
 {
-        "Doc:URL",
-        "Doc:Title",
-        "File:Size",
-        "File:Mime",
-        "Doc:Keywords",
-        NULL
+	"Doc:URL",
+	"Doc:Title",
+	"File:Size",
+	"File:Mime",
+	"Doc:Keywords",
+	NULL
 };
 
 enum {
-        WEBHISTORY_URL,
-        WEBHISTORY_TITLE,
-        WEBHISTORY_SIZE,
-        WEBHISTORY_MIME,
-        WEBHISTORY_KEYWORDS,
-        WEBHISTORY_N_KEYS
+	WEBHISTORY_URL,
+	WEBHISTORY_TITLE,
+	WEBHISTORY_SIZE,
+	WEBHISTORY_MIME,
+	WEBHISTORY_KEYWORDS,
+	WEBHISTORY_N_KEYS
 };
 
 
@@ -568,11 +568,11 @@ _tile_tracker_populate_image (char **array, GError *error, TrackerMetadataTile *
 	}
 	if (camera && model) {
 		prop = g_strdup_printf (str->str, g_markup_escape_text (array[IMAGE_TITLE], -1),
-                                                  g_markup_escape_text (array[IMAGE_CAMERA], -1),
-					  	  g_markup_escape_text (array[IMAGE_MODEL], -1));
+						  g_markup_escape_text (array[IMAGE_CAMERA], -1),
+						  g_markup_escape_text (array[IMAGE_MODEL], -1));
 	} else if (camera) {
 		prop = g_strdup_printf (str->str, g_markup_escape_text (array[IMAGE_TITLE], -1),
-					   	  g_markup_escape_text (array[IMAGE_CAMERA], -1));
+						  g_markup_escape_text (array[IMAGE_CAMERA], -1));
 	} else if (model) {
 		prop = g_strdup_printf (str->str, g_markup_escape_text (array[IMAGE_TITLE], -1),
 						  g_markup_escape_text (array[IMAGE_MODEL], -1));
@@ -666,30 +666,30 @@ _tile_tracker_populate_documents (char **array, GError *error, TrackerMetadataTi
 static void
 _tile_tracker_populate_webhistory(char **array, GError *error, TrackerMetadataTile *tile )
 {
-        if (error) {
-                g_print ("METADATA_TILE_ERROR : %s", error->message);
-                g_clear_error (&error);
-                gtk_widget_hide (GTK_WIDGET(tile));
-                return;
-        }
+	if (error) {
+		g_print ("METADATA_TILE_ERROR : %s", error->message);
+		g_clear_error (&error);
+		gtk_widget_hide (GTK_WIDGET(tile));
+		return;
+	}
 
-        TrackerMetadataTilePrivate *priv;
+	TrackerMetadataTilePrivate *priv;
 
-        priv = TRACKER_METADATA_TILE_GET_PRIVATE (tile);
+	priv = TRACKER_METADATA_TILE_GET_PRIVATE (tile);
 
-        /* create title */
-        _property_to_label ( priv->title, array[WEBHISTORY_URL] , "<span size='large'><b>%s</b></span>");
+	/* create title */
+	_property_to_label ( priv->title, array[WEBHISTORY_URL] , "<span size='large'><b>%s</b></span>");
 
-        /* then set the remaining properties */
-        _property_to_label ( priv->info1, array[WEBHISTORY_TITLE] , _("Subject : <b>%s</b>"));
-        _property_to_label ( priv->info2, array[WEBHISTORY_KEYWORDS] , "Keywords: <b>%s</b>");
+	/* then set the remaining properties */
+	_property_to_label ( priv->info1, array[WEBHISTORY_TITLE] , _("Subject : <b>%s</b>"));
+	_property_to_label ( priv->info2, array[WEBHISTORY_KEYWORDS] , "Keywords: <b>%s</b>");
 
-        tracker_metadata_tile_show (tile);
-        g_strfreev (array);
+	tracker_metadata_tile_show (tile);
+	g_strfreev (array);
 
-        _show_labels (tile, FALSE);
-        gtk_widget_show (priv->info1);
-        gtk_widget_show (priv->info2);
+	_show_labels (tile, FALSE);
+	gtk_widget_show (priv->info1);
+	gtk_widget_show (priv->info2);
 
 }
 
@@ -856,7 +856,7 @@ _date_to_label (GtkWidget *label, const char *iso, const char *string)
 		if (get_time_from_iso (iso, &val)) {
 			gchar buf[256];
 			g_date_strftime (buf, 256, "%a %d %b %Y", &val);
-        	        temp = g_strdup_printf (string, buf);
+			temp = g_strdup_printf (string, buf);
 		}
 	}
 
@@ -879,7 +879,7 @@ _year_to_label (GtkWidget *label, const char *iso, const char *string)
 		if (get_time_from_iso (iso, &val)) {
 			gchar buf[32];
 			g_date_strftime (buf, 32, "%Y", &val);
-        	        temp = g_strdup_printf (string, buf);
+			temp = g_strdup_printf (string, buf);
 		}
 	}
 
@@ -930,9 +930,9 @@ _property_to_label (GtkWidget *label, const char *prop, const char *string)
 
 void
 tracker_metadata_tile_set_uri (TrackerMetadataTile *tile, const gchar *uri,
-		 					  ServiceType service_type,
-					   		  const gchar *type,
-					   		  GdkPixbuf *icon)
+							  ServiceType service_type,
+							  const gchar *type,
+							  GdkPixbuf *icon)
 {
 	TrackerMetadataTilePrivate *priv;
 
@@ -969,7 +969,7 @@ tracker_metadata_tile_set_uri (TrackerMetadataTile *tile, const gchar *uri,
 		break;
 
 
-        case SERVICE_DOCUMENTS:
+	case SERVICE_DOCUMENTS:
 
 		tracker_metadata_get_async (priv->client, SERVICE_DOCUMENTS,
 					    uri, doc_keys,
@@ -977,25 +977,25 @@ tracker_metadata_tile_set_uri (TrackerMetadataTile *tile, const gchar *uri,
 					    (gpointer)tile);
 		break;
 
-        case SERVICE_WEBHISTORY:
+	case SERVICE_WEBHISTORY:
 
-                tracker_metadata_get_async (priv->client, SERVICE_WEBHISTORY,
-                                            uri, webhistory_keys,
-                                            (TrackerArrayReply)_tile_tracker_populate_webhistory,
-                                            (gpointer)tile);
-                break;
+		tracker_metadata_get_async (priv->client, SERVICE_WEBHISTORY,
+					    uri, webhistory_keys,
+					    (TrackerArrayReply)_tile_tracker_populate_webhistory,
+					    (gpointer)tile);
+		break;
 
 
-        case SERVICE_IMAGES:
+	case SERVICE_IMAGES:
 
 		tracker_metadata_get_async (priv->client, SERVICE_IMAGES,
-				            uri, image_keys,
+					    uri, image_keys,
 					    (TrackerArrayReply)_tile_tracker_populate_image,
 					    (gpointer)tile);
 
 		break;
 
-        case SERVICE_VIDEOS:
+	case SERVICE_VIDEOS:
 		tracker_metadata_get_async (priv->client, SERVICE_VIDEOS,
 					    uri, video_keys,
 					    (TrackerArrayReply)_tile_tracker_populate_video,
@@ -1003,7 +1003,7 @@ tracker_metadata_tile_set_uri (TrackerMetadataTile *tile, const gchar *uri,
 
 		break;
 
-        case SERVICE_APPLICATIONS:
+	case SERVICE_APPLICATIONS:
 
 		tracker_metadata_get_async (priv->client, SERVICE_APPLICATIONS,
 					    uri, app_keys,
@@ -1069,13 +1069,13 @@ tracker_metadata_tile_toggle_view (GtkWidget *button, TrackerMetadataTile *tile)
 		gtk_widget_hide (priv->image);
 		gtk_widget_hide (priv->table);
 		gtk_arrow_set (GTK_ARROW (priv->arrow),
-		               GTK_ARROW_RIGHT, GTK_SHADOW_NONE);
+			       GTK_ARROW_RIGHT, GTK_SHADOW_NONE);
 		gtk_alignment_set_padding (GTK_ALIGNMENT (priv->align), 1, 1, 4, 4);
 	} else {
 		gtk_widget_show (priv->image);
 		gtk_widget_show (priv->table);
 		gtk_arrow_set (GTK_ARROW (priv->arrow),
-		               GTK_ARROW_DOWN, GTK_SHADOW_NONE);
+			       GTK_ARROW_DOWN, GTK_SHADOW_NONE);
 		gtk_alignment_set_padding (GTK_ALIGNMENT (priv->align), 6, 6, 4, 4);
 	}
 	priv->expanded = !priv->expanded;
@@ -1120,9 +1120,9 @@ draw (GtkWidget *widget, cairo_t *cr)
 						     step2.blue/65535.0,
 						     0.05);
 	cairo_pattern_add_color_stop_rgba ( pat, 1.0, step2.red/65535.0,
-					    	      step2.green/65535.0,
-					              step2.blue/65535.0,
-					    	      0.5);
+						      step2.green/65535.0,
+						      step2.blue/65535.0,
+						      0.5);
 
 	cairo_rectangle (cr, 0, 0, width, height);
 	cairo_set_source(cr, pat);

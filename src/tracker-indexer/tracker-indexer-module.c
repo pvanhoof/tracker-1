@@ -113,10 +113,10 @@ tracker_indexer_module_file_free (GModule     *module,
 }
 
 gboolean
-tracker_indexer_module_file_get_uri (GModule      *module,
+tracker_indexer_module_file_get_uri (GModule	  *module,
 				     TrackerFile  *file,
-				     gchar       **dirname,
-				     gchar       **basename)
+				     gchar	 **dirname,
+				     gchar	 **basename)
 {
 	TrackerModuleFileGetUriFunc func;
 	gchar *tmp_dirname;
@@ -162,7 +162,7 @@ tracker_indexer_module_file_get_uri (GModule      *module,
 }
 
 gchar *
-tracker_indexer_module_file_get_service_type (GModule     *module,
+tracker_indexer_module_file_get_service_type (GModule	  *module,
 					      TrackerFile *file)
 {
 	TrackerModuleFileGetServiceTypeFunc func;
@@ -184,20 +184,20 @@ tracker_indexer_module_file_get_metadata (GModule     *module,
 
 	if (g_module_symbol (module, "tracker_module_file_get_metadata", (gpointer *) &func)) {
 		return (func) (file);
-        }
+	}
 
 	return NULL;
 }
 
 gchar *
-tracker_indexer_module_file_get_text (GModule     *module,
+tracker_indexer_module_file_get_text (GModule	  *module,
 				      TrackerFile *file)
 {
 	TrackerModuleFileGetText func;
 
 	if (g_module_symbol (module, "tracker_module_file_get_text", (gpointer *) &func)) {
 		return (func) (file);
-        }
+	}
 
 	return NULL;
 }

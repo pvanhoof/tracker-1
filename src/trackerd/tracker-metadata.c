@@ -68,79 +68,79 @@ tracker_metadata_new (void)
 static gint
 metadata_sanity_check_max_hits (gint max_hits)
 {
-        if (max_hits < 1) {
-                return DEFAULT_METADATA_MAX_HITS;
-        }
+	if (max_hits < 1) {
+		return DEFAULT_METADATA_MAX_HITS;
+	}
 
-        return max_hits;
+	return max_hits;
 }
 
 static TrackerFieldData *
 tracker_metadata_add_metadata_field (TrackerDBInterface *iface,
 		    const gchar        *service,
-		    GSList            **fields,
-                    const gchar        *field_name,
-                    gboolean            is_select,
-                    gboolean            is_condition)
+		    GSList	      **fields,
+		    const gchar        *field_name,
+		    gboolean		is_select,
+		    gboolean		is_condition)
 {
 	TrackerFieldData *field_data;
-	gboolean          field_exists;
-	GSList           *l;
+	gboolean	  field_exists;
+	GSList		 *l;
 
 	field_exists = FALSE;
 	field_data = NULL;
 
 	/* Check if field is already in list */
 	for (l = *fields; l; l = l->next) {
-                const gchar *this_field_name;
+		const gchar *this_field_name;
 
-                this_field_name = tracker_field_data_get_field_name (l->data);
-                if (!this_field_name) {
-                        continue;
-                }
+		this_field_name = tracker_field_data_get_field_name (l->data);
+		if (!this_field_name) {
+			continue;
+		}
 
-                if (strcasecmp (this_field_name, field_name) == 0) {
-                        field_data = l->data;
-                        field_exists = TRUE;
+		if (strcasecmp (this_field_name, field_name) == 0) {
+			field_data = l->data;
+			field_exists = TRUE;
 
-                        if (is_condition) {
-                                tracker_field_data_set_is_condition (field_data, TRUE);
-                        }
+			if (is_condition) {
+				tracker_field_data_set_is_condition (field_data, TRUE);
+			}
 
-                        break;
+			break;
 		}
 	}
 
 	if (!field_exists) {
 		field_data = tracker_db_get_metadata_field (iface,
-                                                            service,
-                                                            field_name,
-                                                            g_slist_length (*fields),
-                                                            is_select,
-                                                            is_condition);
+							    service,
+							    field_name,
+							    g_slist_length (*fields),
+							    is_select,
+							    is_condition);
 		if (field_data) {
 			*fields = g_slist_prepend (*fields, field_data);
-                }
+		}
 	}
 
 	return field_data;
 }
 
 void
-tracker_metadata_get (TrackerMetadata        *object,
-		      const gchar            *service_type,
-		      const gchar            *uri,
-		      gchar                 **keys,
+tracker_metadata_get (TrackerMetadata	     *object,
+		      const gchar	     *service_type,
+		      const gchar	     *uri,
+		      gchar		    **keys,
 		      DBusGMethodInvocation  *context,
-		      GError                **error)
+		      GError		    **error)
 {
 	TrackerDBInterface  *iface;
 	TrackerDBResultSet  *result_set;
-	guint                request_id;
-	gchar               *service_id, *service_result;
-	guint                i;
-	gchar              **values;
-	GError              *actual_error = NULL;
+	guint		     request_id;
+	gchar		    *service_id, *service_result;
+	guint		     i;
+	gchar		   **values;
+	GError		    *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -157,8 +157,8 @@ tracker_metadata_get (TrackerMetadata        *object,
 	if (!tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
-                                             "Service '%s' is invalid or has not been implemented yet",
-                                             service_type);
+					     "Service '%s' is invalid or has not been implemented yet",
+					     service_type);
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
 		return;
@@ -167,7 +167,7 @@ tracker_metadata_get (TrackerMetadata        *object,
 	iface = tracker_db_manager_get_db_interface_by_service (service_type);
 
 	service_id = tracker_db_file_get_id_as_string (iface, service_type, uri);
-        if (!service_id) {
+	if (!service_id) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
 					     "Service URI '%s' not found",
@@ -175,7 +175,7 @@ tracker_metadata_get (TrackerMetadata        *object,
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
 		return;
-        }
+	}
 
 	/* Checking keys */
 	for (i = 0; i < g_strv_length (keys); i++) {
@@ -198,14 +198,14 @@ tracker_metadata_get (TrackerMetadata        *object,
 	 */
 	service_result = tracker_db_service_get_by_entity (iface, service_id);
 	if (!service_result) {
-               g_free (service_id);
-               tracker_dbus_request_failed (request_id,
-                                            &actual_error,
-                                            "Service type can not be found for entity '%s'",
-                                            uri);
-               dbus_g_method_return_error (context, actual_error);
-               g_error_free (actual_error);
-               return;
+	       g_free (service_id);
+	       tracker_dbus_request_failed (request_id,
+					    &actual_error,
+					    "Service type can not be found for entity '%s'",
+					    uri);
+	       dbus_g_method_return_error (context, actual_error);
+	       g_error_free (actual_error);
+	       return;
 	}
 
 	result_set = tracker_db_metadata_get_array (iface, service_result, service_id, keys);
@@ -231,19 +231,19 @@ tracker_metadata_get (TrackerMetadata        *object,
 }
 
 void
-tracker_metadata_set (TrackerMetadata        *object,
-		      const gchar            *service_type,
-		      const gchar            *uri,
-		      gchar                 **keys,
-		      gchar                 **values,
+tracker_metadata_set (TrackerMetadata	     *object,
+		      const gchar	     *service_type,
+		      const gchar	     *uri,
+		      gchar		    **keys,
+		      gchar		    **values,
 		      DBusGMethodInvocation  *context,
-		      GError                **error)
+		      GError		    **error)
 {
 	TrackerDBInterface *iface;
-	guint               request_id;
-	gchar              *service_id;
-	guint               i;
-	GError             *actual_error = NULL;
+	guint		    request_id;
+	gchar		   *service_id;
+	guint		    i;
+	GError		   *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -262,8 +262,8 @@ tracker_metadata_set (TrackerMetadata        *object,
 	if (!tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
-                                             "Service_Type '%s' is invalid or has not been implemented yet",
-                                             service_type);
+					     "Service_Type '%s' is invalid or has not been implemented yet",
+					     service_type);
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
 		return;
@@ -273,20 +273,20 @@ tracker_metadata_set (TrackerMetadata        *object,
 
 	/* Check the uri exists, so we dont start the indexer in vain */
 	service_id = tracker_db_file_get_id_as_string (iface, service_type, uri);
-        if (!service_id) {
+	if (!service_id) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
 					     "Service URI '%s' not found",
 					     uri);
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
-                return;
-        }
+		return;
+	}
 
 	/* Checking keys */
 	for (i = 0; i < g_strv_length (keys); i++) {
 		TrackerField *field_def;
-		gchar       **value;
+		gchar	    **value;
 
 		field_def = tracker_ontology_get_field_by_name (keys[i]);
 
@@ -338,18 +338,18 @@ tracker_metadata_set (TrackerMetadata        *object,
 }
 
 void
-tracker_metadata_get_type_details (TrackerMetadata        *object,
-				   const gchar            *metadata,
+tracker_metadata_get_type_details (TrackerMetadata	  *object,
+				   const gchar		  *metadata,
 				   DBusGMethodInvocation  *context,
-				   GError                **error)
+				   GError		 **error)
 {
-	guint             request_id;
-	TrackerField     *def = NULL;
+	guint		  request_id;
+	TrackerField	 *def = NULL;
 	TrackerFieldType  field_type;
-	gchar            *type;
-	gboolean          is_embedded;
-	gboolean          is_writable;
-	GError           *actual_error = NULL;
+	gchar		 *type;
+	gboolean	  is_embedded;
+	gboolean	  is_writable;
+	GError		 *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -384,16 +384,16 @@ tracker_metadata_get_type_details (TrackerMetadata        *object,
 }
 
 void
-tracker_metadata_get_registered_types (TrackerMetadata        *object,
-				       const gchar            *service_type,
+tracker_metadata_get_registered_types (TrackerMetadata	      *object,
+				       const gchar	      *service_type,
 				       DBusGMethodInvocation  *context,
-				       GError                **error)
+				       GError		     **error)
 {
-	guint                request_id;
-	gchar              **values = NULL;
-	const gchar         *requested = NULL;
-	GSList              *registered = NULL;
-	GError              *actual_error = NULL;
+	guint		     request_id;
+	gchar		   **values = NULL;
+	const gchar	    *requested = NULL;
+	GSList		    *registered = NULL;
+	GError		    *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -408,8 +408,8 @@ tracker_metadata_get_registered_types (TrackerMetadata        *object,
 	    !tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
-                                             "Service_Type '%s' is invalid or has not been implemented yet",
-                                             service_type);
+					     "Service_Type '%s' is invalid or has not been implemented yet",
+					     service_type);
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
 		return;
@@ -434,13 +434,13 @@ tracker_metadata_get_registered_types (TrackerMetadata        *object,
 }
 
 void
-tracker_metadata_get_registered_classes (TrackerMetadata        *object,
-					 DBusGMethodInvocation  *context,
-					 GError                **error)
+tracker_metadata_get_registered_classes (TrackerMetadata	*object,
+					 DBusGMethodInvocation	*context,
+					 GError		       **error)
 {
-	guint                request_id;
-	gchar              **values = NULL;
-	GSList              *registered = NULL;
+	guint		     request_id;
+	gchar		   **values = NULL;
+	GSList		    *registered = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -464,35 +464,35 @@ tracker_metadata_get_registered_classes (TrackerMetadata        *object,
 }
 
 void
-tracker_metadata_get_unique_values (TrackerMetadata        *object,
-				    const gchar            *service_type,
-				    gchar                 **fields,
-				    const gchar            *query_condition,
-				    gboolean                order_desc,
-				    gint                    offset,
-				    gint                    max_hits,
+tracker_metadata_get_unique_values (TrackerMetadata	   *object,
+				    const gchar		   *service_type,
+				    gchar		  **fields,
+				    const gchar		   *query_condition,
+				    gboolean		    order_desc,
+				    gint		    offset,
+				    gint		    max_hits,
 				    DBusGMethodInvocation  *context,
-				    GError                **error)
+				    GError		  **error)
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set = NULL;
-	guint               request_id;
+	guint		    request_id;
 
-	GPtrArray          *values = NULL;
-	GSList             *field_list = NULL;
-	gchar	           *str_offset, *str_limit;
+	GPtrArray	   *values = NULL;
+	GSList		   *field_list = NULL;
+	gchar		   *str_offset, *str_limit;
 
-	GString            *sql_select;
-	GString            *sql_from;
-	GString            *sql_where;
-	GString            *sql_order;
-	gchar              *sql;
+	GString		   *sql_select;
+	GString		   *sql_from;
+	GString		   *sql_where;
+	GString		   *sql_order;
+	gchar		   *sql;
 
-	char               *rdf_where;
-	char               *rdf_from;
-	GError             *actual_error = NULL;
+	char		   *rdf_where;
+	char		   *rdf_from;
+	GError		   *actual_error = NULL;
 
-	guint               i;
+	guint		    i;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -503,14 +503,14 @@ tracker_metadata_get_unique_values (TrackerMetadata        *object,
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get unique values, "
 				  "service type:'%s', query '%s'",
-                                  service_type,
-                                  query_condition);
+				  service_type,
+				  query_condition);
 
 	if (!tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
-                                             "Service_Type '%s' is invalid or has not been implemented yet",
-                                             service_type);
+					     "Service_Type '%s' is invalid or has not been implemented yet",
+					     service_type);
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
 		return;
@@ -620,37 +620,37 @@ tracker_metadata_get_unique_values (TrackerMetadata        *object,
 }
 
 void
-tracker_metadata_get_unique_values_with_count (TrackerMetadata        *object,
-					       const gchar            *service_type,
-					       gchar                 **fields,
-					       const gchar            *query_condition,
-					       const gchar            *count_field,
-					       gboolean                order_desc,
-					       gint                    offset,
-					       gint                    max_hits,
+tracker_metadata_get_unique_values_with_count (TrackerMetadata	      *object,
+					       const gchar	      *service_type,
+					       gchar		     **fields,
+					       const gchar	      *query_condition,
+					       const gchar	      *count_field,
+					       gboolean		       order_desc,
+					       gint		       offset,
+					       gint		       max_hits,
 					       DBusGMethodInvocation  *context,
-					       GError                **error)
+					       GError		     **error)
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set = NULL;
-	guint               request_id;
+	guint		    request_id;
 
-	GPtrArray          *values = NULL;
-	GSList             *field_list = NULL;
-	gchar	           *str_offset, *str_limit;
+	GPtrArray	   *values = NULL;
+	GSList		   *field_list = NULL;
+	gchar		   *str_offset, *str_limit;
 
-	GString            *sql_select;
-	GString            *sql_from;
-	GString            *sql_where;
-	GString            *sql_order;
-	GString            *sql_group;
-	gchar              *sql;
+	GString		   *sql_select;
+	GString		   *sql_from;
+	GString		   *sql_where;
+	GString		   *sql_order;
+	GString		   *sql_group;
+	gchar		   *sql;
 
-	char               *rdf_where;
-	char               *rdf_from;
-	GError             *actual_error = NULL;
+	char		   *rdf_where;
+	char		   *rdf_from;
+	GError		   *actual_error = NULL;
 
-	guint               i;
+	guint		    i;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -662,15 +662,15 @@ tracker_metadata_get_unique_values_with_count (TrackerMetadata        *object,
 				  "DBus request to get unique values, "
 				  "service type:'%s', query '%s'"
 				  "count field :'%s'",
-                                  service_type,
-                                  query_condition,
+				  service_type,
+				  query_condition,
 				  count_field);
 
 	if (!tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
 					     &actual_error,
-                                             "Service_Type '%s' is invalid or has not been implemented yet",
-                                             service_type);
+					     "Service_Type '%s' is invalid or has not been implemented yet",
+					     service_type);
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
 		return;
@@ -822,29 +822,29 @@ is_data_type_numeric (TrackerFieldType type) {
 
 
 void
-tracker_metadata_get_sum (TrackerMetadata        *object,
-			  const gchar            *service_type,
-			  const gchar            *field,
-			  const gchar            *query_condition,
+tracker_metadata_get_sum (TrackerMetadata	 *object,
+			  const gchar		 *service_type,
+			  const gchar		 *field,
+			  const gchar		 *query_condition,
 			  DBusGMethodInvocation  *context,
-			  GError                **error)
+			  GError		**error)
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set = NULL;
-	guint               request_id;
+	guint		    request_id;
 
-	gint                sum;
-	GSList             *fields = NULL;
+	gint		    sum;
+	GSList		   *fields = NULL;
 	TrackerFieldData   *def = NULL;
 	TrackerFieldType    data_type;
-	GString            *sql_select;
-	GString            *sql_from;
-	GString            *sql_where;
-	gchar              *sql;
+	GString		   *sql_select;
+	GString		   *sql_from;
+	GString		   *sql_where;
+	gchar		   *sql;
 
-	char               *rdf_where;
-	char               *rdf_from;
-	GError             *actual_error = NULL;
+	char		   *rdf_where;
+	char		   *rdf_from;
+	GError		   *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -855,9 +855,9 @@ tracker_metadata_get_sum (TrackerMetadata        *object,
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get sum, "
 				  "service type:'%s', field '%s', query '%s'",
-                                  service_type,
+				  service_type,
 				  field,
-                                  query_condition);
+				  query_condition);
 
 	if (!tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,
@@ -958,28 +958,28 @@ tracker_metadata_get_sum (TrackerMetadata        *object,
 
 
 void
-tracker_metadata_get_count (TrackerMetadata        *object,
-			    const gchar            *service_type,
-			    const gchar            *field,
-			    const gchar            *query_condition,
+tracker_metadata_get_count (TrackerMetadata	   *object,
+			    const gchar		   *service_type,
+			    const gchar		   *field,
+			    const gchar		   *query_condition,
 			    DBusGMethodInvocation  *context,
-			    GError                **error)
+			    GError		  **error)
 {
 	TrackerDBInterface *iface;
 	TrackerDBResultSet *result_set = NULL;
-	guint               request_id;
-	gint                count;
-	GSList             *fields = NULL;
+	guint		    request_id;
+	gint		    count;
+	GSList		   *fields = NULL;
 	TrackerFieldData   *def = NULL;
 
-	GString            *sql_select;
-	GString            *sql_from;
-	GString            *sql_where;
-	gchar              *sql;
+	GString		   *sql_select;
+	GString		   *sql_from;
+	GString		   *sql_where;
+	gchar		   *sql;
 
-	char               *rdf_where;
-	char               *rdf_from;
-	GError             *actual_error = NULL;
+	char		   *rdf_where;
+	char		   *rdf_from;
+	GError		   *actual_error = NULL;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -990,9 +990,9 @@ tracker_metadata_get_count (TrackerMetadata        *object,
 	tracker_dbus_request_new (request_id,
 				  "DBus request to get count, "
 				  "service type:'%s', field '%s', query '%s'",
-                                  service_type,
+				  service_type,
 				  field,
-                                  query_condition);
+				  query_condition);
 
 	if (!tracker_ontology_service_is_valid (service_type)) {
 		tracker_dbus_request_failed (request_id,

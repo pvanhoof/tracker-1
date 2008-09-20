@@ -40,15 +40,15 @@ typedef enum {
 	TRACKER_DB_INDEX_MANAGER_READONLY      = 1 << 2
 } TrackerDBIndexManagerFlags;
 
-gboolean        tracker_db_index_manager_init                    (TrackerDBIndexManagerFlags  flags,
-								  gint                        min_bucket,
-								  gint                        max_bucket);
-void            tracker_db_index_manager_shutdown                (void);
-TrackerDBIndex *tracker_db_index_manager_get_index               (TrackerDBIndexType          index);
-TrackerDBIndex *tracker_db_index_manager_get_index_by_service    (const gchar                *service);
-TrackerDBIndex *tracker_db_index_manager_get_index_by_service_id (gint                        id);
-const gchar *   tracker_db_index_manager_get_filename            (TrackerDBIndexType          index);
-gboolean        tracker_db_index_manager_are_indexes_too_big     (void);
+gboolean	tracker_db_index_manager_init			 (TrackerDBIndexManagerFlags  flags,
+								  gint			      min_bucket,
+								  gint			      max_bucket);
+void		tracker_db_index_manager_shutdown		 (void);
+TrackerDBIndex *tracker_db_index_manager_get_index		 (TrackerDBIndexType	      index);
+TrackerDBIndex *tracker_db_index_manager_get_index_by_service	 (const gchar		     *service);
+TrackerDBIndex *tracker_db_index_manager_get_index_by_service_id (gint			      id);
+const gchar *	tracker_db_index_manager_get_filename		 (TrackerDBIndexType	      index);
+gboolean	tracker_db_index_manager_are_indexes_too_big	 (void);
 
 G_END_DECLS
 

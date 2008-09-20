@@ -43,8 +43,8 @@ typedef enum {
 } TagType;
 
 typedef struct {
-	guint          tag;
-	gchar         *name;
+	guint	       tag;
+	gchar	      *name;
 	TagType        type;
 	PostProcessor  post;
 } TiffTag;
@@ -54,11 +54,11 @@ typedef struct {
 static gchar *
 date_to_iso8601 (gchar *exif_date)
 {
-        /* ex; date "2007:04:15 15:35:58"
-           To
-           ex. "2007-04-15T17:35:58+0200 where +0200 is localtime
-        */
-        return tracker_generic_date_to_iso8601 (exif_date, EXIF_DATE_FORMAT);
+	/* ex; date "2007:04:15 15:35:58"
+	   To
+	   ex. "2007-04-15T17:35:58+0200 where +0200 is localtime
+	*/
+	return tracker_generic_date_to_iso8601 (exif_date, EXIF_DATE_FORMAT);
 }
 
 
@@ -97,8 +97,8 @@ TiffTag exiftags[] = {
 static void
 tracker_extract_tiff (const gchar *filename, GHashTable *metadata)
 {
-	TIFF     *image;
-	long      exifOffset;
+	TIFF	 *image;
+	long	  exifOffset;
 
 	TiffTag  *tag;
 
@@ -108,8 +108,8 @@ tracker_extract_tiff (const gchar *filename, GHashTable *metadata)
 	float vardouble;
 
 #ifdef HAVE_EXEMPI
-	gchar    *xmpOffset;
-	uint32    size;
+	gchar	 *xmpOffset;
+	uint32	  size;
 #endif /* HAVE_EXEMPI */
 
 

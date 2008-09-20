@@ -40,7 +40,7 @@
 
 gint
 tracker_file_open (const gchar *uri,
-		   gboolean     readahead)
+		   gboolean	readahead)
 {
 	gint fd;
 
@@ -86,7 +86,7 @@ tracker_file_close (gint     fd,
 gboolean
 tracker_file_unlink (const gchar *uri)
 {
-	gchar    *str;
+	gchar	 *str;
 	gboolean  result;
 
 	str = g_filename_from_utf8 (uri, -1, NULL, NULL, NULL);
@@ -104,13 +104,13 @@ tracker_file_get_size (const gchar *uri)
 	if (g_lstat (uri, &finfo) == -1) {
 		return 0;
 	} else {
-                return (guint32) finfo.st_size;
-        }
+		return (guint32) finfo.st_size;
+	}
 }
 
 static inline gboolean
 is_utf8 (const gchar *buffer,
-	 gint         buffer_length)
+	 gint	      buffer_length)
 {
 	gchar *end;
 
@@ -123,9 +123,9 @@ is_utf8 (const gchar *buffer,
 		/* Check whether the string was truncated in the middle of
 		 * a valid UTF8 char, or if we really have an invalid
 		 * UTF8 string.
-     		 */
+		 */
 		gunichar validated;
-		gint     remaining_bytes;
+		gint	 remaining_bytes;
 
 		remaining_bytes  = buffer_length;
 		remaining_bytes -= end - ((gchar *) buffer);
@@ -136,7 +136,7 @@ is_utf8 (const gchar *buffer,
 
 		validated = g_utf8_get_char_validated (end, (gsize) remaining_bytes);
 
- 		if (validated == (gunichar) - 2) {
+		if (validated == (gunichar) - 2) {
 			return TRUE;
 		}
 	}
@@ -175,7 +175,7 @@ tracker_file_is_valid (const gchar *uri)
 gboolean
 tracker_file_is_directory (const gchar *uri)
 {
-	gchar    *str;
+	gchar	 *str;
 	gboolean  is_directory;
 
 	str = g_filename_from_utf8 (uri, -1, NULL, NULL, NULL);
@@ -195,7 +195,7 @@ tracker_file_is_directory (const gchar *uri)
 gboolean
 tracker_file_is_indexable (const gchar *uri)
 {
-	gchar       *str;
+	gchar	    *str;
 	struct stat  finfo;
 	gboolean     is_indexable;
 
@@ -227,7 +227,7 @@ gint32
 tracker_file_get_mtime (const gchar *uri)
 {
 	struct stat  finfo;
-	gchar 	    *str;
+	gchar	    *str;
 
 	str = g_filename_from_utf8 (uri, -1, NULL, NULL, NULL);
 
@@ -251,9 +251,9 @@ gchar *
 tracker_file_get_mime_type (const gchar *path)
 {
 	GFileInfo *info;
-	GFile     *file;
-	GError    *error = NULL;
-	gchar     *content_type;
+	GFile	  *file;
+	GError	  *error = NULL;
+	gchar	  *content_type;
 
 	file = g_file_new_for_path (path);
 	info = g_file_query_info (file,
@@ -335,7 +335,7 @@ tracker_file_get_vfs_name (const gchar *uri)
 		*p = '\0';
 	}
 
-	/* Search backwards to the next slash.  */
+	/* Search backwards to the next slash.	*/
 	while (p != tmp && *p != G_DIR_SEPARATOR) {
 		p--;
 	}
@@ -358,11 +358,11 @@ tracker_file_get_vfs_name (const gchar *uri)
 static gchar *
 normalize_uri (const gchar *uri) {
 
-        GFile  *f;
+	GFile  *f;
 	gchar *normalized;
 
 	f = g_file_new_for_path (uri);
-        normalized =  g_file_get_path (f);
+	normalized =  g_file_get_path (f);
 	g_object_unref (f);
 
 	return normalized;
@@ -446,8 +446,8 @@ gboolean
 tracker_path_is_in_path (const gchar *path,
 			 const gchar *in_path)
 {
-	gchar    *new_path;
-	gchar    *new_in_path;
+	gchar	 *new_path;
+	gchar	 *new_in_path;
 	gboolean  is_in_path = FALSE;
 
 	g_return_val_if_fail (path != NULL, FALSE);
@@ -552,7 +552,7 @@ tracker_path_list_filter_duplicates (GSList *roots)
 	 */
 
 	for (l1 = roots; l1; l1 = l1->next) {
-		gchar    *path;
+		gchar	 *path;
 		gboolean  should_add = TRUE;
 
 		if (!g_str_has_suffix (l1->data, G_DIR_SEPARATOR_S)) {
@@ -623,13 +623,13 @@ tracker_path_list_filter_duplicates (GSList *roots)
 gchar *
 tracker_path_evaluate_name (const gchar *uri)
 {
-	gchar        *final_path;
-	gchar       **tokens;
-	gchar       **token;
-	gchar        *start;
-	gchar        *end;
+	gchar	     *final_path;
+	gchar	    **tokens;
+	gchar	    **token;
+	gchar	     *start;
+	gchar	     *end;
 	const gchar  *env;
-	gchar        *expanded;
+	gchar	     *expanded;
 
 	if (!uri || uri[0] == '\0') {
 		return NULL;
@@ -708,28 +708,28 @@ static gboolean
 path_has_write_access (const gchar *path,
 		       gboolean    *exists)
 {
-	GFile     *file;
+	GFile	  *file;
 	GFileInfo *info;
-	GError    *error = NULL;
-        gboolean   writable;
+	GError	  *error = NULL;
+	gboolean   writable;
 
-        g_return_val_if_fail (path != NULL, FALSE);
-        g_return_val_if_fail (path[0] != '\0', FALSE);
+	g_return_val_if_fail (path != NULL, FALSE);
+	g_return_val_if_fail (path[0] != '\0', FALSE);
 
-        file = g_file_new_for_path (path);
+	file = g_file_new_for_path (path);
 	info = g_file_query_info (file,
-                                  G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE,
-                                  0,
-                                  NULL,
-                                  &error);
-        g_object_unref (file);
+				  G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE,
+				  0,
+				  NULL,
+				  &error);
+	g_object_unref (file);
 
 	if (G_UNLIKELY (error)) {
-                if (error->code == G_IO_ERROR_NOT_FOUND) {
-                        if (exists) {
-                                *exists = FALSE;
-                        }
-                } else {
+		if (error->code == G_IO_ERROR_NOT_FOUND) {
+			if (exists) {
+				*exists = FALSE;
+			}
+		} else {
 			g_warning ("Could not check if we have write access for "
 				   "path '%s', %s",
 				   path,
@@ -747,35 +747,35 @@ path_has_write_access (const gchar *path,
 		writable = g_file_info_get_attribute_boolean (info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
 	}
 
-        g_object_unref (info);
+	g_object_unref (info);
 
-        return writable;
+	return writable;
 }
 
 static gboolean
 path_has_write_access_or_was_created (const gchar *path)
 {
-        gboolean writable;
-        gboolean exists;
+	gboolean writable;
+	gboolean exists;
 
-        writable = path_has_write_access (path, &exists);
-        if (exists) {
-                if (writable) {
-                        g_message ("  Path is OK");
-                        return TRUE;
-                }
+	writable = path_has_write_access (path, &exists);
+	if (exists) {
+		if (writable) {
+			g_message ("  Path is OK");
+			return TRUE;
+		}
 
-                g_message ("  Path can not be written to");
-        } else {
-                g_message ("  Path does not exist, attempting to create...");
+		g_message ("  Path can not be written to");
+	} else {
+		g_message ("  Path does not exist, attempting to create...");
 
-                if (g_mkdir_with_parents (path, 0700) == 0) {
-                        g_message ("  Path was created");
-                        return TRUE;
-                }
+		if (g_mkdir_with_parents (path, 0700) == 0) {
+			g_message ("  Path was created");
+			return TRUE;
+		}
 
-                g_message ("  Path could not be created");
-        }
+		g_message ("  Path could not be created");
+	}
 
 	return FALSE;
 }
@@ -783,11 +783,11 @@ path_has_write_access_or_was_created (const gchar *path)
 gboolean
 tracker_env_check_xdg_dirs (void)
 {
-        const gchar *user_data_dir;
-        gchar       *new_dir;
-        gboolean     success;
+	const gchar *user_data_dir;
+	gchar	    *new_dir;
+	gboolean     success;
 
-        g_message ("Checking XDG_DATA_HOME is writable and exists");
+	g_message ("Checking XDG_DATA_HOME is writable and exists");
 
 	/* NOTE: We don't use g_get_user_data_dir() here because as
 	 * soon as we do, it sets the result and doesn't re-fetch the
@@ -796,14 +796,14 @@ tracker_env_check_xdg_dirs (void)
 	user_data_dir = g_getenv ("XDG_DATA_HOME");
 
 	/* Check the default XDG_DATA_HOME location */
-        g_message ("  XDG_DATA_HOME is '%s'", user_data_dir);
+	g_message ("  XDG_DATA_HOME is '%s'", user_data_dir);
 
 	if (user_data_dir && path_has_write_access_or_was_created (user_data_dir)) {
 		return TRUE;
 	}
 
-        /* Change environment, this is actually what we have on Ubuntu. */
-        new_dir = g_build_path (G_DIR_SEPARATOR_S, g_get_home_dir (), ".local", "share", NULL);
+	/* Change environment, this is actually what we have on Ubuntu. */
+	new_dir = g_build_path (G_DIR_SEPARATOR_S, g_get_home_dir (), ".local", "share", NULL);
 
 	/* Check the new XDG_DATA_HOME location */
 	success = g_setenv ("XDG_DATA_HOME", new_dir, TRUE);

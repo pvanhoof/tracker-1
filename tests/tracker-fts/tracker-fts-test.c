@@ -28,48 +28,48 @@
 #include <glib-object.h>
 
 static gint
-callback (void   *NotUsed,
-          gint    argc,
-          gchar **argv,
-          gchar **azColName)
+callback (void	 *NotUsed,
+	  gint	  argc,
+	  gchar **argv,
+	  gchar **azColName)
 {
 	gint i;
 
-  	for (i = 0; i < argc; i++) {
-    		printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
-  	}
+	for (i = 0; i < argc; i++) {
+		printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+	}
 
-  	printf("\n");
+	printf("\n");
 
-  	return 0;
+	return 0;
 }
 
 static void
 exec_sql (sqlite3     *db,
-          const gchar *sql)
+	  const gchar *sql)
 {
 	gchar *zErrMsg;
 	gint   rc;
 
-        rc = sqlite3_exec (db, sql , callback, 0, &zErrMsg);
+	rc = sqlite3_exec (db, sql , callback, 0, &zErrMsg);
 
-  	if (rc != SQLITE_OK) {
-    		g_printerr ("SQL error: %s\n", zErrMsg);
-    		sqlite3_free (zErrMsg);
-  	}
+	if (rc != SQLITE_OK) {
+		g_printerr ("SQL error: %s\n", zErrMsg);
+		sqlite3_free (zErrMsg);
+	}
 }
 
 int
 main (int argc, char **argv)
 {
 	sqlite3  *db;
-	gint      rc;
+	gint	  rc;
 	gboolean  db_exists = FALSE;
-	gchar    *st = NULL;
-        gchar    *sql;
+	gchar	 *st = NULL;
+	gchar	 *sql;
 
 	g_type_init ();
-        g_thread_init (NULL);
+	g_thread_init (NULL);
 
 	if (argc != 2) {
 		g_printerr ("Usage: %s MATCH_TERM\n", argv[0]);

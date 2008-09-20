@@ -52,15 +52,15 @@
 	"This program is free software and comes without any warranty.\n" \
 	"It is licensed under version 2 or later of the General Public "  \
 	"License which can be viewed at:\n"				  \
-        "\n"								  \
+	"\n"								  \
 	"  http://www.gnu.org/licenses/gpl.txt\n"
 
 #define QUIT_TIMEOUT 300 /* 5 minutes worth of seconds */
 
 static GMainLoop    *main_loop;
-static guint         quit_timeout_id;
+static guint	     quit_timeout_id;
 
-static gint          verbosity = -1;
+static gint	     verbosity = -1;
 static gboolean      process_all = FALSE;
 static gboolean      run_forever = FALSE;
 
@@ -70,10 +70,10 @@ static GOptionEntry  entries[] = {
 	  N_("Logging, 0 = errors only, "
 	     "1 = minimal, 2 = detailed and 3 = debug (default = 0)"),
 	  NULL },
-        { "process-all", 'p', 0,
-          G_OPTION_ARG_NONE, &process_all,
-          N_("Whether to process data from all configured modules to be indexed"),
-          NULL },
+	{ "process-all", 'p', 0,
+	  G_OPTION_ARG_NONE, &process_all,
+	  N_("Whether to process data from all configured modules to be indexed"),
+	  NULL },
 	{ "run-forever", 'f', 0,
 	  G_OPTION_ARG_NONE, &run_forever,
 	  N_("Run forever, only interesting for debugging purposes"),
@@ -88,13 +88,13 @@ sanity_check_option_values (TrackerConfig *config)
 	g_message ("General options:");
 	g_message ("  Verbosity  ............................  %d",
 		   tracker_config_get_verbosity (config));
- 	g_message ("  Low memory mode  ......................  %s",
+	g_message ("  Low memory mode  ......................  %s",
 		   tracker_config_get_low_memory_mode (config) ? "yes" : "no");
 
 	g_message ("Indexer options:");
 	g_message ("  Throttle level  .......................  %d",
 		   tracker_config_get_throttle (config));
- 	g_message ("  File content indexing enabled  ........  %s",
+	g_message ("  File content indexing enabled  ........  %s",
 		   tracker_config_get_enable_content_indexing (config) ? "yes" : "no");
 	g_message ("  Thumbnail indexing enabled  ...........  %s",
 		   tracker_config_get_enable_thumbnails (config) ? "yes" : "no");
@@ -165,17 +165,17 @@ static void
 initialize_signal_handler (void)
 {
 #ifndef OS_WIN32
-  	struct sigaction act, ign_act;
-	sigset_t 	 empty_mask;
+	struct sigaction act, ign_act;
+	sigset_t	 empty_mask;
 
 	sigemptyset (&empty_mask);
 	act.sa_handler = signal_handler;
 	act.sa_mask    = empty_mask;
 	act.sa_flags   = 0;
 
-        ign_act.sa_handler = SIG_IGN;
-        ign_act.sa_mask = empty_mask;
-        ign_act.sa_flags = 0;
+	ign_act.sa_handler = SIG_IGN;
+	ign_act.sa_mask = empty_mask;
+	ign_act.sa_flags = 0;
 
 	sigaction (SIGTERM, &act, NULL);
 	sigaction (SIGILL,  &act, NULL);
@@ -186,76 +186,76 @@ initialize_signal_handler (void)
 	sigaction (SIGABRT, &act, NULL);
 	sigaction (SIGUSR1, &act, NULL);
 	sigaction (SIGINT,  &act, NULL);
-        /* sigaction (SIGPIPE, &ign_act, NULL); */
+	/* sigaction (SIGPIPE, &ign_act, NULL); */
 #endif
 }
 
 static gboolean
 quit_timeout_cb (gpointer user_data)
 {
-        TrackerIndexer *indexer;
+	TrackerIndexer *indexer;
 
-        indexer = TRACKER_INDEXER (user_data);
+	indexer = TRACKER_INDEXER (user_data);
 
-        if (!tracker_indexer_get_running (indexer)) {
-                g_message ("Indexer is still not running after %d seconds, quitting...",
-                           QUIT_TIMEOUT);
-                g_main_loop_quit (main_loop);
-                quit_timeout_id = 0;
-        } else {
-                g_message ("Indexer is now running, staying alive until finished...");
-        }
+	if (!tracker_indexer_get_running (indexer)) {
+		g_message ("Indexer is still not running after %d seconds, quitting...",
+			   QUIT_TIMEOUT);
+		g_main_loop_quit (main_loop);
+		quit_timeout_id = 0;
+	} else {
+		g_message ("Indexer is now running, staying alive until finished...");
+	}
 
-        return FALSE;
+	return FALSE;
 }
 
 static void
 indexer_finished_cb (TrackerIndexer *indexer,
-                     gdouble         seconds_elapsed,
-                     guint           items_indexed,
-                     gboolean        interrupted,
-		     gpointer        user_data)
+		     gdouble	     seconds_elapsed,
+		     guint	     items_indexed,
+		     gboolean	     interrupted,
+		     gpointer	     user_data)
 {
-        g_message ("Finished indexing sent items");
+	g_message ("Finished indexing sent items");
 
-        if (interrupted) {
-                g_message ("Indexer was told to shutdown");
-                g_main_loop_quit (main_loop);
-                return;
-        }
+	if (interrupted) {
+		g_message ("Indexer was told to shutdown");
+		g_main_loop_quit (main_loop);
+		return;
+	}
 
-        if (quit_timeout_id) {
-                g_message ("Cancelling previous quit timeout");
-                g_source_remove (quit_timeout_id);
-        }
+	if (quit_timeout_id) {
+		g_message ("Cancelling previous quit timeout");
+		g_source_remove (quit_timeout_id);
+	}
 
-        if (!run_forever) {
-                g_message ("Waiting another %d seconds for more items before quitting...",
-                           QUIT_TIMEOUT);
+	if (!run_forever) {
+		g_message ("Waiting another %d seconds for more items before quitting...",
+			   QUIT_TIMEOUT);
 
-                quit_timeout_id = g_timeout_add_seconds_full (G_PRIORITY_DEFAULT,
-                                                              QUIT_TIMEOUT,
-                                                              quit_timeout_cb,
-                                                              g_object_ref (indexer),
-                                                              (GDestroyNotify) g_object_unref);
-        }
+		quit_timeout_id = g_timeout_add_seconds_full (G_PRIORITY_DEFAULT,
+							      QUIT_TIMEOUT,
+							      quit_timeout_cb,
+							      g_object_ref (indexer),
+							      (GDestroyNotify) g_object_unref);
+	}
 }
 
 gint
 main (gint argc, gchar *argv[])
 {
-        TrackerConfig *config;
+	TrackerConfig *config;
 	TrackerIndexer *indexer;
-        TrackerDBManagerFlags flags = 0;
+	TrackerDBManagerFlags flags = 0;
 	GOptionContext *context;
 	GError *error = NULL;
-        gchar *filename;
+	gchar *filename;
 
 	g_type_init ();
 
 	if (!g_thread_supported ()) {
 		g_thread_init (NULL);
-        }
+	}
 
 	setlocale (LC_ALL, "");
 
@@ -280,40 +280,40 @@ main (gint argc, gchar *argv[])
 
 	initialize_signal_handler ();
 
-        /* Check XDG spec locations XDG_DATA_HOME _MUST_ be writable. */
-        if (!tracker_env_check_xdg_dirs ()) {
-                return EXIT_FAILURE;
-        }
+	/* Check XDG spec locations XDG_DATA_HOME _MUST_ be writable. */
+	if (!tracker_env_check_xdg_dirs ()) {
+		return EXIT_FAILURE;
+	}
 
-        /* Initialize logging */
-        config = tracker_config_new ();
+	/* Initialize logging */
+	config = tracker_config_new ();
 
 	if (verbosity > -1) {
 		tracker_config_set_verbosity (config, verbosity);
 	}
 
 	filename = g_build_filename (g_get_user_data_dir (),
-                                     "tracker",
-                                     "tracker-indexer.log",
-                                     NULL);
+				     "tracker",
+				     "tracker-indexer.log",
+				     NULL);
 
-        tracker_log_init (filename, tracker_config_get_verbosity (config));
+	tracker_log_init (filename, tracker_config_get_verbosity (config));
 	g_print ("Starting log:\n  File:'%s'\n", filename);
-        g_free (filename);
+	g_free (filename);
 
-        /* Make sure we initialize DBus, this shows we are started
-         * successfully when called upon from the daemon.
-         */
-        if (!tracker_dbus_init ()) {
-                return EXIT_FAILURE;
-        }
+	/* Make sure we initialize DBus, this shows we are started
+	 * successfully when called upon from the daemon.
+	 */
+	if (!tracker_dbus_init ()) {
+		return EXIT_FAILURE;
+	}
 
 	sanity_check_option_values (config);
 
-        /* Initialize database manager */
-        if (tracker_config_get_low_memory_mode (config)) {
-                flags |= TRACKER_DB_MANAGER_LOW_MEMORY_MODE;
-        }
+	/* Initialize database manager */
+	if (tracker_config_get_low_memory_mode (config)) {
+		flags |= TRACKER_DB_MANAGER_LOW_MEMORY_MODE;
+	}
 
 	tracker_db_manager_init (flags, NULL);
 	if (!tracker_db_index_manager_init (0,
@@ -322,23 +322,23 @@ main (gint argc, gchar *argv[])
 		return EXIT_FAILURE;
 	}
 
-        tracker_module_config_init ();
+	tracker_module_config_init ();
 
 	/* Set IO priority */
 	tracker_ioprio_init ();
 
-        /* nice() uses attribute "warn_unused_result" and so complains
+	/* nice() uses attribute "warn_unused_result" and so complains
 	 * if we do not check its returned value. But it seems that
 	 * since glibc 2.2.4, nice() can return -1 on a successful
 	 * call so we have to check value of errno too. Stupid...
 	 */
-        if (nice (19) == -1 && errno) {
-                const gchar *str;
+	if (nice (19) == -1 && errno) {
+		const gchar *str;
 
-                str = g_strerror (errno);
-                g_message ("Couldn't set nice value to 19, %s",
-                           str ? str : "no error given");
-        }
+		str = g_strerror (errno);
+		g_message ("Couldn't set nice value to 19, %s",
+			   str ? str : "no error given");
+	}
 
 	indexer = tracker_indexer_new ();
 
@@ -347,15 +347,15 @@ main (gint argc, gchar *argv[])
 		return EXIT_FAILURE;
 	}
 
-        /* Create the indexer and run the main loop */
-        g_signal_connect (indexer, "finished",
+	/* Create the indexer and run the main loop */
+	g_signal_connect (indexer, "finished",
 			  G_CALLBACK (indexer_finished_cb),
-                          NULL);
+			  NULL);
 
-        if (process_all) {
-                /* Tell the indexer to process all configured modules */
-                tracker_indexer_process_all (indexer);
-        }
+	if (process_all) {
+		/* Tell the indexer to process all configured modules */
+		tracker_indexer_process_all (indexer);
+	}
 
 	g_message ("Starting...");
 
@@ -364,19 +364,19 @@ main (gint argc, gchar *argv[])
 
 	g_message ("Shutdown started");
 
-        if (quit_timeout_id) {
-                g_source_remove (quit_timeout_id);
-        }
+	if (quit_timeout_id) {
+		g_source_remove (quit_timeout_id);
+	}
 
-        g_main_loop_unref (main_loop);
-        g_object_unref (indexer);
-        g_object_unref (config);
+	g_main_loop_unref (main_loop);
+	g_object_unref (indexer);
+	g_object_unref (config);
 
-        tracker_dbus_shutdown ();
-        tracker_db_index_manager_shutdown ();
-        tracker_db_manager_shutdown ();
-        tracker_module_config_shutdown ();
-        tracker_log_shutdown ();
+	tracker_dbus_shutdown ();
+	tracker_db_index_manager_shutdown ();
+	tracker_db_manager_shutdown ();
+	tracker_module_config_shutdown ();
+	tracker_log_shutdown ();
 
 	return EXIT_SUCCESS;
 }

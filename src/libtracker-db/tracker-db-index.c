@@ -44,39 +44,39 @@ typedef struct TrackerDBIndexPrivate TrackerDBIndexPrivate;
 
 struct TrackerDBIndexPrivate {
 	/* From the daemon */
-	DEPOT      *index;
+	DEPOT	   *index;
 
-	guint       min_bucket;
-        guint       max_bucket;
+	guint	    min_bucket;
+	guint	    max_bucket;
 
-	guint       reload : 1;
-	guint       readonly : 1;
-	guint       in_pause : 1;
-	guint       in_flush : 1;
+	guint	    reload : 1;
+	guint	    readonly : 1;
+	guint	    in_pause : 1;
+	guint	    in_flush : 1;
 
 	/* From the indexer */
 	GHashTable *cache;
-	gchar      *filename;
-	gint        bucket_count;
+	gchar	   *filename;
+	gint	    bucket_count;
 };
 
 static void tracker_db_index_class_init   (TrackerDBIndexClass *class);
-static void tracker_db_index_init         (TrackerDBIndex      *tree);
-static void tracker_db_index_finalize     (GObject             *object);
-static void tracker_db_index_set_property (GObject             *object,
-					   guint                prop_id,
+static void tracker_db_index_init	  (TrackerDBIndex      *tree);
+static void tracker_db_index_finalize	  (GObject	       *object);
+static void tracker_db_index_set_property (GObject	       *object,
+					   guint		prop_id,
 					   const GValue        *value,
-					   GParamSpec          *pspec);
-static void tracker_db_index_get_property (GObject             *object,
-					   guint                prop_id,
-					   GValue              *value,
-					   GParamSpec          *pspec);
-static void free_cache_values             (GArray              *array);
+					   GParamSpec	       *pspec);
+static void tracker_db_index_get_property (GObject	       *object,
+					   guint		prop_id,
+					   GValue	       *value,
+					   GParamSpec	       *pspec);
+static void free_cache_values		  (GArray	       *array);
 
 enum {
 	PROP_0,
 	PROP_FILENAME,
-        PROP_MIN_BUCKET,
+	PROP_MIN_BUCKET,
 	PROP_MAX_BUCKET,
 	PROP_RELOAD,
 	PROP_READONLY
@@ -159,7 +159,7 @@ tracker_db_index_init (TrackerDBIndex *index)
 static void
 tracker_db_index_finalize (GObject *object)
 {
-	TrackerDBIndex        *index;
+	TrackerDBIndex	      *index;
 	TrackerDBIndexPrivate *priv;
 
 	index = TRACKER_DB_INDEX (object);
@@ -177,8 +177,8 @@ tracker_db_index_finalize (GObject *object)
 }
 
 static void
-tracker_db_index_set_property (GObject      *object,
-			       guint         prop_id,
+tracker_db_index_set_property (GObject	    *object,
+			       guint	     prop_id,
 			       const GValue *value,
 			       GParamSpec   *pspec)
 {
@@ -210,9 +210,9 @@ tracker_db_index_set_property (GObject      *object,
 }
 
 static void
-tracker_db_index_get_property (GObject    *object,
-			       guint       prop_id,
-			       GValue     *value,
+tracker_db_index_get_property (GObject	  *object,
+			       guint	   prop_id,
+			       GValue	  *value,
 			       GParamSpec *pspec)
 {
 	TrackerDBIndexPrivate *priv;
@@ -249,11 +249,11 @@ free_cache_values (GArray *array)
 
 TrackerDBIndex *
 tracker_db_index_new (const gchar *filename,
-		      gint         min_bucket,
-		      gint         max_bucket,
-		      gboolean     readonly)
+		      gint	   min_bucket,
+		      gint	   max_bucket,
+		      gboolean	   readonly)
 {
-        TrackerDBIndex *index;
+	TrackerDBIndex *index;
 
 	g_return_val_if_fail (filename != NULL, NULL);
 	g_return_val_if_fail (min_bucket > 0, NULL);
@@ -268,7 +268,7 @@ tracker_db_index_new (const gchar *filename,
 
 	tracker_db_index_open (index);
 
-        return index;
+	return index;
 }
 
 void
@@ -292,7 +292,7 @@ tracker_db_index_set_filename (TrackerDBIndex *index,
 
 void
 tracker_db_index_set_min_bucket (TrackerDBIndex *index,
-				 gint            min_bucket)
+				 gint		 min_bucket)
 {
 	TrackerDBIndexPrivate *priv;
 
@@ -307,7 +307,7 @@ tracker_db_index_set_min_bucket (TrackerDBIndex *index,
 
 void
 tracker_db_index_set_max_bucket (TrackerDBIndex *index,
-				 gint            max_bucket)
+				 gint		 max_bucket)
 {
 	TrackerDBIndexPrivate *priv;
 
@@ -322,7 +322,7 @@ tracker_db_index_set_max_bucket (TrackerDBIndex *index,
 
 void
 tracker_db_index_set_reload (TrackerDBIndex *index,
-			     gboolean        reload)
+			     gboolean	     reload)
 {
 	TrackerDBIndexPrivate *priv;
 
@@ -376,27 +376,27 @@ tracker_db_index_get_readonly (TrackerDBIndex *index)
 
 static inline gboolean
 has_word (TrackerDBIndex *index,
-          const gchar    *word)
+	  const gchar	 *word)
 {
-        TrackerDBIndexPrivate *priv;
-	gchar                  buffer[32];
-	gint                   count;
+	TrackerDBIndexPrivate *priv;
+	gchar		       buffer[32];
+	gint		       count;
 
-        priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
+	priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
 
-        count = dpgetwb (priv->index, word, -1, 0, 32, buffer);
+	count = dpgetwb (priv->index, word, -1, 0, 32, buffer);
 
 	return count > 7;
 }
 
 static inline gint
 count_hit_size_for_word (TrackerDBIndex *index,
-                         const gchar    *word)
+			 const gchar	*word)
 {
-        TrackerDBIndexPrivate *priv;
-	gint                 tsiz;
+	TrackerDBIndexPrivate *priv;
+	gint		     tsiz;
 
-        priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
+	priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
 
 	tsiz = dpvsiz (priv->index, word, -1);
 
@@ -412,8 +412,8 @@ count_hit_size_for_word (TrackerDBIndex *index,
  */
 static gint
 levenshtein (const gchar *source,
-	     gchar       *target,
-	     gint         maxdist)
+	     gchar	 *target,
+	     gint	  maxdist)
 {
 	gchar n, m;
 	gint  l;
@@ -441,13 +441,13 @@ levenshtein (const gchar *source,
 		return MIN(n, maxdist);
 
 	/* Store the min. value on each column, so that, if it
-         * reaches. maxdist, we break early.
-         */
+	 * reaches. maxdist, we break early.
+	 */
 	for (j = 0; j <= m; j++)
 		matrix[0][(gint)j] = j;
 
 	for (i = 1; i <= n; i++) {
-                gchar s_i;
+		gchar s_i;
 
 		mincolval = MAX(m, i);
 		matrix[(gint)i][0] = i;
@@ -464,11 +464,11 @@ levenshtein (const gchar *source,
 			cell = MIN(above + 1, MIN(left + 1, diag + cost));
 
 			/* Cover transposition, in addition to deletion,
-                         * insertion and substitution. This step is taken from:
-                         * Berghel, Hal ; Roach, David : "An Extension of Ukkonen's
-                         * Enhanced Dynamic Programming ASM Algorithm"
-                         * (http://www.acm.org/~hlb/publications/asm/asm.html)
-                         */
+			 * insertion and substitution. This step is taken from:
+			 * Berghel, Hal ; Roach, David : "An Extension of Ukkonen's
+			 * Enhanced Dynamic Programming ASM Algorithm"
+			 * (http://www.acm.org/~hlb/publications/asm/asm.html)
+			 */
 			if (i > 2 && j > 2) {
 				gchar trans = matrix[i-2][j-2] + 1;
 
@@ -492,37 +492,37 @@ levenshtein (const gchar *source,
 		return (gint) matrix[(gint)n][(gint)m];
 	} else {
 		return maxdist;
-        }
+	}
 }
 
 static gint
 count_hits_for_word (TrackerDBIndex *index,
-                     const gchar    *str)
+		     const gchar    *str)
 {
 
-        gint tsiz;
-        gint hits = 0;
+	gint tsiz;
+	gint hits = 0;
 
-        tsiz = count_hit_size_for_word (index, str);
+	tsiz = count_hit_size_for_word (index, str);
 
-        if (tsiz == -1 ||
-            tsiz % sizeof (TrackerDBIndexItem) != 0) {
-                return -1;
-        }
+	if (tsiz == -1 ||
+	    tsiz % sizeof (TrackerDBIndexItem) != 0) {
+		return -1;
+	}
 
-        hits = tsiz / sizeof (TrackerDBIndexItem);
+	hits = tsiz / sizeof (TrackerDBIndexItem);
 
-        return hits;
+	return hits;
 }
 
 static gboolean
 check_index_is_up_to_date (TrackerDBIndex *index)
 {
-        TrackerDBIndexPrivate *priv;
+	TrackerDBIndexPrivate *priv;
 
-        g_return_val_if_fail (TRACKER_IS_DB_INDEX (index), FALSE);
+	g_return_val_if_fail (TRACKER_IS_DB_INDEX (index), FALSE);
 
-        priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
+	priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
 
 	if (priv->reload) {
 		g_message ("Reloading index:'%s'", priv->filename);
@@ -540,20 +540,20 @@ check_index_is_up_to_date (TrackerDBIndex *index)
  * new.
  */
 static gboolean
-indexer_update_word (DEPOT       *index,
+indexer_update_word (DEPOT	 *index,
 		     const gchar *word,
-		     GArray      *new_hits)
+		     GArray	 *new_hits)
 {
 	TrackerDBIndexItem *new_hit;
 	TrackerDBIndexItem *previous_hits;
-	GArray             *pending_hits;
-	gboolean            write_back;
-	gboolean            edited;
-	gboolean            result;
-	gint                old_hit_count;
-	gint                score;
-	gint                tsiz;
-	guint               j;
+	GArray		   *pending_hits;
+	gboolean	    write_back;
+	gboolean	    edited;
+	gboolean	    result;
+	gint		    old_hit_count;
+	gint		    score;
+	gint		    tsiz;
+	guint		    j;
 
 	g_return_val_if_fail (index != NULL, FALSE);
 	g_return_val_if_fail (word != NULL, FALSE);
@@ -727,9 +727,9 @@ gboolean
 tracker_db_index_open (TrackerDBIndex *index)
 {
 	TrackerDBIndexPrivate *priv;
-	gint                   flags;
-	gint                   bucket_count;
-        gint                   rec_count;
+	gint		       flags;
+	gint		       bucket_count;
+	gint		       rec_count;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INDEX (index), FALSE);
 
@@ -796,7 +796,7 @@ gboolean
 tracker_db_index_close (TrackerDBIndex *index)
 {
 	TrackerDBIndexPrivate *priv;
-	gboolean               retval;
+	gboolean	       retval;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INDEX (index), FALSE);
 
@@ -821,7 +821,7 @@ tracker_db_index_close (TrackerDBIndex *index)
 
 void
 tracker_db_index_set_paused (TrackerDBIndex *index,
-			     gboolean        paused)
+			     gboolean	     paused)
 {
 	TrackerDBIndexPrivate *priv;
 
@@ -840,7 +840,7 @@ guint
 tracker_db_index_flush (TrackerDBIndex *index)
 {
 	TrackerDBIndexPrivate *priv;
-	guint                  size, removed_items;
+	guint		       size, removed_items;
 
 	g_return_val_if_fail (TRACKER_IS_DB_INDEX (index), 0);
 
@@ -890,38 +890,38 @@ tracker_db_index_flush (TrackerDBIndex *index)
 guint32
 tracker_db_index_get_size (TrackerDBIndex *index)
 {
-        TrackerDBIndexPrivate *priv;
-        guint32                size;
+	TrackerDBIndexPrivate *priv;
+	guint32		       size;
 
-        g_return_val_if_fail (TRACKER_IS_DB_INDEX (index), 0);
+	g_return_val_if_fail (TRACKER_IS_DB_INDEX (index), 0);
 
 	if (!check_index_is_up_to_date (index)) {
 		return 0;
 	}
 
-        priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
+	priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
 
-        size = dpfsiz (priv->index);
+	size = dpfsiz (priv->index);
 
 	return size;
 }
 
 gchar *
 tracker_db_index_get_suggestion (TrackerDBIndex *index,
-				 const gchar    *term,
-				 gint            maxdist)
+				 const gchar	*term,
+				 gint		 maxdist)
 {
-        TrackerDBIndexPrivate *priv;
-	gchar               *str;
-	gint                 dist;
+	TrackerDBIndexPrivate *priv;
+	gchar		    *str;
+	gint		     dist;
 	gchar		    *winner_str;
-	gint                 winner_dist;
+	gint		     winner_dist;
 	gint		     hits;
 	GTimeVal	     start, current;
 
-        g_return_val_if_fail (TRACKER_IS_DB_INDEX (index), NULL);
-        g_return_val_if_fail (term != NULL, NULL);
-        g_return_val_if_fail (maxdist >= 0, NULL);
+	g_return_val_if_fail (TRACKER_IS_DB_INDEX (index), NULL);
+	g_return_val_if_fail (term != NULL, NULL);
+	g_return_val_if_fail (maxdist >= 0, NULL);
 
 	if (!check_index_is_up_to_date (index)) {
 		return NULL;
@@ -930,9 +930,9 @@ tracker_db_index_get_suggestion (TrackerDBIndex *index,
 	priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
 
 	winner_str = g_strdup (term);
-        winner_dist = G_MAXINT;  /* Initialize to the worst case */
+	winner_dist = G_MAXINT;  /* Initialize to the worst case */
 
-        dpiterinit (priv->index);
+	dpiterinit (priv->index);
 
 	g_get_current_time (&start);
 
@@ -942,20 +942,20 @@ tracker_db_index_get_suggestion (TrackerDBIndex *index,
 		dist = levenshtein (term, str, 0);
 
 		if (dist != -1 &&
-                    dist < maxdist &&
-                    dist < winner_dist) {
-                        hits = count_hits_for_word (index, str);
+		    dist < maxdist &&
+		    dist < winner_dist) {
+			hits = count_hits_for_word (index, str);
 
-                        if (hits < 0) {
-                                g_free (winner_str);
-                                g_free (str);
+			if (hits < 0) {
+				g_free (winner_str);
+				g_free (str);
 
-                                return NULL;
+				return NULL;
 			} else if (hits > 0) {
-                                g_free (winner_str);
-                                winner_str = g_strdup (str);
-                                winner_dist = dist;
-                        } else {
+				g_free (winner_str);
+				winner_str = g_strdup (str);
+				winner_dist = dist;
+			} else {
 				g_message ("No hits for:'%s'!", str);
 			}
 		}
@@ -968,27 +968,27 @@ tracker_db_index_get_suggestion (TrackerDBIndex *index,
 		if (current.tv_sec - start.tv_sec >= 2) {
 			g_message ("Timed out in %s, not collecting more suggestions.",
 				   __FUNCTION__);
-                        break;
+			break;
 		}
 
 		str = dpiternext (priv->index, NULL);
 	}
 
-        return winner_str;
+	return winner_str;
 }
 
 TrackerDBIndexItem *
 tracker_db_index_get_word_hits (TrackerDBIndex *index,
 				const gchar    *word,
-				guint          *count)
+				guint	       *count)
 {
-        TrackerDBIndexPrivate *priv;
+	TrackerDBIndexPrivate *priv;
 	TrackerDBIndexItem    *details;
-	gint                   tsiz;
-	gchar                 *tmp;
+	gint		       tsiz;
+	gchar		      *tmp;
 
-        g_return_val_if_fail (TRACKER_IS_DB_INDEX (index), NULL);
-        g_return_val_if_fail (word != NULL, NULL);
+	g_return_val_if_fail (TRACKER_IS_DB_INDEX (index), NULL);
+	g_return_val_if_fail (word != NULL, NULL);
 
 	priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
 
@@ -999,17 +999,17 @@ tracker_db_index_get_word_hits (TrackerDBIndex *index,
 
 	details = NULL;
 
-        if (count) {
-                *count = 0;
-        }
+	if (count) {
+		*count = 0;
+	}
 
 	if ((tmp = dpget (priv->index, word, -1, 0, MAX_HIT_BUFFER, &tsiz)) != NULL) {
 		if (tsiz >= (gint) sizeof (TrackerDBIndexItem)) {
 			details = (TrackerDBIndexItem *) tmp;
 
-                        if (count) {
-                                *count = tsiz / sizeof (TrackerDBIndexItem);
-                        }
+			if (count) {
+				*count = tsiz / sizeof (TrackerDBIndexItem);
+			}
 		}
 	}
 
@@ -1019,16 +1019,16 @@ tracker_db_index_get_word_hits (TrackerDBIndex *index,
 
 void
 tracker_db_index_add_word (TrackerDBIndex *index,
-			   const gchar    *word,
-			   guint32         service_id,
-			   gint            service_type,
-			   gint            weight)
+			   const gchar	  *word,
+			   guint32	   service_id,
+			   gint		   service_type,
+			   gint		   weight)
 {
 	TrackerDBIndexPrivate *priv;
 	TrackerDBIndexItem     elem;
 	TrackerDBIndexItem    *current;
-	GArray                *array;
-	guint                  i, new_score;
+	GArray		      *array;
+	guint		       i, new_score;
 
 	g_return_if_fail (TRACKER_IS_DB_INDEX (index));
 	g_return_if_fail (word != NULL);
@@ -1095,13 +1095,13 @@ tracker_db_index_add_word (TrackerDBIndex *index,
  */
 gboolean
 tracker_db_index_remove_dud_hits (TrackerDBIndex *index,
-				  const gchar    *word,
-				  GSList         *dud_list)
+				  const gchar	 *word,
+				  GSList	 *dud_list)
 {
-        TrackerDBIndexPrivate *priv;
-	gchar                 *tmp;
-	gint                   tsiz;
-	gboolean               retval = FALSE;
+	TrackerDBIndexPrivate *priv;
+	gchar		      *tmp;
+	gint		       tsiz;
+	gboolean	       retval = FALSE;
 
 	g_return_val_if_fail (index, FALSE);
 	g_return_val_if_fail (word, FALSE);
@@ -1118,31 +1118,31 @@ tracker_db_index_remove_dud_hits (TrackerDBIndex *index,
 
 	/* Check if existing record is there  */
 	tmp = dpget (priv->index,
-                     word,
-                     -1,
-                     0,
-                     MAX_HIT_BUFFER,
-                     &tsiz);
+		     word,
+		     -1,
+		     0,
+		     MAX_HIT_BUFFER,
+		     &tsiz);
 
-        if (!tmp) {
-                return FALSE;
-        }
+	if (!tmp) {
+		return FALSE;
+	}
 
-        if (tsiz >= (int) sizeof (TrackerDBIndexItem)) {
-                TrackerDBIndexItem *details;
-                gint                wi, i, pnum;
+	if (tsiz >= (int) sizeof (TrackerDBIndexItem)) {
+		TrackerDBIndexItem *details;
+		gint		    wi, i, pnum;
 
-                details = (TrackerDBIndexItem *) tmp;
-                pnum = tsiz / sizeof (TrackerDBIndexItem);
-                wi = 0;
+		details = (TrackerDBIndexItem *) tmp;
+		pnum = tsiz / sizeof (TrackerDBIndexItem);
+		wi = 0;
 
-                for (i = 0; i < pnum; i++) {
-                        GSList *lst;
+		for (i = 0; i < pnum; i++) {
+			GSList *lst;
 
-                        for (lst = dud_list; lst; lst = lst->next) {
-                                TrackerDBIndexItemRank *rank = lst->data;
+			for (lst = dud_list; lst; lst = lst->next) {
+				TrackerDBIndexItemRank *rank = lst->data;
 
-                                if (!rank) {
+				if (!rank) {
 					continue;
 				}
 
@@ -1165,15 +1165,15 @@ tracker_db_index_remove_dud_hits (TrackerDBIndex *index,
 
 					break;
 				}
-                        }
-                }
+			}
+		}
 
-                dpput (priv->index, word, -1, (gchar *) details, tsiz, DP_DOVER);
+		dpput (priv->index, word, -1, (gchar *) details, tsiz, DP_DOVER);
 
 		retval = TRUE;
-        }
+	}
 
-        g_free (tmp);
+	g_free (tmp);
 
 
 	return retval;

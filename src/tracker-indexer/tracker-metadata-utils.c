@@ -37,18 +37,18 @@
 #define HAVE_HILDON_THUMBNAIL
 
 #define METADATA_FILE_NAME_DELIMITED "File:NameDelimited"
-#define METADATA_FILE_EXT            "File:Ext"
-#define METADATA_FILE_PATH           "File:Path"
-#define METADATA_FILE_NAME           "File:Name"
-#define METADATA_FILE_LINK           "File:Link"
-#define METADATA_FILE_MIMETYPE       "File:Mime"
-#define METADATA_FILE_SIZE           "File:Size"
-#define METADATA_FILE_MODIFIED       "File:Modified"
-#define METADATA_FILE_ACCESSED       "File:Accessed"
+#define METADATA_FILE_EXT	     "File:Ext"
+#define METADATA_FILE_PATH	     "File:Path"
+#define METADATA_FILE_NAME	     "File:Name"
+#define METADATA_FILE_LINK	     "File:Link"
+#define METADATA_FILE_MIMETYPE	     "File:Mime"
+#define METADATA_FILE_SIZE	     "File:Size"
+#define METADATA_FILE_MODIFIED	     "File:Modified"
+#define METADATA_FILE_ACCESSED	     "File:Accessed"
 
-#undef  TRY_LOCALE_TO_UTF8_CONVERSION
-#define TEXT_MAX_SIZE                1048576  /* bytes */
-#define TEXT_CHECK_SIZE              65535    /* bytes */
+#undef	TRY_LOCALE_TO_UTF8_CONVERSION
+#define TEXT_MAX_SIZE		     1048576  /* bytes */
+#define TEXT_CHECK_SIZE		     65535    /* bytes */
 
 typedef struct {
 	GPid pid;
@@ -86,8 +86,8 @@ process_context_destroy (ProcessContext *context)
 }
 
 static void
-process_context_child_watch_cb (GPid     pid,
-				gint     status,
+process_context_child_watch_cb (GPid	 pid,
+				gint	 status,
 				gpointer user_data)
 {
 	g_debug ("Process '%d' exited with code: %d->'%s'",
@@ -145,8 +145,8 @@ process_context_create (const gchar **argv,
 
 static gboolean
 metadata_read_cb (GIOChannel   *channel,
-		  GIOCondition  condition,
-		  gpointer      user_data)
+		  GIOCondition	condition,
+		  gpointer	user_data)
 {
 	GPtrArray *array;
 	GIOStatus status;
@@ -292,7 +292,7 @@ metadata_utils_get_embedded (const char      *path,
 {
 	gchar **values;
 	gchar  *service_type;
-	gint    i;
+	gint	i;
 
 	service_type = tracker_ontology_get_service_by_mime (mime_type);
 	if (!service_type) {
@@ -304,7 +304,7 @@ metadata_utils_get_embedded (const char      *path,
 		return;
 	}
 
-        g_free (service_type);
+	g_free (service_type);
 
 	values = metadata_query_file (path, mime_type);
 
@@ -343,7 +343,7 @@ metadata_utils_get_embedded (const char      *path,
 		if (!utf_value)
 			continue;
 
-                tracker_metadata_insert (metadata, name, utf_value);
+		tracker_metadata_insert (metadata, name, utf_value);
 	}
 
 	g_strfreev (values);
@@ -351,8 +351,8 @@ metadata_utils_get_embedded (const char      *path,
 
 static gboolean
 get_file_content_read_cb (GIOChannel   *channel,
-			  GIOCondition  condition,
-			  gpointer      user_data)
+			  GIOCondition	condition,
+			  gpointer	user_data)
 {
 	ProcessContext *context;
 	GString *text;
@@ -423,8 +423,8 @@ get_file_in_locale (GString *s)
 {
 	GError *error = NULL;
 	gchar  *str;
-	gsize   bytes_read;
-	gsize   bytes_written;
+	gsize	bytes_read;
+	gsize	bytes_written;
 
 	str = g_locale_to_utf8 (s->str,
 				s->len,
@@ -452,31 +452,31 @@ get_file_in_locale (GString *s)
 static gchar *
 get_file_content (const gchar *path)
 {
-        GFile            *file;
-        GFileInputStream *stream;
-        GError           *error = NULL;
-	GString          *s;
-        gssize            bytes;
-        gssize            bytes_valid;
-        gssize            bytes_read_total;
-	gssize            buf_size;
-        gchar             buf[TEXT_CHECK_SIZE];
-	gboolean          has_more_data;
-	gboolean          has_reached_max;
-	gboolean          is_utf8;
+	GFile		 *file;
+	GFileInputStream *stream;
+	GError		 *error = NULL;
+	GString		 *s;
+	gssize		  bytes;
+	gssize		  bytes_valid;
+	gssize		  bytes_read_total;
+	gssize		  buf_size;
+	gchar		  buf[TEXT_CHECK_SIZE];
+	gboolean	  has_more_data;
+	gboolean	  has_reached_max;
+	gboolean	  is_utf8;
 
-        file = g_file_new_for_path (path);
-        stream = g_file_read (file, NULL, &error);
+	file = g_file_new_for_path (path);
+	stream = g_file_read (file, NULL, &error);
 
-        if (error) {
-                g_message ("Could not get read file:'%s', %s",
-                           path,
-                           error->message);
-                g_error_free (error);
-                g_object_unref (file);
+	if (error) {
+		g_message ("Could not get read file:'%s', %s",
+			   path,
+			   error->message);
+		g_error_free (error);
+		g_object_unref (file);
 
-                return NULL;
-        }
+		return NULL;
+	}
 
 	s = g_string_new ("");
 	has_reached_max = FALSE;
@@ -565,17 +565,17 @@ get_file_content (const gchar *path)
 		g_debug ("  Maximum indexable limit reached");
 	}
 
-        if (error) {
-                g_message ("Could not read input stream for:'%s', %s",
-                           path,
-                           error->message);
-                g_error_free (error);
+	if (error) {
+		g_message ("Could not read input stream for:'%s', %s",
+			   path,
+			   error->message);
+		g_error_free (error);
 		g_string_free (s, TRUE);
-                g_object_unref (stream);
-                g_object_unref (file);
+		g_object_unref (stream);
+		g_object_unref (file);
 
-                return NULL;
-        }
+		return NULL;
+	}
 
 	/* Check for UTF-8 Validity, if not try to convert it to the
 	 * locale we are in.
@@ -596,22 +596,22 @@ get_file_content (const gchar *path)
 			 s->len);
 		s = g_string_truncate (s, bytes_valid);
 	}
-#else   /* TRY_LOCALE_TO_UTF8_CONVERSION */
+#else	/* TRY_LOCALE_TO_UTF8_CONVERSION */
 	g_debug ("  Truncating to last valid UTF-8 character (%d/%d bytes)",
 		 bytes_valid,
 		 s->len);
 	s = g_string_truncate (s, bytes_valid);
-#endif  /* TRY_LOCALE_TO_UTF8_CONVERSION */
+#endif	/* TRY_LOCALE_TO_UTF8_CONVERSION */
 
-        g_object_unref (stream);
-        g_object_unref (file);
+	g_object_unref (stream);
+	g_object_unref (file);
 
 	if (s->len < 1) {
 		g_string_free (s, TRUE);
 		s = NULL;
 	}
 
-        return s ? g_string_free (s, FALSE) : NULL;
+	return s ? g_string_free (s, FALSE) : NULL;
 }
 
 #ifdef THUMBNAIL_RETRIEVAL_ENABLED
@@ -620,10 +620,10 @@ get_file_content (const gchar *path)
 static void
 get_file_thumbnail_queue_cb (DBusGProxy     *proxy,
 			     DBusGProxyCall *call,
-			     gpointer        user_data)
+			     gpointer	     user_data)
 {
 	GError *error = NULL;
-	guint   handle;
+	guint	handle;
 
 	/* FIXME: What is the point of this? */
 	dbus_g_proxy_end_call (proxy, call, &error,
@@ -639,7 +639,7 @@ get_file_thumbnail (const gchar *path,
 {
 #ifdef HAVE_HILDON_THUMBNAIL
 	static gchar   *batch[51];
-	static guint    count = 0;
+	static guint	count = 0;
 	static gboolean not_available = FALSE;
 
 	if (not_available) {
@@ -784,9 +784,9 @@ tracker_metadata_utils_get_text (const gchar *path)
 
 	/* No need to filter text based files - index them directly */
 	if (service_type &&
-            (strcmp (service_type, "Text") == 0 ||
-             strcmp (service_type, "Development") == 0)) {
-                text = get_file_content (path);
+	    (strcmp (service_type, "Text") == 0 ||
+	     strcmp (service_type, "Development") == 0)) {
+		text = get_file_content (path);
 	} else {
 		text = get_file_content_by_filter (path, mime_type);
 	}
@@ -800,16 +800,16 @@ tracker_metadata_utils_get_text (const gchar *path)
 TrackerMetadata *
 tracker_metadata_utils_get_data (const gchar *path)
 {
-        TrackerMetadata *metadata;
+	TrackerMetadata *metadata;
 	struct stat st;
 	const gchar *ext;
 	gchar *mime_type;
 
 	if (g_lstat (path, &st) < 0) {
-                return NULL;
-        }
+		return NULL;
+	}
 
-        metadata = tracker_metadata_new ();
+	metadata = tracker_metadata_new ();
 	ext = strrchr (path, '.');
 
 	if (ext) {
@@ -818,12 +818,12 @@ tracker_metadata_utils_get_data (const gchar *path)
 
 	mime_type = tracker_file_get_mime_type (path);
 
-        tracker_metadata_insert (metadata, METADATA_FILE_NAME,
+	tracker_metadata_insert (metadata, METADATA_FILE_NAME,
 				 g_filename_display_basename (path));
 	tracker_metadata_insert (metadata, METADATA_FILE_PATH,
 				 g_path_get_dirname (path));
 	tracker_metadata_insert (metadata, METADATA_FILE_NAME_DELIMITED,
-                                 g_filename_to_utf8 (path, -1, NULL, NULL, NULL));
+				 g_filename_to_utf8 (path, -1, NULL, NULL, NULL));
 	tracker_metadata_insert (metadata, METADATA_FILE_MIMETYPE,
 				 mime_type);
 
@@ -840,19 +840,19 @@ tracker_metadata_utils_get_data (const gchar *path)
 
 		link_path = g_file_read_link (path, NULL);
 		tracker_metadata_insert (metadata, METADATA_FILE_LINK,
-                                         g_filename_to_utf8 (link_path, -1, NULL, NULL, NULL));
+					 g_filename_to_utf8 (link_path, -1, NULL, NULL, NULL));
 		g_free (link_path);
 	}
 
 	/* FIXME: These should be dealt directly as integer/times/whatever, not strings */
 	tracker_metadata_insert (metadata, METADATA_FILE_SIZE,
-                                 tracker_guint_to_string (st.st_size));
+				 tracker_guint_to_string (st.st_size));
 	tracker_metadata_insert (metadata, METADATA_FILE_MODIFIED,
-                                 tracker_date_to_string (st.st_mtime));
+				 tracker_date_to_string (st.st_mtime));
 	tracker_metadata_insert (metadata, METADATA_FILE_ACCESSED,
-                                 tracker_date_to_string (st.st_atime));
+				 tracker_date_to_string (st.st_atime));
 
 	metadata_utils_get_embedded (path, mime_type, metadata);
 
-        return metadata;
+	return metadata;
 }

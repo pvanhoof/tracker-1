@@ -74,7 +74,7 @@ tracker_keyword_store_init (TrackerKeywordStore *store)
 }
 
 static gboolean
-tracker_keyword_store_row_draggable (GtkTreeDragSource   	*drag_source,
+tracker_keyword_store_row_draggable (GtkTreeDragSource		*drag_source,
 					GtkTreePath		*path)
 {
 	printf ("ROW DRAGGABLE\n");
@@ -82,9 +82,9 @@ tracker_keyword_store_row_draggable (GtkTreeDragSource   	*drag_source,
 }
 
 static gboolean
-tracker_keyword_store_drag_data_get (GtkTreeDragSource   	*drag_source,
+tracker_keyword_store_drag_data_get (GtkTreeDragSource		*drag_source,
 				     GtkTreePath		*path,
-				     GtkSelectionData	        *data)
+				     GtkSelectionData		*data)
 {
 	gchar *keyword;
 	GtkTreeIter iter;
@@ -104,7 +104,7 @@ tracker_keyword_store_drag_data_get (GtkTreeDragSource   	*drag_source,
 }
 
 static gboolean
-tracker_keyword_store_drag_data_delete (GtkTreeDragSource 	*drag_source,
+tracker_keyword_store_drag_data_delete (GtkTreeDragSource	*drag_source,
 					GtkTreePath		*path)
 {
 	printf ("DRAG DATA DELETE\n");
@@ -179,9 +179,9 @@ tracker_keyword_store_new (void)
  * returns true if successful
  **/
 gboolean
-tracker_keyword_store_insert (  GtkListStore 			*store,
-				const char 			*keyword,
-				const char 			*stock_id
+tracker_keyword_store_insert (	GtkListStore			*store,
+				const char			*keyword,
+				const char			*stock_id
 )
 {
 	GtkTreeIter *iter;
@@ -213,8 +213,8 @@ tracker_keyword_store_insert (  GtkListStore 			*store,
  * NULL of it cant be found
  **/
 GtkTreeIter *
-tracker_keyword_store_lookup (  GtkListStore 			*store,
-				const char 			*keyword)
+tracker_keyword_store_lookup (	GtkListStore			*store,
+				const char			*keyword)
 {
 	TrackerKeywordStore *self;
 
@@ -229,8 +229,8 @@ tracker_keyword_store_lookup (  GtkListStore 			*store,
  * O(1) removal of items by keyword
  **/
 gboolean
-tracker_keyword_store_remove (  GtkListStore 			*store,
-				const char 			*keyword)
+tracker_keyword_store_remove (	GtkListStore			*store,
+				const char			*keyword)
 {
 	GtkTreeIter *iter;
 	TrackerKeywordStore *self;

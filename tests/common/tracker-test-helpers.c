@@ -25,7 +25,7 @@ gboolean
 tracker_test_helpers_cmpstr_equal (const gchar *obtained,
 				   const gchar *expected)
 {
-        gboolean result;
+	gboolean result;
 
 	if (expected == obtained) {
 		return TRUE;
@@ -33,12 +33,12 @@ tracker_test_helpers_cmpstr_equal (const gchar *obtained,
 
 	if (expected && obtained) {
 		result = !g_utf8_collate (expected, obtained);
-                if (!result) {
-                        g_warning ("Expected %s - obtained %s", expected, obtained);
-                }
-                return result;
+		if (!result) {
+			g_warning ("Expected %s - obtained %s", expected, obtained);
+		}
+		return result;
 	} else {
-                g_warning ("\n Only one of the strings is NULL\n");
+		g_warning ("\n Only one of the strings is NULL\n");
 		return FALSE;
 	}
 }
@@ -46,14 +46,14 @@ tracker_test_helpers_cmpstr_equal (const gchar *obtained,
 const gchar *
 tracker_test_helpers_get_nonutf8 (void)
 {
-        GMappedFile *file = NULL;
+	GMappedFile *file = NULL;
 
-        if (!nonutf8_str) {
-                file = g_mapped_file_new (TEST_TEXT, FALSE, NULL);
-                nonutf8_str = g_strdup (g_mapped_file_get_contents (file));
-                nonutf8_str [g_mapped_file_get_length (file) -1] = '\0';
-                g_mapped_file_free (file);
-        }
+	if (!nonutf8_str) {
+		file = g_mapped_file_new (TEST_TEXT, FALSE, NULL);
+		nonutf8_str = g_strdup (g_mapped_file_get_contents (file));
+		nonutf8_str [g_mapped_file_get_length (file) -1] = '\0';
+		g_mapped_file_free (file);
+	}
 
 	return nonutf8_str;
 }

@@ -32,28 +32,28 @@
 
 #include <libtracker/tracker.h>
 
-static gchar       *service;
-static gchar      **mimes;
-static gint         limit = 512;
-static gint         offset;
+static gchar	   *service;
+static gchar	  **mimes;
+static gint	    limit = 512;
+static gint	    offset;
 
 static GOptionEntry entries[] = {
 	{ "service", 's', 0, G_OPTION_ARG_STRING, &service,
-          N_("Search from a specific service"),
-          NULL
-        },
+	  N_("Search from a specific service"),
+	  NULL
+	},
 	{ "limit", 'l', 0, G_OPTION_ARG_INT, &limit,
-          N_("Limit the number of results shown"),
-          N_("512")
-        },
+	  N_("Limit the number of results shown"),
+	  N_("512")
+	},
 	{ "offset", 'o', 0, G_OPTION_ARG_INT, &offset,
-          N_("Offset the results"),
-          N_("0")
-        },
+	  N_("Offset the results"),
+	  N_("0")
+	},
 	{ "add-mime", 'm', 0, G_OPTION_ARG_STRING_ARRAY, &mimes,
-          N_("MIME types (can be used multiple times)"),
-          NULL
-        },
+	  N_("MIME types (can be used multiple times)"),
+	  NULL
+	},
 	{ NULL }
 };
 
@@ -62,9 +62,9 @@ main (int argc, char **argv)
 {
 
 	TrackerClient  *client;
-	ServiceType     type;
+	ServiceType	type;
 	GOptionContext *context;
-	GError         *error = NULL;
+	GError	       *error = NULL;
 
 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
 	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
@@ -74,16 +74,16 @@ main (int argc, char **argv)
 	g_option_context_add_main_entries (context, entries, "tracker-files");
 	g_option_context_parse (context, &argc, &argv, NULL);
 
-        if (!service && !mimes) {
-                gchar *help;
+	if (!service && !mimes) {
+		gchar *help;
 
-                help = g_option_context_get_help (context, TRUE, NULL);
-                g_option_context_free (context);
-                g_printerr (help);
-                g_free (help);
+		help = g_option_context_get_help (context, TRUE, NULL);
+		g_option_context_free (context);
+		g_printerr (help);
+		g_free (help);
 
-                return EXIT_FAILURE;
-        }
+		return EXIT_FAILURE;
+	}
 
 	g_option_context_free (context);
 

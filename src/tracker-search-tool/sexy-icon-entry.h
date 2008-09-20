@@ -21,7 +21,7 @@
 #ifndef _SEXY_ICON_ENTRY_H_
 #define _SEXY_ICON_ENTRY_H_
 
-typedef struct _SexyIconEntry      SexyIconEntry;
+typedef struct _SexyIconEntry	   SexyIconEntry;
 typedef struct _SexyIconEntryClass SexyIconEntryClass;
 typedef struct _SexyIconEntryPriv  SexyIconEntryPriv;
 

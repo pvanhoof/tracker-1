@@ -27,7 +27,7 @@ G_BEGIN_DECLS
 
 #ifndef XESAM_G_LOG_DOMAIN
 #define XESAM_G_LOG_DOMAIN    "XesamGLib"
-#endif  /* XESAM_G_LOG_DOMAIN */
+#endif	/* XESAM_G_LOG_DOMAIN */
 
 /*
  * Make xesam_g_debug a noop if ENABLE_DEBUG is not defined
@@ -35,13 +35,13 @@ G_BEGIN_DECLS
 #ifdef ENABLE_DEBUG
 
 #   ifdef G_HAVE_ISO_VARARGS
-#	   define xesam_g_debug(...)    g_log (XESAM_G_LOG_DOMAIN, \
+#	   define xesam_g_debug(...)	g_log (XESAM_G_LOG_DOMAIN, \
 										   G_LOG_LEVEL_DEBUG,  \
 										   __VA_ARGS__)
 #	   define xesam_g_debug_object(object, ...)    xesam_g_debug_object_real (object, __VA_ARGS__)
 
 #   elif defined(G_HAVE_GNUC_VARARGS)
-#	   define xesam_g_debug(format...)  g_log (XESAM_G_LOG_DOMAIN,   \
+#	   define xesam_g_debug(format...)  g_log (XESAM_G_LOG_DOMAIN,	 \
 											   G_LOG_LEVEL_DEBUG,	\
 											   format)
 #	   define xesam_g_debug_object(object, format...)    xesam_g_debug_object_real (object, format)
@@ -71,7 +71,7 @@ xesam_g_debug_object (GObject *obj,
 #else /* NO DEBUGGING OUTPUT */
 
 #   ifdef G_HAVE_ISO_VARARGS
-#	   define xesam_g_debug(...)    G_STMT_START{ (void)0; }G_STMT_END
+#	   define xesam_g_debug(...)	G_STMT_START{ (void)0; }G_STMT_END
 #	   define xesam_g_debug_object(object, ...)    G_STMT_START{ (void)0; }G_STMT_END
 #   elif defined(G_HAVE_GNUC_VARARGS)
 #	   define xesam_g_debug(format...)     G_STMT_START{ (void)0; }G_STMT_END

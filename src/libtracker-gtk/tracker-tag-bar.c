@@ -101,9 +101,9 @@ _keywords_reply (char **array, GError *error, TrackerTagBar *bar)
 }
 
 static gboolean
-_on_tag_button_press_event (GtkWidget 			*button,
+_on_tag_button_press_event (GtkWidget			*button,
 			    GdkEventButton		*event,
-			    TrackerTagBar 		*bar)
+			    TrackerTagBar		*bar)
 {
 	TrackerTagBarPrivate *priv;
 	GtkWidget *label;
@@ -304,7 +304,7 @@ _tag_bar_add_tag (TrackerTagBar *bar, GtkWidget *box, const char *tag)
 
 	tracker_set_atk_relationship(button, ATK_RELATION_LABELLED_BY,
 				     label);
-        tracker_set_atk_relationship(label, ATK_RELATION_LABEL_FOR,
+	tracker_set_atk_relationship(label, ATK_RELATION_LABEL_FOR,
 				     button);
 
 	g_signal_connect (G_OBJECT (button), "button-press-event",
@@ -377,9 +377,9 @@ tracker_tag_bar_init (TrackerTagBar *tag_bar)
 	gtk_button_set_image (GTK_BUTTON (button), image);
 	gtk_button_set_relief (GTK_BUTTON (button), GTK_RELIEF_NONE);
 
-        tracker_set_atk_relationship(button, ATK_RELATION_LABELLED_BY,
+	tracker_set_atk_relationship(button, ATK_RELATION_LABELLED_BY,
 				     label);
-        tracker_set_atk_relationship(label, ATK_RELATION_LABEL_FOR,
+	tracker_set_atk_relationship(label, ATK_RELATION_LABEL_FOR,
 				     button);
 
 	g_signal_connect (G_OBJECT (button), "clicked",
@@ -421,9 +421,9 @@ tracker_tag_bar_new (void)
 	TrackerTagBarPrivate *priv;
 
 	tag_bar = g_object_new (TRACKER_TYPE_TAG_BAR,
-			        "homogeneous", FALSE,
-			        "spacing", 0 ,
-			        NULL);
+				"homogeneous", FALSE,
+				"spacing", 0 ,
+				NULL);
 	priv = TRACKER_TAG_BAR_GET_PRIVATE (tag_bar);
 
 	client = tracker_connect (TRUE);

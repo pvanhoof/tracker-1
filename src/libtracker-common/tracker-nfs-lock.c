@@ -61,7 +61,7 @@ get_mtime (const gchar *filename)
 static gboolean
 is_initialized (void)
 {
-        return lock_filename != NULL || tmp_dir != NULL;
+	return lock_filename != NULL || tmp_dir != NULL;
 }
 
 /* Serialises db access via a lock file for safe use on (lock broken)
@@ -72,25 +72,25 @@ tracker_nfs_lock_obtain (void)
 {
 	gchar *filename;
 	gint   attempt;
-        gint   fd;
+	gint   fd;
 
 	if (!use_nfs_safe_locking) {
 		return TRUE;
 	}
 
-        if (!is_initialized()) {
-                g_critical ("Could not initialize NFS lock");
-                return FALSE;
-        }
+	if (!is_initialized()) {
+		g_critical ("Could not initialize NFS lock");
+		return FALSE;
+	}
 
 	filename = g_strdup_printf ("%s_%s.lock",
-                                    tmp_dir,
-                                    g_get_user_name ());
+				    tmp_dir,
+				    g_get_user_name ());
 
 	for (attempt = 0; attempt < 10000; ++attempt) {
 		/* Delete existing lock file if older than 5 mins */
 		if (g_file_test (lock_filename, G_FILE_TEST_EXISTS) &&
-                    time ((time_t *) - get_mtime (lock_filename)) > 300) {
+		    time ((time_t *) - get_mtime (lock_filename)) > 300) {
 			g_unlink (lock_filename);
 		}
 
@@ -98,9 +98,9 @@ tracker_nfs_lock_obtain (void)
 
 		if (fd >= 0) {
 			/* Create host specific file and link to lock file */
-                        if (link (lock_filename, filename) == -1) {
-                                goto error;
-                        }
+			if (link (lock_filename, filename) == -1) {
+				goto error;
+			}
 
 			/* For atomic NFS-safe locks, stat links = 2
 			 * if file locked. If greater than 2 then we
@@ -134,10 +134,10 @@ tracker_nfs_lock_release (void)
 		return;
 	}
 
-        if (!is_initialized ()) {
-                g_critical ("Could not initialize NFS lock");
-                return;
-        }
+	if (!is_initialized ()) {
+		g_critical ("Could not initialize NFS lock");
+		return;
+	}
 
 	filename = g_strdup_printf ("%s_%s.lock",
 				    tmp_dir,
@@ -152,46 +152,46 @@ tracker_nfs_lock_release (void)
 void
 tracker_nfs_lock_init (gboolean nfs)
 {
-        if (is_initialized ()) {
+	if (is_initialized ()) {
 		return;
-        }
+	}
 
 	use_nfs_safe_locking = nfs;
 
-        if (lock_filename == NULL) {
-                lock_filename = g_build_filename (g_get_user_data_dir (),
+	if (lock_filename == NULL) {
+		lock_filename = g_build_filename (g_get_user_data_dir (),
 						  "tracker",
 						  "tracker.lock",
 						  NULL);
-        }
+	}
 
-        if (tmp_dir == NULL) {
-                tmp_dir = g_build_filename (g_get_user_data_dir (),
+	if (tmp_dir == NULL) {
+		tmp_dir = g_build_filename (g_get_user_data_dir (),
 					    "tracker",
 					    g_get_host_name (),
 					    NULL);
-        }
+	}
 
-        g_message ("NFS lock initialized %s",
+	g_message ("NFS lock initialized %s",
 		   use_nfs_safe_locking ? "" : "(safe locking not in use)");
 }
 
 void
 tracker_nfs_lock_shutdown (void)
 {
-        if (!is_initialized ()) {
+	if (!is_initialized ()) {
 		return;
-        }
+	}
 
-        if (lock_filename) {
-                g_free (lock_filename);
+	if (lock_filename) {
+		g_free (lock_filename);
 		lock_filename = NULL;
-        }
+	}
 
-        if (tmp_dir) {
-                g_free (tmp_dir);
+	if (tmp_dir) {
+		g_free (tmp_dir);
 		tmp_dir = NULL;
-        }
+	}
 
-        g_message ("NFS lock finalized");
+	g_message ("NFS lock finalized");
 }

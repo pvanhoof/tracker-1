@@ -28,20 +28,20 @@
 
 #include "tracker-processor.h"
 
-#define TRACKER_DAEMON_SERVICE         "org.freedesktop.Tracker"
-#define TRACKER_DAEMON_PATH            "/org/freedesktop/Tracker"
+#define TRACKER_DAEMON_SERVICE	       "org.freedesktop.Tracker"
+#define TRACKER_DAEMON_PATH	       "/org/freedesktop/Tracker"
 #define TRACKER_DAEMON_INTERFACE       "org.freedesktop.Tracker"
 
 G_BEGIN_DECLS
 
-#define TRACKER_TYPE_DAEMON            (tracker_daemon_get_type ())
-#define TRACKER_DAEMON(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), TRACKER_TYPE_DAEMON, TrackerDaemon))
+#define TRACKER_TYPE_DAEMON	       (tracker_daemon_get_type ())
+#define TRACKER_DAEMON(object)	       (G_TYPE_CHECK_INSTANCE_CAST ((object), TRACKER_TYPE_DAEMON, TrackerDaemon))
 #define TRACKER_DAEMON_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), TRACKER_TYPE_DBUS_DAEMON, TrackerDaemonClass))
 #define TRACKER_IS_DAEMON(object)      (G_TYPE_CHECK_INSTANCE_TYPE ((object), TRACKER_TYPE_DAEMON))
 #define TRACKER_IS_DAEMON_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), TRACKER_TYPE_DAEMON))
 #define TRACKER_DAEMON_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), TRACKER_TYPE_DAEMON, TrackerDaemonClass))
 
-typedef struct TrackerDaemon      TrackerDaemon;
+typedef struct TrackerDaemon	  TrackerDaemon;
 typedef struct TrackerDaemonClass TrackerDaemonClass;
 
 struct TrackerDaemon {
@@ -52,37 +52,37 @@ struct TrackerDaemonClass {
 	GObjectClass parent;
 };
 
-GType          tracker_daemon_get_type             (void);
-TrackerDaemon *tracker_daemon_new                  (TrackerConfig         *config,
-						    TrackerProcessor      *processor);
-void           tracker_daemon_get_version          (TrackerDaemon         *object,
+GType	       tracker_daemon_get_type		   (void);
+TrackerDaemon *tracker_daemon_new		   (TrackerConfig	  *config,
+						    TrackerProcessor	  *processor);
+void	       tracker_daemon_get_version	   (TrackerDaemon	  *object,
 						    DBusGMethodInvocation *context,
 						    GError **error);
-void           tracker_daemon_get_status           (TrackerDaemon         *object,
+void	       tracker_daemon_get_status	   (TrackerDaemon	  *object,
 						    DBusGMethodInvocation *context,
 						    GError **error);
-void           tracker_daemon_get_services         (TrackerDaemon         *object,
-						    gboolean               main_services_only,
+void	       tracker_daemon_get_services	   (TrackerDaemon	  *object,
+						    gboolean		   main_services_only,
 						    DBusGMethodInvocation *context,
 						    GError **error);
-void           tracker_daemon_get_stats            (TrackerDaemon         *object,
+void	       tracker_daemon_get_stats		   (TrackerDaemon	  *object,
 						    DBusGMethodInvocation *context,
 						    GError **error);
-void           tracker_daemon_set_bool_option      (TrackerDaemon         *object,
-						    const gchar           *option,
-						    gboolean               value,
+void	       tracker_daemon_set_bool_option	   (TrackerDaemon	  *object,
+						    const gchar		  *option,
+						    gboolean		   value,
 						    DBusGMethodInvocation *context,
 						    GError **error);
-void           tracker_daemon_set_int_option       (TrackerDaemon         *object,
-						    const gchar           *option,
-						    gint                   value,
+void	       tracker_daemon_set_int_option	   (TrackerDaemon	  *object,
+						    const gchar		  *option,
+						    gint		   value,
 						    DBusGMethodInvocation *context,
 						    GError **error);
-void           tracker_daemon_shutdown             (TrackerDaemon         *object,
-						    gboolean               reindex,
+void	       tracker_daemon_shutdown		   (TrackerDaemon	  *object,
+						    gboolean		   reindex,
 						    DBusGMethodInvocation *context,
 						    GError **error);
-void           tracker_daemon_prompt_index_signals (TrackerDaemon         *object,
+void	       tracker_daemon_prompt_index_signals (TrackerDaemon	  *object,
 						    DBusGMethodInvocation *context,
 						    GError **error);
 

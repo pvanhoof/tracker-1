@@ -54,9 +54,9 @@ GtkWidget *tracker_tag_bar_new (void);
 uri has to be a local uri i.e.
 '/home/john/doe.mp3' not 'file:///home/john/doe.mp3'
 */
-void 	   tracker_tag_bar_set_uri (TrackerTagBar 		*bar,
+void	   tracker_tag_bar_set_uri (TrackerTagBar		*bar,
 				    ServiceType			type,
-				    const gchar 		*uri
+				    const gchar			*uri
 				   );
 
 GType tracker_tag_bar_get_type (void);

@@ -31,34 +31,34 @@
 
 #include <libtracker/tracker.h>
 
-static gint           limit = 512;
-static gint           offset;
-static gchar        **terms;
-static gchar         *service;
+static gint	      limit = 512;
+static gint	      offset;
+static gchar	    **terms;
+static gchar	     *service;
 static gboolean       detailed;
 
 static GOptionEntry   entries[] = {
 	{ "service", 's', 0, G_OPTION_ARG_STRING, &service,
-          N_("Search from a specific service"),
-          NULL
-        },
+	  N_("Search from a specific service"),
+	  NULL
+	},
 	{ "limit", 'l', 0, G_OPTION_ARG_INT, &limit,
-          N_("Limit the number of results shown"),
-          N_("512")
-        },
+	  N_("Limit the number of results shown"),
+	  N_("512")
+	},
 	{ "offset", 'o', 0, G_OPTION_ARG_INT, &offset,
-          N_("Offset the results"),
-          N_("0")
-        },
+	  N_("Offset the results"),
+	  N_("0")
+	},
 	{ "detailed", 'd', 0, G_OPTION_ARG_NONE, &detailed,
-          N_("Show more detailed results with service and mime type"),
-          NULL
-        },
+	  N_("Show more detailed results with service and mime type"),
+	  NULL
+	},
 	{ G_OPTION_REMAINING, 0, 0,
-          G_OPTION_ARG_STRING_ARRAY, &terms,
-          N_("search terms"),
-          NULL
-        },
+	  G_OPTION_ARG_STRING_ARRAY, &terms,
+	  N_("search terms"),
+	  NULL
+	},
 	{ NULL }
 };
 
@@ -68,26 +68,26 @@ get_meta_table_data (gpointer value)
 	gchar **meta;
 	gchar **p;
 	gchar  *str;
-	gint    i;
+	gint	i;
 
 	meta = value;
 
 	for (p = meta, i = 0; *p; p++, i++) {
-                switch (i) {
-                case 0:
+		switch (i) {
+		case 0:
 			str = g_filename_from_utf8 (*p, -1, NULL, NULL, NULL);
-                        g_print ("  %s:'%s'", _("Path"), str);
+			g_print ("  %s:'%s'", _("Path"), str);
 			g_free (str);
-                        break;
-                case 1:
+			break;
+		case 1:
 			g_print (", %s:'%s'", _("Service"), *p);
-                        break;
-                case 2:
+			break;
+		case 2:
 			g_print (", %s:'%s'", _("MIME-type"), *p);
-                        break;
-                default:
-                        break;
-                }
+			break;
+		default:
+			break;
+		}
 	}
 
 	g_print ("\n");
@@ -96,68 +96,68 @@ get_meta_table_data (gpointer value)
 int
 main (int argc, char **argv)
 {
-	TrackerClient   *client;
-	ServiceType      type;
-	GOptionContext  *context;
-	GError          *error = NULL;
-	gchar           *search;
-	gchar           *summary;
-	gchar          **strv;
-	gchar          **p;
-	GPtrArray       *array;
+	TrackerClient	*client;
+	ServiceType	 type;
+	GOptionContext	*context;
+	GError		*error = NULL;
+	gchar		*search;
+	gchar		*summary;
+	gchar	       **strv;
+	gchar	       **p;
+	GPtrArray	*array;
 
 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
 	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
 	textdomain (GETTEXT_PACKAGE);
 
-	/* Translators: this messagge will apper immediately after the  */
-        /* usage string - Usage: COMMAND [OPTION]... <THIS_MESSAGE>     */
+	/* Translators: this messagge will apper immediately after the	*/
+	/* usage string - Usage: COMMAND [OPTION]... <THIS_MESSAGE>	*/
 	context = g_option_context_new (_("- Search files for certain terms"));
 
 	/* Translators: this message will appear after the usage string */
-        /* and before the list of options.                              */
+	/* and before the list of options.				*/
 	summary = g_strconcat (_("Specifying multiple terms apply an AND "
-                                 "operator to the search performed"),
-                               "\n",
-                               _("This means if you search for 'foo' and 'bar', "
-                                 "they must BOTH exist"),
-                               "\n",
-                               "\n",
+				 "operator to the search performed"),
+			       "\n",
+			       _("This means if you search for 'foo' and 'bar', "
+				 "they must BOTH exist"),
+			       "\n",
+			       "\n",
 			       _("Recognized services include:"),
 			       "\n"
-                               "\n",
-                               "  Documents\n"
-                               "  Emails\n"
-                               "  EmailAttachments\n"
-                               "  Music\n"
-                               "  Images\n"
-                               "  Videos\n"
-                               "  Text\n"
-                               "  Development\n"
-                               "  Applications\n"
-                               "  Conversations\n"
-                               "  Folders\n"
-                               "  Files",
+			       "\n",
+			       "  Documents\n"
+			       "  Emails\n"
+			       "  EmailAttachments\n"
+			       "  Music\n"
+			       "  Images\n"
+			       "  Videos\n"
+			       "  Text\n"
+			       "  Development\n"
+			       "  Applications\n"
+			       "  Conversations\n"
+			       "  Folders\n"
+			       "  Files",
 			       NULL);
-        g_option_context_set_summary (context, summary);
+	g_option_context_set_summary (context, summary);
 	g_option_context_add_main_entries (context, entries, NULL);
 	g_option_context_parse (context, &argc, &argv, NULL);
 
 	g_free (summary);
 
-        if (!terms) {
-                gchar *help;
+	if (!terms) {
+		gchar *help;
 
- 		g_printerr ("%s\n\n",
+		g_printerr ("%s\n\n",
 			    _("Search terms are missing"));
 
-                help = g_option_context_get_help (context, TRUE, NULL);
-                g_option_context_free (context);
-                g_printerr (help);
-                g_free (help);
+		help = g_option_context_get_help (context, TRUE, NULL);
+		g_option_context_free (context);
+		g_printerr (help);
+		g_free (help);
 
-                return EXIT_FAILURE;
-        }
+		return EXIT_FAILURE;
+	}
 
 	g_option_context_free (context);
 
@@ -171,10 +171,10 @@ main (int argc, char **argv)
 
 	if (limit <= 0) {
 		limit = 512;
-        }
+	}
 
 	if (!service) {
-                g_print ("%s\n",
+		g_print ("%s\n",
 			 _("Defaulting to 'files' service"));
 
 		type = SERVICE_FILES;
@@ -191,78 +191,78 @@ main (int argc, char **argv)
 
 	if (detailed) {
 		array = tracker_search_text_detailed (client,
-                                                      time (NULL),
-                                                      type,
-                                                      search,
-                                                      offset,
-                                                      limit,
-                                                      &error);
-                g_free (search);
+						      time (NULL),
+						      type,
+						      search,
+						      offset,
+						      limit,
+						      &error);
+		g_free (search);
 
-                if (error) {
-                        g_printerr ("%s, %s\n",
+		if (error) {
+			g_printerr ("%s, %s\n",
 				    _("Could not get find detailed results by text"),
 				    error->message);
 
-                        g_error_free (error);
-                        tracker_disconnect (client);
+			g_error_free (error);
+			tracker_disconnect (client);
 
-                        return EXIT_FAILURE;
-                }
+			return EXIT_FAILURE;
+		}
 
-                if (!array) {
-                        g_print ("%s\n",
+		if (!array) {
+			g_print ("%s\n",
 				 _("No results found matching your query"));
-                } else {
-                        g_print ("%s\n",
+		} else {
+			g_print ("%s\n",
 				 _("Results:"));
 
-                        g_ptr_array_foreach (array, (GFunc) get_meta_table_data, NULL);
-                        g_ptr_array_free (array, TRUE);
-                }
+			g_ptr_array_foreach (array, (GFunc) get_meta_table_data, NULL);
+			g_ptr_array_free (array, TRUE);
+		}
 	} else {
 		strv = tracker_search_text (client,
-                                            time (NULL),
-                                            type,
-                                            search,
-                                            offset,
-                                            limit,
-                                            &error);
-                g_free (search);
+					    time (NULL),
+					    type,
+					    search,
+					    offset,
+					    limit,
+					    &error);
+		g_free (search);
 
-                if (error) {
-                        g_printerr ("%s, %s\n",
+		if (error) {
+			g_printerr ("%s, %s\n",
 				    _("Could not get find results by text"),
 				    error->message);
 
-                        g_error_free (error);
-                        tracker_disconnect (client);
+			g_error_free (error);
+			tracker_disconnect (client);
 
-                        return EXIT_FAILURE;
-                }
+			return EXIT_FAILURE;
+		}
 
-                if (!strv) {
-                        g_print ("%s\n",
+		if (!strv) {
+			g_print ("%s\n",
 				 _("No results found matching your query"));
-                } else {
+		} else {
 			g_print ("%s:\n",
 				 _("Results"));
 
-                        for (p = strv; *p; p++) {
-                                gchar *s;
+			for (p = strv; *p; p++) {
+				gchar *s;
 
-                                s = g_locale_from_utf8 (*p, -1, NULL, NULL, NULL);
+				s = g_locale_from_utf8 (*p, -1, NULL, NULL, NULL);
 
-                                if (!s) {
-                                        continue;
-                                }
+				if (!s) {
+					continue;
+				}
 
-                                g_print ("  %s\n", s);
-                                g_free (s);
-                        }
+				g_print ("  %s\n", s);
+				g_free (s);
+			}
 
-                        g_free (strv);
-                }
+			g_free (strv);
+		}
 	}
 
 	tracker_disconnect (client);

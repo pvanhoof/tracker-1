@@ -38,10 +38,10 @@ extern "C" {
 #define ICON_SIZE 40
 #define ICON_THEME_EXECUTABLE_ICON "application-x-executable"
 #define ICON_THEME_REGULAR_ICON    "gnome-fs-regular"
-#define ICON_THEME_CHAR_DEVICE     "gnome-fs-chardev"
+#define ICON_THEME_CHAR_DEVICE	   "gnome-fs-chardev"
 #define ICON_THEME_BLOCK_DEVICE    "gnome-fs-blockdev"
-#define ICON_THEME_SOCKET          "gnome-fs-socket"
-#define ICON_THEME_FIFO            "gnome-fs-fifo"
+#define ICON_THEME_SOCKET	   "gnome-fs-socket"
+#define ICON_THEME_FIFO		   "gnome-fs-fifo"
 
 
 gboolean
@@ -176,8 +176,8 @@ tracker_search_get_stored_window_geometry (gint * width,
 
 void
 tracker_set_atk_relationship (GtkWidget *obj1,
-                              int relation_type,
-                              GtkWidget *obj2);
+			      int relation_type,
+			      GtkWidget *obj2);
 
 #ifdef __cplusplus
 }

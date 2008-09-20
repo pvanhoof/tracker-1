@@ -31,12 +31,12 @@
 typedef struct _TrackerServicePriv TrackerServicePriv;
 
 struct _TrackerServicePriv {
-	gint           id;
+	gint	       id;
 
 	gchar	      *name;
 	gchar	      *parent;
 
-	gchar         *property_prefix;
+	gchar	      *property_prefix;
 	gchar	      *content_metadata;
 	GSList	      *key_metadata;
 
@@ -53,13 +53,13 @@ struct _TrackerServicePriv {
 	gboolean       show_service_directories;
 };
 
-static void service_finalize     (GObject      *object);
+static void service_finalize	 (GObject      *object);
 static void service_get_property (GObject      *object,
-				  guint         param_id,
+				  guint		param_id,
 				  GValue       *value,
 				  GParamSpec   *pspec);
 static void service_set_property (GObject      *object,
-				  guint         param_id,
+				  guint		param_id,
 				  const GValue *value,
 				  GParamSpec   *pspec);
 
@@ -134,7 +134,7 @@ tracker_service_class_init (TrackerServiceClass *klass)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-	object_class->finalize     = service_finalize;
+	object_class->finalize	   = service_finalize;
 	object_class->get_property = service_get_property;
 	object_class->set_property = service_set_property;
 
@@ -265,9 +265,9 @@ service_finalize (GObject *object)
 }
 
 static void
-service_get_property (GObject    *object,
-		      guint       param_id,
-		      GValue     *value,
+service_get_property (GObject	 *object,
+		      guint	  param_id,
+		      GValue	 *value,
 		      GParamSpec *pspec)
 {
 	TrackerServicePriv *priv;
@@ -324,8 +324,8 @@ service_get_property (GObject    *object,
 }
 
 static void
-service_set_property (GObject      *object,
-		      guint         param_id,
+service_set_property (GObject	   *object,
+		      guint	    param_id,
 		      const GValue *value,
 		      GParamSpec   *pspec)
 {
@@ -600,7 +600,7 @@ tracker_service_get_show_service_directories (TrackerService *service)
 
 void
 tracker_service_set_id (TrackerService *service,
-			gint	        value)
+			gint		value)
 {
 	TrackerServicePriv *priv;
 
@@ -618,7 +618,7 @@ tracker_service_set_id (TrackerService *service,
 
 void
 tracker_service_set_name (TrackerService *service,
-			  const gchar    *value)
+			  const gchar	 *value)
 {
 	TrackerServicePriv *priv;
 
@@ -702,7 +702,7 @@ tracker_service_set_content_metadata (TrackerService *service,
 
 void
 tracker_service_set_key_metadata (TrackerService *service,
-				  const GSList   *value)
+				  const GSList	 *value)
 {
 	TrackerServicePriv *priv;
 
@@ -714,7 +714,7 @@ tracker_service_set_key_metadata (TrackerService *service,
 	g_slist_free (priv->key_metadata);
 
 	if (value) {
-		GSList       *new_list;
+		GSList	     *new_list;
 		const GSList *l;
 
 		new_list = NULL;
@@ -748,7 +748,7 @@ tracker_service_set_db_type (TrackerService *service,
 
 void
 tracker_service_set_enabled (TrackerService *service,
-			     gboolean        value)
+			     gboolean	     value)
 {
 	TrackerServicePriv *priv;
 
@@ -762,7 +762,7 @@ tracker_service_set_enabled (TrackerService *service,
 
 void
 tracker_service_set_embedded (TrackerService *service,
-			      gboolean        value)
+			      gboolean	      value)
 {
 	TrackerServicePriv *priv;
 
@@ -776,7 +776,7 @@ tracker_service_set_embedded (TrackerService *service,
 
 void
 tracker_service_set_has_metadata (TrackerService *service,
-				  gboolean        value)
+				  gboolean	  value)
 {
 	TrackerServicePriv *priv;
 
@@ -790,7 +790,7 @@ tracker_service_set_has_metadata (TrackerService *service,
 
 void
 tracker_service_set_has_full_text (TrackerService *service,
-				   gboolean        value)
+				   gboolean	   value)
 {
 	TrackerServicePriv *priv;
 
@@ -804,7 +804,7 @@ tracker_service_set_has_full_text (TrackerService *service,
 
 void
 tracker_service_set_has_thumbs (TrackerService *service,
-				gboolean        value)
+				gboolean	value)
 {
 	TrackerServicePriv *priv;
 
@@ -818,7 +818,7 @@ tracker_service_set_has_thumbs (TrackerService *service,
 
 void
 tracker_service_set_show_service_files (TrackerService *service,
-					gboolean        value)
+					gboolean	value)
 {
 	TrackerServicePriv *priv;
 
@@ -832,7 +832,7 @@ tracker_service_set_show_service_files (TrackerService *service,
 
 void
 tracker_service_set_show_service_directories (TrackerService *service,
-					      gboolean        value)
+					      gboolean	      value)
 {
 	TrackerServicePriv *priv;
 

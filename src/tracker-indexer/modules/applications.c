@@ -23,24 +23,24 @@
 #include <tracker-indexer/tracker-metadata.h>
 
 #define GROUP_DESKTOP_ENTRY "Desktop Entry"
-#define KEY_TYPE            "Type"
-#define KEY_HIDDEN          "Hidden"
-#define KEY_NAME            "Name"
+#define KEY_TYPE	    "Type"
+#define KEY_HIDDEN	    "Hidden"
+#define KEY_NAME	    "Name"
 #define KEY_GENERIC_NAME    "GenericName"
-#define KEY_COMMENT         "Comment"
-#define KEY_EXECUTABLE      "Exec"
-#define KEY_ICON            "Icon"
-#define KEY_MIMETYPE        "MimeType"
-#define KEY_CATEGORIES      "Categories"
+#define KEY_COMMENT	    "Comment"
+#define KEY_EXECUTABLE	    "Exec"
+#define KEY_ICON	    "Icon"
+#define KEY_MIMETYPE	    "MimeType"
+#define KEY_CATEGORIES	    "Categories"
 
-#define METADATA_FILE_NAME        "File:Name"
-#define METADATA_APP_NAME         "App:Name"
+#define METADATA_FILE_NAME	  "File:Name"
+#define METADATA_APP_NAME	  "App:Name"
 #define METADATA_APP_DISPLAY_NAME "App:DisplayName"
 #define METADATA_APP_GENERIC_NAME "App:GenericName"
-#define METADATA_APP_COMMENT      "App:Comment"
+#define METADATA_APP_COMMENT	  "App:Comment"
 #define METADATA_APP_EXECUTABLE   "App:Exec"
-#define METADATA_APP_ICON         "App:Icon"
-#define METADATA_APP_MIMETYPE     "App:MimeType"
+#define METADATA_APP_ICON	  "App:Icon"
+#define METADATA_APP_MIMETYPE	  "App:MimeType"
 #define METADATA_APP_CATEGORIES   "App:Categories"
 
 G_CONST_RETURN gchar *
@@ -55,7 +55,7 @@ insert_data_from_desktop_file (TrackerMetadata *metadata,
 			       const gchar     *metadata_key,
 			       GKeyFile        *desktop_file,
 			       const gchar     *key,
-			       gboolean         use_locale)
+			       gboolean		use_locale)
 {
 	gchar *str;
 
@@ -66,44 +66,44 @@ insert_data_from_desktop_file (TrackerMetadata *metadata,
 	}
 
 	if (str) {
-                tracker_metadata_insert (metadata, metadata_key, str);
+		tracker_metadata_insert (metadata, metadata_key, str);
 	}
 }
 
 static void
 insert_list_from_desktop_file (TrackerMetadata *metadata,
-                               const gchar     *metadata_key,
-                               GKeyFile        *desktop_file,
-                               const gchar     *key,
-                               gboolean         use_locale)
+			       const gchar     *metadata_key,
+			       GKeyFile        *desktop_file,
+			       const gchar     *key,
+			       gboolean		use_locale)
 {
-        gchar **arr;
+	gchar **arr;
 
-        if (use_locale) {
-                arr = g_key_file_get_locale_string_list (desktop_file, GROUP_DESKTOP_ENTRY, key, NULL, NULL, NULL);
-        } else {
-                arr = g_key_file_get_string_list (desktop_file, GROUP_DESKTOP_ENTRY, key, NULL, NULL);
-        }
+	if (use_locale) {
+		arr = g_key_file_get_locale_string_list (desktop_file, GROUP_DESKTOP_ENTRY, key, NULL, NULL, NULL);
+	} else {
+		arr = g_key_file_get_string_list (desktop_file, GROUP_DESKTOP_ENTRY, key, NULL, NULL);
+	}
 
-        if (arr) {
-                GList *list = NULL;
-                gint i;
+	if (arr) {
+		GList *list = NULL;
+		gint i;
 
-                for (i = 0; arr[i]; i++) {
-                        list = g_list_prepend (list, arr[i]);
-                }
+		for (i = 0; arr[i]; i++) {
+			list = g_list_prepend (list, arr[i]);
+		}
 
-                list = g_list_reverse (list);
-                g_free (arr);
+		list = g_list_reverse (list);
+		g_free (arr);
 
-                tracker_metadata_insert_multiple_values (metadata, metadata_key, list);
-        }
+		tracker_metadata_insert_multiple_values (metadata, metadata_key, list);
+	}
 }
 
 TrackerMetadata *
 tracker_module_file_get_metadata (TrackerFile *file)
 {
-        TrackerMetadata *metadata;
+	TrackerMetadata *metadata;
 	GKeyFile *key_file;
 	gchar *type, *filename;
 
@@ -133,7 +133,7 @@ tracker_module_file_get_metadata (TrackerFile *file)
 	}
 
 	/* Begin collecting data */
-        metadata = tracker_metadata_new ();
+	metadata = tracker_metadata_new ();
 
 	insert_data_from_desktop_file (metadata, METADATA_APP_NAME, key_file, KEY_NAME, FALSE);
 	insert_data_from_desktop_file (metadata, METADATA_APP_DISPLAY_NAME, key_file, KEY_NAME, TRUE);
@@ -142,11 +142,11 @@ tracker_module_file_get_metadata (TrackerFile *file)
 	insert_data_from_desktop_file (metadata, METADATA_APP_EXECUTABLE, key_file, KEY_EXECUTABLE, FALSE);
 	insert_data_from_desktop_file (metadata, METADATA_APP_ICON, key_file, KEY_ICON, FALSE);
 
-        insert_list_from_desktop_file (metadata, METADATA_APP_MIMETYPE, key_file, KEY_MIMETYPE, FALSE);
-        insert_list_from_desktop_file (metadata, METADATA_APP_CATEGORIES, key_file, KEY_CATEGORIES, FALSE);
+	insert_list_from_desktop_file (metadata, METADATA_APP_MIMETYPE, key_file, KEY_MIMETYPE, FALSE);
+	insert_list_from_desktop_file (metadata, METADATA_APP_CATEGORIES, key_file, KEY_CATEGORIES, FALSE);
 
 	filename = g_filename_display_basename (file->path);
-        tracker_metadata_insert (metadata, METADATA_FILE_NAME, filename);
+	tracker_metadata_insert (metadata, METADATA_FILE_NAME, filename);
 
 	g_key_file_free (key_file);
 	g_free (type);

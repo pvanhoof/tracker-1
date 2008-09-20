@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2008, Nokia (urho.konttori@nokia.com)
  *
  * This library is free software; you can redistribute it and/or
@@ -9,14 +9,14 @@
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public
  * License along with this library; if not, write to the
  * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301, USA. 
- */  
+ * Boston, MA  02110-1301, USA.
+ */
 #include <glib.h>
 #include <glib/gtestutils.h>
 
@@ -60,8 +60,8 @@ test_union_performance_xesam_view ()
 	result_set = tracker_db_interface_execute_query (iface, &error,
 		"SELECT M0.MetaDataValue "
 		"FROM XesamServicesView S "
-		"INNER JOIN XesamServiceMetaDataView M0 ON (S.ID = M0.ServiceID and " 
-		"M0.MetaDataID in (82)) WHERE (S.ServiceTypeID in (select TypeId from " 
+		"INNER JOIN XesamServiceMetaDataView M0 ON (S.ID = M0.ServiceID and "
+		"M0.MetaDataID in (82)) WHERE (S.ServiceTypeID in (select TypeId from "
 		"ServiceTypes where TypeName = 'Files' or Parent = 'Files')) AND "
 		" (  (M0.MetaDataValue like '%%test%%')  )");
 
@@ -98,8 +98,8 @@ test_union_performance_xesam_union ()
 	result_set = tracker_db_interface_execute_query (iface, &error,
 		"SELECT M0.MetaDataValue "
 		"FROM 'file-meta'.Services S "
-		"INNER JOIN 'file-meta'.ServiceMetaData M0 ON (S.ID = M0.ServiceID and " 
-		"M0.MetaDataID in (82)) WHERE (S.ServiceTypeID in (select TypeId from " 
+		"INNER JOIN 'file-meta'.ServiceMetaData M0 ON (S.ID = M0.ServiceID and "
+		"M0.MetaDataID in (82)) WHERE (S.ServiceTypeID in (select TypeId from "
 		"ServiceTypes where TypeName = 'Files' or Parent = 'Files')) AND "
 		" (  (M0.MetaDataValue like '%%test%%')  ) "
 
@@ -107,8 +107,8 @@ test_union_performance_xesam_union ()
 
 		"SELECT M0.MetaDataValue "
 		"FROM 'email-meta'.Services S "
-		"INNER JOIN 'email-meta'.ServiceMetaData M0 ON (S.ID = M0.ServiceID and " 
-		"M0.MetaDataID in (82)) WHERE (S.ServiceTypeID in (select TypeId from " 
+		"INNER JOIN 'email-meta'.ServiceMetaData M0 ON (S.ID = M0.ServiceID and "
+		"M0.MetaDataID in (82)) WHERE (S.ServiceTypeID in (select TypeId from "
 		"ServiceTypes where TypeName = 'Email' or Parent = 'Email')) AND "
 		" (  (M0.MetaDataValue like '%%test%%')  ) ");
 
@@ -123,7 +123,7 @@ test_union_performance_xesam_union ()
 
 
 int
-main (int argc, char **argv) 
+main (int argc, char **argv)
 {
 	int result;
 	gint first_time;
@@ -133,7 +133,7 @@ main (int argc, char **argv)
 	g_test_init (&argc, &argv, NULL);
 
 	/* Init */
-	tracker_db_manager_init (TRACKER_DB_MANAGER_FORCE_REINDEX, 
+	tracker_db_manager_init (TRACKER_DB_MANAGER_FORCE_REINDEX,
 							 &first_time);
 
 	g_test_add_func ("/libtracker-db/union-performance/xesam/view",

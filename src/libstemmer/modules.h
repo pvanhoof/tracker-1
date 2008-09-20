@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2001, Dr Martin Porter
  * All rights reserved.
  *
@@ -55,7 +55,7 @@ static struct stemmer_encoding encodings[] = {
 
 struct stemmer_modules {
   const char * name;
-  stemmer_encoding enc; 
+  stemmer_encoding enc;
   struct SN_env * (*create)(void);
   void (*close)(struct SN_env *);
   int (*stem)(struct SN_env *);
@@ -105,18 +105,18 @@ static struct stemmer_modules modules[] = {
   {0,0,0,0,0}
 };
 static const char * algorithm_names[] = {
-  "danish", 
-  "dutch", 
-  "english", 
-  "finnish", 
-  "french", 
-  "german", 
-  "italian", 
-  "norwegian", 
-  "porter", 
-  "portuguese", 
-  "russian", 
-  "spanish", 
-  "swedish", 
+  "danish",
+  "dutch",
+  "english",
+  "finnish",
+  "french",
+  "german",
+  "italian",
+  "norwegian",
+  "porter",
+  "portuguese",
+  "russian",
+  "spanish",
+  "swedish",
   0
 };

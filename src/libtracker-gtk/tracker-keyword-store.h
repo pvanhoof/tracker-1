@@ -1,7 +1,7 @@
 /* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 8; tab-width: 8 -*-
  *
- * tracker-gtk/keyword-store.h - A derived GtkListStore that maintians a 
- * DBus connection to tracker such that when a new keyword is created it 
+ * tracker-gtk/keyword-store.h - A derived GtkListStore that maintians a
+ * DBus connection to tracker such that when a new keyword is created it
  * is automatically inserted here.
  *
  * Copyright (C) 2007 John Stowers
@@ -70,14 +70,14 @@ GtkListStore *  tracker_keyword_store_new               (void);
 
 gboolean
 tracker_keyword_store_insert (GtkListStore 		*store,
-			      const char 		*keyword, 
+			      const char 		*keyword,
 			      const char 		*stock_id );
 
 GtkTreeIter *
 tracker_keyword_store_lookup (GtkListStore 		*store,
 			      const char 		*keyword);
 
-gboolean 
+gboolean
 tracker_keyword_store_remove (GtkListStore 		*store,
 			      const char 		*keyword);
 

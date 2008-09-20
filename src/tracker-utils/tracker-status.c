@@ -55,7 +55,7 @@ main (gint argc, gchar *argv[])
 
 	if (error) {
 		g_printerr ("%s, %s\n",
-                            _("Could not get Tracker status"), 
+                            _("Could not get Tracker status"),
 			    error->message);
 		g_error_free (error);
 

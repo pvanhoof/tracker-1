@@ -1141,7 +1141,7 @@ get_file_pixbuf (GSearchWindow * gsearch,
 
 	if (file == NULL || mime == NULL) {
 		icon_name = g_strdup (ICON_THEME_REGULAR_ICON);
-	} 
+	}
 
 	else if ((g_file_test (file, G_FILE_TEST_IS_EXECUTABLE)) &&
 	         (g_ascii_strcasecmp (mime, "application/x-executable-binary") == 0)) {
@@ -1162,7 +1162,7 @@ get_file_pixbuf (GSearchWindow * gsearch,
 
 		/* check for thumbnail first */
 		GdkPixbuf *thumbnail_pixbuf = tracker_search_get_thumbnail_image (file);
-		
+
 		if (thumbnail_pixbuf != NULL) {
 
 			if ((gdk_pixbuf_get_width (thumbnail_pixbuf) > ICON_SIZE) ||
@@ -1197,7 +1197,7 @@ get_file_pixbuf (GSearchWindow * gsearch,
 			} else {
 				return thumbnail_pixbuf;
 			}
-		
+
 		}
 
 		/* check if image can be generated from file */
@@ -1212,16 +1212,16 @@ get_file_pixbuf (GSearchWindow * gsearch,
 			icon_name = tracker_search_icon_lookup (gsearch, file, mime, file_info, TRUE);
 		}
 
-		
+
 	}
 
 	pixbuf = gtk_icon_theme_load_icon (gtk_icon_theme_get_default (), icon_name, ICON_SIZE, 0, NULL);
 
 	if (!pixbuf) {
-		gtk_icon_theme_load_icon (gtk_icon_theme_get_default (), ICON_THEME_REGULAR_ICON, ICON_SIZE, 0, NULL); 
+		gtk_icon_theme_load_icon (gtk_icon_theme_get_default (), ICON_THEME_REGULAR_ICON, ICON_SIZE, 0, NULL);
 	}
 
-		
+
 	g_free (icon_name);
 
 
@@ -1526,7 +1526,7 @@ tracker_get_stored_separator_position (void)
 		return DEFAULT_SEPARATOR_POSITION;
 	}
 
-	return saved_pos;	
+	return saved_pos;
 }
 
 void

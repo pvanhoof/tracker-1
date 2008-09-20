@@ -51,8 +51,8 @@ get_meta_table_data (gpointer value)
 	g_print ("\n");
 }
 
-int 
-main (int argc, char **argv) 
+int
+main (int argc, char **argv)
 {
 	TrackerClient  *client;
 	GOptionContext *context;
@@ -94,11 +94,11 @@ main (int argc, char **argv)
         } else {
                 g_print ("%s\n",
 			 _("Statistics:"));
-                
+
                 g_ptr_array_foreach (array, (GFunc) get_meta_table_data, NULL);
                 g_ptr_array_free (array, TRUE);
         }
-        
+
 	tracker_disconnect (client);
 
 	return EXIT_SUCCESS;

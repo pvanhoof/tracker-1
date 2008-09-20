@@ -42,21 +42,21 @@ static GOptionEntry   entries[] = {
           N_("Search from a specific service"),
           NULL
         },
-	{ "limit", 'l', 0, G_OPTION_ARG_INT, &limit, 
-          N_("Limit the number of results shown"), 
+	{ "limit", 'l', 0, G_OPTION_ARG_INT, &limit,
+          N_("Limit the number of results shown"),
           N_("512")
         },
-	{ "offset", 'o', 0, G_OPTION_ARG_INT, &offset, 
-          N_("Offset the results"), 
-          N_("0") 
+	{ "offset", 'o', 0, G_OPTION_ARG_INT, &offset,
+          N_("Offset the results"),
+          N_("0")
         },
-	{ "detailed", 'd', 0, G_OPTION_ARG_NONE, &detailed, 
-          N_("Show more detailed results with service and mime type"), 
+	{ "detailed", 'd', 0, G_OPTION_ARG_NONE, &detailed,
+          N_("Show more detailed results with service and mime type"),
           NULL
         },
-	{ G_OPTION_REMAINING, 0, 0, 
-          G_OPTION_ARG_STRING_ARRAY, &terms, 
-          N_("search terms"), 
+	{ G_OPTION_REMAINING, 0, 0,
+          G_OPTION_ARG_STRING_ARRAY, &terms,
+          N_("search terms"),
           NULL
         },
 	{ NULL }
@@ -94,7 +94,7 @@ get_meta_table_data (gpointer value)
 }
 
 int
-main (int argc, char **argv) 
+main (int argc, char **argv)
 {
 	TrackerClient   *client;
 	ServiceType      type;
@@ -190,12 +190,12 @@ main (int argc, char **argv)
 	search = g_strjoinv (" ", terms);
 
 	if (detailed) {
-		array = tracker_search_text_detailed (client, 
-                                                      time (NULL), 
-                                                      type, 
-                                                      search, 
-                                                      offset, 
-                                                      limit, 
+		array = tracker_search_text_detailed (client,
+                                                      time (NULL),
+                                                      type,
+                                                      search,
+                                                      offset,
+                                                      limit,
                                                       &error);
                 g_free (search);
 
@@ -221,12 +221,12 @@ main (int argc, char **argv)
                         g_ptr_array_free (array, TRUE);
                 }
 	} else {
-		strv = tracker_search_text (client, 
-                                            time (NULL), 
-                                            type, 
-                                            search, 
-                                            offset, 
-                                            limit, 
+		strv = tracker_search_text (client,
+                                            time (NULL),
+                                            type,
+                                            search,
+                                            offset,
+                                            limit,
                                             &error);
                 g_free (search);
 
@@ -250,13 +250,13 @@ main (int argc, char **argv)
 
                         for (p = strv; *p; p++) {
                                 gchar *s;
-                                
+
                                 s = g_locale_from_utf8 (*p, -1, NULL, NULL, NULL);
-                                
+
                                 if (!s) {
                                         continue;
                                 }
-                                
+
                                 g_print ("  %s\n", s);
                                 g_free (s);
                         }
@@ -264,8 +264,8 @@ main (int argc, char **argv)
                         g_free (strv);
                 }
 	}
-	
+
 	tracker_disconnect (client);
 
-	return EXIT_SUCCESS;        
+	return EXIT_SUCCESS;
 }

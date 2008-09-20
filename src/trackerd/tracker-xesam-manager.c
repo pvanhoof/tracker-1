@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2008, Nokia
  * Authors: Philip Van Hoof (pvanhoof@gnome.org)
  *
@@ -10,14 +10,14 @@
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public
  * License along with this library; if not, write to the
  * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301, USA. 
- */ 
+ * Boston, MA  02110-1301, USA.
+ */
 
 #include "config.h"
 
@@ -35,7 +35,7 @@
 
 static gboolean            initialized;
 static TrackerDBInterface *xesam_db_iface;
-static GHashTable         *xesam_sessions; 
+static GHashTable         *xesam_sessions;
 static gchar              *xesam_dir;
 static gboolean            indexing_finished;
 static guint               live_search_handler_id;
@@ -91,7 +91,7 @@ tracker_xesam_manager_error_quark (void)
 	return quark;
 }
 
-void 
+void
 tracker_xesam_manager_init (void)
 {
 	DBusGProxy *proxy;
@@ -101,9 +101,9 @@ tracker_xesam_manager_init (void)
 	}
 
 	/* Set up sessions hash table */
-	xesam_sessions = g_hash_table_new_full (g_str_hash, 
-						g_str_equal, 
-						(GDestroyNotify) g_free, 
+	xesam_sessions = g_hash_table_new_full (g_str_hash,
+						g_str_equal,
+						(GDestroyNotify) g_free,
 						(GDestroyNotify) g_object_unref);
 
 	/* Set up locations */
@@ -137,7 +137,7 @@ tracker_xesam_manager_init (void)
 	 * the indexer, we couldn't create the interface quickly
 	 * because the database is being used heavily by the indexer
 	 * already. It is best to do this initially to avoid that.
-	 */ 
+	 */
 	xesam_db_iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_XESAM_SERVICE);
 }
 
@@ -180,8 +180,8 @@ tracker_xesam_manager_shutdown (void)
 }
 
 TrackerXesamSession *
-tracker_xesam_manager_create_session (TrackerXesam  *xesam, 
-				      gchar        **session_id, 
+tracker_xesam_manager_create_session (TrackerXesam  *xesam,
+				      gchar        **session_id,
 				      GError       **error)
 {
 	TrackerXesamSession *session;
@@ -189,7 +189,7 @@ tracker_xesam_manager_create_session (TrackerXesam  *xesam,
 	session = tracker_xesam_session_new ();
 	tracker_xesam_session_set_id (session, tracker_xesam_manager_generate_unique_key ());
 
-	g_hash_table_insert (xesam_sessions, 
+	g_hash_table_insert (xesam_sessions,
 			     g_strdup (tracker_xesam_session_get_id (session)),
 			     g_object_ref (session));
 
@@ -200,15 +200,15 @@ tracker_xesam_manager_create_session (TrackerXesam  *xesam,
 	return session;
 }
 
-void 
-tracker_xesam_manager_close_session (const gchar  *session_id, 
+void
+tracker_xesam_manager_close_session (const gchar  *session_id,
 				     GError      **error)
 {
 	gpointer inst = g_hash_table_lookup (xesam_sessions, session_id);
 
 	if (!inst) {
-		g_set_error (error, 
-			     TRACKER_XESAM_ERROR_DOMAIN, 
+		g_set_error (error,
+			     TRACKER_XESAM_ERROR_DOMAIN,
 			     TRACKER_XESAM_ERROR_SESSION_ID_NOT_REGISTERED,
 			     "Session ID is not registered");
 	} else {
@@ -217,7 +217,7 @@ tracker_xesam_manager_close_session (const gchar  *session_id,
 }
 
 TrackerXesamSession *
-tracker_xesam_manager_get_session (const gchar  *session_id, 
+tracker_xesam_manager_get_session (const gchar  *session_id,
 				   GError      **error)
 {
 	TrackerXesamSession *session = g_hash_table_lookup (xesam_sessions, session_id);
@@ -226,7 +226,7 @@ tracker_xesam_manager_get_session (const gchar  *session_id,
 		g_object_ref (session);
 	} else {
 		g_set_error (error,
-			     TRACKER_XESAM_ERROR_DOMAIN, 
+			     TRACKER_XESAM_ERROR_DOMAIN,
 			     TRACKER_XESAM_ERROR_SESSION_ID_NOT_REGISTERED,
 			     "Session ID is not registered");
 	}
@@ -235,8 +235,8 @@ tracker_xesam_manager_get_session (const gchar  *session_id,
 }
 
 TrackerXesamSession *
-tracker_xesam_manager_get_session_for_search (const gchar             *search_id, 
-					      TrackerXesamLiveSearch **search_in, 
+tracker_xesam_manager_get_session_for_search (const gchar             *search_id,
+					      TrackerXesamLiveSearch **search_in,
 					      GError                 **error)
 {
 	TrackerXesamSession *session = NULL;
@@ -267,8 +267,8 @@ tracker_xesam_manager_get_session_for_search (const gchar             *search_id
 	g_list_free (sessions);
 
 	if (!session) {
-		g_set_error (error, 
-			     TRACKER_XESAM_ERROR_DOMAIN, 
+		g_set_error (error,
+			     TRACKER_XESAM_ERROR_DOMAIN,
 			     TRACKER_XESAM_ERROR_SEARCH_ID_NOT_REGISTERED,
 			     "Search ID is not registered");
 	}
@@ -277,7 +277,7 @@ tracker_xesam_manager_get_session_for_search (const gchar             *search_id
 }
 
 TrackerXesamLiveSearch *
-tracker_xesam_manager_get_live_search (const gchar  *search_id, 
+tracker_xesam_manager_get_live_search (const gchar  *search_id,
 				       GError      **error)
 {
 	TrackerXesamLiveSearch *search = NULL;
@@ -302,8 +302,8 @@ tracker_xesam_manager_get_live_search (const gchar  *search_id,
 	g_list_free (sessions);
 
 	if (!search) {
-		g_set_error (error, 
-			     TRACKER_XESAM_ERROR_DOMAIN, 
+		g_set_error (error,
+			     TRACKER_XESAM_ERROR_DOMAIN,
 			     TRACKER_XESAM_ERROR_SEARCH_ID_NOT_REGISTERED,
 			     "Search ID is not registered");
 	}
@@ -311,7 +311,7 @@ tracker_xesam_manager_get_live_search (const gchar  *search_id,
 	return search;
 }
 
-static gboolean 
+static gboolean
 live_search_handler (gpointer data)
 {
 	GList    *sessions;
@@ -322,7 +322,7 @@ live_search_handler (gpointer data)
 	while (sessions) {
 		GList *searches;
 
-		g_debug ("Session being handled, ID :%s", 
+		g_debug ("Session being handled, ID :%s",
 			 tracker_xesam_session_get_id (sessions->data));
 
 		searches = tracker_xesam_session_get_searches (sessions->data);
@@ -333,19 +333,19 @@ live_search_handler (gpointer data)
 			GArray                 *removed = NULL;
 			GArray                 *modified = NULL;
 
-			g_debug ("Search being handled, ID :%s", 
+			g_debug ("Search being handled, ID :%s",
 				 tracker_xesam_live_search_get_id (searches->data));
 
 			search = searches->data;
 
 			/* TODO: optimize by specifying what exactly got changed
-			 * during this event ping in the MatchWithEventsFlags 
+			 * during this event ping in the MatchWithEventsFlags
 			 being passed (second parameter) */
 
 			tracker_xesam_live_search_match_with_events (search,
 								     MATCH_WITH_EVENTS_ALL_FLAGS,
-								     &added, 
-								     &removed, 
+								     &added,
+								     &removed,
 								     &modified);
 
 			if (added && added->len > 0) {
@@ -390,24 +390,24 @@ live_search_handler (gpointer data)
 	return reason_to_live;
 }
 
-static void 
+static void
 live_search_handler_destroy (gpointer data)
 {
 	live_search_handler_id = 0;
 }
 
-void 
+void
 tracker_xesam_manager_wakeup (void)
 {
 	/* This happens each time a new event is created:
 	 *
 	 * We could do this in a thread too, in case blocking the
 	 * GMainLoop is not ideal (it's not, because during these
-	 * blocks of code, no DBus request handler can run).  
-	 * 
+	 * blocks of code, no DBus request handler can run).
+	 *
 	 * In case of a thread we could use usleep() and stop the
 	 * thread if we didn't get a wakeup-call nor we had items to
-	 * process this loop 
+	 * process this loop
 	 *
 	 * There are problems with this. Right now we WAIT until
 	 * after indexing has completed otherwise we are in a
@@ -423,7 +423,7 @@ tracker_xesam_manager_wakeup (void)
 	}
 
 	if (live_search_handler_id == 0) {
-		live_search_handler_id = 
+		live_search_handler_id =
 			g_timeout_add_full (G_PRIORITY_DEFAULT_IDLE,
 					    2000, /* 2 seconds */
 					    live_search_handler,
@@ -464,7 +464,7 @@ tracker_xesam_manager_generate_unique_key (void)
 }
 
 gboolean
-tracker_xesam_manager_is_uri_in_xesam_dir (const gchar *uri) 
+tracker_xesam_manager_is_uri_in_xesam_dir (const gchar *uri)
 {
 	g_return_val_if_fail (uri != NULL, FALSE);
 

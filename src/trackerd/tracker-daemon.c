@@ -141,7 +141,7 @@ tracker_daemon_class_init (TrackerDaemonClass *klass)
 }
 
 static void
-clean_last_stats (TrackerDaemonPrivate *priv) 
+clean_last_stats (TrackerDaemonPrivate *priv)
 {
 	if (priv->last_stats) {
 		g_ptr_array_foreach (priv->last_stats, (GFunc) g_strfreev, NULL);
@@ -171,7 +171,7 @@ indexer_finished_cb (DBusGProxy *proxy,
 
 	/* GetStats has asc in its query. Therefore we don't have to
 	 * lookup the in a to compare in b, just compare index based.
-	 * Maybe we want to change this nonetheless later? 
+	 * Maybe we want to change this nonetheless later?
 	 */
 	result_set = tracker_db_exec_proc (iface, "GetStats", 0);
 	new_stats = tracker_dbus_query_result_to_ptr_array (result_set);
@@ -320,7 +320,7 @@ tracker_daemon_new (TrackerConfig    *config,
 	return object;
 }
 
-static void 
+static void
 indexer_pause_cb (DBusGProxy *proxy,
 		  GError     *error,
 		  gpointer    user_data)
@@ -331,7 +331,7 @@ indexer_pause_cb (DBusGProxy *proxy,
 	}
 }
 
-static void 
+static void
 indexer_continue_cb (DBusGProxy *proxy,
 		     GError     *error,
 		     gpointer    user_data)
@@ -342,7 +342,7 @@ indexer_continue_cb (DBusGProxy *proxy,
 	}
 }
 
-static void 
+static void
 indexer_paused_cb (DBusGProxy *proxy,
 		   GError     *error,
 		   gpointer    user_data)
@@ -350,7 +350,7 @@ indexer_paused_cb (DBusGProxy *proxy,
 	g_message ("The indexer has paused");
 }
 
-static void 
+static void
 indexer_continued_cb (DBusGProxy *proxy,
 		      GError     *error,
 		      gpointer    user_data)
@@ -532,14 +532,14 @@ tracker_daemon_set_bool_option (TrackerDaemon          *object,
 		tracker_status_set_is_paused_manually (value);
 
 		if (value) {
-			org_freedesktop_Tracker_Indexer_pause_async (priv->indexer_proxy, 
-								     indexer_pause_cb, 
+			org_freedesktop_Tracker_Indexer_pause_async (priv->indexer_proxy,
+								     indexer_pause_cb,
 								     NULL);
 		} else {
 			/* Don't continue if we are paused from IO */
 			if (!tracker_status_get_is_paused_for_io ()) {
-				org_freedesktop_Tracker_Indexer_continue_async (priv->indexer_proxy, 
-										indexer_continue_cb, 
+				org_freedesktop_Tracker_Indexer_continue_async (priv->indexer_proxy,
+										indexer_continue_cb,
 										NULL);
 			}
 		}

@@ -39,7 +39,7 @@
 #define TEXT_SNIFF_SIZE 4096
 
 gint
-tracker_file_open (const gchar *uri, 
+tracker_file_open (const gchar *uri,
 		   gboolean     readahead)
 {
 	gint fd;
@@ -48,16 +48,16 @@ tracker_file_open (const gchar *uri,
 	fd = open (uri, O_RDONLY | O_NOATIME);
 
 	if (fd == -1) {
-		fd = open (uri, O_RDONLY); 
+		fd = open (uri, O_RDONLY);
 	}
 #else
-	fd = open (uri, O_RDONLY); 
+	fd = open (uri, O_RDONLY);
 #endif
 
-	if (fd == -1) { 
+	if (fd == -1) {
 		return -1;
 	}
-	
+
 #ifdef HAVE_POSIX_FADVISE
 	if (readahead) {
 		posix_fadvise (fd, 0, 0, POSIX_FADV_SEQUENTIAL);
@@ -70,7 +70,7 @@ tracker_file_open (const gchar *uri,
 }
 
 void
-tracker_file_close (gint     fd, 
+tracker_file_close (gint     fd,
 		    gboolean no_longer_needed)
 {
 
@@ -100,7 +100,7 @@ guint32
 tracker_file_get_size (const gchar *uri)
 {
 	struct stat finfo;
-	
+
 	if (g_lstat (uri, &finfo) == -1) {
 		return 0;
 	} else {
@@ -115,8 +115,8 @@ is_utf8 (const gchar *buffer,
 	gchar *end;
 
 	/* Code in this function modified from gnome-vfs */
-	if (g_utf8_validate ((gchar*) buffer, 
-			     buffer_length, 
+	if (g_utf8_validate ((gchar*) buffer,
+			     buffer_length,
 			     (const gchar**) &end)) {
 		return TRUE;
 	} else {
@@ -162,9 +162,9 @@ tracker_file_is_valid (const gchar *uri)
 	 * system call and so needs locale filenames.
 	 */
 	is_valid &= uri != NULL;
-	is_valid &= g_file_test (str, 
-				 G_FILE_TEST_IS_REGULAR | 
-				 G_FILE_TEST_IS_DIR | 
+	is_valid &= g_file_test (str,
+				 G_FILE_TEST_IS_REGULAR |
+				 G_FILE_TEST_IS_DIR |
 				 G_FILE_TEST_IS_SYMLINK);
 
 	g_free (str);
@@ -216,10 +216,10 @@ tracker_file_is_indexable (const gchar *uri)
 	is_indexable &= !S_ISDIR (finfo.st_mode);
 	is_indexable &= S_ISREG (finfo.st_mode);
 
-	g_debug ("URI:'%s' %s indexable", 
+	g_debug ("URI:'%s' %s indexable",
 		 uri,
 		 is_indexable ? "is" : "is not");
-		 
+
 	return is_indexable;
 }
 
@@ -259,11 +259,11 @@ tracker_file_get_mime_type (const gchar *path)
 	info = g_file_query_info (file,
 				  G_FILE_ATTRIBUTE_STANDARD_CONTENT_TYPE,
 				  G_FILE_QUERY_INFO_NONE,
-				  NULL, 
+				  NULL,
 				  &error);
 
 	if (G_UNLIKELY (error)) {
-		g_warning ("Could not guess mimetype, %s\n", 
+		g_warning ("Could not guess mimetype, %s\n",
 			   error->message);
 		g_error_free (error);
 		content_type = NULL;
@@ -287,23 +287,23 @@ tracker_file_get_vfs_path (const gchar *uri)
 	}
 
 	p = (gchar*) uri + strlen (uri) - 1;
-	
+
 	/* Skip trailing slash */
 	if (p != uri && *p == G_DIR_SEPARATOR) {
 		p--;
 	}
-	
+
 	/* Search backwards to the next slash. */
 	while (p != uri && *p != G_DIR_SEPARATOR) {
 		p--;
 	}
-	
+
 	if (p[0] != '\0') {
 		gchar *new_uri_text;
 		gint   length;
-		
+
 		length = p - uri;
-		
+
 		if (length == 0) {
 			new_uri_text = g_strdup (G_DIR_SEPARATOR_S);
 		} else {
@@ -311,7 +311,7 @@ tracker_file_get_vfs_path (const gchar *uri)
 			memcpy (new_uri_text, uri, length);
 			new_uri_text[length] = '\0';
 		}
-		
+
 		return new_uri_text;
 	} else {
 		return g_strdup (G_DIR_SEPARATOR_S);
@@ -339,16 +339,16 @@ tracker_file_get_vfs_name (const gchar *uri)
 	while (p != tmp && *p != G_DIR_SEPARATOR) {
 		p--;
 	}
-	
+
 	res = p + 1;
-	
+
 	if (res && res[0] != '\0') {
 		result = g_strdup (res);
 		g_free (tmp);
-	
+
 		return result;
 	}
-	
+
 	g_free (tmp);
 
 	return g_strdup (" ");
@@ -368,7 +368,7 @@ normalize_uri (const gchar *uri) {
 	return normalized;
 }
 
-void     
+void
 tracker_file_get_path_and_name (const gchar *uri,
 				gchar **path,
 				gchar **name)
@@ -390,7 +390,7 @@ tracker_file_get_path_and_name (const gchar *uri,
 		*name = tracker_file_get_vfs_name (uri);
 		*path = tracker_file_get_vfs_path (uri);
 	}
-	
+
 }
 
 
@@ -452,7 +452,7 @@ tracker_path_is_in_path (const gchar *path,
 
 	g_return_val_if_fail (path != NULL, FALSE);
 	g_return_val_if_fail (in_path != NULL, FALSE);
-	
+
 	if (!g_str_has_suffix (path, G_DIR_SEPARATOR_S)) {
 		new_path = g_strconcat (path, G_DIR_SEPARATOR_S, NULL);
 	} else {
@@ -464,10 +464,10 @@ tracker_path_is_in_path (const gchar *path,
 	} else {
 		new_in_path = g_strdup (in_path);
 	}
-	
+
 	if (g_str_has_prefix (new_path, new_in_path)) {
 		is_in_path = TRUE;
-	} 
+	}
 
 	g_free (new_in_path);
 	g_free (new_path);
@@ -486,7 +486,7 @@ tracker_path_hash_table_filter_duplicates (GHashTable *roots)
 	g_hash_table_iter_init (&iter1, roots);
 	while (g_hash_table_iter_next (&iter1, &key, NULL)) {
 		const gchar *path;
-		
+
 		path = (const gchar*) key;
 
 		g_hash_table_iter_init (&iter2, roots);
@@ -500,14 +500,14 @@ tracker_path_hash_table_filter_duplicates (GHashTable *roots)
 			}
 
 			if (tracker_path_is_in_path (path, in_path)) {
-				g_debug ("Removing path:'%s', it is in path:'%s'", 
+				g_debug ("Removing path:'%s', it is in path:'%s'",
 					 path, in_path);
 
 				g_hash_table_iter_remove (&iter1);
 				g_hash_table_iter_init (&iter1, roots);
 				break;
 			} else if (tracker_path_is_in_path (in_path, path)) {
-				g_debug ("Removing path:'%s', it is in path:'%s'", 
+				g_debug ("Removing path:'%s', it is in path:'%s'",
 					 in_path, path);
 
 				g_hash_table_iter_remove (&iter2);
@@ -524,11 +524,11 @@ tracker_path_hash_table_filter_duplicates (GHashTable *roots)
 		GList *keys, *l;
 
 		keys = g_hash_table_get_keys (roots);
-		
+
 		for (l = keys; l; l = l->next) {
 			g_debug ("  %s", (gchar*) l->data);
 		}
-		
+
 		g_list_free (keys);
 	}
 #endif /* TESTING */
@@ -542,7 +542,7 @@ tracker_path_list_filter_duplicates (GSList *roots)
 
 	/* This function CREATES a new list and the data in the list
 	 * is new too! g_free() must be called on the list data and
-	 * g_slist_free() on the list too when done with. 
+	 * g_slist_free() on the list too when done with.
 	 */
 
 	/* ONLY HERE do we add separators on each location we check.
@@ -567,11 +567,11 @@ tracker_path_list_filter_duplicates (GSList *roots)
 			/* If the new path exists as a lower level
 			 * path or is the same as an existing checked
 			 * root we disgard it, it will be checked
-			 * anyway. 
+			 * anyway.
 			 */
 			if (g_str_has_prefix (path, l2->data)) {
 				should_add = FALSE;
-			} 
+			}
 
 			/* If the new path exists as a higher level
 			 * path to one already in the checked roots,
@@ -587,7 +587,7 @@ tracker_path_list_filter_duplicates (GSList *roots)
 
 			l2 = l2->next;
 		}
-		
+
 		if (should_add) {
 			gint len;
 
@@ -602,8 +602,8 @@ tracker_path_list_filter_duplicates (GSList *roots)
 
 			checked_roots = g_slist_prepend (checked_roots, path);
 			continue;
-		} 
-		
+		}
+
 		g_free (path);
 	}
 
@@ -650,7 +650,7 @@ tracker_path_evaluate_name (const gchar *uri)
 	}
 
 	/* Second try to find any environment variables and expand
-	 * them, like $HOME or ${FOO} 
+	 * them, like $HOME or ${FOO}
 	 */
 	tokens = g_strsplit (uri, G_DIR_SEPARATOR_S, -1);
 
@@ -660,13 +660,13 @@ tracker_path_evaluate_name (const gchar *uri)
 		}
 
 		start = *token + 1;
-		
+
 		if (*start == '{') {
 			start++;
 			end = start + (strlen (start)) - 1;
 			*end='\0';
 		}
-		
+
 		env = g_getenv (start);
 		g_free (*token);
 
@@ -678,7 +678,7 @@ tracker_path_evaluate_name (const gchar *uri)
 
 	/* Third get the real path removing any "../" and other
 	 * symbolic links to other places, returning only the REAL
-	 * location. 
+	 * location.
 	 */
 	if (tokens) {
 		expanded = g_strjoinv (G_DIR_SEPARATOR_S, tokens);
@@ -692,7 +692,7 @@ tracker_path_evaluate_name (const gchar *uri)
 	 */
 	if (strchr (expanded, G_DIR_SEPARATOR)) {
 		GFile *file;
-		
+
 		file = g_file_new_for_commandline_arg (expanded);
 		final_path = g_file_get_path (file);
 		g_object_unref (file);
@@ -720,10 +720,10 @@ path_has_write_access (const gchar *path,
 	info = g_file_query_info (file,
                                   G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE,
                                   0,
-                                  NULL, 
+                                  NULL,
                                   &error);
         g_object_unref (file);
-      
+
 	if (G_UNLIKELY (error)) {
                 if (error->code == G_IO_ERROR_NOT_FOUND) {
                         if (exists) {
@@ -737,7 +737,7 @@ path_has_write_access (const gchar *path,
 		}
 
 		g_error_free (error);
-                       
+
 		writable = FALSE;
 	} else {
 		if (exists) {
@@ -763,8 +763,8 @@ path_has_write_access_or_was_created (const gchar *path)
                 if (writable) {
                         g_message ("  Path is OK");
                         return TRUE;
-                } 
-                  
+                }
+
                 g_message ("  Path can not be written to");
         } else {
                 g_message ("  Path does not exist, attempting to create...");
@@ -776,7 +776,7 @@ path_has_write_access_or_was_created (const gchar *path)
 
                 g_message ("  Path could not be created");
         }
-	
+
 	return FALSE;
 }
 

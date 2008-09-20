@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2008, Nokia (urho.konttori@nokia.com)
  *
  * This library is free software; you can redistribute it and/or
@@ -9,14 +9,14 @@
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public
  * License along with this library; if not, write to the
  * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301, USA. 
- */  
+ * Boston, MA  02110-1301, USA.
+ */
 
 #include <time.h>
 #include <string.h>
@@ -38,7 +38,7 @@ test_date_format ()
         g_assert (result == NULL);
 
 
-        /* Fails 
+        /* Fails
         result = tracker_date_format ("1978"); //Audio.ReleaseDate
         g_assert (tracker_test_helpers_cmpstr_equal (result, "1978-01-01T00:00:00"));
         */
@@ -79,7 +79,7 @@ test_string_to_date ()
         gchar     *input = "2008-06-16T11:10:10+0600";
 
 	expected = g_date_new_dmy (16, G_DATE_JUNE, 2008);
-	
+
         result_time_t = tracker_string_to_date (input);
 
 	result = g_date_new ();
@@ -99,7 +99,7 @@ test_string_to_date ()
 
         result_time_t = tracker_string_to_date ("i am not a date");
         g_assert_cmpint (result_time_t, ==, -1);
-        
+
         /* Fails! Check the code
         result_time_t = tracker_string_to_date ("2008-06-32T04:23:10+0000");
         g_assert_cmpint (result_time_t, ==, -1);
@@ -121,7 +121,7 @@ test_date_to_string ()
         original->tm_mon = 5;
         original->tm_year = 108;
         original->tm_isdst = 1;
-        
+
         input = mktime (original);
 
         result = tracker_date_to_string (input);
@@ -217,7 +217,7 @@ test_string_to_uint ()
         guint num_result, rc;
 
         rc = tracker_string_to_uint ("10", &num_result);
-        
+
         g_assert (rc);
         g_assert_cmpint (num_result, ==, 10);
 
@@ -270,7 +270,7 @@ test_string_in_string_list ()
 }
 
 static void
-test_gslist_to_string_list () 
+test_gslist_to_string_list ()
 {
         GSList *input = NULL;
         gchar **result;
@@ -297,14 +297,14 @@ test_gslist_to_string_list ()
 
 
 static void
-test_string_list_to_string () 
+test_string_list_to_string ()
 {
         gchar *input = "one two three four";
         gchar **pieces;
         gchar *result;
 
         pieces = g_strsplit (input, " ", 4);
-        
+
         result = tracker_string_list_to_string (pieces, 4, ' ');
         g_assert (tracker_test_helpers_cmpstr_equal (input, result));
         g_free (result);
@@ -376,7 +376,7 @@ test_boolean_as_text_to_number ()
         g_assert (tracker_test_helpers_cmpstr_equal (result, "Other invalid value"));
         g_free (result);
 
-        
+
         if (g_test_trap_fork (0, G_TEST_TRAP_SILENCE_STDERR)) {
                 result = tracker_string_boolean_to_string_gint (NULL);
         }
@@ -419,6 +419,6 @@ main (int argc, char **argv) {
         g_test_add_func ("/libtracker-common/tracker-type-utils/string_to_date",
                          test_string_to_date);
         result = g_test_run ();
-        
+
         return result;
 }

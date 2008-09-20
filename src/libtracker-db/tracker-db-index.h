@@ -66,7 +66,7 @@ void                tracker_db_index_set_readonly    (TrackerDBIndex *index,
 gboolean            tracker_db_index_get_reload      (TrackerDBIndex *index);
 gboolean            tracker_db_index_get_readonly    (TrackerDBIndex *index);
 
-void                tracker_db_index_set_paused      (TrackerDBIndex *index, 
+void                tracker_db_index_set_paused      (TrackerDBIndex *index,
 						      gboolean paused);
 
 /* Open/Close/Flush */

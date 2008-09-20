@@ -78,12 +78,12 @@ static GArray *extractors = NULL;
 static guint   shutdown_timeout_id = 0;
 
 gchar *
-tracker_generic_date_to_iso8601 (const gchar *date, 
+tracker_generic_date_to_iso8601 (const gchar *date,
                                  const gchar *format)
 {
         gchar *result;
         struct tm date_tm;
-        
+
         memset (&date_tm, 0, sizeof (struct tm));
 
         if (strptime (date, format, &date_tm) == NULL) {
@@ -97,17 +97,17 @@ tracker_generic_date_to_iso8601 (const gchar *date,
         return result;
 }
 
-#ifndef DISABLE_DEBUG 
+#ifndef DISABLE_DEBUG
 
 static void
 debug_impl (const gchar *msg, ...)
 {
         va_list args;
-        
+
         va_start (args, msg);
         g_vfprintf (stderr, msg, args);
         va_end (args);
-        
+
         g_fprintf (stderr, "\n");
 }
 
@@ -131,8 +131,8 @@ initialize_extractors (void)
 	}
 
         error = NULL;
-        
-	extractors = g_array_sized_new (FALSE, 
+
+	extractors = g_array_sized_new (FALSE,
                                         TRUE,
 					sizeof (TrackerExtractorData),
 					10);
@@ -140,7 +140,7 @@ initialize_extractors (void)
 	/* This array is going to be used to store
 	 * temporarily extractors with mimetypes such as "audio / *"
 	 */
-	generic_extractors = g_array_sized_new (FALSE, 
+	generic_extractors = g_array_sized_new (FALSE,
                                                 TRUE,
 						sizeof (TrackerExtractorData),
 						10);
@@ -198,14 +198,14 @@ initialize_extractors (void)
 	/* Append the generic extractors at the end of
 	 * the list, so the specific ones are used first
 	 */
-	g_array_append_vals (extractors, 
-                             generic_extractors->data, 
+	g_array_append_vals (extractors,
+                             generic_extractors->data,
                              generic_extractors->len);
 	g_array_free (generic_extractors, TRUE);
 }
 
 static GHashTable *
-tracker_get_file_metadata (const gchar *uri, 
+tracker_get_file_metadata (const gchar *uri,
                            const gchar *mime)
 {
 	GHashTable *meta_table;
@@ -232,9 +232,9 @@ tracker_get_file_metadata (const gchar *uri,
 		return NULL;
 	}
 
-	meta_table = g_hash_table_new_full (g_str_hash, 
-                                            g_str_equal, 
-                                            g_free, 
+	meta_table = g_hash_table_new_full (g_str_hash,
+                                            g_str_equal,
+                                            g_free,
                                             g_free);
 
 	if (mime) {
@@ -276,7 +276,7 @@ print_meta_table_data (gpointer key,
                        gpointer user_data)
 {
 	gchar *value_utf8;
-	
+
 	g_return_if_fail (key != NULL);
 	g_return_if_fail (value != NULL);
 
@@ -289,8 +289,8 @@ print_meta_table_data (gpointer key,
 			value_utf8 = g_strdelimit (value_utf8, "=", '-');
 			value_utf8 = g_strstrip (value_utf8);
 
-			debug ("Extractor - Found '%s' = '%s'", 
-                               (gchar*) key, 
+			debug ("Extractor - Found '%s' = '%s'",
+                               (gchar*) key,
                                value_utf8);
 
                         g_print ("%s=%s;\n", (gchar*) key, value_utf8);

@@ -212,16 +212,16 @@ static GQuark error_quark;
 static gboolean
 is_operator (ParseState state)
 {
-	return 
-		state == STATE_EQUALS || 
-		state == STATE_GREATER_THAN || 
+	return
+		state == STATE_EQUALS ||
+		state == STATE_GREATER_THAN ||
 		state == STATE_LESS_THAN ||
-		state == STATE_CONTAINS || 
-		state == STATE_IN_SET || 
+		state == STATE_CONTAINS ||
+		state == STATE_IN_SET ||
 		state == STATE_FULL_TEXT ||
 		state == STATE_LESS_OR_EQUAL ||
-		state == STATE_GREATER_OR_EQUAL || 
-		state == STATE_STARTS_WITH || 
+		state == STATE_GREATER_OR_EQUAL ||
+		state == STATE_STARTS_WITH ||
 		state == STATE_REGEX;
 
 }
@@ -229,32 +229,32 @@ is_operator (ParseState state)
 static gboolean
 is_end_operator (ParseState state)
 {
-	return 
-		state == STATE_END_EQUALS || 
-		state == STATE_END_GREATER_THAN || 
+	return
+		state == STATE_END_EQUALS ||
+		state == STATE_END_GREATER_THAN ||
 		state == STATE_END_LESS_THAN ||
-		state == STATE_END_CONTAINS || 
+		state == STATE_END_CONTAINS ||
 		state == STATE_END_IN_SET ||
 		state == STATE_END_FULL_TEXT ||
 		state == STATE_END_LESS_OR_EQUAL ||
-		state == STATE_END_GREATER_OR_EQUAL || 
-		state == STATE_END_STARTS_WITH || 
+		state == STATE_END_GREATER_OR_EQUAL ||
+		state == STATE_END_STARTS_WITH ||
 		state == STATE_END_REGEX;
 }
 
 static gboolean
 is_logic (ParseState state)
 {
-	return 
-		state == STATE_AND || 
+	return
+		state == STATE_AND ||
 		state == STATE_OR;
 }
 
 static gboolean
 is_end_logic (ParseState state)
 {
-	return 
-		state == STATE_END_AND || 
+	return
+		state == STATE_END_AND ||
 		state == STATE_END_OR;
 }
 
@@ -275,9 +275,9 @@ set_error (GError              **err,
 	str = g_strdup_vprintf (format, args);
 	va_end (args);
 
-	g_set_error (err, 
-		     error_quark, 
-		     error_code, 
+	g_set_error (err,
+		     error_quark,
+		     error_code,
 		     "Line %d character %d: %s",
 		     line,
 		     ch,
@@ -287,9 +287,9 @@ set_error (GError              **err,
 }
 
 static gboolean
-set_error_on_fail (gboolean              condition, 
-		   GMarkupParseContext  *context, 
-		   const gchar          *msg, 
+set_error_on_fail (gboolean              condition,
+		   GMarkupParseContext  *context,
+		   const gchar          *msg,
 		   GError              **err)
 {
 	if (!condition) {
@@ -332,11 +332,11 @@ get_attribute_value_required (GMarkupParseContext  *context,
 	value = get_attribute_value (name, names, values);
 
 	if (!value) {
-		set_error (error, 
-			   context, 
+		set_error (error,
+			   context,
 			   PARSE_ERROR,
 			   "%s must have \"%s\" attribute",
-			   tag, 
+			   tag,
 			   name);
 	}
 
@@ -377,9 +377,9 @@ pop_stack_until (ParserData *data, ParseState state)
 }
 
 static GList *
-add_metadata_field (ParserData  *data, 
-		    const gchar *xesam_name, 
-		    gboolean     is_select, 
+add_metadata_field (ParserData  *data,
+		    const gchar *xesam_name,
+		    gboolean     is_select,
 		    gboolean     is_condition)
 {
 	TrackerDBResultSet *result_set;
@@ -397,7 +397,7 @@ add_metadata_field (ParserData  *data,
 	/* Do the xesam mapping */
 	if (!strcmp(xesam_name,FIELD_NAME_FULL_TEXT_FIELDS)) {
 		result_set = tracker_db_xesam_get_all_text_metadata_names (data->iface);
-	} else {	
+	} else {
 		result_set = tracker_db_xesam_get_metadata_names (data->iface, xesam_name);
 	}
 
@@ -407,42 +407,42 @@ add_metadata_field (ParserData  *data,
 
 	while (valid) {
 		gchar *field_name;
-		
+
 		tracker_db_result_set_get (result_set, 0, &field_name, -1);
 
 		/* Check if field is already in list */
 		for (l = data->fields; l; l = l->next) {
 			const gchar *this_field_name;
-			
+
 			this_field_name = tracker_field_data_get_field_name (l->data);
-			
+
 			if (!this_field_name) {
 				continue;
 			}
-				
+
 			if (strcasecmp (this_field_name, field_name) == 0) {
 				field_data = l->data;
 				field_exists = TRUE;
-				
+
 				tracker_field_data_set_is_condition (l->data, is_condition);
 				tracker_field_data_set_is_select (l->data, is_select);
-				
+
 				break;
 			}
 		}
-		
+
 		if (!field_exists) {
-			field_data = tracker_db_get_metadata_field (data->iface, 
-								    data->service, 
-								    field_name, 
-								    g_slist_length (data->fields), 
-								    is_select, 
+			field_data = tracker_db_get_metadata_field (data->iface,
+								    data->service,
+								    field_name,
+								    g_slist_length (data->fields),
+								    is_select,
 								    is_condition);
 			if (field_data) {
 				data->fields = g_slist_prepend (data->fields, field_data);
-			} 
-		} 
-		
+			}
+		}
+
 		if (field_data) {
 			reply = g_list_append (reply, field_data);
 		}
@@ -450,7 +450,7 @@ add_metadata_field (ParserData  *data,
 		valid = tracker_db_result_set_iter_next (result_set);
 		g_free (field_name);
 	}
-	
+
 	return reply;
 }
 
@@ -473,34 +473,34 @@ start_element_handler (GMarkupParseContext  *context,
 		const char *source;
 
 		if (set_error_on_fail (state == STATE_START,
-				       context, 
-				       "Query element not expected here", 
+				       context,
+				       "Query element not expected here",
 				       error)) {
 			return;
 		}
 
-		content = get_attribute_value ("content", 
-					       attribute_names, 
+		content = get_attribute_value ("content",
+					       attribute_names,
 					       attribute_values);
-		source = get_attribute_value ("source", 
-					      attribute_names, 
+		source = get_attribute_value ("source",
+					      attribute_names,
 					      attribute_values);
 
 		/* FIXME This is a bit clumsy, check that OK and get
 		 * the defaults (all) from somewhere. CHECK MEMORY
-		 * LEAKS! 
+		 * LEAKS!
 		 */
 		if(content) {
 			TrackerDBResultSet *result_set;
 
-			result_set = tracker_db_xesam_get_service_names (data->iface, 
+			result_set = tracker_db_xesam_get_service_names (data->iface,
 									 content);
-		
+
 			content = g_strdup (content);
 		} else {
 			content = g_strdup ("Files");
 		}
-		
+
 		data->service = g_strdup ("Files");
 
 		if (source) {
@@ -511,25 +511,25 @@ start_element_handler (GMarkupParseContext  *context,
 		}
 
 		g_string_append_printf (data->sql_where,
-					" WHERE (S.ServiceTypeID in (select TypeId from ServiceTypes where TypeName = '%s' or Parent = '%s')) AND ", 
-					content, 
+					" WHERE (S.ServiceTypeID in (select TypeId from ServiceTypes where TypeName = '%s' or Parent = '%s')) AND ",
+					content,
 					source);
 
 		push_stack (data, STATE_QUERY);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_FIELD)) {
 		const gchar *name;
 
-		if (set_error_on_fail (is_operator (state), 
-				       context, 
-				       "Field element not expected here", 
+		if (set_error_on_fail (is_operator (state),
+				       context,
+				       "Field element not expected here",
 				       error)) {
 			return;
 		}
 
 		name = get_attribute_value_required (context,
-						     "<field>", 
+						     "<field>",
 						     "name",
-						     attribute_names, 
+						     attribute_names,
 						     attribute_values,
 						     error);
 
@@ -537,10 +537,10 @@ start_element_handler (GMarkupParseContext  *context,
 			return;
 		} else {
 			if (data->current_operator == OP_NONE) {
-				set_error (error, 
-					   context, 
+				set_error (error,
+					   context,
 					   PARSE_ERROR,
-					   "no operator found for field \"%s\"", 
+					   "no operator found for field \"%s\"",
 					   name);
 				return;
 			}
@@ -550,33 +550,33 @@ start_element_handler (GMarkupParseContext  *context,
 		}
 	} else if (ELEMENT_IS (ELEMENT_XESAM_FULL_TEXT_FIELDS)) {
 
-		if (set_error_on_fail (is_operator (state), 
-				       context, 
-				       "Field element (fullTextFields) not expected here", 
+		if (set_error_on_fail (is_operator (state),
+				       context,
+				       "Field element (fullTextFields) not expected here",
 				       error)) {
 			return;
 		}
-		
+
 		if (data->current_operator == OP_NONE) {
-			set_error (error, 
-				   context, 
+			set_error (error,
+				   context,
 				   PARSE_ERROR,
 				   "no operator found for fullTextFields");
 			return;
 		}
-		
+
 		data->current_field = g_strdup (FIELD_NAME_FULL_TEXT_FIELDS);
 		push_stack (data, STATE_FIELD); /* We don't need to differentiate */
-	
+
 	} else if (ELEMENT_IS (ELEMENT_XESAM_AND)) {
                 const gchar *negate;
 
-		if (set_error_on_fail (state == STATE_QUERY || 
-				       is_logic (state) || 
-				       is_end_logic (state) || 
+		if (set_error_on_fail (state == STATE_QUERY ||
+				       is_logic (state) ||
+				       is_end_logic (state) ||
 				       is_end_operator (state),
 				       context,
-				       "AND element not expected here", 
+				       "AND element not expected here",
 				       error)) {
 			return;
 		}
@@ -590,13 +590,13 @@ start_element_handler (GMarkupParseContext  *context,
 				}
 			}
 		}
-		
-		negate = get_attribute_value ("negate", 
-					      attribute_names, 
+
+		negate = get_attribute_value ("negate",
+					      attribute_names,
 					      attribute_values);
 
 		if (negate && !strcmp (negate,"true")) {
-			data->sql_where = g_string_append (data->sql_where, " NOT "); 
+			data->sql_where = g_string_append (data->sql_where, " NOT ");
 		}
 
 		data->statement_count = 0;
@@ -605,17 +605,17 @@ start_element_handler (GMarkupParseContext  *context,
 		push_stack (data, STATE_AND);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_OR)) {
                 const gchar *negate;
-		
-		if (set_error_on_fail (state == STATE_QUERY || 
-				       is_logic (state) || 
-				       is_end_logic (state) || 
+
+		if (set_error_on_fail (state == STATE_QUERY ||
+				       is_logic (state) ||
+				       is_end_logic (state) ||
 				       is_end_operator (state),
 				       context,
-				       "OR element not expected here", 
+				       "OR element not expected here",
 				       error)) {
 			return;
 		}
-		
+
 		if (data->statement_count > 1) {
 			if (data->current_logic_operator == LOP_AND) {
 				data->sql_where = g_string_append (data->sql_where, " AND ");
@@ -625,15 +625,15 @@ start_element_handler (GMarkupParseContext  *context,
 				}
 			}
 		}
-		
-		negate = get_attribute_value ("negate", 
-					      attribute_names, 
+
+		negate = get_attribute_value ("negate",
+					      attribute_names,
 					      attribute_values);
-		
+
 		if (negate && !strcmp (negate,"true")) {
-			data->sql_where = g_string_append (data->sql_where, " NOT "); 
+			data->sql_where = g_string_append (data->sql_where, " NOT ");
 		}
-		
+
 		data->statement_count = 0;
 		data->sql_where = g_string_append (data->sql_where, " ( ");
 		data->current_logic_operator = LOP_OR;
@@ -641,71 +641,71 @@ start_element_handler (GMarkupParseContext  *context,
 	} else if (ELEMENT_IS (ELEMENT_XESAM_EQUALS)) {
                 const gchar *negate;
 
-		if (set_error_on_fail (state == STATE_QUERY || 
+		if (set_error_on_fail (state == STATE_QUERY ||
 				       is_logic (state) ||
 				       ((data->current_logic_operator == LOP_AND ||
 					 data->current_logic_operator == LOP_OR) &&
 					is_end_operator (state)),
-				       context, 
-				       "EQUALS element not expected here", 
+				       context,
+				       "EQUALS element not expected here",
 				       error)) {
 			    return;
 		    }
-		    
-		    negate = get_attribute_value ("negate", 
-						  attribute_names, 
+
+		    negate = get_attribute_value ("negate",
+						  attribute_names,
 						  attribute_values);
-		    
+
 		    if (negate && !strcmp (negate,"true")) {
-			    data->sql_where = g_string_append (data->sql_where, " NOT "); 
+			    data->sql_where = g_string_append (data->sql_where, " NOT ");
 		    }
-		    
+
 		    data->current_operator = OP_EQUALS;
 		    push_stack (data, STATE_EQUALS);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_GREATER_THAN)) {
                 const gchar *negate;
 
-		if (set_error_on_fail (state == STATE_QUERY || 
+		if (set_error_on_fail (state == STATE_QUERY ||
 				       is_logic (state) ||
-				       ((data->current_logic_operator == LOP_AND || 
+				       ((data->current_logic_operator == LOP_AND ||
 					 data->current_logic_operator == LOP_OR) &&
 					is_end_operator (state)),
-					context,  
-				       "GREATERTHAN element not expected here", 
+					context,
+				       "GREATERTHAN element not expected here",
 				       error)) {
 			return;
 		}
 
-		negate = get_attribute_value ("negate", 
-					      attribute_names, 
+		negate = get_attribute_value ("negate",
+					      attribute_names,
 					      attribute_values);
 
 		if (negate && !strcmp (negate,"true")) {
-			data->sql_where = g_string_append (data->sql_where, " NOT "); 
+			data->sql_where = g_string_append (data->sql_where, " NOT ");
 		}
-		
+
 		data->current_operator = OP_GREATER;
 		push_stack (data, STATE_GREATER_THAN);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_GREATER_OR_EQUAL)) {
                 const gchar *negate;
 
-		if (set_error_on_fail (state == STATE_QUERY || 
+		if (set_error_on_fail (state == STATE_QUERY ||
 				       is_logic (state) ||
-				       ((data->current_logic_operator == LOP_AND || 
+				       ((data->current_logic_operator == LOP_AND ||
 					 data->current_logic_operator == LOP_OR) &&
 					is_end_operator (state)),
 				       context,
-				       "GREATEROREQUAL element not expected here", 
+				       "GREATEROREQUAL element not expected here",
 				       error)) {
 			return;
 		}
 
-		negate = get_attribute_value ("negate", 
-					      attribute_names, 
+		negate = get_attribute_value ("negate",
+					      attribute_names,
 					      attribute_values);
 
 		if (negate && !strcmp(negate,"true")) {
-			data->sql_where = g_string_append (data->sql_where, " NOT "); 
+			data->sql_where = g_string_append (data->sql_where, " NOT ");
 		}
 
 		data->current_operator = OP_GREATER_EQUAL;
@@ -724,11 +724,11 @@ start_element_handler (GMarkupParseContext  *context,
 			return;
 		}
 
-		negate = get_attribute_value ("negate", 
-					      attribute_names, 
+		negate = get_attribute_value ("negate",
+					      attribute_names,
 					      attribute_values);
 		if (negate && !strcmp (negate,"true")) {
-			data->sql_where = g_string_append (data->sql_where, " NOT "); 
+			data->sql_where = g_string_append (data->sql_where, " NOT ");
 		}
 
 		data->current_operator = OP_LESS;
@@ -736,23 +736,23 @@ start_element_handler (GMarkupParseContext  *context,
 	} else if (ELEMENT_IS (ELEMENT_XESAM_LESS_OR_EQUAL)) {
                 const gchar *negate;
 
-		if (set_error_on_fail (state == STATE_QUERY || 
+		if (set_error_on_fail (state == STATE_QUERY ||
 				       is_logic (state) ||
-				       ((data->current_logic_operator == LOP_AND || 
+				       ((data->current_logic_operator == LOP_AND ||
 					 data->current_logic_operator == LOP_OR) &&
 					is_end_operator (state)),
 				       context,
-				       "LESSOREQUAL element not expected here", 
+				       "LESSOREQUAL element not expected here",
 				       error)) {
 			return;
 		}
 
-		negate = get_attribute_value ("negate", 
-					      attribute_names, 
+		negate = get_attribute_value ("negate",
+					      attribute_names,
 					      attribute_values);
 
 		if (negate && !strcmp(negate,"true")) {
-			data->sql_where = g_string_append (data->sql_where, " NOT "); 
+			data->sql_where = g_string_append (data->sql_where, " NOT ");
 		}
 
 		data->current_operator = OP_LESS_EQUAL;
@@ -760,23 +760,23 @@ start_element_handler (GMarkupParseContext  *context,
 	} else if (ELEMENT_IS (ELEMENT_XESAM_CONTAINS)) {
                 const gchar *negate;
 
-		if (set_error_on_fail (state == STATE_QUERY || 
+		if (set_error_on_fail (state == STATE_QUERY ||
 				       is_logic (state) ||
-				       ((data->current_logic_operator == LOP_AND || 
+				       ((data->current_logic_operator == LOP_AND ||
 					 data->current_logic_operator == LOP_OR) &&
 					is_end_operator (state)),
 				       context,
-				       "CONTAINS element not expected here", 
+				       "CONTAINS element not expected here",
 				       error)) {
 			return;
 		}
 
-		negate = get_attribute_value ("negate", 
-					      attribute_names, 
+		negate = get_attribute_value ("negate",
+					      attribute_names,
 					      attribute_values);
 
 		if (negate && !strcmp(negate,"true")) {
-			data->sql_where = g_string_append (data->sql_where, " NOT "); 
+			data->sql_where = g_string_append (data->sql_where, " NOT ");
 		}
 
 		data->current_operator = OP_CONTAINS;
@@ -784,46 +784,46 @@ start_element_handler (GMarkupParseContext  *context,
 	} else if (ELEMENT_IS (ELEMENT_XESAM_REGEX)) {
                 const gchar *negate;
 
-		if (set_error_on_fail (state == STATE_QUERY || 
+		if (set_error_on_fail (state == STATE_QUERY ||
 				       is_logic (state) ||
-				       ((data->current_logic_operator == LOP_AND || 
+				       ((data->current_logic_operator == LOP_AND ||
 					 data->current_logic_operator == LOP_OR) &&
 					is_end_operator (state)),
-				       context, 
-				       "REGEX element not expected here", 
+				       context,
+				       "REGEX element not expected here",
 				       error)) {
 			return;
 		}
 
-		negate = get_attribute_value ("negate", 
-					      attribute_names, 
+		negate = get_attribute_value ("negate",
+					      attribute_names,
 					      attribute_values);
 		if (negate && !strcmp (negate,"true")) {
-			data->sql_where = g_string_append (data->sql_where, " NOT "); 
+			data->sql_where = g_string_append (data->sql_where, " NOT ");
 		}
-		
+
 		data->current_operator = OP_REGEX;
 		push_stack (data, STATE_REGEX);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_STARTS_WITH)) {
                 const gchar *negate;
 
-		if (set_error_on_fail (state == STATE_QUERY || 
+		if (set_error_on_fail (state == STATE_QUERY ||
 				       is_logic (state) ||
-				       ((data->current_logic_operator == LOP_AND || 
+				       ((data->current_logic_operator == LOP_AND ||
 					 data->current_logic_operator == LOP_OR) &&
 					is_end_operator (state)),
-				       context, 
-				       "STARTSWITH element not expected here", 
+				       context,
+				       "STARTSWITH element not expected here",
 				       error)) {
 			return;
 		}
 
-		negate = get_attribute_value ("negate", 
-					      attribute_names, 
+		negate = get_attribute_value ("negate",
+					      attribute_names,
 					      attribute_values);
 
 		if (negate && !strcmp(negate,"true")) {
-			data->sql_where = g_string_append (data->sql_where, " NOT "); 
+			data->sql_where = g_string_append (data->sql_where, " NOT ");
 		}
 
 		data->current_operator = OP_STARTS;
@@ -831,23 +831,23 @@ start_element_handler (GMarkupParseContext  *context,
 	} else if (ELEMENT_IS (ELEMENT_XESAM_IN_SET)) {
                 const gchar *negate;
 
-		if (set_error_on_fail (state == STATE_QUERY || 
+		if (set_error_on_fail (state == STATE_QUERY ||
 				       is_logic (state) ||
-				       ((data->current_logic_operator == LOP_AND || 
+				       ((data->current_logic_operator == LOP_AND ||
 					 data->current_logic_operator == LOP_OR) &&
 					is_end_operator (state)),
-				       context, 
-				       "IN SET element not expected here", 
+				       context,
+				       "IN SET element not expected here",
 				       error)) {
 			return;
 		}
 
-		negate = get_attribute_value ("negate", 
-					      attribute_names, 
+		negate = get_attribute_value ("negate",
+					      attribute_names,
 					      attribute_values);
 
 		if (negate && !strcmp(negate,"true")) {
-			data->sql_where = g_string_append (data->sql_where, " NOT "); 
+			data->sql_where = g_string_append (data->sql_where, " NOT ");
 		}
 
 		data->current_operator = OP_SET;
@@ -855,68 +855,68 @@ start_element_handler (GMarkupParseContext  *context,
 	} else if (ELEMENT_IS (ELEMENT_XESAM_FULL_TEXT)) {
                 const gchar *negate;
 
-		if (set_error_on_fail (state == STATE_QUERY || 
+		if (set_error_on_fail (state == STATE_QUERY ||
 				       is_logic (state) ||
-				       ((data->current_logic_operator == LOP_AND || 
+				       ((data->current_logic_operator == LOP_AND ||
 					 data->current_logic_operator == LOP_OR) &&
 					is_end_operator (state)),
-				       context, 
-				       "fullText element not expected here", 
+				       context,
+				       "fullText element not expected here",
 				       error)) {
 			return;
 		}
 
-		negate = get_attribute_value ("negate", 
-					      attribute_names, 
+		negate = get_attribute_value ("negate",
+					      attribute_names,
 					      attribute_values);
 
 		if (negate && !strcmp(negate,"true")) {
-			data->sql_where = g_string_append (data->sql_where, " NOT "); 
+			data->sql_where = g_string_append (data->sql_where, " NOT ");
 		}
 
 		data->current_operator = OP_FULL_TEXT;
 		data->current_field = g_strdup (FIELD_NAME_FULL_TEXT_FIELDS);
 		push_stack (data, STATE_FULL_TEXT);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_INTEGER)) {
-		if (set_error_on_fail (state == STATE_FIELD || state == STATE_FULL_TEXT, 
-				       context, 
-				       "INTEGER element not expected here", 
+		if (set_error_on_fail (state == STATE_FIELD || state == STATE_FULL_TEXT,
+				       context,
+				       "INTEGER element not expected here",
 				       error)) {
 			return;
 		}
 
 		push_stack (data, STATE_INTEGER);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_DATE)) {
-		if (set_error_on_fail (state == STATE_FIELD || state == STATE_FULL_TEXT, 
+		if (set_error_on_fail (state == STATE_FIELD || state == STATE_FULL_TEXT,
 				       context,
-				       "DATE element not expected here", 
+				       "DATE element not expected here",
 				       error)) {
 			return;
 		}
 
 		push_stack (data, STATE_DATE);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_STRING)) {
-		if (set_error_on_fail (state == STATE_FIELD || state == STATE_FULL_TEXT, 
+		if (set_error_on_fail (state == STATE_FIELD || state == STATE_FULL_TEXT,
 				       context,
-				       "STRING element not expected here", 
+				       "STRING element not expected here",
 				       error)) {
 			return;
 		}
 
 		push_stack (data, STATE_STRING);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_FLOAT)) {
-		if (set_error_on_fail (state == STATE_FIELD || state == STATE_FULL_TEXT, 
-				       context, 
-				       "FLOAT element not expected here", 
+		if (set_error_on_fail (state == STATE_FIELD || state == STATE_FULL_TEXT,
+				       context,
+				       "FLOAT element not expected here",
 				       error)) {
 			return;
 		}
 
 		push_stack (data, STATE_FLOAT);
 	} else if (ELEMENT_IS (ELEMENT_XESAM_BOOLEAN)) {
-		if (set_error_on_fail (state == STATE_FIELD || state == STATE_FULL_TEXT, 
-				       context, 
-				       "BOOLEAN element not expected here", 
+		if (set_error_on_fail (state == STATE_FIELD || state == STATE_FULL_TEXT,
+				       context,
+				       "BOOLEAN element not expected here",
 				       error)) {
 			return;
 		}
@@ -926,9 +926,9 @@ start_element_handler (GMarkupParseContext  *context,
 	} else {
 		g_warning ("%s not supported", element_name);
 
-		if (set_error_on_fail (FALSE, 
-				       context, 
-				       "Unsupported query", 
+		if (set_error_on_fail (FALSE,
+				       context,
+				       "Unsupported query",
 				       error)) {
 			return;
 		}
@@ -955,9 +955,9 @@ build_sql (ParserData *data)
 	GString    *str;
 	gint        i;
 
-	g_return_val_if_fail (data->current_field && 
-			      data->current_operator != OP_NONE && 
-			      data->current_value, 
+	g_return_val_if_fail (data->current_field &&
+			      data->current_operator != OP_NONE &&
+			      data->current_value,
 			      FALSE);
 
 	value = NULL;
@@ -969,10 +969,10 @@ build_sql (ParserData *data)
 
 	state = peek_state (data);
 
-	avalue = get_value (data->current_value, 
-			    (state != STATE_END_DATE && 
-			     state != STATE_END_INTEGER && 
-			     state != STATE_END_FLOAT && 
+	avalue = get_value (data->current_value,
+			    (state != STATE_END_DATE &&
+			     state != STATE_END_INTEGER &&
+			     state != STATE_END_FLOAT &&
 			     state != STATE_END_BOOLEAN));
 
 	field_data_list = add_metadata_field (data, data->current_field, FALSE, TRUE);
@@ -996,22 +996,22 @@ build_sql (ParserData *data)
 
 		i++;
 		str = g_string_new ("");
-	
+
 		if (i>1) {
 			g_string_append (str, " OR ");
 		}
-		
+
 		if (tracker_field_data_get_data_type (field_data->data) == TRACKER_FIELD_TYPE_DATE) {
 			gchar *bvalue;
 			gint   cvalue;
-			
+
 			bvalue = tracker_date_format (avalue);
 			g_debug (bvalue);
 			cvalue = tracker_string_to_date (bvalue);
 			g_debug ("%d", cvalue);
 			value = tracker_gint_to_string (cvalue);
 			g_free (bvalue);
-		} else if (state == STATE_END_BOOLEAN) { 
+		} else if (state == STATE_END_BOOLEAN) {
 			/* FIXME We do a state check here, because
 			 * TRACKER_FIELD_TYPE_BOOLEAN is not in db.
 			 */
@@ -1019,7 +1019,7 @@ build_sql (ParserData *data)
 		} else {
 			value = g_strdup (avalue);
 		}
-				
+
 		if (data->statement_count > 1) {
 			if (data->current_logic_operator == LOP_AND) {
 				data->sql_where = g_string_append (data->sql_where, " AND ");
@@ -1031,54 +1031,54 @@ build_sql (ParserData *data)
 		}
 
 		where_field = tracker_field_data_get_where_field (field_data->data);
-		
+
 		switch (data->current_operator) {
-		case OP_EQUALS: 
+		case OP_EQUALS:
 			sub = strchr (data->current_value, '*');
-				
+
 			if (sub) {
-				g_string_append_printf (str, " (%s glob '%s') ", 
-							where_field, 
+				g_string_append_printf (str, " (%s glob '%s') ",
+							where_field,
 							data->current_value);
 			} else {
 				TrackerFieldType data_type;
-				
+
 				data_type = tracker_field_data_get_data_type (field_data->data);
-				
+
 				if (data_type == TRACKER_FIELD_TYPE_DATE ||
 				    data_type == TRACKER_FIELD_TYPE_INTEGER ||
 				    data_type == TRACKER_FIELD_TYPE_DOUBLE) {
-					g_string_append_printf (str, " (%s = %s) ", 
-								where_field, 
+					g_string_append_printf (str, " (%s = %s) ",
+								where_field,
 								value);
 				} else {
-					g_string_append_printf (str, " (%s = '%s') ", 
-								where_field, 
+					g_string_append_printf (str, " (%s = '%s') ",
+								where_field,
 								value);
 				}
 			}
 			break;
-			
+
 		case OP_GREATER:
-			g_string_append_printf (str, " (%s > %s) ", 
+			g_string_append_printf (str, " (%s > %s) ",
 						where_field,
 						value);
 			break;
 
 		case OP_GREATER_EQUAL:
-			g_string_append_printf (str, " (%s >= %s) ", 
+			g_string_append_printf (str, " (%s >= %s) ",
 						where_field,
 						value);
 			break;
 
 		case OP_LESS:
-			g_string_append_printf (str, " (%s < %s) ", 
+			g_string_append_printf (str, " (%s < %s) ",
 						where_field,
 						value);
 			break;
 
 		case OP_LESS_EQUAL:
-			g_string_append_printf (str, " (%s <= %s) ", 
+			g_string_append_printf (str, " (%s <= %s) ",
 						where_field,
 						value);
 			break;
@@ -1087,11 +1087,11 @@ build_sql (ParserData *data)
 			sub = strchr (data->current_value, '*');
 
 			if (sub) {
-				g_string_append_printf (str, " (%s like '%%%s%%') ", 
-							where_field, 
+				g_string_append_printf (str, " (%s like '%%%s%%') ",
+							where_field,
 							data->current_value);
 			} else {
-				g_string_append_printf (str, " (%s like '%%%s%%') ", 
+				g_string_append_printf (str, " (%s like '%%%s%%') ",
 							where_field,
 							data->current_value);
 			}
@@ -1101,38 +1101,38 @@ build_sql (ParserData *data)
 			sub = strchr (data->current_value, '*');
 
 			if (sub) {
-				g_string_append_printf (str, " (%s like '%s') ", 
-							where_field, 
+				g_string_append_printf (str, " (%s like '%s') ",
+							where_field,
 							data->current_value);
 			} else {
-				g_string_append_printf (str, " (%s like '%s%%') ", 
+				g_string_append_printf (str, " (%s like '%s%%') ",
 							where_field,
 							data->current_value);
 			}
-			
+
 			break;
 
 		case OP_REGEX:
-			g_string_append_printf (str, " (%s REGEXP '%s') ", 
+			g_string_append_printf (str, " (%s REGEXP '%s') ",
 						where_field,
 						data->current_value);
 			break;
 
 		case OP_SET:
 			s = g_strsplit (data->current_value, ",", 0);
-			
+
 			if (s && s[0]) {
 				gchar **p;
 
-				g_string_append_printf (str, " (%s in ('%s'", 
-							where_field, 
+				g_string_append_printf (str, " (%s in ('%s'",
+							where_field,
 							s[0]);
 
 				for (p = s + 1; *p; p++) {
 					g_string_append_printf (str, ",'%s'", *p);
 				}
 
-				g_string_append_printf (str, ") ) " ); 
+				g_string_append_printf (str, ") ) " );
 			}
 			break;
 
@@ -1140,11 +1140,11 @@ build_sql (ParserData *data)
 			sub = strchr (data->current_value, '*');
 
 			if (sub) {
-				g_string_append_printf (str, " (%s like '%%%s%%') ", 
-							where_field, 
+				g_string_append_printf (str, " (%s like '%%%s%%') ",
+							where_field,
 							data->current_value);
 			} else {
-				g_string_append_printf (str, " (%s like '%%%s%%') ", 
+				g_string_append_printf (str, " (%s like '%%%s%%') ",
 							where_field,
 							data->current_value);
 			}
@@ -1153,7 +1153,7 @@ build_sql (ParserData *data)
 		default:
 			break;
 		}
-		
+
 		data->sql_where = g_string_append (data->sql_where, str->str);
 		g_string_free (str, TRUE);
 		field_data = g_list_next (field_data);
@@ -1404,7 +1404,7 @@ tracker_xesam_query_to_sql (TrackerDBInterface  *iface,
 
 	data.sql_from = g_string_new ("");
 	g_string_append_printf (data.sql_from, " FROM %s S ", table_name);
-	
+
 	data.sql_join = g_string_new ("");
 	data.sql_where = g_string_new ("");
 
@@ -1438,8 +1438,8 @@ tracker_xesam_query_to_sql (TrackerDBInterface  *iface,
 		for (l = data.fields; l; l = l->next) {
 			if (!tracker_field_data_get_is_condition (l->data)) {
 				if (tracker_field_data_get_needs_join (l->data)) {
-					g_string_append_printf (data.sql_join, 
-								" LEFT OUTER JOIN %s %s ON (S.ID = %s.ServiceID and %s.MetaDataID = %s) ", 
+					g_string_append_printf (data.sql_join,
+								" LEFT OUTER JOIN %s %s ON (S.ID = %s.ServiceID and %s.MetaDataID = %s) ",
 								tracker_field_data_get_table_name (l->data),
 								tracker_field_data_get_alias (l->data),
 								tracker_field_data_get_alias (l->data),
@@ -1449,9 +1449,9 @@ tracker_xesam_query_to_sql (TrackerDBInterface  *iface,
 			} else {
 				gchar *related_metadata;
 
-				related_metadata = tracker_db_metadata_get_related_names (iface, 
+				related_metadata = tracker_db_metadata_get_related_names (iface,
 											  tracker_field_data_get_field_name (l->data));
-				g_string_append_printf (data.sql_join, 
+				g_string_append_printf (data.sql_join,
 							" INNER JOIN %s %s ON (S.ID = %s.ServiceID and %s.MetaDataID in (%s)) ",
 							tracker_field_data_get_table_name (l->data),
 							tracker_field_data_get_alias (l->data),
@@ -1480,7 +1480,7 @@ tracker_xesam_query_to_sql (TrackerDBInterface  *iface,
 	if (data.current_field) {
 		g_free (data.current_field);
 	}
-	
+
 	if (data.current_value) {
 		g_free (data.current_value);
 	}

@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2008, Nokia (urho.konttori@nokia.com)
  *
@@ -171,7 +171,7 @@ tracker_field_data_init (TrackerFieldData *field_data)
 {
 }
 
-static void 
+static void
 field_data_finalize (GObject *object)
 {
 	TrackerFieldDataPriv *priv;
@@ -311,7 +311,7 @@ const gchar *
 tracker_field_data_get_alias (TrackerFieldData *field_data)
 {
 	TrackerFieldDataPriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_FIELD_DATA (field_data), NULL);
 
 	priv = GET_PRIV (field_data);
@@ -323,7 +323,7 @@ const gchar *
 tracker_field_data_get_table_name (TrackerFieldData *field_data)
 {
 	TrackerFieldDataPriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_FIELD_DATA (field_data), NULL);
 
 	priv = GET_PRIV (field_data);
@@ -335,7 +335,7 @@ const gchar *
 tracker_field_data_get_field_name (TrackerFieldData *field_data)
 {
 	TrackerFieldDataPriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_FIELD_DATA (field_data), NULL);
 
 	priv = GET_PRIV (field_data);
@@ -347,7 +347,7 @@ const gchar *
 tracker_field_data_get_select_field (TrackerFieldData *field_data)
 {
 	TrackerFieldDataPriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_FIELD_DATA (field_data), NULL);
 
 	priv = GET_PRIV (field_data);
@@ -359,7 +359,7 @@ const gchar *
 tracker_field_data_get_where_field (TrackerFieldData *field_data)
 {
 	TrackerFieldDataPriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_FIELD_DATA (field_data), NULL);
 
 	priv = GET_PRIV (field_data);
@@ -371,7 +371,7 @@ const gchar *
 tracker_field_data_get_id_field (TrackerFieldData *field_data)
 {
 	TrackerFieldDataPriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_FIELD_DATA (field_data), NULL);
 
 	priv = GET_PRIV (field_data);
@@ -383,7 +383,7 @@ TrackerFieldType
 tracker_field_data_get_data_type (TrackerFieldData *field_data)
 {
 	TrackerFieldDataPriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_FIELD_DATA (field_data), TRACKER_FIELD_TYPE_INDEX);
 
 	priv = GET_PRIV (field_data);
@@ -395,7 +395,7 @@ gboolean
 tracker_field_data_get_multiple_values (TrackerFieldData *field_data)
 {
 	TrackerFieldDataPriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_FIELD_DATA (field_data), FALSE);
 
 	priv = GET_PRIV (field_data);
@@ -408,7 +408,7 @@ gboolean
 tracker_field_data_get_is_select (TrackerFieldData *field_data)
 {
 	TrackerFieldDataPriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_FIELD_DATA (field_data), FALSE);
 
 	priv = GET_PRIV (field_data);
@@ -420,7 +420,7 @@ gboolean
 tracker_field_data_get_is_condition (TrackerFieldData *field_data)
 {
 	TrackerFieldDataPriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_FIELD_DATA (field_data), FALSE);
 
 	priv = GET_PRIV (field_data);
@@ -432,7 +432,7 @@ gboolean
 tracker_field_data_get_needs_join (TrackerFieldData *field_data)
 {
 	TrackerFieldDataPriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_FIELD_DATA (field_data), FALSE);
 
 	priv = GET_PRIV (field_data);

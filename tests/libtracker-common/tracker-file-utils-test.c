@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2008, Nokia (urho.konttori@nokia.com)
  *
  * This library is free software; you can redistribute it and/or
@@ -9,14 +9,14 @@
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public
  * License along with this library; if not, write to the
  * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301, USA. 
- */  
+ * Boston, MA  02110-1301, USA.
+ */
 
 #include <string.h>
 
@@ -29,21 +29,21 @@
 #include <tracker-test-helpers.h>
 
 static GSList *
-array_as_list (gchar **array) 
+array_as_list (gchar **array)
 {
         gint i;
         GSList *result = NULL;
 
         for (i = 0; array[i] != NULL; i++) {
                 result = g_slist_prepend (result, g_strdup(array[i]));
-                
-        } 
-        
+
+        }
+
         return result;
 }
 
 static gboolean
-string_in_list (GSList *list, const gchar *string) 
+string_in_list (GSList *list, const gchar *string)
 {
         GSList *it;
         for ( it = list; it != NULL; it = it->next) {
@@ -67,7 +67,7 @@ test_path_list_filter_duplicates (void)
 
         result = tracker_path_list_filter_duplicates (input_as_list);
         g_assert_cmpint (3, ==, g_slist_length (result));
-        
+
         g_assert (string_in_list (result, "/home"));
         g_assert (string_in_list (result, "/tmp"));
         g_assert (string_in_list (result, "/usr"));
@@ -79,7 +79,7 @@ static void
 test_path_evaluate_name (void)
 {
         gchar *result, *expected;
-        
+
         const gchar *home = g_getenv ("HOME");
         const gchar *pwd = g_getenv ("PWD");
 
@@ -87,13 +87,13 @@ test_path_evaluate_name (void)
         gchar *parent_dir;
 
         g_setenv ("TEST_TRACKER_DIR", test, TRUE);
-        
+
 
         result = tracker_path_evaluate_name ("/home/user/all/ok");
         tracker_test_helpers_cmpstr_equal (result, "/home/user/all/ok");
         g_free (result);
 
-        /* The result of this test and the next one are not consistent! 
+        /* The result of this test and the next one are not consistent!
          * Must it remove the end '/' or not?
          */
         result = tracker_path_evaluate_name ("/home/user/all/dir/");
@@ -196,7 +196,7 @@ test_file_get_path_and_name ()
 
 	g_assert_cmpint (g_strcmp0 (name, "file.txt"), ==, 0);
 	g_assert_cmpint (g_strcmp0 (path, "/home/ivan/test"), ==, 0);
-	
+
 	g_free (name);
 	g_free (path);
 	name = NULL;
@@ -208,7 +208,7 @@ test_file_get_path_and_name ()
 
 	g_assert_cmpint (g_strcmp0 (name, "file.txt"), ==, 0);
 	g_assert_cmpint (g_strcmp0 (path, "/home/ivan/test"), ==, 0);
-	
+
 	g_free (name);
 	g_free (path);
 	name = NULL;
@@ -223,7 +223,7 @@ test_file_get_path_and_name ()
 	g_assert_cmpint (g_strcmp0 (name, "file.txt"), ==, 0);
 	g_print ("%s\n", path);
 	g_assert_cmpint (g_strcmp0 (path, "file:///home/ivan/test"), ==, 0);
-	
+
 	g_free (name);
 	g_free (path);
 	name = NULL;
@@ -233,7 +233,7 @@ test_file_get_path_and_name ()
 }
 
 int
-main (int argc, char **argv) 
+main (int argc, char **argv)
 {
         int result;
 

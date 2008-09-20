@@ -81,7 +81,7 @@ rfc1123_to_iso8601_date (gchar *rfc_date)
 }
 
 static void
-extract_png (const gchar *filename, 
+extract_png (const gchar *filename,
              GHashTable  *metadata)
 {
         gint         fd_png;
@@ -104,7 +104,7 @@ extract_png (const gchar *filename,
 
 	if ((png = fdopen (fd_png, "r"))) {
 		png_ptr = png_create_read_struct (PNG_LIBPNG_VER_STRING,
-		                                  NULL, 
+		                                  NULL,
                                                   NULL,
                                                   NULL);
 		if (!png_ptr) {
@@ -139,7 +139,7 @@ extract_png (const gchar *filename,
                                         continue;
                                 }
 #endif
-	
+
                                 for (j = 0; tag_processors[j].type; j++) {
                                         if (strcasecmp (tag_processors[j].name, text_ptr[i].key) != 0) {
                                                 continue;
@@ -170,19 +170,19 @@ extract_png (const gchar *filename,
 		/* Read size from header. We want native have higher
                  * priority than EXIF etc.
                  */
-		if (png_get_IHDR (png_ptr, 
-                                  info_ptr, 
-                                  &width, 
-                                  &height, 
+		if (png_get_IHDR (png_ptr,
+                                  info_ptr,
+                                  &width,
+                                  &height,
                                   &bit_depth,
                                   &color_type,
                                   &interlace_type,
                                   &compression_type,
                                   &filter_type)) {
-			g_hash_table_insert (metadata, 
+			g_hash_table_insert (metadata,
                                              g_strdup ("Image:Width"),
 			                     g_strdup_printf ("%ld", width));
-			g_hash_table_insert (metadata, 
+			g_hash_table_insert (metadata,
                                              g_strdup ("Image:Height"),
 			                     g_strdup_printf ("%ld", height));
 		}

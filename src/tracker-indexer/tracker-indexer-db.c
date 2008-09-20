@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2008, Nokia (urho.konttori@nokia.com)
  *
@@ -86,17 +86,17 @@ tracker_db_increment_stats (TrackerDBInterface *iface,
 	service_type = tracker_service_get_name (service);
 	parent = tracker_service_get_parent (service);
 
-	tracker_db_interface_execute_procedure (iface, 
-						NULL, 
-						"IncStat", 
-						service_type, 
+	tracker_db_interface_execute_procedure (iface,
+						NULL,
+						"IncStat",
+						service_type,
 						NULL);
 
 	if (parent) {
-		tracker_db_interface_execute_procedure (iface, 
-							NULL, 
-							"IncStat", 
-							parent, 
+		tracker_db_interface_execute_procedure (iface,
+							NULL,
+							"IncStat",
+							parent,
 							NULL);
 	}
 }
@@ -110,31 +110,31 @@ tracker_db_decrement_stats (TrackerDBInterface *iface,
 	service_type = tracker_service_get_name (service);
 	parent = tracker_service_get_parent (service);
 
-	tracker_db_interface_execute_procedure (iface, 
+	tracker_db_interface_execute_procedure (iface,
 						NULL,
 						"DecStat",
-						service_type, 
+						service_type,
 						NULL);
 
 	if (parent) {
 		tracker_db_interface_execute_procedure (iface,
 							NULL,
-							"DecStat", 
-							parent, 
+							"DecStat",
+							parent,
 							NULL);
 	}
 }
 
 void
 tracker_db_create_event (TrackerDBInterface *iface,
-			   guint32 service_id, 
+			   guint32 service_id,
 			   const gchar *type)
 {
 	gchar *service_id_str;
 
 	service_id_str = tracker_guint32_to_string (service_id);
 
-	tracker_db_interface_execute_procedure (iface, NULL, "CreateEvent", 
+	tracker_db_interface_execute_procedure (iface, NULL, "CreateEvent",
 						service_id_str,
 						type,
 						NULL);
@@ -278,7 +278,7 @@ tracker_db_create_service (TrackerService  *service,
 
 static gchar *
 db_get_metadata (TrackerService *service,
-		 guint           service_id, 
+		 guint           service_id,
 		 gboolean        keywords)
 {
 	TrackerDBInterface *iface;
@@ -308,7 +308,6 @@ db_get_metadata (TrackerService *service,
 	g_free (query);
 
 	if (result_set) {
-
 		gboolean valid = TRUE;
 
 		while (valid) {
@@ -318,6 +317,7 @@ db_get_metadata (TrackerService *service,
 			valid = tracker_db_result_set_iter_next (result_set);
 			g_free (str);
 		}
+
 		g_object_unref (result_set);
 	}
 
@@ -338,18 +338,18 @@ result_set_to_metadata (TrackerDBResultSet *result_set,
 
 	while (valid) {
 		if (numeric) {
-			tracker_db_result_set_get (result_set, 
-						   0, &metadata_id, 
-						   1, &numeric_value, 
+			tracker_db_result_set_get (result_set,
+						   0, &metadata_id,
+						   1, &numeric_value,
 						   -1);
 			value = g_strdup_printf ("%d", numeric_value);
 		} else {
-			tracker_db_result_set_get (result_set, 
-						   0, &metadata_id, 
-						   1, &value, 
+			tracker_db_result_set_get (result_set,
+						   0, &metadata_id,
+						   1, &value,
 						   -1);
 		}
-		
+
 		field = tracker_ontology_get_field_by_id (metadata_id);
 		if (!field) {
 			g_critical ("Field id %d in database but not in tracker-ontology",
@@ -357,11 +357,11 @@ result_set_to_metadata (TrackerDBResultSet *result_set,
 			g_free (value);
 			return;
 		}
-		
+
 		if (tracker_field_get_embedded (field) || !only_embedded) {
 			if (tracker_field_get_multiple_values (field)) {
 				GList *new_values;
-				const GList *old_values; 
+				const GList *old_values;
 
 				new_values = NULL;
 				old_values = tracker_metadata_lookup_multiple_values (metadata,
@@ -369,14 +369,14 @@ result_set_to_metadata (TrackerDBResultSet *result_set,
 				if (old_values) {
 					new_values = g_list_copy ((GList *) old_values);
 				}
-				
+
 				new_values = g_list_prepend (new_values, value);
-				tracker_metadata_insert_multiple_values (metadata, 
+				tracker_metadata_insert_multiple_values (metadata,
 									 tracker_field_get_name (field),
 									 new_values);
 			} else {
-				tracker_metadata_insert (metadata, 
-							 tracker_field_get_name (field), 
+				tracker_metadata_insert (metadata,
+							 tracker_field_get_name (field),
 							 value);
 			}
 		} else {
@@ -444,10 +444,10 @@ tracker_db_delete_service (TrackerService *service,
 	service_id_str = tracker_guint32_to_string (service_id);
 
 	/* Delete from services table */
-	tracker_db_interface_execute_procedure (iface, 
+	tracker_db_interface_execute_procedure (iface,
 						NULL,
-						"DeleteService1", 
-						service_id_str, 
+						"DeleteService1",
+						service_id_str,
 						NULL);
 
 	g_free (service_id_str);
@@ -468,15 +468,15 @@ tracker_db_move_service (TrackerService *service,
 	iface = tracker_db_manager_get_db_interface_by_type (tracker_service_get_name (service),
 							     TRACKER_DB_CONTENT_TYPE_METADATA);
 
-	tracker_file_get_path_and_name (from, 
-					&from_dirname, 
+	tracker_file_get_path_and_name (from,
+					&from_dirname,
 					&from_basename);
-	tracker_file_get_path_and_name (to, 
-					&to_dirname, 
+	tracker_file_get_path_and_name (to,
+					&to_dirname,
 					&to_basename);
 
-	tracker_db_interface_execute_procedure (iface, 
-						NULL, 
+	tracker_db_interface_execute_procedure (iface,
+						NULL,
 						"MoveService",
 						to_dirname, to_basename,
 						from_dirname, from_basename,
@@ -484,11 +484,11 @@ tracker_db_move_service (TrackerService *service,
 
 	/* FIXME: This procedure should use LIKE statement */
 	tracker_db_interface_execute_procedure (iface,
-						&error, 
-						"MoveServiceChildren", 
-						from, 
-						to, 
-						from, 
+						&error,
+						"MoveServiceChildren",
+						from,
+						to,
+						from,
 						NULL);
 
 	g_free (to_dirname);
@@ -512,20 +512,20 @@ tracker_db_delete_all_metadata (TrackerService *service,
 	/* Delete from ServiceMetadata, ServiceKeywordMetadata,
 	 * ServiceNumberMetadata.
 	 */
-	tracker_db_interface_execute_procedure (iface, 
-						NULL, 
-						"DeleteServiceMetadata", 
-						service_id_str, 
+	tracker_db_interface_execute_procedure (iface,
+						NULL,
+						"DeleteServiceMetadata",
+						service_id_str,
 						NULL);
-	tracker_db_interface_execute_procedure (iface, 
-						NULL, 
-						"DeleteServiceKeywordMetadata", 
-						service_id_str, 
+	tracker_db_interface_execute_procedure (iface,
+						NULL,
+						"DeleteServiceKeywordMetadata",
+						service_id_str,
 						NULL);
-	tracker_db_interface_execute_procedure (iface, 
-						NULL, 
-						"DeleteServiceNumericMetadata", 
-						service_id_str, 
+	tracker_db_interface_execute_procedure (iface,
+						NULL,
+						"DeleteServiceNumericMetadata",
+						service_id_str,
 						NULL);
 }
 
@@ -562,19 +562,19 @@ tracker_db_get_property_values (TrackerService *service_def,
 	if (metadata_key > 0) {
 		gchar *query;
 
-		query = g_strdup_printf ("SELECT KeyMetadata%d FROM Services WHERE id = '%d'", 
-					 metadata_key, 
+		query = g_strdup_printf ("SELECT KeyMetadata%d FROM Services WHERE id = '%d'",
+					 metadata_key,
 					 id);
-		result_set = tracker_db_interface_execute_query (iface, 
-								 NULL, 
-								 query, 
+		result_set = tracker_db_interface_execute_query (iface,
+								 NULL,
+								 query,
 								 NULL);
 		g_free (query);
 	} else {
 		gchar *id_str;
 
 		id_str = tracker_guint32_to_string (id);
-		
+
 		switch (tracker_field_get_data_type (field)) {
 		case TRACKER_FIELD_TYPE_KEYWORD:
 			result_set = tracker_db_interface_execute_procedure (iface, NULL,
@@ -618,15 +618,15 @@ tracker_db_get_property_values (TrackerService *service_def,
 		if (tracker_db_result_set_get_n_rows (result_set) > 1) {
 			g_warning ("More than one result in tracker_db_get_property_value");
 		}
-		
+
 		if (!is_numeric) {
 			final_result = tracker_dbus_query_result_to_strv (result_set, 0, NULL);
 		} else {
-			final_result = tracker_dbus_query_result_numeric_to_strv (result_set, 0, NULL);	
+			final_result = tracker_dbus_query_result_numeric_to_strv (result_set, 0, NULL);
 		}
 
 		g_object_unref (result_set);
-	} 
+	}
 
 	return final_result;
 }
@@ -710,8 +710,8 @@ tracker_db_set_metadata (TrackerService *service,
 	if (metadata_key > 0) {
 		tracker_db_interface_execute_query (iface, NULL,
 						    "update Services set KeyMetadata%d = '%s' where id = %d",
-						    metadata_key, 
-						    value, 
+						    metadata_key,
+						    value,
 						    id);
 	}
 
@@ -818,7 +818,7 @@ tracker_db_set_text (TrackerService *service,
 
 gchar *
 tracker_db_get_text (TrackerService *service,
-		     guint32         id) 
+		     guint32         id)
 {
 	TrackerDBInterface *iface;
 	TrackerField       *field;
@@ -831,9 +831,9 @@ tracker_db_get_text (TrackerService *service,
 							     TRACKER_DB_CONTENT_TYPE_CONTENTS);
 
 	/* Delete contents if it has! */
-	result_set = tracker_db_interface_execute_procedure (iface, NULL, 
-							     "GetContents", 
-							     service_id_str, 
+	result_set = tracker_db_interface_execute_procedure (iface, NULL,
+							     "GetContents",
+							     service_id_str,
 							     tracker_field_get_id (field),
 							     NULL);
 
@@ -849,7 +849,7 @@ tracker_db_get_text (TrackerService *service,
 
 void
 tracker_db_delete_text (TrackerService *service,
-			guint32         id) 
+			guint32         id)
 {
 	TrackerDBInterface *iface;
 	TrackerField *field;
@@ -861,9 +861,9 @@ tracker_db_delete_text (TrackerService *service,
 							     TRACKER_DB_CONTENT_TYPE_CONTENTS);
 
 	/* Delete contents if it has! */
-	tracker_db_interface_execute_procedure (iface, NULL, 
-						"DeleteContent", 
-						service_id_str, 
+	tracker_db_interface_execute_procedure (iface, NULL,
+						"DeleteContent",
+						service_id_str,
 						tracker_field_get_id (field),
 						NULL);
 

@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2008, Nokia
  * Authors: Philip Van Hoof (pvanhoof@gnome.org)
  *
@@ -65,7 +65,7 @@ tracker_xesam_class_init (TrackerXesamClass *klass)
 			NULL, NULL,
 			tracker_marshal_VOID__STRING_UINT,
 			G_TYPE_NONE,
-			2, 
+			2,
 			G_TYPE_STRING,
 			G_TYPE_UINT);
 
@@ -77,7 +77,7 @@ tracker_xesam_class_init (TrackerXesamClass *klass)
 			NULL, NULL,
 			tracker_marshal_VOID__STRING_BOXED,
 			G_TYPE_NONE,
-			2, 
+			2,
 			G_TYPE_STRING,
 			DBUS_TYPE_G_UINT_ARRAY);
 
@@ -89,7 +89,7 @@ tracker_xesam_class_init (TrackerXesamClass *klass)
 			NULL, NULL,
 			tracker_marshal_VOID__STRING_BOXED,
 			G_TYPE_NONE,
-			2, 
+			2,
 			G_TYPE_STRING,
 			DBUS_TYPE_G_UINT_ARRAY);
 
@@ -101,7 +101,7 @@ tracker_xesam_class_init (TrackerXesamClass *klass)
 			NULL, NULL,
 			g_cclosure_marshal_VOID__STRING,
 			G_TYPE_NONE,
-			1, 
+			1,
 			G_TYPE_STRING);
 
 
@@ -113,7 +113,7 @@ tracker_xesam_class_init (TrackerXesamClass *klass)
 			NULL, NULL,
 			g_cclosure_marshal_VOID__BOXED,
 			G_TYPE_NONE,
-			1, 
+			1,
 			G_TYPE_STRV);
 }
 
@@ -157,7 +157,7 @@ my_sessions_cleanup (GList *data)
 	g_list_free (data);
 }
 
-void 
+void
 tracker_xesam_name_owner_changed (DBusGProxy   *proxy,
 				  const char   *name,
 				  const char   *prev_owner,
@@ -192,7 +192,7 @@ tracker_xesam_name_owner_changed (DBusGProxy   *proxy,
 /*
  * Functions
  */
-void 
+void
 tracker_xesam_new_session (TrackerXesam          *object,
 			   DBusGMethodInvocation *context)
 {
@@ -208,9 +208,9 @@ tracker_xesam_new_session (TrackerXesam          *object,
 	key = dbus_g_method_get_sender (context);
 
 	if (!sessions)
-		sessions = g_hash_table_new_full (g_str_hash, 
-						  g_str_equal, 
-						  (GDestroyNotify) g_free, 
+		sessions = g_hash_table_new_full (g_str_hash,
+						  g_str_equal,
+						  (GDestroyNotify) g_free,
 						  NULL);
 
 	my_sessions = g_hash_table_lookup (sessions, key);
@@ -224,18 +224,18 @@ tracker_xesam_new_session (TrackerXesam          *object,
 		dbus_g_method_return_error (context, error);
 		g_error_free (error);
 	} else {
-		my_sessions = g_list_prepend (my_sessions, 
+		my_sessions = g_list_prepend (my_sessions,
 					      g_strdup (session_id));
-		
+
 		if (insert)
-			g_hash_table_insert (sessions, 
-					     g_strdup (key), 
+			g_hash_table_insert (sessions,
+					     g_strdup (key),
 					     my_sessions);
 		else
-			g_hash_table_replace (sessions, 
-					      g_strdup (key), 
+			g_hash_table_replace (sessions,
+					      g_strdup (key),
 					      my_sessions);
-		
+
 		dbus_g_method_return (context, session_id);
 
 		g_message ("Created new xesam session: %s", session_id);
@@ -247,7 +247,7 @@ tracker_xesam_new_session (TrackerXesam          *object,
 	tracker_dbus_request_success (request_id);
 }
 
-void 
+void
 tracker_xesam_close_session (TrackerXesam          *object,
 			     const gchar           *session_id,
 			     DBusGMethodInvocation *context)
@@ -273,15 +273,15 @@ tracker_xesam_close_session (TrackerXesam          *object,
 			if (my_sessions) {
 				GList *found;
 
-				found = g_list_find_custom (my_sessions, 
-							    session_id, 
+				found = g_list_find_custom (my_sessions,
+							    session_id,
 							    (GCompareFunc) strcmp);
 
 				if (found) {
 					g_free (found->data);
 					my_sessions = g_list_delete_link (my_sessions, found);
-					g_hash_table_replace (sessions, 
-							      g_strdup (key), 
+					g_hash_table_replace (sessions,
+							      g_strdup (key),
 							      my_sessions);
 				}
 			}
@@ -296,11 +296,11 @@ tracker_xesam_close_session (TrackerXesam          *object,
 	tracker_dbus_request_success (request_id);
 }
 
-void 
+void
 tracker_xesam_set_property (TrackerXesam          *object,
 			    const gchar           *session_id,
 			    const gchar           *prop,
-			    GValue                *val, 
+			    GValue                *val,
 			    DBusGMethodInvocation *context)
 {
 	TrackerXesamSession *session;
@@ -315,10 +315,10 @@ tracker_xesam_set_property (TrackerXesam          *object,
 
 		g_clear_error (&error);
 
-		tracker_xesam_session_set_property (session, 
-						    prop, 
-						    val, 
-						    &new_val, 
+		tracker_xesam_session_set_property (session,
+						    prop,
+						    val,
+						    &new_val,
 						    &error);
 
 		if (error) {
@@ -359,9 +359,9 @@ tracker_xesam_get_property (TrackerXesam          *object,
 
 		g_clear_error (&error);
 
-		tracker_xesam_session_get_property (session, 
-						    prop, 
-						    &value, 
+		tracker_xesam_session_get_property (session,
+						    prop,
+						    &value,
 						    &error);
 
 		if (error) {
@@ -406,8 +406,8 @@ tracker_xesam_new_search (TrackerXesam          *object,
 
 		g_clear_error (&error);
 
-		search = tracker_xesam_session_create_search (session, 
-							      query_xml, 
+		search = tracker_xesam_session_create_search (session,
+							      query_xml,
 							      &search_id,
 							      &error);
 
@@ -509,15 +509,15 @@ tracker_xesam_get_hit_count (TrackerXesam          *object,
 }
 
 inline static void
-unsetvalue (gpointer data, 
+unsetvalue (gpointer data,
 	    gpointer user_data)
 {
 	g_value_unset (data);
 	g_free (data);
 }
 
-inline static void 
-foreach_hits_data (gpointer hits_data, 
+inline static void
+foreach_hits_data (gpointer hits_data,
 		   gpointer user_data)
 {
 	g_ptr_array_foreach ((GPtrArray *) hits_data, unsetvalue, NULL);
@@ -548,9 +548,9 @@ tracker_xesam_get_hits (TrackerXesam          *object,
 
 		g_clear_error (&error);
 
-		tracker_xesam_live_search_get_hits (search, 
-						    count, 
-						    &hits, 
+		tracker_xesam_live_search_get_hits (search,
+						    count,
+						    &hits,
 						    &error);
 
 		if (error) {
@@ -593,10 +593,10 @@ tracker_xesam_get_range_hits (TrackerXesam          *object,
 
 		g_clear_error (&error);
 
-		tracker_xesam_live_search_get_range_hits (search, 
-							  a, 
-							  b, 
-							  &hits, 
+		tracker_xesam_live_search_get_range_hits (search,
+							  a,
+							  b,
+							  &hits,
 							  &error);
 
 		if (error) {
@@ -620,11 +620,11 @@ tracker_xesam_get_range_hits (TrackerXesam          *object,
 }
 
 
-void 
+void
 tracker_xesam_get_hit_data (TrackerXesam          *object,
 			    const gchar           *search_id,
-			    GArray                *hit_ids, 
-			    GStrv                  fields, 
+			    GArray                *hit_ids,
+			    GStrv                  fields,
 			    DBusGMethodInvocation *context)
 {
 	TrackerXesamLiveSearch *search;
@@ -640,9 +640,9 @@ tracker_xesam_get_hit_data (TrackerXesam          *object,
 
 		g_clear_error (&error);
 
-		tracker_xesam_live_search_get_hit_data (search, 
-							hit_ids, 
-							fields, 
+		tracker_xesam_live_search_get_hit_data (search,
+							hit_ids,
+							fields,
 							&hit_data,
 							&error);
 
@@ -666,12 +666,12 @@ tracker_xesam_get_hit_data (TrackerXesam          *object,
 	tracker_dbus_request_success (request_id);
 }
 
-void 
+void
 tracker_xesam_get_range_hit_data (TrackerXesam          *object,
 				  const gchar           *search_id,
 				  guint                  a,
 				  guint                  b,
-				  GStrv                  fields, 
+				  GStrv                  fields,
 				  DBusGMethodInvocation *context)
 {
 	TrackerXesamLiveSearch *search;
@@ -687,11 +687,11 @@ tracker_xesam_get_range_hit_data (TrackerXesam          *object,
 
 		g_clear_error (&error);
 
-		tracker_xesam_live_search_get_range_hit_data (search, 
-							      a, 
-							      b, 
-							      fields, 
-							      &hit_data, 
+		tracker_xesam_live_search_get_range_hit_data (search,
+							      a,
+							      b,
+							      fields,
+							      &hit_data,
 							      &error);
 
 		if (error) {
@@ -714,7 +714,7 @@ tracker_xesam_get_range_hit_data (TrackerXesam          *object,
 	tracker_dbus_request_success (request_id);
 }
 
-void 
+void
 tracker_xesam_close_search (TrackerXesam          *object,
 			    const gchar           *search_id,
 			    DBusGMethodInvocation *context)
@@ -749,7 +749,7 @@ tracker_xesam_close_search (TrackerXesam          *object,
 	tracker_dbus_request_success (request_id);
 }
 
-void 
+void
 tracker_xesam_get_state (TrackerXesam          *object,
 			 DBusGMethodInvocation *context)
 {
@@ -777,17 +777,17 @@ tracker_xesam_get_state (TrackerXesam          *object,
  * Emits the @state-changed signal on the DBus proxy for Xesam.
  *
  * When the state as returned by @tracker_get_state changes this @state-changed
- * signal must be fired with an argument as described in said method. If the 
- * indexer expects to only enter the UPDATE state for a very brief period 
+ * signal must be fired with an argument as described in said method. If the
+ * indexer expects to only enter the UPDATE state for a very brief period
  * - indexing one changed file - it is not required that the @state-changed
- * signal is fired. The signal only needs to be fired if the process of updating 
- * the index is going to be non-negligible. The purpose of this signal is not to 
- * provide exact details on the engine, just to provide hints for a user 
+ * signal is fired. The signal only needs to be fired if the process of updating
+ * the index is going to be non-negligible. The purpose of this signal is not to
+ * provide exact details on the engine, just to provide hints for a user
  * interface.
  **/
-void 
-tracker_xesam_emit_state_changed (TrackerXesam *self, 
-				  GStrv         state_info) 
+void
+tracker_xesam_emit_state_changed (TrackerXesam *self,
+				  GStrv         state_info)
 {
 	g_signal_emit (self, signals[XESAM_STATE_CHANGED], 0, state_info);
 }

@@ -1,6 +1,6 @@
 /* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 8; tab-width: 8 -*-
  *
- * libtracker-gtk/tracker-utils.c - Grab bag of functions for manuipulating 
+ * libtracker-gtk/tracker-utils.c - Grab bag of functions for manuipulating
  * tracker results into more Gtk friedly types.
  *
  * Copyright (C) 2007 John Stowers
@@ -72,7 +72,7 @@ tracker_get_all_keywords (TrackerClient *tracker_client)
 	return list;
 }
 
-/* Creates a tree model containing the keywords in List 
+/* Creates a tree model containing the keywords in List
 this simple treemodel has a single column containing the keyword name*/
 GtkTreeModel *
 tracker_create_simple_keyword_liststore (const GList *list)

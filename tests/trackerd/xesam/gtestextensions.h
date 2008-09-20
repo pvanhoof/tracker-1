@@ -2,17 +2,17 @@
 /*
  * gtestextensions
  * Copyright (C) Mikkel Kamstrup Erlandsen 2008 <mikkel.kamstrup@gmail.com>
- * 
+ *
  * gtestextensions is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * gtestextensions is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with xesam-glib.  If not, write to:
  * 	The Free Software Foundation, Inc.,
@@ -97,7 +97,7 @@ void		gtx_flush_sources				(gboolean may_block);
  * gtx_assert_last_unref
  * @o: A #GObject
  *
- * Calls g_object_unref on @o and raises a critical error if the 
+ * Calls g_object_unref on @o and raises a critical error if the
  * #GObject is not finalized after this call.
  */
 /* This macro is based on code by Benjamin Otte, April, 2008 */
@@ -108,7 +108,7 @@ void		gtx_flush_sources				(gboolean may_block);
 	if (_tmp != NULL) \
 		g_critical ("Leak detected. Object %s@%p is not unreferenced",\
 					g_type_name(G_OBJECT_TYPE(o)), o);\
-} G_STMT_END 
+} G_STMT_END
 
 G_END_DECLS
 

@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, 
+ * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  * Boston, MA  02110-1301, USA.
  */
 
@@ -68,7 +68,7 @@ tracker_xesam_live_search_finalize (GObject *object)
 }
 
 void
-tracker_xesam_live_search_set_session (TrackerXesamLiveSearch *self, 
+tracker_xesam_live_search_set_session (TrackerXesamLiveSearch *self,
 				       gpointer                session)
 {
 	TrackerXesamLiveSearchPriv *priv = self->priv;
@@ -88,7 +88,7 @@ tracker_xesam_live_search_set_session (TrackerXesamLiveSearch *self,
 }
 
 void
-tracker_xesam_live_search_set_xml_query (TrackerXesamLiveSearch *self, 
+tracker_xesam_live_search_set_xml_query (TrackerXesamLiveSearch *self,
 					 const gchar            *query)
 {
 	TrackerXesamLiveSearchPriv *priv;
@@ -124,8 +124,8 @@ xesam_search_set_property (GObject      *object,
 }
 
 
-static void 
-tracker_xesam_live_search_class_init (TrackerXesamLiveSearchClass *klass) 
+static void
+tracker_xesam_live_search_class_init (TrackerXesamLiveSearchClass *klass)
 {
 	GObjectClass *object_class;
 
@@ -145,8 +145,8 @@ tracker_xesam_live_search_class_init (TrackerXesamLiveSearchClass *klass)
 
 }
 
-static void 
-tracker_xesam_live_search_init (TrackerXesamLiveSearch *self) 
+static void
+tracker_xesam_live_search_init (TrackerXesamLiveSearch *self)
 {
 	TrackerXesamLiveSearchPriv *priv;
 
@@ -172,18 +172,18 @@ tracker_xesam_live_search_init (TrackerXesamLiveSearch *self)
  *
  * Emits the @hits-added signal on the DBus proxy for Xesam
  **/
-void 
-tracker_xesam_live_search_emit_hits_added (TrackerXesamLiveSearch *self, 
-					   guint                   count) 
+void
+tracker_xesam_live_search_emit_hits_added (TrackerXesamLiveSearch *self,
+					   guint                   count)
 {
 	GObject *xesam;
-	
+
 	g_return_if_fail (TRACKER_IS_XESAM_LIVE_SEARCH (self));
 
 	xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
 
-	g_signal_emit_by_name (xesam, "hits-added", 
-			       tracker_xesam_live_search_get_id (self), 
+	g_signal_emit_by_name (xesam, "hits-added",
+			       tracker_xesam_live_search_get_id (self),
 			       count);
 }
 
@@ -195,12 +195,12 @@ tracker_xesam_live_search_emit_hits_added (TrackerXesamLiveSearch *self,
  *
  * Emits the @hits-removed signal on the DBus proxy for Xesam
  *
- * The hit ids in the array no longer match the query. Any calls to GetHitData 
+ * The hit ids in the array no longer match the query. Any calls to GetHitData
  * on any of the given hit ids should return unset fields.
  **/
-void 
-tracker_xesam_live_search_emit_hits_removed (TrackerXesamLiveSearch *self, 
-					     GArray                 *hit_ids) 
+void
+tracker_xesam_live_search_emit_hits_removed (TrackerXesamLiveSearch *self,
+					     GArray                 *hit_ids)
 {
 	GObject *xesam;
 
@@ -209,9 +209,9 @@ tracker_xesam_live_search_emit_hits_removed (TrackerXesamLiveSearch *self,
 
 	xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
 
-	g_signal_emit_by_name (xesam, "hits-removed", 
-			       tracker_xesam_live_search_get_id (self), 
-			       hit_ids); 
+	g_signal_emit_by_name (xesam, "hits-removed",
+			       tracker_xesam_live_search_get_id (self),
+			       hit_ids);
 }
 
 /**
@@ -222,12 +222,12 @@ tracker_xesam_live_search_emit_hits_removed (TrackerXesamLiveSearch *self,
  *
  * Emits the @hits-modified signal on the DBus proxy for Xesam
  *
- * The documents corresponding to the hit ids in the array have been modified. 
+ * The documents corresponding to the hit ids in the array have been modified.
  * They can have been moved in which case their uri will have changed.
  **/
-void 
-tracker_xesam_live_search_emit_hits_modified (TrackerXesamLiveSearch *self, 
-					      GArray                 *hit_ids) 
+void
+tracker_xesam_live_search_emit_hits_modified (TrackerXesamLiveSearch *self,
+					      GArray                 *hit_ids)
 {
 	GObject *xesam;
 
@@ -236,9 +236,9 @@ tracker_xesam_live_search_emit_hits_modified (TrackerXesamLiveSearch *self,
 
 	xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
 
-	g_signal_emit_by_name (xesam, "hits-modified", 
-			       tracker_xesam_live_search_get_id (self), 
-			       hit_ids); 
+	g_signal_emit_by_name (xesam, "hits-modified",
+			       tracker_xesam_live_search_get_id (self),
+			       hit_ids);
 }
 
 /**
@@ -246,14 +246,14 @@ tracker_xesam_live_search_emit_hits_modified (TrackerXesamLiveSearch *self,
  * @self: A #TrackerXesamLiveSearch
  *
  * Emits the @search-done signal on the DBus proxy for Xesam.
- * 
- * The given search has scanned the entire index. For non-live searches this 
- * means that no more hits will be available. For a live search this means that 
- * all future signals (@hits-Added, @hits-removed, @hits-modified) will be 
+ *
+ * The given search has scanned the entire index. For non-live searches this
+ * means that no more hits will be available. For a live search this means that
+ * all future signals (@hits-Added, @hits-removed, @hits-modified) will be
  * related to objects that changed in the index.
  **/
-void 
-tracker_xesam_live_search_emit_done (TrackerXesamLiveSearch *self) 
+void
+tracker_xesam_live_search_emit_done (TrackerXesamLiveSearch *self)
 {
 	GObject *xesam;
 
@@ -261,29 +261,29 @@ tracker_xesam_live_search_emit_done (TrackerXesamLiveSearch *self)
 
 	xesam = tracker_dbus_get_object (TRACKER_TYPE_XESAM);
 
-	g_signal_emit_by_name (xesam, "search-done", 
-			       tracker_xesam_live_search_get_id (self)); 
+	g_signal_emit_by_name (xesam, "search-done",
+			       tracker_xesam_live_search_get_id (self));
 }
 
 
 
 /* Created and Modified items */
 static void
-get_hits_added_modified (TrackerXesamLiveSearch  *self, 
+get_hits_added_modified (TrackerXesamLiveSearch  *self,
 			 MatchWithEventsFlags     flags,
-			 TrackerDBInterface      *iface, 
-			 GArray                 **added, 
-			 GArray                 **modified) 
+			 TrackerDBInterface      *iface,
+			 GArray                 **added,
+			 GArray                 **modified)
 {
 	gboolean            ls_valid = TRUE;
 	GArray             *m_added = NULL;
 	GArray             *m_modified = NULL;
 	TrackerDBResultSet *result_set;
 
-	/* Right now we are ignoring flags (both creates and updates are 
+	/* Right now we are ignoring flags (both creates and updates are
 	 * searched) */
 
-	result_set = tracker_db_live_search_get_new_ids (iface, 
+	result_set = tracker_db_live_search_get_new_ids (iface,
 							 tracker_xesam_live_search_get_id (self),
 							 tracker_xesam_live_search_get_from_query (self),
 							 tracker_xesam_live_search_get_join_query (self),
@@ -341,9 +341,9 @@ get_hits_added_modified (TrackerXesamLiveSearch  *self,
 
 /* Created and Modified items */
 static void
-get_all_hits (TrackerXesamLiveSearch  *self, 
-	      TrackerDBInterface      *iface, 
-	      GArray                 **hits) 
+get_all_hits (TrackerXesamLiveSearch  *self,
+	      TrackerDBInterface      *iface,
+	      GArray                 **hits)
 {
 	TrackerDBResultSet *result_set;
 	gboolean            valid;
@@ -352,9 +352,9 @@ get_all_hits (TrackerXesamLiveSearch  *self,
 
 	*hits = NULL;
 
-	result_set = tracker_db_live_search_get_all_ids (iface, 
+	result_set = tracker_db_live_search_get_all_ids (iface,
 							 tracker_xesam_live_search_get_id (self));
-	
+
 	if (!result_set) {
 		return;
 	}
@@ -394,8 +394,8 @@ get_all_hits (TrackerXesamLiveSearch  *self,
 void
 tracker_xesam_live_search_match_with_events (TrackerXesamLiveSearch  *self,
 					     MatchWithEventsFlags     flags,
-					     GArray                 **added, 
-					     GArray                 **removed, 
+					     GArray                 **added,
+					     GArray                 **removed,
 					     GArray                 **modified)
 {
 	TrackerDBInterface *iface;
@@ -414,7 +414,7 @@ tracker_xesam_live_search_match_with_events (TrackerXesamLiveSearch  *self,
 
 	if (flags & MATCH_WITH_EVENTS_DELETES) {
 		/* Deleted items */
-		result_set = tracker_db_live_search_get_deleted_ids (iface, 
+		result_set = tracker_db_live_search_get_deleted_ids (iface,
 								     tracker_xesam_live_search_get_id (self));
 
 		if (result_set) {
@@ -425,24 +425,24 @@ tracker_xesam_live_search_match_with_events (TrackerXesamLiveSearch  *self,
 			while (valid) {
 				GValue ls_value = { 0, };
 				gint   ls_i_value;
-			
-				_tracker_db_result_set_get_value (result_set, 
-								  0, 
+
+				_tracker_db_result_set_get_value (result_set,
+								  0,
 								  &ls_value);
 				ls_i_value = g_value_get_int (&ls_value);
-			
+
 				if (*removed == NULL) {
-					*removed = g_array_new (FALSE, 
-								TRUE, 
+					*removed = g_array_new (FALSE,
+								TRUE,
 								sizeof (guint32));
 				}
 
 				g_array_append_val (*removed, ls_i_value);
 				g_value_unset (&ls_value);
-			
+
 				valid = tracker_db_result_set_iter_next (result_set);
 			}
-		
+
 			g_object_unref (result_set);
 		}
 	}
@@ -461,8 +461,8 @@ tracker_xesam_live_search_match_with_events (TrackerXesamLiveSearch  *self,
  *
  * Close @self. An error will be thrown if @self was already closed.
  **/
-void 
-tracker_xesam_live_search_close (TrackerXesamLiveSearch  *self, 
+void
+tracker_xesam_live_search_close (TrackerXesamLiveSearch  *self,
 				 GError                 **error)
 {
 	TrackerXesamLiveSearchPriv *priv;
@@ -472,8 +472,8 @@ tracker_xesam_live_search_close (TrackerXesamLiveSearch  *self,
 	priv = self->priv;
 
 	if (priv->closed) {
-		g_set_error (error, 
-			     TRACKER_XESAM_ERROR_DOMAIN, 
+		g_set_error (error,
+			     TRACKER_XESAM_ERROR_DOMAIN,
 			     TRACKER_XESAM_ERROR_SEARCH_CLOSED,
 			     "Search was already closed");
 	} else {
@@ -481,10 +481,10 @@ tracker_xesam_live_search_close (TrackerXesamLiveSearch  *self,
 
 		iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_XESAM_SERVICE);
 
-		g_message ("Closing search '%s'", 
+		g_message ("Closing search '%s'",
 			   tracker_xesam_live_search_get_id (self));
 
-		tracker_db_live_search_stop (iface, 
+		tracker_db_live_search_stop (iface,
 					     tracker_xesam_live_search_get_id (self));
 	}
 
@@ -500,12 +500,12 @@ tracker_xesam_live_search_close (TrackerXesamLiveSearch  *self,
  *
  * Get the current number of found hits.
  *
- * An error will be thrown if the search has not been started with 
+ * An error will be thrown if the search has not been started with
  * @tracker_xesam_live_search_activate yet.
  **/
-void 
-tracker_xesam_live_search_get_hit_count (TrackerXesamLiveSearch  *self, 
-					 guint                   *count, 
+void
+tracker_xesam_live_search_get_hit_count (TrackerXesamLiveSearch  *self,
+					 guint                   *count,
 					 GError                 **error)
 {
 	TrackerXesamLiveSearchPriv *priv;
@@ -517,7 +517,7 @@ tracker_xesam_live_search_get_hit_count (TrackerXesamLiveSearch  *self,
 
 	if (!priv->active) {
 		g_set_error (error,
-			     TRACKER_XESAM_ERROR_DOMAIN, 
+			     TRACKER_XESAM_ERROR_DOMAIN,
 			     TRACKER_XESAM_ERROR_SEARCH_NOT_ACTIVE,
 			     "Search is not active");
 	} else {
@@ -527,7 +527,7 @@ tracker_xesam_live_search_get_hit_count (TrackerXesamLiveSearch  *self,
 
 		iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_XESAM_SERVICE);
 
-		result_set = tracker_db_live_search_get_hit_count (iface, 
+		result_set = tracker_db_live_search_get_hit_count (iface,
 								   tracker_xesam_live_search_get_id (self));
 		_tracker_db_result_set_get_value (result_set, 0, &value);
 		*count = g_value_get_int (&value);
@@ -541,7 +541,7 @@ typedef struct {
 	gpointer value;
 } OneRow;
 
-static inline gpointer 
+static inline gpointer
 rows_lookup (GPtrArray *rows, gint key)
 {
 	guint    i;
@@ -581,7 +581,7 @@ rows_insert (GPtrArray *rows, gint key, gpointer value)
 	g_ptr_array_add (rows, row);
 }
 
-static inline void 
+static inline void
 rows_migrate (GPtrArray *rows, GPtrArray *result)
 {
 	guint i;
@@ -595,16 +595,16 @@ rows_migrate (GPtrArray *rows, GPtrArray *result)
 
 /**
  * Retrieving Hits
- * The return value of GetHits and GetHitData is a sorted array of hits. A hit 
- * consists of an array of fields as requested through the session property 
- * hit.fields, or as method parameter in the case of GetHitData. All available 
- * fields can be found in the Xesam Ontology. Since the signature of the return 
- * value is aav a single hit is on the form av. This allows hit properties to be 
- * integers, strings or arrays of any type. An array of strings is fx. needed 
+ * The return value of GetHits and GetHitData is a sorted array of hits. A hit
+ * consists of an array of fields as requested through the session property
+ * hit.fields, or as method parameter in the case of GetHitData. All available
+ * fields can be found in the Xesam Ontology. Since the signature of the return
+ * value is aav a single hit is on the form av. This allows hit properties to be
+ * integers, strings or arrays of any type. An array of strings is fx. needed
  * for email CC fields and keywords/tags for example.
  *
- * The returned fields are ordered according to hit.fields. Fx. 
- * if hit.fields = ["xesam:title", "xesam:userKeywords", "xesam:size"], a 
+ * The returned fields are ordered according to hit.fields. Fx.
+ * if hit.fields = ["xesam:title", "xesam:userKeywords", "xesam:size"], a
  * return value would look like:
  *
  * [
@@ -616,7 +616,7 @@ rows_migrate (GPtrArray *rows, GPtrArray *result)
  * elements contain GValue instances.
  **/
 static void
-get_hit_data (TrackerXesamLiveSearch  *self, 
+get_hit_data (TrackerXesamLiveSearch  *self,
 	      TrackerDBResultSet      *result_set,
 	      GPtrArray              **hit_data,
 	      GStrv                    fields)
@@ -642,7 +642,7 @@ get_hit_data (TrackerXesamLiveSearch  *self,
 
 		/* key must be the first column, as an int, unique per row that
 		 * must actually be returned. Example:
-		 * 
+		 *
 		 * 1, a, b, c, 1
 		 * 1, a, b, c, 2
 		 * 1, a, b, c, 3
@@ -651,9 +651,9 @@ get_hit_data (TrackerXesamLiveSearch  *self,
 		 * 3, a, b, c, 1
 		 * 4, a, b, c, 2
 		 * 5, a, b, c, 2
-		 * 
+		 *
 		 * for:
-		 * 
+		 *
 		 * [
 		 *    [a, b, c, [1, 2, 3, 4]]
 		 *    [a, b, c, [1]]
@@ -679,8 +679,8 @@ get_hit_data (TrackerXesamLiveSearch  *self,
 		for (column = 1; column < field_count + 1; column++) {
 			GValue cur_value = {0, };
 
-			_tracker_db_result_set_get_value (result_set, 
-							  column, 
+			_tracker_db_result_set_get_value (result_set,
+							  column,
 							  &cur_value);
 
 			field_def = tracker_ontology_get_field_by_name (fields[column-1]);
@@ -693,27 +693,27 @@ get_hit_data (TrackerXesamLiveSearch  *self,
 				case TRACKER_FIELD_TYPE_STRING: {
 					GValue    *variant;
 					GPtrArray *my_array;
-					
+
 					if (row->len <= (unsigned int) column) {
 						variant = g_new0 (GValue, 1);
-						g_value_init (variant, 
-							      dbus_g_type_get_collection ("GPtrArray", 
+						g_value_init (variant,
+							      dbus_g_type_get_collection ("GPtrArray",
 											  G_TYPE_STRING));
-						
+
 						my_array = g_ptr_array_new ();
-						g_value_set_boxed_take_ownership (variant, 
+						g_value_set_boxed_take_ownership (variant,
 										  my_array);
-						
+
 						g_ptr_array_add (row, variant);
-						
+
 					} else {
 						variant = g_ptr_array_index (row, column-1);
 						my_array = g_value_get_boxed (variant);
 					}
-					
-					g_ptr_array_add  (my_array, 
+
+					g_ptr_array_add  (my_array,
 							  g_value_dup_string (&cur_value));
-					
+
 					break;
 				}
 
@@ -721,26 +721,26 @@ get_hit_data (TrackerXesamLiveSearch  *self,
 					GValue *variant;
 					GArray *my_array;
 					gint    int_val;
-					
+
 					if (row->len <= (unsigned int) column) {
 						variant = g_new0 (GValue, 1);
-						g_value_init (variant, 
-							      dbus_g_type_get_collection ("GArray", 
+						g_value_init (variant,
+							      dbus_g_type_get_collection ("GArray",
 											  G_TYPE_INT));
-						
-						my_array = g_array_new (FALSE, 
-									 TRUE, 
+
+						my_array = g_array_new (FALSE,
+									 TRUE,
 									 sizeof (gfloat));
 						g_value_set_boxed_take_ownership (variant, my_array);
-						
+
 						g_ptr_array_add (row, variant);
 					} else {
 						variant = g_ptr_array_index (row, column);
 						my_array = g_value_get_boxed (variant);
 					}
-					
+
 					int_val = g_value_get_int (&cur_value);
-					g_array_append_val (my_array, int_val);				
+					g_array_append_val (my_array, int_val);
 
 					break;
 				}
@@ -749,15 +749,15 @@ get_hit_data (TrackerXesamLiveSearch  *self,
 					GValue   *variant;
 					GArray   *my_array;
 					gfloat    float_val;
-					
+
 					if (row->len <= (unsigned int) column) {
 						variant = g_new0 (GValue, 1);
-						g_value_init (variant, 
-							      dbus_g_type_get_collection ("GArray", 
+						g_value_init (variant,
+							      dbus_g_type_get_collection ("GArray",
 										     G_TYPE_FLOAT));
 
-						my_array = g_array_new (FALSE, 
-									 TRUE, 
+						my_array = g_array_new (FALSE,
+									 TRUE,
 									 sizeof (gboolean));
 						g_value_set_boxed_take_ownership (variant, my_array);
 
@@ -778,24 +778,24 @@ get_hit_data (TrackerXesamLiveSearch  *self,
 			} else {
 				if (insert) {
 					GValue *value = g_new0 (GValue, 1);
-					
-					g_value_init (value, 
+
+					g_value_init (value,
 						      G_VALUE_TYPE (&cur_value));
-					
+
 					g_value_copy (&cur_value, value);
 					g_ptr_array_add (row, value);
 				}
-				
-				/* Else it's a redundant cell (a previous 
+
+				/* Else it's a redundant cell (a previous
 				 * loop-cycle has added this item to the
 				 * final to-return result already, using
 				 * the top-row). */
-				
+
 			}
 			g_value_unset (&cur_value);
 		}
-		
-		
+
+
 		if (insert) {
 			rows_insert (rows, key, row);
 		}
@@ -814,19 +814,19 @@ get_hit_data (TrackerXesamLiveSearch  *self,
  * tracker_xesam_live_search_get_hits:
  * @self: a #TrackerXesamLiveSearch
  * @num: Number of hits to retrieve
- * @hits: (out) (caller-owns): An array of field data for each hit as requested 
- * via the hit fields property 
+ * @hits: (out) (caller-owns): An array of field data for each hit as requested
+ * via the hit fields property
  * @error: (null-ok) (out): a #GError
  *
- * Get the field data for the next num hits. This call blocks until there is num 
+ * Get the field data for the next num hits. This call blocks until there is num
  * hits available or the index has been fully searched (and SearchDone emitted).
  *
- * An error will be thrown if the search has not been started with 
+ * An error will be thrown if the search has not been started with
  * @tracker_xesam_live_search_activate yet.
  **/
-void 
-tracker_xesam_live_search_get_hits (TrackerXesamLiveSearch  *self, 
-				    guint                    count, 
+void
+tracker_xesam_live_search_get_hits (TrackerXesamLiveSearch  *self,
+				    guint                    count,
 				    GPtrArray              **hits,
 				    GError                 **error)
 {
@@ -838,7 +838,7 @@ tracker_xesam_live_search_get_hits (TrackerXesamLiveSearch  *self,
 	priv = self->priv;
 
 	if (!priv->active)
-		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
+		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN,
 				TRACKER_XESAM_ERROR_SEARCH_NOT_ACTIVE,
 				"Search is not active");
 	else {
@@ -848,9 +848,9 @@ tracker_xesam_live_search_get_hits (TrackerXesamLiveSearch  *self,
 
 		session = priv->session;
 
-		tracker_xesam_session_get_property (session, 
-						    "hit.fields", 
-						    &value, 
+		tracker_xesam_session_get_property (session,
+						    "hit.fields",
+						    &value,
 						    &tmp_error);
 
 		if (tmp_error) {
@@ -875,8 +875,8 @@ tracker_xesam_live_search_get_hits (TrackerXesamLiveSearch  *self,
 
 			if (result_set) {
 
-				get_hit_data (self, 
-					      result_set, 
+				get_hit_data (self,
+					      result_set,
 					      hits,
 					      fields);
 
@@ -906,8 +906,8 @@ tracker_xesam_live_search_get_range_hits (TrackerXesamLiveSearch  *self,
 	priv = self->priv;
 
 	if (!priv->active) {
-		g_set_error (error, 
-			     TRACKER_XESAM_ERROR_DOMAIN, 
+		g_set_error (error,
+			     TRACKER_XESAM_ERROR_DOMAIN,
 			     TRACKER_XESAM_ERROR_SEARCH_NOT_ACTIVE,
 			     "Search is not active");
 	} else {
@@ -919,9 +919,9 @@ tracker_xesam_live_search_get_range_hits (TrackerXesamLiveSearch  *self,
 
 		iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_XESAM_SERVICE);
 
-		tracker_xesam_session_get_property (session, 
-						    "hit.fields", 
-						    &value, 
+		tracker_xesam_session_get_property (session,
+						    "hit.fields",
+						    &value,
 						    &tmp_error);
 
 		if (tmp_error) {
@@ -937,11 +937,11 @@ tracker_xesam_live_search_get_range_hits (TrackerXesamLiveSearch  *self,
 			result_set = tracker_db_live_search_get_hit_data (iface,
 									  tracker_xesam_live_search_get_id (self),
 									  fields);
-					
+
 			if (result_set) {
 
-				get_hit_data (self, 
-					      result_set, 
+				get_hit_data (self,
+					      result_set,
 					      hits,
 					      fields);
 
@@ -960,34 +960,34 @@ tracker_xesam_live_search_get_range_hits (TrackerXesamLiveSearch  *self,
  * tracker_xesam_live_search_get_hit_data:
  * @self: a #TrackerXesamLiveSearch
  * @hit_ids: Array of hit serial numbers for which to retrieve data
- * @fields: The names of the fields to retrieve for the listed hits. It is 
- * recommended that this is a subset of the fields listed in hit.fields and 
+ * @fields: The names of the fields to retrieve for the listed hits. It is
+ * recommended that this is a subset of the fields listed in hit.fields and
  * hit.fields.extended
- * @hit_data: Array of hits in the same order as the hit ids specified. See 
- * the section about hit retrieval below. If @hits-removed has been emitted on 
- * a hit, the returned hit data will consist of unset fields, ie this is not an 
+ * @hit_data: Array of hits in the same order as the hit ids specified. See
+ * the section about hit retrieval below. If @hits-removed has been emitted on
+ * a hit, the returned hit data will consist of unset fields, ie this is not an
  * error condition.
  * @error: (null-ok) (out): a #GError
  *
- * Get renewed or additional hit metadata. Primarily intended for snippets or 
+ * Get renewed or additional hit metadata. Primarily intended for snippets or
  * modified hits. The hit_ids argument is an array of serial numbers as per hit
- * entries returned by GetHits. The returned hits will be in the same order as 
- * the provided @hit_ids. The requested properties does not have to be the ones 
- * listed in in the hit.fields or hit.fields.extended session properties, 
+ * entries returned by GetHits. The returned hits will be in the same order as
+ * the provided @hit_ids. The requested properties does not have to be the ones
+ * listed in in the hit.fields or hit.fields.extended session properties,
  * although this is the recommended behavior.
  *
- * An error will be raised if the search handle has been closed or is unknown. 
- * An error will also be thrown if the search has not been started with 
+ * An error will be raised if the search handle has been closed or is unknown.
+ * An error will also be thrown if the search has not been started with
  * @tracker_xesam_live_search_activate yet
  *
- * Calling on a hit that has been marked removed by the @hits-removed signal 
+ * Calling on a hit that has been marked removed by the @hits-removed signal
  * will not result in an error, but return only unset fields.
  **/
-void 
-tracker_xesam_live_search_get_hit_data (TrackerXesamLiveSearch  *self, 
-					GArray                  *hit_ids, 
-					GStrv                    fields, 
-					GPtrArray              **hit_data, 
+void
+tracker_xesam_live_search_get_hit_data (TrackerXesamLiveSearch  *self,
+					GArray                  *hit_ids,
+					GStrv                    fields,
+					GPtrArray              **hit_data,
 					GError                 **error)
 {
 	TrackerXesamLiveSearchPriv *priv;
@@ -999,8 +999,8 @@ tracker_xesam_live_search_get_hit_data (TrackerXesamLiveSearch  *self,
 	priv = self->priv;
 
 	if (!priv->active) {
-		g_set_error (error, 
-			     TRACKER_XESAM_ERROR_DOMAIN, 
+		g_set_error (error,
+			     TRACKER_XESAM_ERROR_DOMAIN,
 			     TRACKER_XESAM_ERROR_SEARCH_NOT_ACTIVE,
 			     "Search is not active yet");
 	} else {
@@ -1015,8 +1015,8 @@ tracker_xesam_live_search_get_hit_data (TrackerXesamLiveSearch  *self,
 
 		if (result_set) {
 
-			get_hit_data (self, 
-				      result_set, 
+			get_hit_data (self,
+				      result_set,
 				      hit_data,
 				      fields);
 
@@ -1031,7 +1031,7 @@ void
 tracker_xesam_live_search_get_range_hit_data (TrackerXesamLiveSearch  *self,
 					      guint                    a,
 					      guint                    b,
-					      GStrv                    fields, 
+					      GStrv                    fields,
 					      GPtrArray              **hit_data,
 					      GError                 **error)
 {
@@ -1043,9 +1043,9 @@ tracker_xesam_live_search_get_range_hit_data (TrackerXesamLiveSearch  *self,
 
 	priv = self->priv;
 
-	if (!priv->active) { 
+	if (!priv->active) {
 		g_set_error (error,
-			     TRACKER_XESAM_ERROR_DOMAIN, 
+			     TRACKER_XESAM_ERROR_DOMAIN,
 			     TRACKER_XESAM_ERROR_SEARCH_NOT_ACTIVE,
 			     "Search is not active yet");
 	} else {
@@ -1060,8 +1060,8 @@ tracker_xesam_live_search_get_range_hit_data (TrackerXesamLiveSearch  *self,
 
 		if (result_set) {
 
-			get_hit_data (self, 
-				      result_set, 
+			get_hit_data (self,
+				      result_set,
 				      hit_data,
 				      fields);
 
@@ -1080,7 +1080,7 @@ tracker_xesam_live_search_get_range_hit_data (TrackerXesamLiveSearch  *self,
  *
  * @returns: whether or not @self is active
  **/
-gboolean 
+gboolean
 tracker_xesam_live_search_is_active (TrackerXesamLiveSearch *self)
 {
 	TrackerXesamLiveSearchPriv *priv;
@@ -1100,14 +1100,14 @@ tracker_xesam_live_search_is_active (TrackerXesamLiveSearch *self)
  *
  * An error will be thrown if @self is closed.
  **/
-void 
-tracker_xesam_live_search_activate (TrackerXesamLiveSearch  *self, 
+void
+tracker_xesam_live_search_activate (TrackerXesamLiveSearch  *self,
 				    GError                 **error)
 {
 	TrackerXesamLiveSearchPriv *priv = self->priv;
 
 	if (priv->closed)
-		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
+		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN,
 				TRACKER_XESAM_ERROR_SEARCH_CLOSED,
 				"Search is closed");
 	else {
@@ -1134,8 +1134,8 @@ tracker_xesam_live_search_activate (TrackerXesamLiveSearch  *self,
 		}
 
 		g_timeout_add_full (G_PRIORITY_DEFAULT,
-				    100, 
-				    (GSourceFunc) tracker_xesam_live_search_emit_done, 
+				    100,
+				    (GSourceFunc) tracker_xesam_live_search_emit_done,
 				    g_object_ref (self),
 				    (GDestroyNotify) g_object_unref);
 	}
@@ -1153,7 +1153,7 @@ tracker_xesam_live_search_activate (TrackerXesamLiveSearch  *self,
  *
  * @returns: a read-only string with the query
  **/
-const gchar * 
+const gchar *
 tracker_xesam_live_search_get_xml_query (TrackerXesamLiveSearch *self)
 {
 	TrackerXesamLiveSearchPriv *priv;
@@ -1172,8 +1172,8 @@ tracker_xesam_live_search_get_xml_query (TrackerXesamLiveSearch *self)
  *
  * Set a read-only unique ID string for @self.
  **/
-void 
-tracker_xesam_live_search_set_id (TrackerXesamLiveSearch *self, 
+void
+tracker_xesam_live_search_set_id (TrackerXesamLiveSearch *self,
 				  const gchar            *search_id)
 {
 	TrackerXesamLiveSearchPriv *priv;
@@ -1199,7 +1199,7 @@ tracker_xesam_live_search_set_id (TrackerXesamLiveSearch *self,
  *
  * returns: a unique id
  **/
-const gchar* 
+const gchar*
 tracker_xesam_live_search_get_id (TrackerXesamLiveSearch *self)
 {
 	TrackerXesamLiveSearchPriv *priv;
@@ -1247,19 +1247,19 @@ tracker_xesam_live_search_parse_query (TrackerXesamLiveSearch  *self,
 	priv->where_sql = NULL;
 
 	tracker_xesam_query_to_sql (iface,
-				    priv->query, 
+				    priv->query,
 				    &priv->from_sql,
 				    &priv->join_sql,
-				    &priv->where_sql, 
+				    &priv->where_sql,
 				    &parse_error);
 
 	if (parse_error) {
 		gchar *str;
 
-		str = g_strdup_printf ("Parse error: %s", 
+		str = g_strdup_printf ("Parse error: %s",
 				       parse_error->message);
-		g_set_error (error, 
-			     TRACKER_XESAM_ERROR_DOMAIN, 
+		g_set_error (error,
+			     TRACKER_XESAM_ERROR_DOMAIN,
 			     TRACKER_XESAM_ERROR_PARSING_FAILED,
 			     str);
 		g_free (str);
@@ -1280,7 +1280,7 @@ tracker_xesam_live_search_parse_query (TrackerXesamLiveSearch  *self,
 		g_free (orig_where);
 	}
 
-	g_message ("Parsed to:\n\t%s\n\t%s\n\t%s", 
+	g_message ("Parsed to:\n\t%s\n\t%s\n\t%s",
 		   priv->from_sql,
 		   priv->join_sql,
 		   priv->where_sql);
@@ -1296,7 +1296,7 @@ tracker_xesam_live_search_parse_query (TrackerXesamLiveSearch  *self,
  *
  * @returns: a read-only string with the FROM query
  **/
-const gchar* 
+const gchar*
 tracker_xesam_live_search_get_from_query (TrackerXesamLiveSearch *self)
 {
 	TrackerXesamLiveSearchPriv *priv;
@@ -1316,7 +1316,7 @@ tracker_xesam_live_search_get_from_query (TrackerXesamLiveSearch *self)
  *
  * @returns: a read-only string with the JOIN query
  **/
-const gchar* 
+const gchar*
 tracker_xesam_live_search_get_join_query (TrackerXesamLiveSearch *self)
 {
 	TrackerXesamLiveSearchPriv *priv = self->priv;
@@ -1331,7 +1331,7 @@ tracker_xesam_live_search_get_join_query (TrackerXesamLiveSearch *self)
  *
  * @returns: a read-only string with the WHERE query
  **/
-const gchar* 
+const gchar*
 tracker_xesam_live_search_get_where_query (TrackerXesamLiveSearch *self)
 {
 	TrackerXesamLiveSearchPriv *priv;
@@ -1350,11 +1350,11 @@ tracker_xesam_live_search_get_where_query (TrackerXesamLiveSearch *self)
  *
  * @returns: (caller-owns): a new #TrackerXesamLiveSearch
  **/
-TrackerXesamLiveSearch* 
-tracker_xesam_live_search_new (const gchar *query_xml) 
+TrackerXesamLiveSearch*
+tracker_xesam_live_search_new (const gchar *query_xml)
 {
-	return g_object_new (TRACKER_TYPE_XESAM_LIVE_SEARCH, 
-			     "xml-query", query_xml, 
+	return g_object_new (TRACKER_TYPE_XESAM_LIVE_SEARCH,
+			     "xml-query", query_xml,
 			     NULL);
 }
 

@@ -118,12 +118,12 @@ check_for_monitor_directory_conflicts (ModuleConfig *mc)
 	g_hash_table_iter_init (&iter1, mc->monitor_directories);
 	while (g_hash_table_iter_next (&iter1, &key, NULL)) {
 		const gchar *path;
-		
+
 		path = (const gchar*) key;
 
 		if (g_hash_table_lookup (mc->monitor_recurse_directories, path)) {
 			g_debug ("Removing path:'%s' from monitor directories, "
-				 "ALREADY in monitor recurse directories", 
+				 "ALREADY in monitor recurse directories",
 				 path);
 
 			g_hash_table_iter_remove (&iter1);
@@ -143,7 +143,7 @@ check_for_monitor_directory_conflicts (ModuleConfig *mc)
 
 			if (tracker_path_is_in_path (path, in_path)) {
 				g_debug ("Removing path:'%s' from monitor directories, "
-					 "ALREADY in monitor recurse directories HIERARCHY", 
+					 "ALREADY in monitor recurse directories HIERARCHY",
 					 path);
 
 				g_hash_table_iter_remove (&iter1);
@@ -176,7 +176,7 @@ set_ignored_file_patterns (ModuleConfig *mc)
 	ignored_files = g_hash_table_get_keys (mc->ignored_files);
 
 	for (l = ignored_files; l; l = l->next) {
-		g_message ("  Adding file ignore pattern:'%s'", 
+		g_message ("  Adding file ignore pattern:'%s'",
 			   (gchar *) l->data);
 		spec = g_pattern_spec_new (l->data);
 		patterns = g_list_prepend (patterns, spec);
@@ -203,7 +203,7 @@ set_ignored_directory_patterns (ModuleConfig *mc)
 	ignored_directories = g_hash_table_get_keys (mc->ignored_directories);
 
 	for (l = ignored_directories; l; l = l->next) {
-		g_message ("  Adding directory ignore pattern:'%s'", 
+		g_message ("  Adding directory ignore pattern:'%s'",
 			   (gchar *) l->data);
 		spec = g_pattern_spec_new (l->data);
 		patterns = g_list_prepend (patterns, spec);
@@ -230,7 +230,7 @@ set_index_file_patterns (ModuleConfig *mc)
 	index_files = g_hash_table_get_keys (mc->index_files);
 
 	for (l = index_files; l; l = l->next) {
-		g_message ("  Adding file index pattern:'%s'", 
+		g_message ("  Adding file index pattern:'%s'",
 			   (gchar *) l->data);
 		spec = g_pattern_spec_new (l->data);
 		patterns = g_list_prepend (patterns, spec);
@@ -338,14 +338,14 @@ load_string_list (GKeyFile    *key_file,
 
 	for (p = str; *p; p++) {
 		gchar *real_path;
-		
+
 		if (!expand_strings_as_paths) {
 			if (g_hash_table_lookup (table, *p)) {
 				continue;
 			}
 
-			g_hash_table_insert (table, 
-					     g_strdup (*p), 
+			g_hash_table_insert (table,
+					     g_strdup (*p),
 					     GINT_TO_POINTER (1));
 		} else {
 			if (g_hash_table_lookup (table, *p)) {
@@ -358,7 +358,7 @@ load_string_list (GKeyFile    *key_file,
 				continue;
 			}
 
-			g_hash_table_insert (table, 
+			g_hash_table_insert (table,
 					     real_path,
 					     GINT_TO_POINTER (1));
 			g_debug ("Got real path:'%s' for '%s'", real_path, *p);
@@ -366,7 +366,7 @@ load_string_list (GKeyFile    *key_file,
 	}
 
 	g_strfreev (str);
-	
+
 	/* Go through again to make sure we don't have situations
 	 * where /foo and / exist, because of course /foo is
 	 * redundant here where 'remove_hierarchy_dups' is TRUE.
@@ -374,7 +374,7 @@ load_string_list (GKeyFile    *key_file,
 	if (remove_hierarchy_dups) {
 		tracker_path_hash_table_filter_duplicates (table);
 	}
-	
+
 	return table;
 }
 

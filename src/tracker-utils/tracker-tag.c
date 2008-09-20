@@ -45,37 +45,37 @@ static gboolean      remove_all;
 static gboolean      list;
 
 static GOptionEntry entries[] = {
-	{ "add", 'a', 0, G_OPTION_ARG_STRING_ARRAY, &add, 
-          N_("Add specified tag to a file"), 
+	{ "add", 'a', 0, G_OPTION_ARG_STRING_ARRAY, &add,
+          N_("Add specified tag to a file"),
           N_("TAG")
         },
-	{ "remove", 'r', 0, G_OPTION_ARG_STRING_ARRAY, &remove, 
-          N_("Remove specified tag from a file"), 
+	{ "remove", 'r', 0, G_OPTION_ARG_STRING_ARRAY, &remove,
+          N_("Remove specified tag from a file"),
           N_("TAG")
         },
-	{ "remove-all", 'R', 0, G_OPTION_ARG_NONE, &remove_all, 
+	{ "remove-all", 'R', 0, G_OPTION_ARG_NONE, &remove_all,
           N_("Remove all tags from a file"),
           NULL
         },
-	{ "list", 't', 0, G_OPTION_ARG_NONE, &list, 
-          N_("List all defined tags"), 
+	{ "list", 't', 0, G_OPTION_ARG_NONE, &list,
+          N_("List all defined tags"),
           NULL
         },
-	{ "limit", 'l', 0, G_OPTION_ARG_INT, &limit, 
-          N_("Limit the number of results shown"), 
+	{ "limit", 'l', 0, G_OPTION_ARG_INT, &limit,
+          N_("Limit the number of results shown"),
           N_("512")
         },
-	{ "offset", 'o', 0, G_OPTION_ARG_INT, &offset, 
-          N_("Offset the results"), 
-          N_("0") 
+	{ "offset", 'o', 0, G_OPTION_ARG_INT, &offset,
+          N_("Offset the results"),
+          N_("0")
         },
-	{ "search", 's', 0, G_OPTION_ARG_STRING_ARRAY, &search, 
-          N_("Search for files with specified tag"), 
+	{ "search", 's', 0, G_OPTION_ARG_STRING_ARRAY, &search,
+          N_("Search for files with specified tag"),
           N_("TAG")
         },
-	{ G_OPTION_REMAINING, 0, 
+	{ G_OPTION_REMAINING, 0,
           G_OPTION_FLAG_FILENAME, G_OPTION_ARG_STRING_ARRAY, &files,
-          N_("FILE..."), 
+          N_("FILE..."),
           NULL},
 	{ NULL }
 };
@@ -100,8 +100,8 @@ get_meta_table_data (gpointer value)
 	g_print ("\n");
 }
 
-int 
-main (int argc, char **argv) 
+int
+main (int argc, char **argv)
 {
 	TrackerClient   *client;
 	GOptionContext  *context;
@@ -119,16 +119,16 @@ main (int argc, char **argv)
 	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
 	textdomain (GETTEXT_PACKAGE);
 
-	/* Translators: this messagge will apper immediately after the  
-         * usage string - Usage: COMMAND [OPTION]... <THIS_MESSAGE>     
+	/* Translators: this messagge will apper immediately after the
+         * usage string - Usage: COMMAND [OPTION]... <THIS_MESSAGE>
          */
 	context = g_option_context_new (_("Add, remove or search for tags"));
 
-	/* Translators: this message will appear after the usage string 
-	 * and before the list of options, showing an usage example.   
+	/* Translators: this message will appear after the usage string
+	 * and before the list of options, showing an usage example.
          */
         summary = g_strconcat (_("To add, remove, or search for multiple tags "
-                                 "at the same time, join multiple options, for example:"), 
+                                 "at the same time, join multiple options, for example:"),
                                "\n"
                                "\n"
                                "  -a ", _("TAG"), " -a ", _("TAG"), " -a ", _("TAG"),
@@ -149,7 +149,7 @@ main (int argc, char **argv)
         } else if (!add && !remove && !remove_all && !files && !search && !list) {
                 failed = _("No arguments were provided");
         }
-        
+
 	if (failed) {
                 gchar *help;
 
@@ -179,7 +179,7 @@ main (int argc, char **argv)
 		for (i = 0, j = 0; files[i] != NULL; i++) {
                         /* GFile *file; */
 			/* gchar *path; */
-                        
+
                         /* file = g_file_new_for_commandline_arg (files[i]); */
                         /* path = g_file_get_path (file); */
                         /* g_object_unref (file); */
@@ -219,9 +219,9 @@ main (int argc, char **argv)
 
 		for (i = 0; files_resolved[i] != NULL; i++) {
 			if (remove_all) {
-				tracker_keywords_remove_all (client, 
-                                                             SERVICE_FILES, 
-                                                             files_resolved[i], 
+				tracker_keywords_remove_all (client,
+                                                             SERVICE_FILES,
+                                                             files_resolved[i],
                                                              &error);
 
 				if (error) {
@@ -238,10 +238,10 @@ main (int argc, char **argv)
 			}
 
 			if (tags_to_add) {
-				tracker_keywords_add (client, 
-                                                      SERVICE_FILES, 
-                                                      files_resolved[i], 
-                                                      tags_to_add, 
+				tracker_keywords_add (client,
+                                                      SERVICE_FILES,
+                                                      files_resolved[i],
+                                                      tags_to_add,
                                                       &error);
 
 				if (error) {
@@ -258,10 +258,10 @@ main (int argc, char **argv)
 			}
 
 			if (tags_to_remove) {
-				tracker_keywords_remove (client, 
-                                                         SERVICE_FILES, 
-                                                         files_resolved[i], 
-                                                         tags_to_remove, 
+				tracker_keywords_remove (client,
+                                                         SERVICE_FILES,
+                                                         files_resolved[i],
+                                                         tags_to_remove,
                                                          &error);
 
 				if (error) {
@@ -279,11 +279,11 @@ main (int argc, char **argv)
 		}
 	}
 
-	if (((!files && list) || 
+	if (((!files && list) ||
              (!files && (!add && !remove && !remove_all))) && !search) {
 		GPtrArray *array;
 
-		array = tracker_keywords_get_list (client, 
+		array = tracker_keywords_get_list (client,
                                                    SERVICE_FILES,
                                                    &error);
 
@@ -304,7 +304,7 @@ main (int argc, char **argv)
                 }
 	}
 
-	if ((files && list) || 
+	if ((files && list) ||
             (files && (!add && !remove && !remove_all))) {
                 g_print ("%s:\n",
                          _("Tags found"));
@@ -312,9 +312,9 @@ main (int argc, char **argv)
 		for (i = 0, j = 0; files_resolved[i] != NULL; i++) {
 			gchar **tags;
 
-                        tags = tracker_keywords_get (client, 
-                                                     SERVICE_FILES, 
-                                                     files_resolved[i], 
+                        tags = tracker_keywords_get (client,
+                                                     SERVICE_FILES,
+                                                     files_resolved[i],
                                                      &error);
 
 			if (error) {
@@ -357,11 +357,11 @@ main (int argc, char **argv)
 
                 search_resolved[j] = NULL;
 
-		results = tracker_keywords_search (client, -1, 
-						   SERVICE_FILES, 
-						   search_resolved, 
-						   offset, 
-						   limit, 
+		results = tracker_keywords_search (client, -1,
+						   SERVICE_FILES,
+						   search_resolved,
+						   offset,
+						   limit,
 						   &error);
 
                 if (error) {
@@ -386,7 +386,7 @@ finish:
         g_strfreev (tags_to_add);
         g_strfreev (search_resolved);
         g_strfreev (files_resolved);
-        
+
         tracker_disconnect (client);
 
         if (error_str) {
@@ -395,9 +395,9 @@ finish:
                             error->message);
                 g_free (error_str);
                 g_clear_error (&error);
-                
+
                 return EXIT_FAILURE;
         }
-        
+
         return EXIT_SUCCESS;
 }

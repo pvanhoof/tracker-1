@@ -194,7 +194,7 @@ tracker_crawler_finalize (GObject *object)
 
 	g_slist_foreach (priv->no_watch_directory_roots, (GFunc) g_free, NULL);
 	g_slist_free (priv->no_watch_directory_roots);
-	
+
 	g_slist_foreach (priv->watch_directory_roots, (GFunc) g_free, NULL);
 	g_slist_free (priv->watch_directory_roots);
 
@@ -299,7 +299,7 @@ is_path_ignored (TrackerCrawler *crawler,
 		    strcmp (path, "/sys") == 0) {
 			return TRUE;
 		}
-		
+
 		if (g_str_has_prefix (path, g_get_tmp_dir ())) {
 			return TRUE;
 		}
@@ -431,7 +431,7 @@ add_directory (TrackerCrawler *crawler,
 		g_debug ("Found  :'%s' (%d)",
 			 path,
 			 crawler->private->enumerations);
-		
+
 		g_queue_push_tail (crawler->private->directories, g_object_ref (file));
 	}
 
@@ -474,10 +474,10 @@ process_func (gpointer data)
 
 	/* Throttle the crawler, with testing, throttling every item
 	 * took the time to crawl 130k files from 7 seconds up to 68
-	 * seconds. So it is important to get this figure right. 
+	 * seconds. So it is important to get this figure right.
 	 */
-	tracker_throttle (priv->config, 25); 
-	
+	tracker_throttle (priv->config, 25);
+
 	/* Crawler files */
 	file = g_queue_pop_head (priv->files);
 
@@ -522,13 +522,13 @@ process_func (gpointer data)
 	}
 
 	if (priv->current_path) {
-		g_message ("  Searching directory:'%s'", 
+		g_message ("  Searching directory:'%s'",
 			   (gchar*) priv->current_path->data);
-		
+
 		file = g_file_new_for_path (priv->current_path->data);
 		add_directory (crawler, file);
 		g_object_unref (file);
-		
+
 		return TRUE;
 	}
 
@@ -549,13 +549,13 @@ process_func (gpointer data)
 	}
 
 	if (priv->current_recurse_path) {
-		g_message ("  Searching directory:'%s' (recursively)", 
+		g_message ("  Searching directory:'%s' (recursively)",
 			   (gchar *) priv->current_recurse_path->data);
-		
+
 		file = g_file_new_for_path (priv->current_recurse_path->data);
 		add_directory (crawler, file);
 		g_object_unref (file);
-		
+
 		return TRUE;
 	}
 
@@ -650,7 +650,7 @@ file_enumerate_next_cb (GObject      *object,
 	for (l = files; l; l = l->next) {
 		info = l->data;
 		child = g_file_get_child (parent, g_file_info_get_name (info));
-		
+
 		if (g_file_info_get_file_type (info) == G_FILE_TYPE_DIRECTORY) {
 			/* This is a bit of a hack, but we assume this is a
 			 * recursive lookup because the current non-recursive
@@ -745,11 +745,11 @@ prune_none_existing_paths (TrackerCrawler *crawler)
 		/* Check the currently set recurse paths are real */
 		for (l = priv->recurse_paths; l; l = l->next) {
 			path = l->data;
-			
+
 			/* Check location exists before we do anything */
 			file = g_file_new_for_path (path);
 			exists = g_file_query_exists (file, NULL);
-			
+
 			if (exists) {
 				g_message ("  Directory:'%s' added to list to crawl (recursively)",
 					   path);
@@ -761,7 +761,7 @@ prune_none_existing_paths (TrackerCrawler *crawler)
 
 			g_object_unref (file);
 		}
-		
+
 		new_list = g_slist_reverse (new_list);
 		g_slist_foreach (priv->recurse_paths, (GFunc) g_free, NULL);
 		g_slist_free (priv->recurse_paths);
@@ -796,54 +796,54 @@ tracker_crawler_start (TrackerCrawler *crawler)
 			tracker_module_config_get_monitor_recurse_directories (priv->module_name);
 		directories =
 			tracker_module_config_get_monitor_directories (priv->module_name);
-		
+
 		if (recurse_directories || directories) {
 			/* First we do non-recursive directories */
 			for (l = directories; l; l = l->next) {
 				path = l->data;
-				
+
 				/* Check location exists before we do anything */
 				file = g_file_new_for_path (path);
 				exists = g_file_query_exists (file, NULL);
-				
+
 				if (!exists) {
 					g_message ("  Directory:'%s' does not exist",
 						   path);
 					g_object_unref (file);
 					continue;
 				}
-				
+
 				g_message ("  Directory:'%s' added to list to crawl",
 					   path);
-				
+
 				priv->paths = g_slist_append (priv->paths, g_strdup (l->data));
 				g_object_unref (file);
 			}
-			
+
 			g_list_free (directories);
-			
+
 			/* Second we do recursive directories */
 			for (l = recurse_directories; l; l = l->next) {
 				path = l->data;
-				
+
 				/* Check location exists before we do anything */
 				file = g_file_new_for_path (path);
 				exists = g_file_query_exists (file, NULL);
-				
+
 				if (!exists) {
 					g_message ("  Directory:'%s' does not exist",
 						   path);
 					g_object_unref (file);
 					continue;
 				}
-				
+
 				g_message ("  Directory:'%s' added to list to crawl (recursively)",
 					   path);
-				
+
 				priv->recurse_paths = g_slist_append (priv->recurse_paths, g_strdup (l->data));
 				g_object_unref (file);
 			}
-			
+
 			g_list_free (recurse_directories);
 		} else {
 			g_message ("  No directories from module config");
@@ -856,7 +856,7 @@ tracker_crawler_start (TrackerCrawler *crawler)
 		g_message ("  No directories that actually exist to iterate, doing nothing");
 		return FALSE;
 	}
-	
+
 	/* Filter duplicates */
 	sl = priv->paths;
 	priv->paths = tracker_path_list_filter_duplicates (priv->paths);
@@ -882,7 +882,7 @@ tracker_crawler_start (TrackerCrawler *crawler)
 	g_slist_free (priv->watch_directory_roots);
 	sl = tracker_config_get_watch_directory_roots (priv->config);
 	priv->watch_directory_roots = tracker_gslist_copy_with_string_data (sl);
-	
+
 	g_slist_foreach (priv->crawl_directory_roots, (GFunc) g_free, NULL);
 	g_slist_free (priv->crawl_directory_roots);
 	sl = tracker_config_get_crawl_directory_roots (priv->config);
@@ -988,7 +988,7 @@ tracker_crawler_is_path_ignored (TrackerCrawler *crawler,
 				 gboolean        is_directory)
 {
 	g_return_val_if_fail (TRACKER_IS_CRAWLER (crawler), TRUE);
-	
+
 	/* We have an internal function here we call. The reason for
 	 * this is that it is expensive to type check the Crawler
 	 * object for EVERY file we process. Internally, we don't do

@@ -32,12 +32,12 @@ typedef struct {
 
 	TrackerConfig *config;
 
-	gboolean       is_running; 
+	gboolean       is_running;
 	gboolean       is_readonly;
-	gboolean       is_first_time_index; 
+	gboolean       is_first_time_index;
 	gboolean       is_paused_manually;
 	gboolean       is_paused_for_io;
-	gboolean       in_merge; 
+	gboolean       in_merge;
 } TrackerStatusPrivate;
 
 static GStaticPrivate private_key = G_STATIC_PRIVATE_INIT;
@@ -70,7 +70,7 @@ tracker_status_init (TrackerConfig *config)
 
 	private = g_static_private_get (&private_key);
 	if (private) {
-		g_warning ("Already initialized (%s)", 
+		g_warning ("Already initialized (%s)",
 			   __FUNCTION__);
 		return FALSE;
 	}
@@ -83,10 +83,10 @@ tracker_status_init (TrackerConfig *config)
 	 * it here to make sure it exists when we call
 	 * g_type_class_peek(). This wouldn't be necessary if
 	 * it was a param in a GObject for example.
-	 * 
+	 *
 	 * This does mean that we are leaking by 1 reference
 	 * here and should clean it up, but it doesn't grow so
-	 * this is acceptable. 
+	 * this is acceptable.
 	 */
 	type = tracker_status_get_type ();
 	private->type_class = g_type_class_ref (type);
@@ -100,8 +100,8 @@ tracker_status_init (TrackerConfig *config)
 	private->is_paused_for_io = FALSE;
 	private->in_merge = FALSE;
 
-	g_static_private_set (&private_key, 
-			      private, 
+	g_static_private_set (&private_key,
+			      private,
 			      private_free);
 
 	return TRUE;
@@ -114,7 +114,7 @@ tracker_status_shutdown (void)
 
 	private = g_static_private_get (&private_key);
 	if (!private) {
-		g_warning ("Not initialized (%s)", 
+		g_warning ("Not initialized (%s)",
 			   __FUNCTION__);
 		return;
 	}
@@ -169,7 +169,7 @@ tracker_status_to_string (TrackerStatus status)
         type = tracker_status_get_type ();
         enum_class = G_ENUM_CLASS (g_type_class_peek (type));
         enum_value = g_enum_get_value (enum_class, status);
-        
+
         if (!enum_value) {
                 enum_value = g_enum_get_value (enum_class, TRACKER_STATUS_IDLE);
         }
@@ -230,21 +230,21 @@ tracker_status_signal (void)
 	}
 
         if (private->is_first_time_index) {
-                pause_on_battery = 
+                pause_on_battery =
 			tracker_config_get_disable_indexing_on_battery_init (private->config);
         } else {
-		pause_on_battery = 
+		pause_on_battery =
 			tracker_config_get_disable_indexing_on_battery (private->config);
 	}
 
-        g_signal_emit_by_name (object, 
-                               "index-state-change", 
+        g_signal_emit_by_name (object,
+                               "index-state-change",
                                tracker_status_to_string (private->status),
                                private->is_first_time_index,
                                private->in_merge,
                                private->is_paused_manually,
-                               pause_on_battery, 
-                               private->is_paused_for_io, 
+                               pause_on_battery,
+                               private->is_paused_for_io,
 			       !private->is_readonly);
 }
 
@@ -258,7 +258,7 @@ tracker_status_set_and_signal (TrackerStatus new_status)
 	g_return_if_fail (private != NULL);
 
         emit = private->status != new_status;
-        
+
         if (!emit) {
                 return;
         }
@@ -428,7 +428,7 @@ tracker_status_set_is_paused_manually (gboolean value)
 	if (!emit) {
 		return;
 	}
-	
+
 	/* Set value */
 	private->is_paused_manually = value;
 
@@ -461,7 +461,7 @@ tracker_status_set_is_paused_for_io (gboolean value)
 	if (!emit) {
 		return;
 	}
-	
+
 	/* Set value */
 	private->is_paused_for_io = value;
 

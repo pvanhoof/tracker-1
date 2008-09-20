@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2008, Nokia (urho.konttori@nokia.com)
  *
  * This library is free software; you can redistribute it and/or
@@ -9,14 +9,14 @@
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public
  * License along with this library; if not, write to the
  * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301, USA. 
- */  
+ * Boston, MA  02110-1301, USA.
+ */
 #include <glib.h>
 #include <glib/gtestutils.h>
 
@@ -32,7 +32,7 @@ typedef enum {
 
 static gboolean db_manager_status = NO_INIT;
 
-void 
+void
 ensure_db_manager_is_reindex (gboolean must_reindex)
 {
         gint first;
@@ -75,13 +75,13 @@ ensure_db_manager_is_reindex (gboolean must_reindex)
 
 
 void
-test_assert_tables_in_db (TrackerDB db, gchar *query) 
+test_assert_tables_in_db (TrackerDB db, gchar *query)
 {
         g_assert (test_assert_query_run (db, query));
 }
 
 static void
-test_creation_common_db_no_reindex () 
+test_creation_common_db_no_reindex ()
 {
         ensure_db_manager_is_reindex (FALSE);
         test_assert_tables_in_db (TRACKER_DB_COMMON, "SELECT * FROM MetaDataTypes");
@@ -89,14 +89,14 @@ test_creation_common_db_no_reindex ()
 
 
 static void
-test_creation_xesam_db_no_reindex_multiple_interfaces () 
+test_creation_xesam_db_no_reindex_multiple_interfaces ()
 {
         TrackerDBInterface *iface;
 
         ensure_db_manager_is_reindex (FALSE);
 
-        iface = tracker_db_manager_get_db_interfaces (2, 
-        											  TRACKER_DB_XESAM, 
+        iface = tracker_db_manager_get_db_interfaces (2,
+        											  TRACKER_DB_XESAM,
         											  TRACKER_DB_COMMON);
 
         test_assert_query_run_on_iface (iface, "SELECT * FROM XesamServiceTypes");
@@ -104,7 +104,7 @@ test_creation_xesam_db_no_reindex_multiple_interfaces ()
 
 
 static void
-test_creation_xesam_db_no_reindex () 
+test_creation_xesam_db_no_reindex ()
 {
         ensure_db_manager_is_reindex (FALSE);
         test_assert_tables_in_db (TRACKER_DB_XESAM, "SELECT * FROM XesamServiceTypes");
@@ -153,7 +153,7 @@ main (int argc, char **argv) {
 
 
         result = g_test_run ();
-        
+
         /* End */
 
         return result;

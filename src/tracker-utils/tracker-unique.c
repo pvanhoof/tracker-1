@@ -42,7 +42,7 @@ static gchar         *sum;
 static gboolean       descending;
 
 static GOptionEntry   entries[] = {
-	{ "path", 'p', 0, G_OPTION_ARG_STRING, &path, 
+	{ "path", 'p', 0, G_OPTION_ARG_STRING, &path,
           N_("Path to use in query"),
           NULL
         },
@@ -50,19 +50,19 @@ static GOptionEntry   entries[] = {
           N_("Search from a specific service"),
           NULL
         },
-	{ "count", 'c', 0, G_OPTION_ARG_STRING, &count, 
-          N_("Count instances of unique fields of this type"), 
+	{ "count", 'c', 0, G_OPTION_ARG_STRING, &count,
+          N_("Count instances of unique fields of this type"),
           "e.g. File:Mime"
         },
-	{ "sum", 'u', 0, G_OPTION_ARG_STRING, &sum, 
-          N_("Sum the values of this field"), 
+	{ "sum", 'u', 0, G_OPTION_ARG_STRING, &sum,
+          N_("Sum the values of this field"),
           "e.g. File:Mime"
-        },	
-	{ "desc", 'o', 0, G_OPTION_ARG_NONE, &descending, 
-          N_("Sort to descending order"), 
+        },
+	{ "desc", 'o', 0, G_OPTION_ARG_NONE, &descending,
+          N_("Sort to descending order"),
           NULL},
-	{ G_OPTION_REMAINING, 0, 0, 
-          G_OPTION_ARG_STRING_ARRAY, &fields, 
+	{ G_OPTION_REMAINING, 0, 0,
+          G_OPTION_ARG_STRING_ARRAY, &fields,
           N_("Required fields"), NULL},
 	{ NULL }
 };
@@ -88,7 +88,7 @@ get_meta_table_data (gpointer value)
 }
 
 int
-main (int argc, char **argv) 
+main (int argc, char **argv)
 {
 	TrackerClient   *client;
 	ServiceType      type;
@@ -110,7 +110,7 @@ main (int argc, char **argv)
         if (!fields) {
                 gchar *help;
 
- 		g_printerr ("%s\n\n", 
+ 		g_printerr ("%s\n\n",
 			    _("Fields are missing"));
 
                 help = g_option_context_get_help (context, TRUE, NULL);
@@ -151,52 +151,52 @@ main (int argc, char **argv)
                 path_in_utf8 = g_filename_to_utf8 (path, -1, NULL, NULL, &error);
                 if (error) {
                         g_printerr ("%s:'%s', %s\n",
-                                    _("Could not get UTF-8 path from path"), 
+                                    _("Could not get UTF-8 path from path"),
                                     path,
                                     error->message);
                         g_error_free (error);
                         tracker_disconnect (client);
-                        
+
                         return EXIT_FAILURE;
                 }
 
                 g_file_get_contents (path_in_utf8, &content, &size, &error);
                 if (error) {
                         g_printerr ("%s:'%s', %s\n",
-                                    _("Could not read file"), 
+                                    _("Could not read file"),
                                     path_in_utf8,
                                     error->message);
                         g_error_free (error);
                         g_free (path_in_utf8);
                         tracker_disconnect (client);
-                        
+
                         return EXIT_FAILURE;
                 }
-                
+
                 g_free (path_in_utf8);
-                
+
                 buffer = g_locale_to_utf8 (content, size, NULL, NULL, &error);
                 g_free (content);
-                
+
                 if (error) {
                         g_printerr ("%s, %s\n",
                                     _("Could not convert query file to UTF-8"),
                                     error->message);
                         g_error_free (error);
                         tracker_disconnect (client);
-                        
+
                         return EXIT_FAILURE;
                 }
 	}
 
-	array = tracker_metadata_get_unique_values_with_count (client, 
-							       type, 
-							       fields, 
+	array = tracker_metadata_get_unique_values_with_count (client,
+							       type,
+							       fields,
 							       buffer,
 							       count,
-							       descending, 
-							       0, 
-							       512, 
+							       descending,
+							       0,
+							       512,
 							       &error);
         g_free (buffer);
 
@@ -207,8 +207,8 @@ main (int argc, char **argv)
 		g_error_free (error);
 
 		return EXIT_FAILURE;
-	} 
-        
+	}
+
         if (!array) {
                 g_print ("%s\n",
 			 _("No results found matching your query"));

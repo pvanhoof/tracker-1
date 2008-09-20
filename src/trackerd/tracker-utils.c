@@ -31,7 +31,7 @@
 #include "tracker-xesam-manager.h"
 
 gchar *
-tracker_get_radix_by_suffix (const gchar *str, 
+tracker_get_radix_by_suffix (const gchar *str,
 			     const gchar *suffix)
 {
 	g_return_val_if_fail (str, NULL);
@@ -45,8 +45,8 @@ tracker_get_radix_by_suffix (const gchar *str,
 }
 
 void
-tracker_add_metadata_to_table (GHashTable  *meta_table, 
-			       const gchar *key, 
+tracker_add_metadata_to_table (GHashTable  *meta_table,
+			       const gchar *key,
 			       const gchar *value)
 {
 	GSList *list;

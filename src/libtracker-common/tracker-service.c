@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2008, Nokia (urho.konttori@nokia.com)
  *
@@ -88,35 +88,35 @@ tracker_db_type_get_type (void)
 
 	if (etype == 0) {
 		static const GEnumValue values[] = {
-			{ TRACKER_DB_TYPE_UNKNOWN, 
-			  "TRACKER_DB_TYPE_UNKNOWN", 
+			{ TRACKER_DB_TYPE_UNKNOWN,
+			  "TRACKER_DB_TYPE_UNKNOWN",
 			  "unknown" },
-			{ TRACKER_DB_TYPE_DATA, 
-			  "TRACKER_DB_TYPE_DATA", 
+			{ TRACKER_DB_TYPE_DATA,
+			  "TRACKER_DB_TYPE_DATA",
 			  "data" },
-			{ TRACKER_DB_TYPE_INDEX, 
-			  "TRACKER_DB_TYPE_INDEX", 
+			{ TRACKER_DB_TYPE_INDEX,
+			  "TRACKER_DB_TYPE_INDEX",
 			  "index" },
-			{ TRACKER_DB_TYPE_COMMON, 
-			  "TRACKER_DB_TYPE_COMMON", 
+			{ TRACKER_DB_TYPE_COMMON,
+			  "TRACKER_DB_TYPE_COMMON",
 			  "common" },
-			{ TRACKER_DB_TYPE_CONTENT, 
-			  "TRACKER_DB_TYPE_CONTENT", 
+			{ TRACKER_DB_TYPE_CONTENT,
+			  "TRACKER_DB_TYPE_CONTENT",
 			  "content" },
-			{ TRACKER_DB_TYPE_EMAIL, 
-			  "TRACKER_DB_TYPE_EMAIL", 
+			{ TRACKER_DB_TYPE_EMAIL,
+			  "TRACKER_DB_TYPE_EMAIL",
 			  "email" },
-			{ TRACKER_DB_TYPE_FILES, 
-			  "TRACKER_DB_TYPE_FILES", 
+			{ TRACKER_DB_TYPE_FILES,
+			  "TRACKER_DB_TYPE_FILES",
 			  "files" },
-			{ TRACKER_DB_TYPE_XESAM, 
-			  "TRACKER_DB_TYPE_XESAM", 
+			{ TRACKER_DB_TYPE_XESAM,
+			  "TRACKER_DB_TYPE_XESAM",
 			  "xesam" },
-			{ TRACKER_DB_TYPE_CACHE, 
-			  "TRACKER_DB_TYPE_CACHE", 
+			{ TRACKER_DB_TYPE_CACHE,
+			  "TRACKER_DB_TYPE_CACHE",
 			  "cache" },
-			{ TRACKER_DB_TYPE_USER, 
-			  "TRACKER_DB_TYPE_USER", 
+			{ TRACKER_DB_TYPE_USER,
+			  "TRACKER_DB_TYPE_USER",
 			  "user" },
 			{ 0, NULL, NULL }
 		};
@@ -247,7 +247,7 @@ tracker_service_init (TrackerService *service)
 {
 }
 
-static void 
+static void
 service_finalize (GObject *object)
 {
 	TrackerServicePriv *priv;
@@ -434,7 +434,7 @@ gint
 tracker_service_get_id (TrackerService *service)
 {
 	TrackerServicePriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_SERVICE (service), -1);
 
 	priv = GET_PRIV (service);
@@ -446,7 +446,7 @@ const gchar *
 tracker_service_get_name (TrackerService *service)
 {
 	TrackerServicePriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_SERVICE (service), NULL);
 
 	priv = GET_PRIV (service);
@@ -458,7 +458,7 @@ const gchar *
 tracker_service_get_parent (TrackerService *service)
 {
 	TrackerServicePriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_SERVICE (service), NULL);
 
 	priv = GET_PRIV (service);
@@ -470,7 +470,7 @@ const gchar *
 tracker_service_get_property_prefix (TrackerService *service)
 {
 	TrackerServicePriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_SERVICE (service), NULL);
 
 	priv = GET_PRIV (service);
@@ -482,7 +482,7 @@ const gchar *
 tracker_service_get_content_metadata (TrackerService *service)
 {
 	TrackerServicePriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_SERVICE (service), NULL);
 
 	priv = GET_PRIV (service);
@@ -494,7 +494,7 @@ const GSList *
 tracker_service_get_key_metadata (TrackerService *service)
 {
 	TrackerServicePriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_SERVICE (service), NULL);
 
 	priv = GET_PRIV (service);
@@ -506,7 +506,7 @@ TrackerDBType
 tracker_service_get_db_type (TrackerService *service)
 {
 	TrackerServicePriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_SERVICE (service), TRACKER_DB_TYPE_DATA);
 
 	priv = GET_PRIV (service);
@@ -518,7 +518,7 @@ gboolean
 tracker_service_get_enabled (TrackerService *service)
 {
 	TrackerServicePriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_SERVICE (service), FALSE);
 
 	priv = GET_PRIV (service);
@@ -530,7 +530,7 @@ gboolean
 tracker_service_get_embedded (TrackerService *service)
 {
 	TrackerServicePriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_SERVICE (service), FALSE);
 
 	priv = GET_PRIV (service);
@@ -542,7 +542,7 @@ gboolean
 tracker_service_get_has_metadata (TrackerService *service)
 {
 	TrackerServicePriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_SERVICE (service), FALSE);
 
 	priv = GET_PRIV (service);
@@ -554,7 +554,7 @@ gboolean
 tracker_service_get_has_full_text (TrackerService *service)
 {
 	TrackerServicePriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_SERVICE (service), FALSE);
 
 	priv = GET_PRIV (service);
@@ -566,7 +566,7 @@ gboolean
 tracker_service_get_has_thumbs (TrackerService *service)
 {
 	TrackerServicePriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_SERVICE (service), FALSE);
 
 	priv = GET_PRIV (service);
@@ -578,7 +578,7 @@ gboolean
 tracker_service_get_show_service_files (TrackerService *service)
 {
 	TrackerServicePriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_SERVICE (service), FALSE);
 
 	priv = GET_PRIV (service);
@@ -590,7 +590,7 @@ gboolean
 tracker_service_get_show_service_directories (TrackerService *service)
 {
 	TrackerServicePriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_SERVICE (service), FALSE);
 
 	priv = GET_PRIV (service);
@@ -722,7 +722,7 @@ tracker_service_set_key_metadata (TrackerService *service,
 		for (l = value; l; l = l->next) {
 			new_list = g_slist_prepend (new_list, g_strdup (l->data));
 		}
-		
+
 		new_list = g_slist_reverse (new_list);
 		priv->key_metadata = new_list;
 	} else {

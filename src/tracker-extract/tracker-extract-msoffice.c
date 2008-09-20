@@ -38,7 +38,7 @@
 
 #include "tracker-extract.h"
 
-static void extract_msoffice (const gchar *filename, 
+static void extract_msoffice (const gchar *filename,
                               GHashTable  *metadata);
 
 static TrackerExtractorData data[] = {
@@ -49,7 +49,7 @@ static TrackerExtractorData data[] = {
 
 static void
 add_gvalue_in_hash_table (GHashTable   *table,
-                          const gchar  *key, 
+                          const gchar  *key,
                           GValue const *val)
 {
 	g_return_if_fail (table != NULL);
@@ -81,8 +81,8 @@ add_gvalue_in_hash_table (GHashTable   *table,
                                                  * something different...
                                                  * We copy the string
                                                  * from the
-                                                 * beginning. 
-                                                 */ 
+                                                 * beginning.
+                                                 */
 						str_val = g_strdup (s);
 					}
 				} else {
@@ -101,8 +101,8 @@ add_gvalue_in_hash_table (GHashTable   *table,
 }
 
 static void
-metadata_cb (gpointer key, 
-             gpointer value, 
+metadata_cb (gpointer key,
+             gpointer value,
              gpointer user_data)
 {
         gchar        *name;
@@ -138,7 +138,7 @@ metadata_cb (gpointer key,
 
 static void
 doc_metadata_cb (gpointer key,
-                 gpointer value, 
+                 gpointer value,
                  gpointer user_data)
 {
         gchar        *name;
@@ -157,7 +157,7 @@ doc_metadata_cb (gpointer key,
 }
 
 static void
-extract_msoffice (const gchar *filename, 
+extract_msoffice (const gchar *filename,
                   GHashTable  *metadata)
 {
 	GsfInput  *input;
@@ -186,14 +186,14 @@ extract_msoffice (const gchar *filename,
                 GsfDocMetaData *md;
 
 		md = gsf_doc_meta_data_new ();
-	
+
 		if (gsf_msole_metadata_read (stream, md)) {
 			gsf_shutdown ();
 			return;
 		}
-	
+
 		gsf_doc_meta_data_foreach (md, metadata_cb, metadata);
-	
+
 		g_object_unref (G_OBJECT (md));
 		g_object_unref (G_OBJECT (stream));
 	}
@@ -203,14 +203,14 @@ extract_msoffice (const gchar *filename,
                 GsfDocMetaData *md;
 
 		md = gsf_doc_meta_data_new ();
-	
+
 		if (gsf_msole_metadata_read (stream, md)) {
 			gsf_shutdown ();
 			return;
 		}
-	
+
 		gsf_doc_meta_data_foreach (md, doc_metadata_cb, metadata);
-	
+
 		g_object_unref (G_OBJECT (md));
 		g_object_unref (G_OBJECT (stream));
 	}

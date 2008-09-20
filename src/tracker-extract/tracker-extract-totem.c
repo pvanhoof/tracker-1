@@ -42,7 +42,7 @@ static gchar *tags[][2] = {
 	{ NULL,					NULL			}
 };
 
-static void extract_totem (const gchar *filename, 
+static void extract_totem (const gchar *filename,
                            GHashTable  *metadata);
 
 static TrackerExtractorData data[] = {
@@ -52,7 +52,7 @@ static TrackerExtractorData data[] = {
 };
 
 static void
-extract_totem (const gchar *filename, 
+extract_totem (const gchar *filename,
                GHashTable  *metadata)
 {
 	gchar *argv[3];

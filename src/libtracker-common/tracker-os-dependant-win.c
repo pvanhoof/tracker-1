@@ -30,9 +30,9 @@
 #include "tracker-os-dependant.h"
 
 gboolean
-tracker_spawn (gchar **argv, 
-               gint    timeout, 
-               gchar **tmp_stdout, 
+tracker_spawn (gchar **argv,
+               gint    timeout,
+               gchar **tmp_stdout,
                gint   *exit_status)
 {
 	GSpawnFlags   flags;
@@ -57,7 +57,7 @@ tracker_spawn (gchar **argv,
                 new_argv[i + 2] = argv[i];
         }
 
-        flags = G_SPAWN_SEARCH_PATH | 
+        flags = G_SPAWN_SEARCH_PATH |
                 G_SPAWN_STDERR_TO_DEV_NULL;
 
 	if (!tmp_stdout) {
@@ -108,8 +108,8 @@ tracker_spawn_async_with_channels (const gchar **argv,
 					   (gchar **) argv,
 					   NULL,
 					   G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
-					   tracker_spawn_child_func, 
-					   GINT_TO_POINTER (timeout), 
+					   tracker_spawn_child_func,
+					   GINT_TO_POINTER (timeout),
 					   pid,
 					   stdin_channel ? &stdin : NULL,
 					   stdout_channel ? &stdout : NULL,
@@ -173,7 +173,7 @@ tracker_create_permission_string (struct stat finfo)
 	return str;
 }
 
-gboolean 
+gboolean
 tracker_memory_setrlimits (void)
 {
 	return TRUE;

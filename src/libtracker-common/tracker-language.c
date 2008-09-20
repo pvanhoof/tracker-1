@@ -27,7 +27,7 @@
 
 #include <libstemmer/libstemmer.h>
 
-#include "tracker-log.h" 
+#include "tracker-log.h"
 #include "tracker-language.h"
 
 #define GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_LANGUAGE, TrackerLanguagePriv))
@@ -347,10 +347,10 @@ tracker_language_new (TrackerConfig *config)
 	language = g_object_new (TRACKER_TYPE_LANGUAGE,
 				 "config", config,
 				 NULL);
-	
+
 	language_set_stopword_list (language,
 				    tracker_config_get_language (config));
-	
+
 	return language;
 
 }
@@ -429,7 +429,7 @@ tracker_language_stem_word (TrackerLanguage *language,
 	}
 
 	g_mutex_lock (priv->stemmer_mutex);
-	
+
 	stem_word = (const gchar*) sb_stemmer_stem (priv->stemmer,
 						    (guchar*) word,
 						    word_length);

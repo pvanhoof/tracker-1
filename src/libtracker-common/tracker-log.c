@@ -28,10 +28,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h> 
+#include <unistd.h>
 #include <errno.h>
 
-#include <glib/gstdio.h> 
+#include <glib/gstdio.h>
 
 #include "tracker-log.h"
 
@@ -91,9 +91,9 @@ log_output (const gchar    *domain,
 		break;
 	}
 
-	output = g_strdup_printf ("%s%s %s%s: %s", 
+	output = g_strdup_printf ("%s%s %s%s: %s",
 				  log_level_str ? "\n" : "",
-				  time_str, 
+				  time_str,
 				  domain,
 				  log_level_str ? log_level_str : "",
 				  message);
@@ -146,7 +146,7 @@ tracker_log_init (const gchar *filename,
 
 		error_string = g_strerror (errno);
 		g_fprintf (stderr,
-			   "Could not open log:'%s', %s\n", 
+			   "Could not open log:'%s', %s\n",
 			   filename,
 			   error_string);
 		g_fprintf (stderr,
@@ -157,9 +157,9 @@ tracker_log_init (const gchar *filename,
 	mutex = g_mutex_new ();
 
 	/* Add log handler function */
-	log_handler_id = g_log_set_handler (NULL, 
+	log_handler_id = g_log_set_handler (NULL,
 					    G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL,
-					    tracker_log_handler, 
+					    tracker_log_handler,
 					    NULL);
 
 	g_log_set_default_handler (tracker_log_handler, NULL);
@@ -170,7 +170,7 @@ tracker_log_init (const gchar *filename,
 }
 
 void
-tracker_log_shutdown (void) 
+tracker_log_shutdown (void)
 {
 	if (!initialized) {
 		return;

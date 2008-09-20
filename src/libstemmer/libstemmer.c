@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2001, Dr Martin Porter
  * All rights reserved.
  *
@@ -59,7 +59,7 @@ sb_stemmer_new(const char * algorithm, const char * charenc)
 	if (strcmp(module->name, algorithm) == 0 && module->enc == enc) break;
     }
     if (module->name == NULL) return NULL;
-    
+
     stemmer->create = module->create;
     stemmer->close = module->close;
     stemmer->stem = module->stem;

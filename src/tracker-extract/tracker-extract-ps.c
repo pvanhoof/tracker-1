@@ -62,15 +62,15 @@ static TrackerExtractorData data[] = {
 #define GROWBY 80
 
 static ssize_t
-igetdelim (gchar  **linebuf, 
-           size_t  *linebufsz, 
-           gint     delimiter, 
+igetdelim (gchar  **linebuf,
+           size_t  *linebufsz,
+           gint     delimiter,
            FILE    *file)
 {
 	gint ch;
 	gint idx;
 
-	if ((file == NULL || linebuf == NULL || *linebuf == NULL || *linebufsz == 0) && 
+	if ((file == NULL || linebuf == NULL || *linebuf == NULL || *linebufsz == 0) &&
             !(*linebuf == NULL && *linebufsz == 0)) {
                 errno = EINVAL;
 		return -1;
@@ -116,8 +116,8 @@ igetdelim (gchar  **linebuf,
 }
 
 static gint
-getline (gchar **s, 
-         guint  *lim, 
+getline (gchar **s,
+         guint  *lim,
          FILE   *stream)
 {
 	return igetdelim (s, lim, '\n', stream);
@@ -183,14 +183,14 @@ date_to_iso8601 (const gchar *date)
                         /* we have probably a date like
                            "6:07 PM May 22, 2007" */
                         return hour_month_day_date (date);
-                } 
+                }
         }
 
         return NULL;
 }
 
 static void
-extract_ps (const gchar *filename, 
+extract_ps (const gchar *filename,
             GHashTable  *metadata)
 {
         gint fd;
@@ -220,12 +220,12 @@ extract_ps (const gchar *filename,
 
 			if (!header_finished && strncmp (line, "%%Copyright:", 12) == 0) {
                                 g_hash_table_insert (metadata,
-                                                     g_strdup ("File:Other"), 
+                                                     g_strdup ("File:Other"),
                                                      g_strdup (line + 13));
 
 			} else if (!header_finished && strncmp (line, "%%Title:", 8) == 0) {
 				g_hash_table_insert (metadata,
-                                                     g_strdup ("Doc:Title"), 
+                                                     g_strdup ("Doc:Title"),
                                                      g_strdup (line + 9));
 
 			} else if (!header_finished && strncmp (line, "%%Creator:", 10) == 0) {
@@ -239,8 +239,8 @@ extract_ps (const gchar *filename,
                                 date = date_to_iso8601 (line + 16);
 
                                 if (date) {
-                                        g_hash_table_insert (metadata, 
-                                                             g_strdup ("Doc:Created"), 
+                                        g_hash_table_insert (metadata,
+                                                             g_strdup ("Doc:Created"),
                                                              date);
                                 }
 
@@ -249,7 +249,7 @@ extract_ps (const gchar *filename,
 					pageno_atend = TRUE;
 				} else {
 					g_hash_table_insert (metadata,
-                                                             g_strdup ("Doc:PageCount"), 
+                                                             g_strdup ("Doc:PageCount"),
                                                              g_strdup (line + 9));
                                 }
 			} else if (strncmp (line, "%%EndComments", 14) == 0) {
@@ -276,7 +276,7 @@ extract_ps (const gchar *filename,
 }
 
 static void
-extract_ps_gz (const gchar *filename, 
+extract_ps_gz (const gchar *filename,
                GHashTable  *metadata)
 {
 	FILE        *fz;
@@ -287,8 +287,8 @@ extract_ps_gz (const gchar *filename,
         gboolean     stat;
 	const gchar *argv[4];
 
-	fd = g_file_open_tmp ("tracker-extract-ps-gunzipped.XXXXXX", 
-                              &gunzipped, 
+	fd = g_file_open_tmp ("tracker-extract-ps-gunzipped.XXXXXX",
+                              &gunzipped,
                               &error);
 
 	if (error) {
@@ -306,8 +306,8 @@ extract_ps_gz (const gchar *filename,
                                          NULL,
                                          G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL,
                                          tracker_spawn_child_func,
-                                         GINT_TO_POINTER (10), 
-                                         NULL, 
+                                         GINT_TO_POINTER (10),
+                                         NULL,
                                          NULL,
                                          &fdz,
                                          NULL,
@@ -329,7 +329,7 @@ extract_ps_gz (const gchar *filename,
 
                         /* 20 MiB should be enough! */
                         accum = 0;
-                        max = 20u << 20; 
+                        max = 20u << 20;
 
 			while ((b = fread (buf, 1, 8192, fz)) && accum <= max) {
 				accum += b;

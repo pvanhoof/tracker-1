@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2001, Dr Martin Porter
  * All rights reserved.
  *

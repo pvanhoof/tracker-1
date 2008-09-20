@@ -36,9 +36,9 @@
 #define MAX_MEM_AMD64 512
 
 gboolean
-tracker_spawn (gchar **argv, 
-               gint    timeout, 
-               gchar **tmp_stdout, 
+tracker_spawn (gchar **argv,
+               gint    timeout,
+               gchar **tmp_stdout,
                gint   *exit_status)
 {
         GError      *error = NULL;
@@ -49,7 +49,7 @@ tracker_spawn (gchar **argv,
         g_return_val_if_fail (argv[0] != NULL, FALSE);
         g_return_val_if_fail (timeout > 0, FALSE);
 
-        flags = G_SPAWN_SEARCH_PATH | 
+        flags = G_SPAWN_SEARCH_PATH |
                 G_SPAWN_STDERR_TO_DEV_NULL;
 
 	if (!tmp_stdout) {
@@ -151,8 +151,8 @@ tracker_spawn_child_func (gpointer user_data)
         /* nice() uses attribute "warn_unused_result" and so complains
          * if we do not check its returned value. But it seems that
          * since glibc 2.2.4, nice() can return -1 on a successful call
-         * so we have to check value of errno too. Stupid... 
-         */ 
+         * so we have to check value of errno too. Stupid...
+         */
         if (nice (19) == -1 && errno) {
                 g_warning ("Failed to set nice value");
         }

@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2008, Nokia (urho.konttori@nokia.com)
  *
  * This library is free software; you can redistribute it and/or
@@ -9,25 +9,25 @@
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public
  * License along with this library; if not, write to the
  * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301, USA. 
- */  
+ * Boston, MA  02110-1301, USA.
+ */
 #include "tracker-test-helpers.h"
 
 static gchar *nonutf8_str = NULL;
 
 gboolean
 tracker_test_helpers_cmpstr_equal (const gchar *obtained,
-				   const gchar *expected) 
+				   const gchar *expected)
 {
         gboolean result;
 
-	if (expected == obtained) { 
+	if (expected == obtained) {
 		return TRUE;
 	}
 
@@ -43,7 +43,7 @@ tracker_test_helpers_cmpstr_equal (const gchar *obtained,
 	}
 }
 
-const gchar *  
+const gchar *
 tracker_test_helpers_get_nonutf8 (void)
 {
         GMappedFile *file = NULL;

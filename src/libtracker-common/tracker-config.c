@@ -90,7 +90,7 @@
 #define DEFAULT_ENABLE_STEMMER			 TRUE
 #define DEFAULT_DISABLE_INDEXING_ON_BATTERY	 TRUE
 #define DEFAULT_DISABLE_INDEXING_ON_BATTERY_INIT FALSE
-#define DEFAULT_INDEX_MOUNTED_DIRECTORIES  	 TRUE 
+#define DEFAULT_INDEX_MOUNTED_DIRECTORIES  	 TRUE
 #define DEFAULT_INDEX_REMOVABLE_DEVICES	         TRUE
 #define DEFAULT_LOW_DISK_SPACE_LIMIT		 1	  /* 0->100 / -1 */
 #define DEFAULT_MAX_TEXT_TO_INDEX		 1048576  /* Bytes */
@@ -674,7 +674,7 @@ config_set_property (GObject	  *object,
 		tracker_config_set_fast_merges (TRACKER_CONFIG (object),
 						g_value_get_boolean (value));
 		break;
-	case PROP_NO_INDEX_FILE_TYPES:	    
+	case PROP_NO_INDEX_FILE_TYPES:
 		/* Not writable */
 		break;
 	case PROP_MIN_WORD_LENGTH:
@@ -1060,9 +1060,9 @@ config_load_string_list (TrackerConfig *config,
 
 	if (strcmp (property, "watch-directory-roots") == 0) {
 		if (value) {
-			priv->watch_directory_roots = l = 
+			priv->watch_directory_roots = l =
 				config_string_list_to_gslist ((const gchar **) value, TRUE);
-			priv->watch_directory_roots = 
+			priv->watch_directory_roots =
 				tracker_path_list_filter_duplicates (priv->watch_directory_roots);
 
 			g_slist_foreach (l, (GFunc) g_free, NULL);
@@ -1073,7 +1073,7 @@ config_load_string_list (TrackerConfig *config,
 		if (value) {
 			priv->crawl_directory_roots = l =
 				config_string_list_to_gslist ((const gchar **) value, TRUE);
-			priv->crawl_directory_roots = 
+			priv->crawl_directory_roots =
 				tracker_path_list_filter_duplicates (priv->crawl_directory_roots);
 
 			g_slist_foreach (l, (GFunc) g_free, NULL);
@@ -1082,9 +1082,9 @@ config_load_string_list (TrackerConfig *config,
 	}
 	else if (strcmp (property, "no-watch-directory-roots") == 0) {
 		if (value) {
-			priv->no_watch_directory_roots = l = 
+			priv->no_watch_directory_roots = l =
 				config_string_list_to_gslist ((const gchar **) value, TRUE);
-			priv->no_watch_directory_roots = 
+			priv->no_watch_directory_roots =
 				tracker_path_list_filter_duplicates (priv->no_watch_directory_roots);
 
 			g_slist_foreach (l, (GFunc) g_free, NULL);
@@ -1116,7 +1116,7 @@ config_changed_cb (GFileMonitor     *monitor,
 		   GFile            *file,
 		   GFile            *other_file,
 		   GFileMonitorEvent event_type,
-		   gpointer          user_data)  
+		   gpointer          user_data)
 {
 	TrackerConfig *config;
 	gchar         *filename;
@@ -1129,8 +1129,8 @@ config_changed_cb (GFileMonitor     *monitor,
 	case G_FILE_MONITOR_EVENT_CHANGED:
 	case G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT:
 		filename = g_file_get_path (file);
-		g_message ("Config file changed:'%s', reloading settings...", 
-			   filename); 
+		g_message ("Config file changed:'%s', reloading settings...",
+			   filename);
 		g_free (filename);
 
 		config_load (config);
@@ -1172,16 +1172,16 @@ config_load (TrackerConfig *config)
 	}
 
 	if (!priv->monitor) {
-		g_message ("Setting up monitor for changes to config file:'%s'", 
+		g_message ("Setting up monitor for changes to config file:'%s'",
 			   filename);
 
 		priv->monitor = g_file_monitor_file (priv->file,
 						     G_FILE_MONITOR_NONE,
 						     NULL,
 						     NULL);
-		
+
 		g_signal_connect (priv->monitor, "changed",
-				  G_CALLBACK (config_changed_cb), 
+				  G_CALLBACK (config_changed_cb),
 				  config);
 	}
 
@@ -1233,13 +1233,13 @@ config_load (TrackerConfig *config)
 	/* Services */
 	config_load_boolean (config, "enable-xesam", key_file, GROUP_SERVICES, KEY_ENABLE_XESAM);
 
-	/* 
-	 * Legacy options no longer supported: 
+	/*
+	 * Legacy options no longer supported:
 	 */
 	value = g_key_file_get_boolean (key_file, "Emails", "IndexEvolutionEmails", &error);
 	if (!error) {
 		gchar * const modules[2] = { "evolution", NULL };
-	
+
 		g_message ("Legacy config option 'IndexEvolutionEmails' found");
 		g_message ("  This option has been replaced by 'DisabledModules'");
 
@@ -2080,7 +2080,7 @@ tracker_config_add_watch_directory_roots (TrackerConfig *config,
 
 	g_slist_foreach (l, (GFunc) g_free, NULL);
 	g_slist_free (l);
-       		
+
 	g_object_notify (G_OBJECT (config), "watch-directory-roots");
 }
 
@@ -2147,7 +2147,7 @@ tracker_config_add_no_watch_directory_roots (TrackerConfig *config,
 	}
 
 	l = priv->no_watch_directory_roots;
-	priv->no_watch_directory_roots = 
+	priv->no_watch_directory_roots =
 		tracker_path_list_filter_duplicates (priv->no_watch_directory_roots);
 
 	g_slist_foreach (l, (GFunc) g_free, NULL);
@@ -2177,11 +2177,11 @@ tracker_config_add_disabled_modules (TrackerConfig *config,
 					 (GCompareFunc) strcmp)) {
 			continue;
 		}
-		
+
 		new_modules = g_slist_append (new_modules, g_strdup (*p));
 	}
 
-	priv->disabled_modules = g_slist_concat (priv->disabled_modules, 
+	priv->disabled_modules = g_slist_concat (priv->disabled_modules,
 						 new_modules);
 
 	g_object_notify (G_OBJECT (config), "disabled-modules");

@@ -98,7 +98,7 @@ inotify_handle_set_wd( INotifyHandle *inh, gint32 wd )
 {
   inh->wd = wd;
 }
-  
+
 guint32
 inotify_handle_get_mask( INotifyHandle *inh )
 {

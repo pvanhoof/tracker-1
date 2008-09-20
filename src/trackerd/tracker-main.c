@@ -29,7 +29,7 @@
 #include <string.h>
 #include <signal.h>
 #include <locale.h>
-#include <unistd.h> 
+#include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <time.h>
@@ -69,14 +69,14 @@
 
 #define ABOUT								  \
 	"Tracker " VERSION "\n"						  \
-	"Copyright (c) 2005-2008 Jamie McCracken (jamiemcc@gnome.org)\n" 
+	"Copyright (c) 2005-2008 Jamie McCracken (jamiemcc@gnome.org)\n"
 
 #define LICENSE								  \
 	"This program is free software and comes without any warranty.\n" \
 	"It is licensed under version 2 or later of the General Public "  \
 	"License which can be viewed at:\n"				  \
         "\n"								  \
-	"  http://www.gnu.org/licenses/gpl.txt\n" 
+	"  http://www.gnu.org/licenses/gpl.txt\n"
 
 /* Throttle defaults */
 #define THROTTLE_DEFAULT            0
@@ -91,11 +91,11 @@ typedef enum {
 typedef struct {
 	GMainLoop        *main_loop;
 	gchar            *log_filename;
-	
+
 	gchar            *data_dir;
 	gchar            *user_data_dir;
 	gchar            *sys_tmp_dir;
- 
+
 	gboolean          reindex_on_shutdown;
 
 	TrackerProcessor *processor;
@@ -118,50 +118,50 @@ static gboolean         disable_indexing;
 static gchar           *language_code;
 
 static GOptionEntry     entries_daemon[] = {
-	{ "verbosity", 'v', 0, 
-	  G_OPTION_ARG_INT, &verbosity, 
+	{ "verbosity", 'v', 0,
+	  G_OPTION_ARG_INT, &verbosity,
 	  N_("Logging, 0 = errors only, "
-	     "1 = minimal, 2 = detailed and 3 = debug (default = 0)"), 
+	     "1 = minimal, 2 = detailed and 3 = debug (default = 0)"),
 	  NULL },
-	{ "initial-sleep", 's', 0, 
-	  G_OPTION_ARG_INT, &initial_sleep, 
-	  N_("Seconds to wait before starting any crawling or indexing (default = 45)"), 
+	{ "initial-sleep", 's', 0,
+	  G_OPTION_ARG_INT, &initial_sleep,
+	  N_("Seconds to wait before starting any crawling or indexing (default = 45)"),
 	  NULL },
-	{ "low-memory", 'm', 0, 
-	  G_OPTION_ARG_NONE, &low_memory, 
-	  N_("Minimizes the use of memory but may slow indexing down"), 
+	{ "low-memory", 'm', 0,
+	  G_OPTION_ARG_NONE, &low_memory,
+	  N_("Minimizes the use of memory but may slow indexing down"),
 	  NULL },
-	{ "monitors-exclude-dirs", 'e', 0, 
-	  G_OPTION_ARG_STRING_ARRAY, &monitors_to_exclude, 
-	  N_("Directories to exclude for file change monitoring (you can do -e <path> -e <path>)"), 
+	{ "monitors-exclude-dirs", 'e', 0,
+	  G_OPTION_ARG_STRING_ARRAY, &monitors_to_exclude,
+	  N_("Directories to exclude for file change monitoring (you can do -e <path> -e <path>)"),
 	  NULL },
-	{ "monitors-include-dirs", 'i', 0, 
-	  G_OPTION_ARG_STRING_ARRAY, &monitors_to_include, 
-	  N_("Directories to include for file change monitoring (you can do -i <path> -i <path>)"), 
+	{ "monitors-include-dirs", 'i', 0,
+	  G_OPTION_ARG_STRING_ARRAY, &monitors_to_include,
+	  N_("Directories to include for file change monitoring (you can do -i <path> -i <path>)"),
 	  NULL },
-	{ "crawler-include-dirs", 'c', 0, 
-	  G_OPTION_ARG_STRING_ARRAY, &crawl_dirs, 
-	  N_("Directories to crawl to index files (you can do -c <path> -c <path>)"), 
+	{ "crawler-include-dirs", 'c', 0,
+	  G_OPTION_ARG_STRING_ARRAY, &crawl_dirs,
+	  N_("Directories to crawl to index files (you can do -c <path> -c <path>)"),
 	  NULL },
-	{ "disable-modules", 'd', 0, 
-	  G_OPTION_ARG_STRING_ARRAY, &disable_modules, 
-	  N_("Disable modules from being processed (you can do -d <module> -d <module)"), 
+	{ "disable-modules", 'd', 0,
+	  G_OPTION_ARG_STRING_ARRAY, &disable_modules,
+	  N_("Disable modules from being processed (you can do -d <module> -d <module)"),
 	  NULL },
 	{ NULL }
 };
 
 static GOptionEntry   entries_indexer[] = {
-	{ "force-reindex", 'r', 0, 
-	  G_OPTION_ARG_NONE, &force_reindex, 
-	  N_("Force a re-index of all content"), 
+	{ "force-reindex", 'r', 0,
+	  G_OPTION_ARG_NONE, &force_reindex,
+	  N_("Force a re-index of all content"),
 	  NULL },
-	{ "disable-indexing", 'n', 0, 
-	  G_OPTION_ARG_NONE, &disable_indexing, 
+	{ "disable-indexing", 'n', 0,
+	  G_OPTION_ARG_NONE, &disable_indexing,
 	  N_("Disable any indexing and monitoring"), NULL },
-	{ "language", 'l', 0, 
-	  G_OPTION_ARG_STRING, &language_code, 
+	{ "language", 'l', 0,
+	  G_OPTION_ARG_STRING, &language_code,
 	  N_("Language to use for stemmer and stop words "
-	     "(ISO 639-1 2 characters code)"), 
+	     "(ISO 639-1 2 characters code)"),
 	  NULL },
 	{ NULL }
 };
@@ -189,18 +189,18 @@ private_free (gpointer data)
 }
 
 static gchar *
-get_lock_file (void) 
+get_lock_file (void)
 {
 	TrackerMainPrivate *private;
 	gchar              *lock_filename;
 	gchar              *filename;
 
 	private = g_static_private_get (&private_key);
-	
+
 	filename = g_strconcat (g_get_user_name (), "_tracker_lock", NULL);
 
-	lock_filename = g_build_filename (private->sys_tmp_dir, 
-					  filename, 
+	lock_filename = g_build_filename (private->sys_tmp_dir,
+					  filename,
 					  NULL);
 	g_free (filename);
 
@@ -232,7 +232,7 @@ check_runtime_level (TrackerConfig *config,
 		const gchar *error_string;
 
 		error_string = g_strerror (errno);
-                g_critical ("Can not open or create lock file:'%s', %s", 
+                g_critical ("Can not open or create lock file:'%s', %s",
 			    lock_file,
 			    error_string);
 		g_free (lock_file);
@@ -242,7 +242,7 @@ check_runtime_level (TrackerConfig *config,
 
 	g_free (lock_file);
 
-	if (lockf (fd, F_TLOCK, 0) < 0) {		
+	if (lockf (fd, F_TLOCK, 0) < 0) {
 		if (use_nfs) {
 			g_message ("Already running, running in "
 				   "read-only mode (with NFS)");
@@ -256,15 +256,15 @@ check_runtime_level (TrackerConfig *config,
 		g_message ("This is the first/main instance");
 
 		runlevel = TRACKER_RUNNING_MAIN_INSTANCE;
-		
-#ifdef HAVE_HAL 
+
+#ifdef HAVE_HAL
 		if (!tracker_hal_get_battery_exists (hal) ||
 		    !tracker_hal_get_battery_in_use (hal)) {
 			return TRACKER_RUNNING_MAIN_INSTANCE;
 		}
 
-		if (!tracker_status_get_is_first_time_index () && 
-		    tracker_config_get_disable_indexing_on_battery (config)) { 
+		if (!tracker_status_get_is_first_time_index () &&
+		    tracker_config_get_disable_indexing_on_battery (config)) {
 			g_message ("Battery in use");
 			g_message ("Config is set to not index on battery");
 			g_message ("Running in read only mode");
@@ -273,7 +273,7 @@ check_runtime_level (TrackerConfig *config,
 
 		/* Special case first time situation which are
 		 * overwritten by the config option to disable or not
-		 * indexing on battery initially. 
+		 * indexing on battery initially.
 		 */
 		if (tracker_status_get_is_first_time_index () &&
 		    tracker_config_get_disable_indexing_on_battery_init (config)) {
@@ -310,20 +310,20 @@ static void
 sanity_check_option_values (TrackerConfig *config)
 {
 	g_message ("General options:");
-	g_message ("  Initial sleep  ........................  %d (seconds)", 
+	g_message ("  Initial sleep  ........................  %d (seconds)",
 		   tracker_config_get_initial_sleep (config));
-	g_message ("  Verbosity  ............................  %d", 
+	g_message ("  Verbosity  ............................  %d",
 		   tracker_config_get_verbosity (config));
- 	g_message ("  Low memory mode  ......................  %s", 
+ 	g_message ("  Low memory mode  ......................  %s",
 		   tracker_config_get_low_memory_mode (config) ? "yes" : "no");
 
-	
+
 	g_message ("Daemon options:");
 	g_message ("  Throttle level  .......................  %d",
 		   tracker_config_get_throttle (config));
- 	g_message ("  Indexing enabled  .....................  %s", 
+ 	g_message ("  Indexing enabled  .....................  %s",
 		   tracker_config_get_enable_indexing (config) ? "yes" : "no");
- 	g_message ("  Monitoring enabled  ...................  %s", 
+ 	g_message ("  Monitoring enabled  ...................  %s",
 		   tracker_config_get_enable_watches (config) ? "yes" : "no");
 
 	log_option_list (tracker_config_get_watch_directory_roots (config),
@@ -338,7 +338,7 @@ sanity_check_option_values (TrackerConfig *config)
 			 "Disabled modules");
 }
 
-static gboolean 
+static gboolean
 shutdown_timeout_cb (gpointer user_data)
 {
 	g_critical ("Could not exit in a timely fashion - terminating...");
@@ -356,12 +356,12 @@ signal_handler (gint signo)
 	if (in_loop) {
 		exit (EXIT_FAILURE);
 	}
-	
+
   	switch (signo) {
 	case SIGSEGV:
 		/* We are screwed if we get this so exit immediately! */
 		exit (EXIT_FAILURE);
-		
+
 	case SIGBUS:
 	case SIGILL:
 	case SIGFPE:
@@ -371,11 +371,11 @@ signal_handler (gint signo)
 	case SIGINT:
 		in_loop = TRUE;
 		tracker_shutdown ();
-	
+
 	default:
 		if (g_strsignal (signo)) {
-			g_message ("Received signal:%d->'%s'", 
-				   signo, 
+			g_message ("Received signal:%d->'%s'",
+				   signo,
 				   g_strsignal (signo));
 		}
 		break;
@@ -413,31 +413,31 @@ initialize_locations (void)
 	gchar              *filename;
 
 	private = g_static_private_get (&private_key);
-	
+
 	/* Public locations */
-	private->user_data_dir = 
-		g_build_filename (g_get_user_data_dir (), 
-				  "tracker", 
-				  "data", 
+	private->user_data_dir =
+		g_build_filename (g_get_user_data_dir (),
+				  "tracker",
+				  "data",
 				  NULL);
 
-	private->data_dir = 
-		g_build_filename (g_get_user_cache_dir (), 
-				  "tracker", 
+	private->data_dir =
+		g_build_filename (g_get_user_cache_dir (),
+				  "tracker",
 				  NULL);
-	
+
 	filename = g_strdup_printf ("tracker-%s", g_get_user_name ());
-	private->sys_tmp_dir = 
-		g_build_filename (g_get_tmp_dir (), 
-				  filename, 
+	private->sys_tmp_dir =
+		g_build_filename (g_get_tmp_dir (),
+				  filename,
 				  NULL);
 	g_free (filename);
 
 	/* Private locations */
-	private->log_filename = 
-		g_build_filename (g_get_user_data_dir (), 
-				  "tracker", 
-				  "trackerd.log", 
+	private->log_filename =
+		g_build_filename (g_get_user_data_dir (),
+				  "tracker",
+				  "trackerd.log",
 				  NULL);
 }
 
@@ -451,7 +451,7 @@ initialize_directories (void)
 
 	/* NOTE: We don't create the database directories here, the
 	 * tracker-db-manager does that for us.
-	 */ 
+	 */
 
 	g_message ("Checking directory exists:'%s'", private->user_data_dir);
 	g_mkdir_with_parents (private->user_data_dir, 00755);
@@ -481,13 +481,13 @@ static gboolean
 initialize_databases (void)
 {
 	/*
-	 * Create SQLite databases 
+	 * Create SQLite databases
 	 */
 	if (!tracker_status_get_is_readonly () && force_reindex) {
 		TrackerDBInterface *iface;
-		
+
 		tracker_status_set_is_first_time_index (TRUE);
-		
+
 		/* Reset stats for embedded services if they are being reindexed */
 
 		/* Here it doesn't matter which one we ask, as long as it has common.db
@@ -500,22 +500,22 @@ initialize_databases (void)
 		iface = tracker_db_manager_get_db_interface_by_service (TRACKER_DB_FOR_FILE_SERVICE);
 
 		g_message ("*** DELETING STATS *** ");
-		tracker_db_exec_no_reply (iface, 
+		tracker_db_exec_no_reply (iface,
 					  "update ServiceTypes set TypeCount = 0 where Embedded = 1");
-		
+
 	}
 
 	/* Check db integrity if not previously shut down cleanly */
-	if (!tracker_status_get_is_readonly () && 
-	    !tracker_status_get_is_first_time_index () && 
+	if (!tracker_status_get_is_readonly () &&
+	    !tracker_status_get_is_first_time_index () &&
 	    tracker_db_get_option_int ("IntegrityCheck") == 1) {
 		g_message ("Performing integrity check as the daemon was not shutdown cleanly");
 		/* FIXME: Finish */
-	} 
+	}
 
 	if (!tracker_status_get_is_readonly ()) {
 		tracker_db_set_option_int ("IntegrityCheck", 1);
-	} 
+	}
 
 	if (tracker_status_get_is_first_time_index ()) {
 		tracker_db_set_option_int ("InitialIndex", 1);
@@ -556,7 +556,7 @@ shutdown_directories (void)
 	}
 }
 
-#ifdef HAVE_HAL 
+#ifdef HAVE_HAL
 
 static void
 set_up_throttle (TrackerHal    *hal,
@@ -624,7 +624,7 @@ start_cb (gpointer user_data)
 	if (private->processor) {
 		tracker_processor_start (private->processor);
 	}
-	
+
 	return FALSE;
 }
 
@@ -649,10 +649,10 @@ main (gint argc, gchar *argv[])
         g_type_init ();
 
 	private = g_new0 (TrackerMainPrivate, 1);
-	g_static_private_set (&private_key, 
-			      private, 
+	g_static_private_set (&private_key,
+			      private,
 			      private_free);
-      
+
 	if (!g_thread_supported ())
 		g_thread_init (NULL);
 
@@ -668,24 +668,24 @@ main (gint argc, gchar *argv[])
 	tzset ();
 
         /* Translators: this messagge will apper immediately after the
-	 * usage string - Usage: COMMAND <THIS_MESSAGE> 
+	 * usage string - Usage: COMMAND <THIS_MESSAGE>
 	 */
 	context = g_option_context_new (_("- start the tracker daemon"));
 
 	/* Daemon group */
-	group = g_option_group_new ("daemon", 
+	group = g_option_group_new ("daemon",
 				    _("Daemon Options"),
-				    _("Show daemon options"), 
-				    NULL, 
+				    _("Show daemon options"),
+				    NULL,
 				    NULL);
 	g_option_group_add_entries (group, entries_daemon);
 	g_option_context_add_group (context, group);
 
 	/* Indexer group */
-	group = g_option_group_new ("indexer", 
+	group = g_option_group_new ("indexer",
 				    _("Indexer Options"),
-				    _("Show indexer options"), 
-				    NULL, 
+				    _("Show indexer options"),
+				    NULL,
 				    NULL);
 	g_option_group_add_entries (group, entries_indexer);
 	g_option_context_add_group (context, group);
@@ -716,19 +716,19 @@ main (gint argc, gchar *argv[])
         /* nice() uses attribute "warn_unused_result" and so complains
 	 * if we do not check its returned value. But it seems that
 	 * since glibc 2.2.4, nice() can return -1 on a successful
-	 * call so we have to check value of errno too. Stupid... 
+	 * call so we have to check value of errno too. Stupid...
 	 */
         if (nice (19) == -1 && errno) {
                 const gchar *str;
 
                 str = g_strerror (errno);
-                g_message ("Couldn't set nice value to 19, %s", 
+                g_message ("Couldn't set nice value to 19, %s",
                            str ? str : "no error given");
         }
 
 	/* This makes sure we have all the locations like the data
 	 * dir, user data dir, etc all configured.
-	 * 
+	 *
 	 * The initialize_directories() function makes sure everything
 	 * exists physically and/or is reset depending on various
 	 * options (like if we reindex, we remove the data dir).
@@ -820,7 +820,7 @@ main (gint argc, gchar *argv[])
 	tracker_db_manager_init (flags, &is_first_time_index);
 	tracker_status_set_is_first_time_index (is_first_time_index);
 
-	if (!tracker_db_index_manager_init (index_flags, 
+	if (!tracker_db_index_manager_init (index_flags,
 					    tracker_config_get_min_bucket_count (config),
 					    tracker_config_get_max_bucket_count (config))) {
 		return EXIT_FAILURE;
@@ -832,14 +832,14 @@ main (gint argc, gchar *argv[])
 	runtime_level = check_runtime_level (config, hal);
 
 	switch (runtime_level) {
-	case TRACKER_RUNNING_NON_ALLOWED: 
+	case TRACKER_RUNNING_NON_ALLOWED:
 		return EXIT_FAILURE;
 
-	case TRACKER_RUNNING_READ_ONLY:     
+	case TRACKER_RUNNING_READ_ONLY:
 		tracker_status_set_is_readonly (TRUE);
 		break;
 
-	case TRACKER_RUNNING_MAIN_INSTANCE: 
+	case TRACKER_RUNNING_MAIN_INSTANCE:
 		tracker_status_set_is_readonly (FALSE);
 		break;
 	}
@@ -852,7 +852,7 @@ main (gint argc, gchar *argv[])
 	file_update_index = tracker_db_index_manager_get_index (TRACKER_DB_INDEX_FILE_UPDATE);
 	email_index = tracker_db_index_manager_get_index (TRACKER_DB_INDEX_EMAIL);
 
-	if (!TRACKER_IS_DB_INDEX (file_index) || 
+	if (!TRACKER_IS_DB_INDEX (file_index) ||
 	    !TRACKER_IS_DB_INDEX (file_update_index) ||
 	    !TRACKER_IS_DB_INDEX (email_index)) {
 		g_critical ("Could not create indexer for all indexes (file, file-update, email)");
@@ -882,9 +882,9 @@ main (gint argc, gchar *argv[])
 
 	if (!tracker_status_get_is_readonly ()) {
 		gint seconds;
-		
+
 		seconds = tracker_config_get_initial_sleep (config);
-		
+
 		if (seconds > 0) {
 			g_message ("Waiting %d seconds before starting",
 				   seconds);
@@ -894,7 +894,7 @@ main (gint argc, gchar *argv[])
 		}
 	} else {
 		/* We set the state here because it is not set in the
-		 * processor otherwise. 
+		 * processor otherwise.
 		 */
 		g_message ("Running in read-only mode, not starting crawler/indexing");
 		tracker_status_set_and_signal (TRACKER_STATUS_IDLE);
@@ -914,7 +914,7 @@ main (gint argc, gchar *argv[])
 							    NULL);
 #endif
 
-	/* 
+	/*
 	 * Shutdown the daemon
 	 */
 	g_message ("Shutdown started");
@@ -925,7 +925,7 @@ main (gint argc, gchar *argv[])
 
 	g_message ("Waiting for indexer to finish");
 	org_freedesktop_Tracker_Indexer_shutdown (tracker_dbus_indexer_get_proxy (), &error);
-	
+
 	if (error) {
 		g_message ("Could not shutdown the indexer, %s", error->message);
 		g_message ("Continuing anyway...");

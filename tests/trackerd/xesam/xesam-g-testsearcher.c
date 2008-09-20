@@ -2,17 +2,17 @@
 /*
  * xesam-glib
  * Copyright (C) Mikkel Kamstrup Erlandsen 2007 <mikkel.kamstrup@gmail.com>
- * 
+ *
  * xesam-glib is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * xesam-glib is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with xesam-glib.  If not, write to:
  * 	The Free Software Foundation, Inc.,
@@ -100,7 +100,7 @@ static void xesam_g_test_searcher_real_get_hits			(XesamGSearcher		*base,
 static void xesam_g_test_searcher_real_get_hit_data		(XesamGSearcher		*base,
 														 const gchar		*search_handle,
 														 GArray				*hit_ids,
-														 GStrv				field_names,														 
+														 GStrv				field_names,
 														 XesamGSearcherGotHits callback,
 														 gpointer user_data);
 
@@ -122,16 +122,16 @@ static void
 xesam_g_test_searcher_real_new_session (XesamGSearcher	*base,
 										XesamGSearcherGotHandle callback,
 										gpointer 		user_data)
-{	
+{
 	static int session_num = 0;
-	
+
 	XesamGTestSearcher * self;
 	GString *session_handle_s;
-	
+
 	self = XESAM_G_TEST_SEARCHER (base);
 	session_handle_s = g_string_new (NULL);
 	g_string_printf (session_handle_s, "dummy-session-%d", session_num);
-	
+
 	callback (base, g_string_free (session_handle_s, FALSE), user_data, NULL);
 }
 
@@ -145,7 +145,7 @@ xesam_g_test_searcher_real_close_session (XesamGSearcher	*base,
 	XesamGTestSearcher * self;
 	self = XESAM_G_TEST_SEARCHER (base);
 	g_return_if_fail (session_handle != NULL);
-	
+
 	callback (base, user_data, NULL);
 }
 
@@ -159,11 +159,11 @@ xesam_g_test_searcher_real_get_property (XesamGSearcher		*base,
 {
 	XesamGTestSearcher  *self;
 	GValue				*target_val;
-	
+
 	self = XESAM_G_TEST_SEARCHER (base);
 	g_return_if_fail (session_handle != NULL);
 	g_return_if_fail (prop_name != NULL);
-	
+
 	if (g_str_equal (prop_name, "search.live"))
 		target_val = &self->priv->props->live;
 	else if (g_str_equal (prop_name, "hit.fields"))
@@ -172,7 +172,7 @@ xesam_g_test_searcher_real_get_property (XesamGSearcher		*base,
 		target_val = &self->priv->props->hit_fields_extended;
 	else
 		g_critical ("GetProperty '%s' not supported by test searcher", prop_name);
-	
+
 	callback (base, g_strdup (prop_name),
 			  xesam_g_clone_value(target_val), user_data, NULL);
 }
@@ -188,21 +188,21 @@ xesam_g_test_searcher_real_set_property (XesamGSearcher	*base,
 {
 	XesamGTestSearcher  *self;
 	GValue				*target_val;
-	
+
 	self = XESAM_G_TEST_SEARCHER (base);
 	g_return_if_fail (session_handle != NULL);
 	g_return_if_fail (prop_name != NULL);
 	g_return_if_fail (G_IS_VALUE(value));
-	
+
 	if (g_str_equal (prop_name, "search.live")) {
 		target_val = &self->priv->props->live;
 	} else if (g_str_equal (prop_name, "hit.fields")) {
 		target_val =  &self->priv->props->hit_fields;
 	} else if (g_str_equal (prop_name, "hit.fields.extended")) {
 		target_val =  &self->priv->props->hit_fields_extended;
-	} else 
+	} else
 		g_critical ("SetProperty '%s' not supported by test searcher", prop_name);
-	
+
 	callback (base, g_strdup(prop_name),
 			  xesam_g_clone_value(target_val), user_data, NULL);
 }
@@ -263,7 +263,7 @@ static void
 xesam_g_test_searcher_real_get_hit_data (XesamGSearcher	*base,
 										 const gchar	*search_handle,
 										 GArray			*hit_ids,
-										 GStrv			field_names,										 
+										 GStrv			field_names,
 										 XesamGSearcherGotHits callback,
 										 gpointer user_data)
 {
@@ -312,16 +312,16 @@ xesam_g_test_searcher_finalize (GObject *obj)
 	Properties 					*props;
 	XesamGTestSearcher			*self;
 	XesamGTestSearcherPrivate	*priv;
-	
+
 	self = XESAM_G_TEST_SEARCHER (obj);
 	priv = self->priv;
 	props = priv->props;
-	
+
 	/* FIXME: Free prop GValue contents */
-	
+
 	g_free (props);
 	g_free (priv);
-	
+
 	g_debug ("Finalized test searcher\n");
 }
 
@@ -329,9 +329,9 @@ static void
 xesam_g_test_searcher_class_init (XesamGTestSearcherClass * klass)
 {
 	GObjectClass* object_class = G_OBJECT_CLASS (klass);
-	
+
 	xesam_g_test_searcher_parent_class = g_type_class_peek_parent (klass);
-	
+
 	object_class->finalize = xesam_g_test_searcher_finalize;
 }
 
@@ -358,11 +358,11 @@ static void
 xesam_g_test_searcher_init (XesamGTestSearcher *self)
 {
 	Properties *props;
-	
+
 	self->priv = g_new0 (XesamGTestSearcherPrivate, 1);
 	props = g_new0 (Properties, 1);
 	self->priv->props = props;
-	
+
 	g_value_init(&props->live, G_TYPE_BOOLEAN);
 	g_value_init(&props->hit_fields, G_TYPE_STRV);
 	g_value_init(&props->hit_fields_extended, G_TYPE_STRV);
@@ -380,7 +380,7 @@ xesam_g_test_searcher_init (XesamGTestSearcher *self)
 	g_value_init(&props->vendor_extensions, G_TYPE_STRV);
 	g_value_init(&props->vendor_ontologies, XESAM_TYPE_STRV_ARRAY);
 	g_value_init(&props->vendor_maxhits, G_TYPE_UINT);
-	
+
 	const gchar *hit_fields[2] = {"xesam:url", NULL};
 	const gchar *hit_fields_extended[1] = {NULL};
 	const gchar *fields[3] = {"xesam:url", "xesam:relevancyRating", NULL};
@@ -390,7 +390,7 @@ xesam_g_test_searcher_init (XesamGTestSearcher *self)
 	const gchar *dummy_onto[4] = {"dummy-onto","0.1","/usr/share/xesam/ontologies/dummy-onto-0.1", NULL};
 	GPtrArray *ontos = g_ptr_array_new ();
 	g_ptr_array_add (ontos, dummy_onto);
-	
+
 	g_value_set_boolean (&props->live, FALSE);
 	g_value_set_boxed (&props->hit_fields, hit_fields);
 	g_value_set_boxed (&props->hit_fields_extended, hit_fields_extended);
@@ -415,9 +415,9 @@ GType
 xesam_g_test_searcher_get_type (void)
 {
 	static GType xesam_g_test_searcher_type_id = 0;
-	
+
 	if (G_UNLIKELY (xesam_g_test_searcher_type_id == 0)) {
-		
+
 		static const GTypeInfo g_define_type_info = {
 			sizeof (XesamGTestSearcherClass),
 			(GBaseInitFunc) NULL,
@@ -429,21 +429,21 @@ xesam_g_test_searcher_get_type (void)
 			0,
 			(GInstanceInitFunc) xesam_g_test_searcher_init
 		};
-		
+
 		static const GInterfaceInfo xesam_g_searcher_info = {
 			(GInterfaceInitFunc) xesam_g_test_searcher_xesam_g_searcher_interface_init,
 			(GInterfaceFinalizeFunc) NULL,
 			NULL};
-		
+
 		xesam_g_test_searcher_type_id = g_type_register_static (G_TYPE_OBJECT,
 																"XesamGTestSearcher",
 																&g_define_type_info,
 																0);
-		
+
 		g_type_add_interface_static (xesam_g_test_searcher_type_id,
 									 XESAM_TYPE_G_SEARCHER,
 									 &xesam_g_searcher_info);
 	}
-	
+
 	return xesam_g_test_searcher_type_id;
 }

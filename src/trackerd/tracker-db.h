@@ -2,7 +2,7 @@
 /*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2007, Jason Kivlighn (jkivlighn@gmail.com)
- * Copyright (C) 2007, Creative Commons (http://creativecommons.org) 
+ * Copyright (C) 2007, Creative Commons (http://creativecommons.org)
  * Copyright (C) 2008, Nokia
  *
  * This library is free software; you can redistribute it and/or

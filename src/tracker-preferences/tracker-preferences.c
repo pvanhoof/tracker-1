@@ -258,7 +258,7 @@ set_bool_option (TrackerPreferencesPrivate *priv, const gchar *name, gboolean va
 				 NULL,
 				 NULL,
 				 NULL,
-				 G_TYPE_STRING, name, 
+				 G_TYPE_STRING, name,
 				 G_TYPE_BOOLEAN, value,
 				 G_TYPE_INVALID);
 }
@@ -272,7 +272,7 @@ set_int_option (TrackerPreferencesPrivate *priv, const gchar *name, int value)
 				 NULL,
 				 NULL,
 				 NULL,
-				 G_TYPE_STRING, name, 
+				 G_TYPE_STRING, name,
 				 G_TYPE_INT, value,
 				 G_TYPE_INVALID);
 }
@@ -543,7 +543,7 @@ if_trackerd_start (TrackerPreferencesPrivate *priv)
 
 
 static void
-restart_tracker (GtkDialog *dialog, gint response, gpointer data) 
+restart_tracker (GtkDialog *dialog, gint response, gpointer data)
 {
 
 	gtk_widget_destroy (GTK_WIDGET (dialog));
@@ -843,7 +843,7 @@ tracker_preferences_cmd_apply (GtkWidget *widget, gpointer data)
 						"next time the Tracker daemon "
 						"is restarted."));
 			button = g_strdup (_("_Reindex"));
-					     
+
 		} else {
 			primary = g_strdup (_("Tracker daemon must be "
 					      "restarted"));
@@ -854,7 +854,7 @@ tracker_preferences_cmd_apply (GtkWidget *widget, gpointer data)
 						"daemon now."));
 			button = g_strdup (_("_Restart"));
 		}
-		
+
 		dialog = gtk_message_dialog_new (GTK_WINDOW (main_window),
 						 GTK_DIALOG_MODAL,
 						 GTK_MESSAGE_WARNING,
@@ -864,8 +864,8 @@ tracker_preferences_cmd_apply (GtkWidget *widget, gpointer data)
 		gtk_message_dialog_format_secondary_text (GTK_MESSAGE_DIALOG (dialog),
 							  secondary);
 
-		gtk_dialog_add_buttons (GTK_DIALOG (dialog), 
-					GTK_STOCK_CANCEL, GTK_RESPONSE_NO, 
+		gtk_dialog_add_buttons (GTK_DIALOG (dialog),
+					GTK_STOCK_CANCEL, GTK_RESPONSE_NO,
 					button, GTK_RESPONSE_YES, NULL);
 
 		g_free (primary);

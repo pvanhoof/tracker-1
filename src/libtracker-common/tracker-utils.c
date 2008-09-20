@@ -128,11 +128,11 @@ tracker_seconds_estimate_to_string (gdouble  seconds_elapsed,
 	gdouble total;
 
 	g_return_val_if_fail (seconds_elapsed >= 0.0, g_strdup (_("unknown time")));
-	
+
 	/* We don't want division by 0 or if total is 0 because items
 	 * remaining is 0 then, equally pointless.
 	 */
-	if (items_done < 1 || 
+	if (items_done < 1 ||
 	    items_remaining < 1) {
 		return g_strdup (_("unknown time"));
 	}
@@ -169,40 +169,40 @@ tracker_seconds_to_string (gdouble  seconds_elapsed,
 		if (days) {
 			g_string_append_printf (s, " %dd", days);
 		}
-		
+
 		if (hours) {
 			g_string_append_printf (s, " %2.2dh", hours);
 		}
-		
+
 		if (minutes) {
 			g_string_append_printf (s, " %2.2dm", minutes);
 		}
-		
+
 		if (seconds) {
 			g_string_append_printf (s, " %2.2ds", seconds);
 		}
 	} else {
 		if (days) {
-			g_string_append_printf (s, " %d day%s", 
-						days, 
+			g_string_append_printf (s, " %d day%s",
+						days,
 						days == 1 ? "" : "s");
 		}
-		
+
 		if (hours) {
-			g_string_append_printf (s, " %2.2d hour%s", 
-						hours, 
+			g_string_append_printf (s, " %2.2d hour%s",
+						hours,
 						hours == 1 ? "" : "s");
 		}
-		
+
 		if (minutes) {
-			g_string_append_printf (s, " %2.2d minute%s", 
-						minutes, 
-						minutes == 1 ? "" : "s"); 
+			g_string_append_printf (s, " %2.2d minute%s",
+						minutes,
+						minutes == 1 ? "" : "s");
 		}
-		
+
 		if (seconds) {
-			g_string_append_printf (s, " %2.2d second%s", 
-						seconds, 
+			g_string_append_printf (s, " %2.2d second%s",
+						seconds,
 						seconds == 1 ? "" : "s");
 		}
 	}

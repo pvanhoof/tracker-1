@@ -1,3 +1,7 @@
+2008-09-20  Martyn Russell  <martyn@imendio.com>
+
+	*.[ch]: Removed all trailing whitespace.
+
 2008-09-20  Ivan Frade  <ivan.frade@nokia.com>
 
 	* tests/tracker-indexer/Makefile.am: Revert previous change. Using

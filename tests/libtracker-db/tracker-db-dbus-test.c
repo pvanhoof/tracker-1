@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2008, Nokia (urho.konttori@nokia.com)
  *
  * This library is free software; you can redistribute it and/or
@@ -9,14 +9,14 @@
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public
  * License along with this library; if not, write to the
  * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301, USA. 
- */  
+ * Boston, MA  02110-1301, USA.
+ */
 #include <glib.h>
 #include <glib/gtestutils.h>
 
@@ -72,7 +72,7 @@ test_dbus_query_result_to_strv ()
         /* 5 results, 1 column */
         result_set = get_mock_tracker_db_result (5, 1, FALSE);
         result = tracker_dbus_query_result_to_strv (result_set, 0, &count);
-        
+
         g_assert_cmpint (count, ==, 5);
         g_assert_cmpint (g_strv_length (result), ==, 5);
 
@@ -89,7 +89,7 @@ test_dbus_query_result_to_strv ()
 
         g_object_unref (result_set);
 
-        
+
         /* 1 result ... NULL */
         result_set = get_mock_tracker_db_result (1, 1, TRUE);
         result = tracker_dbus_query_result_to_strv (result_set, 0, &count);
@@ -125,7 +125,7 @@ test_dbus_query_result_to_ptr_array ()
         result = tracker_dbus_query_result_to_ptr_array (result_set);
         g_assert_cmpint (result->len, ==, 0);
 	free_string_ptr_array (result);
-	
+
         /* 5 results, 1 column */
         result_set = get_mock_tracker_db_result (5, 1, FALSE);
         result = tracker_dbus_query_result_to_ptr_array (result_set);
@@ -143,9 +143,9 @@ test_dbus_query_result_to_ptr_array ()
         }
         g_test_trap_assert_failed ();
         /* Should raise g_critical (priv->array...); */
-	
+
         g_object_unref (result_set);
-        
+
 	/*  1 result ... NULL */
         result_set = get_mock_tracker_db_result (1, 1, TRUE);
         result = tracker_dbus_query_result_to_ptr_array (result_set);
@@ -156,7 +156,7 @@ test_dbus_query_result_to_ptr_array ()
 }
 
 gint
-main (gint argc, gchar **argv) 
+main (gint argc, gchar **argv)
 {
         int result;
 
@@ -173,7 +173,7 @@ main (gint argc, gchar **argv)
 
 
         result = g_test_run ();
-        
+
         /* End */
 
         return result;

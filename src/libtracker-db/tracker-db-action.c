@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2008, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2008, Nokia
  *
@@ -108,12 +108,12 @@ tracker_db_action_get_type (void)
                  * it here to make sure it exists when we call
                  * g_type_class_peek(). This wouldn't be necessary if
                  * it was a param in a GObject for example.
-                 * 
+                 *
                  * This does mean that we are leaking by 1 reference
                  * here and should clean it up, but it doesn't grow so
-                 * this is acceptable. 
+                 * this is acceptable.
                  */
-                
+
                 g_type_class_ref (etype);
         }
 
@@ -130,7 +130,7 @@ tracker_db_action_to_string (TrackerDBAction action)
         type = tracker_db_action_get_type ();
         enum_class = G_ENUM_CLASS (g_type_class_peek (type));
         enum_value = g_enum_get_value (enum_class, action);
-        
+
         if (!enum_value) {
                 enum_value = g_enum_get_value (enum_class, TRACKER_DB_ACTION_IGNORE);
         }
@@ -138,10 +138,10 @@ tracker_db_action_to_string (TrackerDBAction action)
         return enum_value->value_nick;
 }
 
-gboolean     
+gboolean
 tracker_db_action_is_delete (TrackerDBAction action)
 {
-	return 
+	return
                 action == TRACKER_DB_ACTION_DELETE ||
 		action == TRACKER_DB_ACTION_DELETE_SELF ||
 		action == TRACKER_DB_ACTION_FILE_DELETED ||

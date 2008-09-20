@@ -20,8 +20,8 @@
 
 #include "tracker-db-index-item.h"
 
-guint32 
-tracker_db_index_item_calc_amalgamated (gint service_type, 
+guint32
+tracker_db_index_item_calc_amalgamated (gint service_type,
 					gint score)
 {
 	unsigned char a[4];
@@ -47,7 +47,7 @@ tracker_db_index_item_calc_amalgamated (gint service_type,
 	return (a[0] << 24) | (a[1] << 16) | (a[2] << 8) | a[3];
 }
 
-guint8  
+guint8
 tracker_db_index_item_get_service_type (TrackerDBIndexItem *item)
 {
         g_return_val_if_fail (item != NULL, 0);
@@ -55,7 +55,7 @@ tracker_db_index_item_get_service_type (TrackerDBIndexItem *item)
 	return (item->amalgamated >> 24) & 0xFF;
 }
 
-gint16  
+gint16
 tracker_db_index_item_get_score (TrackerDBIndexItem *item)
 {
 	unsigned char a[2];
@@ -65,12 +65,12 @@ tracker_db_index_item_get_score (TrackerDBIndexItem *item)
 	a[0] = (item->amalgamated >> 16) & 0xFF;
 	a[1] = (item->amalgamated >> 8) & 0xFF;
 
-	return (gint16) (a[0] << 8) | (a[1]);	
+	return (gint16) (a[0] << 8) | (a[1]);
 }
 
-guint32 
+guint32
 tracker_db_index_item_get_id (TrackerDBIndexItem *item)
-{ 
+{
 	g_return_val_if_fail (item != NULL, 0);
 
         return item->id;

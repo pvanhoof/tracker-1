@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2008, Nokia
  *
@@ -78,7 +78,7 @@ static void
 tracker_search_finalize (GObject *object)
 {
 	TrackerSearchPrivate *priv;
-	
+
 	priv = TRACKER_SEARCH_GET_PRIVATE (object);
 
 	g_object_unref (priv->email_index);
@@ -103,7 +103,7 @@ tracker_search_new (TrackerConfig   *config,
 	g_return_val_if_fail (TRACKER_IS_DB_INDEX (file_index), NULL);
 	g_return_val_if_fail (TRACKER_IS_DB_INDEX (email_index), NULL);
 
-	object = g_object_new (TRACKER_TYPE_SEARCH, NULL); 
+	object = g_object_new (TRACKER_TYPE_SEARCH, NULL);
 
 	priv = TRACKER_SEARCH_GET_PRIVATE (object);
 
@@ -153,7 +153,7 @@ search_utf8_p_from_offset_skipping_decomp (const gchar *str,
 }
 
 static const char *
-search_utf8_strcasestr_array (const gchar  *haystack, 
+search_utf8_strcasestr_array (const gchar  *haystack,
 			      gchar       **needles)
 {
 	gsize         needle_len;
@@ -219,7 +219,7 @@ search_get_word_break (const char *a)
 
 	words = g_strsplit_set (a, "\t\n\v\f\r !\"#$%&'()*/<=>?[\\]^`{|}~+,.:;@\"[]" , -1);
 
-	if (!words) { 
+	if (!words) {
 		return 0;
 	}
 
@@ -246,7 +246,7 @@ search_is_word_break (const char a)
 }
 
 static char *
-search_highlight_terms (const gchar  *text, 
+search_highlight_terms (const gchar  *text,
 			gchar       **terms)
 {
 	GStrv         p;
@@ -302,8 +302,8 @@ search_highlight_terms (const gchar  *text,
 }
 
 static gchar *
-search_get_snippet (const gchar  *text, 
-		    gchar       **terms, 
+search_get_snippet (const gchar  *text,
+		    gchar       **terms,
 		    gint          length)
 {
 	const gchar *ptr = NULL;
@@ -356,8 +356,8 @@ search_get_snippet (const gchar  *text,
 		i = 0;
 
 		/* Get snippet after match */
-		while ((end_ptr = g_utf8_next_char (end_ptr)) && 
-		       end_ptr <= text_len + text && 
+		while ((end_ptr = g_utf8_next_char (end_ptr)) &&
+		       end_ptr <= text_len + text &&
 		       i < length) {
 			i++;
 
@@ -455,7 +455,7 @@ tracker_search_get_hit_count (TrackerSearch          *object,
 		g_set_error (&actual_error,
 			     TRACKER_DBUS_ERROR,
 			     0,
-			     "Service '%s' is invalid or has not been implemented yet", 
+			     "Service '%s' is invalid or has not been implemented yet",
 			     service);
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
@@ -475,7 +475,7 @@ tracker_search_get_hit_count (TrackerSearch          *object,
 	priv = TRACKER_SEARCH_GET_PRIVATE (object);
 
 	array = tracker_db_create_array_of_services (service, FALSE);
-	tree = tracker_query_tree_new (search_text, 
+	tree = tracker_query_tree_new (search_text,
 				       priv->config,
 				       priv->language,
 				       array);
@@ -526,7 +526,7 @@ tracker_search_get_hit_count_all (TrackerSearch          *object,
 	priv = TRACKER_SEARCH_GET_PRIVATE (object);
 
 	array = tracker_db_create_array_of_services (NULL, FALSE);
-	tree = tracker_query_tree_new (search_text, 
+	tree = tracker_query_tree_new (search_text,
 				       priv->config,
 				       priv->language,
 				       array);
@@ -546,7 +546,7 @@ tracker_search_get_hit_count_all (TrackerSearch          *object,
 		_tracker_db_result_set_append (result_set);
 
 		g_value_init (&value, G_TYPE_STRING);
-		g_value_take_string (&value, 
+		g_value_take_string (&value,
 				     tracker_ontology_get_service_by_id (count.service_type_id));
 		_tracker_db_result_set_set_value (result_set, 0, &value);
 		g_value_unset (&value);
@@ -609,7 +609,7 @@ tracker_search_text (TrackerSearch          *object,
 		g_set_error (&actual_error,
 			     TRACKER_DBUS_ERROR,
 			     0,
-			    "Service '%s' is invalid or has not been implemented yet", 
+			    "Service '%s' is invalid or has not been implemented yet",
 			    service);
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
@@ -628,12 +628,12 @@ tracker_search_text (TrackerSearch          *object,
 
 	iface = tracker_db_manager_get_db_interface_by_service (service);
 
-	result_set = tracker_db_search_text (iface, 
-					     service, 
-					     search_text, 
-					     offset, 
-					     search_sanity_check_max_hits (max_hits), 
-					     FALSE, 
+	result_set = tracker_db_search_text (iface,
+					     service,
+					     search_text,
+					     offset,
+					     search_sanity_check_max_hits (max_hits),
+					     FALSE,
 					     FALSE);
 
 	if (result_set) {
@@ -663,7 +663,7 @@ tracker_search_text (TrackerSearch          *object,
 
 		g_object_unref (result_set);
 	}
- 
+
 	if (!strv) {
 		strv = g_new (gchar*, 1);
 		strv[0] = NULL;
@@ -713,7 +713,7 @@ tracker_search_text_detailed (TrackerSearch          *object,
 		g_set_error (&actual_error,
 			     TRACKER_DBUS_ERROR,
 			     0,
-			     "Service '%s' is invalid or has not been implemented yet", 
+			     "Service '%s' is invalid or has not been implemented yet",
 			     service);
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
@@ -732,12 +732,12 @@ tracker_search_text_detailed (TrackerSearch          *object,
 
 	iface = tracker_db_manager_get_db_interface_by_service (service);
 
-	result_set = tracker_db_search_text (iface, 
-					     service, 
-					     search_text, 
-					     offset, 
-					     search_sanity_check_max_hits (max_hits), 
-					     FALSE, 
+	result_set = tracker_db_search_text (iface,
+					     service,
+					     search_text,
+					     offset,
+					     search_sanity_check_max_hits (max_hits),
+					     FALSE,
 					     TRUE);
 
 	values = tracker_dbus_query_result_to_ptr_array (result_set);
@@ -785,7 +785,7 @@ tracker_search_get_snippet (TrackerSearch          *object,
 		g_set_error (&actual_error,
 			     TRACKER_DBUS_ERROR,
 			     0,
-			     "Service '%s' is invalid or has not been implemented yet", 
+			     "Service '%s' is invalid or has not been implemented yet",
 			     service);
 		dbus_g_method_return_error (context, actual_error);
 		g_error_free (actual_error);
@@ -816,9 +816,9 @@ tracker_search_get_snippet (TrackerSearch          *object,
 		return;
 	}
 
-	result_set = tracker_db_exec_proc (iface, 
-					   "GetAllContents", 
-					   service_id, 
+	result_set = tracker_db_exec_proc (iface,
+					   "GetAllContents",
+					   service_id,
 					   NULL);
 	g_free (service_id);
 
@@ -830,7 +830,7 @@ tracker_search_get_snippet (TrackerSearch          *object,
 		priv = TRACKER_SEARCH_GET_PRIVATE (object);
 
 		tracker_db_result_set_get (result_set, 0, &text, -1);
-		strv = tracker_parser_text_into_array (text, 
+		strv = tracker_parser_text_into_array (text,
 						       priv->language,
 						       tracker_config_get_max_word_length (priv->config),
 						       tracker_config_get_min_word_length (priv->config));
@@ -1100,7 +1100,7 @@ tracker_search_query (TrackerSearch          *object,
 				  keyword,
 				  query_condition,
 				  offset,
-				  max_hits, 
+				  max_hits,
 				  sort_by_service ? "yes" : "no",
 				  sort_desc ? "yes" : "no");
 
@@ -1130,24 +1130,24 @@ tracker_search_query (TrackerSearch          *object,
 					      search_text,
 					      keyword);
 
-		query_translated = tracker_rdf_query_to_sql (iface, 
-							     query_condition, 
-							     service, 
-							     fields, 
-							     g_strv_length (fields), 
-							     search_text, 
-							     keyword, 
+		query_translated = tracker_rdf_query_to_sql (iface,
+							     query_condition,
+							     service,
+							     fields,
+							     g_strv_length (fields),
+							     search_text,
+							     keyword,
 							     sort_by_service,
 							     sort_fields,
 							     g_strv_length (sort_fields),
 							     sort_desc,
-							     offset, 
-							     search_sanity_check_max_hits (max_hits), 
+							     offset,
+							     search_sanity_check_max_hits (max_hits),
 							     &query_error);
 
 		if (query_error) {
 			tracker_dbus_request_failed (request_id,
-						     &query_error, 
+						     &query_error,
 						     NULL);
 			dbus_g_method_return_error (context, query_error);
 			g_error_free (query_error);
@@ -1167,17 +1167,17 @@ tracker_search_query (TrackerSearch          *object,
 					      query_translated);
 
 		if (!tracker_is_empty_string (search_text)) {
-			tracker_db_search_text (iface, 
-						service, 
-						search_text, 
-						0, 
-						999999, 
-						TRUE, 
+			tracker_db_search_text (iface,
+						service,
+						search_text,
+						0,
+						999999,
+						TRUE,
 						FALSE);
 		}
 
-		result_set = tracker_db_interface_execute_query (iface, 
-								 NULL, 
+		result_set = tracker_db_interface_execute_query (iface,
+								 NULL,
 								 query_translated);
 		g_free (query_translated);
 	}
@@ -1220,13 +1220,13 @@ tracker_search_suggest (TrackerSearch          *object,
 	priv = TRACKER_SEARCH_GET_PRIVATE (object);
 
 	/* First we try the file index */
-	value = tracker_db_index_get_suggestion (priv->file_index, 
-						 search_text, 
+	value = tracker_db_index_get_suggestion (priv->file_index,
+						 search_text,
 						 max_dist);
 	if (!value) {
 		/* Second we try the email index */
-		value = tracker_db_index_get_suggestion (priv->email_index, 
-							 search_text, 
+		value = tracker_db_index_get_suggestion (priv->email_index,
+							 search_text,
 							 max_dist);
 	}
 

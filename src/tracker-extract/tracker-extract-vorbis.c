@@ -68,7 +68,7 @@ static struct {
 };
 
 
-static char* 
+static char*
 get_comment (vorbis_comment *vc, char *label)
 {
 	char *tag;
@@ -76,7 +76,7 @@ get_comment (vorbis_comment *vc, char *label)
 
 	if (vc && (tag = vorbis_comment_query (vc, label, 0)) != NULL) {
 
-		utf_tag = g_locale_to_utf8 (tag, -1, NULL, NULL, NULL);		
+		utf_tag = g_locale_to_utf8 (tag, -1, NULL, NULL, NULL);
 
 		/*g_free (tag);*/
 
@@ -96,11 +96,11 @@ tracker_metadata_ogg_is_writable (const char *meta)
 
 	i = 0;
 	while (tags[i].name != NULL) {
-		
+
 		if (strcmp (tags[i].meta_name, meta) == 0) {
 			return tags[i].writable;
 		}
-		
+
 		i++;
 	}
 
@@ -110,14 +110,14 @@ tracker_metadata_ogg_is_writable (const char *meta)
 
 
 gboolean
-tracker_metadata_ogg_write (const char *meta_name, const char *value) 
+tracker_metadata_ogg_write (const char *meta_name, const char *value)
 {
 	/* to do */
 	return FALSE;
 }
 
 
-void 
+void
 tracker_extract_vorbis (const char *filename, GHashTable *metadata)
 {
         gint           fd;
@@ -134,7 +134,7 @@ tracker_extract_vorbis (const char *filename, GHashTable *metadata)
         }
 
 	oggFile = fdopen (fd, "r");
-	
+
 	if (!oggFile) {
                 close (fd);
 		return;
@@ -144,20 +144,20 @@ tracker_extract_vorbis (const char *filename, GHashTable *metadata)
 		fclose (oggFile);
 		return;
 	}
-	
+
 	char *tmpComment;
 
 	vorbis_comment *comment;
 
 	if ((comment  = ov_comment (&vf, -1)) == NULL) {
-		ov_clear (&vf);	
+		ov_clear (&vf);
 		return;
 	}
 
 	i = 0;
 	while (tags[i].name != NULL) {
 		tmpComment = get_comment (comment, tags[i].name);
-		
+
 		if (tmpComment) {
 			g_hash_table_insert (metadata, g_strdup (tags[i].meta_name), tmpComment);
 		}
@@ -182,8 +182,8 @@ tracker_extract_vorbis (const char *filename, GHashTable *metadata)
 		g_hash_table_insert (metadata, g_strdup ("Audio.Samplerate"), g_strdup_printf ("%ld", vi->rate));
 	}
 
-	
-		
+
+
 	/* Duration */
 
 	int time;
@@ -195,8 +195,8 @@ tracker_extract_vorbis (const char *filename, GHashTable *metadata)
 
 	g_hash_table_insert (metadata, g_strdup ("Audio.Codec"), g_strdup ("vorbis"));
 
-	ov_clear(&vf);	
-	
+	ov_clear(&vf);
+
 }
 
 #else

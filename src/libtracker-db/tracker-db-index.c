@@ -273,7 +273,7 @@ tracker_db_index_new (const gchar *filename,
 
 void
 tracker_db_index_set_filename (TrackerDBIndex *index,
-			       const gchar    *filename) 
+			       const gchar    *filename)
 {
 	TrackerDBIndexPrivate *priv;
 
@@ -331,7 +331,7 @@ tracker_db_index_set_reload (TrackerDBIndex *index,
 	priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
 
 	priv->reload = reload;
-	
+
 	g_object_notify (G_OBJECT (index), "reload");
 }
 
@@ -346,7 +346,7 @@ tracker_db_index_set_readonly (TrackerDBIndex *index,
 	priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
 
 	priv->readonly = readonly;
-	
+
 	g_object_notify (G_OBJECT (index), "readonly");
 }
 
@@ -540,10 +540,10 @@ check_index_is_up_to_date (TrackerDBIndex *index)
  * new.
  */
 static gboolean
-indexer_update_word (DEPOT       *index, 
-		     const gchar *word, 
+indexer_update_word (DEPOT       *index,
+		     const gchar *word,
 		     GArray      *new_hits)
-{					
+{
 	TrackerDBIndexItem *new_hit;
 	TrackerDBIndexItem *previous_hits;
 	GArray             *pending_hits;
@@ -564,19 +564,19 @@ indexer_update_word (DEPOT       *index,
 	old_hit_count = 0;
 	pending_hits = NULL;
 
-	previous_hits = (TrackerDBIndexItem *) dpget (index, 
-						      word, 
-						      -1, 
-						      0, 
-						      MAX_HIT_BUFFER, 
+	previous_hits = (TrackerDBIndexItem *) dpget (index,
+						      word,
+						      -1,
+						      0,
+						      MAX_HIT_BUFFER,
 						      &tsiz);
-	
+
 	/* New word in the index */
 	if (previous_hits == NULL) {
-		result = dpput (index, 
-				word, -1, 
-				(char *) new_hits->data, 
-				new_hits->len * sizeof (TrackerDBIndexItem), 
+		result = dpput (index,
+				word, -1,
+				(char *) new_hits->data,
+				new_hits->len * sizeof (TrackerDBIndexItem),
 				DP_DOVER);
 
 		if (!result) {
@@ -593,7 +593,7 @@ indexer_update_word (DEPOT       *index,
 	for (j = 0; j < new_hits->len; j++) {
 		guint left, right, center;
 
-		new_hit = &g_array_index (new_hits, TrackerDBIndexItem, j); 
+		new_hit = &g_array_index (new_hits, TrackerDBIndexItem, j);
 		edited = FALSE;
 
 		left = 0;
@@ -613,13 +613,13 @@ indexer_update_word (DEPOT       *index,
 				right = center;
 			} else if (new_hit->id == previous_hits[center].id) {
 				write_back = TRUE;
-				
+
 				/* NB the paramter score can be negative */
 				score =  tracker_db_index_item_get_score (&previous_hits[center]);
 				score += tracker_db_index_item_get_score (new_hit);
 
-		
-				/* Check for deletion */		
+
+				/* Check for deletion */
 				if (score < 1) {
 					/* Shift all subsequent records in array down one place */
 					g_memmove (&previous_hits[center], &previous_hits[center + 1],
@@ -628,13 +628,13 @@ indexer_update_word (DEPOT       *index,
 				} else {
 					guint32 service_type;
 
-					service_type = 
+					service_type =
 						tracker_db_index_item_get_service_type (&previous_hits[center]);
-					previous_hits[center].amalgamated = 
-						tracker_db_index_item_calc_amalgamated (service_type, 
+					previous_hits[center].amalgamated =
+						tracker_db_index_item_calc_amalgamated (service_type,
 											score);
 				}
-				
+
 				edited = TRUE;
 				break;
 			}
@@ -647,15 +647,15 @@ indexer_update_word (DEPOT       *index,
 		 */
 		if (!edited) {
 			if (!pending_hits) {
-				pending_hits = g_array_new (FALSE, 
-							    TRUE, 
+				pending_hits = g_array_new (FALSE,
+							    TRUE,
 							    sizeof (TrackerDBIndexItem));
 			}
 
 			g_array_append_val (pending_hits, *new_hit);
 		}
 	}
-	
+
 	/* Write back if we have modded anything */
 	if (write_back) {
 		/* If the word has no hits, remove it! Otherwise
@@ -675,7 +675,7 @@ indexer_update_word (DEPOT       *index,
 			g_warning ("Could not modify word '%s': %s", word, dperrmsg (dpecode));
 		}
 	}
-	
+
 	/*  Append new occurences */
 	if (pending_hits) {
 		result = dpput (index,
@@ -691,7 +691,7 @@ indexer_update_word (DEPOT       *index,
 	}
 
 	g_free (previous_hits);
-	
+
 	return TRUE;
 }
 
@@ -709,7 +709,7 @@ cache_flush_item (gpointer key,
 	index = (DEPOT *) user_data;
 
 	/* Mark element for removal if succesfull insertion */
-	
+
 	/**
 	 * FIXME:
 	 *
@@ -717,7 +717,7 @@ cache_flush_item (gpointer key,
 	 * That's because the only thing we'll achieve is letting this queue
 	 * grow until it starts succeeding again. Which might end up being
 	 * never. Making tracker-indexer both becoming increasingly slow and
-	 * start consuming increasing amounts of memory. 
+	 * start consuming increasing amounts of memory.
 	 **/
 
 	return indexer_update_word (index, word, array);
@@ -738,7 +738,7 @@ tracker_db_index_open (TrackerDBIndex *index)
 	g_return_val_if_fail (priv->filename != NULL, FALSE);
 	g_return_val_if_fail (priv->index == NULL, FALSE);
 
-	g_debug ("Opening index:'%s' (%s)", 
+	g_debug ("Opening index:'%s' (%s)",
 		 priv->filename,
 		 priv->readonly ? "readonly" : "read/write");
 
@@ -788,7 +788,7 @@ tracker_db_index_open (TrackerDBIndex *index)
 	} else {
 		priv->reload = TRUE;
 	}
-	
+
 	return !priv->reload;
 }
 
@@ -808,7 +808,7 @@ tracker_db_index_close (TrackerDBIndex *index)
 		g_debug ("Closing index:'%s'", priv->filename);
 
 		if (!dpclose (priv->index)) {
-			g_message ("Could not close index, %s", 
+			g_message ("Could not close index, %s",
 				   dperrmsg (dpecode));
 			retval = FALSE;
 		}
@@ -965,8 +965,8 @@ tracker_db_index_get_suggestion (TrackerDBIndex *index,
 		g_get_current_time (&current);
 
 		/* 2 second time out */
-		if (current.tv_sec - start.tv_sec >= 2) { 
-			g_message ("Timed out in %s, not collecting more suggestions.", 
+		if (current.tv_sec - start.tv_sec >= 2) {
+			g_message ("Timed out in %s, not collecting more suggestions.",
 				   __FUNCTION__);
                         break;
 		}
@@ -1051,7 +1051,7 @@ tracker_db_index_add_word (TrackerDBIndex *index,
 		g_array_append_val (array, elem);
 
 		return;
-	} 
+	}
 
 	/* It is not the first time we find the word */
 	for (i = 0; i < array->len; i++) {
@@ -1059,7 +1059,7 @@ tracker_db_index_add_word (TrackerDBIndex *index,
 
 		if (current->id == service_id) {
 			/* The word was already found in the same
-			 * service_id (file), increase score 
+			 * service_id (file), increase score
 			 */
 			new_score = tracker_db_index_item_get_score (current) + weight;
 			if (new_score < 1) {
@@ -1069,11 +1069,11 @@ tracker_db_index_add_word (TrackerDBIndex *index,
 				}
 			} else {
 				guint32 service_type;
-				
-				service_type = 
+
+				service_type =
 					tracker_db_index_item_get_service_type (current);
-				current->amalgamated = 
-					tracker_db_index_item_calc_amalgamated (service_type, 
+				current->amalgamated =
+					tracker_db_index_item_calc_amalgamated (service_type,
 										new_score);
 			}
 
@@ -1148,7 +1148,7 @@ tracker_db_index_remove_dud_hits (TrackerDBIndex *index,
 
 				if (details[i].id == rank->service_id) {
 					gint k;
-					
+
 					/* Shift all subsequent
 					 * records in array down one
 					 * place.
@@ -1156,13 +1156,13 @@ tracker_db_index_remove_dud_hits (TrackerDBIndex *index,
 					for (k = i + 1; k < pnum; k++) {
 						details[k - 1] = details[k];
 					}
-					
+
 					/* Make size of array one size
 					 * smaller.
 					 */
 					tsiz -= sizeof (TrackerDBIndexItem);
 					pnum--;
-					
+
 					break;
 				}
                         }

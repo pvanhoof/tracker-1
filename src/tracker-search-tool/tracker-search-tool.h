@@ -5,7 +5,7 @@
  *  File:  tracker_search.h modified from gnome-search.h
  *
  *  (c) Mr Jamie McCracken
- * 
+ *
  *  Original copyright :
  *  (C) 1998,2002 the Free Software Foundation
  *
@@ -92,7 +92,7 @@ typedef enum {
 
 typedef enum {
 	CATEGORY_ICON_NAME,
-	CATEGORY_TITLE,	
+	CATEGORY_TITLE,
 	CATEGORY_SERVICE,
 	NUM_CATEGORY_COLUMNS
 } CategoryColumns;
@@ -147,7 +147,7 @@ struct _GSearchWindow {
 	gint			type;
 	guint			old_type;
 	service_info_t  	*current_service;
-	
+
 	GtkWidget		*metatile;
 	GtkWidget		*no_results;
 	GtkWidget		*count_label;
@@ -170,7 +170,7 @@ struct _GSearchWindow {
 	GtkWidget             * available_options_add_button;
 	GtkSizeGroup          * available_options_button_size_group;
 	GList                 * available_options_selected_list;
-	
+
 	GtkWidget             * files_found_label;
 	GtkWidget             * search_results_vbox;
 	GtkWidget             * search_results_popup_menu;

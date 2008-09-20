@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2008, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2008, Nokia
  *
@@ -27,7 +27,7 @@
 #include "tracker-db-action.h"
 
 /*
- * Watch types 
+ * Watch types
  */
 #define TRACKER_TYPE_DB_WATCH (tracker_db_watch_get_type ())
 
@@ -44,7 +44,7 @@ GType              tracker_db_watch_get_type  (void) G_GNUC_CONST;
 const gchar *      tracker_db_watch_to_string (TrackerDBWatch     watch);
 
 /*
- * File Information 
+ * File Information
  */
 typedef struct _TrackerDBFileInfo TrackerDBFileInfo;
 
@@ -90,7 +90,7 @@ struct _TrackerDBFileInfo {
 	/* We ref count FileInfo as it has a complex lifespan and is
          * tossed between various threads, lists, queues and hash
          * tables.
-         */ 
+         */
 	gint             ref_count;
 };
 

@@ -25,14 +25,14 @@
 
 G_BEGIN_DECLS
 
-typedef struct {                         
+typedef struct {
 	/* Service ID number of the document */
-	guint32 id;              
+	guint32 id;
 
 	/* Amalgamation of service_type and score of the word in the
 	 * document's metadata.
 	 */
-	gint    amalgamated;     
+	gint    amalgamated;
 } TrackerDBIndexItem;
 
 typedef struct {

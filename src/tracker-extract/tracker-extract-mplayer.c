@@ -30,7 +30,7 @@
 
 #include "tracker-extract.h"
 
-static void extract_mplayer (const gchar *filename, 
+static void extract_mplayer (const gchar *filename,
                              GHashTable  *metadata);
 
 static TrackerExtractorData data[] = {
@@ -75,17 +75,17 @@ static gchar *info_tags[][3] = {
 };
 
 static void
-copy_hash_table_entry (gpointer key, 
+copy_hash_table_entry (gpointer key,
                        gpointer value,
                        gpointer user_data)
 {
-	g_hash_table_insert (user_data, 
-                             g_strdup (key), 
+	g_hash_table_insert (user_data,
+                             g_strdup (key),
                              g_strdup (value));
 }
 
 static void
-extract_mplayer (const gchar *filename, 
+extract_mplayer (const gchar *filename,
                  GHashTable  *metadata)
 {
 	gchar *argv[10];

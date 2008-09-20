@@ -35,7 +35,7 @@ static void
 request_handler_call_for_new (guint request_id)
 {
 	GSList *l;
-	
+
 	for (l = hooks; l; l = l->next) {
 		TrackerDBusRequestHandler *handler;
 
@@ -51,7 +51,7 @@ static void
 request_handler_call_for_done (guint request_id)
 {
 	GSList *l;
-	
+
 	for (l = hooks; l; l = l->next) {
 		TrackerDBusRequestHandler *handler;
 
@@ -88,7 +88,7 @@ tracker_dbus_error_quark (void)
 }
 
 TrackerDBusData *
-tracker_dbus_data_new (const gpointer arg1, 
+tracker_dbus_data_new (const gpointer arg1,
                        const gpointer arg2)
 {
         TrackerDBusData *data;
@@ -111,10 +111,10 @@ tracker_dbus_slist_to_strv (GSList *list)
 	gint     i = 0;
 
 	strv = g_new0 (gchar*, g_slist_length (list) + 1);
-				
+
         for (l = list; l != NULL; l = l->next) {
 		if (!g_utf8_validate (l->data, -1, NULL)) {
-			g_message ("Could not add string:'%s' to GStrv, invalid UTF-8", 
+			g_message ("Could not add string:'%s' to GStrv, invalid UTF-8",
 				   (gchar*) l->data);
 			continue;
 		}
@@ -128,7 +128,7 @@ tracker_dbus_slist_to_strv (GSList *list)
 }
 
 gchar **
-tracker_dbus_queue_str_to_strv (GQueue *queue, 
+tracker_dbus_queue_str_to_strv (GQueue *queue,
 				gint    max)
 {
 	gchar **strv;
@@ -137,13 +137,13 @@ tracker_dbus_queue_str_to_strv (GQueue *queue,
 	gint    length;
 
 	length = g_queue_get_length (queue);
-		
+
 	if (max > 0) {
 		length = MIN (max, length);
 	}
 
 	strv = g_new0 (gchar*, length + 1);
-	
+
 	for (i = 0, j = 0; i < length; i++) {
 		str = g_queue_pop_head (queue);
 
@@ -166,7 +166,7 @@ tracker_dbus_queue_str_to_strv (GQueue *queue,
 }
 
 gchar **
-tracker_dbus_queue_gfile_to_strv (GQueue *queue, 
+tracker_dbus_queue_gfile_to_strv (GQueue *queue,
 				  gint    max)
 {
 	gchar **strv;
@@ -176,13 +176,13 @@ tracker_dbus_queue_gfile_to_strv (GQueue *queue,
 	gint    length;
 
 	length = g_queue_get_length (queue);
-		
+
 	if (max > 0) {
 		length = MIN (max, length);
 	}
 
 	strv = g_new0 (gchar*, length + 1);
-	
+
 	for (i = 0, j = 0; i < length; i++) {
 		file = g_queue_pop_head (queue);
 
@@ -223,14 +223,14 @@ guint
 tracker_dbus_get_next_request_id (void)
 {
         static guint request_id = 1;
-	
+
         return request_id++;
 }
 
 TrackerDBusRequestHandler *
 tracker_dbus_request_add_hook (TrackerDBusRequestFunc new,
 			       TrackerDBusRequestFunc done,
-			       gpointer               user_data) 
+			       gpointer               user_data)
 {
 	TrackerDBusRequestHandler *handler;
 
@@ -255,7 +255,7 @@ tracker_dbus_request_remove_hook (TrackerDBusRequestHandler *handler)
 
 void
 tracker_dbus_request_new (gint          request_id,
-			  const gchar  *format, 
+			  const gchar  *format,
 			  ...)
 {
 	gchar   *str;
@@ -264,7 +264,7 @@ tracker_dbus_request_new (gint          request_id,
 	va_start (args, format);
 	str = g_strdup_vprintf (format, args);
 	va_end (args);
-	
+
 	g_message ("<--- [%d] %s",
 		   request_id,
 		   str);
@@ -279,14 +279,14 @@ tracker_dbus_request_success (gint request_id)
 {
 	request_handler_call_for_done (request_id);
 
-	g_message ("---> [%d] Success, no error given", 
+	g_message ("---> [%d] Success, no error given",
 		   request_id);
 }
 
 void
 tracker_dbus_request_failed (gint          request_id,
 			     GError      **error,
-			     const gchar  *format, 
+			     const gchar  *format,
 			     ...)
 {
 	gchar   *str;
@@ -298,7 +298,7 @@ tracker_dbus_request_failed (gint          request_id,
 		va_start (args, format);
 		str = g_strdup_vprintf (format, args);
 		va_end (args);
-		
+
 		g_set_error (error, TRACKER_DBUS_ERROR, 0, str);
 	} else if (*error != NULL) {
 		str = g_strdup ((*error)->message);
@@ -325,8 +325,8 @@ tracker_dbus_request_comment (gint         request_id,
 	str = g_strdup_vprintf (format, args);
 	va_end (args);
 
-	g_message ("---- [%d] %s", 
-		   request_id, 
+	g_message ("---- [%d] %s",
+		   request_id,
 		   str);
 	g_free (str);
 }

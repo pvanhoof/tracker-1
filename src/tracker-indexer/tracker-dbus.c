@@ -43,7 +43,7 @@ dbus_register_service (DBusGProxy  *proxy,
         guint   result;
 
         g_message ("Registering DBus service...\n"
-		   "  Name:'%s'", 
+		   "  Name:'%s'",
 		   name);
 
         if (!org_freedesktop_DBus_request_name (proxy,
@@ -113,21 +113,21 @@ tracker_dbus_get_thumbnailer (void)
 	return thumb_proxy;
 }
 
-static gboolean 
+static gboolean
 dbus_register_names (void)
 {
         GError *error = NULL;
 
 	if (connection) {
-		g_critical ("The DBusGConnection is already set, have we already initialized?"); 
+		g_critical ("The DBusGConnection is already set, have we already initialized?");
 		return FALSE;
 	}
 
 	if (proxy) {
-		g_critical ("The DBusGProxy is already set, have we already initialized?"); 
+		g_critical ("The DBusGProxy is already set, have we already initialized?");
 		return FALSE;
 	}
-	
+
         connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
 
         if (!connection) {

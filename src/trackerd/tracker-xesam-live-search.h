@@ -56,7 +56,7 @@ struct _TrackerXesamLiveSearchClass {
 	GObjectClass parent_class;
 };
 
-TrackerXesamLiveSearch * 
+TrackerXesamLiveSearch *
              tracker_xesam_live_search_new                (const gchar             *query_xml);
 GType        tracker_xesam_live_search_get_type           (void);
 void         tracker_xesam_live_search_set_id             (TrackerXesamLiveSearch  *self,
@@ -66,11 +66,11 @@ const gchar* tracker_xesam_live_search_get_where_query    (TrackerXesamLiveSearc
 const gchar* tracker_xesam_live_search_get_from_query     (TrackerXesamLiveSearch  *self);
 const gchar* tracker_xesam_live_search_get_join_query     (TrackerXesamLiveSearch  *self);
 const gchar* tracker_xesam_live_search_get_xml_query      (TrackerXesamLiveSearch  *self);
-void         tracker_xesam_live_search_set_xml_query      (TrackerXesamLiveSearch  *self, 
+void         tracker_xesam_live_search_set_xml_query      (TrackerXesamLiveSearch  *self,
 							   const gchar             *xml_query);
-void         tracker_xesam_live_search_set_session        (TrackerXesamLiveSearch  *self, 
+void         tracker_xesam_live_search_set_session        (TrackerXesamLiveSearch  *self,
 							   gpointer                 session);
-void         tracker_xesam_live_search_set_session        (TrackerXesamLiveSearch  *self, 
+void         tracker_xesam_live_search_set_session        (TrackerXesamLiveSearch  *self,
 							   gpointer                 session);
 void         tracker_xesam_live_search_activate           (TrackerXesamLiveSearch  *self,
 							   GError                 **error);
@@ -89,7 +89,7 @@ void         tracker_xesam_live_search_get_hits           (TrackerXesamLiveSearc
 void         tracker_xesam_live_search_get_range_hit_data (TrackerXesamLiveSearch  *self,
 							   guint                    a,
 							   guint                    b,
-							   GStrv                    fields, 
+							   GStrv                    fields,
 							   GPtrArray              **hit_data,
 							   GError                 **error);
 void         tracker_xesam_live_search_get_range_hits     (TrackerXesamLiveSearch  *self,
@@ -109,10 +109,10 @@ void         tracker_xesam_live_search_emit_hits_removed  (TrackerXesamLiveSearc
 void         tracker_xesam_live_search_emit_hits_modified (TrackerXesamLiveSearch  *self,
 							   GArray                  *hit_ids);
 void         tracker_xesam_live_search_emit_done          (TrackerXesamLiveSearch  *self);
-void         tracker_xesam_live_search_match_with_events  (TrackerXesamLiveSearch  *self, 
+void         tracker_xesam_live_search_match_with_events  (TrackerXesamLiveSearch  *self,
 							   MatchWithEventsFlags     flags,
-							   GArray                 **added, 
-							   GArray                 **removed, 
+							   GArray                 **added,
+							   GArray                 **removed,
 							   GArray                 **modified);
 
 G_END_DECLS

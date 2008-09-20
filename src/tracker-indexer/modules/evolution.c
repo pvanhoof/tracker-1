@@ -280,7 +280,7 @@ get_account_name_from_imap_uri (const gchar *imap_uri)
 {
         const gchar *start, *at, *semic;
         gchar *user_name, *at_host_name, *account_name;
-        
+
         /* Assume url schema is:
          * imap://foo@imap.free.fr/;etc
          * or

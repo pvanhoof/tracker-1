@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2008, Nokia (urho.konttori@nokia.com)
  *
@@ -129,7 +129,7 @@ tracker_field_type_to_string (TrackerFieldType fieldtype)
         type = tracker_field_type_get_type ();
         enum_class = G_ENUM_CLASS (g_type_class_peek (type));
         enum_value = g_enum_get_value (enum_class, fieldtype);
-        
+
         if (!enum_value) {
 		return NULL;
         }
@@ -235,7 +235,7 @@ tracker_field_init (TrackerField *field)
 {
 }
 
-static void 
+static void
 field_finalize (GObject *object)
 {
 	TrackerFieldPriv *priv;
@@ -400,7 +400,7 @@ const gchar *
 tracker_field_get_id (TrackerField *field)
 {
 	TrackerFieldPriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_FIELD (field), NULL);
 
 	priv = GET_PRIV (field);
@@ -412,7 +412,7 @@ const gchar *
 tracker_field_get_name (TrackerField *field)
 {
 	TrackerFieldPriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_FIELD (field), NULL);
 
 	priv = GET_PRIV (field);
@@ -424,7 +424,7 @@ TrackerFieldType
 tracker_field_get_data_type (TrackerField *field)
 {
 	TrackerFieldPriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_FIELD (field), TRACKER_FIELD_TYPE_STRING); //FIXME
 
 	priv = GET_PRIV (field);
@@ -436,7 +436,7 @@ const gchar *
 tracker_field_get_field_name (TrackerField *field)
 {
 	TrackerFieldPriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_FIELD (field), NULL);
 
 	priv = GET_PRIV (field);
@@ -448,7 +448,7 @@ gint
 tracker_field_get_weight (TrackerField *field)
 {
 	TrackerFieldPriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_FIELD (field), -1);
 
 	priv = GET_PRIV (field);
@@ -461,7 +461,7 @@ gboolean
 tracker_field_get_embedded (TrackerField *field)
 {
 	TrackerFieldPriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_FIELD (field), FALSE);
 
 	priv = GET_PRIV (field);
@@ -474,7 +474,7 @@ gboolean
 tracker_field_get_multiple_values (TrackerField *field)
 {
 	TrackerFieldPriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_FIELD (field), FALSE);
 
 	priv = GET_PRIV (field);
@@ -486,7 +486,7 @@ gboolean
 tracker_field_get_delimited (TrackerField *field)
 {
 	TrackerFieldPriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_FIELD (field), FALSE);
 
 	priv = GET_PRIV (field);
@@ -498,7 +498,7 @@ gboolean
 tracker_field_get_filtered (TrackerField *field)
 {
 	TrackerFieldPriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_FIELD (field), FALSE);
 
 	priv = GET_PRIV (field);
@@ -510,7 +510,7 @@ gboolean
 tracker_field_get_store_metadata (TrackerField *field)
 {
 	TrackerFieldPriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_FIELD (field), FALSE);
 
 	priv = GET_PRIV (field);
@@ -523,7 +523,7 @@ const GSList *
 tracker_field_get_child_ids (TrackerField *field)
 {
 	TrackerFieldPriv *priv;
-	
+
 	g_return_val_if_fail (TRACKER_IS_FIELD (field), NULL);
 
 	priv = GET_PRIV (field);
@@ -718,7 +718,7 @@ tracker_field_set_child_ids (TrackerField *field,
 		for (l = value; l; l = l->next) {
 			new_list = g_slist_prepend (new_list, g_strdup (l->data));
 		}
-		
+
 		new_list = g_slist_reverse (new_list);
 		priv->child_ids = new_list;
 	} else {
@@ -730,7 +730,7 @@ tracker_field_set_child_ids (TrackerField *field,
 
 void
 tracker_field_append_child_id (TrackerField *field,
-			       const gchar  *value) 
+			       const gchar  *value)
 {
 	TrackerFieldPriv *priv;
 

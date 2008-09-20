@@ -24,7 +24,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
- 
+
 #include "config.h"
 
 #ifdef HAVE_IOPRIO
@@ -104,7 +104,7 @@ ioprio_set (int which, int who, int ioprio_val)
 	return syscall (__NR_ioprio_set, which, who, ioprio_val);
 }
 
-static int 
+static int
 set_io_priority_idle (void)
 {
         int ioprio, ioclass;
@@ -115,7 +115,7 @@ set_io_priority_idle (void)
         return ioprio_set (IOPRIO_WHO_PROCESS, 0, ioprio | ioclass);
 }
 
-static int 
+static int
 set_io_priority_best_effort (int ioprio_val)
 {
         int ioclass;

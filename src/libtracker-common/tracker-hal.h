@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2008, Nokia (urho.konttori@nokia.com)
  *
@@ -26,7 +26,7 @@
 
 G_BEGIN_DECLS
 
-#ifdef HAVE_HAL 
+#ifdef HAVE_HAL
 
 #define TRACKER_TYPE_HAL         (tracker_hal_get_type ())
 #define TRACKER_HAL(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_HAL, TrackerHal))

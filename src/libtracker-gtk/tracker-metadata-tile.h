@@ -43,14 +43,14 @@ typedef struct TrackerMetadataTile {
 
 typedef struct {
 	GtkEventBoxClass parent_class;
-	
+
 } TrackerMetadataTileClass;
 
 GType      tracker_metadata_tile_get_type  (void);
 
 GtkWidget* tracker_metadata_tile_new       (void);
 
-void	   tracker_metadata_tile_set_uri (TrackerMetadataTile 		*tile, 
+void	   tracker_metadata_tile_set_uri (TrackerMetadataTile 		*tile,
 					  const gchar 			*uri,
 					  ServiceType   		service_type,
 					  const gchar 			*type,

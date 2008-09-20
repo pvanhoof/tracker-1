@@ -155,7 +155,7 @@ typedef struct _TrayIconPrivate {
 	GtkWidget *btn_close;
 } TrayIconPrivate;
 
-static void set_auto_pause (TrayIcon *icon, 
+static void set_auto_pause (TrayIcon *icon,
                             gboolean  pause);
 
 static TrayIcon *main_icon;
@@ -189,7 +189,7 @@ static Stat_Info stat_info[13] = {
 static gboolean disable_daemon_start;
 
 static GOptionEntry entries[] = {
-	{ "disable-daemon-start", 'd', 0, G_OPTION_ARG_NONE, &disable_daemon_start, 
+	{ "disable-daemon-start", 'd', 0, G_OPTION_ARG_NONE, &disable_daemon_start,
           NULL,
           NULL
         },
@@ -226,7 +226,7 @@ set_status_hint (TrayIcon *icon)
 	GString *hint;
 
         priv = TRAY_ICON_GET_PRIVATE (icon);
-        
+
         hint = g_string_new ("Tracker");
 
 	switch (priv->index_state) {
@@ -282,9 +282,9 @@ set_status_hint (TrayIcon *icon)
                 gchar *str1;
                 gchar *str2;
 
-                str1 = tracker_seconds_estimate_to_string (priv->seconds_elapsed, 
+                str1 = tracker_seconds_estimate_to_string (priv->seconds_elapsed,
                                                            FALSE,
-                                                           priv->items_done, 
+                                                           priv->items_done,
                                                            priv->items_remaining);
                 str2 = tracker_seconds_to_string (priv->seconds_elapsed, FALSE);
 
@@ -301,7 +301,7 @@ set_status_hint (TrayIcon *icon)
                                         "\n"
                                         "%s : %d of %d\n"
                                         "%s : %s\n"
-                                        "%s : %s", 
+                                        "%s : %s",
                                         _("Done"),
                                         priv->items_done,
                                         priv->items_total,
@@ -332,9 +332,9 @@ can_auto_pause (TrayIcon *icon)
 
         priv = TRAY_ICON_GET_PRIVATE (icon);
 
-	if (priv->user_pause || 
+	if (priv->user_pause ||
             priv->pause_state == PAUSE_BATTERY ||
-	    priv->disabled || 
+	    priv->disabled ||
             priv->indexer_stopped) {
 		return FALSE;
         }
@@ -358,10 +358,10 @@ set_tracker_icon (TrayIconPrivate *priv)
 	gchar *path;
 
 	name = index_icons[priv->index_icon];
-	path = g_build_filename (SHAREDIR, 
-                                 "tracker", 
-                                 "icons", 
-                                 name, 
+	path = g_build_filename (SHAREDIR,
+                                 "tracker",
+                                 "icons",
+                                 name,
                                  NULL);
 
 	if (g_file_test (path, G_FILE_TEST_EXISTS)) {
@@ -391,8 +391,8 @@ set_icon (TrayIconPrivate *priv)
 		}
 	}
 
-	if (priv->user_pause || 
-            priv->auto_pause || 
+	if (priv->user_pause ||
+            priv->auto_pause ||
             priv->pause_state != PAUSE_NONE) {
 		if (priv->index_icon != ICON_PAUSED) {
 			priv->index_icon = ICON_PAUSED;
@@ -444,18 +444,18 @@ auto_pause_timeout (gpointer data)
 		return FALSE;
 	}
 
-	dbus_g_proxy_begin_call (priv->tracker->proxy, 
+	dbus_g_proxy_begin_call (priv->tracker->proxy,
                                  "PromptIndexSignals",
-				 NULL, 
-                                 NULL, 
-                                 NULL, 
+				 NULL,
+                                 NULL,
+                                 NULL,
                                  G_TYPE_INVALID);
 
 	return TRUE;
 }
 
 static void
-set_auto_pause (TrayIcon *icon, 
+set_auto_pause (TrayIcon *icon,
                 gboolean  pause)
 {
 	TrayIconPrivate *priv;
@@ -512,7 +512,7 @@ start_auto_pause_timer (TrayIcon *icon)
 }
 
 static void
-set_user_pause (TrayIcon *icon, 
+set_user_pause (TrayIcon *icon,
                 gboolean  pause)
 {
 	TrayIconPrivate *priv;
@@ -524,7 +524,7 @@ set_user_pause (TrayIcon *icon,
 }
 
 static void
-notice_events_inner (Window   window, 
+notice_events_inner (Window   window,
                      gboolean enable,
                      gboolean top)
 {
@@ -544,10 +544,10 @@ notice_events_inner (Window   window,
 	}
 
 	kids = NULL;
-	status = XQueryTree (GDK_DISPLAY (), 
-                             window, 
-                             &root, 
-                             &parent, 
+	status = XQueryTree (GDK_DISPLAY (),
+                             window,
+                             &root,
+                             &parent,
                              &kids,
 			     &nkids);
 
@@ -601,17 +601,17 @@ notice_events_inner (Window   window,
 
 	/* Select for SubstructureNotify on all windows.
 	 * Select for KeyPress on all windows that already have it selected.
-	 * 
+	 *
 	 * Note that we can't select for ButtonPress, because of X braindamage:
 	 * only one client at a time may select for ButtonPress on a given
 	 * window, though any number can select for KeyPress.  Someone explain
 	 * *that* to me.
-	 * 
+	 *
 	 * So, if the user spends a while clicking the mouse without ever moving
 	 * the mouse or touching the keyboard, we won't know that they've been
 	 * active, and the screensaver will come on.  That sucks, but I don't
 	 * know how to get around it.
-	 * 
+	 *
 	 * Since X presents mouse wheels as clicks, this applies to those, too:
 	 * scrolling through a document using only the mouse wheel doesn't
 	 * count as activity...  Fortunately, /proc/interrupts helps, on
@@ -635,7 +635,7 @@ notice_events_inner (Window   window,
 }
 
 static void
-notice_events (Window   window, 
+notice_events (Window   window,
                gboolean enable)
 {
 	gdk_error_trap_push ();
@@ -653,7 +653,7 @@ start_notice_events (Window window)
 }
 
 static GdkFilterReturn
-filter_x_events (GdkXEvent *xevent, 
+filter_x_events (GdkXEvent *xevent,
                  GdkEvent  *event,
                  gpointer   data)
 {
@@ -679,7 +679,7 @@ filter_x_events (GdkXEvent *xevent,
 
 	case CreateNotify: {
                 Window window;
-                
+
                 window = ev->xcreatewindow.window;
                 start_notice_events (window);
 
@@ -759,7 +759,7 @@ activate_icon (GtkStatusIcon *icon,
 
         if (!g_spawn_command_line_async (command, &error)) {
                 g_warning ("Unable to execute command:'%s', %s",
-                           command, 
+                           command,
                            error->message);
                 g_error_free (error);
         }
@@ -785,7 +785,7 @@ pause_menu_toggled (GtkCheckMenuItem *item,
 }
 
 static inline void
-set_auto_pause_setting (TrayIcon      *icon, 
+set_auto_pause_setting (TrayIcon      *icon,
                         AutoPauseEnum  auto_pause)
 {
 	TrayIconPrivate *priv;
@@ -805,10 +805,10 @@ save_options (TrayIcon *icon)
 
         priv = TRAY_ICON_GET_PRIVATE (icon);
 
-	g_key_file_set_boolean (priv->keyfile, 
+	g_key_file_set_boolean (priv->keyfile,
                                 "Applet", "AnimateWhenIndexing",
 				gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (priv->chk_animate)));
-	g_key_file_set_boolean (priv->keyfile, 
+	g_key_file_set_boolean (priv->keyfile,
                                 "Applet", "AutoHideIcon",
 				gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (priv->chk_show_icon)));
 	g_key_file_set_integer (priv->keyfile, "Applet", "SmartPause",
@@ -827,7 +827,7 @@ save_options (TrayIcon *icon)
 }
 
 static void
-prefs_closed (GtkWidget *widget, 
+prefs_closed (GtkWidget *widget,
               gpointer   data)
 {
 	TrayIconPrivate *priv;
@@ -888,7 +888,7 @@ opt_pause_off_group_changed_cb (GtkToggleButton *check_button,
 }
 
 static void
-chk_animate_toggled_cb (GtkToggleButton *check_button, 
+chk_animate_toggled_cb (GtkToggleButton *check_button,
                         gpointer         user_data)
 {
 	TrayIcon *icon;
@@ -901,7 +901,7 @@ chk_animate_toggled_cb (GtkToggleButton *check_button,
 }
 
 static void
-chk_show_icon_toggled_cb (GtkToggleButton *check_button, 
+chk_show_icon_toggled_cb (GtkToggleButton *check_button,
                           gpointer         user_data)
 {
 	TrayIcon *icon;
@@ -929,8 +929,8 @@ create_prefs (TrayIcon *icon)
         gchar *filename;
 
         priv = TRAY_ICON_GET_PRIVATE (icon);
-        filename = g_build_filename (SHAREDIR, 
-                                     "tracker", 
+        filename = g_build_filename (SHAREDIR,
+                                     "tracker",
                                      "tracker-applet-prefs.glade",
                                      NULL);
         glade = glade_xml_new (filename, NULL, NULL);
@@ -1000,8 +1000,8 @@ create_prefs (TrayIcon *icon)
 }
 
 static void
-restart_tracker (GtkDialog *dialog, 
-                 gint       response, 
+restart_tracker (GtkDialog *dialog,
+                 gint       response,
                  TrayIcon  *icon)
 {
 	gtk_widget_destroy (GTK_WIDGET (dialog));
@@ -1025,7 +1025,7 @@ restart_tracker (GtkDialog *dialog,
 }
 
 static void
-reindex (GtkMenuItem *item, 
+reindex (GtkMenuItem *item,
          TrayIcon    *icon)
 {
 	GtkWidget *dialog;
@@ -1059,7 +1059,7 @@ reindex (GtkMenuItem *item,
 }
 
 static void
-applet_preferences_menu_activated (GtkMenuItem *item, 
+applet_preferences_menu_activated (GtkMenuItem *item,
                                    gpointer     data)
 {
 	TrayIconPrivate *priv;
@@ -1072,7 +1072,7 @@ applet_preferences_menu_activated (GtkMenuItem *item,
 }
 
 static void
-preferences_menu_activated (GtkMenuItem *item, 
+preferences_menu_activated (GtkMenuItem *item,
                             gpointer     data)
 {
         GError *error = NULL;
@@ -1082,15 +1082,15 @@ preferences_menu_activated (GtkMenuItem *item,
 
         if (!g_spawn_command_line_async (command, &error)) {
                 g_warning ("Unable to execute command:'%s', %s",
-                           command, 
+                           command,
                            error->message);
                 g_error_free (error);
         }
 }
 
 static void
-stat_window_free (GtkWidget *widget, 
-                  gint       arg, 
+stat_window_free (GtkWidget *widget,
+                  gint       arg,
                   gpointer   data)
 {
 	TrayIcon *icon;
@@ -1105,7 +1105,7 @@ stat_window_free (GtkWidget *widget,
 }
 
 static gchar *
-get_stat_value (gchar       ***stat_array, 
+get_stat_value (gchar       ***stat_array,
                 const gchar   *stat)
 {
 	gchar **array;
@@ -1125,8 +1125,8 @@ get_stat_value (gchar       ***stat_array,
 }
 
 static void
-update_stats (GPtrArray *array, 
-              GError    *error, 
+update_stats (GPtrArray *array,
+              GError    *error,
               gpointer   data)
 {
 	TrayIcon *icon;
@@ -1172,7 +1172,7 @@ static void
 refresh_stats (TrayIcon *icon)
 {
 	TrayIconPrivate *priv;
-        
+
         priv = TRAY_ICON_GET_PRIVATE (icon);
 
 	if (!priv->stat_window_active || priv->stat_request_pending) {
@@ -1182,12 +1182,12 @@ refresh_stats (TrayIcon *icon)
 	priv->stat_request_pending = TRUE;
 
 	tracker_get_stats_async (priv->tracker,
-				 (TrackerGPtrArrayReply) update_stats, 
+				 (TrackerGPtrArrayReply) update_stats,
                                  icon);
 }
 
 static void
-statistics_menu_activated (GtkMenuItem *item, 
+statistics_menu_activated (GtkMenuItem *item,
                            gpointer     data)
 {
 	TrayIcon *icon;
@@ -1264,7 +1264,7 @@ statistics_menu_activated (GtkMenuItem *item,
 	gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox),
 			   dialog_hbox);
 
-	g_signal_connect (G_OBJECT (dialog), "response", 
+	g_signal_connect (G_OBJECT (dialog), "response",
                           G_CALLBACK (stat_window_free),
                           icon);
 
@@ -1272,7 +1272,7 @@ statistics_menu_activated (GtkMenuItem *item,
 }
 
 static void
-open_uri (GtkWindow  *parent, 
+open_uri (GtkWindow  *parent,
           const char *uri)
 {
 	GtkWidget *dialog;
@@ -1299,16 +1299,16 @@ open_uri (GtkWindow  *parent,
 }
 
 static void
-about_url_hook (GtkAboutDialog *dialog, 
-                const gchar    *url, 
+about_url_hook (GtkAboutDialog *dialog,
+                const gchar    *url,
                 gpointer        data)
 {
 	open_uri (GTK_WINDOW (dialog), url);
 }
 
 static void
-about_email_hook (GtkAboutDialog *dialog, 
-                  const gchar    *email, 
+about_email_hook (GtkAboutDialog *dialog,
+                  const gchar    *email,
                   gpointer        data)
 {
 	gchar *uri;
@@ -1391,7 +1391,7 @@ about_menu_activated (GtkMenuItem * item, gpointer data)
 }
 
 static void
-quit_menu_activated (GtkMenuItem *item, 
+quit_menu_activated (GtkMenuItem *item,
                      gpointer     data)
 {
 	gtk_main_quit ();
@@ -1481,19 +1481,19 @@ create_context_menu (TrayIcon *icon)
 }
 
 static void
-index_finished (DBusGProxy *proxy, 
-                gdouble     seconds_elapsed, 
+index_finished (DBusGProxy *proxy,
+                gdouble     seconds_elapsed,
                 TrayIcon   *icon)
 {
         gchar *str;
 
 	str = tracker_seconds_to_string (seconds_elapsed, FALSE);
-	tray_icon_show_message (icon, 
+	tray_icon_show_message (icon,
                                 "%s in %s.\n"
                                 "\n"
-                                "%s", 
+                                "%s",
                                 _("Tracker has finished indexing your system"),
-				str, 
+				str,
                                 _("You can now perform searches by clicking here"));
 	g_free (str);
 
@@ -1501,13 +1501,13 @@ index_finished (DBusGProxy *proxy,
 }
 
 static void
-index_state_changed (DBusGProxy  *proxy, 
+index_state_changed (DBusGProxy  *proxy,
                      const gchar *state,
-		     gboolean     initial_index, 
+		     gboolean     initial_index,
                      gboolean     in_merge,
-		     gboolean     is_manual_paused, 
+		     gboolean     is_manual_paused,
                      gboolean     is_battery_paused,
-		     gboolean     is_io_paused, 
+		     gboolean     is_io_paused,
                      gboolean     is_indexing_enabled,
 		     TrayIcon    *icon)
 {
@@ -1537,7 +1537,7 @@ index_state_changed (DBusGProxy  *proxy,
 	if (!priv->initial_index_msg_shown && initial_index) {
 		priv->initial_index_msg_shown = TRUE;
 		g_usleep (G_USEC_PER_SEC / 10);
-		tray_icon_show_message (icon, 
+		tray_icon_show_message (icon,
                                         "%s\n"
                                         "\n"
                                         "%s\n",
@@ -1596,11 +1596,11 @@ index_state_changed (DBusGProxy  *proxy,
 }
 
 static void
-index_progress_changed (DBusGProxy  *proxy, 
+index_progress_changed (DBusGProxy  *proxy,
                         const gchar *service,
 			const gchar *uri,
                         gint         items_done,
-			gint         items_remaining, 
+			gint         items_remaining,
                         gint         items_total,
                         gdouble      seconds_elapsed,
 			TrayIcon    *icon)
@@ -1616,8 +1616,8 @@ index_progress_changed (DBusGProxy  *proxy,
 
 	priv->email_indexing = strcmp (service, "Emails") == 0;
 
-        g_print ("Indexed %d/%d, seconds elapsed:%f\n", 
-                 items_done, 
+        g_print ("Indexed %d/%d, seconds elapsed:%f\n",
+                 items_done,
                  items_total,
                  seconds_elapsed);
 
@@ -1657,9 +1657,9 @@ init_settings (TrayIcon *icon)
 }
 
 static void
-name_owner_changed (DBusGProxy  *proxy, 
+name_owner_changed (DBusGProxy  *proxy,
                     const gchar *name,
-		    const gchar *prev_owner, 
+		    const gchar *prev_owner,
                     const gchar *new_owner,
 		    gpointer     data)
 {
@@ -1675,14 +1675,14 @@ name_owner_changed (DBusGProxy  *proxy,
 		/* Tracker has exited so reset status and make
                  * invisible until trackerd relaunched.
                  */
-		index_state_changed (proxy, 
-                                     "Idle", 
-                                     FALSE, 
-                                     FALSE, 
+		index_state_changed (proxy,
+                                     "Idle",
+                                     FALSE,
+                                     FALSE,
                                      FALSE,
 				     FALSE,
-                                     FALSE, 
-                                     FALSE, 
+                                     FALSE,
+                                     FALSE,
                                      data);
 
 		init_settings (data);
@@ -1705,7 +1705,7 @@ name_owner_changed (DBusGProxy  *proxy,
 
 			if (!g_spawn_command_line_async (command, &error)) {
 				g_warning ("Unable to execute command:'%s', %s",
-					   command, 
+					   command,
                                            error->message);
                                 g_error_free (error);
                         }
@@ -1719,7 +1719,7 @@ setup_dbus_connection (TrayIcon *icon)
 	TrayIconPrivate *priv;
 	DBusGConnection *connection;
 	DBusGProxy *dbus_proxy;
-        
+
         priv = TRAY_ICON_GET_PRIVATE (icon);
 
 	priv->tracker = tracker_connect (FALSE);
@@ -1731,21 +1731,21 @@ setup_dbus_connection (TrayIcon *icon)
 
 	/* Set signal handlers */
 	dbus_g_object_register_marshaller (tracker_VOID__STRING_BOOLEAN_BOOLEAN_BOOLEAN_BOOLEAN_BOOLEAN,
-                                           G_TYPE_NONE, 
-                                           G_TYPE_STRING, 
-                                           G_TYPE_BOOLEAN, 
+                                           G_TYPE_NONE,
+                                           G_TYPE_STRING,
                                            G_TYPE_BOOLEAN,
-                                           G_TYPE_BOOLEAN, 
-                                           G_TYPE_BOOLEAN, 
                                            G_TYPE_BOOLEAN,
-                                           G_TYPE_BOOLEAN, 
+                                           G_TYPE_BOOLEAN,
+                                           G_TYPE_BOOLEAN,
+                                           G_TYPE_BOOLEAN,
+                                           G_TYPE_BOOLEAN,
                                            G_TYPE_INVALID);
 
-	dbus_g_object_register_marshaller (tracker_VOID__STRING_STRING_INT_INT_INT_DOUBLE, 
+	dbus_g_object_register_marshaller (tracker_VOID__STRING_STRING_INT_INT_INT_DOUBLE,
                                            G_TYPE_NONE,
-                                           G_TYPE_STRING, 
-                                           G_TYPE_STRING, 
-                                           G_TYPE_INT, 
+                                           G_TYPE_STRING,
+                                           G_TYPE_STRING,
+                                           G_TYPE_INT,
                                            G_TYPE_INT,
                                            G_TYPE_INT,
                                            G_TYPE_DOUBLE,
@@ -1759,7 +1759,7 @@ setup_dbus_connection (TrayIcon *icon)
 				 G_TYPE_BOOLEAN,
 				 G_TYPE_BOOLEAN,
 				 G_TYPE_BOOLEAN,
-				 G_TYPE_BOOLEAN, 
+				 G_TYPE_BOOLEAN,
                                  G_TYPE_INVALID);
 
 	dbus_g_proxy_add_signal (priv->tracker->proxy,
@@ -1767,8 +1767,8 @@ setup_dbus_connection (TrayIcon *icon)
 				 G_TYPE_STRING,
 				 G_TYPE_STRING,
 				 G_TYPE_INT,
-				 G_TYPE_INT, 
-                                 G_TYPE_INT, 
+				 G_TYPE_INT,
+                                 G_TYPE_INT,
                                  G_TYPE_DOUBLE,
                                  G_TYPE_INVALID);
 
@@ -1786,13 +1786,13 @@ setup_dbus_connection (TrayIcon *icon)
 	dbus_g_proxy_connect_signal (priv->tracker->proxy,
 				     "IndexProgress",
 				     G_CALLBACK (index_progress_changed),
-				     icon, 
+				     icon,
                                      NULL);
 
 	dbus_g_proxy_connect_signal (priv->tracker->proxy,
 				     "IndexFinished",
-				     G_CALLBACK (index_finished), 
-                                     icon, 
+				     G_CALLBACK (index_finished),
+                                     icon,
                                      NULL);
 
 	connection = dbus_g_bus_get (DBUS_BUS_SESSION, NULL);
@@ -1813,19 +1813,19 @@ setup_dbus_connection (TrayIcon *icon)
 				     icon, NULL);
 
 	/* Prompt for updated signals */
-	dbus_g_proxy_begin_call (priv->tracker->proxy, 
+	dbus_g_proxy_begin_call (priv->tracker->proxy,
                                  "PromptIndexSignals",
-				 NULL, 
-                                 NULL, 
-                                 NULL, 
+				 NULL,
+                                 NULL,
+                                 NULL,
                                  G_TYPE_INVALID);
 
 	return FALSE;
 }
 
 static void
-tray_icon_clicked (GtkStatusIcon *status_icon, 
-                   guint          button, 
+tray_icon_clicked (GtkStatusIcon *status_icon,
+                   guint          button,
                    guint          timestamp,
 		   gpointer       data)
 {
@@ -1835,10 +1835,10 @@ tray_icon_clicked (GtkStatusIcon *status_icon,
 	icon = TRAY_ICON (data);
 	priv = TRAY_ICON_GET_PRIVATE (icon);
 
-	gtk_menu_popup (GTK_MENU (priv->menu), 
+	gtk_menu_popup (GTK_MENU (priv->menu),
                         NULL, NULL,
 			gtk_status_icon_position_menu,
-                        status_icon, 
+                        status_icon,
                         button,
 			timestamp);
 }
@@ -1860,10 +1860,10 @@ tray_icon_init (GTypeInstance *instance,
 	priv->reindex = FALSE;
 
 	g_signal_connect (G_OBJECT (priv->icon), "activate",
-			  G_CALLBACK (activate_icon), 
+			  G_CALLBACK (activate_icon),
                           instance);
 	g_signal_connect (G_OBJECT (priv->icon), "popup-menu",
-			  G_CALLBACK (tray_icon_clicked), 
+			  G_CALLBACK (tray_icon_clicked),
                           instance);
 
 	/* Build context menu */
@@ -1875,8 +1875,8 @@ tray_icon_init (GTypeInstance *instance,
 }
 
 void
-tray_icon_set_tooltip (TrayIcon    *icon, 
-                       const gchar *format, 
+tray_icon_set_tooltip (TrayIcon    *icon,
+                       const gchar *format,
                        ...)
 {
 	TrayIconPrivate *priv;
@@ -1896,14 +1896,14 @@ tray_icon_set_tooltip (TrayIcon    *icon,
 
 void
 tray_icon_show_message (TrayIcon    *icon,
-                        const gchar *message, 
+                        const gchar *message,
                         ...)
 {
 	TrayIconPrivate *priv;
 	NotifyNotification *notification;
 	gchar *msg = NULL;
 	va_list args;
-        
+
         priv = TRAY_ICON_GET_PRIVATE (icon);
 
 	va_start (args, message);
@@ -1919,9 +1919,9 @@ tray_icon_show_message (TrayIcon    *icon,
         }
 
 	notification =
-		notify_notification_new_with_status_icon ("Tracker", 
+		notify_notification_new_with_status_icon ("Tracker",
                                                           msg,
-							  NULL, 
+							  NULL,
                                                           priv->icon);
 
 	notify_notification_set_urgency (notification, NOTIFY_URGENCY_NORMAL);
@@ -1940,17 +1940,17 @@ tray_icon_get_type (void)
 	if (type == 0) {
 		static const GTypeInfo info = {
 			sizeof (TrayIconClass),
-			NULL,	
-			NULL,	
+			NULL,
+			NULL,
 			(GClassInitFunc) tray_icon_class_init,
-			NULL,	
-			NULL,	
+			NULL,
+			NULL,
 			sizeof (TrayIcon),
-			0,	
-			tray_icon_init	
+			0,
+			tray_icon_init
 		};
 
-		type = g_type_register_static (G_TYPE_OBJECT, 
+		type = g_type_register_static (G_TYPE_OBJECT,
                                                "TrayIconType",
 					       &info,
                                                0);
@@ -1975,11 +1975,11 @@ load_options (TrayIcon *icon)
 		gchar *tracker_dir;
                 gchar *contents;
 
-                tracker_dir = g_build_path (g_get_user_config_dir (), 
-                                            "tracker", 
+                tracker_dir = g_build_path (g_get_user_config_dir (),
+                                            "tracker",
                                             NULL);
 
-		if (!g_file_test (tracker_dir, G_FILE_TEST_EXISTS)) {      
+		if (!g_file_test (tracker_dir, G_FILE_TEST_EXISTS)) {
 			g_mkdir_with_parents (tracker_dir, 0700);
 		}
 
@@ -1990,19 +1990,19 @@ load_options (TrayIcon *icon)
                                         "\n",
                                         "AutoHideIcon=false\n"
                                         "\n",
-                                        "SmartPause=2\n", 
+                                        "SmartPause=2\n",
                                         NULL);
 
 		g_file_set_contents (priv->filename,
                                      contents,
-				     strlen (contents), 
+				     strlen (contents),
                                      NULL);
 		g_free (contents);
 	}
 
-	if (!g_key_file_load_from_file (priv->keyfile, 
-                                        priv->filename, 
-                                        G_KEY_FILE_KEEP_COMMENTS, 
+	if (!g_key_file_load_from_file (priv->keyfile,
+                                        priv->filename,
+                                        G_KEY_FILE_KEEP_COMMENTS,
                                         &error) || error) {
 		if (error) {
 			g_warning ("Call to g_key_file_load_from_file() failed for filename:'%s', %s\n",
@@ -2017,37 +2017,37 @@ load_options (TrayIcon *icon)
 		return FALSE;
 	}
 
-	if (g_key_file_has_key (priv->keyfile, 
-                                "Applet", 
-                                "AnimateWhenIndexing", 
+	if (g_key_file_has_key (priv->keyfile,
+                                "Applet",
+                                "AnimateWhenIndexing",
                                 NULL)) {
-		priv->show_animation = g_key_file_get_boolean (priv->keyfile, 
+		priv->show_animation = g_key_file_get_boolean (priv->keyfile,
                                                                "Applet",
-                                                               "AnimateWhenIndexing", 
+                                                               "AnimateWhenIndexing",
                                                                NULL);
 	} else {
 		priv->show_animation = TRUE;
 	}
 
-	if (g_key_file_has_key (priv->keyfile, 
-                                "Applet", 
-                                "AutoHideIcon", 
+	if (g_key_file_has_key (priv->keyfile,
+                                "Applet",
+                                "AutoHideIcon",
                                 NULL)) {
-		priv->auto_hide = g_key_file_get_boolean (priv->keyfile, 
+		priv->auto_hide = g_key_file_get_boolean (priv->keyfile,
                                                           "Applet",
-                                                          "AutoHideIcon", 
+                                                          "AutoHideIcon",
                                                           NULL);
 	} else {
 		priv->auto_hide = FALSE;
 	}
 
-	if (g_key_file_has_key (priv->keyfile, 
-                                "Applet", 
-                                "SmartPause", 
+	if (g_key_file_has_key (priv->keyfile,
+                                "Applet",
+                                "SmartPause",
                                 NULL)) {
-		priv->auto_pause_setting = g_key_file_get_integer (priv->keyfile, 
+		priv->auto_pause_setting = g_key_file_get_integer (priv->keyfile,
                                                                    "Applet",
-                                                                   "SmartPause", 
+                                                                   "SmartPause",
                                                                    NULL);
 	} else {
 		priv->auto_pause_setting = AUTO_PAUSE_MERGING;
@@ -2101,7 +2101,7 @@ main (int argc, char *argv[])
 
         g_print ("Initializing libnotify\n");
 
-	if (!notify_is_initted () && 
+	if (!notify_is_initted () &&
             !notify_init (PROGRAM_NAME)) {
 		g_warning ("Call to notify_init() failed\n");
 		return EXIT_FAILURE;
@@ -2112,13 +2112,13 @@ main (int argc, char *argv[])
 	gtk_window_set_default_icon_name ("tracker");
 	g_set_application_name (_("Tracker"));
 
-	initial_index_1 = 
+	initial_index_1 =
                 _("Your computer is about to be indexed so "
                   "you can perform fast searches of your files and emails");
-	initial_index_2 = 
+	initial_index_2 =
                 _("You can pause indexing at any time and "
                   "configure index settings by right clicking here");
-        
+
 	stat_info[0].label = _("Files:");
 	stat_info[1].label = _("    Folders:");
 	stat_info[2].label = _("    Documents:");
@@ -2143,7 +2143,7 @@ main (int argc, char *argv[])
 	priv->keyfile = NULL;
 	priv->filename = g_build_filename (g_get_user_config_dir (),
                                            "tracker"
-                                           "tracker-applet.cfg", 
+                                           "tracker-applet.cfg",
                                            NULL);
 
 	if (!load_options (main_icon)) {

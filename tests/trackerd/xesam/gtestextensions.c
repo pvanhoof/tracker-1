@@ -3,17 +3,17 @@
  * gtestextensions
  * Copyright (C) Mikkel Kamstrup Erlandsen 2008 <mikkel.kamstrup@gmail.com>
  *               Scott Asofyet 2008 (wait_for_signal code)
- * 
+ *
  * gtestextensions is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * gtestextensions is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with xesam-glib.  If not, write to:
  * 	The Free Software Foundation, Inc.,
@@ -45,9 +45,9 @@ void
 gtx_flush_sources (gboolean may_block)
 {
 	GMainContext *ctx;
-	
+
 	ctx = g_main_context_default ();
-	
+
 	while (g_main_context_pending (ctx))
 		g_main_context_iteration (ctx, may_block);
 }
@@ -64,12 +64,12 @@ gboolean
 gtx_quit_main_loop (GMainLoop *loop)
 {
 	g_assert (loop != NULL);
-	
+
 	if (g_main_loop_is_running (loop))
 		g_main_loop_quit (loop);
 	else
 		g_warning ("Tried to quit non-running GMainLoop@%p", loop);
-	
+
 	return FALSE;
 }
 
@@ -84,14 +84,14 @@ void
 gtx_yield_main_loop (guint millis)
 {
 	GMainLoop *recursive_main;
-	
+
 	recursive_main = g_main_loop_new (NULL, FALSE);
-	
+
 	g_timeout_add (millis, (GSourceFunc)gtx_quit_main_loop, recursive_main);
 	g_main_loop_run (recursive_main);
-	
+
 	gtx_flush_sources (FALSE);
-	
+
 	g_main_loop_unref (recursive_main);
 }
 
@@ -102,10 +102,10 @@ wait_for_signal_closure_marshal (GClosure *closure,
                                  const GValue *param_values,
                                  gpointer invocation_hint,
                                  gpointer marshal_data)
-{	
+{
     WaitForSignalClosure * wfsclosure = (WaitForSignalClosure *) closure;
     guint i;
-	
+
     wfsclosure->param_values = g_value_array_new (n_param_values);
     for (i = 0 ; i < n_param_values ; i++)
         g_value_array_append (wfsclosure->param_values, param_values + i);
@@ -147,7 +147,7 @@ wait_for_signal_values (GObject * object,
 									wfs->loop);
 
     g_main_loop_run (wfs->loop);
-	
+
     g_closure_invalidate (&wfs->closure);
 
     if (wfs->param_values) {
@@ -161,14 +161,14 @@ wait_for_signal_values (GObject * object,
     } else {
         timed_out = TRUE;
     }
-	
+
     g_main_loop_unref (wfs->loop);
     wfs->loop = NULL;
-	
+
     /* Closure will be destroyed here */
     g_signal_handler_disconnect (object, handler_id);
 	g_source_remove (max_timeout_id);
-	
+
     return timed_out;
 }
 

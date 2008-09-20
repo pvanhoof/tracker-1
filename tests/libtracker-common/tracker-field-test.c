@@ -7,7 +7,7 @@ static void
 test_type_to_string ()
 {
         const gchar *result;
-        TrackerFieldType type; 
+        TrackerFieldType type;
 
         type = TRACKER_FIELD_TYPE_KEYWORD;
         result = tracker_field_type_to_string (type);
@@ -69,7 +69,7 @@ main (int argc, char **argv) {
                          test_type_to_string);
 
         result = g_test_run ();
-        
+
         /* End */
 
         return result;

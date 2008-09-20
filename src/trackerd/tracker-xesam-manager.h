@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2008, Nokia
  * Authors: Philip Van Hoof (pvanhoof@gnome.org)
  *
@@ -10,14 +10,14 @@
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public
  * License along with this library; if not, write to the
  * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301, USA. 
- */  
+ * Boston, MA  02110-1301, USA.
+ */
 
 #ifndef __TRACKERD_XESAM_MANAGER_H__
 #define __TRACKERD_XESAM_MANAGER_H__
@@ -45,20 +45,20 @@ GQuark   tracker_xesam_manager_error_quark            (void);
 void     tracker_xesam_manager_init                   (void);
 void     tracker_xesam_manager_shutdown               (void);
 
-TrackerXesamSession*    
+TrackerXesamSession*
          tracker_xesam_manager_create_session         (TrackerXesam            *xesam,
 						       gchar                  **session_id,
 						       GError                 **error);
 void     tracker_xesam_manager_close_session          (const gchar             *session_id,
 						       GError                 **error);
-TrackerXesamSession*    
+TrackerXesamSession*
          tracker_xesam_manager_get_session            (const gchar             *session_id,
 						       GError                 **error);
 TrackerXesamSession*
          tracker_xesam_manager_get_session_for_search (const gchar             *search_id,
 						       TrackerXesamLiveSearch **search_in,
 						       GError                 **error);
-TrackerXesamLiveSearch* 
+TrackerXesamLiveSearch*
          tracker_xesam_manager_get_live_search        (const gchar             *search_id,
 						       GError                 **error);
 gchar *  tracker_xesam_manager_generate_unique_key    (void);

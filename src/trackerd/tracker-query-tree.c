@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2008, Nokia
  *
  * This library is free software; you can redistribute it and/or
@@ -517,7 +517,7 @@ get_idf_score (TrackerDBIndexItem *details,
 }
 
 static gboolean
-in_array (GArray *array, 
+in_array (GArray *array,
           gint    element)
 {
 	guint i;
@@ -576,7 +576,7 @@ get_search_term_hits (TrackerQueryTree *tree,
 
 	priv = TRACKER_QUERY_TREE_GET_PRIVATE (tree);
 
-	result = g_hash_table_new_full (NULL, 
+	result = g_hash_table_new_full (NULL,
                                         NULL,
                                         NULL,
 					search_hit_data_free);
@@ -590,37 +590,37 @@ get_search_term_hits (TrackerQueryTree *tree,
          */
         indexes_checked = g_hash_table_new (g_direct_hash,
                                             g_direct_equal);
-        
+
         for (i = 0; i < priv->services->len; i++) {
                 TrackerDBIndex *index;
                 guint           id;
 
                 id = g_array_index (priv->services, gint, i);
                 index = tracker_db_index_manager_get_index_by_service_id (id);
-                
+
                 if (g_hash_table_lookup (indexes_checked, index)) {
                         continue;
                 }
-                
-                g_hash_table_insert (indexes_checked, 
-                                     index, 
+
+                g_hash_table_insert (indexes_checked,
+                                     index,
                                      GINT_TO_POINTER (1));
-                
+
                 items = tracker_db_index_get_word_hits (index, term, &item_count);
-                
+
                 if (!items) {
                         continue;
                 }
-                
-                add_search_term_hits_to_hash_table (items, 
-                                                    item_count, 
-                                                    priv->services, 
+
+                add_search_term_hits_to_hash_table (items,
+                                                    item_count,
+                                                    priv->services,
                                                     result);
                 g_free (items);
         }
-        
+
         g_hash_table_unref (indexes_checked);
-        
+
 	return result;
 }
 
@@ -678,8 +678,8 @@ compose_hits (OperationType  op,
 	if (op == OP_OR) {
 		data.dest_table = g_hash_table_ref (data.other_table);
 	} else {
-		data.dest_table = g_hash_table_new_full (NULL, 
-                                                         NULL, 
+		data.dest_table = g_hash_table_new_full (NULL,
+                                                         NULL,
                                                          NULL,
 							 search_hit_data_free);
 	}
@@ -850,13 +850,13 @@ tracker_query_tree_get_hit_counts (TrackerQueryTree *tree)
 		gint count, parent_id;
 
 		rank = g_array_index (hits, TrackerDBIndexItemRank, i);
-                p = g_hash_table_lookup (table, 
+                p = g_hash_table_lookup (table,
                                          GINT_TO_POINTER (rank.service_type_id));
 		count = GPOINTER_TO_INT (p);
 		count++;
 
-		g_hash_table_insert (table, 
-                                     GINT_TO_POINTER (rank.service_type_id), 
+		g_hash_table_insert (table,
+                                     GINT_TO_POINTER (rank.service_type_id),
                                      GINT_TO_POINTER (count));
 
 		/* Update service's parent count too (if it has a
@@ -869,8 +869,8 @@ tracker_query_tree_get_hit_counts (TrackerQueryTree *tree)
 			count = GPOINTER_TO_INT (p);
 			count++;
 
-			g_hash_table_insert (table, 
-                                             GINT_TO_POINTER (parent_id), 
+			g_hash_table_insert (table,
+                                             GINT_TO_POINTER (parent_id),
                                              GINT_TO_POINTER (count));
 		}
 	}

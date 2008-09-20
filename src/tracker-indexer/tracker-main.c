@@ -46,14 +46,14 @@
 
 #define ABOUT								  \
 	"Tracker " VERSION "\n"						  \
-	"Copyright (c) 2005-2008 Jamie McCracken (jamiemcc@gnome.org)\n" 
+	"Copyright (c) 2005-2008 Jamie McCracken (jamiemcc@gnome.org)\n"
 
 #define LICENSE								  \
 	"This program is free software and comes without any warranty.\n" \
 	"It is licensed under version 2 or later of the General Public "  \
 	"License which can be viewed at:\n"				  \
         "\n"								  \
-	"  http://www.gnu.org/licenses/gpl.txt\n" 
+	"  http://www.gnu.org/licenses/gpl.txt\n"
 
 #define QUIT_TIMEOUT 300 /* 5 minutes worth of seconds */
 
@@ -65,18 +65,18 @@ static gboolean      process_all = FALSE;
 static gboolean      run_forever = FALSE;
 
 static GOptionEntry  entries[] = {
-	{ "verbosity", 'v', 0, 
-	  G_OPTION_ARG_INT, &verbosity, 
+	{ "verbosity", 'v', 0,
+	  G_OPTION_ARG_INT, &verbosity,
 	  N_("Logging, 0 = errors only, "
-	     "1 = minimal, 2 = detailed and 3 = debug (default = 0)"), 
+	     "1 = minimal, 2 = detailed and 3 = debug (default = 0)"),
 	  NULL },
         { "process-all", 'p', 0,
           G_OPTION_ARG_NONE, &process_all,
           N_("Whether to process data from all configured modules to be indexed"),
           NULL },
-	{ "run-forever", 'f', 0, 
-	  G_OPTION_ARG_NONE, &run_forever, 
-	  N_("Run forever, only interesting for debugging purposes"), 
+	{ "run-forever", 'f', 0,
+	  G_OPTION_ARG_NONE, &run_forever,
+	  N_("Run forever, only interesting for debugging purposes"),
 	  NULL },
 
 	{ NULL }
@@ -86,29 +86,29 @@ static void
 sanity_check_option_values (TrackerConfig *config)
 {
 	g_message ("General options:");
-	g_message ("  Verbosity  ............................  %d", 
+	g_message ("  Verbosity  ............................  %d",
 		   tracker_config_get_verbosity (config));
- 	g_message ("  Low memory mode  ......................  %s", 
+ 	g_message ("  Low memory mode  ......................  %s",
 		   tracker_config_get_low_memory_mode (config) ? "yes" : "no");
 
 	g_message ("Indexer options:");
 	g_message ("  Throttle level  .......................  %d",
 		   tracker_config_get_throttle (config));
- 	g_message ("  File content indexing enabled  ........  %s", 
+ 	g_message ("  File content indexing enabled  ........  %s",
 		   tracker_config_get_enable_content_indexing (config) ? "yes" : "no");
-	g_message ("  Thumbnail indexing enabled  ...........  %s", 
+	g_message ("  Thumbnail indexing enabled  ...........  %s",
 		   tracker_config_get_enable_thumbnails (config) ? "yes" : "no");
-	g_message ("  Indexer language code  ................  %s", 
+	g_message ("  Indexer language code  ................  %s",
 		   tracker_config_get_language (config));
-	g_message ("  Stemmer enabled  ......................  %s", 
+	g_message ("  Stemmer enabled  ......................  %s",
 		   tracker_config_get_enable_stemmer (config) ? "yes" : "no");
-	g_message ("  Fast merges enabled  ..................  %s", 
+	g_message ("  Fast merges enabled  ..................  %s",
 		   tracker_config_get_fast_merges (config) ? "yes" : "no");
-	g_message ("  Disable indexing on battery  ..........  %s (initially = %s)", 
+	g_message ("  Disable indexing on battery  ..........  %s (initially = %s)",
 		   tracker_config_get_disable_indexing_on_battery (config) ? "yes" : "no",
 		   tracker_config_get_disable_indexing_on_battery_init (config) ? "yes" : "no");
 
-	if (tracker_config_get_low_disk_space_limit (config) == -1) { 
+	if (tracker_config_get_low_disk_space_limit (config) == -1) {
 		g_message ("  Low disk space limit  .................  Disabled");
 	} else {
 		g_message ("  Low disk space limit  .................  %d%%",
@@ -252,7 +252,7 @@ main (gint argc, gchar *argv[])
         gchar *filename;
 
 	g_type_init ();
-	
+
 	if (!g_thread_supported ()) {
 		g_thread_init (NULL);
         }
@@ -292,9 +292,9 @@ main (gint argc, gchar *argv[])
 		tracker_config_set_verbosity (config, verbosity);
 	}
 
-	filename = g_build_filename (g_get_user_data_dir (), 
-                                     "tracker", 
-                                     "tracker-indexer.log", 
+	filename = g_build_filename (g_get_user_data_dir (),
+                                     "tracker",
+                                     "tracker-indexer.log",
                                      NULL);
 
         tracker_log_init (filename, tracker_config_get_verbosity (config));
@@ -316,7 +316,7 @@ main (gint argc, gchar *argv[])
         }
 
 	tracker_db_manager_init (flags, NULL);
-	if (!tracker_db_index_manager_init (0, 
+	if (!tracker_db_index_manager_init (0,
 					    tracker_config_get_min_bucket_count (config),
 					    tracker_config_get_max_bucket_count (config))) {
 		return EXIT_FAILURE;
@@ -330,13 +330,13 @@ main (gint argc, gchar *argv[])
         /* nice() uses attribute "warn_unused_result" and so complains
 	 * if we do not check its returned value. But it seems that
 	 * since glibc 2.2.4, nice() can return -1 on a successful
-	 * call so we have to check value of errno too. Stupid... 
+	 * call so we have to check value of errno too. Stupid...
 	 */
         if (nice (19) == -1 && errno) {
                 const gchar *str;
 
                 str = g_strerror (errno);
-                g_message ("Couldn't set nice value to 19, %s", 
+                g_message ("Couldn't set nice value to 19, %s",
                            str ? str : "no error given");
         }
 
@@ -349,7 +349,7 @@ main (gint argc, gchar *argv[])
 
         /* Create the indexer and run the main loop */
         g_signal_connect (indexer, "finished",
-			  G_CALLBACK (indexer_finished_cb), 
+			  G_CALLBACK (indexer_finished_cb),
                           NULL);
 
         if (process_all) {

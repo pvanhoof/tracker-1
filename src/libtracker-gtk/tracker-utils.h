@@ -1,6 +1,6 @@
 /* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 8; tab-width: 8 -*-
  *
- * libtracker-gtk/tracker-utils.c - Grab bag of functions for manuipulating 
+ * libtracker-gtk/tracker-utils.c - Grab bag of functions for manuipulating
  * tracker results into more Gtk friedly types.
  *
  * Copyright (C) 2007 John Stowers
@@ -20,7 +20,7 @@
  * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  * Boston, MA  02110-1301, USA.
  */
- 
+
 #ifndef TRACKER_UTILS_H
 #define TRACKER_UTILS_H
 

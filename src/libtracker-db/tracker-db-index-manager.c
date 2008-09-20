@@ -46,22 +46,22 @@ static gboolean                  initialized;
 static gchar                    *data_dir;
 
 static TrackerDBIndexDefinition  indexes[] = {
-        { TRACKER_DB_INDEX_UNKNOWN, 
+        { TRACKER_DB_INDEX_UNKNOWN,
 	  NULL,
           NULL,
           NULL,
           NULL },
-        { TRACKER_DB_INDEX_FILE, 
+        { TRACKER_DB_INDEX_FILE,
 	  NULL,
           "file-index.db",
           "file-index",
           NULL },
-        { TRACKER_DB_INDEX_FILE_UPDATE, 
+        { TRACKER_DB_INDEX_FILE_UPDATE,
 	  NULL,
           "file-index-update.db",
           "file-index-update",
           NULL },
-        { TRACKER_DB_INDEX_EMAIL, 
+        { TRACKER_DB_INDEX_EMAIL,
 	  NULL,
           "email-index.db",
           "email-index",
@@ -92,7 +92,7 @@ has_tmp_merge_files (TrackerDBIndexType type)
 						G_FILE_ATTRIBUTE_STANDARD_NAME ","
 						G_FILE_ATTRIBUTE_STANDARD_TYPE,
 						G_PRIORITY_DEFAULT,
-						NULL, 
+						NULL,
 						&error);
 
 	if (error) {
@@ -108,7 +108,7 @@ has_tmp_merge_files (TrackerDBIndexType type)
 
 		return FALSE;
 	}
-	
+
 	found = FALSE;
 
 	for (info = g_file_enumerator_next_file (enumerator, NULL, &error);
@@ -128,7 +128,7 @@ has_tmp_merge_files (TrackerDBIndexType type)
 			   error->message);
 		g_error_free (error);
 	}
-		
+
 	g_object_unref (enumerator);
 	g_object_unref (file);
 	g_free (dirname);
@@ -139,7 +139,7 @@ has_tmp_merge_files (TrackerDBIndexType type)
 
 gboolean
 tracker_db_index_manager_init (TrackerDBIndexManagerFlags  flags,
-			       gint                        min_bucket, 
+			       gint                        min_bucket,
 			       gint                        max_bucket)
 {
 	gchar    *final_index_filename;
@@ -158,8 +158,8 @@ tracker_db_index_manager_init (TrackerDBIndexManagerFlags  flags,
 
 	g_message ("Setting index database locations");
 
-	data_dir = g_build_filename (g_get_user_cache_dir (), 
-				     "tracker", 
+	data_dir = g_build_filename (g_get_user_cache_dir (),
+				     "tracker",
 				     NULL);
 
 	g_message ("Checking index directories exist");
@@ -175,48 +175,48 @@ tracker_db_index_manager_init (TrackerDBIndexManagerFlags  flags,
 			continue;
 		}
 
-		if (!g_file_test (indexes[i].abs_filename, G_FILE_TEST_EXISTS)) { 
+		if (!g_file_test (indexes[i].abs_filename, G_FILE_TEST_EXISTS)) {
 			g_message ("Could not find index file:'%s'", indexes[i].abs_filename);
 		}
 	}
-	
+
 	g_message ("Merging old temporary indexes");
-	
+
 	i = TRACKER_DB_INDEX_FILE;
 	name = g_strconcat (indexes[i].name, "-final", NULL);
 	final_index_filename = g_build_filename (data_dir, name, NULL);
 	g_free (name);
-	
-	if (g_file_test (final_index_filename, G_FILE_TEST_EXISTS) && 
+
+	if (g_file_test (final_index_filename, G_FILE_TEST_EXISTS) &&
 	    !has_tmp_merge_files (i)) {
-		g_message ("  Overwriting '%s' with '%s'", 
-			   indexes[i].abs_filename, 
-			   final_index_filename);	
-		
+		g_message ("  Overwriting '%s' with '%s'",
+			   indexes[i].abs_filename,
+			   final_index_filename);
+
 		g_rename (final_index_filename, indexes[i].abs_filename);
 	}
-	
+
 	g_free (final_index_filename);
 
 	i = TRACKER_DB_INDEX_EMAIL;
 	name = g_strconcat (indexes[i].name, "-final", NULL);
 	final_index_filename = g_build_filename (data_dir, name, NULL);
 	g_free (name);
-	
-	if (g_file_test (final_index_filename, G_FILE_TEST_EXISTS) && 
+
+	if (g_file_test (final_index_filename, G_FILE_TEST_EXISTS) &&
 	    !has_tmp_merge_files (i)) {
-		g_message ("  Overwriting '%s' with '%s'", 
-			   indexes[i].abs_filename, 
-			   final_index_filename);	
-		
+		g_message ("  Overwriting '%s' with '%s'",
+			   indexes[i].abs_filename,
+			   final_index_filename);
+
 		g_rename (final_index_filename, indexes[i].abs_filename);
 	}
-	
+
 	g_free (final_index_filename);
-	
+
 	/* Now we have cleaned up merge files, see if we are supposed
 	 * to be reindexing.
-	 */ 
+	 */
 
 	force_reindex = (flags & TRACKER_DB_INDEX_MANAGER_FORCE_REINDEX) != 0;
 
@@ -229,13 +229,13 @@ tracker_db_index_manager_init (TrackerDBIndexManagerFlags  flags,
 	}
 
 	g_message ("Creating index files, this may take a few moments...");
-	
+
 	readonly = (flags & TRACKER_DB_INDEX_MANAGER_READONLY) != 0;
 
 	for (i = 1; i < G_N_ELEMENTS (indexes); i++) {
 		indexes[i].index = tracker_db_index_new (indexes[i].abs_filename,
-							 min_bucket, 
-							 max_bucket, 
+							 min_bucket,
+							 max_bucket,
 							 readonly);
 	}
 
@@ -252,7 +252,7 @@ tracker_db_index_manager_shutdown (void)
         if (!initialized) {
                 return;
         }
-        
+
 	for (i = 1; i < G_N_ELEMENTS (indexes); i++) {
 		g_object_unref (indexes[i].index);
 		indexes[i].index = NULL;
@@ -266,7 +266,7 @@ tracker_db_index_manager_shutdown (void)
         initialized = FALSE;
 }
 
-TrackerDBIndex * 
+TrackerDBIndex *
 tracker_db_index_manager_get_index (TrackerDBIndexType type)
 {
 	return indexes[type].index;
@@ -353,10 +353,10 @@ tracker_db_index_manager_are_indexes_too_big (void)
 	for (i = 1, too_big = FALSE; i < G_N_ELEMENTS (indexes) && !too_big; i++) {
 		too_big = tracker_file_get_size (indexes[i].abs_filename) > MAX_INDEX_FILE_SIZE;
 	}
-        
+
         if (too_big) {
 		g_critical ("One or more index files are too big, indexing disabled");
-		return TRUE;	
+		return TRUE;
 	}
 
 	return FALSE;

@@ -31,10 +31,10 @@ G_BEGIN_DECLS
 gchar **    tracker_dbus_query_result_to_strv	     (TrackerDBResultSet *result_set,
 						      gint                column,
 						      gint               *count);
-gchar **    tracker_dbus_query_result_numeric_to_strv (TrackerDBResultSet *result_set, 
+gchar **    tracker_dbus_query_result_numeric_to_strv (TrackerDBResultSet *result_set,
 						       gint                column,
 						       gint               *count);
-gchar **    tracker_dbus_query_result_columns_to_strv (TrackerDBResultSet *result_set, 
+gchar **    tracker_dbus_query_result_columns_to_strv (TrackerDBResultSet *result_set,
 						       gint offset_column,
 						       gint until_column,
 						       gboolean rewind);

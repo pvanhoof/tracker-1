@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2008, Nokia
  *
@@ -48,17 +48,17 @@ typedef struct {
 	guint                  min_word_length;
 	gboolean               delimit_words;
 	gboolean	       parse_reserved_words;
-	
+
 	/* Private members */
 	gchar			*word;
 	gint			word_length;
 	guint                   word_position;
 	TrackerParserEncoding   encoding;
 	const gchar             *cursor;
-	
+
 	/* Pango members for CJK text parsing */
 	PangoLogAttr          *attrs;
-	guint                  attr_length;	
+	guint                  attr_length;
 	guint                  attr_pos;
 } TrackerParser;
 
@@ -90,19 +90,19 @@ gchar *        tracker_parser_process_word    (TrackerParser   *parser,
 void           tracker_parser_free            (TrackerParser   *parser);
 
 
-/* 
+/*
  * Functions to parse supplied text and break into individual words and
  * maintain a count of no of occurences of the word multiplied by a
- * "weight" factor. 
- * 
+ * "weight" factor.
+ *
  * The word_table - can be NULL. It contains the accumulated parsed words
  * with weighted word counts for the text (useful for indexing stuff
- * line by line) 
+ * line by line)
  *
- *   text   - the text to be parsed 
+ *   text   - the text to be parsed
  *   weight - used to multiply the count of a word's occurance to create
- *            a weighted rank score 
- * 
+ *            a weighted rank score
+ *
  * Returns the word_table.
  */
 GHashTable *   tracker_parser_text            (GHashTable      *word_table,

@@ -257,7 +257,7 @@ name_contains_activate_cb (GtkWidget * widget,
 
 gboolean
 text_changed_cb (GtkWidget * widget,
-		 gpointer data)  
+		 gpointer data)
 {
 	GSearchWindow * gsearch = data;
 	const gchar * s = gtk_entry_get_text (GTK_ENTRY (gsearch->search_entry));
@@ -308,7 +308,7 @@ prev_results_cb (GtkWidget * widget,
 
 void
 category_changed_cb (GtkTreeSelection * treeselection,
-		     gpointer data) 
+		     gpointer data)
 {
 	select_category (treeselection, data);
 }
@@ -421,7 +421,7 @@ display_dialog_could_not_open_folder (GtkWidget * window,
 
 void
 select_changed_cb (GtkTreeSelection *treeselection,
-		   gpointer user_data) 
+		   gpointer user_data)
 {
 
 	GSearchWindow *gsearch = user_data;
@@ -436,7 +436,7 @@ select_changed_cb (GtkTreeSelection *treeselection,
 	if (gtk_tree_selection_count_selected_rows (GTK_TREE_SELECTION (gsearch->search_results_selection)) == 0) {
 		return;
 	}
-	
+
 	gtk_tree_selection_get_selected (GTK_TREE_SELECTION (gsearch->search_results_selection),
 					 &model,
 			                 &iter);
@@ -446,12 +446,12 @@ select_changed_cb (GtkTreeSelection *treeselection,
 		            COLUMN_PATH, &path,
 		            -1);
 
-	//g_print ("selected uri is %s/%s\n", path, name); 
+	//g_print ("selected uri is %s/%s\n", path, name);
 
 	g_free (path);
 
 	g_free (name);
-	
+
 #endif
 }
 
@@ -465,7 +465,7 @@ get_large_icon (const gchar * local_uri,
 
 	if (is_local_file) {
 		gchar *uri = gnome_vfs_get_uri_from_local_path (local_uri);
-	
+
 		thumb_name = gnome_thumbnail_path_for_uri (uri, GNOME_THUMBNAIL_SIZE_NORMAL);
 
 		g_free (uri);
@@ -478,14 +478,14 @@ get_large_icon (const gchar * local_uri,
 							     local_uri,
 							     NULL,
 							     GNOME_ICON_LOOKUP_FLAGS_SHOW_SMALL_IMAGES_AS_THEMSELVES | GNOME_ICON_LOOKUP_FLAGS_ALLOW_SVG_AS_THEMSELVES,
-							     0);           
+							     0);
 
 		temp = gtk_icon_theme_load_icon (gtk_icon_theme_get_default(),
                                          icon_name,
                                          METADATA_IMAGE_HEIGHT,
                                          GTK_ICON_LOOKUP_FORCE_SVG,
                                          NULL);
-	
+
 		g_free (icon_name);
 
 		return temp;
@@ -507,7 +507,7 @@ tracker_update_metadata_tile (GSearchWindow *gsearch)
 	ServiceType type;
 
 	if (gtk_tree_selection_count_selected_rows (GTK_TREE_SELECTION (gsearch->search_results_selection)) != 1) {
-		tracker_metadata_tile_set_uri (TRACKER_METADATA_TILE (gsearch->metatile), NULL, 0, NULL, NULL);		
+		tracker_metadata_tile_set_uri (TRACKER_METADATA_TILE (gsearch->metatile), NULL, 0, NULL, NULL);
 		//gtk_widget_hide (gsearch->metatile);
 		return;
 	}
@@ -545,7 +545,7 @@ tracker_update_metadata_tile (GSearchWindow *gsearch)
 		} else {
 			tracker_metadata_tile_set_uri (TRACKER_METADATA_TILE (gsearch->metatile), uri, type, mime, pixbuf);
 		}
-		
+
 
                 g_free (uri);
 		g_free (mime);
@@ -976,7 +976,7 @@ move_to_trash_cb (GtkAction * action,
 			gtk_tree_selection_unselect_iter (GTK_TREE_SELECTION (gsearch->search_results_selection), &iter);
 
 			if (result == GNOME_VFS_OK) {
-	
+
 				gtk_list_store_remove (GTK_LIST_STORE (gsearch->search_results_list_store), &iter);
 			}
 			else {
@@ -1010,7 +1010,7 @@ move_to_trash_cb (GtkAction * action,
 				}
 
 				if (result == GNOME_VFS_OK) {
-					
+
 					gtk_list_store_remove (GTK_LIST_STORE (gsearch->search_results_list_store), &iter);
 				}
 				else {
@@ -1297,17 +1297,17 @@ make_email_desktop_file (const gchar *utf8_uri, const gchar *utf8_name)
         time_t seconds;
 
 	item = gnome_desktop_item_new ();
-	
+
 	exec_string = g_strdup_printf ("evolution \"%s\"",utf8_uri);
-	
+
 	gnome_desktop_item_set_string (item, GNOME_DESKTOP_ITEM_ENCODING, "UTF-8");
 	gnome_desktop_item_set_string (item, GNOME_DESKTOP_ITEM_NAME, utf8_name);
 	gnome_desktop_item_set_string (item, GNOME_DESKTOP_ITEM_COMMENT, _("Activate to view this email"));
 	gnome_desktop_item_set_string (item, GNOME_DESKTOP_ITEM_EXEC, exec_string);
-	gnome_desktop_item_set_string (item, GNOME_DESKTOP_ITEM_ICON, "email");	
+	gnome_desktop_item_set_string (item, GNOME_DESKTOP_ITEM_ICON, "email");
 	gnome_desktop_item_set_string (item, GNOME_DESKTOP_ITEM_TERMINAL, "false");
 	gnome_desktop_item_set_string (item, GNOME_DESKTOP_ITEM_TYPE, "Application");
-	
+
 	seconds = time (NULL);
 	save_uri = g_strdup_printf ("/tmp/tracker-email-shortcut-file%d.desktop", (int)seconds);
 	gnome_desktop_item_save (item,
@@ -1384,7 +1384,7 @@ drag_file_cb (GtkWidget * widget,
 			                        8,
 			                        (guchar *) desktop_uri,
 			                        strlen (desktop_uri));
-				        g_free (desktop_uri);			
+				        g_free (desktop_uri);
 			}
 			g_free (tmp_uri);
 		}
@@ -1838,7 +1838,7 @@ suggest_search_cb (GtkWidget * widget,
 {
 	GSearchWindow * gsearch = data;
 	gchar	      * suggest = g_object_get_data (G_OBJECT (widget), "suggestion");
-	
+
 	gtk_entry_set_text (GTK_ENTRY (gsearch->search_entry), suggest);
 	gtk_button_clicked (GTK_BUTTON (gsearch->find_button));
 }

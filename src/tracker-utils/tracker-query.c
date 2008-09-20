@@ -44,7 +44,7 @@ static gint           limit = 512;
 static gint           offset;
 
 static GOptionEntry   entries[] = {
-	{ "path", 'p', 0, G_OPTION_ARG_STRING, &path, 
+	{ "path", 'p', 0, G_OPTION_ARG_STRING, &path,
           N_("Path to use in query"),
           NULL,
         },
@@ -52,25 +52,25 @@ static GOptionEntry   entries[] = {
           N_("Search from a specific service"),
           NULL
         },
-	{ "limit", 'l', 0, G_OPTION_ARG_INT, &limit, 
-          N_("Limit the number of results shown"), 
+	{ "limit", 'l', 0, G_OPTION_ARG_INT, &limit,
+          N_("Limit the number of results shown"),
           N_("512")
         },
-	{ "offset", 'o', 0, G_OPTION_ARG_INT, &offset, 
-          N_("Offset the results"), 
-          N_("0") 
+	{ "offset", 'o', 0, G_OPTION_ARG_INT, &offset,
+          N_("Offset the results"),
+          N_("0")
         },
-	{ "search-term", 't', 0, G_OPTION_ARG_STRING, &search, 
-          N_("Adds a fulltext search filter"), 
-          NULL, 
+	{ "search-term", 't', 0, G_OPTION_ARG_STRING, &search,
+          N_("Adds a fulltext search filter"),
+          NULL,
         },
-	{ "keyword", 'k', 0, G_OPTION_ARG_STRING, &keyword, 
+	{ "keyword", 'k', 0, G_OPTION_ARG_STRING, &keyword,
           N_("Adds a keyword filter"),
           NULL
         },
-	{ G_OPTION_REMAINING, 0, 0, 
-          G_OPTION_ARG_STRING_ARRAY, &fields, 
-          N_("Metadata Fields"), 
+	{ G_OPTION_REMAINING, 0, 0,
+          G_OPTION_ARG_STRING_ARRAY, &fields,
+          N_("Metadata Fields"),
           NULL
         },
 	{ NULL }
@@ -97,7 +97,7 @@ get_meta_table_data (gpointer value)
 }
 
 int
-main (int argc, char **argv) 
+main (int argc, char **argv)
 {
 	TrackerClient   *client;
 	ServiceType      type;
@@ -164,25 +164,25 @@ main (int argc, char **argv)
         path_in_utf8 = g_filename_to_utf8 (path, -1, NULL, NULL, &error);
         if (error) {
 		g_printerr ("%s:'%s', %s\n",
-                            _("Could not get UTF-8 path from path"), 
+                            _("Could not get UTF-8 path from path"),
                             path,
                             error->message);
                 g_error_free (error);
                 tracker_disconnect (client);
-        
+
 		return EXIT_FAILURE;
 	}
 
 	g_file_get_contents (path_in_utf8, &content, &size, &error);
         if (error) {
 		g_printerr ("%s:'%s', %s\n",
-                            _("Could not read file"), 
+                            _("Could not read file"),
                             path_in_utf8,
                             error->message);
                 g_error_free (error);
                 g_free (path_in_utf8);
                 tracker_disconnect (client);
-        
+
 		return EXIT_FAILURE;
 	}
 
@@ -201,15 +201,15 @@ main (int argc, char **argv)
                 return EXIT_FAILURE;
         }
 
-	array = tracker_search_query (client, 
-                                      time (NULL), 
-                                      type, 
-                                      fields, 
-                                      search, 
-                                      keyword, 
-                                      buffer, 
-                                      offset, 
-                                      limit, 
+	array = tracker_search_query (client,
+                                      time (NULL),
+                                      type,
+                                      fields,
+                                      search,
+                                      keyword,
+                                      buffer,
+                                      offset,
+                                      limit,
                                       FALSE,
 				      NULL,
 				      FALSE,
@@ -223,10 +223,10 @@ main (int argc, char **argv)
 		g_error_free (error);
 
 		return EXIT_FAILURE;
-	} 
-        
+	}
+
         if (!array) {
-                g_print ("%s\n", 
+                g_print ("%s\n",
 			 _("No results found matching your query"));
         } else {
                 g_ptr_array_foreach (array, (GFunc) get_meta_table_data, NULL);

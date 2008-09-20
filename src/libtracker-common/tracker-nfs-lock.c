@@ -59,7 +59,7 @@ get_mtime (const gchar *filename)
 }
 
 static gboolean
-is_initialized (void) 
+is_initialized (void)
 {
         return lock_filename != NULL || tmp_dir != NULL;
 }
@@ -82,9 +82,9 @@ tracker_nfs_lock_obtain (void)
                 g_critical ("Could not initialize NFS lock");
                 return FALSE;
         }
- 
-	filename = g_strdup_printf ("%s_%s.lock", 
-                                    tmp_dir, 
+
+	filename = g_strdup_printf ("%s_%s.lock",
+                                    tmp_dir,
                                     g_get_user_name ());
 
 	for (attempt = 0; attempt < 10000; ++attempt) {
@@ -133,23 +133,23 @@ tracker_nfs_lock_release (void)
 	if (!use_nfs_safe_locking) {
 		return;
 	}
- 
+
         if (!is_initialized ()) {
                 g_critical ("Could not initialize NFS lock");
                 return;
         }
- 
-	filename = g_strdup_printf ("%s_%s.lock", 
-				    tmp_dir, 
+
+	filename = g_strdup_printf ("%s_%s.lock",
+				    tmp_dir,
 				    g_get_user_name ());
-	
+
 	g_unlink (filename);
 	g_unlink (lock_filename);
 
 	g_free (filename);
 }
 
-void 
+void
 tracker_nfs_lock_init (gboolean nfs)
 {
         if (is_initialized ()) {
@@ -159,20 +159,20 @@ tracker_nfs_lock_init (gboolean nfs)
 	use_nfs_safe_locking = nfs;
 
         if (lock_filename == NULL) {
-                lock_filename = g_build_filename (g_get_user_data_dir (), 
-						  "tracker", 
-						  "tracker.lock", 
+                lock_filename = g_build_filename (g_get_user_data_dir (),
+						  "tracker",
+						  "tracker.lock",
 						  NULL);
         }
 
         if (tmp_dir == NULL) {
-                tmp_dir = g_build_filename (g_get_user_data_dir (), 
+                tmp_dir = g_build_filename (g_get_user_data_dir (),
 					    "tracker",
-					    g_get_host_name (), 
+					    g_get_host_name (),
 					    NULL);
         }
 
-        g_message ("NFS lock initialized %s", 
+        g_message ("NFS lock initialized %s",
 		   use_nfs_safe_locking ? "" : "(safe locking not in use)");
 }
 

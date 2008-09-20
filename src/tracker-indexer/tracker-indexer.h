@@ -45,7 +45,7 @@ typedef struct TrackerIndexerPrivate TrackerIndexerPrivate;
 
 struct TrackerIndexer {
 	GObject parent_instance;
-	
+
 	/* Private struct */
 	TrackerIndexerPrivate *private;
 };

@@ -28,13 +28,13 @@ static gchar        *filename;
 static gchar        *word;
 
 static GOptionEntry  entries[] = {
-	{ "index-file", 'f', 0, 
-	  G_OPTION_ARG_STRING, &filename, 
-	  "QDBM index file", 
+	{ "index-file", 'f', 0,
+	  G_OPTION_ARG_STRING, &filename,
+	  "QDBM index file",
 	  NULL },
-	{ "word", 'w', 0, 
+	{ "word", 'w', 0,
 	  G_OPTION_ARG_STRING, &word,
-	  "Print service ID and service type ID of every hit for this word", 
+	  "Print service ID and service type ID of every hit for this word",
 	  NULL },
 	{ NULL }
 };
@@ -47,7 +47,7 @@ get_word_hits (DEPOT       *index,
 	TrackerDBIndexItem *items;
 	gchar              *tmp;
 	gint                tsiz;
-        
+
         g_return_val_if_fail (word != NULL, NULL);
 
 	items = NULL;
@@ -70,7 +70,7 @@ get_word_hits (DEPOT       *index,
 }
 
 static void
-show_term_in_index (const gchar *filename, 
+show_term_in_index (const gchar *filename,
                     const gchar *word)
 {
     TrackerDBIndexItem *items;
@@ -83,9 +83,9 @@ show_term_in_index (const gchar *filename,
 
     if (depot == NULL) {
 	   g_print ("Unable to open file: %s "
-                    "(Could be a lock problem: is tracker running?)\n", 
+                    "(Could be a lock problem: is tracker running?)\n",
                     filename);
-	   g_print ("Using version %s of qdbm\n", 
+	   g_print ("Using version %s of qdbm\n",
                     dpversion);
 	   return;
     }
@@ -100,11 +100,11 @@ show_term_in_index (const gchar *filename,
     g_print (" - %s ", word);
 
     for (i = 0; i < hits; i++) {
-            g_print (" (id:%d  t:%d) ", 
+            g_print (" (id:%d  t:%d) ",
                      items[i].id,
                      tracker_db_index_item_get_service_type (&items[i]));
     }
-    
+
     g_print ("\n");
 
     g_print ("Total: %d terms.\n", dprnum (depot));
@@ -136,9 +136,9 @@ main (gint argc, gchar** argv)
 		return EXIT_FAILURE;
 	}
 
-        if (!filename || !word) { 
+        if (!filename || !word) {
                 gchar *help;
-                
+
                 help = g_option_context_get_help (context, TRUE, NULL);
                 g_printerr (help);
 

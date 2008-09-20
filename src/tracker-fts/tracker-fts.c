@@ -341,7 +341,7 @@ static int safe_isalnum(char c){
 }
 
 int sqlite3_extension_init(
-  sqlite3 *db, 
+  sqlite3 *db,
   char **pzErrMsg,
   const sqlite3_api_routines *pApi
 );
@@ -1388,14 +1388,14 @@ static void docListUnion(
   dlwDestroy(&writer);
 }
 
-/* 
+/*
 ** This function is used as part of the implementation of phrase and
 ** NEAR matching.
 **
 ** pLeft and pRight are DLReaders positioned to the same docid in
 ** lists of type DL_POSITION. This function writes an entry to the
 ** DLWriter pOut for each position in pRight that is less than
-** (nNear+1) greater (but not equal to or smaller) than a position 
+** (nNear+1) greater (but not equal to or smaller) than a position
 ** in pLeft. For example, if nNear is 0, and the positions contained
 ** by pLeft and pRight are:
 **
@@ -1410,7 +1410,7 @@ static void docListUnion(
 ** and "20" would be added instead of "6" and "21".
 */
 static void posListPhraseMerge(
-  DLReader *pLeft, 
+  DLReader *pLeft,
   DLReader *pRight,
   int nNear,
   int isSaveLeft,
@@ -1461,7 +1461,7 @@ static void posListPhraseMerge(
 }
 
 /*
-** Compare the values pointed to by the PLReaders passed as arguments. 
+** Compare the values pointed to by the PLReaders passed as arguments.
 ** Return -1 if the value pointed to by pLeft is considered less than
 ** the value pointed to by pRight, +1 if it is considered greater
 ** than it, or 0 if it is equal. i.e.
@@ -1496,7 +1496,7 @@ static int plrCompare(PLReader *pLeft, PLReader *pRight){
 ** A phrase intersection means that two documents only match
 ** if pLeft.iPos+1==pRight.iPos.
 **
-** A NEAR intersection means that two documents only match if 
+** A NEAR intersection means that two documents only match if
 ** (abs(pLeft.iPos-pRight.iPos)<nNear).
 **
 ** If a NEAR intersection is requested, then the nPhrase argument should
@@ -1548,7 +1548,7 @@ static void docListPhraseMerge(
         DataBuffer two = {0, 0, 0};
 
         DLWriter dlwriter2;
-        DLReader dr1 = {0, 0, 0, 0, 0}; 
+        DLReader dr1 = {0, 0, 0, 0, 0};
         DLReader dr2 = {0, 0, 0, 0, 0};
 
         dlwInit(&dlwriter2, iType, &one);
@@ -1809,12 +1809,12 @@ typedef struct fulltext_vtab fulltext_vtab;
 ** is the first in a contiguous string of terms that are either part
 ** of the same phrase, or connected by the NEAR operator.
 **
-** If the QueryTerm.nNear variable is non-zero, then the token is followed 
-** by a NEAR operator with span set to (nNear-1). For example, the 
+** If the QueryTerm.nNear variable is non-zero, then the token is followed
+** by a NEAR operator with span set to (nNear-1). For example, the
 ** following query:
 **
 ** The QueryTerm.iPhrase variable stores the index of the token within
-** its phrase, indexed starting at 1, or 1 if the token is not part 
+** its phrase, indexed starting at 1, or 1 if the token is not part
 ** of any phrase.
 **
 ** For example, the data structure used to represent the following query:
@@ -1858,7 +1858,7 @@ typedef struct QueryTerm {
  *
  * OR binds more tightly than the implied AND, which is what the
  * major search engines seem to do.  So, for example:
- * 
+ *
  *    [one two OR three]     ==>    one AND (two OR three)
  *    [one OR two three]     ==>    (one OR two) AND three
  *
@@ -1994,7 +1994,7 @@ struct fulltext_vtab {
   char **azContentColumn;          /* column names in content table; malloced */
   TrackerParser *parser;	   /* tokenizer for inserts and queries */
   int max_words;
-  
+
   /* Precompiled statements which we keep as long as the table is
   ** open.
   */
@@ -2571,11 +2571,11 @@ static void fulltext_vtab_destroy(fulltext_vtab *v){
 ** ftsIdChar(X) will be true.  Otherwise it is false.
 **
 ** For ASCII, any character with the high-order bit set is
-** allowed in an identifier.  For 7-bit characters, 
+** allowed in an identifier.  For 7-bit characters,
 ** isFtsIdChar[X] must be 1.
 **
 ** Ticket #1066.  the SQL standard does not allow '$' in the
-** middle of identfiers.  But many SQL implementations do. 
+** middle of identfiers.  But many SQL implementations do.
 ** SQLite will allow '$' in identifiers for compatibility.
 ** But the feature is undocumented.
 */
@@ -2592,7 +2592,7 @@ static const char isFtsIdChar[] = {
 
 
 /*
-** Return the length of the token that begins at z[0]. 
+** Return the length of the token that begins at z[0].
 ** Store the token type in *tokenType before returning.
 */
 static int ftsGetToken(const char *z, int *tokenType){
@@ -2798,7 +2798,7 @@ static char *firstToken(char *zIn, char **pzTail){
 **   *  s begins with the string t, ignoring case
 **   *  s is longer than t
 **   *  The first character of s beyond t is not a alphanumeric
-** 
+**
 ** Ignore leading space in *s.
 **
 ** To put it another way, return true if the first token of
@@ -2841,7 +2841,7 @@ static void clearTableSpec(TableSpec *p) {
  *        USING fts3(subject, body, tokenize mytokenizer(myarg))
  *
  * We return parsed information in a TableSpec structure.
- * 
+ *
  */
 static int parseSpec(TableSpec *pSpec, int argc, const char *const*argv,
                      char**pzErr){
@@ -2992,12 +2992,12 @@ static int constructVtab(
   v->azColumn = spec->azColumn;
   spec->azColumn = 0;
 
-/* comment out tokenizer stuff 
+/* comment out tokenizer stuff
   if( spec->azTokenizer==0 ){
     return SQLITE_NOMEM;
   }
 
-  zTok = spec->azTokenizer[0]; 
+  zTok = spec->azTokenizer[0];
   if( !zTok ){
     zTok = "simple";
   }
@@ -3019,22 +3019,22 @@ static int constructVtab(
   }
   if( rc!=SQLITE_OK ) goto err;
   */
-  
-  
+
+
   /* set up our parser */
-  
+
   TrackerConfig *config = tracker_config_new ();
-  
+
   TrackerLanguage *language = tracker_language_new (config);
-  
+
   int min_len = tracker_config_get_min_word_length (config);
   int max_len = tracker_config_get_max_word_length (config);
   v->max_words = tracker_config_get_max_words_to_index (config);
-        
+
   v->parser = 	tracker_parser_new (language, max_len, min_len);
-  
+
   g_object_unref (language);
-  
+
 
   /* TODO: verify the existence of backing tables foo_content, foo_term */
 
@@ -3155,7 +3155,7 @@ static int fulltextBestIndex(sqlite3_vtab *pVTab, sqlite3_index_info *pInfo){
       /* An arbitrary value for now.
        * TODO: Perhaps docid matches should be considered cheaper than
        * full-text searches. */
-      pInfo->estimatedCost = 1.0;   
+      pInfo->estimatedCost = 1.0;
 
       return SQLITE_OK;
     }
@@ -3272,7 +3272,7 @@ static void snippetOffsetsOfColumn(
   fulltext_vtab *pVtab;                /* The full text index */
   int nColumn;                         /* Number of columns in the index */
   const QueryTerm *aTerm;              /* Query string terms */
-  int nTerm;                           /* Number of query string terms */  
+  int nTerm;                           /* Number of query string terms */
   int i, j;                            /* Loop counters */
   unsigned int match, prevMatch;       /* Phrase search bitmasks */
   const char *zToken;                  /* Next token from the tokenizer */
@@ -3288,7 +3288,7 @@ static void snippetOffsetsOfColumn(
 
   pVtab = pQuery->pFts;
   nColumn = pVtab->nColumn;
-  
+
   tracker_parser_reset (pVtab->parser, zDoc, nDoc, FALSE, TRUE, TRUE, FALSE);
 
   aTerm = pQuery->pTerms;
@@ -3302,17 +3302,17 @@ static void snippetOffsetsOfColumn(
 
   while(1){
 //    rc = pTModule->xNext(pTCursor, &zToken, &nToken, &iBegin, &iEnd, &iPos);
-    
-    zToken = tracker_parser_next (pVtab->parser, 
+
+    zToken = tracker_parser_next (pVtab->parser,
     				  &iPos,
 				  &iBegin,
 				  &iEnd,
 				  &new_paragraph,
 				  &stop_word,
 				  &nToken);
-				  
-    if (!zToken) break;	
-    
+
+    if (!zToken) break;
+
     if (stop_word) {
       continue;
     }
@@ -3341,12 +3341,12 @@ static void snippetOffsetsOfColumn(
     prevMatch = match<<1;
     iRotor++;
   }
-//  pTModule->xClose(pTCursor);  
+//  pTModule->xClose(pTCursor);
 }
 
 /*
 ** Remove entries from the pSnippet structure to account for the NEAR
-** operator. When this is called, pSnippet contains the list of token 
+** operator. When this is called, pSnippet contains the list of token
 ** offsets produced by treating all NEAR operators as AND operators.
 ** This function removes any entries that should not be present after
 ** accounting for the NEAR restriction. For example, if the queried
@@ -3355,7 +3355,7 @@ static void snippetOffsetsOfColumn(
 **     "A B C D E A"
 **
 ** and the query is:
-** 
+**
 **     A NEAR/0 E
 **
 ** then when this function is called the Snippet contains token offsets
@@ -3374,17 +3374,17 @@ static void trimSnippetOffsetsForNear(Query *pQuery, Snippet *pSnippet){
       struct snippetMatch *pMatch = &pSnippet->aMatch[ii];
       QueryTerm *pQueryTerm = &pQuery->pTerms[pMatch->iTerm];
 
-      if( (pMatch->iTerm+iDir)<0 
+      if( (pMatch->iTerm+iDir)<0
        || (pMatch->iTerm+iDir)>=pQuery->nTerms
       ){
         continue;
       }
-     
+
       nNear = pQueryTerm->nNear;
       if( iDir<0 ){
         nNear = pQueryTerm[-1].nNear;
       }
-  
+
       if( pMatch->iTerm>=0 && nNear ){
         int isOk = 0;
         int iNextTerm = pMatch->iTerm+iDir;
@@ -3396,8 +3396,8 @@ static void trimSnippetOffsetsForNear(Query *pQuery, Snippet *pSnippet){
         if( iDir<0 ){
           int nPhrase = 1;
           iStartToken = pMatch->iToken;
-          while( (pMatch->iTerm+nPhrase)<pQuery->nTerms 
-              && pQuery->pTerms[pMatch->iTerm+nPhrase].iPhrase>1 
+          while( (pMatch->iTerm+nPhrase)<pQuery->nTerms
+              && pQuery->pTerms[pMatch->iTerm+nPhrase].iPhrase>1
           ){
             nPhrase++;
           }
@@ -3410,21 +3410,21 @@ static void trimSnippetOffsetsForNear(Query *pQuery, Snippet *pSnippet){
         while( pQuery->pTerms[iNextTerm].iPhrase>1 ){
           iNextTerm--;
         }
-        while( (iPrevTerm+1)<pQuery->nTerms && 
-               pQuery->pTerms[iPrevTerm+1].iPhrase>1 
+        while( (iPrevTerm+1)<pQuery->nTerms &&
+               pQuery->pTerms[iPrevTerm+1].iPhrase>1
         ){
           iPrevTerm++;
         }
-  
+
         for(jj=0; isOk==0 && jj<pSnippet->nMatch; jj++){
           struct snippetMatch *p = &pSnippet->aMatch[jj];
           if( p->iCol==pMatch->iCol && ((
-               p->iTerm==iNextTerm && 
-               p->iToken>iEndToken && 
+               p->iTerm==iNextTerm &&
+               p->iToken>iEndToken &&
                p->iToken<=iEndToken+nNear
           ) || (
-               p->iTerm==iPrevTerm && 
-               p->iToken<iStartToken && 
+               p->iTerm==iPrevTerm &&
+               p->iToken<iStartToken &&
                p->iToken>=iStartToken-nNear
           ))){
             isOk = 1;
@@ -3444,7 +3444,7 @@ static void trimSnippetOffsetsForNear(Query *pQuery, Snippet *pSnippet){
 }
 
 /*
-** Compute all offsets for the current row of the query.  
+** Compute all offsets for the current row of the query.
 ** If the offsets have already been computed, this routine is a no-op.
 */
 static void snippetAllOffsets(fulltext_cursor *p){
@@ -3490,9 +3490,9 @@ static void snippetOffsetText(Snippet *p){
   for(i=0; i<p->nMatch; i++){
     struct snippetMatch *pMatch = &p->aMatch[i];
     if( pMatch->iTerm>=0 ){
-      /* If snippetMatch.iTerm is less than 0, then the match was 
-      ** discarded as part of processing the NEAR operator (see the 
-      ** trimSnippetOffsetsForNear() function for details). Ignore 
+      /* If snippetMatch.iTerm is less than 0, then the match was
+      ** discarded as part of processing the NEAR operator (see the
+      ** trimSnippetOffsetsForNear() function for details). Ignore
       ** it in this case
       */
       zBuf[0] = ' ';
@@ -3581,7 +3581,7 @@ static void snippetText(
   int iStart, iEnd;
   int tailEllipsis = 0;
   int iMatch;
-  
+
 
   sqlite3_free(pCursor->snippet.zSnippet);
   pCursor->snippet.zSnippet = 0;
@@ -3772,8 +3772,8 @@ static int docListOfTerm(
     ** to the number of tokens in the phrase. Otherwise leave it at 1.
     */
     int nPhraseRight = 1;
-    while( (i+nPhraseRight)<=pQTerm->nPhrase 
-        && pQTerm[i+nPhraseRight].nNear==0 
+    while( (i+nPhraseRight)<=pQTerm->nPhrase
+        && pQTerm[i+nPhraseRight].nNear==0
     ){
       nPhraseRight++;
     }
@@ -3862,7 +3862,7 @@ static int tokenizeSegment(
   int nTerm = 1;
 
   tracker_parser_reset (parser, pSegment, nSegment, FALSE, TRUE, TRUE, TRUE);
-  
+
   while( 1 ){
     const char *pToken;
     int nToken, iBegin, iEnd, iPos, stop_word, new_paragraph;
@@ -3876,38 +3876,38 @@ static int tokenizeSegment(
 				     &nToken);
     if (!pToken) {
       break;
-     }				     
-				     	
+     }
+
 //   printf("token being indexed  is %s, pos is %d, begin is %d, end is %d and length is %d\n", pToken, iPos, iBegin, iEnd, nToken);
-   
+
     if( !inPhrase &&
         pSegment[iEnd]==':') {
-        
+
         int len = iEnd - iBegin;
-        char *field = g_strndup (pSegment + iBegin, len); 
-        
+        char *field = g_strndup (pSegment + iBegin, len);
+
     //    printf ("field is %s\n", field);
-        
+
         if ((iCol = checkColumnSpecifier(pQuery->pFts, field, len))>=0 ){
            pQuery->nextColumn = iCol;
            g_free (field);
            continue;
         }
     }
-    if( !inPhrase && pQuery->nTerms>0 && nToken==2 
-     && pToken[0] == 'o' && pToken[1] == 'r' 
+    if( !inPhrase && pQuery->nTerms>0 && nToken==2
+     && pToken[0] == 'o' && pToken[1] == 'r'
     ){
       pQuery->nextIsOr = 1;
       continue;
     }
-    if( !inPhrase && pQuery->nTerms>0 && !pQuery->nextIsOr && nToken==4 
-      && pToken[0]=='n' 
-      && pToken[1]=='e' 
-      && pToken[2]=='a' 
-      && pToken[3]=='r' 
+    if( !inPhrase && pQuery->nTerms>0 && !pQuery->nextIsOr && nToken==4
+      && pToken[0]=='n'
+      && pToken[1]=='e'
+      && pToken[2]=='a'
+      && pToken[3]=='r'
     ){
       QueryTerm *pTerm = &pQuery->pTerms[pQuery->nTerms-1];
-      if( (iBegin+6)<nSegment 
+      if( (iBegin+6)<nSegment
        && pSegment[iBegin+4] == '/'
        && pSegment[iBegin+5]>='0' && pSegment[iBegin+5]<='9'
       ){
@@ -3925,25 +3925,25 @@ static int tokenizeSegment(
 				     &nToken);
    	if (!pToken) {
    	  break;
-        }				     
-				     	
-        
+        }
+
+
       } else {
         pTerm->nNear = SQLITE_FTS3_DEFAULT_NEAR_PARAM;
       }
       pTerm->nNear++;
       continue;
     }
-    
+
     if (stop_word != 0) {
     	continue;
     }
 
     queryAdd(pQuery, pToken, nToken);
     if( !inPhrase && iBegin>0) {
-    
+
    //  printf("first char is %c, prev char is %c\n", pSegment[iBegin], pSegment[iBegin-1]);
-    
+
       if (pSegment[iBegin-1]=='-' ){
         pQuery->pTerms[pQuery->nTerms-1].isNot = 1;
       }
@@ -4282,7 +4282,7 @@ static int buildTerms(fulltext_vtab *v, sqlite_int64 iDocid,
   if (!zText) return SQLITE_OK;
 
   tracker_parser_reset (parser, zText, strlen (zText), FALSE, TRUE, TRUE, FALSE);
-  
+
   while( 1 ){
 
     pToken = tracker_parser_next (parser, &iPosition,
@@ -4293,15 +4293,15 @@ static int buildTerms(fulltext_vtab *v, sqlite_int64 iDocid,
 				     &nTokenBytes);
    if (!pToken) {
    	break;
-   }	
-   
-  // printf("token being indexed  is %s, begin is %d, end is %d and length is %d\n", pToken, iStartOffset, iEndOffset, nTokenBytes);		
-   
+   }
+
+  // printf("token being indexed  is %s, begin is %d, end is %d and length is %d\n", pToken, iStartOffset, iEndOffset, nTokenBytes);
+
    if (stop_word) {
    	continue;
-   }	     
-				     	
-   
+   }
+
+
 
 
     DLCollector *p;
@@ -7142,8 +7142,8 @@ static int fulltextRename(
     "ALTER TABLE %Q.'%q_content'  RENAME TO '%q_content';"
     "ALTER TABLE %Q.'%q_segments' RENAME TO '%q_segments';"
     "ALTER TABLE %Q.'%q_segdir'   RENAME TO '%q_segdir';"
-    , p->zDb, p->zName, zName 
-    , p->zDb, p->zName, zName 
+    , p->zDb, p->zName, zName
+    , p->zDb, p->zName, zName
     , p->zDb, p->zName, zName
   );
   if( zSql ){
@@ -7194,11 +7194,11 @@ int sqlite3Fts3InitHashTable(sqlite3 *, fts3Hash *, const char *);
 int sqlite3Fts3Init(sqlite3 *db){
   int rc = SQLITE_OK;
 
-  /* Create the virtual table wrapper around the hash-table and overload 
+  /* Create the virtual table wrapper around the hash-table and overload
   ** the two scalar functions. If this is successful, register the
   ** module with sqlite.
   */
-  if( SQLITE_OK==rc 
+  if( SQLITE_OK==rc
    && SQLITE_OK==(rc = sqlite3_overload_function(db, "snippet", -1))
    && SQLITE_OK==(rc = sqlite3_overload_function(db, "offsets", -1))
    && SQLITE_OK==(rc = sqlite3_overload_function(db, "optimize", -1))
@@ -7220,7 +7220,7 @@ int sqlite3Fts3Init(sqlite3 *db){
 
 
 int sqlite3_extension_init(
-  sqlite3 *db, 
+  sqlite3 *db,
   char **pzErrMsg,
   const sqlite3_api_routines *pApi
 ){

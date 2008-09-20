@@ -90,8 +90,8 @@ process_context_child_watch_cb (GPid     pid,
 				gint     status,
 				gpointer user_data)
 {
-	g_debug ("Process '%d' exited with code: %d->'%s'", 
-		 pid, 
+	g_debug ("Process '%d' exited with code: %d->'%s'",
+		 pid,
 		 status,
 		 g_strerror (status));
 
@@ -110,16 +110,16 @@ process_context_create (const gchar **argv,
 	GIOFlags flags;
 	GPid pid;
 
-	if (!tracker_spawn_async_with_channels (argv, 
-						10, 
-						&pid, 
-						&stdin_channel, 
-						&stdout_channel, 
+	if (!tracker_spawn_async_with_channels (argv,
+						10,
+						&pid,
+						&stdin_channel,
+						&stdout_channel,
 						NULL)) {
 		return NULL;
 	}
 
-	g_debug ("Process '%d' spawned for command:'%s'", 
+	g_debug ("Process '%d' spawned for command:'%s'",
 		 pid,
 		 argv[0]);
 
@@ -132,7 +132,7 @@ process_context_create (const gchar **argv,
 						   G_IO_IN | G_IO_PRI | G_IO_ERR | G_IO_HUP,
 						   stdout_watch_func,
 						   context);
-	
+
 	flags = g_io_channel_get_flags (context->stdout_channel);
 	flags |= G_IO_FLAG_NONBLOCK;
 
@@ -166,10 +166,10 @@ metadata_read_cb (GIOChannel   *channel,
 
 	if ((condition & G_IO_IN) || (condition & G_IO_PRI)) {
 		do {
-			status = g_io_channel_read_line (metadata_context->stdout_channel, 
-							 &line, 
-							 NULL, 
-							 NULL, 
+			status = g_io_channel_read_line (metadata_context->stdout_channel,
+							 &line,
+							 NULL,
+							 NULL,
 							 NULL);
 
 			if (status == G_IO_STATUS_NORMAL && line && *line) {
@@ -193,9 +193,9 @@ metadata_read_cb (GIOChannel   *channel,
 static gboolean
 metadata_setup (void)
 {
-	const gchar *argv[2] = { 
-		LIBEXEC_PATH G_DIR_SEPARATOR_S "tracker-extract", 
-		NULL 
+	const gchar *argv[2] = {
+		LIBEXEC_PATH G_DIR_SEPARATOR_S "tracker-extract",
+		NULL
 	};
 
 	if (metadata_context) {
@@ -203,7 +203,7 @@ metadata_setup (void)
 		metadata_context = NULL;
 	}
 
-	metadata_context = process_context_create (argv, 
+	metadata_context = process_context_create (argv,
 						   metadata_read_cb);
 
 	if (!metadata_context) {
@@ -388,12 +388,12 @@ get_file_content_read_cb (GIOChannel   *channel,
 	return TRUE;
 }
 
-static gboolean 
+static gboolean
 get_file_is_utf8 (GString *s,
 		  gssize  *bytes_valid)
 {
 	const gchar *end;
-	
+
 	/* Check for UTF-8 validity, since we may
 	 * have cut off the end.
 	 */
@@ -403,7 +403,7 @@ get_file_is_utf8 (GString *s,
 	}
 
 	*bytes_valid = end - s->str;
-	
+
 	/* 4 is the maximum bytes for a UTF-8 character. */
 	if (*bytes_valid > 4) {
 		return FALSE;
@@ -412,7 +412,7 @@ get_file_is_utf8 (GString *s,
 	if (g_utf8_get_char_validated (end, *bytes_valid) == (gunichar) -1) {
 		return FALSE;
 	}
-	
+
 	return TRUE;
 }
 
@@ -425,17 +425,17 @@ get_file_in_locale (GString *s)
 	gchar  *str;
 	gsize   bytes_read;
 	gsize   bytes_written;
-	
-	str = g_locale_to_utf8 (s->str, 
-				s->len, 
-				&bytes_read, 
-				&bytes_written, 
+
+	str = g_locale_to_utf8 (s->str,
+				s->len,
+				&bytes_read,
+				&bytes_written,
 				&error);
 	if (error) {
 		g_debug ("  Conversion to UTF-8 read %d bytes, wrote %d bytes",
-			 bytes_read, 
+			 bytes_read,
 			 bytes_written);
-		g_message ("Could not convert file from locale to UTF-8, %s", 
+		g_message ("Could not convert file from locale to UTF-8, %s",
 			   error->message);
 		g_error_free (error);
 		g_free (str);
@@ -485,7 +485,7 @@ get_file_content (const gchar *path)
 	buf_size = TEXT_CHECK_SIZE - 1;
 
 	g_debug ("  Starting read...");
-	
+
 	while (has_more_data && !has_reached_max && !error) {
 		gssize bytes_read;
 		gssize bytes_remaining;
@@ -507,7 +507,7 @@ get_file_content (const gchar *path)
 			bytes_read += bytes;
 			bytes_remaining -= bytes;
 
-			g_debug ("  Read %d bytes", 
+			g_debug ("  Read %d bytes",
 				 bytes);
 		}
 
@@ -527,7 +527,7 @@ get_file_content (const gchar *path)
 		if (bytes_read_total == 0) {
 			if (bytes_read == buf_size &&
 			    strchr (buf, '\n') == NULL) {
-				g_debug ("  No '\\n' in the first %d bytes, not indexing file", 
+				g_debug ("  No '\\n' in the first %d bytes, not indexing file",
 					 buf_size);
 				break;
 			} else if (bytes_read <= 2) {
@@ -545,13 +545,13 @@ get_file_content (const gchar *path)
 
 		if (bytes_read != buf_size || bytes_read == 0) {
 			has_more_data = FALSE;
-		} 
+		}
 
 		if (bytes_read_total >= TEXT_MAX_SIZE) {
 			has_reached_max = TRUE;
 		}
 
-		g_debug ("  Read %d bytes total, %d bytes this time, more data:%s, reached max:%s", 
+		g_debug ("  Read %d bytes total, %d bytes this time, more data:%s, reached max:%s",
 			 bytes_read_total,
 			 bytes_read,
 			 has_more_data ? "yes" : "no",
@@ -576,28 +576,28 @@ get_file_content (const gchar *path)
 
                 return NULL;
         }
-	
+
 	/* Check for UTF-8 Validity, if not try to convert it to the
 	 * locale we are in.
 	 */
 	is_utf8 = get_file_is_utf8 (s, &bytes_valid);
-	
+
 	/* Make sure the string is NULL terminated and in the case
 	 * where the string is valid UTF-8 up to the last character
 	 * which was cut off, NULL terminate to the last most valid
-	 * character.  
+	 * character.
 	 */
 #ifdef TRY_LOCALE_TO_UTF8_CONVERSION
 	if (!is_utf8) {
 		s = get_file_in_locale (s);
 	} else {
-		g_debug ("  Truncating to last valid UTF-8 character (%d/%d bytes)", 
+		g_debug ("  Truncating to last valid UTF-8 character (%d/%d bytes)",
 			 bytes_valid,
 			 s->len);
 		s = g_string_truncate (s, bytes_valid);
 	}
 #else   /* TRY_LOCALE_TO_UTF8_CONVERSION */
-	g_debug ("  Truncating to last valid UTF-8 character (%d/%d bytes)", 
+	g_debug ("  Truncating to last valid UTF-8 character (%d/%d bytes)",
 		 bytes_valid,
 		 s->len);
 	s = g_string_truncate (s, bytes_valid);
@@ -610,7 +610,7 @@ get_file_content (const gchar *path)
 		g_string_free (s, TRUE);
 		s = NULL;
 	}
-	
+
         return s ? g_string_free (s, FALSE) : NULL;
 }
 
@@ -618,7 +618,7 @@ get_file_content (const gchar *path)
 #ifdef HAVE_HILDON_THUMBNAIL
 
 static void
-get_file_thumbnail_queue_cb (DBusGProxy     *proxy, 
+get_file_thumbnail_queue_cb (DBusGProxy     *proxy,
 			     DBusGProxyCall *call,
 			     gpointer        user_data)
 {
@@ -626,8 +626,8 @@ get_file_thumbnail_queue_cb (DBusGProxy     *proxy,
 	guint   handle;
 
 	/* FIXME: What is the point of this? */
-	dbus_g_proxy_end_call (proxy, call, &error, 
-			       G_TYPE_UINT, &handle, 
+	dbus_g_proxy_end_call (proxy, call, &error,
+			       G_TYPE_UINT, &handle,
 			       G_TYPE_INVALID);
 }
 
@@ -658,11 +658,11 @@ get_file_thumbnail (const gchar *path,
 		g_debug ("Requesting thumbnails");
 
 		dbus_g_proxy_begin_call (tracker_dbus_get_thumbnailer (),
-					 "Queue", 
-					 get_file_thumbnail_queue_cb, 
-					 NULL, NULL, 
-					 G_TYPE_STRV, batch, 
-					 G_TYPE_UINT, 0, 
+					 "Queue",
+					 get_file_thumbnail_queue_cb,
+					 NULL, NULL,
+					 G_TYPE_STRV, batch,
+					 G_TYPE_UINT, 0,
 					 G_TYPE_INVALID);
 
 		for (i = 0; i <= count; i++) {
@@ -683,7 +683,7 @@ get_file_thumbnail (const gchar *path,
 	argv[3] = g_strdup ("normal");
 	argv[4] = NULL;
 
-	context = process_context_create ((const gchar **) argv, 
+	context = process_context_create ((const gchar **) argv,
 					  get_file_content_read_cb)
 
 	if (!context) {
@@ -749,7 +749,7 @@ get_file_content_by_filter (const gchar *path,
 
 	g_message ("Extracting text for:'%s' using filter:'%s'", argv[1], argv[0]);
 
-	context = process_context_create ((const gchar **) argv, 
+	context = process_context_create ((const gchar **) argv,
 					  get_file_content_read_cb);
 
 	g_free (text_filter_file);
@@ -818,17 +818,17 @@ tracker_metadata_utils_get_data (const gchar *path)
 
 	mime_type = tracker_file_get_mime_type (path);
 
-        tracker_metadata_insert (metadata, METADATA_FILE_NAME, 
+        tracker_metadata_insert (metadata, METADATA_FILE_NAME,
 				 g_filename_display_basename (path));
-	tracker_metadata_insert (metadata, METADATA_FILE_PATH, 
+	tracker_metadata_insert (metadata, METADATA_FILE_PATH,
 				 g_path_get_dirname (path));
 	tracker_metadata_insert (metadata, METADATA_FILE_NAME_DELIMITED,
                                  g_filename_to_utf8 (path, -1, NULL, NULL, NULL));
-	tracker_metadata_insert (metadata, METADATA_FILE_MIMETYPE, 
+	tracker_metadata_insert (metadata, METADATA_FILE_MIMETYPE,
 				 mime_type);
 
 	if (mime_type) {
-		/* FIXME: 
+		/* FIXME:
 		 * We should determine here for which items we do and for which
 		 * items we don't want to pre-create the thumbnail. */
 

@@ -46,7 +46,7 @@ tracker_xesam_session_g_value_free (GValue *value)
  *
  * Get the properties of @self. The returned value is a hashtable with key as
  * Xesam session property key strings and value a #GValue being either a string,
- * an integer, a boolean or an array (either TRACKER_TYPE_XESAM_STRV_ARRAY or 
+ * an integer, a boolean or an array (either TRACKER_TYPE_XESAM_STRV_ARRAY or
  * G_TYPE_STRV).
  *
  * The returned value must be unreferenced using @g_hash_table_unref.
@@ -80,7 +80,7 @@ tracker_xesam_session_init (TrackerXesamSession *self)
 	priv->session_id = NULL;
 
 
-	priv->searches = g_hash_table_new_full (g_str_hash, g_str_equal, 
+	priv->searches = g_hash_table_new_full (g_str_hash, g_str_equal,
 				(GDestroyNotify) g_free,
 				(GDestroyNotify) g_object_unref);
 
@@ -190,8 +190,8 @@ tracker_xesam_session_finalize (GObject *object)
 
 }
 
-static void 
-tracker_xesam_session_class_init (TrackerXesamSessionClass *klass) 
+static void
+tracker_xesam_session_class_init (TrackerXesamSessionClass *klass)
 {
 	GObjectClass *object_class;
 	object_class = G_OBJECT_CLASS (klass);
@@ -207,8 +207,8 @@ tracker_xesam_session_class_init (TrackerXesamSessionClass *klass)
  *
  * Set a read-only unique ID string for @self.
  **/
-void 
-tracker_xesam_session_set_id (TrackerXesamSession *self, 
+void
+tracker_xesam_session_set_id (TrackerXesamSession *self,
 			      const gchar         *session_id)
 {
 	TrackerXesamSessionPriv *priv = self->priv;
@@ -226,7 +226,7 @@ tracker_xesam_session_set_id (TrackerXesamSession *self,
  *
  * returns: a unique id
  **/
-const gchar* 
+const gchar*
 tracker_xesam_session_get_id (TrackerXesamSession *self)
 {
 	TrackerXesamSessionPriv *priv = self->priv;
@@ -238,7 +238,7 @@ tracker_xesam_session_get_id (TrackerXesamSession *self)
  * tracker_xesam_session_get_searches:
  * @self: A #TrackerXesamSession
  *
- * Get all searches in @self as a doubly linked list containing 
+ * Get all searches in @self as a doubly linked list containing
  * #TrackerXesamLiveSearch objects.
  *
  * @returns: (caller-owns) (null-ok): all searches in @self
@@ -254,40 +254,40 @@ tracker_xesam_session_get_searches (TrackerXesamSession *self)
 /**
  * tracker_xesam_session_set_property:
  * @self: A #TrackerXesamSession
- * @prop: The name or the property to set, see the list of session properties 
+ * @prop: The name or the property to set, see the list of session properties
  * for valid property names at http://xesam.org/main/XesamSearchAPI#properties
  * @val: The value to set the property to
- * @new_val: (out) (caller-owns): The actual value the search engine will use. 
- * As noted above it is  not guaranteed that the requested value will be 
+ * @new_val: (out) (caller-owns): The actual value the search engine will use.
+ * As noted above it is  not guaranteed that the requested value will be
  * respected
  * @error: (null-ok) (out): a #GError
- * 
- * Set a property on the session. It is not guaranteed that the session property 
- * will actually be used, the return value is the property value that will be 
- * used. Search engines must respect the default property values however. For a 
+ *
+ * Set a property on the session. It is not guaranteed that the session property
+ * will actually be used, the return value is the property value that will be
+ * used. Search engines must respect the default property values however. For a
  * list of properties and descriptions see below.
- * 
- * Calling this method after the first search has been created with 
- * @tracker_xesam_session_create_search is illegal. The server will raise an 
+ *
+ * Calling this method after the first search has been created with
+ * @tracker_xesam_session_create_search is illegal. The server will raise an
  * error if you do. Ie. once you create the first search the properties are set
- * in stone for the parent session. The search engine will also throw an error 
+ * in stone for the parent session. The search engine will also throw an error
  * if the session handle has been closed or is invalid.
- * 
- * An error will also be thrown if the prop parameter is not a valid session 
- * property, if it is a property marked as read-only, or if the requested value 
+ *
+ * An error will also be thrown if the prop parameter is not a valid session
+ * property, if it is a property marked as read-only, or if the requested value
  * is invalid.
  **/
-void 
-tracker_xesam_session_set_property (TrackerXesamSession  *self, 
-				    const gchar          *prop, 
-				    const GValue         *val, 
-				    GValue              **new_val, 
-				    GError              **error) 
+void
+tracker_xesam_session_set_property (TrackerXesamSession  *self,
+				    const gchar          *prop,
+				    const GValue         *val,
+				    GValue              **new_val,
+				    GError              **error)
 {
 	TrackerXesamSessionPriv *priv = self->priv;
-	const gchar *read_only[11] = {"vendor.id", "vendor.version", "vendor.display", 
-		"vendor.xesam", "vendor.ontology.fields", "vendor.ontology.contents", 
-		"vendor.ontology.sources", "vendor.extensions", "vendor.ontologies", 
+	const gchar *read_only[11] = {"vendor.id", "vendor.version", "vendor.display",
+		"vendor.xesam", "vendor.ontology.fields", "vendor.ontology.contents",
+		"vendor.ontology.sources", "vendor.extensions", "vendor.ontologies",
 		"vendor.maxhits", NULL};
 	GValue *property = NULL;
 	gboolean found = FALSE;
@@ -305,7 +305,7 @@ tracker_xesam_session_set_property (TrackerXesamSession  *self,
 		property = g_hash_table_lookup (priv->props, prop);
 
 	if (!property) {
-		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
+		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN,
 				TRACKER_XESAM_ERROR_PROPERTY_NOT_SUPPORTED,
 				"Property not supported");
 		*new_val = NULL;
@@ -321,27 +321,27 @@ tracker_xesam_session_set_property (TrackerXesamSession  *self,
 /**
  * tracker_xesam_session_get_property:
  * @self: A #TrackerXesamSession
- * @prop: The name or the property to set, see the list of session properties 
+ * @prop: The name or the property to set, see the list of session properties
  * for valid property names at http://xesam.org/main/XesamSearchAPI#properties
  * @value: (out) (caller-owns): The value of a session property
  * @error: (null-ok) (out): a #GError
- * 
- * Get the value of a session property. The server should throw an error if the 
+ *
+ * Get the value of a session property. The server should throw an error if the
  * session handle is closed or does not exist. An error should also be raised if
  * prop is not a valid session property.
  **/
 void
-tracker_xesam_session_get_property (TrackerXesamSession  *self, 
-				    const gchar          *prop, 
-				    GValue              **value, 
-				    GError              **error) 
+tracker_xesam_session_get_property (TrackerXesamSession  *self,
+				    const gchar          *prop,
+				    GValue              **value,
+				    GError              **error)
 {
 	TrackerXesamSessionPriv *priv = self->priv;
 
 	GValue *property = g_hash_table_lookup (priv->props, prop);
 
 	if (!property) {
-		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
+		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN,
 				TRACKER_XESAM_ERROR_PROPERTY_NOT_SUPPORTED,
 				"Property not supported");
 		*value = NULL;
@@ -359,23 +359,23 @@ tracker_xesam_session_get_property (TrackerXesamSession  *self,
  * tracker_xesam_session_create_search:
  * @self: A #TrackerXesamSession
  * @query_xml: A string in the xesam query language
- * @search_id: (out) (caller-owns): An opaque handle for the Search object 
+ * @search_id: (out) (caller-owns): An opaque handle for the Search object
  * @error: (null-ok) (out): a #GError
  *
- * Create a new search from @query_xml. If there are errors parsing the 
+ * Create a new search from @query_xml. If there are errors parsing the
  * @query_xml parameter an error will be set in @error.
- * 
- * Notifications of hits can be obtained by listening to the @hits-added signal. 
+ *
+ * Notifications of hits can be obtained by listening to the @hits-added signal.
  * Signals will not be emitted before a call to @tracker_xesam_live_search_activate
- * has been made. 
+ * has been made.
  *
  * @returns: (null-ok) (caller-owns): a new non-activated #TrackerXesamLiveSearch
  **/
-TrackerXesamLiveSearch* 
-tracker_xesam_session_create_search (TrackerXesamSession  *self, 
-				     const gchar          *query_xml, 
-				     gchar               **search_id, 
-				     GError              **error) 
+TrackerXesamLiveSearch*
+tracker_xesam_session_create_search (TrackerXesamSession  *self,
+				     const gchar          *query_xml,
+				     gchar               **search_id,
+				     GError              **error)
 {
 	TrackerXesamLiveSearch  *search;
 	TrackerXesamSessionPriv *priv = self->priv;
@@ -385,17 +385,17 @@ tracker_xesam_session_create_search (TrackerXesamSession  *self,
 	search = tracker_xesam_live_search_new (query_xml);
 
 	tracker_xesam_live_search_set_session (search, self);
-	tracker_xesam_live_search_set_id (search, 
+	tracker_xesam_live_search_set_id (search,
 					  tracker_xesam_manager_generate_unique_key ());
 
 	if (tracker_xesam_live_search_parse_query (search, error)) {
 
 		g_debug ("Xesam live search added");
-		g_hash_table_insert (priv->searches, 
+		g_hash_table_insert (priv->searches,
 			g_strdup (tracker_xesam_live_search_get_id (search)),
 			g_object_ref (search));
 
-		if (search_id) 
+		if (search_id)
 			*search_id = g_strdup (tracker_xesam_live_search_get_id (search));
 
 	} else {
@@ -410,16 +410,16 @@ tracker_xesam_session_create_search (TrackerXesamSession  *self,
 /**
  * tracker_xesam_session_get_search:
  * @self: A #TrackerXesamSession
- * @search_id: (in): An opaque handle for the Search object 
+ * @search_id: (in): An opaque handle for the Search object
  * @error: (null-ok) (out): a #GError
  *
  * Get the #TrackerXesamLiveSearch identified by @search_id in @self.
  *
  * @returns: (null-ok) (caller-owns): a #TrackerXesamLiveSearch or NULL
  **/
-TrackerXesamLiveSearch* 
-tracker_xesam_session_get_search (TrackerXesamSession  *self, 
-				  const gchar          *search_id, 
+TrackerXesamLiveSearch*
+tracker_xesam_session_get_search (TrackerXesamSession  *self,
+				  const gchar          *search_id,
 				  GError              **error)
 {
 	TrackerXesamSessionPriv *priv = self->priv;
@@ -428,7 +428,7 @@ tracker_xesam_session_get_search (TrackerXesamSession  *self,
 	if (search)
 		g_object_ref (search);
 	else {
-		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN, 
+		g_set_error (error, TRACKER_XESAM_ERROR_DOMAIN,
 				TRACKER_XESAM_ERROR_SEARCH_ID_NOT_REGISTERED,
 				"SearchID not registered");
 	}
@@ -443,8 +443,8 @@ tracker_xesam_session_get_search (TrackerXesamSession  *self,
  *
  * @returns: (caller-owns): a new #TrackerXesamSession
  **/
-TrackerXesamSession* 
-tracker_xesam_session_new (void) 
+TrackerXesamSession*
+tracker_xesam_session_new (void)
 {
 	return g_object_newv (TRACKER_TYPE_XESAM_SESSION, 0, NULL);
 }

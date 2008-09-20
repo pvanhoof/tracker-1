@@ -94,7 +94,7 @@ static int gettimeofday (struct timeval *tv, struct timezone *tz)
 #endif
 #ifndef SIGUSR2
 #define SIGUSR2 31 /* user defined signal 2 */
-#endif 
+#endif
 
 #define sigemptyset(pset)    (*(pset) = 0)
 #define sigfillset(pset)     (*(pset) = (unsigned int)-1)

@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2008, Nokia (urho.konttori@nokia.com)
  *
@@ -29,14 +29,14 @@ G_BEGIN_DECLS
 #define TRACKER_TYPE_DB_TYPE (tracker_db_type_get_type ())
 
 typedef enum {
-	TRACKER_DB_TYPE_UNKNOWN, 
-	TRACKER_DB_TYPE_DATA, 
+	TRACKER_DB_TYPE_UNKNOWN,
+	TRACKER_DB_TYPE_DATA,
 	TRACKER_DB_TYPE_INDEX,
-	TRACKER_DB_TYPE_COMMON, 
+	TRACKER_DB_TYPE_COMMON,
 	TRACKER_DB_TYPE_CONTENT,
-	TRACKER_DB_TYPE_EMAIL, 
-	TRACKER_DB_TYPE_FILES, 
-	TRACKER_DB_TYPE_XESAM, 
+	TRACKER_DB_TYPE_EMAIL,
+	TRACKER_DB_TYPE_FILES,
+	TRACKER_DB_TYPE_XESAM,
 	TRACKER_DB_TYPE_CACHE,
 	TRACKER_DB_TYPE_USER
 } TrackerDBType;

@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2008, Nokia
  *
@@ -38,27 +38,27 @@ static gint         limit = 512;
 static gint         offset;
 
 static GOptionEntry entries[] = {
-	{ "service", 's', 0, G_OPTION_ARG_STRING, &service, 
-          N_("Search from a specific service"), 
-          NULL 
+	{ "service", 's', 0, G_OPTION_ARG_STRING, &service,
+          N_("Search from a specific service"),
+          NULL
         },
-	{ "limit", 'l', 0, G_OPTION_ARG_INT, &limit, 
-          N_("Limit the number of results shown"), 
-          N_("512") 
+	{ "limit", 'l', 0, G_OPTION_ARG_INT, &limit,
+          N_("Limit the number of results shown"),
+          N_("512")
         },
-	{ "offset", 'o', 0, G_OPTION_ARG_INT, &offset, 
-          N_("Offset the results"), 
-          N_("0") 
+	{ "offset", 'o', 0, G_OPTION_ARG_INT, &offset,
+          N_("Offset the results"),
+          N_("0")
         },
-	{ "add-mime", 'm', 0, G_OPTION_ARG_STRING_ARRAY, &mimes, 
-          N_("MIME types (can be used multiple times)"), 
+	{ "add-mime", 'm', 0, G_OPTION_ARG_STRING_ARRAY, &mimes,
+          N_("MIME types (can be used multiple times)"),
           NULL
         },
 	{ NULL }
 };
 
 int
-main (int argc, char **argv) 
+main (int argc, char **argv)
 {
 
 	TrackerClient  *client;
@@ -101,16 +101,16 @@ main (int argc, char **argv)
 
 		type = tracker_service_name_to_type (service);
 
-		array = tracker_files_get_by_service_type (client, 
-							   time (NULL), 
-							   type, 
-							   offset, 
-							   limit, 
+		array = tracker_files_get_by_service_type (client,
+							   time (NULL),
+							   type,
+							   offset,
+							   limit,
 							   &error);
 
 		if (error) {
 			g_printerr ("%s:'%s', %s\n",
-				    _("Could not get files by service type"), 
+				    _("Could not get files by service type"),
 				    service,
 				    error->message);
 			g_error_free (error);
@@ -139,16 +139,16 @@ main (int argc, char **argv)
 		gchar **array;
 		gchar **p;
 
-		array = tracker_files_get_by_mime_type (client, 
-							time (NULL), 
-							mimes, 
-							offset, 
-							limit, 
+		array = tracker_files_get_by_mime_type (client,
+							time (NULL),
+							mimes,
+							offset,
+							limit,
 							&error);
 
 		if (error) {
 			g_printerr ("%s, %s\n",
-				    _("Could not get files by MIME type"), 
+				    _("Could not get files by MIME type"),
 				    error->message);
 			g_error_free (error);
 

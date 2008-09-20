@@ -37,7 +37,7 @@ static gint allocated;
 static gint deallocated;
 
 /*
- * TrackerDBWatch 
+ * TrackerDBWatch
  */
 GType
 tracker_db_watch_get_type (void)
@@ -73,12 +73,12 @@ tracker_db_watch_get_type (void)
                  * it here to make sure it exists when we call
                  * g_type_class_peek(). This wouldn't be necessary if
                  * it was a param in a GObject for example.
-                 * 
+                 *
                  * This does mean that we are leaking by 1 reference
                  * here and should clean it up, but it doesn't grow so
-                 * this is acceptable. 
+                 * this is acceptable.
                  */
-                
+
                 g_type_class_ref (etype);
         }
 
@@ -95,7 +95,7 @@ tracker_db_watch_to_string (TrackerDBWatch watch)
         type = tracker_db_action_get_type ();
         enum_class = G_ENUM_CLASS (g_type_class_peek (type));
         enum_value = g_enum_get_value (enum_class, watch);
-        
+
         if (!enum_value) {
                 enum_value = g_enum_get_value (enum_class, TRACKER_DB_WATCH_OTHER);
         }
@@ -104,12 +104,12 @@ tracker_db_watch_to_string (TrackerDBWatch watch)
 }
 
 /*
- * TrackerDBFileInfo 
+ * TrackerDBFileInfo
  */
 TrackerDBFileInfo *
-tracker_db_file_info_new (const char      *uri, 
-			  TrackerDBAction  action, 
-			  gint             counter, 
+tracker_db_file_info_new (const char      *uri,
+			  TrackerDBAction  action,
+			  gint             counter,
 			  TrackerDBWatch   watch)
 {
 	TrackerDBFileInfo *info;
@@ -217,11 +217,11 @@ tracker_db_file_info_unref (TrackerDBFileInfo *info)
 
 #if 0
 static TrackerDBFileInfo *
-db_file_info_get_pending (guint32          file_id, 
-			  const gchar     *uri, 
-			  const gchar     *mime, 
-			  gint             counter, 
-			  TrackerDBAction  action, 
+db_file_info_get_pending (guint32          file_id,
+			  const gchar     *uri,
+			  const gchar     *mime,
+			  gint             counter,
+			  TrackerDBAction  action,
 			  gboolean         is_directory)
 {
 	TrackerDBFileInfo *info;
@@ -285,7 +285,7 @@ tracker_db_file_info_get (TrackerDBFileInfo *info)
 		}
 
 	} else {
-		g_warning ("URI:'%s' could not be converted to locale format", 
+		g_warning ("URI:'%s' could not be converted to locale format",
 			   info->uri);
 		return NULL;
 	}
@@ -340,7 +340,7 @@ tracker_db_file_info_is_valid (TrackerDBFileInfo *info)
         if (info->action == TRACKER_DB_ACTION_IGNORE) {
                 return FALSE;
         }
-                               
+
         return TRUE;
 }
 

@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2008, Nokia (urho.konttori@nokia.com)
  *
  * This library is free software; you can redistribute it and/or
@@ -9,14 +9,14 @@
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public
  * License along with this library; if not, write to the
  * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
- * Boston, MA  02110-1301, USA. 
- */  
+ * Boston, MA  02110-1301, USA.
+ */
 #include <glib.h>
 #include <glib/gtestutils.h>
 
@@ -25,13 +25,13 @@
 #include "tracker-db-manager-common.h"
 
 void
-test_assert_tables_in_db (TrackerDB db, gchar *query) 
+test_assert_tables_in_db (TrackerDB db, gchar *query)
 {
         g_assert (test_assert_query_run (db, query));
 }
 
 static void
-test_creation_common_db () 
+test_creation_common_db ()
 {
         test_assert_tables_in_db (TRACKER_DB_COMMON, "SELECT * FROM MetaDataTypes");
 }
@@ -78,7 +78,7 @@ main (int argc, char **argv) {
 	g_test_init (&argc, &argv, NULL);
 
         /* Init */
-        tracker_db_manager_init (TRACKER_DB_MANAGER_FORCE_REINDEX, 
+        tracker_db_manager_init (TRACKER_DB_MANAGER_FORCE_REINDEX,
                                  &first_time);
 
         g_test_add_func ("/libtracker-db/tracker-db-manager/unattach/common_db_tables",
@@ -102,7 +102,7 @@ main (int argc, char **argv) {
                          test_creation_email_contents_db);
 
         result = g_test_run ();
-        
+
         /* End */
         tracker_db_manager_shutdown ();
 

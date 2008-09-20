@@ -62,7 +62,7 @@ dbus_register_service (DBusGProxy  *proxy,
         guint   result;
 
         g_message ("Registering DBus service...\n"
-		   "  Name:'%s'", 
+		   "  Name:'%s'",
 		   name);
 
         if (!org_freedesktop_DBus_request_name (proxy,
@@ -102,28 +102,28 @@ dbus_register_object (DBusGConnection       *connection,
         dbus_g_connection_register_g_object (connection, path, object);
 }
 
-static void 
-dbus_name_owner_changed (gpointer  data, 
+static void
+dbus_name_owner_changed (gpointer  data,
 			 GClosure *closure)
 {
 	g_object_unref (data);
 }
 
-static gboolean 
+static gboolean
 dbus_register_names (TrackerConfig *config)
 {
         GError *error = NULL;
 
 	if (connection) {
-		g_critical ("The DBusGConnection is already set, have we already initialized?"); 
+		g_critical ("The DBusGConnection is already set, have we already initialized?");
 		return FALSE;
 	}
 
 	if (proxy) {
-		g_critical ("The DBusGProxy is already set, have we already initialized?"); 
+		g_critical ("The DBusGProxy is already set, have we already initialized?");
 		return FALSE;
 	}
-	
+
         connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
 
         if (!connection) {
@@ -178,7 +178,7 @@ indexer_resume_cb (gpointer user_data)
 
 	if (!tracker_status_get_is_paused_manually () &&
 	    !tracker_status_get_is_paused_for_io ()) {
-		org_freedesktop_Tracker_Indexer_continue_async (g_object_ref (proxy), 
+		org_freedesktop_Tracker_Indexer_continue_async (g_object_ref (proxy),
 								indexer_continue_async_cb,
 								NULL);
 	}
@@ -195,7 +195,7 @@ indexer_resume_destroy_notify_cb (gpointer user_data)
 
 static void
 dbus_request_new_cb (guint    request_id,
-		     gpointer user_data) 
+		     gpointer user_data)
 {
 	DBusGProxy *proxy;
 	GError     *error = NULL;
@@ -214,12 +214,12 @@ dbus_request_new_cb (guint    request_id,
 		g_source_remove (indexer_resume_timeout_id);
 		indexer_resume_timeout_id = 0;
 	}
-	
+
 	/* Second reset it so we have another 10 seconds before
 	 * continuing.
 	 */
 	proxy = tracker_dbus_indexer_get_proxy ();
-	indexer_resume_timeout_id = 
+	indexer_resume_timeout_id =
 		g_timeout_add_seconds_full (G_PRIORITY_DEFAULT,
 					    INDEXER_PAUSE_TIME_FOR_REQUESTS,
 					    indexer_resume_cb,
@@ -233,7 +233,7 @@ dbus_request_new_cb (guint    request_id,
 		g_message ("Tracker is already manually paused, doing nothing");
 		return;
 	}
-	
+
 	/* We really only do this because of the chance that we tell
 	 * the indexer to pause but don't get notified until the next
 	 * request. When we are notified of being paused,
@@ -273,7 +273,7 @@ tracker_dbus_init (TrackerConfig *config)
 	}
 
 	/* Register request handler so we can pause the indexer */
-	tracker_dbus_request_add_hook (dbus_request_new_cb, 
+	tracker_dbus_request_add_hook (dbus_request_new_cb,
 				       NULL,
 				       NULL);
 
@@ -328,7 +328,7 @@ tracker_dbus_register_objects (TrackerConfig    *config,
 		return FALSE;
 	}
 
-        dbus_register_object (connection, 
+        dbus_register_object (connection,
 			      proxy,
 			      G_OBJECT (object),
 			      &dbus_glib_tracker_daemon_object_info,
@@ -342,7 +342,7 @@ tracker_dbus_register_objects (TrackerConfig    *config,
 		return FALSE;
 	}
 
-        dbus_register_object (connection, 
+        dbus_register_object (connection,
 			      proxy,
 			      G_OBJECT (object),
 			      &dbus_glib_tracker_files_object_info,
@@ -356,7 +356,7 @@ tracker_dbus_register_objects (TrackerConfig    *config,
 		return FALSE;
 	}
 
-        dbus_register_object (connection, 
+        dbus_register_object (connection,
 			      proxy,
 			      G_OBJECT (object),
 			      &dbus_glib_tracker_keywords_object_info,
@@ -370,7 +370,7 @@ tracker_dbus_register_objects (TrackerConfig    *config,
 		return FALSE;
 	}
 
-        dbus_register_object (connection, 
+        dbus_register_object (connection,
 			      proxy,
 			      G_OBJECT (object),
 			      &dbus_glib_tracker_metadata_object_info,
@@ -384,7 +384,7 @@ tracker_dbus_register_objects (TrackerConfig    *config,
 		return FALSE;
 	}
 
-        dbus_register_object (connection, 
+        dbus_register_object (connection,
 			      proxy,
 			      G_OBJECT (object),
 			      &dbus_glib_tracker_search_object_info,
@@ -399,7 +399,7 @@ tracker_dbus_register_objects (TrackerConfig    *config,
 			return FALSE;
 		}
 
-		dbus_register_object (connection, 
+		dbus_register_object (connection,
 				      proxy,
 				      G_OBJECT (object),
 				      &dbus_glib_tracker_xesam_object_info,
@@ -409,16 +409,16 @@ tracker_dbus_register_objects (TrackerConfig    *config,
 		dbus_g_proxy_add_signal (proxy, "NameOwnerChanged",
 					 G_TYPE_STRING, G_TYPE_STRING,
 					 G_TYPE_STRING, G_TYPE_INVALID);
-		
-		dbus_g_proxy_connect_signal (proxy, "NameOwnerChanged", 
-					     G_CALLBACK (tracker_xesam_name_owner_changed), 
+
+		dbus_g_proxy_connect_signal (proxy, "NameOwnerChanged",
+					     G_CALLBACK (tracker_xesam_name_owner_changed),
 					     g_object_ref (G_OBJECT (object)),
 					     dbus_name_owner_changed);
         }
-	
+
         /* Reverse list since we added objects at the top each time */
         objects = g_slist_reverse (objects);
-  
+
         return TRUE;
 }
 
@@ -426,7 +426,7 @@ GObject *
 tracker_dbus_get_object (GType type)
 {
         GSList *l;
-	
+
         for (l = objects; l; l = l->next) {
                 if (G_OBJECT_TYPE (l->data) == type) {
                         return l->data;
@@ -447,15 +447,15 @@ tracker_dbus_indexer_get_proxy (void)
 	if (!proxy_for_indexer) {
 		/* Get proxy for Service / Path / Interface of the indexer */
 		proxy_for_indexer = dbus_g_proxy_new_for_name (connection,
-							       "org.freedesktop.Tracker.Indexer", 
+							       "org.freedesktop.Tracker.Indexer",
  							       "/org/freedesktop/Tracker/Indexer",
 							       "org.freedesktop.Tracker.Indexer");
-		
+
 		if (!proxy_for_indexer) {
 			g_critical ("Couldn't create a DBusGProxy to the indexer service");
 			return NULL;
 		}
-			 
+
 		/* Add marshallers */
 		dbus_g_object_register_marshaller (tracker_marshal_VOID__DOUBLE_STRING_UINT_UINT,
 						   G_TYPE_NONE,

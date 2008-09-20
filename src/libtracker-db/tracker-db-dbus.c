@@ -24,7 +24,7 @@
 #include "tracker-db-dbus.h"
 
 static gchar **
-dbus_query_result_to_strv (TrackerDBResultSet *result_set, 
+dbus_query_result_to_strv (TrackerDBResultSet *result_set,
 			   gint                column,
 			   gint               *count,
 			   gboolean            numeric)
@@ -44,7 +44,7 @@ dbus_query_result_to_strv (TrackerDBResultSet *result_set,
 
                 rows = tracker_db_result_set_get_n_rows (result_set);
 		strv = g_new (gchar*, rows + 1);
-		
+
 		while (valid) {
 			if (numeric) {
 				tracker_db_result_set_get (result_set, column, &value, -1);
@@ -52,12 +52,12 @@ dbus_query_result_to_strv (TrackerDBResultSet *result_set,
 			} else {
 				tracker_db_result_set_get (result_set, column, &str, -1);
 			}
-			
+
 			if (!str) {
 				valid = tracker_db_result_set_iter_next (result_set);
 				continue;
 			}
-			
+
 			if (!g_utf8_validate (str, -1, NULL)) {
 				g_warning ("Could not add string:'%s' to GStrv, invalid UTF-8", str);
 				g_free (str);
@@ -79,7 +79,7 @@ dbus_query_result_to_strv (TrackerDBResultSet *result_set,
 }
 
 gchar **
-tracker_dbus_query_result_to_strv (TrackerDBResultSet *result_set, 
+tracker_dbus_query_result_to_strv (TrackerDBResultSet *result_set,
 				   gint                column,
                                    gint               *count)
 {
@@ -87,7 +87,7 @@ tracker_dbus_query_result_to_strv (TrackerDBResultSet *result_set,
 }
 
 gchar **
-tracker_dbus_query_result_numeric_to_strv (TrackerDBResultSet *result_set, 
+tracker_dbus_query_result_numeric_to_strv (TrackerDBResultSet *result_set,
 					   gint                column,
 					   gint               *count)
 {
@@ -95,7 +95,7 @@ tracker_dbus_query_result_numeric_to_strv (TrackerDBResultSet *result_set,
 }
 
 gchar **
-tracker_dbus_query_result_columns_to_strv (TrackerDBResultSet *result_set, 
+tracker_dbus_query_result_columns_to_strv (TrackerDBResultSet *result_set,
 					   gint offset_column,
 					   gint until_column,
 					   gboolean rewind)
@@ -246,7 +246,7 @@ tracker_dbus_query_result_to_ptr_array (TrackerDBResultSet *result_set)
 			g_value_init (&transform, G_TYPE_STRING);
 
 			_tracker_db_result_set_get_value (result_set, i, &value);
-			
+
 			if (g_value_transform (&value, &transform)) {
 				str = g_value_dup_string (&transform);
 

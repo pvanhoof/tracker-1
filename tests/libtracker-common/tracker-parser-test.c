@@ -6,8 +6,8 @@
 #include <libtracker-common/tracker-language.h>
 #include <libtracker-common/tracker-parser.h>
 
-/* 
- * len(word) > 3 : 6 words  
+/*
+ * len(word) > 3 : 6 words
  * longest word: 10 chars
  * stop words ("here", "a", "of", "various", "to", "after")
  */
@@ -24,11 +24,11 @@ assert_key_length (gpointer key, gpointer value, gpointer user_data)
         g_assert_cmpint (strlen (key), <=, max_length);
 }
 
-/* 
+/*
  * Test max_words_to_index and min_length of the word
  */
-static void 
-test_parser_text_max_words_to_index (void) 
+static void
+test_parser_text_max_words_to_index (void)
 {
         GHashTable *result = NULL;
 
@@ -40,7 +40,7 @@ test_parser_text_max_words_to_index (void)
                                       18, /* max length of the word */
                                       3, /* min length of the word */
                                       FALSE, FALSE); /* Filter / Delimit */
-        
+
         g_assert_cmpint (g_hash_table_size (result), ==, 5);
 
         g_hash_table_unref (result);
@@ -71,7 +71,7 @@ test_parser_text_max_length (void)
 }
 
 /*
- * Filter numbers 
+ * Filter numbers
  */
 static void
 test_parser_text_filter_numbers_stop_words (void)
@@ -117,7 +117,7 @@ static void
 test_parser_stop_words (void)
 {
         GHashTable *stop_words, *result = NULL;
-        
+
         /* Check we have the default stop words */
         stop_words = tracker_language_get_stop_words (language);
         g_assert (stop_words);
@@ -134,7 +134,7 @@ test_parser_stop_words (void)
                                       100, /* max words to index */
                                       100, /* max length of the word */
                                       1, /* min length of the word */
-                                      TRUE, FALSE); /* Filter / Delimit */        
+                                      TRUE, FALSE); /* Filter / Delimit */
 }
 
 static void
@@ -153,7 +153,7 @@ test_parser_text_fast (void)
 
         result = tracker_parser_text_fast (result, contents, 1);
         g_assert_cmpint (g_hash_table_size (result), ==, 8);
-        
+
 }
 
 int
@@ -185,7 +185,7 @@ main (int argc, char **argv) {
                          test_parser_text_fast);
 
         result = g_test_run ();
-        
+
         /* End */
         g_object_unref (config);
         g_object_unref (language);

@@ -272,7 +272,7 @@ internal_sqlite3_function (sqlite3_context *context,
 			break;
 		}
 		default:
-			g_critical ("Unknown sqlite3 database value type:%d", 
+			g_critical ("Unknown sqlite3 database value type:%d",
                                     sqlite3_value_type (argv[i]));
 		}
 	}
@@ -390,9 +390,9 @@ create_result_set_from_stmt (TrackerDBInterfaceSqlite  *interface,
 	}
 
 	if (result != SQLITE_DONE) {
-		
+
 		g_hash_table_foreach (priv->statements, foreach_print_error, stmt);
-		
+
 		if (result == SQLITE_CORRUPT) {
 			g_critical ("Sqlite3 database:'%s' is corrupt, can not live without it",
                                     priv->filename);
@@ -436,7 +436,7 @@ get_stored_stmt (TrackerDBInterfaceSqlite *db_interface,
 		procedure = g_hash_table_lookup (priv->procedures, procedure_name);
 
 		if (!procedure) {
-			g_critical ("Sqlite3 prepared query:'%s' was not found", 
+			g_critical ("Sqlite3 prepared query:'%s' was not found",
                                     procedure_name);
 			return NULL;
 		}

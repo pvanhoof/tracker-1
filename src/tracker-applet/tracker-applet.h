@@ -54,7 +54,7 @@ tray_icon_get_type (void);
 void
 tray_icon_set_tooltip (TrayIcon *icon, const gchar *format, ...);
 
-void 
+void
 tray_icon_show_message (TrayIcon *icon, const gchar *message, ...);
 
 #endif

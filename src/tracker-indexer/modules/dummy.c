@@ -65,7 +65,7 @@ tracker_module_file_get_service_type (TrackerFile *file)
 {
         /* Implementing this function is optional.
          *
-         * Return the service type for the incoming path. 
+         * Return the service type for the incoming path.
          *
          * If this function is not implemented, the indexer will use
          * the name of the module (tracker_module_get_name) as service.

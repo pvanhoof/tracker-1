@@ -50,11 +50,11 @@ struct _TrackerTagBarClass
 
 GtkWidget *tracker_tag_bar_new (void);
 
-/* 
-uri has to be a local uri i.e. 
-'/home/john/doe.mp3' not 'file:///home/john/doe.mp3' 
-*/ 
-void 	   tracker_tag_bar_set_uri (TrackerTagBar 		*bar, 	
+/*
+uri has to be a local uri i.e.
+'/home/john/doe.mp3' not 'file:///home/john/doe.mp3'
+*/
+void 	   tracker_tag_bar_set_uri (TrackerTagBar 		*bar,
 				    ServiceType			type,
 				    const gchar 		*uri
 				   );

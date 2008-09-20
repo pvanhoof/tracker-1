@@ -36,12 +36,12 @@ static gchar         *path;
 static gchar        **fields;
 
 static GOptionEntry   entries[] = {
-	{ "path", 'p', 0, G_OPTION_ARG_STRING, &path, 
-          N_("Path to use for directory to get metadata information about"), 
+	{ "path", 'p', 0, G_OPTION_ARG_STRING, &path,
+          N_("Path to use for directory to get metadata information about"),
           NULL,
         },
-	{ G_OPTION_REMAINING, 0, 0, 
-          G_OPTION_ARG_STRING_ARRAY, &fields, 
+	{ G_OPTION_REMAINING, 0, 0,
+          G_OPTION_ARG_STRING_ARRAY, &fields,
           NULL,
           NULL
         },
@@ -54,23 +54,23 @@ print_header (gchar **fields_resolved)
         gint cols;
         gint width;
         gint i;
-        
+
         /* Headers */
         g_print ("  %-*.*s ",
                  MAX_FILENAME_WIDTH,
                  MAX_FILENAME_WIDTH,
                  _("Filename"));
-        
+
         width  = MAX_FILENAME_WIDTH;
         width += 1;
-        
+
         cols = g_strv_length (fields_resolved);
-        
+
         for (i = 0; i < cols; i++) {
-                g_print ("%s%s", 
+                g_print ("%s%s",
                          fields_resolved[i],
                          i < cols - 1 ? ", " : "");
-                
+
                 width += g_utf8_strlen (fields_resolved[i], -1);
                 width += i < cols - 1 ? 2 : 0;
         }
@@ -85,7 +85,7 @@ print_header (gchar **fields_resolved)
 }
 
 static void
-get_meta_table_data (gpointer data, 
+get_meta_table_data (gpointer data,
                      gpointer user_data)
 {
 	gchar **meta;
@@ -102,11 +102,11 @@ get_meta_table_data (gpointer data,
         basename = g_path_get_basename (*meta);
         len = g_utf8_strlen (basename, -1);
         cols = g_strv_length (meta);
-        
+
 	for (p = meta, i = 0; *p; p++, i++) {
                 if (i == 0) {
-			g_print ("  %-*.*s", 
-                                 MAX (len, MAX_FILENAME_WIDTH), 
+			g_print ("  %-*.*s",
+                                 MAX (len, MAX_FILENAME_WIDTH),
                                  MAX (len, MAX_FILENAME_WIDTH),
                                  basename);
 
@@ -118,10 +118,10 @@ get_meta_table_data (gpointer data,
                                         g_print (" ");
                                 }
                         }
-                        
+
                         g_print (" (");
                 } else {
-                        g_print ("%s%s", 
+                        g_print ("%s%s",
                                  *p,
                                  i < cols - 1 ? ", " : "");
                 }
@@ -132,8 +132,8 @@ get_meta_table_data (gpointer data,
 	g_print (")\n");
 }
 
-int 
-main (int argc, char **argv) 
+int
+main (int argc, char **argv)
 {
 	TrackerClient   *client;
 	GOptionContext  *context;
@@ -149,13 +149,13 @@ main (int argc, char **argv)
 	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
 	textdomain (GETTEXT_PACKAGE);
 
-	/* Translators: this messagge will apper immediately after the  
-         * usage string - Usage: COMMAND [OPTION]... <THIS_MESSAGE>     
+	/* Translators: this messagge will apper immediately after the
+         * usage string - Usage: COMMAND [OPTION]... <THIS_MESSAGE>
          */
 	context = g_option_context_new (_("Retrieve meta-data information about files in a directory"));
 
-	/* Translators: this message will appear after the usage string 
-	 * and before the list of options, showing an usage example.   
+	/* Translators: this message will appear after the usage string
+	 * and before the list of options, showing an usage example.
          */
         summary = g_strconcat (_("To use multiple meta-data types simply list them, for example:"),
                                "\n"
@@ -214,26 +214,26 @@ main (int argc, char **argv)
 	path_in_utf8 = g_filename_to_utf8 (path, -1, NULL, NULL, &error);
         if (error) {
 		g_printerr ("%s:'%s', %s\n",
-                            _("Could not get UTF-8 path from path"), 
+                            _("Could not get UTF-8 path from path"),
                             path,
                             error->message);
                 g_error_free (error);
                 tracker_disconnect (client);
-        
+
 		return EXIT_FAILURE;
 	}
 
-	array = tracker_files_get_metadata_for_files_in_folder (client, 
-                                                                time (NULL), 
-                                                                path_in_utf8, 
-                                                                fields_resolved, 
+	array = tracker_files_get_metadata_for_files_in_folder (client,
+                                                                time (NULL),
+                                                                path_in_utf8,
+                                                                fields_resolved,
                                                                 &error);
 
 	g_free (path_in_utf8);
 
 	if (error) {
 		g_printerr ("%s:'%s', %s\n",
-                            _("Could not get meta-data for files in directory"), 
+                            _("Could not get meta-data for files in directory"),
                             path,
                             error->message);
                 g_error_free (error);
@@ -244,16 +244,16 @@ main (int argc, char **argv)
 	}
 
         if (!array) {
-                g_print ("%s\n", 
+                g_print ("%s\n",
 			 _("No meta-data found for files in that directory"));
         } else {
                 g_print ("%s:\n",
                          _("Results"));
 
                 print_header (fields_resolved);
-                
-                g_ptr_array_foreach (array, 
-                                     get_meta_table_data, 
+
+                g_ptr_array_foreach (array,
+                                     get_meta_table_data,
                                      fields_resolved);
                 g_ptr_array_free (array, TRUE);
         }

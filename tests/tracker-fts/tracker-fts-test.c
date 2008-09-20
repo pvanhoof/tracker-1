@@ -27,10 +27,10 @@
 #include <glib.h>
 #include <glib-object.h>
 
-static gint 
-callback (void   *NotUsed, 
-          gint    argc, 
-          gchar **argv, 
+static gint
+callback (void   *NotUsed,
+          gint    argc,
+          gchar **argv,
           gchar **azColName)
 {
 	gint i;
@@ -38,28 +38,28 @@ callback (void   *NotUsed,
   	for (i = 0; i < argc; i++) {
     		printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
   	}
-  
+
   	printf("\n");
 
   	return 0;
 }
 
 static void
-exec_sql (sqlite3     *db, 
+exec_sql (sqlite3     *db,
           const gchar *sql)
 {
 	gchar *zErrMsg;
 	gint   rc;
 
         rc = sqlite3_exec (db, sql , callback, 0, &zErrMsg);
-	
+
   	if (rc != SQLITE_OK) {
     		g_printerr ("SQL error: %s\n", zErrMsg);
     		sqlite3_free (zErrMsg);
   	}
 }
 
-int 
+int
 main (int argc, char **argv)
 {
 	sqlite3  *db;
@@ -70,30 +70,30 @@ main (int argc, char **argv)
 
 	g_type_init ();
         g_thread_init (NULL);
-        
+
 	if (argc != 2) {
 		g_printerr ("Usage: %s MATCH_TERM\n", argv[0]);
 		g_printerr ("EG: %s stew\n", argv[0]);
 		return EXIT_FAILURE;
 	}
-	
+
 	db_exists = g_file_test ("/tmp/test.db", G_FILE_TEST_EXISTS);
-	
+
 	rc = sqlite3_open ("/tmp/test.db", &db);
 	if (rc) {
 		g_printerr ("Can't open database: %s\n", sqlite3_errmsg(db));
 		sqlite3_close(db);
 		return EXIT_FAILURE;
 	}
-	
+
 	sqlite3_enable_load_extension (db, 1);
 	sqlite3_load_extension (db, "tracker-fts.so", NULL, &st);
-	
+
 	if (st) {
 		fprintf(stderr, "SQL error: %s\n", st);
 		sqlite3_free(st);
 	}
-	
+
 	if (!db_exists) {
 		exec_sql (db, "create virtual table recipe using trackerfts (name, ingredients)");
 		exec_sql (db, "insert into recipe (name, ingredients) values ('broccoli stew', 'broccoli,peppers,cheese and tomatoes')");
@@ -101,11 +101,11 @@ main (int argc, char **argv)
 		exec_sql (db, "insert into recipe (name, ingredients) values ('broccoli pie', 'broccoli,cheese,onions and flour.')");
 		exec_sql (db, "insert into recipe (name, ingredients) values ('pumpkin pie', 'pumpkin,sugar,flour and butter.')");
 	}
-		
+
 	sql = g_strdup_printf ("select rowid, name, ingredients, snippet(recipe), offsets(recipe) from recipe where recipe match '%s'", argv[1]);
 	exec_sql (db, sql);
 	g_free (sql);
-		
+
 	sqlite3_close(db);
 
 	return EXIT_SUCCESS;

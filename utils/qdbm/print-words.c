@@ -30,13 +30,13 @@ static gchar        *filename;
 static gboolean      print_services;
 
 static GOptionEntry  entries[] = {
-	{ "index-file", 'f', 0, 
-	  G_OPTION_ARG_STRING, &filename, 
-	  "QDBM index file", 
+	{ "index-file", 'f', 0,
+	  G_OPTION_ARG_STRING, &filename,
+	  "QDBM index file",
 	  NULL },
-	{ "print-services", 's', 0, 
-	  G_OPTION_ARG_NONE, &print_services, 
-	  "Print service ID and service type ID for each word", 
+	{ "print-services", 's', 0,
+	  G_OPTION_ARG_NONE, &print_services,
+	  "Print service ID and service type ID for each word",
 	  NULL },
 	{ NULL }
 };
@@ -83,15 +83,15 @@ load_terms_from_index (gchar *filename)
 
     if (depot == NULL) {
 	   g_print ("Unable to open file: %s "
-                    "(Could be a lock problem: is tracker running?)\n", 
+                    "(Could be a lock problem: is tracker running?)\n",
                     filename);
-	   g_print ("Using version %s of qdbm\n", 
+	   g_print ("Using version %s of qdbm\n",
                     dpversion);
 	   return;
     }
 
     dpiterinit (depot);
-    
+
     key = dpiternext (depot, NULL);
 
     while (key != NULL) {
@@ -100,7 +100,7 @@ load_terms_from_index (gchar *filename)
             if (print_services) {
                     results = get_word_hits (depot, key, &hits);
                     for (i = 0; i < hits; i++) {
-                            g_print (" (id:%d  t:%d s:%d) ", 
+                            g_print (" (id:%d  t:%d s:%d) ",
                                      tracker_db_index_item_get_id (&results[i]),
                                      tracker_db_index_item_get_service_type (&results[i]),
                                      tracker_db_index_item_get_score (&results[i]));
@@ -141,9 +141,9 @@ main (gint argc, gchar** argv)
 		return EXIT_FAILURE;
 	}
 
-        if (!filename) { 
+        if (!filename) {
                 gchar *help;
-                
+
                 help = g_option_context_get_help (context, TRUE, NULL);
                 g_printerr (help);
 

@@ -1,5 +1,5 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
-/* 
+/*
  * Copyright (C) 2006, Mr Jamie McCracken (jamiemcc@gnome.org)
  * Copyright (C) 2008, Nokia (urho.konttori@nokia.com)
  *
@@ -141,7 +141,7 @@ tracker_hal_class_init (TrackerHalClass *klass)
                                                                "There is a battery on this machine",
                                                                FALSE,
                                                                G_PARAM_READABLE));
-       
+
 	g_type_class_add_private (object_class, sizeof (TrackerHalPriv));
 }
 
@@ -181,8 +181,8 @@ tracker_hal_init (TrackerHal *hal)
                 return;
         }
 
-        dbus_connection_setup_with_g_main (connection, NULL);	
-        
+        dbus_connection_setup_with_g_main (connection, NULL);
+
 	priv->context = libhal_ctx_new ();
 
 	if (!priv->context) {
@@ -207,7 +207,7 @@ tracker_hal_init (TrackerHal *hal)
                 return;
         }
 
-       
+
         /* Volume and property notification callbacks */
         g_message ("HAL monitors set for devices added/removed/mounted/umounted...");
 	libhal_ctx_set_device_added (priv->context, hal_device_added_cb);
@@ -289,9 +289,9 @@ hal_setup_devices (TrackerHal *hal)
 
 	dbus_error_init (&error);
 
-        devices = libhal_find_device_by_capability (priv->context, 
-                                                    DEVICE_VOLUME, 
-                                                    &num, 
+        devices = libhal_find_device_by_capability (priv->context,
+                                                    DEVICE_VOLUME,
+                                                    &num,
                                                     &error);
 
 	if (dbus_error_is_set (&error)) {
@@ -302,18 +302,18 @@ hal_setup_devices (TrackerHal *hal)
 	}
 
         if (!devices || !devices[0]) {
-                g_message ("HAL devices not found with 'volume' capability"); 
+                g_message ("HAL devices not found with 'volume' capability");
                 return TRUE;
         }
 
         for (p = devices; *p; p++) {
                 LibHalVolume *volume;
-                
+
                 volume = libhal_volume_from_udi (priv->context, *p);
                 if (!volume) {
                         continue;
                 }
-               
+
                 g_message ("HAL device found:\n"
 			   " - udi        : %s\n"
 			   " - mount point: %s\n"
@@ -321,7 +321,7 @@ hal_setup_devices (TrackerHal *hal)
 			   " - uuid       : %s\n"
 			   " - mounted    : %s\n"
 			   " - file system: %s\n"
-			   " - label      : %s", 
+			   " - label      : %s",
 			   libhal_volume_get_udi (volume),
 			   libhal_volume_get_mount_point (volume),
 			   libhal_volume_get_device_file (volume),
@@ -333,9 +333,9 @@ hal_setup_devices (TrackerHal *hal)
                 hal_device_add (hal, volume);
                 libhal_volume_free (volume);
         }
-        
+
         libhal_free_string_array (devices);
-        
+
         return TRUE;
 }
 
@@ -351,9 +351,9 @@ hal_setup_batteries (TrackerHal *hal)
 
 	dbus_error_init (&error);
 
-	devices = libhal_find_device_by_capability (priv->context, 
-                                                    DEVICE_AC_ADAPTER, 
-                                                    &num, 
+	devices = libhal_find_device_by_capability (priv->context,
+                                                    DEVICE_AC_ADAPTER,
+                                                    &num,
                                                     &error);
 
 	if (dbus_error_is_set (&error)) {
@@ -387,33 +387,33 @@ hal_setup_batteries (TrackerHal *hal)
                 } else {
                         g_message (" - Device '%s'", *p);
                 }
-        } 
+        }
 
         libhal_free_string_array (devices);
-        
+
         /* Make sure we watch changes to the battery use */
-        libhal_device_add_property_watch (priv->context, 
-                                          priv->battery_udi, 
+        libhal_device_add_property_watch (priv->context,
+                                          priv->battery_udi,
                                           &error);
-        
+
         if (dbus_error_is_set (&error)) {
                 g_critical ("Could not add device:'%s' to property watch, %s",
                                priv->battery_udi, error.message);
                 dbus_error_free (&error);
                 return FALSE;
         }
-        
+
         /* Get current state, are we using the battery now? */
-        priv->battery_in_use = !libhal_device_get_property_bool (priv->context, 
-                                                                 priv->battery_udi, 
-                                                                 PROP_AC_ADAPTER_ON, 
+        priv->battery_in_use = !libhal_device_get_property_bool (priv->context,
+                                                                 priv->battery_udi,
+                                                                 PROP_AC_ADAPTER_ON,
                                                                  NULL);
-	
+
 	g_message ("HAL reports system is currently powered by %s",
 		   priv->battery_in_use ? "battery" : "AC adapter");
 
 	g_object_notify (G_OBJECT (hal), "battery-in-use");
-	
+
 	return TRUE;
 }
 
@@ -431,13 +431,13 @@ hal_mount_point_add (TrackerHal  *hal,
                      mount_point,
 		     removable_device ? "yes" : "no");
 
-        g_hash_table_insert (priv->mounted_devices, 
-                             g_strdup (udi), 
+        g_hash_table_insert (priv->mounted_devices,
+                             g_strdup (udi),
                              g_strdup (mount_point));
 
 	if (removable_device) {
-		g_hash_table_insert (priv->removable_devices, 
-				     g_strdup (udi), 
+		g_hash_table_insert (priv->removable_devices,
+				     g_strdup (udi),
 				     g_strdup (mount_point));
 	}
 
@@ -457,15 +457,15 @@ hal_mount_point_remove (TrackerHal  *hal,
         if (!mount_point) {
                 return;
         }
-              
+
         g_message ("HAL device with mount point:'%s', removable:%s NO LONGER being tracked",
                      mount_point,
 		     g_hash_table_remove (priv->removable_devices, udi) ? "yes" : "no");
 
         g_signal_emit (hal, signals[SIG_MOUNT_POINT_REMOVED], 0, mount_point, NULL);
 
-        g_hash_table_remove (priv->mounted_devices, udi); 
-        g_hash_table_remove (priv->removable_devices, udi); 
+        g_hash_table_remove (priv->mounted_devices, udi);
+        g_hash_table_remove (priv->removable_devices, udi);
 }
 
 static const gchar *
@@ -507,7 +507,7 @@ hal_drive_type_to_string (LibHalDriveType type)
 	return "";
 }
 
-static gboolean 
+static gboolean
 hal_device_is_removable (TrackerHal  *hal,
 			 const gchar *device_file)
 {
@@ -525,10 +525,10 @@ hal_device_is_removable (TrackerHal  *hal,
         if (!drive) {
                 return FALSE;
         }
-	
+
 	removable = libhal_drive_uses_removable_media (drive);
         libhal_drive_free (drive);
-	
+
 	return removable;
 }
 
@@ -553,7 +553,7 @@ hal_device_should_be_tracked (TrackerHal  *hal,
         }
 
         /* From the list, the first one below seems to be the ONLY one
-         * to ignore: 
+         * to ignore:
          *
          * LIBHAL_DRIVE_TYPE_REMOVABLE_DISK        = 0x00,
          * LIBHAL_DRIVE_TYPE_DISK                  = 0x01,
@@ -570,7 +570,7 @@ hal_device_should_be_tracked (TrackerHal  *hal,
          * LIBHAL_DRIVE_TYPE_JAZ                   = 0x0c,
          * LIBHAL_DRIVE_TYPE_FLASHKEY              = 0x0d,
          * LIBHAL_DRIVE_TYPE_MO                    = 0x0e
-         * 
+         *
          */
 
 	drive_type = libhal_drive_get_type (drive);
@@ -579,7 +579,7 @@ hal_device_should_be_tracked (TrackerHal  *hal,
 	 * the machine, we simply track devices which are added or
 	 * removed in real time which we are interested in and which
 	 * are viable for tracking. CDROMs are too slow.
-	 */  
+	 */
 	eligible = TRUE;
 	eligible &= drive_type != LIBHAL_DRIVE_TYPE_DISK;
 	eligible &= drive_type != LIBHAL_DRIVE_TYPE_CDROM;
@@ -593,7 +593,7 @@ hal_device_should_be_tracked (TrackerHal  *hal,
                 g_message ("HAL device is eligible, type is '%s'",
 			   hal_drive_type_to_string (drive_type));
 	}
-        
+
         return eligible;
 }
 
@@ -627,25 +627,25 @@ hal_device_add (TrackerHal   *hal,
 
         /* Make sure we watch changes to the mount/umount state */
         libhal_device_add_property_watch (priv->context, udi, &error);
-        
+
         if (dbus_error_is_set (&error)) {
                 g_critical ("Could not add device property watch for udi:'%s', %s",
                                udi, error.message);
                 dbus_error_free (&error);
                 return FALSE;
         }
-        
-        g_hash_table_insert (priv->all_devices, 
-                             g_strdup (udi), 
+
+        g_hash_table_insert (priv->all_devices,
+                             g_strdup (udi),
                              g_strdup (device_file));
 
         if (mount_point) {
-                hal_mount_point_add (hal, 
-				     udi, 
-				     mount_point, 
+                hal_mount_point_add (hal,
+				     udi,
+				     mount_point,
 				     hal_device_is_removable (hal, device_file));
         }
-       
+
         return TRUE;
 }
 
@@ -672,7 +672,7 @@ hal_device_added_cb (LibHalContext *context,
                      " - uuid       : %s\n"
                      " - mounted    : %s\n"
                      " - file system: %s\n"
-                     " - label      : %s", 
+                     " - label      : %s",
                      udi,
                      libhal_volume_get_mount_point (volume),
                      libhal_volume_get_device_file (volume),
@@ -706,25 +706,25 @@ hal_device_removed_cb (LibHalContext *context,
         }
 
         mount_point = g_hash_table_lookup (priv->mounted_devices, udi);
-        
+
         g_message ("HAL device removed:\n"
                      " - udi        : %s\n"
                      " - mount point: %s\n"
                      " - device_file: %s",
-                     udi, 
+                     udi,
                      mount_point,
                      device_file);
 
-        g_hash_table_remove (priv->all_devices, udi); 
-        
+        g_hash_table_remove (priv->all_devices, udi);
+
         hal_mount_point_remove (hal, udi);
 }
 
 static void
 hal_device_property_modified_cb (LibHalContext *context,
-                                 const char    *udi, 
+                                 const char    *udi,
                                  const char    *key,
-                                 dbus_bool_t    is_removed, 
+                                 dbus_bool_t    is_removed,
                                  dbus_bool_t    is_added)
 {
         TrackerHal     *hal;
@@ -751,9 +751,9 @@ hal_device_property_modified_cb (LibHalContext *context,
          * device being mounted/umounted.
          */
         if (device_is_battery) {
-                priv->battery_in_use = !libhal_device_get_property_bool (priv->context, 
-                                                                         priv->battery_udi, 
-                                                                         PROP_AC_ADAPTER_ON, 
+                priv->battery_in_use = !libhal_device_get_property_bool (priv->context,
+                                                                         priv->battery_udi,
+                                                                         PROP_AC_ADAPTER_ON,
                                                                          &error);
                 g_message ("HAL reports system is now powered by %s",
 			   priv->battery_in_use ? "battery" : "AC adapter");
@@ -768,16 +768,16 @@ hal_device_property_modified_cb (LibHalContext *context,
                 }
         } else {
                 gboolean is_mounted;
-               
-                g_message ("HAL device property change for udi:'%s' and key:'%s'", 
+
+                g_message ("HAL device property change for udi:'%s' and key:'%s'",
 			   udi, key);
-                
+
                 if (strcmp (key, PROP_IS_MOUNTED) != 0) {
                         return;
                 }
 
-                is_mounted = libhal_device_get_property_bool (context, 
-                                                              udi, 
+                is_mounted = libhal_device_get_property_bool (context,
+                                                              udi,
                                                               key,
                                                               &error);
 
@@ -791,7 +791,7 @@ hal_device_property_modified_cb (LibHalContext *context,
                         hal_mount_point_remove (hal, udi);
                         return;
                 }
-                       
+
                 if (is_mounted) {
                         LibHalVolume *volume;
                         const gchar  *mount_point;
@@ -804,9 +804,9 @@ hal_device_property_modified_cb (LibHalContext *context,
                         g_message ("HAL device with udi:'%s' is now mounted",
 				   udi);
 
-			hal_mount_point_add (hal, 
-					     udi, 
-					     mount_point, 
+			hal_mount_point_add (hal,
+					     udi,
+					     mount_point,
 					     hal_device_is_removable (hal, device_file));
 
                         libhal_volume_free (volume);
@@ -831,9 +831,9 @@ tracker_hal_get_battery_in_use (TrackerHal *hal)
         TrackerHalPriv *priv;
 
         g_return_val_if_fail (TRACKER_IS_HAL (hal), TRUE);
-        
+
         priv = GET_PRIV (hal);
-        
+
         return priv->battery_in_use;
 }
 
@@ -843,7 +843,7 @@ tracker_hal_get_battery_exists (TrackerHal *hal)
         TrackerHalPriv *priv;
 
         g_return_val_if_fail (TRACKER_IS_HAL (hal), TRUE);
-        
+
         priv = GET_PRIV (hal);
 
         return priv->battery_udi != NULL;
@@ -870,7 +870,7 @@ hal_get_mount_point_by_udi_foreach (gpointer key,
 			   udi);
                 return;
         }
-        
+
         mount_point = libhal_volume_get_mount_point (volume);
         is_mounted = libhal_volume_is_mounted (volume);
 
@@ -894,7 +894,7 @@ tracker_hal_get_mounted_directory_roots (TrackerHal *hal)
         gr.context = priv->context;
         gr.roots = NULL;
 
-        g_hash_table_foreach (priv->mounted_devices, 
+        g_hash_table_foreach (priv->mounted_devices,
                               hal_get_mount_point_by_udi_foreach,
                               &gr);
 
@@ -914,7 +914,7 @@ tracker_hal_get_removable_device_roots (TrackerHal *hal)
         gr.context = priv->context;
         gr.roots = NULL;
 
-        g_hash_table_foreach (priv->removable_devices, 
+        g_hash_table_foreach (priv->removable_devices,
                               hal_get_mount_point_by_udi_foreach,
                               &gr);
 

@@ -134,9 +134,9 @@ tracker_extract_tiff (const gchar *filename, GHashTable *metadata)
 	if (TIFFGetField(image, TIFFTAG_EXIFIFD, &exifOffset)) {
 
 		if (TIFFReadEXIFDirectory(image, exifOffset)) {
-			
+
 			for (tag = exiftags; tag->name; ++tag) {
-				
+
 				switch (tag->type) {
 				case TIFF_TAGTYPE_STRING:
 					if (!TIFFGetField(image, tag->tag, &buffer)) {
@@ -147,14 +147,14 @@ tracker_extract_tiff (const gchar *filename, GHashTable *metadata)
 					if (!TIFFGetField(image, tag->tag, &varui32)) {
 						continue;
 					}
-					
+
 					sprintf(buffer,"%i",varui16);
 					break;
 				case TIFF_TAGTYPE_UINT32:
 					if (!TIFFGetField(image, tag->tag, &varui32)) {
 						continue;
 					}
-					
+
 					sprintf(buffer,"%i",varui32);
 					break;
 				case TIFF_TAGTYPE_DOUBLE:
@@ -168,7 +168,7 @@ tracker_extract_tiff (const gchar *filename, GHashTable *metadata)
 					continue;
 					break;
 				}
-				
+
 				if (tag->post) {
 					g_hash_table_insert (metadata, g_strdup (tag->name),
 							     g_strdup ((*tag->post) (buffer)));
@@ -177,7 +177,7 @@ tracker_extract_tiff (const gchar *filename, GHashTable *metadata)
 							     g_strdup (buffer));
 				}
 			}
-			
+
 		}
 	}
 
@@ -207,7 +207,7 @@ tracker_extract_tiff (const gchar *filename, GHashTable *metadata)
 				if (!TIFFGetField(image, tag->tag, &vardouble)) {
 					continue;
 				}
-				
+
 				sprintf(buffer,"%f",vardouble);
 				break;
 			default:
@@ -225,7 +225,7 @@ tracker_extract_tiff (const gchar *filename, GHashTable *metadata)
 	}
 
 	TIFFClose(image);
-	
+
 }
 
 

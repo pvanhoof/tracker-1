@@ -103,8 +103,8 @@ static TrackerExtractorData data[] = {
 };
 
 static void
-caps_set (GObject           *object, 
-	  MetadataExtractor *extractor, 
+caps_set (GObject           *object,
+	  MetadataExtractor *extractor,
 	  const gchar       *type)
 {
 	GstPad	     *pad;
@@ -121,16 +121,16 @@ caps_set (GObject           *object,
 
 	if (s) {
 		if (!strcmp (type, "audio")) {
-			if ((extractor->audio_channels != -1 && 
+			if ((extractor->audio_channels != -1 &&
 			     extractor->audio_samplerate != -1) ||
 			    !(gst_structure_get_int (s, "channels", &extractor->audio_channels) &&
 			      gst_structure_get_int (s, "rate", &extractor->audio_samplerate))) {
 				return;
 			}
 		} else if (!strcmp (type, "video")) {
-			if ((extractor->video_fps_n != -1 && 
-			     extractor->video_fps_d != -1 && 
-			     extractor->video_width != -1 && 
+			if ((extractor->video_fps_n != -1 &&
+			     extractor->video_fps_d != -1 &&
+			     extractor->video_width != -1 &&
 			     extractor->video_height != -1) ||
 			    !(gst_structure_get_fraction (s, "framerate", &extractor->video_fps_n, &extractor->video_fps_d) &&
 			      gst_structure_get_int (s, "width", &extractor->video_width) &&
@@ -146,7 +146,7 @@ caps_set (GObject           *object,
 }
 
 static void
-caps_set_audio (GObject           *object, 
+caps_set_audio (GObject           *object,
 		MetadataExtractor *extractor)
 {
         g_return_if_fail (object);
@@ -156,7 +156,7 @@ caps_set_audio (GObject           *object,
 }
 
 static void
-caps_set_video (GObject           *object, 
+caps_set_video (GObject           *object,
 		MetadataExtractor *extractor)
 {
         g_return_if_fail (object);
@@ -234,8 +234,8 @@ update_stream_info (MetadataExtractor *extractor)
 }
 
 static void
-gst_bus_cb (GstBus            *bus, 
-	    GstMessage        *message, 
+gst_bus_cb (GstBus            *bus,
+	    GstMessage        *message,
 	    MetadataExtractor *extractor)
 {
 	GstMessageType msg_type;
@@ -281,8 +281,8 @@ gst_bus_cb (GstBus            *bus,
                 old_state = new_state = GST_STATE_NULL;
 
 		gst_message_parse_state_changed (message,
-						 &old_state, 
-						 &new_state, 
+						 &old_state,
+						 &new_state,
 						 NULL);
 
 		if (old_state == new_state) {
@@ -335,8 +335,8 @@ gst_bus_cb (GstBus            *bus,
 		GST_DEBUG ("Tags: %" GST_PTR_FORMAT, tag_list);
 
 		/* All tags */
-		result = gst_tag_list_merge (extractor->tagcache, 
-					     tag_list, 
+		result = gst_tag_list_merge (extractor->tagcache,
+					     tag_list,
 					     GST_TAG_MERGE_KEEP);
 
 		if (extractor->tagcache) {
@@ -346,7 +346,7 @@ gst_bus_cb (GstBus            *bus,
 		extractor->tagcache = result;
 
 		/* media-type-specific tags */
-		if (GST_IS_ELEMENT (message->src) && 
+		if (GST_IS_ELEMENT (message->src) &&
 		    (f = gst_element_get_factory (GST_ELEMENT (message->src)))) {
 			GstTagList  **cache;
 			const gchar  *klass;
@@ -361,8 +361,8 @@ gst_bus_cb (GstBus            *bus,
 			}
 
 			if (cache) {
-				result = gst_tag_list_merge (*cache, 
-							     tag_list, 
+				result = gst_tag_list_merge (*cache,
+							     tag_list,
 							     GST_TAG_MERGE_KEEP);
 				if (*cache) {
 					gst_tag_list_free (*cache);
@@ -383,8 +383,8 @@ gst_bus_cb (GstBus            *bus,
 }
 
 static void
-add_int64_info (GHashTable *metadata, 
-		gchar      *key, 
+add_int64_info (GHashTable *metadata,
+		gchar      *key,
 		gint64      info)
 {
 	gchar *str_info;
@@ -394,8 +394,8 @@ add_int64_info (GHashTable *metadata,
 }
 
 static void
-add_uint_info (GHashTable *metadata, 
-	       gchar      *key, 
+add_uint_info (GHashTable *metadata,
+	       gchar      *key,
 	       guint       info)
 {
 	gchar *str_info;
@@ -405,9 +405,9 @@ add_uint_info (GHashTable *metadata,
 }
 
 static void
-add_string_gst_tag (GHashTable  *metadata, 
-		    const gchar *key, 
-		    GstTagList  *tag_list, 
+add_string_gst_tag (GHashTable  *metadata,
+		    const gchar *key,
+		    GstTagList  *tag_list,
 		    const gchar *tag)
 {
 	gchar	 *s;
@@ -418,8 +418,8 @@ add_string_gst_tag (GHashTable  *metadata,
 
 	if (s) {
 		if (ret && s[0] != '\0') {
-			g_hash_table_insert (metadata, 
-					     g_strdup (key), 
+			g_hash_table_insert (metadata,
+					     g_strdup (key),
 					     s);
 		} else {
 			g_free (s);
@@ -429,8 +429,8 @@ add_string_gst_tag (GHashTable  *metadata,
 
 static void
 add_uint_gst_tag (GHashTable  *metadata,
-		  const gchar *key, 
-		  GstTagList  *tag_list, 
+		  const gchar *key,
+		  GstTagList  *tag_list,
 		  const gchar *tag)
 {
 	gboolean ret;
@@ -440,15 +440,15 @@ add_uint_gst_tag (GHashTable  *metadata,
 
 	if (ret) {
 		g_hash_table_insert (metadata,
-				     g_strdup (key), 
+				     g_strdup (key),
 				     g_strdup_printf ("%d", n));
 	}
 }
 
 static void
-add_double_gst_tag (GHashTable  *metadata, 
-		    const gchar *key, 
-		    GstTagList  *tag_list, 
+add_double_gst_tag (GHashTable  *metadata,
+		    const gchar *key,
+		    GstTagList  *tag_list,
 		    const gchar *tag)
 {
 	gboolean ret;
@@ -457,16 +457,16 @@ add_double_gst_tag (GHashTable  *metadata,
 	ret = gst_tag_list_get_double (tag_list, tag, &n);
 
 	if (ret) {
-		g_hash_table_insert (metadata, 
-				     g_strdup (key), 
+		g_hash_table_insert (metadata,
+				     g_strdup (key),
 				     g_strdup_printf ("%f", n));
 	}
 }
 
 static void
 add_year_of_gdate_gst_tag (GHashTable  *metadata,
-			   const gchar *key, 
-			   GstTagList  *tag_list, 
+			   const gchar *key,
+			   GstTagList  *tag_list,
 			   const gchar *tag)
 {
 	GDate	 *date;
@@ -479,8 +479,8 @@ add_year_of_gdate_gst_tag (GHashTable  *metadata,
 		gchar buf[10];
 
 		if (g_date_strftime (buf, 10, "%Y", date)) {
-			g_hash_table_insert (metadata, 
-					     g_strdup (key), 
+			g_hash_table_insert (metadata,
+					     g_strdup (key),
 					     g_strdup (buf));
 		}
 	}
@@ -503,9 +503,9 @@ get_media_duration (MetadataExtractor *extractor)
 
 	duration = -1;
 
-	if (gst_element_query_duration (extractor->playbin, 
-					&fmt, 
-					&duration) && 
+	if (gst_element_query_duration (extractor->playbin,
+					&fmt,
+					&duration) &&
 	    duration >= 0) {
 		return duration / GST_SECOND;
 	} else {
@@ -514,44 +514,44 @@ get_media_duration (MetadataExtractor *extractor)
 }
 
 static void
-extract_metadata (MetadataExtractor *extractor, 
+extract_metadata (MetadataExtractor *extractor,
 		  GHashTable        *metadata)
 {
         g_return_if_fail (extractor);
         g_return_if_fail (metadata);
 
 	if (extractor->audio_channels >= 0) {
-		add_uint_info (metadata, 
-			       g_strdup ("Audio:Channels"), 
+		add_uint_info (metadata,
+			       g_strdup ("Audio:Channels"),
 			       extractor->audio_channels);
 	}
 
 	if (extractor->audio_samplerate >= 0) {
-		add_uint_info (metadata, 
-			       g_strdup ("Audio:Samplerate"), 
+		add_uint_info (metadata,
+			       g_strdup ("Audio:Samplerate"),
 			       extractor->audio_samplerate);
 	}
 
 	if (extractor->video_height >= 0) {
 		if (extractor->mime == EXTRACT_MIME_IMAGE) {
-			add_uint_info (metadata, 
-				       g_strdup ("Image:Height"), 
+			add_uint_info (metadata,
+				       g_strdup ("Image:Height"),
 				       extractor->video_height);
 		} else {
-			add_uint_info (metadata, 
-				       g_strdup ("Video:Height"), 
+			add_uint_info (metadata,
+				       g_strdup ("Video:Height"),
 				       extractor->video_height);
 		}
 	}
 
 	if (extractor->video_width >= 0) {
 		if (extractor->mime == EXTRACT_MIME_IMAGE) {
-			add_uint_info (metadata, 
-				       g_strdup ("Image:Width"), 
+			add_uint_info (metadata,
+				       g_strdup ("Image:Width"),
 				       extractor->video_height);
 		} else {
-			add_uint_info (metadata, 
-				       g_strdup ("Video:Width"), 
+			add_uint_info (metadata,
+				       g_strdup ("Video:Width"),
 				       extractor->video_height);
 		}
 	}
@@ -589,7 +589,7 @@ extract_metadata (MetadataExtractor *extractor,
 
 		duration = get_media_duration (extractor);
 
-		if (extractor->mime == EXTRACT_MIME_IMAGE && 
+		if (extractor->mime == EXTRACT_MIME_IMAGE &&
 		    extractor->has_video) {
 			add_string_gst_tag (metadata, "Image:Title", extractor->tagcache, GST_TAG_TITLE);
 			add_string_gst_tag (metadata, "Image:Comments", extractor->tagcache, GST_TAG_COMMENT);
@@ -628,7 +628,7 @@ extract_metadata (MetadataExtractor *extractor,
 }
 
 static gboolean
-poll_for_state_change (MetadataExtractor *extractor, 
+poll_for_state_change (MetadataExtractor *extractor,
 		       GstState           state)
 {
 	GstBus         *bus;
@@ -639,9 +639,9 @@ poll_for_state_change (MetadataExtractor *extractor,
 
 	bus = gst_element_get_bus (extractor->playbin);
 
-	events = 
-		GST_MESSAGE_STATE_CHANGED | 
-		GST_MESSAGE_ERROR | 
+	events =
+		GST_MESSAGE_STATE_CHANGED |
+		GST_MESSAGE_ERROR |
 		GST_MESSAGE_EOS;
 
 	saved_events = extractor->ignore_messages_mask;
@@ -719,21 +719,21 @@ poll_for_state_change (MetadataExtractor *extractor,
 
  success:
 	/* State change succeeded */
-	GST_DEBUG ("state change to %s succeeded", 
+	GST_DEBUG ("state change to %s succeeded",
 		   gst_element_state_get_name (state));
 	extractor->ignore_messages_mask = saved_events;
 	return TRUE;
 
  timed_out:
 	/* It's taking a long time to open  */
-	GST_DEBUG ("state change to %s timed out, returning success", 
+	GST_DEBUG ("state change to %s timed out, returning success",
 		   gst_element_state_get_name (state));
 	extractor->ignore_messages_mask = saved_events;
 	return TRUE;
 
  error:
 	/* Already set *error */
-	GST_DEBUG ("error while waiting for state change to %s", 
+	GST_DEBUG ("error while waiting for state change to %s",
 		   gst_element_state_get_name (state));
 	extractor->ignore_messages_mask = saved_events;
 	return FALSE;
@@ -741,7 +741,7 @@ poll_for_state_change (MetadataExtractor *extractor,
 
 static void
 tracker_extract_gstreamer (const gchar *uri,
-			   GHashTable  *metadata, 
+			   GHashTable  *metadata,
 			   ExtractMime  type)
 {
 	MetadataExtractor *extractor;
@@ -803,19 +803,19 @@ tracker_extract_gstreamer (const gchar *uri,
 
 	/* Check that we have the minimum data. FIXME We should not need to do this */
 	if (!g_hash_table_lookup (metadata, "Audio:Title")) {
-		g_hash_table_insert (metadata, g_strdup ("Audio:Title"), g_strdup ("tracker:unknown"));	
+		g_hash_table_insert (metadata, g_strdup ("Audio:Title"), g_strdup ("tracker:unknown"));
 	}
 
 	if (!g_hash_table_lookup (metadata, "Audio:Album")) {
-		g_hash_table_insert (metadata, g_strdup ("Audio:Album"), g_strdup ("tracker:unknown"));	
+		g_hash_table_insert (metadata, g_strdup ("Audio:Album"), g_strdup ("tracker:unknown"));
 	}
 
 	if (!g_hash_table_lookup (metadata, "Audio:Artist")) {
-		g_hash_table_insert (metadata, g_strdup ("Audio:Artist"), g_strdup ("tracker:unknown"));	
+		g_hash_table_insert (metadata, g_strdup ("Audio:Artist"), g_strdup ("tracker:unknown"));
 	}
 
 	if (!g_hash_table_lookup (metadata, "Audio:Genre")) {
-		g_hash_table_insert (metadata, g_strdup ("Audio:Genre"), g_strdup ("tracker:unknown"));	
+		g_hash_table_insert (metadata, g_strdup ("Audio:Genre"), g_strdup ("tracker:unknown"));
 	}
 
 	/* Also clean up */

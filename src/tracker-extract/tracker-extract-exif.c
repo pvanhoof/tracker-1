@@ -77,12 +77,12 @@ fix_exposure_time (gchar *et)
 
 	if (sep) {
 		gdouble fraction = g_ascii_strtod (sep+1, NULL);
-			
-		if (fraction > 0) {	
+
+		if (fraction > 0) {
 			gdouble val = 1.0f / fraction;
 			char str_value[30];
-	
-			g_ascii_dtostr (str_value, 30, val); 
+
+			g_ascii_dtostr (str_value, 30, val);
 			return g_strdup (str_value);
 		}
 	}

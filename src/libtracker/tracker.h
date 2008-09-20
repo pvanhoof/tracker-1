@@ -22,9 +22,9 @@
 
 G_BEGIN_DECLS
 
-#include <dbus/dbus.h> 
-#include <dbus/dbus-glib-lowlevel.h> 
-#include <dbus/dbus-glib.h> 
+#include <dbus/dbus.h>
+#include <dbus/dbus-glib-lowlevel.h>
+#include <dbus/dbus-glib.h>
 
 typedef void (*TrackerArrayReply) (char **result, GError *error, gpointer user_data);
 typedef void (*TrackerHashTableReply) (GHashTable *result, GError *error, gpointer user_data);
@@ -37,10 +37,10 @@ typedef void (*TrackerVoidReply) (GError *error, gpointer user_data);
 
 
 typedef enum {
-        METADATA_STRING_INDEXABLE, 
-        METADATA_STRING, 
- 	METADATA_NUMERIC, 
-        METADATA_DATE 
+        METADATA_STRING_INDEXABLE,
+        METADATA_STRING,
+ 	METADATA_NUMERIC,
+        METADATA_DATE
 } MetadataTypes;
 
 typedef enum {
@@ -92,7 +92,7 @@ typedef struct {
 	DBusGProxy 	*proxy_keywords;
 	DBusGProxy 	*proxy_search;
 	DBusGProxy 	*proxy_files;
-	DBusGProxyCall  *last_pending_call; 
+	DBusGProxyCall  *last_pending_call;
 } TrackerClient;
 
 

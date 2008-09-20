@@ -45,7 +45,7 @@
 static gboolean
 create_thumbnails_dir (const gchar * const subdir)
 {
-        
+
 	gchar *thumbnails_dir = NULL;
         const gchar *home_dir;
 
@@ -122,7 +122,7 @@ valid_thumbnail_exists (const gchar *thumbnail_filename, const gchar *uri, const
 }
 
 static gboolean
-generate_thumbnail (const gchar *filename, const gchar *thumbnail_filename, const gchar *mime, gint size) 
+generate_thumbnail (const gchar *filename, const gchar *thumbnail_filename, const gchar *mime, gint size)
 {
 
         gchar    *thumbnailer;
@@ -184,7 +184,7 @@ ensure_correct_thumbnail (const gchar *uri, const gchar *thumbnail_filename, con
 	 * see, libpng doesn't allow you to just set metadata, you have to do
 	 * that when you create the file.  Therefore, we need to copy the newly
 	 * created thumbnail into a new one while setting the required attributes
-	 */	
+	 */
         g_assert ((fp = g_fopen (thumbnail_filename, "r")));
 	g_assert ((png_ptr = png_create_read_struct (PNG_LIBPNG_VER_STRING, NULL, NULL, NULL)));
 	g_assert ((info_ptr = png_create_info_struct (png_ptr)));
@@ -211,7 +211,7 @@ ensure_correct_thumbnail (const gchar *uri, const gchar *thumbnail_filename, con
 	}
 	png_read_image (png_ptr, row_pointers);
 	png_read_end (png_ptr, NULL);
-        
+
         png_destroy_info_struct (png_ptr, &info_ptr);
         png_destroy_read_struct (&png_ptr, NULL, NULL);
 	fclose (fp);
@@ -227,7 +227,7 @@ ensure_correct_thumbnail (const gchar *uri, const gchar *thumbnail_filename, con
 
                 png_init_io (png_ptr, fp);
 
-                png_set_IHDR (png_ptr, info_ptr, width, height, bit_depth, 
+                png_set_IHDR (png_ptr, info_ptr, width, height, bit_depth,
                               color_type, interlace_method, compression_method, filter_method);
 
                 if (palette && num_palette > 0)
@@ -248,7 +248,7 @@ ensure_correct_thumbnail (const gchar *uri, const gchar *thumbnail_filename, con
                 pngtext[2].text = "Tracker thumbnail factory";
                 pngtext[2].compression = PNG_TEXT_COMPRESSION_NONE;
                 png_set_text(png_ptr, info_ptr, pngtext, 3);
-                
+
                 png_write_info (png_ptr, info_ptr);
                 png_write_image (png_ptr, row_pointers);
                 png_write_end (png_ptr, info_ptr);
@@ -272,7 +272,7 @@ ensure_correct_thumbnail (const gchar *uri, const gchar *thumbnail_filename, con
 }
 
 static gboolean
-validate_args (gint argc, gchar **argv) 
+validate_args (gint argc, gchar **argv)
 {
         if (argc < 4) {
                 return FALSE;
@@ -293,7 +293,7 @@ validate_args (gint argc, gchar **argv)
  * argv[3] == requested size: "normal", "large", "preview"
  */
 
-gint 
+gint
 main (gint argc, gchar *argv[])
 {
 	gchar         *uri;

@@ -20,7 +20,7 @@
  * Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  * Boston, MA  02110-1301, USA.
  */
- 
+
 #ifndef TRACKER_UI_H
 #define TRACKER_UI_H
 
@@ -28,7 +28,7 @@
 #include <gtk/gtk.h>
 
 /**
- * The GtkTargetEntry to use as the drag type when 
+ * The GtkTargetEntry to use as the drag type when
  * dragging and dropping keywords
  **/
 const GtkTargetEntry KEYWORD_DRAG_TYPES[] = {

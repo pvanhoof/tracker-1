@@ -31,6 +31,6 @@ void     tracker_nfs_lock_shutdown (void);
 gboolean tracker_nfs_lock_obtain   (void);
 void     tracker_nfs_lock_release  (void);
 
-G_END_DECLS 
+G_END_DECLS
 
 #endif /* __LIBTRACKER_COMMON_NFS_LOCK_H__ */

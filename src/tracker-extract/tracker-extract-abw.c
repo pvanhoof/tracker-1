@@ -36,7 +36,7 @@
 
 #include "tracker-extract.h"
 
-static void extract_abw (const gchar *filename, 
+static void extract_abw (const gchar *filename,
                          GHashTable  *metadata);
 
 static TrackerExtractorData data[] = {
@@ -45,7 +45,7 @@ static TrackerExtractorData data[] = {
 };
 
 static void
-extract_abw (const gchar *filename, 
+extract_abw (const gchar *filename,
              GHashTable  *metadata)
 {
         gint  fd;
@@ -78,22 +78,22 @@ extract_abw (const gchar *filename,
 			}
 			else if (g_str_has_prefix (line, "<m key=\"dc.subject\">")) {
 				g_hash_table_insert (metadata,
-                                                     g_strdup ("Doc:Subject"), 
+                                                     g_strdup ("Doc:Subject"),
                                                      g_strdup (line + 20));
 			}
 			else if (g_str_has_prefix (line, "<m key=\"dc.creator\">")) {
 				g_hash_table_insert (metadata,
-                                                     g_strdup ("Doc:Author"), 
+                                                     g_strdup ("Doc:Author"),
                                                      g_strdup (line + 20));
 			}
 			else if (g_str_has_prefix (line, "<m key=\"abiword.keywords\">")) {
 				g_hash_table_insert (metadata,
-                                                     g_strdup ("Doc:Keywords"), 
+                                                     g_strdup ("Doc:Keywords"),
                                                      g_strdup (line + 26));
 			}
 			else if (g_str_has_prefix (line, "<m key=\"dc.description\">")) {
 				g_hash_table_insert (metadata,
-                                                     g_strdup ("Doc:Comments"), 
+                                                     g_strdup ("Doc:Comments"),
                                                      g_strdup (line + 24));
 			}
 

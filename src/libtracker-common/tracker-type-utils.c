@@ -148,7 +148,7 @@ tracker_date_format (const gchar *timestamp)
 		return g_strdup (buf);
 	} else if (len == 14) {
 		/* Check for pdf format EG 20050315113224-08'00' or
-		 * 20050216111533Z 
+		 * 20050216111533Z
 		 */
 		buf[0] = timestamp[0];
 		buf[1] = timestamp[1];
@@ -303,7 +303,7 @@ gchar *
 tracker_date_to_time_string (const gchar  *time_string)
 {
 	gchar *dvalue;
-	
+
 	dvalue = tracker_date_format (time_string);
 
 	if (dvalue) {
@@ -314,10 +314,10 @@ tracker_date_to_time_string (const gchar  *time_string)
 
 		if (time != -1) {
 			return tracker_gint_to_string (time);
-		} 
+		}
 	}
 
-	return NULL;	
+	return NULL;
 }
 
 static gboolean
@@ -390,13 +390,13 @@ is_valid_8601_datetime (const gchar *timestamp)
 	} else {
 		if (len > 20) {
 			/* Format must be YYYY-MM-DDThh:mm:ss+xx  or
-			 * YYYY-MM-DDThh:mm:ss+xx:yy 
-			 */ 
+			 * YYYY-MM-DDThh:mm:ss+xx:yy
+			 */
 			if (len < 22 || len > 25) {
 				return FALSE;
 			}
 
-			if (timestamp[19] != '+' && 
+			if (timestamp[19] != '+' &&
 			    timestamp[19] != '-') {
 				return FALSE;
 			}
@@ -421,8 +421,8 @@ tracker_string_to_date (const gchar *timestamp)
         g_return_val_if_fail (timestamp, -1);
 
 	/* We should have a valid iso 8601 date in format
-	 * YYYY-MM-DDThh:mm:ss with optional TZ 
-	 */ 
+	 * YYYY-MM-DDThh:mm:ss with optional TZ
+	 */
         if (!is_valid_8601_datetime (timestamp)) {
 		return -1;
 	}
@@ -444,8 +444,8 @@ tracker_string_to_date (const gchar *timestamp)
 	}
 
 	if (*timestamp++ != 'T') {
-		g_critical ("Date validation failed for '%s' st '%c'", 
-			    timestamp, 
+		g_critical ("Date validation failed for '%s' st '%c'",
+			    timestamp,
 			    *timestamp);
 		return -1;
 	}
@@ -471,7 +471,7 @@ tracker_string_to_date (const gchar *timestamp)
 	t  = mktime (&tm);
         t -= timezone;
 
-	if (*timestamp == '+' || 
+	if (*timestamp == '+' ||
 	    *timestamp == '-') {
 		gint sign;
 
@@ -479,9 +479,9 @@ tracker_string_to_date (const gchar *timestamp)
 
                 /* We have format hh:mm or hhmm */
                 /* Now, we are reading hours */
-                if (timestamp[0] && 
+                if (timestamp[0] &&
 		    timestamp[1]) {
-                        if (g_ascii_isdigit (timestamp[0]) && 
+                        if (g_ascii_isdigit (timestamp[0]) &&
 			    g_ascii_isdigit (timestamp[1])) {
                                 gchar buff[3];
 
@@ -500,9 +500,9 @@ tracker_string_to_date (const gchar *timestamp)
                 }
 
                 /* Now, we are reading minutes */
-                if (timestamp[0] && 
+                if (timestamp[0] &&
 		    timestamp[1]) {
-                        if (g_ascii_isdigit (timestamp[0]) && 
+                        if (g_ascii_isdigit (timestamp[0]) &&
 			    g_ascii_isdigit (timestamp[1])) {
                                 gchar buff[3];
 
@@ -569,7 +569,7 @@ tracker_guint32_to_string (guint32 i)
 }
 
 gboolean
-tracker_string_to_uint (const gchar *s, 
+tracker_string_to_uint (const gchar *s,
 			guint       *value)
 {
 	unsigned long int  n;
@@ -596,7 +596,7 @@ tracker_string_to_uint (const gchar *s,
 }
 
 gint
-tracker_string_in_string_list (const gchar  *str, 
+tracker_string_in_string_list (const gchar  *str,
 			       gchar       **strv)
 {
 	gchar **p;
@@ -618,7 +618,7 @@ tracker_string_in_string_list (const gchar  *str,
 }
 
 GSList *
-tracker_string_list_to_gslist (gchar **strv, 
+tracker_string_list_to_gslist (gchar **strv,
 			       gsize   size)
 {
 	GSList *list;
@@ -647,8 +647,8 @@ tracker_string_list_to_gslist (gchar **strv,
 }
 
 gchar *
-tracker_string_list_to_string (gchar **strv, 
-			       gsize   size, 
+tracker_string_list_to_string (gchar **strv,
+			       gsize   size,
 			       gchar   sep)
 {
 	GString *string;
@@ -680,7 +680,7 @@ tracker_string_list_to_string (gchar **strv,
 	return g_string_free (string, FALSE);
 }
 
-gchar ** 
+gchar **
 tracker_string_to_string_list (const gchar *str)
 {
 	gchar **result;
@@ -715,7 +715,7 @@ tracker_gslist_to_string_list (GSList *list)
 	return strv;
 }
 
-GSList * 
+GSList *
 tracker_gslist_copy_with_string_data (GSList *list)
 {
 	GSList *l;
@@ -739,7 +739,7 @@ tracker_gslist_copy_with_string_data (GSList *list)
 
 	return new_list;
 }
-gchar *  
+gchar *
 tracker_string_boolean_to_string_gint (const gchar *value)
 {
 	g_return_val_if_fail (value != NULL, NULL);

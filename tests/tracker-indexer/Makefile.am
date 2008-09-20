@@ -1,7 +1,8 @@
 include $(top_srcdir)/Makefile.decl
 
-noinst_PROGRAMS = $(TEST_PROGS)
+noinst_PROGRAMS = $(TEST_SETUP) $(TEST_PROGS)
 
+TEST_SETUP  = $(generated_files)
 TEST_PROGS += tracker-metadata-utils
 
 INCLUDES = 								\
@@ -23,7 +24,14 @@ generated_files =							\
 	tracker-marshal.c						\
 	tracker-marshal.h
 
-BUILT_SOURCES = $(generated_files)
+tracker-indexer-glue.h:
+	ln -sf $(top_srcdir)/src/tracker-indexer/$@ $@
+
+tracker-marshal.h:
+	ln -sf $(top_srcdir)/src/tracker-indexer/$@ $@
+
+tracker-marshal.c:
+	ln -sf $(top_srcdir)/src/tracker-indexer/$@ $@
 
 CLEANFILES = $(generated_files)
 

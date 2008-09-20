@@ -1,3 +1,8 @@
+2008-09-20  Ivan Frade  <ivan.frade@nokia.com>
+
+	* tests/tracker-indexer/Makefile.am: Revert previous change. Using
+	symbolic links instead of BUILD_SOURCES var.
+	
 2008-09-19  Martyn Russell  <martyn@imendio.com>
 
 	* src/tracker-indexer/tracker-indexer.c: Call service_def

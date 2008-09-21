@@ -1,5 +1,10 @@
 2008-09-21  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/modules/evolution.c (get_message_encoding):
+	Remove debug g_print()
+
+2008-09-21  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/modules/evolution.c (get_message_encoding)
 	(get_text_for_mbox): Try to convert message contents to UTF8 based on
 	the charset specified by the Content-Type header.

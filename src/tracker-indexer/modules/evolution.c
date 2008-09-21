@@ -1375,8 +1375,6 @@ get_message_encoding (GMimeMessage *message)
                 end_encoding = strstr (start_encoding, ";");
         }
 
-        g_print ("START: %s , END: %s\n", start_encoding, end_encoding);
-
         if (end_encoding) {
                 return g_strndup (start_encoding, end_encoding - start_encoding);
         } else {

@@ -1,5 +1,10 @@
 2008-09-21  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/libtracker-common/tracker-service.c (service_finalize): Plug a
+	leak.
+
+2008-09-21  Carlos Garnacho  <carlos@imendio.com>
+
 	* data/services/file.metadata: Added missing description for
 	File:Language.
 

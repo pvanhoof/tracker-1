@@ -257,6 +257,7 @@ service_finalize (GObject *object)
 	g_free (priv->name);
 	g_free (priv->parent);
 	g_free (priv->content_metadata);
+	g_free (priv->property_prefix);
 
 	g_slist_foreach (priv->key_metadata, (GFunc) g_free, NULL);
 	g_slist_free (priv->key_metadata);

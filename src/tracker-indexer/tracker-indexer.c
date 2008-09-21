@@ -1283,7 +1283,7 @@ item_create_or_update (TrackerIndexer  *indexer,
 		gchar *new_text;
 
 		/* Update case */
-		g_debug ("Updating file '%s'", info->file->path);
+		g_debug ("Updating item '%s/%s'", dirname, basename);
 
 		/*
 		 * Using DB directly: get old (embedded) metadata,
@@ -1307,7 +1307,7 @@ item_create_or_update (TrackerIndexer  *indexer,
 		return;
 	}
 
-	g_debug ("Creating file '%s'", info->file->path);
+	g_debug ("Creating item '%s/%s'", dirname, basename);
 
 	/* Service wasn't previously indexed */
 	id = tracker_db_get_new_service_id (indexer->private->common);
@@ -1405,7 +1405,7 @@ item_delete (TrackerIndexer *indexer,
 
 	service_type = tracker_module_config_get_index_service (info->module_name);
 
-	g_debug ("Deleting item:'%s'", info->file->path);
+	g_debug ("Deleting item: '%s/%s'", dirname, basename);
 
 	if (!service_type || !service_type[0]) {
 		gchar *name;
@@ -1489,7 +1489,7 @@ handle_metadata_add (TrackerIndexer *indexer,
 	TrackerService *service;
 	TrackerField *field;
 	guint service_id, i;
-	gchar *joined, *dirname = NULL, *basename =NULL;
+	gchar *joined, *dirname = NULL, *basename = NULL;
 	gint len;
 
 	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);

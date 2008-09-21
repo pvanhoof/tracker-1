@@ -1,5 +1,10 @@
 2008-09-21  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/tracker-indexer.c (item_create_or_update)
+	(item_delete): Show item uri instead of file path in debug messages.
+
+2008-09-21  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-metadata.c (tracker_metadata_insert):
 	Provide a more verbose error if some field name isn't defined in the
 	ontology.

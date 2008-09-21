@@ -82,8 +82,12 @@ tracker_metadata_insert (TrackerMetadata *metadata,
 
 	field = tracker_ontology_get_field_by_name (field_name);
 
-	g_return_if_fail (TRACKER_IS_FIELD (field));
-	g_return_if_fail (tracker_field_get_multiple_values (field) == FALSE);
+	if (!field) {
+		g_warning ("Field name '%s' has isn't described in the ontology", field_name);
+		return;
+	}
+
+        g_return_if_fail (tracker_field_get_multiple_values (field) == FALSE);
 
 	g_hash_table_insert (metadata->table,
 			     g_object_ref (field),

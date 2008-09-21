@@ -1,3 +1,9 @@
+2008-09-21  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/tracker-indexer/tracker-metadata.c (tracker_metadata_insert):
+	Provide a more verbose error if some field name isn't defined in the
+	ontology.
+
 2008-09-20  Martyn Russell  <martyn@imendio.com>
 
 	*.[ch]: Tabbify code.

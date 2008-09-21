@@ -25,19 +25,20 @@
 #define _GNU_SOURCE
 #endif
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#ifndef OS_WIN32
-#include <sys/mman.h>
-#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include <glib.h>
 #include <glib/gstdio.h>
+
+#ifndef G_OS_WIN32
+#include <sys/mman.h>
+#endif
 
 #include "tracker-extract.h"
 
@@ -1009,7 +1010,7 @@ extract_mp3 (const gchar *filename,
 		size =	MAX_FILE_READ;
 	}
 
-#ifndef OS_WIN32
+#ifndef G_OS_WIN32
 	buffer = mmap (NULL, size, PROT_READ, MAP_PRIVATE, file, 0);
 #endif
 
@@ -1097,7 +1098,7 @@ extract_mp3 (const gchar *filename,
 				     g_strdup ("tracker:unknown"));
 	}
 
-#ifndef OS_WIN32
+#ifndef G_OS_WIN32
 	munmap (buffer, size);
 #endif
 	close(file);

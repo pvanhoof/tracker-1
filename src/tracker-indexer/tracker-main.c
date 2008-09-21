@@ -27,8 +27,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <glib/gi18n.h>
+#include <glib.h>
 #include <glib-object.h>
+#include <glib/gi18n.h>
 
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-ioprio.h>
@@ -164,7 +165,7 @@ signal_handler (gint signo)
 static void
 initialize_signal_handler (void)
 {
-#ifndef OS_WIN32
+#ifndef G_OS_WIN32
 	struct sigaction act, ign_act;
 	sigset_t	 empty_mask;
 

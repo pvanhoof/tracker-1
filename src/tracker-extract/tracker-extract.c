@@ -30,16 +30,15 @@
 #include <errno.h>
 #include <locale.h>
 #include <sys/types.h>
-
-#ifndef OS_WIN32
-#include <sys/resource.h>
-#endif
-
 #include <sys/time.h>
 #include <unistd.h>
 
 #include <glib.h>
 #include <gmodule.h>
+
+#ifndef G_OS_WIN32
+#include <sys/resource.h>
+#endif
 
 #include <libtracker-common/tracker-os-dependant.h>
 #include <libtracker-common/tracker-type-utils.h>

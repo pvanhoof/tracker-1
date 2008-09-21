@@ -1,3 +1,12 @@
+2008-09-21  Martyn Russell  <martyn@imendio.com>
+
+	* src/tracker-extract/tracker-extract-mp3.c: 
+	* src/tracker-extract/tracker-extract.c:
+	* src/tracker-indexer/tracker-main.c:
+	* src/tracker-indexer/tracker-metadata-utils.c:
+	* src/tracker-thumbnailer/tracker-thumbnailer.c:
+	* src/trackerd/tracker-main.c: Use G_OS_WIN32 instead of OS_WIN32.
+
 2008-09-21  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/tracker-indexer/modules/evolution.c (get_message_encoding):

@@ -724,7 +724,7 @@ get_file_content_by_filter (const gchar *path,
 	gchar **argv;
 	GString *text;
 
-#ifdef OS_WIN32
+#ifdef G_OS_WIN32
 	str = g_strconcat (mime, "_filter.bat", NULL);
 #else
 	str = g_strconcat (mime, "_filter", NULL);

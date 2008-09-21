@@ -26,11 +26,12 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/param.h>
-#include <glib.h>
-#include <glib/gstdio.h>
 #include <png.h>
 
-#ifdef OS_WIN32
+#include <glib.h>
+#include <glib/gstdio.h>
+
+#ifdef G_OS_WIN32
 #include <Windows.h>
 
 #define _fullpath_internal(res,path,size) \

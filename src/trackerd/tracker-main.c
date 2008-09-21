@@ -34,9 +34,9 @@
 #include <errno.h>
 #include <time.h>
 
-#include <glib/gstdio.h>
+#include <glib.h>
 #include <glib/gi18n.h>
-#include <glib/gpattern.h>
+#include <glib/gstdio.h>
 
 #include <libtracker-common/tracker-config.h>
 #include <libtracker-common/tracker-file-utils.h>
@@ -61,7 +61,7 @@
 #include "tracker-status.h"
 #include "tracker-xesam-manager.h"
 
-#ifdef OS_WIN32
+#ifdef G_OS_WIN32
 #include <windows.h>
 #include <pthread.h>
 #include "mingw-compat.h"
@@ -385,7 +385,7 @@ signal_handler (gint signo)
 static void
 initialize_signal_handler (void)
 {
-#ifndef OS_WIN32
+#ifndef G_OS_WIN32
 	struct sigaction   act;
 	sigset_t	   empty_mask;
 
@@ -403,7 +403,7 @@ initialize_signal_handler (void)
 	sigaction (SIGABRT, &act, NULL);
 	sigaction (SIGUSR1, &act, NULL);
 	sigaction (SIGINT,  &act, NULL);
-#endif
+#endif /* G_OS_WIN32 */
 }
 
 static void

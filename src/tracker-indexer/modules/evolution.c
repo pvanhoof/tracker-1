@@ -1349,10 +1349,47 @@ tracker_module_file_get_metadata (TrackerFile *file)
 }
 
 static gchar *
+get_message_encoding (GMimeMessage *message)
+{
+        const gchar *content_type, *start_encoding, *end_encoding;
+
+        content_type = g_mime_message_get_header (message, "Content-Type");
+
+        if (!content_type) {
+                return NULL;
+        }
+
+        start_encoding = strstr (content_type, "charset=");
+
+        if (!start_encoding) {
+                return NULL;
+        }
+
+        start_encoding += strlen ("charset=");
+
+        if (start_encoding[0] == '"') {
+                /* encoding is quoted */
+                start_encoding++;
+                end_encoding = strstr (start_encoding, "\"");
+        } else {
+                end_encoding = strstr (start_encoding, ";");
+        }
+
+        g_print ("START: %s , END: %s\n", start_encoding, end_encoding);
+
+        if (end_encoding) {
+                return g_strndup (start_encoding, end_encoding - start_encoding);
+        } else {
+                return g_strdup (start_encoding);
+        }
+}
+
+static gchar *
 get_text_for_mbox (TrackerFile *file)
 {
-	EvolutionLocalData *data;
-	gboolean is_html;
+        EvolutionLocalData *data;
+        gboolean is_html;
+        gchar *text, *encoding, *utf8_text;
 
 	data = file->data;
 
@@ -1361,7 +1398,27 @@ get_text_for_mbox (TrackerFile *file)
 		return NULL;
 	}
 
-	return g_mime_message_get_body (data->message, TRUE, &is_html);
+        text = g_mime_message_get_body (data->message, TRUE, &is_html);
+
+        if (!text) {
+                return NULL;
+        }
+
+        encoding = get_message_encoding (data->message);
+
+        if (!encoding) {
+                /* FIXME: could still puke on non-utf8
+                 * messages without proper content type
+                 */
+                return text;
+        }
+
+        utf8_text = g_convert (text, -1, "utf8", encoding, NULL, NULL, NULL);
+
+        g_free (encoding);
+        g_free (text);
+
+        return utf8_text;
 }
 
 static gchar *

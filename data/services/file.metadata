@@ -92,4 +92,8 @@ Description=Other details about a file
 DataType=index
 Weight=1
 
-
+[File:Language]
+DisplayName=Language
+Description=File language
+DataType=index
+Weight=1

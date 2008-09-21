@@ -1,5 +1,10 @@
 2008-09-21  Carlos Garnacho  <carlos@imendio.com>
 
+	* data/services/file.metadata: Added missing description for
+	File:Language.
+
+2008-09-21  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/tracker-indexer/tracker-indexer.c (item_create_or_update)
 	(item_delete): Show item uri instead of file path in debug messages.
 

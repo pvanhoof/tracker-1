@@ -1,3 +1,10 @@
+2008-09-23  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/trackerd/tracker-db.c
+	(tracker_db_create_array_of_services): Added missing "Files"
+	category. The queries were returning less results than expected
+	due to the lack of this category.
+	
 2008-09-21  Martyn Russell  <martyn@imendio.com>
 
 	* src/tracker-extract/tracker-extract-mp3.c: 

@@ -20,6 +20,14 @@
 
 2008-09-25  Carlos Garnacho  <carlos@imendio.com>
 
+	* src/tracker-indexer/module/evolution.c
+	(tracker_module_file_get_data) (tracker_module_file_iter_contents):
+	Get the Message UID before reading metadata, since we'll need it for
+	tracker_module_file_get_uri().
+	(get_metadata_for_imap): Remove UID parsing from here.
+
+2008-09-25  Carlos Garnacho  <carlos@imendio.com>
+
 	Do not break on 64-bit platforms. Based on a patch by Laurent 
 	Aguerreche  <laurent.aguerreche@free.fr>
 

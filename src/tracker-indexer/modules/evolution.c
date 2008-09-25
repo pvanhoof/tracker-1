@@ -522,7 +522,14 @@ tracker_module_file_get_data (const gchar *path)
 		imap_data->summary = fdopen (imap_data->fd, "r");
 		imap_data->n_messages = read_summary_header (imap_data->summary);
 		imap_data->cur_message = 1;
-	} else {
+
+                if (imap_data->n_messages > 0) {
+                        /* save current message uid */
+                        read_summary (imap_data->summary,
+                                      SUMMARY_TYPE_STRING, &imap_data->cur_message_uid,	/* message uid */
+                                      -1);
+                }
+        } else {
 		EvolutionLocalData *local_data;
 
 		local_data = (EvolutionLocalData *) data;
@@ -1109,7 +1116,7 @@ get_metadata_for_imap (TrackerFile *file)
 	EvolutionImapData *data;
 	TrackerMetadata *metadata = NULL;
 	gchar *dirname, *basename;
-	gchar *uid, *subject, *from, *to, *cc;
+	gchar *subject, *from, *to, *cc;
 	gint32 i, count, flags;
 	time_t date;
 	GList *list;
@@ -1125,13 +1132,9 @@ get_metadata_for_imap (TrackerFile *file)
 		return get_metadata_for_imap_attachment (file, data->current_mime_part->data);
 	}
 
-	uid = NULL;
-
 	if (!read_summary (data->summary,
-			   SUMMARY_TYPE_STRING, &uid,	/* message uid */
 			   SUMMARY_TYPE_UINT32, &flags, /* flags */
 			   -1)) {
-		g_free (uid);
 		return NULL;
 	}
 
@@ -1160,12 +1163,9 @@ get_metadata_for_imap (TrackerFile *file)
 		return NULL;
 	}
 
-	/* save current message uid */
-	data->cur_message_uid = g_strdup (uid);
-
 	if (!deleted) {
 		metadata = tracker_metadata_new ();
-		get_imap_uri (file, uid, &dirname, &basename);
+		get_imap_uri (file, data->cur_message_uid, &dirname, &basename);
 
 		tracker_metadata_insert (metadata, METADATA_FILE_PATH, dirname);
 		tracker_metadata_insert (metadata, METADATA_FILE_NAME, basename);
@@ -1183,7 +1183,6 @@ get_metadata_for_imap (TrackerFile *file)
 		tracker_metadata_insert_multiple_values (metadata, METADATA_EMAIL_CC, list);
 	}
 
-	g_free (uid);
 	g_free (to);
 	g_free (cc);
 
@@ -1579,6 +1578,11 @@ tracker_module_file_iter_contents (TrackerFile *file)
 
 		g_free (imap_data->cur_message_uid);
 		imap_data->cur_message_uid = NULL;
+
+                /* save current message uid */
+                read_summary (imap_data->summary,
+                              SUMMARY_TYPE_STRING, &imap_data->cur_message_uid,	/* message uid */
+                              -1);
 
 		imap_data->cur_message++;
 

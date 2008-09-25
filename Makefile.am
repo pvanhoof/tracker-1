@@ -25,3 +25,11 @@ DISTCLEANFILES = \
 DISTCHECK_CONFIGURE_FLAGS = \
 	--with-session-bus-services-dir="\$(datadir)"/dbus-1/services \
 	--disable-deskbar-applet
+
+# Clean up any old trunk files that might exist which we don't use now
+all-local:
+	rm -Rf $(bindir)/trackerd
+	rm -Rf $(bindir)/tracker-indexer
+	rm -Rf $(bindir)/tracker-thumbnailer
+	rm -Rf $(bindir)/tracker-extract
+	rm -Rf $(datadir)/tracker

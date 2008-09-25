@@ -1,15 +1,98 @@
-2008-08-12  Martyn Russell  <martyn@imendio.com>
+2008-09-25  Martyn Russell  <martyn@imendio.com>
 
-	* POTFILES.in:
+	* ar.po:
+	* es.po:
+	* fi.po:
+	* fr.po:
+	* nb.po:
+	* nl.po:
+	* oc.po:
+	* pl.po:
+	* pt.po:
+	* pt_BR.po:
+	* sk.po:
+	* sv.po:
+	* zh_CN.po: Updated from TRUNK for indexer-split->TRUNK merge
+	preparations.
 
-2008-08-11  Michael Biebl <mbiebl@gmail.com>
+2008-09-22  Timo Jyrinki  <timo.jyrinki@iki.fi>
 
-	* POTFILES.in: Add missing files.
+	* fi.po: Updated Finnish translation.
 
-2008-04-21  Martyn Russell  <martyn@imendio.com>
+2008-09-18  Marcel Telka  <marcel@telka.sk>
 
-	* POTFILES.in: Fixed make distcheck issues.
+	* sk.po: Updated Slovak translation by Pavol Klačanský.
 
+2008-09-08  Tomasz Dominikowski  <tdominikowski@aviary.pl>
+
+	* pl.po: Updated Polish translation
+
+2008-08-29  Jorge Gonzalez  <jorgegonz@svn.gnome.org>
+
+	* es.po: Updated Spanish translation
+
+2008-07-31  Djihed Afifi <djihed@gmail.com> 
+
+	* ar.po: Updated Arabic Translation by Khaled Hosny.
+
+2008-07-24  Daniel Nylander <po@danielnylander.se>
+
+	* sv.po: Updated Swedish translation.
+	
+2008-07-02  Yannig Marchegay <yannig@marchegay.org>
+
+	* oc.po: Updated Occitan translation.
+
+2008-06-19  Marcel Telka  <marcel@telka.sk>
+
+	* sk.po: Updated Slovak translation by Pavol Klačanský.
+
+2008-06-11  Yannig Marchegay <yannig@marchegay.org>
+
+	* oc.po: Updated Occitan translation.
+
+2008-06-10  Jonh Wendell <jwendell@gnome.org>
+
+	* pt_BR.po: Updated Brazilian Portuguese translation by Henrique Machado
+	and Fábio Nogueira.
+
+2008-06-07  Kjartan Maraas  <kmaraas@gnome.org>
+
+	* nb.po: Updated Norwegian bokmål translation.
+
+2008-06-06  Marcel Telka  <marcel@telka.sk>
+
+	* sk.po: Updated Slovak translation by Pavol Klačanský.
+
+2008-05-29  Claude Paroz  <claude@2xlibre.net>
+
+	* fr.po: Updated French translation.
+
+2008-05-25  Duarte Loreto <happyguy_pt@hotmail.com>
+
+	* pt.po: Updated Portuguese translation by Nicolau Gonçalves
+	<excentriko@gmail.com>.
+
+2008-05-09  Kjartan Maraas  <kmaraas@gnome.org>
+
+	* nb.po: Updated Norwegian bokmål translation.
+
+2008-04-30  Vincent van Adrighem  <adrighem@gnome.org>
+
+	* nl.po: Translation updated by Roel Huybrechts.
+
+2008-04-29  Marcel Telka  <marcel@telka.sk>
+
+	* sk.po: Updated Slovak translation by Pavol Klačanský.
+
+2008-04-17  Jorge Gonzalez  <jorgegonz@svn.gnome.org>
+
+	* es.po: Updated Spanish translation
+
+2008-04-17  Daniel Nylander <po@danielnylander.se>
+
+	* sv.po: Updated Swedish translation.
+	
 2008-04-17  Takeshi AIHANA <takeshi.aihana@gmail.com>
 
 	* LINGUAS: Added 'ja' (Japanese).

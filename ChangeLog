@@ -1,3 +1,11 @@
+2008-09-25  Martyn Russell  <martyn@imendio.com>
+
+	* Makefile.am:
+	* data/services/Makefile.am: Added install hooks to clean up old
+	locations for binaries from TRUNK. This way when replacing TRUNK
+	with indexer-split, people shouldn't get run the wrong binaries if
+	they are still in their $prefix.
+
 2008-09-23  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/trackerd/tracker-db.c

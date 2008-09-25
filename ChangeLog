@@ -1,5 +1,11 @@
 2008-09-25  Ivan Frade  <ivan.frade@nokia.com>
 
+	* src/tracker-indexer/tracker-indexer.c
+	(index_metadata_item): The score must be positive when we are 
+	adding words to the index. 
+	
+2008-09-25  Ivan Frade  <ivan.frade@nokia.com>
+
 	* src/trackerd/tracker-db.c
 	(tracker_db_create_array_of_services): Added missing "Applications"
 	category. We were filtering all application results in the daemon.

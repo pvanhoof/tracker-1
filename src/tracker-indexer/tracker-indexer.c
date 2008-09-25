@@ -910,9 +910,9 @@ index_metadata_item (TrackerField	 *field,
 	}
 
 	if (data->add) {
-		score = -1 * tracker_field_get_weight (field);
-	} else {
 		score = tracker_field_get_weight (field);
+	} else {
+		score = -1 * tracker_field_get_weight (field);
 	}
 
 	arr = g_strsplit (parsed_value, " ", -1);

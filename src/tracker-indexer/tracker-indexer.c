@@ -1924,7 +1924,7 @@ process_file (TrackerIndexer *indexer,
 						  info->file,
 						  &dirname,
 						  &basename)) {
-		return TRUE;
+		return !tracker_indexer_module_file_iter_contents (info->module, info->file);
 	}
 
 	/*
@@ -1945,7 +1945,7 @@ process_file (TrackerIndexer *indexer,
 	 * basename which are returned by the module are combined to
 	 * look like:
 	 *
-	 *   email://1192717939.16218.20@petunia//INBOX;uid=(null)
+	 *   email://1192717939.16218.20@petunia//INBOX;uid=1
 	 *
 	 * We simply check the dirname[0] to make sure it isn't an
 	 * email based dirname.

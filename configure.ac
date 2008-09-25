@@ -969,6 +969,47 @@ AC_CONFIG_LINKS(tests/tracker-indexer/tracker-dbus.c:src/tracker-indexer/tracker
 )
 
 ##################################################################
+# Check for older tracker project files which can cause problems
+##################################################################
+
+old_exec_exists=yes
+old_data_exists=yes
+
+old_exec_message=""
+old_data_message=""
+
+AC_CHECK_FILE("${prefix}/bin/trackerd", old_exec_trackerd=yes,,)
+AC_CHECK_FILE("${prefix}/bin/tracker-indexer", old_exec_tracker_indexer=yes,,)
+AC_CHECK_FILE("${prefix}/bin/tracker-extract", old_exec_tracker_extract=yes,,)
+AC_CHECK_FILE("${prefix}/bin/tracker-thumbnailer", old_exec_tracker_thumbnailer=yes,,)
+AC_CHECK_FILE("${DBUS_SERVICES_DIR}/tracker.service", old_data_dbus_service=yes,)
+AC_CHECK_FILE("${prefix}/share/tracker/tracker-introspect.xml", old_data_dbus_xml=yes,,)
+AC_CHECK_FILE("${prefix}/share/tracker/sqlite-service-stored-procs.sql", old_data_stored_procs=yes,,)
+
+if test "x$old_exec_trackerd" == "xyes" -o \
+        "x$old_exec_tracker_indexer" == "xyes" -o \
+        "x$old_exec_tracker_extract" == "xyes" -o \
+        "x$old_exec_tracker_thumbnailer" == "xyes"; then
+   old_exec_message="
+        Old Tracker executable files were found in your path.
+        (trackerd, tracker-indexer, tracker-thumbnailer, tracker-extract)"
+   old_file_action="
+	** These files will be removed as part of the installation **"
+fi
+
+if test "x$old_data_dbus_service" == "xyes" -o \
+        "x$old_data_dbus_xml" == "xyes" -o \
+        "x$old_data_stored_procs" == "xyes"; then
+   old_data_message="
+        Old Tracker data files were found in the prefix you are installing to."
+   old_file_action="
+	** These files will be removed as part of the installation **"
+fi
+
+AM_CONDITIONAL(OLD_EXEC_REMOVE_ALL, test -n "$old_exec_message")
+AM_CONDITIONAL(OLD_DATA_REMOVE_ALL, test -n "$old_data_message")
+
+##################################################################
 # Write generated files
 ##################################################################
 
@@ -1086,6 +1127,9 @@ Thumbnailers:
 Warning:
 
         You must make sure SQLite is compiled with --enable-threadsafe
-	Otherwise expect pain!
+
+	$old_exec_message
+	$old_data_message
+	$old_file_action
 
 "

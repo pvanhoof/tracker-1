@@ -26,15 +26,17 @@ DISTCHECK_CONFIGURE_FLAGS =			\
 	--with-session-bus-services-dir="\$(datadir)"/dbus-1/services \
 	--disable-deskbar-applet
 
-# Clean up any old trunk files that might exist which we don't use now
+if OLD_EXEC_REMOVE_ALL
 install-exec-hook:
 	rm -Rf $(bindir)/trackerd
 	rm -Rf $(bindir)/tracker-indexer
 	rm -Rf $(bindir)/tracker-thumbnailer
 	rm -Rf $(bindir)/tracker-extract
+endif
 
+if OLD_DATA_REMOVE_ALL
 install-data-hook:
 	rm -Rf $(DBUS_SERVICES_DIR)/tracker.service
 	rm -Rf $(datadir)/tracker/sqlite-service-stored-procs.sql
 	rm -Rf $(datadir)/tracker/tracker-introspect.xml
-	
+endif	

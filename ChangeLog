@@ -1,3 +1,10 @@
+2008-09-25  Martyn Russell  <martyn@imendio.com>
+
+	* Makefile.am:
+	* configure.ac: Added a message about the file removal of old data
+	and binary files from older Tracker projects after the initial
+	configure script has run.
+
 2008-09-25  Ivan Frade  <ivan.frade@nokia.com>
 
 	* src/tracker-indexer/tracker-indexer.c

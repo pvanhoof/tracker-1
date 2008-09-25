@@ -131,7 +131,20 @@ read_summary (FILE *summary,
 
 	while ((value_type = va_arg (args, gint)) != -1) {
 		switch (value_type) {
-		case SUMMARY_TYPE_TIME_T:
+		case SUMMARY_TYPE_TIME_T: {
+			time_t value, *dest;
+
+			if (fread (&value, sizeof (time_t), 1, summary) != 1) {
+				return FALSE;
+			}
+
+			dest = va_arg (args, time_t*);
+
+			if (dest) {
+				*dest = g_ntohl (value);
+			}
+			break;
+		}
 		case SUMMARY_TYPE_INT32: {
 			gint32 value, *dest;
 
@@ -456,17 +469,17 @@ read_summary_header (FILE *summary)
 
 	read_summary (summary,
 		      SUMMARY_TYPE_INT32, &version,
-		      SUMMARY_TYPE_INT32, NULL,
-		      SUMMARY_TYPE_INT32, NULL,
-		      SUMMARY_TYPE_INT32, NULL,
+		      SUMMARY_TYPE_INT32, NULL,		/* flags */
+		      SUMMARY_TYPE_INT32, NULL,		/* nextuid */
+		      SUMMARY_TYPE_TIME_T, NULL,	/* time */
 		      SUMMARY_TYPE_INT32, &n_messages,
 		      -1);
 
 	if ((version < 0x100 && version >= 13)) {
 		read_summary (summary,
-			      SUMMARY_TYPE_INT32, NULL,
-			      SUMMARY_TYPE_INT32, NULL,
-			      SUMMARY_TYPE_INT32, NULL,
+			      SUMMARY_TYPE_INT32, NULL, /* unread count*/
+			      SUMMARY_TYPE_INT32, NULL, /* deleted count*/
+			      SUMMARY_TYPE_INT32, NULL, /* junk count */
 			      -1);
 	}
 

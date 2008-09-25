@@ -20,6 +20,15 @@
 
 2008-09-25  Carlos Garnacho  <carlos@imendio.com>
 
+	Do not break on 64-bit platforms. Based on a patch by Laurent 
+	Aguerreche  <laurent.aguerreche@free.fr>
+
+	* src/tracker-indexer/modules/evolution.c (read_summary): time_t will
+	have different width in other platforms.
+	(read_summary_header): Add comments to skipped summary elements.
+
+2008-09-25  Carlos Garnacho  <carlos@imendio.com>
+
 	* src/libtracker-db/tracker-db-index.c (tracker_db_index_open): Be
 	more graceful when the index is already open.
 	* src/tracker-indexer/tracker-indexer.c (check_started): Reopen the

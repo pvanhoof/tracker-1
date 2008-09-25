@@ -84,6 +84,7 @@ tracker_metadata_insert (TrackerMetadata *metadata,
 
 	if (!field) {
 		g_warning ("Field name '%s' has isn't described in the ontology", field_name);
+		g_free (value);
 		return;
 	}
 

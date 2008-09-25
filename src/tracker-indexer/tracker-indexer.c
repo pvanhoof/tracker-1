@@ -617,6 +617,10 @@ check_started (TrackerIndexer *indexer)
 	g_timer_destroy (indexer->private->timer);
 	indexer->private->timer = g_timer_new ();
 
+	/* Open indexes */
+	tracker_db_index_open (indexer->private->file_index);
+	tracker_db_index_open (indexer->private->email_index);
+
 	g_signal_emit (indexer, signals[STARTED], 0);
 }
 
@@ -1494,6 +1498,8 @@ handle_metadata_add (TrackerIndexer *indexer,
 
 	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
+	check_started (indexer);
+
 	service = tracker_ontology_get_service_by_name (service_type);
 	if (!service) {
 		g_set_error (error,
@@ -1629,6 +1635,8 @@ handle_metadata_remove (TrackerIndexer *indexer,
 	TrackerField *field;
 	guint service_id, i;
 	gchar *joined = NULL, *dirname = NULL, *basename = NULL;
+
+	check_started (indexer);
 
 	service = tracker_ontology_get_service_by_name (service_type);
 	if (!service) {
@@ -2157,7 +2165,8 @@ tracker_indexer_get_running (TrackerIndexer *indexer)
 
 	state = indexer->private->state;
 
-	return (state & TRACKER_INDEXER_STATE_PAUSED) == 0;
+	return ((state & TRACKER_INDEXER_STATE_PAUSED) == 0 &&
+		(state & TRACKER_INDEXER_STATE_STOPPED) == 0);
 }
 
 static void

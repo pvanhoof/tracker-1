@@ -1,3 +1,15 @@
+2008-09-25  Carlos Garnacho  <carlos@imendio.com>
+
+	* src/libtracker-db/tracker-db-index.c (tracker_db_index_open): Be
+	more graceful when the index is already open.
+	* src/tracker-indexer/tracker-indexer.c (check_started): Reopen the
+	indexes if needed.
+	(handle_metadata_add) (handle_metadata_remove): Check that the indexer
+	is running and fine.
+	(tracker_indexer_get_running): Check also for the "stopped" flag.
+	* src/tracker-indexer/tracker-metadata.c (tracker_metadata_insert):
+	Plug a potential leak.
+
 2008-09-25  Martyn Russell  <martyn@imendio.com>
 
 	* Makefile.am:

@@ -736,7 +736,10 @@ tracker_db_index_open (TrackerDBIndex *index)
 	priv = TRACKER_DB_INDEX_GET_PRIVATE (index);
 
 	g_return_val_if_fail (priv->filename != NULL, FALSE);
-	g_return_val_if_fail (priv->index == NULL, FALSE);
+
+	if (priv->index) {
+		return TRUE;
+	}
 
 	g_debug ("Opening index:'%s' (%s)",
 		 priv->filename,

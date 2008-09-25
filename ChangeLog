@@ -1,3 +1,9 @@
+2008-09-25  Ivan Frade  <ivan.frade@nokia.com>
+
+	* src/trackerd/tracker-db.c
+	(tracker_db_create_array_of_services): Added missing "Applications"
+	category. We were filtering all application results in the daemon.
+	
 2008-09-25  Martyn Russell  <martyn@imendio.com>
 
 	* Makefile.am: Improve this so we don't use all-local and instead

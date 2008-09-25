@@ -1,3 +1,11 @@
+2008-09-25  Martyn Russell  <martyn@imendio.com>
+
+	* Makefile.am: Improve this so we don't use all-local and instead
+	use install-exec-hook and install-data-hook.
+	
+	* src/libtracker-db/tracker-db-manager.c: Added functions to check
+	database versions to know if we should reindex or not.
+
 2008-09-25  Carlos Garnacho  <carlos@imendio.com>
 
 	* src/libtracker-db/tracker-db-index.c (tracker_db_index_open): Be

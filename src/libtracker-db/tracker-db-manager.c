@@ -37,18 +37,31 @@
 #include "tracker-db-manager.h"
 #include "tracker-db-interface-sqlite.h"
 
+/* ZLib buffer settings */
+#define ZLIB_BUF_SIZE		      8192
+
+/* Default memory settings for databases */
 #define TRACKER_DB_PAGE_SIZE_DEFAULT  4096
 #define TRACKER_DB_PAGE_SIZE_DONT_SET -1
 
-#define ZLIBBUFSIZ		      8192
+/* Size is in bytes and is currently 2Gb */
+#define TRACKER_DB_MAX_FILE_SIZE      2000000000 
 
-#define MAX_DB_FILE_SIZE	2000000000
+/* Set current database version we are working with */
+#define TRACKER_DB_VERSION_NOW        TRACKER_DB_VERSION_2
+#define TRACKER_DB_VERSION_FILE       "db-version.txt"
 
 typedef enum {
 	TRACKER_DB_LOCATION_DATA_DIR,
 	TRACKER_DB_LOCATION_USER_DATA_DIR,
 	TRACKER_DB_LOCATION_SYS_TMP_DIR,
 } TrackerDBLocation;
+
+typedef enum {
+	TRACKER_DB_VERSION_UNKNOWN, /* Unknown */
+	TRACKER_DB_VERSION_1,       /* TRUNK before indexer-split */
+	TRACKER_DB_VERSION_2        /* The indexer-split branch */
+} TrackerDBVersion;
 
 typedef struct {
 	TrackerDB	    db;
@@ -159,9 +172,9 @@ static gchar		  *data_dir;
 static gchar		  *user_data_dir;
 static gchar		  *sys_tmp_dir;
 static gpointer		   db_type_enum_class_pointer;
-static TrackerDBInterface *file_iface = NULL;
-static TrackerDBInterface *email_iface = NULL;
-static TrackerDBInterface *xesam_iface = NULL;
+static TrackerDBInterface *file_iface;
+static TrackerDBInterface *email_iface;
+static TrackerDBInterface *xesam_iface;
 
 static const gchar *
 location_to_directory (TrackerDBLocation location)
@@ -1262,7 +1275,7 @@ function_uncompress_string (const gchar *ptr,
 {
 	z_stream       zs;
 	gchar	      *buf, *swap;
-	unsigned char  obuf[ZLIBBUFSIZ];
+	unsigned char  obuf[ZLIB_BUF_SIZE];
 	gint	       rv, asiz, bsiz, osiz;
 
 	zs.zalloc = Z_NULL;
@@ -1275,8 +1288,8 @@ function_uncompress_string (const gchar *ptr,
 
 	asiz = size * 2 + 16;
 
-	if (asiz < ZLIBBUFSIZ) {
-		asiz = ZLIBBUFSIZ;
+	if (asiz < ZLIB_BUF_SIZE) {
+		asiz = ZLIB_BUF_SIZE;
 	}
 
 	if (!(buf = malloc (asiz))) {
@@ -1288,10 +1301,10 @@ function_uncompress_string (const gchar *ptr,
 	zs.next_in = (unsigned char *)ptr;
 	zs.avail_in = size;
 	zs.next_out = obuf;
-	zs.avail_out = ZLIBBUFSIZ;
+	zs.avail_out = ZLIB_BUF_SIZE;
 
 	while ((rv = inflate (&zs, Z_NO_FLUSH)) == Z_OK) {
-		osiz = ZLIBBUFSIZ - zs.avail_out;
+		osiz = ZLIB_BUF_SIZE - zs.avail_out;
 
 		if (bsiz + osiz >= asiz) {
 			asiz = asiz * 2 + osiz;
@@ -1308,7 +1321,7 @@ function_uncompress_string (const gchar *ptr,
 		memcpy (buf + bsiz, obuf, osiz);
 		bsiz += osiz;
 		zs.next_out = obuf;
-		zs.avail_out = ZLIBBUFSIZ;
+		zs.avail_out = ZLIB_BUF_SIZE;
 	}
 
 	if (rv != Z_STREAM_END) {
@@ -1316,7 +1329,7 @@ function_uncompress_string (const gchar *ptr,
 		inflateEnd (&zs);
 		return NULL;
 	}
-	osiz = ZLIBBUFSIZ - zs.avail_out;
+	osiz = ZLIB_BUF_SIZE - zs.avail_out;
 
 	if (bsiz + osiz >= asiz) {
 		asiz = asiz * 2 + osiz;
@@ -1345,7 +1358,7 @@ function_compress_string (const gchar *text)
 	GByteArray *array;
 	z_stream zs;
 	gchar *buf, *swap;
-	guchar obuf[ZLIBBUFSIZ];
+	guchar obuf[ZLIB_BUF_SIZE];
 	gint rv, asiz, bsiz, osiz, size;
 
 	size = strlen (text);
@@ -1360,8 +1373,8 @@ function_compress_string (const gchar *text)
 
 	asiz = size + 16;
 
-	if (asiz < ZLIBBUFSIZ) {
-		asiz = ZLIBBUFSIZ;
+	if (asiz < ZLIB_BUF_SIZE) {
+		asiz = ZLIB_BUF_SIZE;
 	}
 
 	if (!(buf = malloc (asiz))) {
@@ -1373,10 +1386,10 @@ function_compress_string (const gchar *text)
 	zs.next_in = (unsigned char *) text;
 	zs.avail_in = size;
 	zs.next_out = obuf;
-	zs.avail_out = ZLIBBUFSIZ;
+	zs.avail_out = ZLIB_BUF_SIZE;
 
 	while ((rv = deflate (&zs, Z_FINISH)) == Z_OK) {
-		osiz = ZLIBBUFSIZ - zs.avail_out;
+		osiz = ZLIB_BUF_SIZE - zs.avail_out;
 
 		if (bsiz + osiz > asiz) {
 			asiz = asiz * 2 + osiz;
@@ -1393,7 +1406,7 @@ function_compress_string (const gchar *text)
 		memcpy (buf + bsiz, obuf, osiz);
 		bsiz += osiz;
 		zs.next_out = obuf;
-		zs.avail_out = ZLIBBUFSIZ;
+		zs.avail_out = ZLIB_BUF_SIZE;
 	}
 
 	if (rv != Z_STREAM_END) {
@@ -1402,7 +1415,7 @@ function_compress_string (const gchar *text)
 		return NULL;
 	}
 
-	osiz = ZLIBBUFSIZ - zs.avail_out;
+	osiz = ZLIB_BUF_SIZE - zs.avail_out;
 
 	if (bsiz + osiz + 1 > asiz) {
 		asiz = asiz * 2 + osiz;
@@ -2218,6 +2231,69 @@ db_manager_remove_all (void)
 	}
 }
 
+static TrackerDBVersion
+db_get_version (void)
+{
+	TrackerDBVersion  version;
+	gchar            *filename;
+
+	filename = g_build_filename (data_dir, TRACKER_DB_VERSION_FILE, NULL);
+
+	if (G_LIKELY (g_file_test (filename, G_FILE_TEST_EXISTS))) {
+		gchar *contents;
+
+		/* Check version is correct */
+		if (G_LIKELY (g_file_get_contents (filename, &contents, NULL, NULL))) {
+			if (contents && strlen (contents) <= 2) {
+				TrackerDBVersion version;
+
+				version = atoi (contents);
+			} else {
+				g_message ("  Version file content size is either 0 or bigger than expected");
+
+				version = TRACKER_DB_VERSION_UNKNOWN;
+			} 
+
+			g_free (contents);
+		} else {
+			g_message ("  Could not get content of file '%s'", filename);
+
+			version = TRACKER_DB_VERSION_UNKNOWN;
+		}
+	} else {
+		g_message ("  Could not find database version file:'%s'", filename);
+		g_message ("  Current databases are either old or no databases are set up yet");
+
+		version = TRACKER_DB_VERSION_UNKNOWN;
+	}
+
+	g_free (filename);
+
+	return version;
+}
+
+static void
+db_set_version (void)
+{
+	GError *error = NULL;
+	gchar  *filename;
+	gchar  *str;
+
+	filename = g_build_filename (data_dir, TRACKER_DB_VERSION_FILE, NULL);
+	g_message ("  Creating version file '%s'", filename);
+
+	str = g_strdup_printf ("%d", TRACKER_DB_VERSION_NOW);
+
+	if (!g_file_set_contents (filename, str, -1, &error)) {
+		g_message ("  Could not set file contents, %s",
+			   error ? error->message : "no error given");
+		g_clear_error (&error);
+	}
+
+	g_free (str);
+	g_free (filename);
+}
+
 GType
 tracker_db_get_type (void)
 {
@@ -2260,6 +2336,7 @@ tracker_db_manager_init (TrackerDBManagerFlags	flags,
 			 gboolean	       *first_time)
 {
 	GType		    etype;
+	TrackerDBVersion    version;
 	gchar		   *filename;
 	const gchar	   *dir;
 	gboolean	    need_reindex;
@@ -2272,6 +2349,8 @@ tracker_db_manager_init (TrackerDBManagerFlags	flags,
 	if (initialized) {
 		return;
 	}
+
+	need_reindex = FALSE;
 
 	/* Since we don't reference this enum anywhere, we do
 	 * it here to make sure it exists when we call
@@ -2316,9 +2395,23 @@ tracker_db_manager_init (TrackerDBManagerFlags	flags,
 	g_mkdir_with_parents (user_data_dir, 00755);
 	g_mkdir_with_parents (sys_tmp_dir, 00755);
 
+	g_message ("Checking database version");
+
+	version = db_get_version ();
+
+	if (version == TRACKER_DB_VERSION_UNKNOWN ||
+	    version == TRACKER_DB_VERSION_1) {
+		g_message ("  A reindex will be forced");
+		need_reindex = TRUE;
+	}
+
+	if (need_reindex) {
+		db_set_version ();	
+	}
+
 	g_message ("Checking database files exist");
 
-	for (i = 1, need_reindex = FALSE; i < G_N_ELEMENTS (dbs); i++) {
+	for (i = 1; i < G_N_ELEMENTS (dbs); i++) {
 		/* Fill absolute path for the database */
 		dir = location_to_directory (dbs[i].location);
 		dbs[i].abs_filename = g_build_filename (dir, dbs[i].file, NULL);
@@ -2673,8 +2766,9 @@ tracker_db_manager_are_db_too_big (void)
 {
 	const gchar *filename_const;
 	gboolean     too_big;
+
 	filename_const = tracker_db_manager_get_file (TRACKER_DB_FILE_METADATA);
-	too_big = tracker_file_get_size (filename_const) > MAX_DB_FILE_SIZE;
+	too_big = tracker_file_get_size (filename_const) > TRACKER_DB_MAX_FILE_SIZE;
 
 	if (too_big) {
 		g_critical ("File metadata database is too big, discontinuing indexing");
@@ -2682,7 +2776,7 @@ tracker_db_manager_are_db_too_big (void)
 	}
 
 	filename_const = tracker_db_manager_get_file (TRACKER_DB_EMAIL_METADATA);
-	too_big = tracker_file_get_size (filename_const) > MAX_DB_FILE_SIZE;
+	too_big = tracker_file_get_size (filename_const) > TRACKER_DB_MAX_FILE_SIZE;
 
 	if (too_big) {
 		g_critical ("Email metadata database is too big, discontinuing indexing");

@@ -5,31 +5,36 @@ include $(top_srcdir)/Makefile.decl
 SUBDIRS += tests
 endif
 
-EXTRA_DIST = \
-	rdf-query-examples/80s-music.rdf \
-	rdf-query-examples/90s-music.rdf \
-	rdf-query-examples/all-documents.rdf \
-	rdf-query-examples/big-documents.rdf \
-	rdf-query-examples/wallpapers.rdf \
-	intltool-extract.in \
-	intltool-merge.in \
+EXTRA_DIST = 					\
+	rdf-query-examples/80s-music.rdf 	\
+	rdf-query-examples/90s-music.rdf 	\
+	rdf-query-examples/all-documents.rdf 	\
+	rdf-query-examples/big-documents.rdf 	\
+	rdf-query-examples/wallpapers.rdf 	\
+	intltool-extract.in 			\
+	intltool-merge.in 			\
 	intltool-update.in 
 
 CLEANFILES = $(autostart_DATA)
 
-DISTCLEANFILES = \
-	intltool-extract \
-	intltool-merge \
+DISTCLEANFILES = 				\
+	intltool-extract 			\
+	intltool-merge 				\
 	intltool-update
 
-DISTCHECK_CONFIGURE_FLAGS = \
+DISTCHECK_CONFIGURE_FLAGS =			\
 	--with-session-bus-services-dir="\$(datadir)"/dbus-1/services \
 	--disable-deskbar-applet
 
 # Clean up any old trunk files that might exist which we don't use now
-all-local:
+install-exec-hook:
 	rm -Rf $(bindir)/trackerd
 	rm -Rf $(bindir)/tracker-indexer
 	rm -Rf $(bindir)/tracker-thumbnailer
 	rm -Rf $(bindir)/tracker-extract
-	rm -Rf $(datadir)/tracker
+
+install-data-hook:
+	rm -Rf $(DBUS_SERVICES_DIR)/tracker.service
+	rm -Rf $(datadir)/tracker/sqlite-service-stored-procs.sql
+	rm -Rf $(datadir)/tracker/tracker-introspect.xml
+	

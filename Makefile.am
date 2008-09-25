@@ -28,15 +28,15 @@ DISTCHECK_CONFIGURE_FLAGS =			\
 
 if OLD_EXEC_REMOVE_ALL
 install-exec-hook:
-	rm -Rf $(bindir)/trackerd
-	rm -Rf $(bindir)/tracker-indexer
-	rm -Rf $(bindir)/tracker-thumbnailer
-	rm -Rf $(bindir)/tracker-extract
+	rm -Rf $(DESTDIR)$(bindir)/trackerd
+	rm -Rf $(DESTDIR)$(bindir)/tracker-indexer
+	rm -Rf $(DESTDIR)$(bindir)/tracker-thumbnailer
+	rm -Rf $(DESTDIR)$(bindir)/tracker-extract
 endif
 
 if OLD_DATA_REMOVE_ALL
 install-data-hook:
-	rm -Rf $(DBUS_SERVICES_DIR)/tracker.service
-	rm -Rf $(datadir)/tracker/sqlite-service-stored-procs.sql
-	rm -Rf $(datadir)/tracker/tracker-introspect.xml
+	rm -Rf $(DESTDIR)$(DBUS_SERVICES_DIR)/tracker.service
+	rm -Rf $(DESTDIR)$(datadir)/tracker/sqlite-service-stored-procs.sql
+	rm -Rf $(DESTDIR)$(datadir)/tracker/tracker-introspect.xml
 endif	

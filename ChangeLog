@@ -1,5 +1,11 @@
 2008-09-25  Martyn Russell  <martyn@imendio.com>
 
+	* Makefile.am: Added $(DESTDIR) to the install hooks since it is
+	not applied to the hooks. Thanks for the input here from Michael
+	Biebl. 
+
+2008-09-25  Martyn Russell  <martyn@imendio.com>
+
 	* Makefile.am:
 	* configure.ac: Added a message about the file removal of old data
 	and binary files from older Tracker projects after the initial

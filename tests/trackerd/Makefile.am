@@ -1,6 +1,6 @@
-SUBDIRS = xesam .
-
 include $(top_srcdir)/Makefile.decl
+
+SUBDIRS = xesam .
 
 noinst_PROGRAMS = $(TEST_PROGS)
 

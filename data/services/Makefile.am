@@ -1,3 +1,5 @@
+include $(top_srcdir)/Makefile.decl
+
 configdir = $(datadir)/tracker/services
 
 config_DATA = 				\

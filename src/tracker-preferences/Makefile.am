@@ -1,3 +1,5 @@
+include $(top_srcdir)/Makefile.decl
+
 @INTLTOOL_DESKTOP_RULE@
 
 bin_PROGRAMS = tracker-preferences

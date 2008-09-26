@@ -19,24 +19,7 @@ INCLUDES = 								\
 	$(GTHREAD_CFLAGS)						\
 	$(GLIB2_CFLAGS)			
 
-generated_files =							\
-	tracker-indexer-glue.h						\
-	tracker-marshal.c						\
-	tracker-marshal.h
-
-tracker-indexer-glue.h:
-	ln -sf $(top_srcdir)/src/tracker-indexer/$@ $@
-
-tracker-marshal.h:
-	ln -sf $(top_srcdir)/src/tracker-indexer/$@ $@
-
-tracker-marshal.c:
-	ln -sf $(top_srcdir)/src/tracker-indexer/$@ $@
-
-CLEANFILES = $(generated_files)
-
 tracker_metadata_utils_SOURCES = 					\
-	$(generated_files)						\
 	tracker-dbus.c							\
 	tracker-dbus.h							\
 	tracker-indexer.c						\
@@ -45,6 +28,7 @@ tracker_metadata_utils_SOURCES = 					\
 	tracker-indexer-db.h						\
 	tracker-indexer-module.c					\
 	tracker-indexer-module.h					\
+	tracker-marshal-main.c						\
 	tracker-metadata.c						\
 	tracker-metadata.h						\
 	tracker-metadata-utils.c 					\
@@ -62,3 +46,22 @@ tracker_metadata_utils_LDADD =	                                        \
 	$(GTHREAD_LIBS)							\
 	$(GIO_LIBS)							\
 	$(GLIB2_LIBS)							
+
+#
+# We don't add these to CLEANFILES because they are created from
+# src/tracker-indexer and will be overwritten when we rebuild from
+# there. 
+#
+marshal_sources =                                         		\
+        tracker-marshal.h                             			\
+        tracker-marshal.c
+
+dbus_sources = 								\
+	tracker-indexer-glue.h
+
+BUILT_SOURCES = 							\
+	$(dbus_sources)							\
+	$(marshal_sources)
+
+EXTRA_DIST = 								\
+	$(BUILT_SOURCES)

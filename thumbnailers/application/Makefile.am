@@ -1,3 +1,5 @@
+include $(top_srcdir)/Makefile.decl
+
 thumbappbindir = $(libdir)/tracker/thumbnailers/application
 
 thumbappbin_SCRIPTS = pdf_thumbnailer \

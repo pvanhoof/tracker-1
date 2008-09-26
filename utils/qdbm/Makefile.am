@@ -1,3 +1,5 @@
+include $(top_srcdir)/Makefile.decl
+
 noinst_PROGRAMS = print search
 
 INCLUDES = 								\

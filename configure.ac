@@ -961,6 +961,7 @@ AC_CONFIG_LINKS(tests/tracker-indexer/tracker-dbus.c:src/tracker-indexer/tracker
                 tests/tracker-indexer/tracker-indexer-db.h:src/tracker-indexer/tracker-indexer-db.h
                 tests/tracker-indexer/tracker-indexer-module.c:src/tracker-indexer/tracker-indexer-module.c
                 tests/tracker-indexer/tracker-indexer-module.h:src/tracker-indexer/tracker-indexer-module.h
+                tests/tracker-indexer/tracker-marshal-main.c:src/tracker-indexer/tracker-marshal-main.c
 		tests/tracker-indexer/tracker-metadata.c:src/tracker-indexer/tracker-metadata.c 
                 tests/tracker-indexer/tracker-metadata.h:src/tracker-indexer/tracker-metadata.h
                 tests/tracker-indexer/tracker-metadata-utils.c:src/tracker-indexer/tracker-metadata-utils.c
@@ -971,9 +972,6 @@ AC_CONFIG_LINKS(tests/tracker-indexer/tracker-dbus.c:src/tracker-indexer/tracker
 ##################################################################
 # Check for older tracker project files which can cause problems
 ##################################################################
-
-old_exec_exists=yes
-old_data_exists=yes
 
 old_exec_message=""
 old_data_message=""

@@ -1,3 +1,5 @@
+include $(top_srcdir)/Makefile.decl
+
 if HAVE_GNOME
 build_tracker_search_tool = tracker-search-tool
 endif

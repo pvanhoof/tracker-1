@@ -1,3 +1,54 @@
+2008-09-26  Martyn Russell  <martyn@imendio.com>
+
+	* src/libtracker-common/tracker-config.c: (config_load_int),
+	(config_load_boolean), (config_load_string): Don't use g_warning()
+	when we can't find an old config option, instead just print a
+	normal message.
+	
+	* Makefile.am:
+	* configure.ac:
+	* data/Makefile.am:
+	* data/dbus/Makefile.am:
+	* data/icons/16x16/Makefile.am:
+	* data/icons/22x22/Makefile.am:
+	* data/icons/24x24/Makefile.am:
+	* data/icons/32x32/Makefile.am:
+	* data/icons/48x48/Makefile.am:
+	* data/icons/Makefile.am:
+	* data/icons/scalable/Makefile.am:
+	* data/languages/Makefile.am:
+	* data/modules/Makefile.am:
+	* data/services/Makefile.am:
+	* docs/Makefile.am:
+	* filters/application/Makefile.am:
+	* filters/text/Makefile.am:
+	* python/Makefile.am:
+	* python/deskbar-handler/Makefile.am:
+	* src/Makefile.am:
+	* src/libinotify/Makefile.am:
+	* src/libstemmer/Makefile.am:
+	* src/libtracker-common/Makefile.am:
+	* src/libtracker-db/Makefile.am:
+	* src/libtracker-gtk/Makefile.am:
+	* src/libtracker/Makefile.am:
+	* src/qdbm/Makefile.am:
+	* src/tracker-applet/Makefile.am:
+	* src/tracker-extract/Makefile.am:
+	* src/tracker-fts/Makefile.am:
+	* src/tracker-indexer/Makefile.am:
+	* src/tracker-indexer/modules/Makefile.am:
+	* src/tracker-indexer/tracker-indexer.c:
+	* src/tracker-preferences/Makefile.am:
+	* src/tracker-search-tool/Makefile.am:
+	* src/tracker-thumbnailer/Makefile.am:
+	* src/tracker-utils/Makefile.am:
+	* src/trackerd/Makefile.am:
+	* tests/tracker-indexer/Makefile.am:
+	* tests/trackerd/Makefile.am:
+	* thumbnailers/application/Makefile.am:
+	* thumbnailers/image/Makefile.am:
+	* utils/qdbm/Makefile.am: Fixed 'make check' and 'make distcheck'
+
 2008-09-25  Martyn Russell  <martyn@imendio.com>
 
 	* Makefile.am: Added $(DESTDIR) to the install hooks since it is

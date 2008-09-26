@@ -1,3 +1,5 @@
+include $(top_srcdir)/Makefile.decl
+
 module_flags = -module -avoid-version -no-undefined
 indexer_modulesdir = $(libdir)/tracker/indexer-modules
 

@@ -1,3 +1,5 @@
+include $(top_srcdir)/Makefile.decl
+
 SUBDIRS = modules
 
 INCLUDES =								\
@@ -45,11 +47,23 @@ tracker_indexer_LDADD =							\
 	-lz								\
 	-lm
 
+#
+# Note: This rule is slightly different from the normal rule we would
+# use here because it copies the resulting file on success to the
+# tracker-indexer directory in the unit tests so that they can build.
+# We do this for the marshal generated source and for the dbus
+# generated glue files.
+#
+# Should we add the files for the unit tests to CLEANFILES?
+#
+
 tracker-marshal.h: tracker-marshal.list
-	$(GLIB_GENMARSHAL) $< --prefix=tracker_marshal --header > $@
+	$(GLIB_GENMARSHAL) $< --prefix=tracker_marshal --header > $@ && \
+	$(LN_S) -sf $(top_srcdir)/src/tracker-indexer/$@ $(top_srcdir)/tests/tracker-indexer/$@
 
 tracker-marshal.c: tracker-marshal.list
-	$(GLIB_GENMARSHAL) $< --prefix=tracker_marshal --body > $@
+	$(GLIB_GENMARSHAL) $< --prefix=tracker_marshal --body > $@ && 	\
+	$(LN_S) -sf $(top_srcdir)/src/tracker-indexer/$@ $(top_srcdir)/tests/tracker-indexer/$@
 
 tracker-marshal-main.c: tracker-marshal.c tracker-marshal.h
 
@@ -61,7 +75,8 @@ dbus_sources = 								\
 	tracker-indexer-glue.h
 
 %-glue.h: $(top_srcdir)/data/dbus/%.xml
-	$(DBUSBINDINGTOOL) --mode=glib-server --output=$@ --prefix=$(subst -,_,$*) $^
+	$(DBUSBINDINGTOOL) --mode=glib-server --output=$@ --prefix=$(subst -,_,$*) $^ && \
+	$(LN_S) -sf $(top_srcdir)/src/tracker-indexer/$@ $(top_srcdir)/tests/tracker-indexer/$@
 
 BUILT_SOURCES = 							\
 	$(dbus_sources)							\

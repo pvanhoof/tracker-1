@@ -1,3 +1,5 @@
+include $(top_srcdir)/Makefile.decl
+
 INCLUDES = \
 	-D_XOPEN_SOURCE_EXTENDED=1 \
 	-D_GNU_SOURCE=1	\

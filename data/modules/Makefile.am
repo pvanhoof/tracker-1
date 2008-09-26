@@ -1,3 +1,5 @@
+include $(top_srcdir)/Makefile.decl
+
 configdir = $(datadir)/tracker/modules
 
 config_DATA =						\

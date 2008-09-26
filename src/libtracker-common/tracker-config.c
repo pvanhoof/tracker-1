@@ -995,7 +995,7 @@ config_load_int (TrackerConfig *config,
 	if (!error) {
 		g_object_set (G_OBJECT (config), property, value, NULL);
 	} else {
-		g_warning ("Couldn't load config option '%s' (int) in group '%s', %s",
+		g_message ("Couldn't load config option '%s' (int) in group '%s', %s",
 			   property, group, error->message);
 		g_error_free (error);
 	}
@@ -1015,9 +1015,9 @@ config_load_boolean (TrackerConfig *config,
 	if (!error) {
 		g_object_set (G_OBJECT (config), property, value, NULL);
 	} else {
-		g_warning ("Couldn't load config option '%s' (bool) in group '%s', %s",
+		g_message ("Couldn't load config option '%s' (bool) in group '%s', %s",
 			   property, group, error->message);
-		g_clear_error (&error);
+		g_error_free (error);
 	}
 }
 
@@ -1035,7 +1035,7 @@ config_load_string (TrackerConfig *config,
 	if (!error) {
 		g_object_set (G_OBJECT (config), property, value, NULL);
 	} else {
-		g_warning ("Couldn't load config option '%s' (string) in group '%s', %s",
+		g_message ("Couldn't load config option '%s' (string) in group '%s', %s",
 			   property, group, error->message);
 		g_error_free (error);
 	}

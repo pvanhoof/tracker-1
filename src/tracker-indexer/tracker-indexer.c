@@ -71,8 +71,8 @@
 #include "tracker-indexer.h"
 #include "tracker-indexer-module.h"
 #include "tracker-indexer-db.h"
-#include "tracker-module.h"
 #include "tracker-marshal.h"
+#include "tracker-module.h"
 
 #define TRACKER_INDEXER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_INDEXER, TrackerIndexerPrivate))
 

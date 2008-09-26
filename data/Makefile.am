@@ -1,3 +1,5 @@
+include $(top_srcdir)/Makefile.decl
+
 SUBDIRS = dbus modules languages icons services
 
 trackerd.desktop: trackerd.desktop.in

@@ -1,3 +1,5 @@
+include $(top_srcdir)/Makefile.decl
+
 configdir = $(datadir)/tracker/languages
 
 config_DATA =  		\
@@ -14,6 +16,5 @@ config_DATA =  		\
 	stopwords.pt 	\
 	stopwords.ru 	\
 	stopwords.sv 	
-
 
 EXTRA_DIST = $(config_DATA)

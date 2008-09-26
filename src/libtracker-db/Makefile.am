@@ -1,3 +1,5 @@
+include $(top_srcdir)/Makefile.decl
+
 INCLUDES =								\
 	-DSHAREDIR=\""$(datadir)"\"					\
 	-DG_LOG_DOMAIN=\"Tracker\"					\

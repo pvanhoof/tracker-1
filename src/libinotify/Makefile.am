@@ -1,3 +1,5 @@
+include $(top_srcdir)/Makefile.decl
+
 INCLUDES =						\
 	-DG_LOG_DOMAIN=\"libinotify\"			\
 	-I$(top_srcdir)/src				\

@@ -50,7 +50,7 @@ data_to_handle_received (GIOChannel *source,
 		gsize len;
 		gint clientfd;
 
-		clientfd = g_io_channel_unix_get_fd (source);
+		clientfd = (int) data;
 		len = recv (clientfd, command, sizeof (command), 0);
 
 		if (len == sizeof (command) && command[7] == '{' && command[18] == '}') {
@@ -75,7 +75,7 @@ data_to_handle_received (GIOChannel *source,
 
 					/* g_debug ("QUEUED: %s\n", query_data); */
 					tracker_store_queue_sparql_update (query_data, 
-					                                   NULL, NULL, NULL);
+					                                  NULL, NULL, NULL);
 
 				} else {
 					goto failed;
@@ -130,7 +130,7 @@ static gboolean server_cb(GIOChannel *chan, GIOCondition cond, gpointer data)
 
 	io = g_io_channel_unix_new(cli_sk);
 	g_io_add_watch (io, G_IO_IN | G_IO_HUP | G_IO_ERR | G_IO_NVAL,
-	                data_to_handle_received, NULL);
+	                data_to_handle_received, (gpointer) cli_sk);
 	g_io_channel_unref(io);
 
 	return TRUE;

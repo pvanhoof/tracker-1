@@ -73,6 +73,7 @@
 #include "tracker-backup.h"
 #include "tracker-daemon.h"
 #include "tracker-store.h"
+#include "tracker-socket-listener.h"
 
 #ifdef G_OS_WIN32
 #include <windows.h>
@@ -967,6 +968,7 @@ main (gint argc, gchar *argv[])
 
 	tracker_events_init (tracker_daemon_get_notifiable_classes);
 	tracker_push_init (config);
+	tracker_socket_listener_init ();
 
 	g_message ("Waiting for DBus requests...");
 
@@ -995,6 +997,8 @@ main (gint argc, gchar *argv[])
 	g_timeout_add_full (G_PRIORITY_LOW, 5000, shutdown_timeout_cb, NULL, NULL);
 
 	g_message ("Cleaning up");
+
+	tracker_socket_listener_shutdown ();
 
 	shutdown_databases ();
 	shutdown_directories ();

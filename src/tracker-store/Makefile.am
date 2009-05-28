@@ -53,7 +53,9 @@ tracker_store_SOURCES =							\
 	tracker-resource-class.c					\
 	tracker-resource-class.h					\
 	tracker-store.c							\
-	tracker-store.h
+	tracker-store.h							\
+	tracker-socket-listener.c					\
+	tracker-socket-listener.h
 
 if OS_WIN32
 tracker_store_win_libs = -lws2_32 -lkernel32

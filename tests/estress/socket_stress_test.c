@@ -43,12 +43,12 @@ int main(void)
 
         printf("Connected.\n");
 
-	str = "UPDATE {0000000032}\nINSERT { <test> a nfo:Document }";
+	str = "UPDATE {0000000032} {0000000032}\nINSERT { <test> a nfo:Document }";
 
 	timer = g_timer_new ();
 
 	g_timer_start (timer);
-	for (i = 0; i < 10000; i++) {
+	for (i = 0; i < 100000; i++) {
             if (send(s, str, strlen(str), 0) == -1) {
                 perror("send");
                 exit(1);

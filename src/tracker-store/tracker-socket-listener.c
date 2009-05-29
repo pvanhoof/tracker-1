@@ -83,6 +83,7 @@ on_update_fin (GError   *error,
 	}
 
 	send (info->clientfd, message, strlen (message), 0);
+	g_free (message);
 }
 
 static gboolean

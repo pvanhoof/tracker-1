@@ -136,21 +136,6 @@ static gboolean server_cb(GIOChannel *chan, GIOCondition cond, gpointer data)
 	return TRUE;
 }
 
-static int 
-set_nonblocking(int fd)
-{
-	long arg;
-	arg = fcntl(fd, F_GETFL);
-	if (arg < 0)
-		return -errno;
-	if (arg & O_NONBLOCK)
-		return 0;
-	arg |= O_NONBLOCK;
-	if (fcntl(fd, F_SETFL, arg) < 0)
-		return -errno;
-	return 0;
-}
-
 void
 tracker_socket_listener_init (void)
 {
@@ -177,8 +162,6 @@ tracker_socket_listener_init (void)
 		perror ("bind");
 		close(sockfd);
 	} else {
-
-		set_nonblocking (sockfd);
 
 		listen (sockfd, 1);
 

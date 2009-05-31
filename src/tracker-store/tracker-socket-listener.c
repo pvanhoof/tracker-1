@@ -77,9 +77,13 @@ on_update_fin (GError   *error,
 	}
 
 	if (error) {
-		message = g_strdup_printf ("ER:%s:%s", info->key, error->message);
+		message = g_strdup_printf ("ER:%s:{%010u}:{%010u}:%s", info->key,
+		                           error->code,
+		                           strlen (error->message),
+		                           error->message);
 	} else {
-		message = g_strdup_printf ("OK:%s", info->key);
+		message = g_strdup_printf ("OK:%s:{%010u}:{%010u}:none", info->key,
+		                           0, 4);
 	}
 
 	send (info->clientfd, message, strlen (message), 0);
@@ -102,8 +106,8 @@ data_to_handle_received (GIOChannel *source,
 		if (len == sizeof (command) && command[7] == '{' && command[18] == '}' &&
 		    command[20] == '{' && command[31] == '}') {
 
-			gchar *ptr = command + 8;
-			const gchar *key = command + 21;
+			gchar *ptr = command + 21;
+			const gchar *key = command + 8;
 			guint data_length;
 			gchar *free_data = NULL, *query_data;
 

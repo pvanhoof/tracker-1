@@ -20,6 +20,10 @@ if HAVE_TRACKER_SEARCH_TOOL
 build_tracker_search_tool = tracker-search-tool
 endif
 
+if HAVE_LIBTRACKERSOCKETIPC
+build_libtracker_socket_ipc = libtracker-socket-ipc
+endif
+
 SUBDIRS = 					\
 	libstemmer				\
 	$(build_libinotify)			\
@@ -37,7 +41,8 @@ SUBDIRS = 					\
 	$(build_libtrackergtk)			\
 	$(build_tracker_applet)			\
 	$(build_tracker_search_tool)		\
-	$(build_tracker_preferences)
+	$(build_tracker_preferences)		\
+	$(build_libtracker_socket_ipc)
 
 DIST_SUBDIRS = 					\
 	libstemmer				\
@@ -56,4 +61,5 @@ DIST_SUBDIRS = 					\
 	tracker-applet	 			\
 	tracker-search-tool			\
 	tracker-preferences			\
+	libtracker-socket-ipc			\
 	plugins

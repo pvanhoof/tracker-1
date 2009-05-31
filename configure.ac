@@ -725,6 +725,36 @@ fi
 AM_CONDITIONAL(HAVE_LIBTRACKERGTK, test "$have_libtrackergtk" = "yes")
 
 ##################################################################
+# Enable building libtracker-socket-ipc?
+##################################################################
+
+AC_ARG_ENABLE([libtrackersocketipc], 
+              AS_HELP_STRING([--enable-libtrackersocketipc], 
+	      		     [enable libtrackersocketipc [[default=auto]]]),,
+	      [enable_libtrackersocketipc=auto])
+
+if test "x$enable_libtrackersocketipc" != "xno" ; then
+   PKG_CHECK_MODULES(LIBTRACKERSOCKETIPC, [
+		     glib-2.0    >= $GLIB_REQUIRED
+        	     gvariant],
+		     [have_libtrackersocketipc=yes], 
+   		     [have_libtrackersocketipc=no])
+
+   AC_SUBST([LIBTRACKERSOCKETIPC_CFLAGS])
+   AC_SUBST([LIBTRACKERSOCKETIPC_LIBS])
+else
+   have_libtrackersocketipc="no  (disabled)"
+fi
+
+if test "x$enable_libtrackersocketipc" = "xyes"; then
+   if test "x$have_libtrackersocketipc" != "xyes"; then
+      AC_MSG_ERROR([Couldn't find libtracker_socket_ipc dependencies (glib-2.0 >= $GLIB_REQUIRED, gvariant).])
+   fi
+fi
+
+AM_CONDITIONAL(HAVE_LIBTRACKERSOCKETIPC, test "$have_libtrackersocketipc" = "yes")
+
+##################################################################
 # Enable building tracker-applet notification icon?
 ##################################################################
 
@@ -1358,6 +1388,7 @@ AC_CONFIG_FILES([
 	src/libtracker-data/Makefile
 	src/libtracker-db/Makefile
 	src/libtracker-gtk/Makefile
+	src/libtracker-socket-ipc/Makefile
 	src/libtracker/Makefile
 	src/Makefile
 	src/rasqal/Makefile

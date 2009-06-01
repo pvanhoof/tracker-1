@@ -10,6 +10,7 @@ INCLUDES =						\
 	$(GOBJECT_CFLAGS)				\
 	$(GCOV_CFLAGS)					\
 	$(LIBTRACKERSOCKETIPC_CFLAGS)			\
+	$(GIO_CFLAGS)					\
 	$(UNAC_CFLAGS)
 
 noinst_PROGRAMS = tracker-socket-ipc-test
@@ -36,6 +37,6 @@ libtracker_socket_ipc_la_LIBADD = 				\
 tracker_socket_ipc_test_SOURCES = tracker-socket-ipc-test.c
 
 tracker_socket_ipc_test_LDADD = $(LIBTRACKERSOCKETIPC_LIBS) 	\
-	$(GLIB2_LIBS) $(GOBJECT_LIBS) \
+	$(GLIB2_LIBS) $(GOBJECT_LIBS) $(GIO_LIBS) \
 	$(top_builddir)/src/libtracker-socket-ipc/libtracker-socket-ipc.la
 

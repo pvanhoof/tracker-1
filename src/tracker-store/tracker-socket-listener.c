@@ -90,6 +90,12 @@ on_update_fin (GError   *error,
 	g_free (message);
 }
 
+static void
+on_update_commit_fin (gpointer  user_data)
+{
+	on_update_fin (NULL, user_data);
+}
+
 static gboolean
 data_to_handle_received (GIOChannel *source,
                          GIOCondition cond,
@@ -133,12 +139,21 @@ data_to_handle_received (GIOChannel *source,
 					info->key = g_strdup (key);
 					info->clientfd = clientfd;
 
-					/* g_debug ("QUEUED: %s\n", query_data); */
-
 					tracker_store_queue_sparql_update (query_data, 
 					                                   on_update_fin, 
 					                                   info,
 					                                   (GDestroyNotify) update_info_free);
+
+				} else if (strstr (command, "COMMIT")) {
+
+					UpdateFinInfo *info = g_slice_new (UpdateFinInfo);
+
+					info->key = g_strdup (key);
+					info->clientfd = clientfd;
+
+					tracker_store_queue_commit (on_update_commit_fin, 
+					                            info,
+					                            (GDestroyNotify) update_info_free);
 
 				} else {
 					goto failed;
@@ -174,7 +189,8 @@ failed:
 
 }
 
-static gboolean server_cb(GIOChannel *chan, GIOCondition cond, gpointer data)
+static gboolean 
+server_cb (GIOChannel *chan, GIOCondition cond, gpointer data)
 {
 	struct sockaddr_un addr;
 	socklen_t addrlen;
@@ -236,7 +252,6 @@ tracker_socket_listener_init (void)
 		listen (sockfd, 1);
 
 		io = g_io_channel_unix_new (sockfd);
-		signal(SIGPIPE, SIG_IGN);
 
 		g_io_add_watch (io, G_IO_IN | G_IO_HUP | G_IO_ERR | G_IO_NVAL,
 		                server_cb, NULL);

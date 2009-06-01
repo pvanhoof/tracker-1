@@ -43,6 +43,8 @@ run_program (gpointer user_data)
 		                                        on_received, (gpointer) i, NULL);
 	}
 
+	tracker_socket_ipc_queue_commit (NULL, NULL, NULL);
+
 	return FALSE;
 }
 

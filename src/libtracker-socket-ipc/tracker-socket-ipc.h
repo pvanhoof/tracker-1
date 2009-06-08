@@ -37,9 +37,9 @@ void          tracker_socket_ipc_queue_sparql_update   (const gchar   *sparql,
                                                         TrackerSocketIpcSparqlUpdateCallback callback,
                                                         gpointer       user_data,
                                                         GDestroyNotify destroy);
-void          tracker_socket_ipc_queue_commit   (TrackerSocketIpcSparqlUpdateCallback callback,
-                                                 gpointer       user_data,
-                                                 GDestroyNotify destroy);
+void          tracker_socket_ipc_queue_commit          (TrackerSocketIpcSparqlUpdateCallback callback,
+                                                        gpointer       user_data,
+                                                        GDestroyNotify destroy);
 
 G_END_DECLS
 

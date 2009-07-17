@@ -289,9 +289,9 @@ class_add_super_classes_from_db (TrackerDBInterface *iface, TrackerClass *class)
 	TrackerDBResultSet *result_set;
 
 	stmt = tracker_db_interface_create_statement (iface,
-						      "SELECT (SELECT Uri FROM \"rdfs:Resource\" WHERE ID = \"rdfs:subClassOf\") "
+						      "SELECT (SELECT Uri FROM \"quad\".\"uri\" WHERE ID = \"rdfs:subClassOf\") "
 						      "FROM \"rdfs:Class_rdfs:subClassOf\" "
-						      "WHERE ID = (SELECT ID FROM \"rdfs:Resource\" WHERE Uri = ?)");
+						      "WHERE ID = (SELECT ID FROM \"quad\".\"uri\" WHERE Uri = ?)");
 	tracker_db_statement_bind_text (stmt, 0, tracker_class_get_uri (class));
 	result_set = tracker_db_statement_execute (stmt, NULL);
 	g_object_unref (stmt);
@@ -323,9 +323,9 @@ property_add_super_properties_from_db (TrackerDBInterface *iface, TrackerPropert
 	TrackerDBResultSet *result_set;
 
 	stmt = tracker_db_interface_create_statement (iface,
-						      "SELECT (SELECT Uri FROM \"rdfs:Resource\" WHERE ID = \"rdfs:subPropertyOf\") "
+						      "SELECT (SELECT Uri FROM \"quad\".\"uri\" WHERE ID = \"rdfs:subPropertyOf\") "
 						      "FROM \"rdf:Property_rdfs:subPropertyOf\" "
-						      "WHERE ID = (SELECT ID FROM \"rdfs:Resource\" WHERE Uri = ?)");
+						      "WHERE ID = (SELECT ID FROM \"quad\".\"uri\" WHERE Uri = ?)");
 	tracker_db_statement_bind_text (stmt, 0, tracker_property_get_uri (property));
 	result_set = tracker_db_statement_execute (stmt, NULL);
 	g_object_unref (stmt);
@@ -357,7 +357,7 @@ db_get_static_data (TrackerDBInterface *iface)
 	TrackerDBResultSet *result_set;
 
 	stmt = tracker_db_interface_create_statement (iface,
-						      "SELECT (SELECT Uri FROM \"rdfs:Resource\" WHERE ID = \"tracker:Namespace\".ID), "
+						      "SELECT (SELECT Uri FROM \"quad\".\"uri\" WHERE ID = \"tracker:Namespace\".ID), "
 						      "\"tracker:prefix\" "
 						      "FROM \"tracker:Namespace\"");
 	result_set = tracker_db_statement_execute (stmt, NULL);
@@ -392,7 +392,7 @@ db_get_static_data (TrackerDBInterface *iface)
 	}
 
 	stmt = tracker_db_interface_create_statement (iface,
-						      "SELECT (SELECT Uri FROM \"rdfs:Resource\" WHERE ID = \"rdfs:Class\".ID) "
+						      "SELECT (SELECT Uri FROM \"quad\".\"uri\" WHERE ID = \"rdfs:Class\".ID) "
 						      "FROM \"rdfs:Class\" ORDER BY ID");
 	result_set = tracker_db_statement_execute (stmt, NULL);
 	g_object_unref (stmt);
@@ -424,9 +424,9 @@ db_get_static_data (TrackerDBInterface *iface)
 	}
 
 	stmt = tracker_db_interface_create_statement (iface,
-						      "SELECT (SELECT Uri FROM \"rdfs:Resource\" WHERE ID = \"rdf:Property\".ID), "
-						      "(SELECT Uri FROM \"rdfs:Resource\" WHERE ID = \"rdfs:domain\"), "
-						      "(SELECT Uri FROM \"rdfs:Resource\" WHERE ID = \"rdfs:range\"), "
+						      "SELECT (SELECT Uri FROM \"quad\".\"uri\" WHERE ID = \"rdf:Property\".ID), "
+						      "(SELECT Uri FROM \"quad\".\"uri\" WHERE ID = \"rdfs:domain\"), "
+						      "(SELECT Uri FROM \"quad\".\"uri\" WHERE ID = \"rdfs:range\"), "
 						      "\"nrl:maxCardinality\", "
 						      "\"tracker:indexed\", "
 						      "\"tracker:fulltextIndexed\", "
@@ -615,7 +615,7 @@ create_decomposed_metadata_tables (TrackerDBInterface *iface,
 	sql = g_string_new ("");
 	g_string_append_printf (sql, "CREATE TABLE \"%s\" (ID INTEGER NOT NULL PRIMARY KEY", service_name);
 	if (main_class) {
-		g_string_append (sql, ", Uri TEXT NOT NULL, Available INTEGER NOT NULL");
+		g_string_append (sql, ", Available INTEGER NOT NULL");
 	}
 
 	properties = tracker_ontology_get_properties ();
@@ -640,9 +640,6 @@ create_decomposed_metadata_tables (TrackerDBInterface *iface,
 		}
 	}
 
-	if (main_class) {
-		g_string_append (sql, ", UNIQUE (Uri)");
-	}
 	g_string_append (sql, ")");
 	tracker_db_interface_execute_query (iface, NULL, "%s", sql->str);
 
@@ -675,10 +672,16 @@ create_decomposed_metadata_tables (TrackerDBInterface *iface,
 		TrackerDBStatement *stmt;
 
 		stmt = tracker_db_interface_create_statement (iface,
-							      "INSERT OR IGNORE INTO \"rdfs:Resource\" (ID, Uri, \"tracker:modified\") VALUES (?, ?, ?)");
+							      "INSERT OR IGNORE INTO \"quad\".\"uri\" (ID, Uri) VALUES (?, ?)");
 		tracker_db_statement_bind_int (stmt, 0, ++(*max_id));
 		tracker_db_statement_bind_text (stmt, 1, tracker_class_get_uri (service));
-		tracker_db_statement_bind_int64 (stmt, 2, (gint64) time (NULL));
+		tracker_db_statement_execute (stmt, NULL);
+		g_object_unref (stmt);
+
+		stmt = tracker_db_interface_create_statement (iface,
+							      "INSERT OR IGNORE INTO \"rdfs:Resource\" (ID, \"tracker:modified\") VALUES (?, ?)");
+		tracker_db_statement_bind_int (stmt, 0, max_id);
+		tracker_db_statement_bind_int64 (stmt, 1, (gint64) time (NULL));
 		tracker_db_statement_execute (stmt, NULL);
 		g_object_unref (stmt);
 	}
@@ -825,6 +828,10 @@ tracker_data_manager_init (TrackerDBManagerFlags       flags,
 		classes = tracker_ontology_get_classes ();
 
 		tracker_data_begin_transaction ();
+
+		tracker_db_interface_execute_query (iface, NULL, "CREATE TABLE quad.uri (ID INTEGER NOT NULL PRIMARY KEY, Uri TEXT NOT NULL, UNIQUE (Uri))");
+		tracker_db_interface_execute_query (iface, NULL, "CREATE TABLE quad.statement_uri (subject INTEGER NOT NULL, predicate INTEGER NOT NULL, object INTEGER NOT NULL, graph INTEGER)");
+		tracker_db_interface_execute_query (iface, NULL, "CREATE TABLE quad.statement_string (subject INTEGER NOT NULL, predicate INTEGER NOT NULL, object TEXT NOT NULL, graph INTEGER)");
 
 		/* create tables */
 		for (cl = classes; *cl; cl++) {

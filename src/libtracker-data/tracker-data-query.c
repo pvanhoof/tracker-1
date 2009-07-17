@@ -76,7 +76,7 @@ tracker_data_query_all_metadata (guint32 resource_id)
 
 	properties = tracker_ontology_get_properties ();
 
-	stmt = tracker_db_interface_create_statement (iface, "SELECT (SELECT Uri FROM \"rdfs:Resource\" WHERE ID = \"rdf:type\") FROM \"rdfs:Resource_rdf:type\" WHERE ID = ?");
+	stmt = tracker_db_interface_create_statement (iface, "SELECT (SELECT Uri FROM \"quad\".\"uri\" WHERE ID = \"rdf:type\") FROM \"rdfs:Resource_rdf:type\" WHERE ID = ?");
 	tracker_db_statement_bind_int (stmt, 0, resource_id);
 	result_set = tracker_db_statement_execute (stmt, NULL);
 	g_object_unref (stmt);
@@ -106,7 +106,7 @@ tracker_data_query_all_metadata (guint32 resource_id)
 						first = FALSE;
 
 						if (tracker_property_get_data_type (*property) == TRACKER_PROPERTY_TYPE_RESOURCE) {
-							g_string_append_printf (sql, "(SELECT Uri FROM \"rdfs:Resource\" WHERE ID = \"%s\")", tracker_property_get_name (*property));
+							g_string_append_printf (sql, "(SELECT Uri FROM \"quad\".\"uri\" WHERE ID = \"%s\")", tracker_property_get_name (*property));
 						} else {
 							g_string_append_printf (sql, "\"%s\"", tracker_property_get_name (*property));
 						}
@@ -154,7 +154,7 @@ tracker_data_query_all_metadata (guint32 resource_id)
 					sql = g_string_new ("SELECT ");
 
 					if (tracker_property_get_data_type (*property) == TRACKER_PROPERTY_TYPE_RESOURCE) {
-						g_string_append_printf (sql, "(SELECT Uri FROM \"rdfs:Resource\" WHERE ID = \"%s\")", tracker_property_get_name (*property));
+						g_string_append_printf (sql, "(SELECT Uri FROM \"quad\".\"uri\" WHERE ID = \"%s\")", tracker_property_get_name (*property));
 					} else {
 						g_string_append_printf (sql, "\"%s\"", tracker_property_get_name (*property));
 					}
@@ -219,10 +219,10 @@ tracker_data_query_rdf_type (guint32 id)
 	iface = tracker_db_manager_get_db_interface ();
 
 	stmt = tracker_db_interface_create_statement (iface,
-			"SELECT \"rdfs:Resource\".\"Uri\" "
+			"SELECT \"quad\".\"uri\".\"Uri\" "
 			"FROM \"rdfs:Resource_rdf:type\" "
-			"INNER JOIN \"rdfs:Resource\" "
-			"ON \"rdfs:Resource_rdf:type\".\"rdf:type\" = \"rdfs:Resource\".\"ID\" "
+			"INNER JOIN \"quad\".\"uri\" "
+			"ON \"rdfs:Resource_rdf:type\".\"rdf:type\" = \"quad\".\"uri\".\"ID\" "
 			"WHERE \"rdfs:Resource_rdf:type\".\"ID\" = ?");
 
 	tracker_db_statement_bind_int (stmt, 0, id);
@@ -262,7 +262,7 @@ tracker_data_query_resource_id (const gchar	   *uri)
 	iface = tracker_db_manager_get_db_interface ();
 
 	stmt = tracker_db_interface_create_statement (iface,
-		"SELECT ID FROM \"rdfs:Resource\" WHERE Uri = ?");
+		"SELECT ID FROM \"quad\".\"uri\" WHERE Uri = ?");
 	tracker_db_statement_bind_text (stmt, 0, uri);
 	result_set = tracker_db_statement_execute (stmt, NULL);
 	g_object_unref (stmt);
@@ -290,7 +290,7 @@ tracker_data_query_resource_exists (const gchar	  *uri,
 	iface = tracker_db_manager_get_db_interface ();
 
 	stmt = tracker_db_interface_create_statement (iface,
-		"SELECT ID FROM \"rdfs:Resource\" WHERE Uri = ?");
+		"SELECT ID FROM \"quad\".\"uri\" WHERE Uri = ?");
 	tracker_db_statement_bind_text (stmt, 0, uri);
 	result_set = tracker_db_statement_execute (stmt, NULL);
 	g_object_unref (stmt);
@@ -358,7 +358,7 @@ tracker_data_query_property_value (const gchar *subject,
 		/* retrieve object URI */
 		stmt = tracker_db_interface_create_statement (iface,
 			"SELECT "
-			"(SELECT Uri FROM \"rdfs:Resource\" WHERE ID = \"%s\") "
+			"(SELECT Uri FROM \"quad\".\"uri\" WHERE ID = \"%s\") "
 			"FROM \"%s\" WHERE ID = ?",
 			field_name, table_name);
 	} else {
@@ -421,7 +421,7 @@ tracker_data_query_property_values (const gchar *subject,
 		/* retrieve object URI */
 		stmt = tracker_db_interface_create_statement (iface,
 			"SELECT "
-			"(SELECT Uri FROM \"rdfs:Resource\" WHERE ID = \"%s\") "
+			"(SELECT Uri FROM \"quad\".\"uri\" WHERE ID = \"%s\") "
 			"FROM \"%s\" WHERE ID = ?",
 			field_name, table_name);
 	} else {

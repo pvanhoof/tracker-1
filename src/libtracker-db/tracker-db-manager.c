@@ -110,6 +110,18 @@ static TrackerDBDefinition dbs[] = {
 	  FALSE,
 	  FALSE,
  	  0 },
+	{ TRACKER_DB_QUAD,
+	  TRACKER_DB_LOCATION_USER_DATA_DIR,
+	  NULL,
+	  "quad.db",
+	  "quad",
+	  NULL,
+	  2000,
+	  TRACKER_DB_PAGE_SIZE_DONT_SET,
+	  FALSE,
+	  FALSE,
+	  FALSE,
+	  0 },
 	{ TRACKER_DB_METADATA,
 	  TRACKER_DB_LOCATION_DATA_DIR,
 	  NULL,
@@ -821,6 +833,17 @@ db_interface_get_contents (void)
 }
 
 
+static TrackerDBInterface *
+db_interface_get_quad (void)
+{
+	TrackerDBInterface *iface;
+	gboolean	    create;
+
+	iface = db_interface_get (TRACKER_DB_QUAD, &create);
+
+	return iface;
+}
+
 
 static TrackerDBInterface *
 db_interface_get_metadata (void)
@@ -842,6 +865,9 @@ db_interface_create (TrackerDB db)
 
 	case TRACKER_DB_COMMON:
 		return db_interface_get_common ();
+
+	case TRACKER_DB_QUAD:
+		return db_interface_get_quad ();
 
 	case TRACKER_DB_METADATA:
 		return db_interface_get_metadata ();
@@ -966,6 +992,9 @@ tracker_db_get_type (void)
 			{ TRACKER_DB_COMMON,
 			  "TRACKER_DB_COMMON",
 			  "common" },
+			{ TRACKER_DB_QUAD,
+			  "TRACKER_DB_QUAD",
+			  "quad" },
 			{ TRACKER_DB_METADATA,
 			  "TRACKER_DB_METADATA",
 			  "metadata" },
@@ -1205,16 +1234,18 @@ tracker_db_manager_init (TrackerDBManagerFlags	flags,
 	initialized = TRUE;
 
 	if (flags & TRACKER_DB_MANAGER_READONLY) {
-		resources_iface = tracker_db_manager_get_db_interfaces_ro (4,
+		resources_iface = tracker_db_manager_get_db_interfaces_ro (5,
 								    TRACKER_DB_METADATA,
 								    TRACKER_DB_FULLTEXT,
 								    TRACKER_DB_CONTENTS,
+								    TRACKER_DB_QUAD,
 								    TRACKER_DB_COMMON);
 	} else {
-		resources_iface = tracker_db_manager_get_db_interfaces (4,
+		resources_iface = tracker_db_manager_get_db_interfaces (5,
 								    TRACKER_DB_METADATA,
 								    TRACKER_DB_FULLTEXT,
 								    TRACKER_DB_CONTENTS,
+								    TRACKER_DB_QUAD,
 								    TRACKER_DB_COMMON);
 	}
 	return TRUE;

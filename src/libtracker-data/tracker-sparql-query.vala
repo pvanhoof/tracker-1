@@ -76,7 +76,7 @@ public class Tracker.SparqlQuery : Object {
 				DBResultSet result_set = null;
 				if (subject_id > 0) {
 					var iface = DBManager.get_db_interface ();
-					var stmt = iface.create_statement ("SELECT (SELECT Uri FROM \"rdfs:Resource\" WHERE ID = \"rdf:type\") FROM \"rdfs:Resource_rdf:type\" WHERE ID = ?");
+					var stmt = iface.create_statement ("SELECT (SELECT Uri FROM \"quad\".\"uri\" WHERE ID = \"rdf:type\") FROM \"rdfs:Resource_rdf:type\" WHERE ID = ?");
 					stmt.bind_int (0, subject_id);
 					result_set = stmt.execute ();
 				}
@@ -95,10 +95,10 @@ public class Tracker.SparqlQuery : Object {
 								} else {
 									sql.append (" UNION ");
 								}
-								sql.append_printf ("SELECT ID, (SELECT ID FROM \"rdfs:Resource\" WHERE Uri = '%s') AS \"predicate\", ", prop.uri);
+								sql.append_printf ("SELECT ID, (SELECT ID FROM \"quad\".\"uri\" WHERE Uri = '%s') AS \"predicate\", ", prop.uri);
 
 								if (prop.data_type == PropertyType.RESOURCE) {
-									sql.append_printf ("(SELECT Uri FROM \"rdfs:Resource\" WHERE ID = \"%s\")", prop.name);
+									sql.append_printf ("(SELECT Uri FROM \"quad\".\"uri\" WHERE ID = \"%s\")", prop.name);
 								} else if (prop.data_type == PropertyType.INTEGER || prop.data_type == PropertyType.DOUBLE) {
 									sql.append_printf ("CAST (\"%s\" AS TEXT)", prop.name);
 								} else if (prop.data_type == PropertyType.BOOLEAN) {
@@ -129,7 +129,7 @@ public class Tracker.SparqlQuery : Object {
 				var object_id = Data.query_resource_id (object);
 
 				var iface = DBManager.get_db_interface ();
-				var stmt = iface.create_statement ("SELECT (SELECT Uri FROM \"rdfs:Resource\" WHERE ID = \"rdf:type\") FROM \"rdfs:Resource_rdf:type\" WHERE ID = ?");
+				var stmt = iface.create_statement ("SELECT (SELECT Uri FROM \"quad\".\"uri\" WHERE ID = \"rdf:type\") FROM \"rdfs:Resource_rdf:type\" WHERE ID = ?");
 				stmt.bind_int (0, object_id);
 				var result_set = stmt.execute ();
 
@@ -147,10 +147,10 @@ public class Tracker.SparqlQuery : Object {
 								} else {
 									sql.append (" UNION ");
 								}
-								sql.append_printf ("SELECT ID, (SELECT ID FROM \"rdfs:Resource\" WHERE Uri = '%s') AS \"predicate\", ", prop.uri);
+								sql.append_printf ("SELECT ID, (SELECT ID FROM \"quad\".\"uri\" WHERE Uri = '%s') AS \"predicate\", ", prop.uri);
 
 								if (prop.data_type == PropertyType.RESOURCE) {
-									sql.append_printf ("(SELECT Uri FROM \"rdfs:Resource\" WHERE ID = \"%s\")", prop.name);
+									sql.append_printf ("(SELECT Uri FROM \"quad\".\"uri\" WHERE ID = \"%s\")", prop.name);
 								} else if (prop.data_type == PropertyType.INTEGER || prop.data_type == PropertyType.DOUBLE) {
 									sql.append_printf ("CAST (\"%s\" AS TEXT)", prop.name);
 								} else if (prop.data_type == PropertyType.BOOLEAN) {
@@ -184,10 +184,10 @@ public class Tracker.SparqlQuery : Object {
 						} else {
 							sql.append (" UNION ");
 						}
-						sql.append_printf ("SELECT ID, (SELECT ID FROM \"rdfs:Resource\" WHERE Uri = '%s') AS \"predicate\", ", prop.uri);
+						sql.append_printf ("SELECT ID, (SELECT ID FROM \"quad\".\"uri\" WHERE Uri = '%s') AS \"predicate\", ", prop.uri);
 
 						if (prop.data_type == PropertyType.RESOURCE) {
-							sql.append_printf ("(SELECT Uri FROM \"rdfs:Resource\" WHERE ID = \"%s\")", prop.name);
+							sql.append_printf ("(SELECT Uri FROM \"quad\".\"uri\" WHERE ID = \"%s\")", prop.name);
 						} else if (prop.data_type == PropertyType.INTEGER || prop.data_type == PropertyType.DOUBLE) {
 							sql.append_printf ("CAST (\"%s\" AS TEXT)", prop.name);
 						} else if (prop.data_type == PropertyType.BOOLEAN) {
@@ -373,7 +373,7 @@ public class Tracker.SparqlQuery : Object {
 		var binding = var_map.lookup (variable_name);
 		assert (binding != null);
 		if (binding.is_uri) {
-			return "(SELECT Uri FROM \"rdfs:Resource\" WHERE ID = \"%s_u\")".printf (variable_name);
+			return "(SELECT Uri FROM \"quad\".\"uri\" WHERE ID = \"%s_u\")".printf (variable_name);
 		} else if (binding.is_boolean) {
 			return "(CASE \"%s_u\" WHEN 1 THEN 'true' WHEN 0 THEN 'false' ELSE NULL END)".printf (variable_name);
 		} else if (binding.is_datetime) {
@@ -712,7 +712,7 @@ public class Tracker.SparqlQuery : Object {
 				} else {
 					pattern_sql.append (" = ");
 					if (binding.is_uri) {
-						pattern_sql.append ("(SELECT ID FROM \"rdfs:Resource\" WHERE Uri = ?)");
+						pattern_sql.append ("(SELECT ID FROM \"quad\".\"uri\" WHERE Uri = ?)");
 					} else {
 						pattern_sql.append ("?");
 					}
@@ -1136,7 +1136,7 @@ public class Tracker.SparqlQuery : Object {
 				pattern_sql.append_printf ("\"%s_u\"", variable_name);
 			} else {
 				if (expr.literal.type == Rasqal.Literal.Type.URI) {
-					pattern_sql.append ("(SELECT ID FROM \"rdfs:Resource\" WHERE Uri = ?)");
+					pattern_sql.append ("(SELECT ID FROM \"quad\".\"uri\" WHERE Uri = ?)");
 				} else {
 					pattern_sql.append ("?");
 				}

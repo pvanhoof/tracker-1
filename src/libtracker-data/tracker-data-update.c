@@ -132,7 +132,7 @@ tracker_data_update_get_new_service_id (TrackerDBInterface *iface)
 	temp_iface = tracker_db_manager_get_db_interface ();
 
 	result_set = tracker_db_interface_execute_query (temp_iface, NULL,
-							 "SELECT MAX(ID) AS A FROM \"rdfs:Resource\"");
+							 "SELECT MAX(ID) AS A FROM \"quad\".\"uri\"");
 
 	if (result_set) {
 		GValue val = {0, };
@@ -253,10 +253,16 @@ ensure_resource_id (const gchar *uri)
 		iface = tracker_db_manager_get_db_interface ();
 
 		id = tracker_data_update_get_new_service_id (common);
-		stmt = tracker_db_interface_create_statement (iface, "INSERT INTO \"rdfs:Resource\" (ID, Uri, \"tracker:modified\", Available) VALUES (?, ?, ?, 1)");
+
+		stmt = tracker_db_interface_create_statement (iface, "INSERT INTO \"quad\".\"uri\" (ID, Uri) VALUES (?, ?)");
 		tracker_db_statement_bind_int (stmt, 0, id);
 		tracker_db_statement_bind_text (stmt, 1, uri);
-		tracker_db_statement_bind_int64 (stmt, 2, (gint64) time(NULL));
+		tracker_db_statement_execute (stmt, NULL);
+		g_object_unref (stmt);
+
+		stmt = tracker_db_interface_create_statement (iface, "INSERT INTO \"rdfs:Resource\" (ID, \"tracker:modified\", Available) VALUES (?, ?, 1)");
+		tracker_db_statement_bind_int (stmt, 0, id);
+		tracker_db_statement_bind_int64 (stmt, 1, (gint64) time(NULL));
 		tracker_db_statement_execute (stmt, NULL);
 		g_object_unref (stmt);
 
@@ -312,7 +318,7 @@ tracker_data_update_buffer_flush (void)
 	if (update_buffer.new_subject != NULL) {
 		// change uri of resource
 		stmt = tracker_db_interface_create_statement (iface,
-			"UPDATE \"rdfs:Resource\" SET Uri = ? WHERE ID = ?");
+			"UPDATE \"quad\".\"uri\" SET Uri = ? WHERE ID = ?");
 		tracker_db_statement_bind_text (stmt, 0, update_buffer.new_subject);
 		tracker_db_statement_bind_int (stmt, 1, update_buffer.id);
 		tracker_db_statement_execute (stmt, NULL);
@@ -387,6 +393,7 @@ tracker_data_update_buffer_flush (void)
 		 * replace should happen as a delete/insert pair */
 		for (i = 0; i < table->properties->len; i++) {
 			property = &g_array_index (table->properties, TrackerDataUpdateBufferProperty, i);
+
 			if (property->fts) {
 				if (fts_index > 0) {
 					g_string_append (fts_sql, ", ");
@@ -546,7 +553,7 @@ tracker_data_update_resource_uri (const gchar *old_uri,
 
 	/* update URI in rdfs:Resource table */
 
-	stmt = tracker_db_interface_create_statement (iface, "UPDATE \"rdfs:Resource\" SET Uri = ? WHERE ID = ?");
+	stmt = tracker_db_interface_create_statement (iface, "UPDATE \"quad\".\"uri\" SET Uri = ? WHERE ID = ?");
 	tracker_db_statement_bind_text (stmt, 0, new_uri);
 	tracker_db_statement_bind_int (stmt, 1, resource_id);
 	tracker_db_statement_execute (stmt, NULL);
@@ -749,9 +756,9 @@ tracker_data_delete_statement (const gchar            *subject,
 			/* retrieve all subclasses we need to remove from the subject
 			 * before we can remove the class specified as object of the statement */
 			stmt = tracker_db_interface_create_statement (iface,
-				"SELECT (SELECT Uri FROM \"rdfs:Resource\" WHERE ID = \"rdfs:Class_rdfs:subClassOf\".ID) "
+				"SELECT (SELECT Uri FROM \"quad\".\"uri\" WHERE ID = \"rdfs:Class_rdfs:subClassOf\".ID) "
 				"FROM \"rdfs:Resource_rdf:type\" INNER JOIN \"rdfs:Class_rdfs:subClassOf\" ON (\"rdf:type\" = \"rdfs:Class_rdfs:subClassOf\".ID) "
-				"WHERE \"rdfs:Resource_rdf:type\".ID = ? AND \"rdfs:subClassOf\" = (SELECT ID FROM \"rdfs:Resource\" WHERE Uri = ?)");
+				"WHERE \"rdfs:Resource_rdf:type\".ID = ? AND \"rdfs:subClassOf\" = (SELECT ID FROM \"quad\".\"uri\" WHERE Uri = ?)");
 			tracker_db_statement_bind_int (stmt, 0, subject_id);
 			tracker_db_statement_bind_text (stmt, 1, object);
 			result_set = tracker_db_statement_execute (stmt, NULL);
@@ -937,6 +944,8 @@ tracker_data_insert_statement_with_uri (const gchar            *subject,
 {
 	TrackerClass    *class;
 	TrackerProperty *property;
+	TrackerDBInterface *iface;
+	TrackerDBStatement *stmt;
 
 	g_return_if_fail (subject != NULL);
 	g_return_if_fail (predicate != NULL);
@@ -1011,6 +1020,15 @@ tracker_data_insert_statement_with_uri (const gchar            *subject,
 		cache_set_metadata_decomposed (property, object);
 	}
 
+	iface = tracker_db_manager_get_db_interface ();
+	stmt = tracker_db_interface_create_statement (iface,
+		"INSERT OR IGNORE INTO \"quad\".\"statement_uri\" (subject, predicate, object) VALUES (?, (SELECT ID FROM \"quad\".\"uri\" WHERE Uri = ?), (SELECT ID FROM \"quad\".\"uri\" WHERE Uri = ?))");
+	tracker_db_statement_bind_int (stmt, 0, update_buffer.id);
+	tracker_db_statement_bind_text (stmt, 1, predicate);
+	tracker_db_statement_bind_text (stmt, 2, object);
+	tracker_db_statement_execute (stmt, NULL);
+	g_object_unref (stmt);
+
 	if (insert_callback) {
 		insert_callback (subject, predicate, object, update_buffer.types, insert_data);
 	}
@@ -1025,6 +1043,8 @@ tracker_data_insert_statement_with_string (const gchar            *subject,
 					   GError                **error)
 {
 	TrackerProperty *property;
+	TrackerDBInterface *iface;
+	TrackerDBStatement *stmt;
 
 	g_return_if_fail (subject != NULL);
 	g_return_if_fail (predicate != NULL);
@@ -1051,6 +1071,15 @@ tracker_data_insert_statement_with_string (const gchar            *subject,
 	/* add value to metadata database */
 	cache_set_metadata_decomposed (property, object);
 
+	iface = tracker_db_manager_get_db_interface ();
+	stmt = tracker_db_interface_create_statement (iface,
+		"INSERT OR IGNORE INTO \"quad\".\"statement_string\" (subject, predicate, object) VALUES (?, (SELECT ID FROM \"quad\".\"uri\" WHERE Uri = ?), ?)");
+	tracker_db_statement_bind_int (stmt, 0, update_buffer.id);
+	tracker_db_statement_bind_text (stmt, 1, predicate);
+	tracker_db_statement_bind_text (stmt, 2, object);
+	tracker_db_statement_execute (stmt, NULL);
+	g_object_unref (stmt);
+
 	if (insert_callback) {
 		insert_callback (subject, predicate, object, update_buffer.types, insert_data);
 	}
@@ -1075,7 +1104,7 @@ db_set_volume_available (const gchar *uri,
 
 	iface = tracker_db_manager_get_db_interface ();
 
-	stmt = tracker_db_interface_create_statement (iface, "UPDATE \"rdfs:Resource\" SET Available = ? WHERE ID IN (SELECT ID FROM \"nie:DataObject\" WHERE \"nie:dataSource\" IN (SELECT ID FROM \"rdfs:Resource\" WHERE Uri = ?))");
+	stmt = tracker_db_interface_create_statement (iface, "UPDATE \"rdfs:Resource\" SET Available = ? WHERE ID IN (SELECT ID FROM \"nie:DataObject\" WHERE \"nie:dataSource\" IN (SELECT ID FROM \"quad\".\"uri\" WHERE Uri = ?))");
 	tracker_db_statement_bind_int (stmt, 0, available ? 1 : 0);
 	tracker_db_statement_bind_text (stmt, 1, uri);
 	tracker_db_statement_execute (stmt, NULL);
@@ -1246,7 +1275,7 @@ tracker_data_update_disable_all_volumes (void)
 		"WHERE ID IN ("
 			"SELECT ID FROM \"nie:DataObject\" "
 			"WHERE \"nie:dataSource\" IN ("
-				"SELECT ID FROM \"rdfs:Resource\" WHERE Uri != ?"
+				"SELECT ID FROM \"quad\".\"uri\" WHERE Uri != ?"
 			")"
 		")");
 	tracker_db_statement_bind_text (stmt, 0, TRACKER_NON_REMOVABLE_MEDIA_DATASOURCE_URN);
@@ -1358,7 +1387,7 @@ tracker_data_delete_resource_description (const gchar *uri)
 
 	properties = tracker_ontology_get_properties ();
 
-	stmt = tracker_db_interface_create_statement (iface, "SELECT (SELECT Uri FROM \"rdfs:Resource\" WHERE ID = \"rdf:type\") FROM \"rdfs:Resource_rdf:type\" WHERE ID = ?");
+	stmt = tracker_db_interface_create_statement (iface, "SELECT (SELECT Uri FROM \"quad\".\"uri\" WHERE ID = \"rdf:type\") FROM \"rdfs:Resource_rdf:type\" WHERE ID = ?");
 	tracker_db_statement_bind_int (stmt, 0, resource_id);
 	result_set = tracker_db_statement_execute (stmt, NULL);
 	g_object_unref (stmt);
@@ -1392,7 +1421,7 @@ tracker_data_delete_resource_description (const gchar *uri)
 						first = FALSE;
 
 						if (tracker_property_get_data_type (*property) == TRACKER_PROPERTY_TYPE_RESOURCE) {
-							g_string_append_printf (sql, "(SELECT Uri FROM \"rdfs:Resource\" WHERE ID = \"%s\")", tracker_property_get_name (*property));
+							g_string_append_printf (sql, "(SELECT Uri FROM \"quad\".\"uri\" WHERE ID = \"%s\")", tracker_property_get_name (*property));
 						} else {
 							g_string_append_printf (sql, "\"%s\"", tracker_property_get_name (*property));
 						}
@@ -1446,7 +1475,7 @@ tracker_data_delete_resource_description (const gchar *uri)
 					sql = g_string_new ("SELECT ");
 
 					if (tracker_property_get_data_type (*property) == TRACKER_PROPERTY_TYPE_RESOURCE) {
-						g_string_append_printf (sql, "(SELECT Uri FROM \"rdfs:Resource\" WHERE ID = \"%s\")", tracker_property_get_name (*property));
+						g_string_append_printf (sql, "(SELECT Uri FROM \"quad\".\"uri\" WHERE ID = \"%s\")", tracker_property_get_name (*property));
 					} else {
 						g_string_append_printf (sql, "\"%s\"", tracker_property_get_name (*property));
 					}

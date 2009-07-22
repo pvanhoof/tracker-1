@@ -19,13 +19,15 @@ libtracker_db_la_SOURCES = 						\
 	tracker-db-dbus.c						\
 	tracker-db-interface.c						\
 	tracker-db-interface-sqlite.c					\
-	tracker-db-manager.c
+	tracker-db-manager.c						\
+	tracker-db-backup.c
 
 noinst_HEADERS =							\
 	tracker-db-dbus.h						\
 	tracker-db-interface.h						\
 	tracker-db-interface-sqlite.h					\
-	tracker-db-manager.h 
+	tracker-db-manager.h 						\
+	tracker-db-backup.h
 
 libtracker_db_la_LDFLAGS =						\
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)

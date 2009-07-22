@@ -69,7 +69,6 @@
 #include <libtracker-data/tracker-data-query.h>
 #include <libtracker-data/tracker-data-update.h>
 #include <libtracker-data/tracker-turtle.h>
-#include <libtracker-data/tracker-data-backup.h>
 
 #include <libtracker/tracker.h>
 

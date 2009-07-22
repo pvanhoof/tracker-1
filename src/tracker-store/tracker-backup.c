@@ -25,7 +25,7 @@
 
 #include <libtracker-common/tracker-dbus.h>
 
-#include <libtracker-data/tracker-data-backup.h>
+#include <libtracker-db/tracker-db-backup.h>
 #include <libtracker-data/tracker-data-update.h>
 
 #include "tracker-dbus.h"
@@ -83,7 +83,7 @@ tracker_backup_save (TrackerBackup          *object,
 		file = g_file_new_for_uri (uri);
 	}
 
-	tracker_data_backup_save (file, &err);
+	//tracker_data_backup_save (file, &err);
 
 	g_object_unref (file);
 

@@ -55,6 +55,41 @@ tracker_backup_new (void)
 	return g_object_new (TRACKER_TYPE_BACKUP, NULL);
 }
 
+typedef struct {
+	GFile *file;
+	guint request_id;
+	DBusGMethodInvocation *context;
+} BackupInfo;
+
+static void
+on_backup_destroy (gpointer user_data)
+{
+	BackupInfo *info = user_data;
+	g_object_unref (info->file);
+	g_free (info);
+}
+
+static void
+on_backup_finished (GError *error, gpointer user_data)
+{
+	BackupInfo *info = user_data;
+
+	if (error) {
+		GError *actual_error = NULL;
+
+		tracker_dbus_request_failed (info->request_id,
+		                             &actual_error,
+		                             error->message);
+
+		dbus_g_method_return_error (info->context, actual_error);
+
+		g_error_free (actual_error);
+	} else {
+		dbus_g_method_return (info->context);
+		tracker_dbus_request_success (info->request_id);
+	}
+}
+
 void
 tracker_backup_save (TrackerBackup          *object,
                      const gchar            *uri,
@@ -62,8 +97,8 @@ tracker_backup_save (TrackerBackup          *object,
                      GError                **error)
 {
 	guint request_id;
-	GError *err = NULL;
 	GFile *file;
+	BackupInfo *info;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -83,27 +118,19 @@ tracker_backup_save (TrackerBackup          *object,
 		file = g_file_new_for_uri (uri);
 	}
 
-	//tracker_data_backup_save (file, &err);
+	info = g_new (BackupInfo, 1);
 
-	g_object_unref (file);
+	info->request_id = request_id;
+	info->file = file;
+	info->context = context;
 
-	if (err) {
-		GError *actual_error = NULL;
+	tracker_db_backup_save (file, 
+	                        on_backup_finished,
+	                        info,
+	                        on_backup_destroy);
 
-		tracker_dbus_request_failed (request_id,
-		                             &actual_error,
-		                             err->message);
-
-		dbus_g_method_return_error (context, actual_error);
-
-		g_error_free (actual_error);
-		g_error_free (err);
-	} else {
-		dbus_g_method_return (context);
-		tracker_dbus_request_success (request_id);
-	}
 }
-
+#if 0
 static void
 destroy_method_info (gpointer user_data)
 {
@@ -127,6 +154,7 @@ backup_callback (GError *error, gpointer user_data)
 
 	tracker_dbus_request_success (info->request_id);
 }
+#endif
 
 void
 tracker_backup_restore (TrackerBackup          *object,

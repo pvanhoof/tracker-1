@@ -106,8 +106,6 @@ tracker_backup_save (TrackerBackup          *object,
 				  "DBus request to save backup into '%s'",
 				  uri);
 
-	g_message ("Backing up metadata (unfinished, unsupported)");
-
 	/* Previous DBus API accepted paths. For this reason I decided to try
 	 * to support both paths and uris. Perhaps we should just remove the
 	 * support for paths here? */

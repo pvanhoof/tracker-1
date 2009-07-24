@@ -44,7 +44,9 @@ typedef struct {
 	GOutputStream *stream;
 	GError *error;
 	sqlite3_stmt *stmt;
-	sqlite3 *db;
+	sqlite3 *db, *backup_temp;
+	sqlite3_backup *backup_db;
+	gchar *backup_fname;
 	int result;
 } BackupInfo;
 
@@ -86,8 +88,22 @@ backup_info_free (gpointer user_data)
 		sqlite3_finalize (info->stmt);
 	}
 
+	if (info->backup_db) {
+		sqlite3_backup_finish (info->backup_db);
+		info->backup_db = NULL;
+	}
+
+	if (info->backup_temp) {
+		sqlite3_close (info->backup_temp);
+	}
+
 	if (info->db) {
 		sqlite3_close (info->db);
+	}
+
+	if (info->backup_fname) {
+		g_unlink (info->backup_fname);
+		g_free (info->backup_fname);
 	}
 
 	g_free (info);
@@ -105,8 +121,8 @@ backup_machine_step (gpointer user_data)
 	GError *error = NULL;
 	gsize written;
 
-	while (info->result == SQLITE_OK  ||
-	       info->result == SQLITE_ROW) {
+	while (cont && (info->result == SQLITE_OK  ||
+	                info->result == SQLITE_ROW)) {
 
 		info->result = sqlite3_step (info->stmt);
 
@@ -163,7 +179,7 @@ on_backup_finished (gpointer user_data)
 	if (!info->error && info->result != SQLITE_DONE) {
 		g_set_error (&info->error, TRACKER_DB_BACKUP_ERROR, 
 		             TRACKER_DB_BACKUP_ERROR_UNKNOWN,
-		             "%s", sqlite3_errmsg (info->db));
+		             "%s", sqlite3_errmsg (info->backup_temp));
 	}
 
 	if (info->stream) {
@@ -185,7 +201,7 @@ on_backup_stageone_finished (gpointer user_data)
 	if (!info->error && info->result != SQLITE_DONE) {
 		g_set_error (&info->error, TRACKER_DB_BACKUP_ERROR, 
 		             TRACKER_DB_BACKUP_ERROR_UNKNOWN,
-		             "%s", sqlite3_errmsg (info->db));
+		             "%s", sqlite3_errmsg (info->backup_temp));
 
 		if (info->stream) {
 			g_output_stream_close (info->stream, NULL, NULL);
@@ -216,11 +232,11 @@ on_backup_stageone_finished (gpointer user_data)
 		"INNER JOIN uri as urio ON statement_uri.object = urio.ID "
 		"WHERE urip.Uri != '" TRACKER_RDF_PREFIX "type'";
 
-	retval = sqlite3_prepare_v2 (info->db, query, -1, &info->stmt, NULL);
+	retval = sqlite3_prepare_v2 (info->backup_temp, query, -1, &info->stmt, NULL);
 
 	if (retval != SQLITE_OK) {
 		g_set_error (&info->error, TRACKER_DB_BACKUP_ERROR, TRACKER_DB_BACKUP_ERROR_UNKNOWN,
-		     "%s", sqlite3_errmsg (info->db));
+		     "%s", sqlite3_errmsg (info->backup_temp));
 
 		perform_callback (info);
 
@@ -237,17 +253,93 @@ on_backup_stageone_finished (gpointer user_data)
 	return;
 }
 
+static gboolean
+backup_file_step (gpointer user_data)
+{
+	BackupInfo *info = user_data;
+	guint cnt = 0;
+	gboolean cont = TRUE;
+
+	while (cont && info->result == SQLITE_OK) {
+
+		info->result = sqlite3_backup_step(info->backup_db, 5);
+
+		switch (info->result) {
+			case SQLITE_OK:
+			break;
+
+			case SQLITE_ERROR:
+			default:
+			cont = FALSE;
+			break;
+		}
+
+		if (cnt > 100) {
+			break;
+		}
+
+		cnt++;
+	}
+
+	return cont;
+}
+
+static void
+on_backup_temp_finished (gpointer user_data)
+{
+	BackupInfo *info = user_data;
+	int retval;
+	const gchar *query;
+
+	if (info->backup_db) {
+		sqlite3_backup_finish (info->backup_db);
+		info->backup_db = NULL;
+	}
+
+	if (info->db) {
+		sqlite3_close (info->db);
+		info->db = NULL;
+	}
+
+	/* We first get all rdf:type out */
+	query = "SELECT uris.Uri as subject, urip.Uri as predicate, urio.Uri as object, 1 as isUri "
+		"FROM statement_uri "
+		"INNER JOIN uri as urip ON statement_uri.predicate = urip.ID "
+		"INNER JOIN uri as uris ON statement_uri.subject = uris.ID "
+		"INNER JOIN uri as urio ON statement_uri.object = urio.ID "
+		"WHERE urip.Uri = '" TRACKER_RDF_PREFIX "type'";
+
+	retval = sqlite3_prepare_v2 (info->backup_temp, query, -1, &info->stmt, NULL);
+
+	if (retval != SQLITE_OK) {
+		g_set_error (&info->error, TRACKER_DB_BACKUP_ERROR, TRACKER_DB_BACKUP_ERROR_UNKNOWN,
+		     "%s", sqlite3_errmsg (info->backup_temp));
+
+		g_idle_add_full (G_PRIORITY_DEFAULT, perform_callback, info, 
+		                 backup_info_free);
+
+		return;
+	}
+
+	info->result = retval;
+
+	g_idle_add_full (G_PRIORITY_DEFAULT, backup_machine_step, info, 
+	                 on_backup_stageone_finished);
+
+	return;
+}
+
+
 void
-tracker_db_backup_save (GFile   *turtle_file,
+tracker_db_backup_save (GFile *turtle_file,
                         TrackerBackupFinished callback,
                         gpointer user_data,
                         GDestroyNotify destroy)
 {
 	BackupInfo *info = g_new0 (BackupInfo, 1);
 	const gchar *db_file = tracker_db_manager_get_file (TRACKER_DB_QUAD);
-	int retval;
-	const gchar *query;
 	GError *error = NULL;
+	GFile *file, *parent;
 
 	info->file = g_object_ref (turtle_file);
 	info->callback = callback;
@@ -275,19 +367,17 @@ tracker_db_backup_save (GFile   *turtle_file,
 		return;
 	}
 
-	/* We first get all rdf:type out */
-	query = "SELECT uris.Uri as subject, urip.Uri as predicate, urio.Uri as object, 1 as isUri "
-		"FROM statement_uri "
-		"INNER JOIN uri as urip ON statement_uri.predicate = urip.ID "
-		"INNER JOIN uri as uris ON statement_uri.subject = uris.ID "
-		"INNER JOIN uri as urio ON statement_uri.object = urio.ID "
-		"WHERE urip.Uri = '" TRACKER_RDF_PREFIX "type'";
+	file = g_file_new_for_path (db_file);
+	parent = g_file_get_parent (file);
+	g_object_unref (file);
+	file = g_file_get_child (parent, "temp.db");
+	g_object_unref (parent);
+	info->backup_fname = g_file_get_path (file);
+	g_object_unref (file);
 
-	retval = sqlite3_prepare_v2 (info->db, query, -1, &info->stmt, NULL);
-
-	if (retval != SQLITE_OK) {
+	if (sqlite3_open (info->backup_fname, &info->backup_temp) != SQLITE_OK) {
 		g_set_error (&info->error, TRACKER_DB_BACKUP_ERROR, TRACKER_DB_BACKUP_ERROR_UNKNOWN,
-		     "%s", sqlite3_errmsg (info->db));
+		             "Could not open sqlite3 database:'%s'", info->backup_fname);
 
 		g_idle_add_full (G_PRIORITY_DEFAULT, perform_callback, info, 
 		                 backup_info_free);
@@ -295,11 +385,23 @@ tracker_db_backup_save (GFile   *turtle_file,
 		return;
 	}
 
-	info->result = retval;
+	info->backup_db = sqlite3_backup_init (info->backup_temp, "main", 
+	                                       info->db, "main");
 
-	g_idle_add_full (G_PRIORITY_DEFAULT, backup_machine_step, info, 
-	                 on_backup_stageone_finished);
+	if (!info->backup_db) {
+		g_set_error (&info->error, TRACKER_DB_BACKUP_ERROR, TRACKER_DB_BACKUP_ERROR_UNKNOWN,
+		             "Unknown error creating backup db: '%s'", info->backup_fname);
 
-	return;
+		g_idle_add_full (G_PRIORITY_DEFAULT, perform_callback, info, 
+		                 backup_info_free);
+
+		return;
+	}
+
+	g_idle_add_full (G_PRIORITY_DEFAULT, backup_file_step, info, 
+	                 on_backup_temp_finished);
 }
+
+
+
 

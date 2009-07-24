@@ -22,6 +22,7 @@
 
 #include "config.h"
 
+#include <string.h>
 #include <glib.h>
 #include <glib/gstdio.h>
 
@@ -29,6 +30,7 @@
 
 #include <raptor.h>
 
+#include <libtracker-common/tracker-ontology.h>
 #include <libtracker-db/tracker-db-manager.h>
 
 #include "tracker-db-backup.h"
@@ -132,7 +134,7 @@ backup_machine_step (gpointer user_data)
 			if (error) {
 				sqlite3_reset (info->stmt);
 				cont = FALSE;
-				g_propagate_error (info->error, error);
+				g_propagate_error (&info->error, error);
 			}
 
 			g_free (buffer);
@@ -173,6 +175,64 @@ on_backup_finished (gpointer user_data)
 	backup_info_free (info);
 }
 
+static void
+on_backup_stageone_finished (gpointer user_data)
+{
+	BackupInfo *info = user_data;
+	const gchar *query;
+	int retval;
+
+	if (!info->error && info->result != SQLITE_DONE) {
+		g_set_error (&info->error, TRACKER_DB_BACKUP_ERROR, 
+		             TRACKER_DB_BACKUP_ERROR_UNKNOWN,
+		             "%s", sqlite3_errmsg (info->db));
+
+		perform_callback (info);
+
+		backup_info_free (info);
+
+		return;
+	}
+
+	if (info->stmt) {
+		sqlite3_finalize (info->stmt);
+		info->stmt = NULL;
+	}
+
+	/* Then we get all the other triples out */
+	query = "SELECT uris.Uri as subject, urip.Uri as predicate, object, 0 as isUri "
+		"FROM statement_string "
+		"INNER JOIN uri as urip ON statement_string.predicate = urip.ID "
+		"INNER JOIN uri as uris ON statement_string.subject = uris.ID "
+		"UNION ALL " /* Always use UNION ALL here, thanks to Benjamin Otte for pointing out */
+		"SELECT uris.Uri as subject, urip.Uri as predicate, urio.Uri as object, 1 as isUri "
+		"FROM statement_uri "
+		"INNER JOIN uri as urip ON statement_uri.predicate = urip.ID "
+		"INNER JOIN uri as uris ON statement_uri.subject = uris.ID "
+		"INNER JOIN uri as urio ON statement_uri.object = urio.ID "
+		"WHERE urip.Uri != '" TRACKER_RDF_PREFIX "type'";
+
+	retval = sqlite3_prepare_v2 (info->db, query, -1, &info->stmt, NULL);
+
+	if (retval != SQLITE_OK) {
+		g_set_error (&info->error, TRACKER_DB_BACKUP_ERROR, TRACKER_DB_BACKUP_ERROR_UNKNOWN,
+		     "%s", sqlite3_errmsg (info->db));
+
+		perform_callback (info);
+
+		backup_info_free (info);
+
+		return;
+	}
+
+	info->result = retval;
+
+	g_idle_add_full (G_PRIORITY_DEFAULT, backup_machine_step, info, 
+	                 on_backup_finished);
+
+	return;
+}
+
 void
 tracker_db_backup_save (GFile   *turtle_file,
                         TrackerBackupFinished callback,
@@ -190,10 +250,12 @@ tracker_db_backup_save (GFile   *turtle_file,
 	info->user_data = user_data;
 	info->destroy = destroy;
 
-	info->stream = g_file_append_to (turtle_file, G_FILE_CREATE_PRIVATE, NULL, &error);
+	info->stream = G_OUTPUT_STREAM (g_file_append_to (turtle_file, 
+	                                                  G_FILE_CREATE_PRIVATE, 
+	                                                  NULL, &error));
 
 	if (error) {
-		g_propagate_error (info->error, error);
+		g_propagate_error (&info->error, error);
 		g_idle_add_full (G_PRIORITY_DEFAULT, perform_callback, info, 
 		                 backup_info_free);
 		return;
@@ -209,16 +271,13 @@ tracker_db_backup_save (GFile   *turtle_file,
 		return;
 	}
 
-	query = "SELECT uris.Uri as subject, urip.Uri as predicate, object, 0 as isUri "
-		"FROM statement_string "
-		"INNER JOIN uri as urip ON statement_string.predicate = urip.ID "
-		"INNER JOIN uri as uris ON statement_string.subject = uris.ID "
-		"UNION ALL " /* Always use UNION ALL here, thanks to Benjamin Otte for pointing out */
-		"SELECT uris.Uri as subject, urip.Uri as predicate, urio.Uri as object, 1 as isUri "
+	/* We first get all rdf:type out */
+	query = "SELECT uris.Uri as subject, urip.Uri as predicate, urio.Uri as object, 1 as isUri "
 		"FROM statement_uri "
 		"INNER JOIN uri as urip ON statement_uri.predicate = urip.ID "
 		"INNER JOIN uri as uris ON statement_uri.subject = uris.ID "
-		"INNER JOIN uri as urio ON statement_uri.object = urio.ID ";
+		"INNER JOIN uri as urio ON statement_uri.object = urio.ID "
+		"WHERE urip.Uri = '" TRACKER_RDF_PREFIX "type'";
 
 	retval = sqlite3_prepare_v2 (info->db, query, -1, &info->stmt, NULL);
 
@@ -232,8 +291,10 @@ tracker_db_backup_save (GFile   *turtle_file,
 		return;
 	}
 
+	info->result = retval;
+
 	g_idle_add_full (G_PRIORITY_DEFAULT, backup_machine_step, info, 
-	                 on_backup_finished);
+	                 on_backup_stageone_finished);
 
 	return;
 }

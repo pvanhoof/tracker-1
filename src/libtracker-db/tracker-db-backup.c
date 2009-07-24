@@ -187,6 +187,10 @@ on_backup_stageone_finished (gpointer user_data)
 		             TRACKER_DB_BACKUP_ERROR_UNKNOWN,
 		             "%s", sqlite3_errmsg (info->db));
 
+		if (info->stream) {
+			g_output_stream_close (info->stream, NULL, &info->error);
+		}
+
 		perform_callback (info);
 
 		backup_info_free (info);

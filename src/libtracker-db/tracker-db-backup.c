@@ -188,7 +188,7 @@ on_backup_stageone_finished (gpointer user_data)
 		             "%s", sqlite3_errmsg (info->db));
 
 		if (info->stream) {
-			g_output_stream_close (info->stream, NULL, &info->error);
+			g_output_stream_close (info->stream, NULL, NULL);
 		}
 
 		perform_callback (info);

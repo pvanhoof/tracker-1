@@ -50,6 +50,7 @@ struct _TrackerPropertyPriv {
 	gint           id;
 	gboolean       indexed;
 	gboolean       fulltext_indexed;
+	gboolean       fulltext_no_limit;
 	gboolean       embedded;
 	gboolean       multiple_values;
 	gboolean       filtered;
@@ -79,6 +80,7 @@ enum {
 	PROP_WEIGHT,
 	PROP_INDEXED,
 	PROP_FULLTEXT_INDEXED,
+	PROP_FULLTEXT_NO_LIMIT,
 	PROP_EMBEDDED,
 	PROP_MULTIPLE_VALUES,
 	PROP_FILTERED,
@@ -225,6 +227,13 @@ tracker_property_class_init (TrackerPropertyClass *klass)
 	                                                       TRUE,
 	                                                       G_PARAM_READWRITE));
 	g_object_class_install_property (object_class,
+	                                 PROP_FULLTEXT_NO_LIMIT,
+	                                 g_param_spec_boolean ("fulltext-no-limit",
+	                                                       "fulltext-no-limit",
+	                                                       "Full-text indexing without word length limits",
+	                                                       TRUE,
+	                                                       G_PARAM_READWRITE));
+	g_object_class_install_property (object_class,
 	                                 PROP_EMBEDDED,
 	                                 g_param_spec_boolean ("embedded",
 	                                                       "embedded",
@@ -341,6 +350,9 @@ property_get_property (GObject    *object,
 	case PROP_FULLTEXT_INDEXED:
 		g_value_set_boolean (value, priv->fulltext_indexed);
 		break;
+	case PROP_FULLTEXT_NO_LIMIT:
+		g_value_set_boolean (value, priv->fulltext_no_limit);
+		break;
 	case PROP_EMBEDDED:
 		g_value_set_boolean (value, priv->embedded);
 		break;
@@ -400,6 +412,10 @@ property_set_property (GObject      *object,
 	case PROP_FULLTEXT_INDEXED:
 		tracker_property_set_fulltext_indexed (TRACKER_PROPERTY (object),
 		                                       g_value_get_boolean (value));
+		break;
+	case PROP_FULLTEXT_NO_LIMIT:
+		tracker_property_set_fulltext_no_limit (TRACKER_PROPERTY (object),
+							g_value_get_boolean (value));
 		break;
 	case PROP_EMBEDDED:
 		tracker_property_set_embedded (TRACKER_PROPERTY (object),
@@ -577,7 +593,6 @@ tracker_property_get_indexed (TrackerProperty *field)
 	return priv->indexed;
 }
 
-
 gboolean
 tracker_property_get_fulltext_indexed (TrackerProperty *field)
 {
@@ -590,6 +605,17 @@ tracker_property_get_fulltext_indexed (TrackerProperty *field)
 	return priv->fulltext_indexed;
 }
 
+gboolean
+tracker_property_get_fulltext_no_limit (TrackerProperty *field)
+{
+	TrackerPropertyPriv *priv;
+
+	g_return_val_if_fail (TRACKER_IS_PROPERTY (field), FALSE);
+
+	priv = GET_PRIV (field);
+
+	return priv->fulltext_no_limit;
+}
 
 gboolean
 tracker_property_get_embedded (TrackerProperty *field)
@@ -602,7 +628,6 @@ tracker_property_get_embedded (TrackerProperty *field)
 
 	return priv->embedded;
 }
-
 
 gboolean
 tracker_property_get_multiple_values (TrackerProperty *field)
@@ -841,6 +866,20 @@ tracker_property_set_fulltext_indexed (TrackerProperty *field,
 
 	priv->fulltext_indexed = value;
 	g_object_notify (G_OBJECT (field), "fulltext-indexed");
+}
+
+void
+tracker_property_set_fulltext_no_limit (TrackerProperty *field,
+                                       gboolean                 value)
+{
+	TrackerPropertyPriv *priv;
+
+	g_return_if_fail (TRACKER_IS_PROPERTY (field));
+
+	priv = GET_PRIV (field);
+
+	priv->fulltext_no_limit = value;
+	g_object_notify (G_OBJECT (field), "fulltext-no-limit");
 }
 
 void

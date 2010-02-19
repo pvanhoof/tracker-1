@@ -4756,7 +4756,8 @@ static int buildTerms(fulltext_vtab *v, sqlite_int64 iDocid,
 #ifdef STORE_CATEGORY
 int Catid,
 #endif
-		      const char *zText, int iColumn){
+		      const char *zText, int iColumn,
+		      gboolean limit_word_length){
 
   const char *pToken;
   int nTokenBytes;
@@ -4768,15 +4769,15 @@ int Catid,
 
   if (!zText) return SQLITE_OK;
 
-  tracker_parser_reset (parser, zText, strlen (zText), FALSE, TRUE, v->stop_words, FALSE, TRUE);
+  tracker_parser_reset (parser, zText, strlen (zText), FALSE, TRUE, v->stop_words, FALSE, limit_word_length);
 
   while( 1 ){
 
     pToken = tracker_parser_next (parser, &iPosition,
-				     &iStartOffset,
-				     &iEndOffset,
-				     &stop_word,
-				     &nTokenBytes);
+				  &iStartOffset,
+				  &iEndOffset,
+				  &stop_word,
+				  &nTokenBytes);
    if (!pToken) {
 	break;
    }
@@ -4947,7 +4948,7 @@ static int index_update(fulltext_vtab *v, sqlite_int64 iRow,
 
     /* tracker - as for col id we want col 0 to be the default metadata field (file:contents or email:body) ,
     col 1 to be meatdata id 1, col 2 to be metadat id 2 etc so need to decrement i here */
-    int rc = buildTerms(v, iRow, sqlite3_value_int (pValues[0]), zText, delete ? -1 : (i-1));
+    int rc = buildTerms(v, iRow, sqlite3_value_int (pValues[0]), zText, delete ? -1 : (i-1), TRUE);
     if( rc!=SQLITE_OK ) return rc;
   }
 
@@ -4955,7 +4956,7 @@ static int index_update(fulltext_vtab *v, sqlite_int64 iRow,
 
   for(i = 0; i < v->nColumn ; ++i){
     char *zText = (char*)sqlite3_value_text(pValues[i]);
-    rc = buildTerms(v, iRow, zText, delete ? -1 : i);
+    rc = buildTerms(v, iRow, zText, delete ? -1 : i, TRUE);
     if( rc!=SQLITE_OK ) return rc;
   }
 
@@ -7775,8 +7776,10 @@ int tracker_fts_update_init(int id){
   return initPendingTerms(tracker_fts_vtab, id);
 }
 
-int tracker_fts_update_text(int id, int column_id, const char *text){
-  return buildTerms(tracker_fts_vtab, id, text, column_id);
+int tracker_fts_update_text(int id, int column_id,
+			    const char *text, gboolean limit_word_length){
+	return buildTerms(tracker_fts_vtab, id, text,
+			  column_id, limit_word_length);
 }
 
 void tracker_fts_update_commit(void){

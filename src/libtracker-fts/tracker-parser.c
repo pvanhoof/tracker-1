@@ -82,6 +82,7 @@ struct TrackerParser {
 	guint                  min_word_length;
 	gboolean               delimit_words;
 	gboolean               parse_reserved_words;
+	gboolean               limit_word_length;
 
 	/* Private members */
 	gchar                   *word;
@@ -323,7 +324,8 @@ parser_next (TrackerParser *parser,
 				}
 
 				if (!is_valid ||
-				    length < parser->min_word_length ||
+				    (parser->limit_word_length &&
+				     length < parser->min_word_length) ||
 				    word_type == TRACKER_PARSER_WORD_NUM) {
 					word_type = TRACKER_PARSER_WORD_IGNORE;
 					is_valid = TRUE;
@@ -362,7 +364,7 @@ parser_next (TrackerParser *parser,
 			}
 		}
 
-		if (length >= parser->max_word_length) {
+		if (parser->limit_word_length && length >= parser->max_word_length) {
 			continue;
 		}
 
@@ -504,7 +506,8 @@ tracker_parser_reset (TrackerParser *parser,
                       gboolean       delimit_words,
                       gboolean       enable_stemmer,
                       gboolean       enable_stop_words,
-                      gboolean       parse_reserved_words)
+                      gboolean       parse_reserved_words,
+		      gboolean       limit_word_length)
 {
 	g_return_if_fail (parser != NULL);
 	g_return_if_fail (txt != NULL);
@@ -519,6 +522,7 @@ tracker_parser_reset (TrackerParser *parser,
 	parser->txt_size = txt_size;
 	parser->txt = txt;
 	parser->parse_reserved_words = parse_reserved_words;
+	parser->limit_word_length = limit_word_length;
 
 	g_free (parser->word);
 	parser->word = NULL;

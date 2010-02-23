@@ -44,6 +44,7 @@ const TestInfo tests[] = {
 	{ "fts3aa", 2 },
 	{ "fts3ae", 1 },
 	{ "prefix/fts3prefix", 3 },
+	{ "limits/fts3limits", 4 },
 	{ NULL }
 };
 

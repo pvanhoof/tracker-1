@@ -79,10 +79,8 @@ struct TrackerParser {
 	gboolean               enable_stop_words;
 	guint                  max_words_to_index;
 	guint                  max_word_length;
-	guint                  min_word_length;
 	gboolean               delimit_words;
 	gboolean               parse_reserved_words;
-	gboolean               limit_word_length;
 
 	/* Private members */
 	gchar                   *word;
@@ -324,8 +322,6 @@ parser_next (TrackerParser *parser,
 				}
 
 				if (!is_valid ||
-				    (parser->limit_word_length &&
-				     length < parser->min_word_length) ||
 				    word_type == TRACKER_PARSER_WORD_NUM) {
 					word_type = TRACKER_PARSER_WORD_IGNORE;
 					is_valid = TRUE;
@@ -364,7 +360,7 @@ parser_next (TrackerParser *parser,
 			}
 		}
 
-		if (parser->limit_word_length && length >= parser->max_word_length) {
+		if (length >= parser->max_word_length) {
 			continue;
 		}
 
@@ -462,21 +458,18 @@ parser_next (TrackerParser *parser,
 
 TrackerParser *
 tracker_parser_new (TrackerLanguage *language,
-                    gint             max_word_length,
-                    gint             min_word_length)
+                    gint             max_word_length)
 {
 	TrackerParser *parser;
 
 	g_return_val_if_fail (TRACKER_IS_LANGUAGE (language), NULL);
-	g_return_val_if_fail (min_word_length > 0, NULL);
-	g_return_val_if_fail (min_word_length < max_word_length, NULL);
+	g_return_val_if_fail (max_word_length > 0, NULL);
 
 	parser = g_new0 (TrackerParser, 1);
 
 	parser->language = g_object_ref (language);
 
 	parser->max_word_length = max_word_length;
-	parser->min_word_length = min_word_length;
 	parser->word_length = 0;
 	parser->attrs = NULL;
 
@@ -506,8 +499,7 @@ tracker_parser_reset (TrackerParser *parser,
                       gboolean       delimit_words,
                       gboolean       enable_stemmer,
                       gboolean       enable_stop_words,
-                      gboolean       parse_reserved_words,
-		      gboolean       limit_word_length)
+                      gboolean       parse_reserved_words)
 {
 	g_return_if_fail (parser != NULL);
 	g_return_if_fail (txt != NULL);
@@ -522,7 +514,6 @@ tracker_parser_reset (TrackerParser *parser,
 	parser->txt_size = txt_size;
 	parser->txt = txt;
 	parser->parse_reserved_words = parse_reserved_words;
-	parser->limit_word_length = limit_word_length;
 
 	g_free (parser->word);
 	parser->word = NULL;

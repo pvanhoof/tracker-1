@@ -2323,6 +2323,7 @@ struct fulltext_vtab {
   TrackerParser *parser;	   /* tokenizer for inserts and queries */
   gboolean stop_words;
   int max_words;
+  int min_word_length;
 
   /* Precompiled statements which we keep as long as the table is
   ** open.
@@ -3358,8 +3359,8 @@ static int constructVtab(
   max_len = tracker_fts_config_get_max_word_length (config);
 
   v->max_words = tracker_fts_config_get_max_words_to_index (config);
-
-  v->parser = tracker_parser_new (language, max_len, min_len);
+  v->min_word_length = min_len;
+  v->parser = tracker_parser_new (language, max_len);
 
   /* disable stop words if TRACKER_FTS_STOP_WORDS is set to 0 - used by tests */
   v->stop_words = g_strcmp0 (g_getenv ("TRACKER_FTS_STOP_WORDS"), "0") != 0;
@@ -3629,7 +3630,7 @@ static void snippetOffsetsOfColumn(
   pVtab = pQuery->pFts;
   nColumn = pVtab->nColumn;
 
-  tracker_parser_reset (pVtab->parser, zDoc, nDoc, FALSE, TRUE, pVtab->stop_words, FALSE, FALSE);
+  tracker_parser_reset (pVtab->parser, zDoc, nDoc, FALSE, TRUE, pVtab->stop_words, FALSE);
 
   aTerm = pQuery->pTerms;
   nTerm = pQuery->nTerms;
@@ -4324,7 +4325,7 @@ static int tokenizeSegment(
   int iCol;
   int nTerm = 1;
 
-  tracker_parser_reset (parser, pSegment, nSegment, FALSE, TRUE, v->stop_words, TRUE, FALSE);
+  tracker_parser_reset (parser, pSegment, nSegment, FALSE, TRUE, v->stop_words, TRUE);
 
   while( 1 ){
     const char *pToken;
@@ -4332,10 +4333,10 @@ static int tokenizeSegment(
 
 
     pToken = tracker_parser_next (parser, &iPos,
-				     &iBegin,
-				     &iEnd,
-				     &stop_word,
-				     &nToken);
+				  &iBegin,
+				  &iEnd,
+				  &stop_word,
+				  &nToken);
     if (!pToken) {
       break;
      }
@@ -4363,10 +4364,10 @@ static int tokenizeSegment(
       continue;
     }
     if( !inPhrase && pQuery->nTerms>0 && !pQuery->nextIsOr && nToken==4
-      && pToken[0]=='n'
-      && pToken[1]=='e'
-      && pToken[2]=='a'
-      && pToken[3]=='r'
+	&& pToken[0]=='n'
+	&& pToken[1]=='e'
+	&& pToken[2]=='a'
+	&& pToken[3]=='r'
     ){
       QueryTerm *pTerm = &pQuery->pTerms[pQuery->nTerms-1];
       if( (iBegin+6)<nSegment
@@ -4380,10 +4381,10 @@ static int tokenizeSegment(
 	  iEnd++;
 	}
 	pToken = tracker_parser_next (parser, &iPos,
-				     &iBegin,
-				     &iEnd,
-				     &stop_word,
-				     &nToken);
+				      &iBegin,
+				      &iEnd,
+				      &stop_word,
+				      &nToken);
 	if (!pToken) {
 	  break;
 	}
@@ -4769,7 +4770,7 @@ int Catid,
 
   if (!zText) return SQLITE_OK;
 
-  tracker_parser_reset (parser, zText, strlen (zText), FALSE, TRUE, v->stop_words, FALSE, limit_word_length);
+  tracker_parser_reset (parser, zText, strlen (zText), FALSE, TRUE, v->stop_words, FALSE);
 
   while( 1 ){
 
@@ -4782,15 +4783,15 @@ int Catid,
 	break;
    }
 
+   if (limit_word_length && nTokenBytes < v->min_word_length) {
+	continue;
+   }
+
   // printf("token being indexed  is %s, begin is %d, end is %d and length is %d\n", pToken, iStartOffset, iEndOffset, nTokenBytes);
 
    if (stop_word) {
 	continue;
    }
-
-
-
-
 
     /* Positions can't be negative; we use -1 as a terminator
      * internally.  Token can't be NULL or empty. */

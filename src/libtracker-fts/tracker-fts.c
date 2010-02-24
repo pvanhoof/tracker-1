@@ -4341,6 +4341,11 @@ static int tokenizeSegment(
       break;
      }
 
+    /* If prefix search ignore the word lenght limit */
+    if( nToken < v->min_word_length && !(iEnd<nSegment && pSegment[iEnd]=='*') ){
+      continue;
+    }
+
 //   printf("token being indexed  is %s, pos is %d, begin is %d, end is %d and length is %d\n", pToken, iPos, iBegin, iEnd, nToken);
 
     if( !inPhrase &&

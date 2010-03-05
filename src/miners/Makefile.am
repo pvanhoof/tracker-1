@@ -9,3 +9,7 @@ endif
 if HAVE_TRACKER_MINER_FLICKR
 SUBDIRS += flickr
 endif
+
+if HAVE_TRACKER_MINER_GDATA
+SUBDIRS += gdata
+endif

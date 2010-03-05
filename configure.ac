@@ -211,6 +211,7 @@ GNOME_KEYRING_REQUIRED=2.26
 LIBGRSS_REQUIRED=0.3
 REST_REQUIRED=0.6
 NETWORK_MANAGER_REQUIRED=0.8
+LIBGDATA_REQUIRED=0.6
 
 # 3.6.11 for sqlite_backup API
 # 3.6.16 to fix test failures
@@ -410,6 +411,14 @@ PKG_CHECK_MODULES(TRACKER_MINER_FLICKR, [$TRACKER_MINER_FLICKR_REQUIRED],
                   [have_tracker_miner_flickr=no])
 
 TRACKER_MINER_FLICKR_LIBS="$TRACKER_MINER_FLICKR_LIBS -lz -lm"
+
+# Check requirements for tracker-miner-gdata
+TRACKER_MINER_GDATA_REQUIRED="glib-2.0     >= $GLIB_REQUIRED
+                              libgdata     >= $LIBGDATA_REQUIRED"
+
+PKG_CHECK_MODULES(TRACKER_MINER_GDATA, [$TRACKER_MINER_GDATA_REQUIRED],
+                  [have_tracker_miner_gdata=yes],
+                  [have_tracker_miner_gdata=no])
 
 # Check requirements for tracker-utils
 TRACKER_UTILS_REQUIRED="glib-2.0     >= $GLIB_REQUIRED
@@ -1110,6 +1119,29 @@ else
 fi
 
 AM_CONDITIONAL(HAVE_TRACKER_MINER_FLICKR, test "x$have_tracker_miner_flickr" = "xyes")
+
+##################################################################
+# Check for tracker-miner-gdata
+##################################################################
+
+AC_ARG_ENABLE(miner_gdata,
+              AS_HELP_STRING([--enable-miner-gdata],
+                             [enable GData miner [[default=auto]]]),,
+                             [enable_tracker_miner_gdata=auto])
+
+enable_tracker_miner_gdata=$enable_miner_gdata
+
+if test "x$enable_tracker_miner_gdata" = "xyes"; then
+   if test "x$have_tracker_miner_gdata" != "xyes"; then
+      AC_MSG_ERROR([Couldn't find tracker-miner-gdata dependencies ($TRACKER_MINER_GDATA_REQUIRED).])
+   fi
+else
+   if test "x$enable_tracker_miner_gdata" = "xno"; then
+      have_tracker_miner_gdata="no  (disabled)"
+   fi
+fi
+
+AM_CONDITIONAL(HAVE_TRACKER_MINER_GDATA, test "x$have_tracker_miner_gdata" = "xyes")
 
 ##################################################################
 # Check for tracker-miner-rss
@@ -2057,6 +2089,7 @@ AC_CONFIG_FILES([
 	src/Makefile
 	src/miners/Makefile
 	src/miners/fs/Makefile
+	src/miners/gdata/Makefile
 	src/miners/rss/Makefile
 	src/miners/flickr/Makefile
 	src/tracker-store/Makefile
@@ -2209,6 +2242,7 @@ Data Miners:
 	RSS:                                    $have_tracker_miner_rss
 	Evolution:                              $have_tracker_miner_evolution ($tracker_miner_evolution_install_dir)
 	Flickr:                                 $have_tracker_miner_flickr
+	GData:                                  $have_tracker_miner_gdata
 
 Plugins:
 

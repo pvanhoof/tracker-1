@@ -47,7 +47,8 @@
 #include <libtracker-common/tracker-os-dependant.h>
 #include <libtracker-common/tracker-ioprio.h>
 
-#include "tracker-albumart.h"
+#include <libtracker-extract/tracker-extract.h>
+
 #include "tracker-config.h"
 #include "tracker-main.h"
 #include "tracker-dbus.h"
@@ -294,7 +295,7 @@ run_standalone (void)
 		verbosity = 3;
 	}
 
-	tracker_albumart_init ();
+	tracker_album_art_init ();
 
 	/* This makes sure we don't steal all the system's resources */
 	initialize_priority ();
@@ -324,7 +325,7 @@ run_standalone (void)
 		g_log_remove_handler (NULL, log_handler_id);
 	}
 
-	tracker_albumart_shutdown ();
+	tracker_album_art_shutdown ();
 
 	return EXIT_SUCCESS;
 }
@@ -458,7 +459,7 @@ main (int argc, char *argv[])
 
 	g_message ("Waiting for D-Bus requests...");
 
-	tracker_albumart_init ();
+	tracker_album_art_init ();
 
 	/* Main loop */
 	main_loop = g_main_loop_new (NULL, FALSE);
@@ -469,7 +470,7 @@ main (int argc, char *argv[])
 	g_message ("Shutdown started");
 
 	/* Shutdown subsystems */
-	tracker_albumart_shutdown ();
+	tracker_album_art_shutdown ();
 	tracker_dbus_shutdown ();
 	tracker_log_shutdown ();
 

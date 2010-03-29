@@ -24,6 +24,8 @@
 
 #define __LIBTRACKER_EXTRACT_INSIDE__
 
+#include "tracker-album-art.h"
+#include "tracker-album-art-generic.h"
 #include "tracker-data.h"
 #include "tracker-exif.h"
 #include "tracker-iptc.h"

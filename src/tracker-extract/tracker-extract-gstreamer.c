@@ -39,7 +39,6 @@ long long int llroundl(long double x);
 
 #include <libtracker-extract/tracker-extract.h>
 
-#include "tracker-albumart.h"
 #include "tracker-dbus.h"
 
 /* We wait this long (seconds) for NULL state before freeing */
@@ -1146,12 +1145,12 @@ tracker_extract_gstreamer (const gchar *uri,
 
 	extract_metadata (extractor, uri, preupdate, metadata, &artist, &album, &scount);
 
-	tracker_albumart_process (extractor->album_art_data,
-	                          extractor->album_art_size,
-	                          extractor->album_art_mime,
-	                          artist,
-	                          album,
-	                          uri);
+	tracker_album_art_process (extractor->album_art_data,
+	                           extractor->album_art_size,
+	                           extractor->album_art_mime,
+	                           artist,
+	                           album,
+	                           uri);
 
 	g_free (scount);
 	g_free (album);

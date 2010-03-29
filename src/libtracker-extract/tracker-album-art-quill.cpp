@@ -40,8 +40,8 @@ G_BEGIN_DECLS
 static gboolean init = FALSE;
 
 gboolean
-tracker_albumart_file_to_jpeg (const gchar *filename,
-                               const gchar *target)
+tracker_album_art_file_to_jpeg (const gchar *filename,
+                                const gchar *target)
 {
 	if (!init) {
 		QuillImageFilter::registerAll();
@@ -71,10 +71,10 @@ tracker_albumart_file_to_jpeg (const gchar *filename,
 }
 
 gboolean
-tracker_albumart_buffer_to_jpeg (const unsigned char *buffer,
-                                 size_t               len,
-                                 const gchar         *buffer_mime,
-                                 const gchar         *target)
+tracker_album_art_buffer_to_jpeg (const unsigned char *buffer,
+                                  size_t               len,
+                                  const gchar         *buffer_mime,
+                                  const gchar         *target)
 {
 	if (!init) {
 		QuillImageFilter::registerAll();

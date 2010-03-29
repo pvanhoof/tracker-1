@@ -6,9 +6,9 @@ INCLUDES =						\
 	-DTRACKER_COMPILATION				\
 	-I$(top_srcdir)/src				\
 	$(WARN_CFLAGS)					\
+	$(DBUS_CFLAGS)					\
 	$(GLIB2_CFLAGS)					\
 	$(GCOV_CFLAGS)					\
-	$(GDKPIXBUF_CFLAGS)				\
 	$(GIO_CFLAGS)					\
 	$(LIBIPTCDATA_CFLAGS)				\
 	$(LIBEXIF_CFLAGS) 				\
@@ -16,21 +16,36 @@ INCLUDES =						\
 
 lib_LTLIBRARIES = libtracker-extract-@TRACKER_API_VERSION@.la
 
-libtracker_extractincdir=$(includedir)/tracker-$(TRACKER_API_VERSION)/libtracker-extract/
+if HAVE_GDKPIXBUF
+INCLUDES += $(GDKPIXBUF_CFLAGS)
+album_art_sources = tracker-album-art-pixbuf.c
+album_art_libs = $(GDKPIXBUF_LIBS)
+else
+if HAVE_QUILL
+INCLUDES += $(QUILL_CFLAGS)
+album_art_sources = tracker-albumart-quill.cpp
+album_art_libs = $(QUILL_LIBS)
+else
+album_art_sources = tracker-album-art-dummy.c
+album_art_libs =
+endif
+endif
 
 libtracker_extract_@TRACKER_API_VERSION@_la_SOURCES =	\
-	tracker-data.h					\
+	$(album_art_sources)				\
+	tracker-album-art.c				\
 	tracker-exif.c					\
-	tracker-exif.h					\
 	tracker-iptc.c					\
-	tracker-iptc.h					\
 	tracker-utils.c					\
-	tracker-xmp.c					\
-	tracker-xmp.h
+	tracker-xmp.c
 
 noinst_HEADERS =
 
-libtracker_extractinc_HEADERS =				\
+libtracker_extract_includedir = $(includedir)/tracker-$(TRACKER_API_VERSION)/libtracker-extract/
+
+libtracker_extract_include_HEADERS =			\
+	tracker-album-art.h				\
+	tracker-album-art-generic.h			\
 	tracker-data.h					\
 	tracker-exif.h					\
 	tracker-extract.h				\
@@ -48,7 +63,8 @@ libtracker_extract_@TRACKER_API_VERSION@_la_LIBADD = 	\
 	$(GIO_LIBS)					\
 	$(GCOV_LIBS)					\
 	$(GLIB2_LIBS)					\
-	$(GDKPIXBUF_LIBS)				\
+	$(album_art_libs)				\
+	$(DBUS_LIBS)					\
 	$(LIBIPTCDATA_LIBS)				\
 	$(LIBEXIF_LIBS)					\
 	$(EXEMPI_LIBS)

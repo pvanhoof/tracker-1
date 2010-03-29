@@ -20,20 +20,18 @@
  * Philip Van Hoof <philip@codeminded.be>
  */
 
-#ifndef __TRACKER_ALBUMART_GENERIC_H__
-#define __TRACKER_ALBUMART_GENERIC_H__
+gboolean
+tracker_albumart_file_to_jpeg (const gchar *filename,
+                               const gchar *target)
+{
+	return FALSE;
+}
 
-#include <glib.h>
-
-G_BEGIN_DECLS
-
-gboolean  tracker_albumart_file_to_jpeg   (const gchar         *filename,
-                                           const gchar         *target);
-gboolean  tracker_albumart_buffer_to_jpeg (const unsigned char *buffer,
-                                           size_t               len,
-                                           const gchar         *buffer_mime,
-                                           const gchar         *target);
-
-G_END_DECLS
-
-#endif /* __TRACKER_ALBUMART_GENERIC_H__ */
+gboolean
+tracker_albumart_buffer_to_jpeg (const unsigned char *buffer,
+                                 size_t               len,
+                                 const gchar         *buffer_mime,
+                                 const gchar         *target)
+{
+	return FALSE;
+}

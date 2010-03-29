@@ -20,20 +20,22 @@
  * Philip Van Hoof <philip@codeminded.be>
  */
 
-#include "tracker-albumart-generic.h"
+#ifndef __LIBTRACKER_EXTRACT_ALBUM_ART_GENERIC_H__
+#define __LIBTRACKER_EXTRACT_ALBUM_ART_GENERIC_H__
 
-gboolean
-tracker_albumart_file_to_jpeg (const gchar *filename,
-                               const gchar *target)
-{
-	return FALSE;
-}
+#if !defined (__LIBTRACKER_EXTRACT_INSIDE__) && !defined (TRACKER_COMPILATION)
+#error "only <libtracker-extract/tracker-extract.h> must be included directly."
+#endif
 
-gboolean
-tracker_albumart_buffer_to_jpeg (const unsigned char *buffer,
-                                 size_t               len,
-                                 const gchar         *buffer_mime,
-                                 const gchar         *target)
-{
-	return FALSE;
-}
+G_BEGIN_DECLS
+
+gboolean  tracker_album_art_file_to_jpeg   (const gchar         *filename,
+                                            const gchar         *target);
+gboolean  tracker_album_art_buffer_to_jpeg (const unsigned char *buffer,
+                                            size_t               len,
+                                            const gchar         *buffer_mime,
+                                            const gchar         *target);
+
+G_END_DECLS
+
+#endif /* __LIBTRACKER_EXTRACT_ALBUM_ART_GENERIC_H__ */

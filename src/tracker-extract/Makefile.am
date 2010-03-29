@@ -295,8 +295,6 @@ libexec_PROGRAMS = tracker-extract
 tracker_extract_SOURCES = 						\
 	$(marshal_sources)						\
 	$(dbus_sources)							\
-	tracker-albumart.c						\
-	tracker-albumart.h						\
 	tracker-config.c						\
 	tracker-config.h						\
 	tracker-dbus.c							\
@@ -312,6 +310,7 @@ tracker_extract_SOURCES = 						\
 tracker_extract_LDADD = 						\
 	$(top_builddir)/src/libtracker-client/libtracker-client-@TRACKER_API_VERSION@.la \
 	$(top_builddir)/src/libtracker-miner/libtracker-miner-@TRACKER_API_VERSION@.la \
+	$(top_builddir)/src/libtracker-extract/libtracker-extract-@TRACKER_API_VERSION@.la \
 	$(top_builddir)/src/libtracker-common/libtracker-common.la	\
 	$(DBUS_LIBS)							\
 	$(GMODULE_LIBS)							\
@@ -323,19 +322,6 @@ tracker_extract_LDADD = 						\
 if HAVE_LIBSTREAMANALYZER
 tracker_extract_SOURCES += tracker-topanalyzer.cpp tracker-topanalyzer.h
 tracker_extract_LDADD += $(LIBSTREAMANALYZER_LIBS)
-endif
-
-if HAVE_GDKPIXBUF
-tracker_extract_LDADD += $(GDKPIXBUF_LIBS)
-tracker_extract_SOURCES += tracker-albumart-pixbuf.c
-else
-if HAVE_QUILL
-INCLUDES += $(QUILL_CFLAGS)
-tracker_extract_SOURCES += tracker-albumart-quill.cpp
-tracker_extract_LDADD += $(QUILL_LIBS)
-else
-tracker_extract_SOURCES += tracker-albumart-dummy.c
-endif
 endif
 
 marshal_sources =                                         		\

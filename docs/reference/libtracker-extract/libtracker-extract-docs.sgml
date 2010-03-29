@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" 
                "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" [
+<!ENTITY tracker-album-art SYSTEM "xml/tracker-album-art.xml">
 <!ENTITY tracker-data SYSTEM "xml/tracker-data.xml">
 <!ENTITY tracker-utils SYSTEM "xml/tracker-utils.xml">
 <!ENTITY tracker-xmp SYSTEM "xml/tracker-xmp.xml">
@@ -38,6 +39,7 @@
     </chapter>
     <chapter>
       <title>Common Embedded Support</title>
+      &tracker-album-art;
       &tracker-xmp;
       &tracker-iptc;
       &tracker-exif;

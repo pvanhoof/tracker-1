@@ -49,7 +49,6 @@
 
 #include <libtracker-extract/tracker-extract.h>
 
-#include "tracker-albumart.h"
 #include "tracker-dbus.h"
 
 /* We mmap the beginning of the file and read separately the last 128
@@ -2149,12 +2148,12 @@ extract_mp3 (const gchar          *uri,
 	/* Get mp3 stream info */
 	mp3_parse (buffer, buffer_size, audio_offset, uri, metadata, &md);
 
-	tracker_albumart_process (md.albumart_data,
-	                          md.albumart_size,
-	                          md.albumart_mime,
-	                          md.performer,
-	                          md.album,
-	                          filename);
+	tracker_album_art_process (md.albumart_data,
+	                           md.albumart_size,
+	                           md.albumart_mime,
+	                           md.performer,
+	                           md.album,
+	                           filename);
 
 	g_free (md.performer);
 	g_free (md.composer);

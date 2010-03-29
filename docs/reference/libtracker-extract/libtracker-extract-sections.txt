@@ -34,3 +34,15 @@ TrackerExifData
 tracker_exif_read
 </SECTION>
 
+<SECTION>
+<FILE>tracker-album-art</FILE>
+ALBUM_ART_INTERFACE
+ALBUM_ART_PATH
+ALBUM_ART_SERVICE
+tracker_album_art_init
+tracker_album_art_shutdown
+tracker_album_art_process
+tracker_album_art_buffer_to_jpeg
+tracker_album_art_file_to_jpeg
+</SECTION>
+

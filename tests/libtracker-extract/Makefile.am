@@ -26,6 +26,7 @@ tracker_utils_LDADD =							\
 	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
 	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
 	$(top_builddir)/src/libtracker-extract/libtracker-extract-@TRACKER_API_VERSION@.la \
+	$(top_builddir)/src/libtracker-miner/libtracker-miner-@TRACKER_API_VERSION@.la   \
 	$(top_builddir)/src/libtracker-client/libtracker-client-@TRACKER_API_VERSION@.la   \
 	$(GMODULE_LIBS)							\
 	$(GTHREAD_LIBS)							\
@@ -40,6 +41,7 @@ tracker_xmp_LDADD =							\
 	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
 	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
 	$(top_builddir)/src/libtracker-extract/libtracker-extract-@TRACKER_API_VERSION@.la \
+	$(top_builddir)/src/libtracker-miner/libtracker-miner-@TRACKER_API_VERSION@.la   \
 	$(top_builddir)/src/libtracker-client/libtracker-client-@TRACKER_API_VERSION@.la   \
 	$(GMODULE_LIBS)							\
 	$(GTHREAD_LIBS)							\

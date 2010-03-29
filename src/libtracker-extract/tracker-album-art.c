@@ -19,31 +19,12 @@
 
 #include "config.h"
 
-#include <string.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
 #include <ctype.h>
-
-#include <glib.h>
-#include <glib/gprintf.h>
-#include <glib/gstdio.h>
-#include <gio/gio.h>
-
-#include <dbus/dbus-glib-bindings.h>
 
 #include <libtracker-miner/tracker-miner.h>
 
-#include "tracker-albumart.h"
-#include "tracker-dbus.h"
-#include "tracker-extract.h"
-#include "tracker-marshal.h"
-#include "tracker-albumart-generic.h"
-
-#define ALBUMARTER_SERVICE    "com.nokia.albumart"
-#define ALBUMARTER_PATH       "/com/nokia/albumart/Requester"
-#define ALBUMARTER_INTERFACE  "com.nokia.albumart.Requester"
+#include "tracker-album-art.h"
+#include "tracker-album-art-generic.h"
 
 typedef struct {
 	TrackerStorage *storage;
@@ -51,15 +32,15 @@ typedef struct {
 	gchar *local_uri;
 } GetFileInfo;
 
-static void albumart_queue_cb (DBusGProxy     *proxy,
-                               DBusGProxyCall *call,
-                               gpointer        user_data);
+static void album_art_queue_cb (DBusGProxy     *proxy,
+                                DBusGProxyCall *call,
+                                gpointer        user_data);
 
 static gboolean initialized;
 static gboolean disable_requests;
-static TrackerStorage *albumart_storage;
-static GHashTable *albumart_cache;
-static DBusGProxy *albumart_proxy;
+static TrackerStorage *album_art_storage;
+static GHashTable *album_art_cache;
+static DBusGProxy *album_art_proxy;
 
 #ifndef HAVE_STRCASESTR
 
@@ -92,11 +73,11 @@ strcasestr (const gchar *haystack,
 #endif /* HAVE_STRCASESTR */
 
 static gboolean
-albumart_strip_find_next_block (const gchar    *original,
-                                const gunichar  open_char,
-                                const gunichar  close_char,
-                                gint           *open_pos,
-                                gint           *close_pos)
+album_art_strip_find_next_block (const gchar    *original,
+                                 const gunichar  open_char,
+                                 const gunichar  close_char,
+                                 gint           *open_pos,
+                                 gint           *close_pos)
 {
 	const gchar *p1, *p2;
 
@@ -128,7 +109,7 @@ albumart_strip_find_next_block (const gchar    *original,
 }
 
 static gchar *
-albumart_strip_invalid_entities (const gchar *original)
+album_art_strip_invalid_entities (const gchar *original)
 {
 	GString         *str_no_blocks;
 	gchar          **strv;
@@ -161,7 +142,7 @@ albumart_strip_invalid_entities (const gchar *original)
 			gint start, end;
 
 			/* Go through blocks, find the earliest block we can */
-			if (albumart_strip_find_next_block (p, blocks[i][0], blocks[i][1], &start, &end)) {
+			if (album_art_strip_find_next_block (p, blocks[i][0], blocks[i][1], &start, &end)) {
 				if (pos1 == -1 || start < pos1) {
 					pos1 = start;
 					pos2 = end;
@@ -220,9 +201,9 @@ albumart_strip_invalid_entities (const gchar *original)
 }
 
 static gchar *
-albumart_checksum_for_data (GChecksumType  checksum_type,
-                            const guchar  *data,
-                            gsize          length)
+album_art_checksum_for_data (GChecksumType  checksum_type,
+                             const guchar  *data,
+                             gsize          length)
 {
 	GChecksum *checksum;
 	gchar *retval;
@@ -240,12 +221,12 @@ albumart_checksum_for_data (GChecksumType  checksum_type,
 }
 
 static void
-albumart_get_path (const gchar  *artist,
-                   const gchar  *album,
-                   const gchar  *prefix,
-                   const gchar  *uri,
-                   gchar       **path,
-                   gchar       **local_uri)
+album_art_get_path (const gchar  *artist,
+                    const gchar  *album,
+                    const gchar  *prefix,
+                    const gchar  *uri,
+                    gchar       **path,
+                    gchar       **local_uri)
 {
 	gchar *art_filename;
 	gchar *dir;
@@ -270,13 +251,13 @@ albumart_get_path (const gchar  *artist,
 	if (!artist) {
 		artist_stripped = g_strdup (" ");
 	} else {
-		artist_stripped = albumart_strip_invalid_entities (artist);
+		artist_stripped = album_art_strip_invalid_entities (artist);
 	}
 
 	if (!album) {
 		album_stripped = g_strdup (" ");
 	} else {
-		album_stripped = albumart_strip_invalid_entities (album);
+		album_stripped = album_art_strip_invalid_entities (album);
 	}
 
 	artist_down = g_utf8_strdown (artist_stripped, -1);
@@ -293,12 +274,12 @@ albumart_get_path (const gchar  *artist,
 		g_mkdir_with_parents (dir, 0770);
 	}
 
-	artist_checksum = albumart_checksum_for_data (G_CHECKSUM_MD5,
-	                                              (const guchar *) artist_down,
-	                                              strlen (artist_down));
-	album_checksum = albumart_checksum_for_data (G_CHECKSUM_MD5,
-	                                             (const guchar *) album_down,
-	                                             strlen (album_down));
+	artist_checksum = album_art_checksum_for_data (G_CHECKSUM_MD5,
+	                                               (const guchar *) artist_down,
+	                                               strlen (artist_down));
+	album_checksum = album_art_checksum_for_data (G_CHECKSUM_MD5,
+	                                              (const guchar *) album_down,
+	                                              strlen (album_down));
 
 	g_free (artist_down);
 	g_free (album_down);
@@ -340,11 +321,11 @@ albumart_get_path (const gchar  *artist,
 }
 
 static gboolean
-albumart_heuristic (const gchar *artist,
-                    const gchar *album,
-                    const gchar *filename_uri,
-                    const gchar *local_uri,
-                    gboolean    *copied)
+album_art_heuristic (const gchar *artist,
+                     const gchar *album,
+                     const gchar *filename_uri,
+                     const gchar *local_uri,
+                     gboolean    *copied)
 {
 	GFile *file, *dirf;
 	GDir *dir;
@@ -362,11 +343,11 @@ albumart_heuristic (const gchar *artist,
 	}
 
 	if (artist) {
-		artist_stripped = albumart_strip_invalid_entities (artist);
+		artist_stripped = album_art_strip_invalid_entities (artist);
 	}
 
 	if (album) {
-		album_stripped = albumart_strip_invalid_entities (album);
+		album_stripped = album_art_strip_invalid_entities (album);
 	}
 
 	/* Copy from local album art (.mediaartlocal) to spec */
@@ -379,10 +360,10 @@ albumart_heuristic (const gchar *artist,
 			g_debug ("Album art being copied from local (.mediaartlocal) file:'%s'",
 			         local_uri);
 
-			albumart_get_path (artist_stripped,
-			                   album_stripped,
-			                   "album", NULL,
-			                   &target, NULL);
+			album_art_get_path (artist_stripped,
+			                    album_stripped,
+			                    "album", NULL,
+			                    &target, NULL);
 			if (target) {
 				file = g_file_new_for_path (target);
 
@@ -443,23 +424,23 @@ albumart_heuristic (const gchar *artist,
 	for (name = g_dir_read_name (dir), count = 0, retval = FALSE;
 	     name != NULL && !retval && count < 50;
 	     name = g_dir_read_name (dir), count++) {
-            /* Accept cover, front, folder, AlbumArt_{GUID}_Large
-               reject AlbumArt_{GUID}_Small and AlbumArtSmall */
+		/* Accept cover, front, folder, Album_Art_{GUID}_Large
+		   reject Album_Art_{GUID}_Small and Album_ArtSmall */
 		if ((artist_stripped && strcasestr (name, artist_stripped)) ||
 		    (album_stripped && strcasestr (name, album_stripped)) ||
 		    (strcasestr (name, "cover")) ||
-                    (strcasestr (name, "front")) ||
-                    (strcasestr (name, "folder")) ||
-                    ((strcasestr (name, "albumart") && strcasestr (name, "large")))) {
+		    (strcasestr (name, "front")) ||
+		    (strcasestr (name, "folder")) ||
+		    ((strcasestr (name, "album_art") && strcasestr (name, "large")))) {
 			if (g_str_has_suffix (name, "jpeg") ||
 			    g_str_has_suffix (name, "jpg")) {
 				if (!target) {
-					albumart_get_path (artist_stripped,
-					                   album_stripped,
-					                   "album",
-					                   NULL,
-					                   &target,
-					                   NULL);
+					album_art_get_path (artist_stripped,
+					                    album_stripped,
+					                    "album",
+					                    NULL,
+					                    &target,
+					                    NULL);
 				}
 
 				if (!file && target) {
@@ -486,17 +467,17 @@ albumart_heuristic (const gchar *artist,
 				gchar *found;
 
 				if (!target) {
-					albumart_get_path (artist_stripped,
-					                   album_stripped,
-					                   "album",
-					                   NULL,
-					                   &target,
-					                   NULL);
+					album_art_get_path (artist_stripped,
+					                    album_stripped,
+					                    "album",
+					                    NULL,
+					                    &target,
+					                    NULL);
 				}
 
 				found = g_build_filename (dirname, name, NULL);
 				g_debug ("Album art (PNG) found in same directory being used:'%s'", found);
-				retval = tracker_albumart_file_to_jpeg (found, target);
+				retval = tracker_album_art_file_to_jpeg (found, target);
 				g_free (found);
 			}
 		}
@@ -523,12 +504,12 @@ albumart_heuristic (const gchar *artist,
 }
 
 static gboolean
-albumart_set (const unsigned char *buffer,
-              size_t               len,
-              const gchar         *mime,
-              const gchar         *artist,
-              const gchar         *album,
-              const gchar         *uri)
+album_art_set (const unsigned char *buffer,
+               size_t               len,
+               const gchar         *mime,
+               const gchar         *artist,
+               const gchar         *album,
+               const gchar         *uri)
 {
 	gchar *local_path;
 	gboolean retval;
@@ -538,9 +519,9 @@ albumart_set (const unsigned char *buffer,
 		return FALSE;
 	}
 
-	albumart_get_path (artist, album, "album", NULL, &local_path, NULL);
+	album_art_get_path (artist, album, "album", NULL, &local_path, NULL);
 
-	retval = tracker_albumart_buffer_to_jpeg (buffer, len, mime, local_path);
+	retval = tracker_album_art_buffer_to_jpeg (buffer, len, mime, local_path);
 
 	g_free (local_path);
 
@@ -548,11 +529,11 @@ albumart_set (const unsigned char *buffer,
 }
 
 static void
-albumart_request_download (TrackerStorage *storage,
-                           const gchar    *album,
-                           const gchar    *artist,
-                           const gchar    *local_uri,
-                           const gchar    *art_path)
+album_art_request_download (TrackerStorage *storage,
+                            const gchar    *album,
+                            const gchar    *artist,
+                            const gchar    *local_uri,
+                            const gchar    *art_path)
 {
 	GetFileInfo *info;
 
@@ -567,25 +548,25 @@ albumart_request_download (TrackerStorage *storage,
 	info->local_uri = g_strdup (local_uri);
 	info->art_path = g_strdup (art_path);
 
-	if (!albumart_proxy) {
+	if (!album_art_proxy) {
 		GError          *error = NULL;
 		DBusGConnection *connection;
 
 		connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
 
 		if (!error) {
-			albumart_proxy = dbus_g_proxy_new_for_name (connection,
-			                                            ALBUMARTER_SERVICE,
-			                                            ALBUMARTER_PATH,
-			                                            ALBUMARTER_INTERFACE);
+			album_art_proxy = dbus_g_proxy_new_for_name (connection,
+			                                             ALBUM_ART_SERVICE,
+			                                             ALBUM_ART_PATH,
+			                                             ALBUM_ART_INTERFACE);
 		} else {
 			g_error_free (error);
 		}
 	}
 
-	dbus_g_proxy_begin_call (albumart_proxy,
+	dbus_g_proxy_begin_call (album_art_proxy,
 	                         "Queue",
-	                         albumart_queue_cb,
+	                         album_art_queue_cb,
 	                         info,
 	                         NULL,
 	                         G_TYPE_STRING, artist,
@@ -596,9 +577,9 @@ albumart_request_download (TrackerStorage *storage,
 }
 
 static void
-albumart_copy_to_local (TrackerStorage *storage,
-                        const gchar    *filename,
-                        const gchar    *local_uri)
+album_art_copy_to_local (TrackerStorage *storage,
+                         const gchar    *filename,
+                         const gchar    *local_uri)
 {
 	GSList *roots, *l;
 	gboolean on_removable_device = FALSE;
@@ -660,9 +641,9 @@ albumart_copy_to_local (TrackerStorage *storage,
 }
 
 static void
-albumart_queue_cb (DBusGProxy     *proxy,
-                   DBusGProxyCall *call,
-                   gpointer        user_data)
+album_art_queue_cb (DBusGProxy     *proxy,
+                    DBusGProxyCall *call,
+                    gpointer        user_data)
 {
 	GError      *error = NULL;
 	guint        handle;
@@ -687,9 +668,9 @@ albumart_queue_cb (DBusGProxy     *proxy,
 	if (info->storage && info->art_path &&
 	    g_file_test (info->art_path, G_FILE_TEST_EXISTS)) {
 
-		albumart_copy_to_local (info->storage,
-		                        info->art_path,
-		                        info->local_uri);
+		album_art_copy_to_local (info->storage,
+		                         info->art_path,
+		                         info->local_uri);
 	}
 
 	g_free (info->art_path);
@@ -703,20 +684,20 @@ albumart_queue_cb (DBusGProxy     *proxy,
 }
 
 gboolean
-tracker_albumart_init (void)
+tracker_album_art_init (void)
 {
 	DBusGConnection *connection;
 	GError *error = NULL;
 
 	g_return_val_if_fail (initialized == FALSE, FALSE);
 
-	albumart_storage = tracker_storage_new ();
+	album_art_storage = tracker_storage_new ();
 
 	/* Cache to know if we have already handled uris */
-	albumart_cache = g_hash_table_new_full (g_str_hash,
-	                                        g_str_equal,
-	                                        (GDestroyNotify) g_free,
-	                                        NULL);
+	album_art_cache = g_hash_table_new_full (g_str_hash,
+	                                         g_str_equal,
+	                                         (GDestroyNotify) g_free,
+	                                         NULL);
 
 	/* Signal handler for new album art from the extractor */
 	connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
@@ -729,10 +710,10 @@ tracker_albumart_init (void)
 	}
 
 	/* Get album art downloader proxy */
-	albumart_proxy = dbus_g_proxy_new_for_name (connection,
-	                                            ALBUMARTER_SERVICE,
-	                                            ALBUMARTER_PATH,
-	                                            ALBUMARTER_INTERFACE);
+	album_art_proxy = dbus_g_proxy_new_for_name (connection,
+	                                             ALBUM_ART_SERVICE,
+	                                             ALBUM_ART_PATH,
+	                                             ALBUM_ART_INTERFACE);
 
 	initialized = TRUE;
 
@@ -740,32 +721,32 @@ tracker_albumart_init (void)
 }
 
 void
-tracker_albumart_shutdown (void)
+tracker_album_art_shutdown (void)
 {
 	g_return_if_fail (initialized == TRUE);
 
-	if (albumart_proxy) {
-		g_object_unref (albumart_proxy);
+	if (album_art_proxy) {
+		g_object_unref (album_art_proxy);
 	}
 
-	if (albumart_cache) {
-		g_hash_table_unref (albumart_cache);
+	if (album_art_cache) {
+		g_hash_table_unref (album_art_cache);
 	}
 
-	if (albumart_storage) {
-		g_object_unref (albumart_storage);
+	if (album_art_storage) {
+		g_object_unref (album_art_storage);
 	}
 
 	initialized = FALSE;
 }
 
 gboolean
-tracker_albumart_process (const unsigned char *buffer,
-                          size_t               len,
-                          const gchar         *mime,
-                          const gchar         *artist,
-                          const gchar         *album,
-                          const gchar         *filename)
+tracker_album_art_process (const unsigned char *buffer,
+                           size_t               len,
+                           const gchar         *mime,
+                           const gchar         *artist,
+                           const gchar         *album,
+                           const gchar         *filename)
 {
 	gchar *art_path;
 	gboolean processed = TRUE;
@@ -785,12 +766,12 @@ tracker_albumart_process (const unsigned char *buffer,
 		filename_uri = g_filename_to_uri (filename, NULL, NULL);
 	}
 
-	albumart_get_path (artist,
-	                   album,
-	                   "album",
-	                   filename_uri,
-	                   &art_path,
-	                   &local_uri);
+	album_art_get_path (artist,
+	                    album,
+	                    "album",
+	                    filename_uri,
+	                    &art_path,
+	                    &local_uri);
 
 	if (!art_path) {
 		g_debug ("Album art path could not be obtained, not processing any further");
@@ -804,12 +785,12 @@ tracker_albumart_process (const unsigned char *buffer,
 	if (!g_file_test (art_path, G_FILE_TEST_EXISTS)) {
 		/* If we have embedded album art */
 		if (buffer && len > 0) {
-			processed = albumart_set (buffer,
-			                          len,
-			                          mime,
-			                          artist,
-			                          album,
-			                          filename_uri);
+			processed = album_art_set (buffer,
+			                           len,
+			                           mime,
+			                           artist,
+			                           album,
+			                           filename_uri);
 		} else {
 			/* If not, we perform a heuristic on the dir */
 			gchar *key;
@@ -829,25 +810,25 @@ tracker_albumart_process (const unsigned char *buffer,
 
 			g_free (dirname);
 
-			if (!g_hash_table_lookup (albumart_cache, key)) {
-				if (!albumart_heuristic (artist,
-				                         album,
-				                         filename_uri,
-				                         local_uri,
-				                         NULL)) {
+			if (!g_hash_table_lookup (album_art_cache, key)) {
+				if (!album_art_heuristic (artist,
+				                          album,
+				                          filename_uri,
+				                          local_uri,
+				                          NULL)) {
 					/* If the heuristic failed, we
 					 * request the download the
 					 * media-art to the media-art
 					 * downloaders
 					 */
-					albumart_request_download (albumart_storage,
-					                           artist,
-					                           album,
-					                           local_uri,
-					                           art_path);
+					album_art_request_download (album_art_storage,
+					                            artist,
+					                            album,
+					                            local_uri,
+					                            art_path);
 				}
 
-				g_hash_table_insert (albumart_cache,
+				g_hash_table_insert (album_art_cache,
 				                     key,
 				                     GINT_TO_POINTER(TRUE));
 			} else {
@@ -866,9 +847,9 @@ tracker_albumart_process (const unsigned char *buffer,
 		 * situation might have changed
 		 */
 		if (g_file_test (art_path, G_FILE_TEST_EXISTS)) {
-			albumart_copy_to_local (albumart_storage,
-			                        art_path,
-			                        local_uri);
+			album_art_copy_to_local (album_art_storage,
+			                         art_path,
+			                         local_uri);
 		}
 	}
 

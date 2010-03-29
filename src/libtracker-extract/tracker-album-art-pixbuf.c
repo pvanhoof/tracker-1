@@ -20,13 +20,15 @@
  * Philip Van Hoof <philip@codeminded.be>
  */
 
+#include "config.h"
+
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
-#include "tracker-albumart-generic.h"
+#include "tracker-album-art-generic.h"
 
 gboolean
-tracker_albumart_file_to_jpeg (const gchar *filename,
-                               const gchar *target)
+tracker_album_art_file_to_jpeg (const gchar *filename,
+                                const gchar *target)
 {
 	GdkPixbuf *pixbuf;
 	GError *error = NULL;
@@ -50,12 +52,11 @@ tracker_albumart_file_to_jpeg (const gchar *filename,
 	return TRUE;
 }
 
-
 gboolean
-tracker_albumart_buffer_to_jpeg (const unsigned char *buffer,
-                                 size_t               len,
-                                 const gchar         *buffer_mime,
-                                 const gchar         *target)
+tracker_album_art_buffer_to_jpeg (const unsigned char *buffer,
+                                  size_t               len,
+                                  const gchar         *buffer_mime,
+                                  const gchar         *target)
 {
 	if (g_strcmp0 (buffer_mime, "image/jpeg") == 0 ||
 	    g_strcmp0 (buffer_mime, "JPG") == 0) {

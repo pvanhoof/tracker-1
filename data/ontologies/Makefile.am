@@ -20,7 +20,8 @@ config_DATA =			\
 	40-mlo.ontology		\
 	41-mfo.ontology		\
 	89-mtp.ontology		\
-	90-tracker.ontology
+	90-tracker.ontology     \
+	92-zg.ontology
 
 if HAVE_MAEMO
 config_DATA += 91-maemo.ontology	

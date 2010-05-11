@@ -137,11 +137,75 @@ G_DEFINE_TYPE_WITH_CODE (TrackerDBCursorSqlite, tracker_db_cursor_sqlite, G_TYPE
                          G_IMPLEMENT_INTERFACE (TRACKER_TYPE_DB_CURSOR,
                                                 tracker_db_cursor_sqlite_iface_init))
 
+/* from GLib */
+#define STRUCT_ALIGNMENT (2 * sizeof (gsize))
+#define ALIGN_STRUCT(offset) \
+      ((offset + (STRUCT_ALIGNMENT - 1)) & -STRUCT_ALIGNMENT)
+
+static sqlite3_vfs *default_vfs = NULL;
+
+#define DEFAULT_METHODS(file) (*((const sqlite3_io_methods **) ((gchar *) file + ALIGN_STRUCT(default_vfs->szOsFile))))
+
+static gboolean db_locked = FALSE;
+
+static int
+my_lock (sqlite3_file* file, int locktype)
+{
+	gint rc;
+	if (locktype >= SQLITE_LOCK_PENDING) {
+		db_locked = TRUE;
+	}
+	rc = DEFAULT_METHODS(file)->xLock (file, locktype);
+	return rc;
+}
+
+static int
+my_open (sqlite3_vfs *vfs, const char *zName, sqlite3_file* file, int flags, int *pOutFlags)
+{
+	int rc = default_vfs->xOpen (vfs, zName, file, flags, pOutFlags);
+	if ((flags & SQLITE_OPEN_MAIN_DB) && file->pMethods) {
+		sqlite3_io_methods *my_methods = g_memdup (file->pMethods, sizeof (sqlite3_io_methods));
+		my_methods->xLock = my_lock;
+
+		DEFAULT_METHODS(file) = file->pMethods;
+		file->pMethods = my_methods;
+	}
+	return rc;
+}
+
+gboolean
+tracker_db_manager_pending_lock (void)
+{
+	if (db_locked) {
+		db_locked = FALSE;
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
+
+static gboolean initialized = FALSE;
+
 void
 tracker_db_interface_sqlite_enable_shared_cache (void)
 {
+	sqlite3_vfs *wrapper;
+
+	if (initialized) {
+		return;
+	}
+
+	initialized = TRUE;
+
+	default_vfs = sqlite3_vfs_find (NULL);
+	wrapper = g_memdup (default_vfs, sizeof (sqlite3_vfs));
+	wrapper->szOsFile = ALIGN_STRUCT(default_vfs->szOsFile) + sizeof (gpointer);
+	wrapper->xOpen = my_open;
+
+	sqlite3_vfs_register (wrapper, TRUE);
+
 	sqlite3_config (SQLITE_CONFIG_MULTITHREAD);
-	sqlite3_enable_shared_cache (1);
+	sqlite3_enable_shared_cache (0);
 }
 
 static void

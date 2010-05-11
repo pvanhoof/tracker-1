@@ -35,7 +35,6 @@
 
 #include "tracker-store.h"
 
-#define TRACKER_STORE_TRANSACTION_MAX                   4000
 #define TRACKER_STORE_MAX_CONCURRENT_QUERIES               2
 
 #define TRACKER_STORE_QUERY_WATCHDOG_TIMEOUT 10
@@ -44,7 +43,6 @@
 typedef struct {
 	gboolean     have_handler, have_sync_handler;
 	gboolean     batch_mode, start_log;
-	guint        batch_count;
 	GQueue      *queues[TRACKER_STORE_N_PRIORITIES];
 	guint        handler, sync_handler;
 	guint        n_queries_running;
@@ -209,7 +207,6 @@ begin_batch (TrackerStorePrivate *private)
 		   delays database commits to improve performance */
 		tracker_data_begin_db_transaction ();
 		private->batch_mode = TRUE;
-		private->batch_count = 0;
 	}
 }
 
@@ -221,8 +218,10 @@ end_batch (TrackerStorePrivate *private)
 		tracker_data_commit_db_transaction ();
 		tracker_data_notify_db_transaction ();
 
+		/* the above commit will trigger a lock again, reset it */
+		tracker_db_manager_pending_lock ();
+
 		private->batch_mode = FALSE;
-		private->batch_count = 0;
 	}
 }
 
@@ -447,8 +446,7 @@ pool_dispatch_cb (gpointer data,
 
 		if (task->data.update.batch) {
 			if (!task->error) {
-				private->batch_count++;
-				if (private->batch_count >= TRACKER_STORE_TRANSACTION_MAX) {
+				if (tracker_db_manager_pending_lock ()) {
 					end_batch (private);
 				}
 			}
@@ -467,8 +465,7 @@ pool_dispatch_cb (gpointer data,
 
 		if (task->data.update.batch) {
 			if (!task->error) {
-				private->batch_count++;
-				if (private->batch_count >= TRACKER_STORE_TRANSACTION_MAX) {
+				if (tracker_db_manager_pending_lock ()) {
 					end_batch (private);
 				}
 			}
@@ -560,8 +557,7 @@ queue_idle_handler (gpointer user_data)
 
 		if (process_turtle_file_part (turtle_reader, &error)) {
 			/* import still in progress */
-			private->batch_count++;
-			if (private->batch_count >= TRACKER_STORE_TRANSACTION_MAX) {
+			if (tracker_db_manager_pending_lock ()) {
 				end_batch (private);
 			}
 

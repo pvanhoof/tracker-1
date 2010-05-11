@@ -65,6 +65,9 @@ void                tracker_db_interface_sqlite_enable_shared_cache    (void);
 void                tracker_db_interface_sqlite_fts_init               (TrackerDBInterfaceSqlite *interface,
                                                                         gboolean                  create);
 
+gboolean
+tracker_db_manager_pending_lock (void);
+
 G_END_DECLS
 
 #endif /* __LIBTRACKER_DB_INTERFACE_SQLITE_H__ */

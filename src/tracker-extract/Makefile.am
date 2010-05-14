@@ -9,12 +9,15 @@ INCLUDES = 								\
 	-DG_LOG_DOMAIN=\"Tracker\"					\
 	-DTRACKER_COMPILATION						\
 	-I$(top_srcdir)/src 						\
+	-I$(top_builddir)/src						\
+	-I$(top_builddir)/src/libtracker-client				\
 	$(WARN_CFLAGS)							\
 	$(GLIB2_CFLAGS)							\
 	$(GCOV_CFLAGS)							\
 	$(GDKPIXBUF_CFLAGS)						\
 	$(GMODULE_CFLAGS) 						\
 	$(DBUS_CFLAGS)							\
+	$(LIBGIF_CFLAGS)						\
 	$(LIBJPEG_CFLAGS) 						\
 	$(LIBTIFF_CFLAGS) 						\
 	$(LIBGSF_CFLAGS) 						\
@@ -53,6 +56,10 @@ endif
 
 if HAVE_EXEMPI
 modules_LTLIBRARIES += libextract-xmp.la
+endif
+
+if HAVE_LIBGIF
+modules_LTLIBRARIES += libextract-gif.la
 endif
 
 if HAVE_LIBJPEG
@@ -249,6 +256,16 @@ libextract_xine_la_LIBADD = 						\
 	$(top_builddir)/src/libtracker-common/libtracker-common.la	\
 	$(XINE_LIBS)							\
 	$(GLIB2_LIBS)  							\
+	$(GCOV_LIBS)
+
+# GIF
+libextract_gif_la_SOURCES = tracker-extract-gif.c
+libextract_gif_la_LDFLAGS = $(module_flags)
+libextract_gif_la_LIBADD = 						\
+	$(top_builddir)/src/libtracker-extract/libtracker-extract-@TRACKER_API_VERSION@.la \
+	$(top_builddir)/src/libtracker-common/libtracker-common.la	\
+	$(LIBGIF_LIBS)	 						\
+	$(GLIB2_LIBS) 							\
 	$(GCOV_LIBS)
 
 # JPEG

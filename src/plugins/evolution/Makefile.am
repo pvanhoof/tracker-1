@@ -6,13 +6,12 @@ INCLUDES =								\
 	-DLOCALEDIR="\"$(localedir)\""					\
 	-DG_LOG_DOMAIN=\"Tracker\"					\
 	-DTRACKER_COMPILATION						\
+	-I$(top_builddir)/src						\
+	-I$(top_builddir)/src/libtracker-client				\
 	$(WARN_CFLAGS)							\
 	$(DBUS_CFLAGS)							\
 	$(EVOLUTION_PLUGIN_CFLAGS)					\
 	$(GCOV_CFLAGS)
-
-servicedir = $(DBUS_SERVICES_DIR)
-service_DATA = org.freedesktop.Tracker1.Miner.EMails.service
 
 %.eplug.in: %.eplug.xml
 	LC_ALL=C $(INTLTOOL_MERGE) -x -u /tmp $< $@
@@ -33,7 +32,7 @@ module_flags = -module -avoid-version -no-undefined
 
 liborg_freedesktop_Tracker_evolution_plugin_la_SOURCES = 		\
 	tracker-evolution-plugin.c 			 		\
-	tracker-evolution-plugin.h					
+	tracker-evolution-plugin.h
 
 liborg_freedesktop_Tracker_evolution_plugin_la_LDFLAGS = -module -avoid-version
 liborg_freedesktop_Tracker_evolution_plugin_la_LIBADD = 		\
@@ -44,14 +43,7 @@ liborg_freedesktop_Tracker_evolution_plugin_la_LIBADD = 		\
 	$(DBUS_LIBS)							\
 	$(GCOV_LIBS)
 
-desktop_in_files = tracker-miner-emails.desktop.in
-
-tracker_minersdir = $(datadir)/tracker/miners
-
-tracker_miners_DATA = tracker-miner-emails.desktop
-
 @INTLTOOL_DESKTOP_RULE@
-
 
 %-glue.h: %.xml
 	$(DBUSBINDINGTOOL) --mode=glib-server --output=$@ --prefix=$(subst -,_,$*) $^
@@ -61,10 +53,7 @@ BUILT_SOURCES = 							\
 
 CLEANFILES = 								\
 	$(BUILT_SOURCES) 						\
-	$(tracker_miners_DATA)						\
-	org-freedesktop-Tracker-evolution-plugin.eplug
+	$(eplugin_DATA)
 
 EXTRA_DIST =								\
-	$(service_DATA)							\
-	$(desktop_in_files)						\
 	org-freedesktop-Tracker-evolution-plugin.eplug.xml

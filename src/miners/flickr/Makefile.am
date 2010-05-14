@@ -9,6 +9,8 @@ INCLUDES =								\
 	-DG_LOG_DOMAIN=\"Tracker\"					\
 	-DTRACKER_COMPILATION						\
 	-I$(top_srcdir)/src						\
+	-I$(top_builddir)/src						\
+	-I$(top_builddir)/src/libtracker-client				\
 	$(WARN_CFLAGS)							\
 	$(GMODULE_CFLAGS)						\
 	$(PANGO_CFLAGS)							\
@@ -45,7 +47,7 @@ tracker_miner_flickr_LDADD =						\
 	-lm
 
 vapi_sources =								\
-	$(top_srcdir)/src/libtracker-miner/tracker-miner-@TRACKER_API_VERSION@.vapi
+	$(top_srcdir)/src/libtracker-miner/tracker-miner.vapi
 
 tracker-miner-flickr.vala.stamp: $(tracker_miner_flickr_VALASOURCES) $(vapi_sources)
 	$(AM_V_GEN)$(VALAC) $(GCOV_VALAFLAGS) -C $(VALAFLAGS) $^

@@ -7,6 +7,8 @@ INCLUDES =						\
 	-DTRACKER_COMPILATION				\
 	-DTRACKER_MINERS_DIR=\""$(datadir)/tracker/miners"\" 	\
 	-I$(top_srcdir)/src				\
+	-I$(top_builddir)/src				\
+	-I$(top_builddir)/src/libtracker-client		\
 	$(WARN_CFLAGS)					\
 	$(GLIB2_CFLAGS)					\
 	$(GCOV_CFLAGS)					\
@@ -137,4 +139,5 @@ DISTCLEANFILES = tracker-miner-web-full.xml
 EXTRA_DIST = 				\
 	tracker-marshal.list		\
 	tracker-miner.vapi		\
+	tracker-miner.deps		\
 	tracker-miner-web-full.xml

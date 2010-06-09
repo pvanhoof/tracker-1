@@ -645,22 +645,6 @@ tracker_data_ontology_load_statement (const gchar *ontology_path,
 		if (g_strcmp0 (object, "true") == 0) {
 			tracker_property_set_transient (property, TRUE);
 		}
-	} else if (g_strcmp0 (predicate, TRACKER_PREFIX "isAnnotation") == 0) {
-		TrackerProperty *property;
-
-		property = tracker_ontologies_get_property_by_uri (subject);
-		if (property == NULL) {
-			g_critical ("%s: Unknown property %s", ontology_path, subject);
-			return;
-		}
-
-		if (tracker_property_get_is_new (property) != in_update) {
-			return;
-		}
-
-		if (g_strcmp0 (object, "true") == 0) {
-			tracker_property_set_embedded (property, FALSE);
-		}
 	} else if (g_strcmp0 (predicate, TRACKER_PREFIX "fulltextIndexed") == 0) {
 		TrackerProperty *property;
 
@@ -1094,7 +1078,6 @@ tracker_data_ontology_process_statement (const gchar *graph,
 	           g_strcmp0 (predicate, NRL_MAX_CARDINALITY) == 0           ||
 	           g_strcmp0 (predicate, TRACKER_PREFIX "indexed") == 0      ||
 	           g_strcmp0 (predicate, TRACKER_PREFIX "transient") == 0    ||
-	           g_strcmp0 (predicate, TRACKER_PREFIX "isAnnotation") == 0 ||
 	           g_strcmp0 (predicate, TRACKER_PREFIX "fulltextIndexed") == 0) {
 		TrackerProperty *prop;
 
@@ -1430,7 +1413,6 @@ db_get_static_data (TrackerDBInterface *iface)
 	                                              "\"tracker:fulltextIndexed\", "
 	                                              "\"tracker:fulltextNoLimit\", "
 	                                              "\"tracker:transient\", "
-	                                              "\"tracker:isAnnotation\", "
 	                                              "\"tracker:writeback\", "
 	                                              "(SELECT 1 FROM \"rdfs:Resource_rdf:type\" WHERE ID = \"rdf:Property\".ID AND "
 	                                              "\"rdf:type\" = (SELECT ID FROM Resource WHERE Uri = '" NRL_INVERSE_FUNCTIONAL_PROPERTY "')), "
@@ -1448,7 +1430,7 @@ db_get_static_data (TrackerDBInterface *iface)
 			TrackerProperty *property;
 			const gchar     *uri, *domain_uri, *range_uri, *secondary_index_uri, *default_value;
 			gboolean         multi_valued, indexed, fulltext_indexed, fulltext_no_limit;
-			gboolean         transient, annotation, is_inverse_functional_property;
+			gboolean         transient, is_inverse_functional_property;
 			gboolean         writeback;
 			gint             id;
 
@@ -1512,19 +1494,8 @@ db_get_static_data (TrackerDBInterface *iface)
 				transient = FALSE;
 			}
 
-			tracker_db_cursor_get_value (cursor, 10, &value);
-
-			if (G_VALUE_TYPE (&value) != 0) {
-				annotation = (g_value_get_int (&value) == 1);
-				g_value_unset (&value);
-			} else {
-				/* NULL */
-				annotation = FALSE;
-			}
-
-
 			/* tracker:writeback column */
-			tracker_db_cursor_get_value (cursor, 11, &value);
+			tracker_db_cursor_get_value (cursor, 10, &value);
 
 			if (G_VALUE_TYPE (&value) != 0) {
 				writeback = (g_value_get_int (&value) == 1);
@@ -1535,7 +1506,7 @@ db_get_static_data (TrackerDBInterface *iface)
 			}
 
 			/* NRL_INVERSE_FUNCTIONAL_PROPERTY column */
-			tracker_db_cursor_get_value (cursor, 12, &value);
+			tracker_db_cursor_get_value (cursor, 11, &value);
 
 			if (G_VALUE_TYPE (&value) != 0) {
 				is_inverse_functional_property = TRUE;
@@ -1566,7 +1537,6 @@ db_get_static_data (TrackerDBInterface *iface)
 
 			tracker_property_set_fulltext_indexed (property, fulltext_indexed);
 			tracker_property_set_fulltext_no_limit (property, fulltext_no_limit);
-			tracker_property_set_embedded (property, !annotation);
 			tracker_property_set_is_inverse_functional_property (property, is_inverse_functional_property);
 			property_add_super_properties_from_db (iface, property);
 

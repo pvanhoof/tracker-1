@@ -410,8 +410,9 @@ public class Tracker.Sparql.Query : Object {
 			return execute_ask ();
 		case SparqlTokenType.INSERT:
 		case SparqlTokenType.DELETE:
-		case SparqlTokenType.DROP:
 			throw get_error ("INSERT and DELETE are not supported in query mode");
+		case SparqlTokenType.DROP:
+			throw get_internal_error ("DROP GRAPH is not supported");
 		default:
 			throw get_error ("expected SELECT or ASK");
 		}
@@ -433,8 +434,9 @@ public class Tracker.Sparql.Query : Object {
 			return execute_ask_cursor ();
 		case SparqlTokenType.INSERT:
 		case SparqlTokenType.DELETE:
-		case SparqlTokenType.DROP:
 			throw get_error ("INSERT and DELETE are not supported in query mode");
+		case SparqlTokenType.DROP:
+			throw get_internal_error ("DROP GRAPH is not supported");
 		default:
 			throw get_error ("expected SELECT or ASK");
 		}
@@ -477,8 +479,7 @@ public class Tracker.Sparql.Query : Object {
 				}
 				break;
 			case SparqlTokenType.DROP:
-				execute_drop_graph ();
-				break;
+				throw get_internal_error ("DROP GRAPH is not supported");
 			case SparqlTokenType.SELECT:
 			case SparqlTokenType.CONSTRUCT:
 			case SparqlTokenType.DESCRIBE:
@@ -730,19 +731,6 @@ public class Tracker.Sparql.Query : Object {
 		context = context.parent_context;
 
 		return update_blank_nodes;
-	}
-
-	void execute_drop_graph () throws DBInterfaceError, DataError, SparqlError {
-		expect (SparqlTokenType.DROP);
-		expect (SparqlTokenType.GRAPH);
-
-		bool is_var;
-		string url = pattern.parse_var_or_term (null, out is_var);
-
-		Data.delete_resource_description (url, url);
-
-		// ensure possible WHERE clause in next part gets the correct results
-		Data.update_buffer_flush ();
 	}
 
 	internal string resolve_prefixed_name (string prefix, string local_name) throws SparqlError {

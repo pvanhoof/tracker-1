@@ -268,7 +268,6 @@ nie:usageCounter a rdf:Property ;
 	nrl:maxCardinality 1 ;
 	rdfs:domain nie:InformationElement ;
 	rdfs:range xsd:integer ;
-	tracker:isAnnotation true ;
 	tracker:weight 3 .
 
 nie:url a rdf:Property ;

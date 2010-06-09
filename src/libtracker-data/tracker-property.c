@@ -54,7 +54,6 @@ struct _TrackerPropertyPrivate {
 	TrackerProperty *secondary_index;
 	gboolean       fulltext_indexed;
 	gboolean       fulltext_no_limit;
-	gboolean       embedded;
 	gboolean       multiple_values;
 	gboolean       transient;
 	gboolean       is_inverse_functional_property;
@@ -129,7 +128,6 @@ tracker_property_init (TrackerProperty *property)
 
 	priv->id = 0;
 	priv->weight = 1;
-	priv->embedded = TRUE;
 	priv->transient = FALSE;
 	priv->multiple_values = TRUE;
 	priv->super_properties = g_array_new (TRUE, TRUE, sizeof (TrackerProperty *));
@@ -392,18 +390,6 @@ tracker_property_get_db_schema_changed (TrackerProperty *property)
 	priv = GET_PRIV (property);
 
 	return priv->db_schema_changed;
-}
-
-gboolean
-tracker_property_get_embedded (TrackerProperty *property)
-{
-	TrackerPropertyPrivate *priv;
-
-	g_return_val_if_fail (TRACKER_IS_PROPERTY (property), FALSE);
-
-	priv = GET_PRIV (property);
-
-	return priv->embedded;
 }
 
 gboolean
@@ -686,19 +672,6 @@ tracker_property_set_fulltext_no_limit (TrackerProperty *property,
 	priv = GET_PRIV (property);
 
 	priv->fulltext_no_limit = value;
-}
-
-void
-tracker_property_set_embedded (TrackerProperty *property,
-                               gboolean         value)
-{
-	TrackerPropertyPrivate *priv;
-
-	g_return_if_fail (TRACKER_IS_PROPERTY (property));
-
-	priv = GET_PRIV (property);
-
-	priv->embedded = value;
 }
 
 void

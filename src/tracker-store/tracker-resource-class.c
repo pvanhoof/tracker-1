@@ -141,19 +141,19 @@ static void
 emit_changed_strings (TrackerResourceClass *object, GPtrArray *array)
 {
 	GStrv stringsa_to_emit;
-	GStrv stringsb_to_emit;
+	const gchar **stringsb_to_emit;
 
 	guint i;
 
 	if (array->len > 0) {
 		stringsa_to_emit = (GStrv) g_malloc0  (sizeof (gchar *) * (array->len + 1));
-		stringsb_to_emit = (GStrv) g_malloc0  (sizeof (gchar *) * (array->len + 1));
+		stringsb_to_emit = g_malloc0  (sizeof (const gchar *) * (array->len + 1));
 
 		for (i = 0; i < array->len; i++) {
 			ChangedItem *item = array->pdata [i];
 
 			stringsa_to_emit[i] = item->uri;
-			stringsb_to_emit[i] = (gchar *) tracker_property_get_uri (item->predicate);
+			stringsb_to_emit[i] = tracker_property_get_uri (item->predicate);
 		}
 
 		g_signal_emit (object, signals[SUBJECTS_CHANGED], 0,

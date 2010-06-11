@@ -122,17 +122,19 @@ tracker_resource_class_init (TrackerResourceClass *object)
 }
 
 static void
-emit_strings (TrackerResourceClass *object, const gchar *signal_, GPtrArray *array)
+emit_strings (TrackerResourceClass *object,
+              const gchar *signal_,
+              GPtrArray *array)
 {
 	TrackerResourceClassPrivate *priv;
 
 	priv = TRACKER_RESOURCE_CLASS_GET_PRIVATE (object);
 
 	if (array->len > 0) {
-		DBusMessageIter    iter;
-		DBusMessageIter    strv_iter;
-		DBusMessage       *message;
-		guint              i;
+		DBusMessageIter iter;
+		DBusMessageIter strv_iter;
+		DBusMessage *message;
+		guint i;
 
 		message = dbus_message_new_signal (priv->dbus_path,
 		                                   TRACKER_RESOURCES_CLASS_INTERFACE,
@@ -156,18 +158,19 @@ emit_strings (TrackerResourceClass *object, const gchar *signal_, GPtrArray *arr
 }
 
 static void
-emit_changed_strings (TrackerResourceClass *object, GPtrArray *array)
+emit_changed_strings (TrackerResourceClass *object,
+                      GPtrArray *array)
 {
 	TrackerResourceClassPrivate *priv;
 
 	priv = TRACKER_RESOURCE_CLASS_GET_PRIVATE (object);
 
 	if (array->len > 0) {
-		DBusMessageIter    iter;
-		DBusMessageIter    strv1_iter;
-		DBusMessageIter    strv2_iter;
-		DBusMessage       *message;
-		guint              i;
+		DBusMessageIter iter;
+		DBusMessageIter strv1_iter;
+		DBusMessageIter strv2_iter;
+		DBusMessage *message;
+		guint i;
 
 		message = dbus_message_new_signal (priv->dbus_path,
 		                                   TRACKER_RESOURCES_CLASS_INTERFACE,

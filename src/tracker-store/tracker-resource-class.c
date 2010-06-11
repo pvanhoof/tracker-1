@@ -39,7 +39,8 @@
 #define TRACKER_RESOURCE_CLASS_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_RESOURCE_CLASS, TrackerResourceClassPrivate))
 
 typedef struct {
-	gchar *rdf_class, *dbus_path;
+	gchar *rdf_class;
+	gchar *dbus_path;
 	GPtrArray *adds, *ups, *dels;
 	GStringChunk *changed_strings;
 	DBusConnection *connection;

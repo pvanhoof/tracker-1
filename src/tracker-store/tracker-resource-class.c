@@ -123,7 +123,7 @@ tracker_resource_class_init (TrackerResourceClass *object)
 
 static void
 emit_strings (TrackerResourceClass *object,
-              const gchar *signal_,
+              const gchar *signal_name,
               GPtrArray *array)
 {
 	TrackerResourceClassPrivate *priv;
@@ -138,7 +138,7 @@ emit_strings (TrackerResourceClass *object,
 
 		message = dbus_message_new_signal (priv->dbus_path,
 		                                   TRACKER_RESOURCES_CLASS_INTERFACE,
-		                                   signal_);
+		                                   signal_name);
 
 		dbus_message_iter_init_append (message, &iter);
 

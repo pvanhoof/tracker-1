@@ -26,7 +26,8 @@ INCLUDES = 								\
 	$(POPPLER_CFLAGS) 						\
 	$(GSTREAMER_CFLAGS) 						\
 	$(XINE_CFLAGS) 							\
-	$(TOTEM_PL_PARSER_CFLAGS)
+	$(TOTEM_PL_PARSER_CFLAGS)					\
+	$(GMIME_CFLAGS)
 
 if HAVE_LIBSTREAMANALYZER
 INCLUDES += $(LIBSTREAMANALYZER_CFLAGS)
@@ -103,6 +104,10 @@ endif
 
 if HAVE_TOTEM_PL_PARSER
 modules_LTLIBRARIES += libextract-playlist.la
+endif
+
+if HAVE_GMIME
+modules_LTLIBRARIES += libextract-mime-message.la
 endif
 
 # ABW
@@ -304,6 +309,16 @@ libextract_text_la_LIBADD = 						\
 	$(GIO_LIBS)							\
 	$(GLIB2_LIBS)  							\
 	$(GCOV_LIBS)
+
+# MIME Message
+libextract_mime_message_la_SOURCES = tracker-extract-mime-message.c
+libextract_mime_message_la_LDFLAGS = $(module_flags)
+libextract_mime_message_la_LIBADD = 					\
+	 $(top_builddir)/src/libtracker-extract/libtracker-extract-@TRACKER_API_VERSION@.la \
+	 $(GMIME_LIBS)							\
+	 $(GIO_LIBS)							\
+	 $(GLIB2_LIBS)							\
+	 $(GCOV_LIBS)
 
 #
 # Binaries

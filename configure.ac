@@ -161,6 +161,7 @@ GNOME_KEYRING_REQUIRED=2.26
 LIBGRSS_REQUIRED=0.3
 REST_REQUIRED=0.6
 NETWORK_MANAGER_REQUIRED=0.8
+GMIME_REQUIRED=2.5.1
 
 # Library Checks
 PKG_CHECK_MODULES(GLIB2, [glib-2.0 >= $GLIB_REQUIRED])
@@ -1671,6 +1672,34 @@ have_mockup="no  (disabled)"
 AM_CONDITIONAL(HAVE_MOCKUP, test "x$have_mockup" = "xyes")
 
 
+##################################################################
+# Enable mime message extractor module?
+##################################################################
+
+have_gmime="no  (disabled)"
+
+AC_ARG_ENABLE(message_extractor,
+              AS_HELP_STRING([--enable-message-extractor],
+                             [enable mime message support [[default=auto]]]),,
+              [enable_message_extractor=auto])
+
+if test x"$enable_message_extractor" != x"no" ; then
+   PKG_CHECK_MODULES(GMIME, [gmime-2.6 >= $GMIME_REQUIRED], [have_gmime=yes], [have_gmime=no])
+
+   if test x"$have_gmime" = x"yes" ; then
+      AC_DEFINE(HAVE_GMIME, [], [Define if we have GMime])
+   fi
+fi
+
+if test x"$enable_message_extractor" = x"yes" ; then
+   if test x"$have_gmime" != x"yes" ; then
+      AC_MSG_ERROR([Couldn't find GMime-2.6])
+   fi
+fi
+
+AM_CONDITIONAL(HAVE_GMIME, test x"$have_gmime" = x"yes")
+
+
 ####################################################################
 # Enable Nautilus extension support?
 ####################################################################
@@ -1966,6 +1995,7 @@ Metadata Extractors:
 	Support helix formats (RPM/RM/etc):     $have_gstreamer_helix
 	Support MP3 album art:                  $selected_for_albumart
 	Support playlists (w/ Totem):           $have_playlist
+	Support MIME Messages:                  $have_gmime
 
 Data Miners:
 

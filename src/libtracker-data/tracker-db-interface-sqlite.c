@@ -99,7 +99,7 @@ void
 tracker_db_interface_sqlite_enable_shared_cache (void)
 {
 	sqlite3_config (SQLITE_CONFIG_MULTITHREAD);
-	sqlite3_enable_shared_cache (1);
+	//sqlite3_enable_shared_cache (1);
 }
 
 static void

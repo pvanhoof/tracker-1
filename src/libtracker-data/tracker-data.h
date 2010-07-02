@@ -41,7 +41,6 @@
 #include "tracker-ontology.h"
 #include "tracker-ontologies.h"
 #include "tracker-property.h"
-#include "tracker-sparql-query.h"
 
 #undef __LIBTRACKER_DATA_INSIDE__
 

@@ -17,23 +17,16 @@ libtracker_sparql_@TRACKER_API_VERSION@_la_LDFLAGS = 	\
 #	-export-symbols-regex '^tracker_.*'
 
 libtracker_sparqlinclude_HEADERS = 			\
-	tracker-cursor.h
+	tracker-sparql.h
 
 # Vala bindings
 vapidir = $(datadir)/vala/vapi
 vapi_DATA =                     			\
 	tracker-sparql-$(TRACKER_API_VERSION).vapi
 
-tracker-sparql-$(TRACKER_API_VERSION).vapi: tracker-sparql.vapi
-	cp $< $@
-
 # Vala sources
-vapi_sources =						\
-	$(top_srcdir)/src/vapi/posix.vapi		\
-	$(top_srcdir)/src/vapi/glib-2.0-fixes.vapi
-
-libtracker-sparql.vala.stamp: $(libtracker_sparql_@TRACKER_API_VERSION@_la_VALASOURCES) $(vapi_sources)
-	$(AM_V_GEN)$(VALAC) $(GCOV_VALAFLAGS) -C $(VALAFLAGS) --pkg gio-2.0 -H tracker-cursor.h $^
+libtracker-sparql.vala.stamp: $(libtracker_sparql_@TRACKER_API_VERSION@_la_VALASOURCES)
+	$(AM_V_GEN)$(VALAC) $(GCOV_VALAFLAGS) -C $(VALAFLAGS) --pkg gio-2.0 -H tracker-sparql.h --vapi tracker-sparql-$(TRACKER_API_VERSION).vapi $^
 	$(AM_V_GEN)touch $@
 
 BUILT_SOURCES = 					\
@@ -45,7 +38,7 @@ CLEANFILES = 						\
 MAINTAINERCLEANFILES =					\
 	$(libtracker_sparql_@TRACKER_API_VERSION@_la_VALASOURCES:.vala=.c) \
 	libtracker-sparql.vala.stamp			\
-	tracker-cursor.h
+	tracker-sparql.h
 
 EXTRA_DIST = 						\
 	$(libtracker_sparql_@TRACKER_API_VERSION@_la_VALASOURCES) \

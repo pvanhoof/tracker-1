@@ -17,10 +17,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-public class Tracker.Direct.Connection : GLib.Object, Tracker.Sparql.Cursor {
-	private int _n_columns = 0;
-
-	Connection () {
+public class Tracker.Direct.Connection : GLib.Object, Tracker.Sparql.Connection {
+	public Connection () {
 
 	}
 
@@ -28,27 +26,8 @@ public class Tracker.Direct.Connection : GLib.Object, Tracker.Sparql.Cursor {
 		// Clean up connection
 	}
 
-	public int n_columns { 
-		get { return _n_columns; }
-	}
-
-	public bool get_value (uint column, out GLib.Value value) {
-		return false;
-	}
-
-	public bool get_string (uint column, out string value) {
-		return false;
-	}
-
-	public bool get_double (uint column, out double value) {
-		return false;
-	}
-
-	public bool iter_next () {
-		return false;
-	}
-
-	public bool rewind () {
-		return false;
+	public Cursor query (string sparql) throws GLib.Error {
+		var query_object = new Sparql.Query (sparql);
+		return query_object.execute_cursor ();
 	}
 }

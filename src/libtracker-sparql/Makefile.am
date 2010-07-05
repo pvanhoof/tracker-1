@@ -19,6 +19,14 @@ libtracker_sparql_@TRACKER_API_VERSION@_la_LDFLAGS = 	\
 libtracker_sparqlinclude_HEADERS = 			\
 	tracker-cursor.h
 
+# Vala bindings
+vapidir = $(datadir)/vala/vapi
+vapi_DATA =                     			\
+	tracker-sparql-$(TRACKER_API_VERSION).vapi
+
+tracker-sparql-$(TRACKER_API_VERSION).vapi: tracker-sparql.vapi
+	cp $< $@
+
 # Vala sources
 vapi_sources =						\
 	$(top_srcdir)/src/vapi/posix.vapi		\

@@ -17,16 +17,16 @@
  * Boston, MA  02110-1301, USA.
  */
 
-public interface Tracker.Sparql.Cursor {
-	public abstract int n_columns { get; }
-	public abstract bool get_value (uint column, out GLib.Value value);
-	public abstract bool get_string (uint column, out string value);
-	public abstract bool get_double (uint column, out double value);
-	public virtual bool interrupt () throws GLib.Error {
-		warning ("Interrupt interface called when not implemented");
-		return false;
-	}
-
-	public abstract bool iter_next () throws GLib.Error;
-	public abstract bool rewind ();
+[CCode (cprefix = "Tracker", lower_case_cprefix = "tracker_")]
+namespace Tracker {
+	[CCode (cheader_filename = "libtracker-sparql/tracker-cursor.h")]
+    public interface Sparql.Cursor {
+	    public abstract int n_columns { get; }
+	    public abstract bool get_value (uint column, out GLib.Value value);
+	    public abstract bool get_string (uint column, out string value);
+	    public abstract bool get_double (uint column, out double value);
+	    public virtual bool interrupt () throws GLib.Error;
+	    public abstract bool iter_next () throws GLib.Error;
+	    public abstract bool rewind ();
+    }
 }

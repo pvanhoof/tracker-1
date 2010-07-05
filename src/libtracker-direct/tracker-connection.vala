@@ -17,16 +17,38 @@
  * Boston, MA  02110-1301, USA.
  */
 
-public interface Tracker.Sparql.Cursor {
-	public abstract int n_columns { get; }
-	public abstract bool get_value (uint column, out GLib.Value value);
-	public abstract bool get_string (uint column, out string value);
-	public abstract bool get_double (uint column, out double value);
-	public virtual bool interrupt () throws GLib.Error {
-		warning ("Interrupt interface called when not implemented");
+public class Tracker.Direct.Connection : GLib.Object, Tracker.Sparql.Cursor {
+	private int _n_columns = 0;
+
+	Connection () {
+
+	}
+
+	~Connection () {
+		// Clean up connection
+	}
+
+	public int n_columns { 
+		get { return _n_columns; }
+	}
+
+	public bool get_value (uint column, out GLib.Value value) {
 		return false;
 	}
 
-	public abstract bool iter_next () throws GLib.Error;
-	public abstract bool rewind ();
+	public bool get_string (uint column, out string value) {
+		return false;
+	}
+
+	public bool get_double (uint column, out double value) {
+		return false;
+	}
+
+	public bool iter_next () {
+		return false;
+	}
+
+	public bool rewind () {
+		return false;
+	}
 }

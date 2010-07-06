@@ -17,7 +17,7 @@
  * Boston, MA  02110-1301, USA.
  */
 
-public interface Tracker.Sparql.Cursor {
+public abstract class Tracker.Sparql.Cursor : Object {
 	public abstract int n_columns { get; }
 	public abstract bool get_value (uint column, out GLib.Value value);
 	public abstract bool get_string (uint column, out string value);

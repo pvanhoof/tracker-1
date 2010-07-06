@@ -17,7 +17,7 @@
  * Boston, MA  02110-1301, USA.
  */
 
-public class Tracker.Direct.Connection : GLib.Object, Tracker.Sparql.Connection {
+public class Tracker.Direct.Connection : Tracker.Sparql.Connection {
 	public Connection () {
 
 	}

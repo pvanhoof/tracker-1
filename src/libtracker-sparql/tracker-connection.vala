@@ -17,6 +17,6 @@
  * Boston, MA  02110-1301, USA.
  */
 
-public interface Tracker.Sparql.Connection {
+public abstract class Tracker.Sparql.Connection : Object {
 	public abstract Cursor query (string sparql) throws GLib.Error;
 }

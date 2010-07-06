@@ -26,7 +26,7 @@ public class Tracker.Direct.Connection : Tracker.Sparql.Connection {
 		// Clean up connection
 	}
 
-	public Cursor query (string sparql) throws GLib.Error {
+	public override Sparql.Cursor query (string sparql) throws GLib.Error {
 		var query_object = new Sparql.Query (sparql);
 		return query_object.execute_cursor ();
 	}

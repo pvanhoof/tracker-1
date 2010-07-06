@@ -1,15 +1,26 @@
 include $(top_srcdir)/Makefile.decl
 
+INCLUDES =								\
+	-DG_LOG_DOMAIN=\"Tracker\"					\
+	-DTRACKER_COMPILATION						\
+	-I$(top_srcdir)/src						\
+	-I$(top_srcdir)/src/libtracker-sparql				\
+	-I$(top_srcdir)/src/libtracker-data				\
+	-I$(top_builddir)/src						\
+	$(WARN_CFLAGS)							\
+	$(GLIB2_CFLAGS)							\
+	$(GCOV_CFLAGS)
+
 lib_LTLIBRARIES = libtracker-direct-@TRACKER_API_VERSION@.la
 
 libtracker_directincludedir = $(includedir)/tracker-$(TRACKER_API_VERSION)/libtracker-direct
 
-libtracker_direct_@TRACKER_API_VERSION@_la_VALASOURCES = \
+libtracker_direct_la_VALASOURCES = \
 	tracker-connection.vala
 
 libtracker_direct_@TRACKER_API_VERSION@_la_SOURCES = 	\
 	libtracker-connection.vala.stamp			\
-	$(libtracker_direct_@TRACKER_API_VERSION@_la_VALASOURCES:.vala=.c)
+	$(libtracker_direct_la_VALASOURCES:.vala=.c)
 
 libtracker_direct_@TRACKER_API_VERSION@_la_LDFLAGS = 	\
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) 
@@ -27,7 +38,7 @@ vapi_sources =						\
 	$(top_srcdir)/src/libtracker-data/libtracker-data.vapi	\
 	$(top_srcdir)/src/libtracker-data/tracker-sparql-query.vapi
 
-libtracker-direct.vala.stamp: $(libtracker_direct_@TRACKER_API_VERSION@_la_VALASOURCES) $(vapi_sources)
+libtracker-direct.vala.stamp: $(libtracker_direct_la_VALASOURCES) $(vapi_sources)
 	$(AM_V_GEN)$(VALAC) $(GCOV_VALAFLAGS) -C $(VALAFLAGS) --pkg gio-2.0 -H tracker-connection.h $^
 	$(AM_V_GEN)touch $@
 
@@ -38,10 +49,10 @@ CLEANFILES = 						\
 	$(BUILT_SOURCES)
 
 MAINTAINERCLEANFILES =					\
-	$(libtracker_direct_@TRACKER_API_VERSION@_la_VALASOURCES:.vala=.c) \
+	$(libtracker_direct_la_VALASOURCES:.vala=.c) \
 	libtracker-direct.vala.stamp			\
 	tracker-connection.h
 
 EXTRA_DIST = 						\
-	$(libtracker_direct_@TRACKER_API_VERSION@_la_VALASOURCES) \
+	$(libtracker_direct_la_VALASOURCES) \
 	libtracker-direct.vala.stamp

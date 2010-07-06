@@ -19,9 +19,7 @@
 
 public abstract class Tracker.Sparql.Cursor : Object {
 	public abstract int n_columns { get; }
-	public abstract bool get_value (uint column, out GLib.Value value);
-	public abstract bool get_string (uint column, out string value);
-	public abstract bool get_double (uint column, out double value);
+	public abstract unowned string get_string (int column);
 	public virtual bool interrupt () throws GLib.Error {
 		warning ("Interrupt interface called when not implemented");
 		return false;

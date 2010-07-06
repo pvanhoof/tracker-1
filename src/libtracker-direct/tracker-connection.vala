@@ -18,12 +18,19 @@
  */
 
 public class Tracker.Direct.Connection : Tracker.Sparql.Connection {
-	public Connection () {
+	// only single connection is currently supported per process
+	static bool initialized;
 
+	public Connection ()
+	requires (!initialized) {
+		initialized = true;
+		Data.Manager.init (DBManagerFlags.READONLY, null, null, false, null, null);
 	}
 
 	~Connection () {
 		// Clean up connection
+		Data.Manager.shutdown ();
+		initialized = false;
 	}
 
 	public override Sparql.Cursor query (string sparql) throws GLib.Error {

@@ -17,12 +17,12 @@ libtracker_direct_@TRACKER_API_VERSION@_la_LDFLAGS = 	\
 #	-export-symbols-regex '^tracker_.*'
 
 libtracker_directinclude_HEADERS = 			\
-	$(top_srcdir)/src/libtracker-sparql/tracker-sparql.vapi	\
+	$(top_srcdir)/src/libtracker-sparql/tracker-sparql-$(TRACKER_API_VERSION).vapi	\
 	tracker-connection.h
 
 # Vala sources
 vapi_sources =						\
-	$(top_srcdir)/src/libtracker-sparql/tracker-sparql.vapi	\
+	$(top_srcdir)/src/libtracker-sparql/tracker-sparql-$(TRACKER_API_VERSION).vapi	\
 	$(top_srcdir)/src/vapi/posix.vapi		\
 	$(top_srcdir)/src/vapi/glib-2.0-fixes.vapi
 

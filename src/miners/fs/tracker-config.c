@@ -38,6 +38,7 @@
 #define GROUP_MONITORS                           "Monitors"
 #define GROUP_INDEXING                           "Indexing"
 #define GROUP_CRAWLING                           "Crawling"
+#define GROUP_VOLUME_CLEANUP                     "VolumeCleanup"
 
 /* Default values */
 #define DEFAULT_VERBOSITY                        0
@@ -52,6 +53,7 @@
 #define DEFAULT_INDEX_ON_BATTERY_FIRST_TIME      TRUE
 #define DEFAULT_LOW_DISK_SPACE_LIMIT             1        /* 0->100 / -1 */
 #define DEFAULT_CRAWLING_INTERVAL                0        /* 0->365 / -1 */
+#define DEFAULT_VOLUME_CLEANUP_THRESHOLD         3        /* 3->GMAXINT / -1 */
 
 typedef struct {
 	/* General */
@@ -78,6 +80,9 @@ typedef struct {
 	GSList   *ignored_directories_with_content;
 	GSList   *ignored_files;
 	gint	  crawling_interval;
+
+	/* Stale volume cleanup */
+	gint      volume_cleanup_threshold;
 
 	/* Convenience data */
 	GSList   *ignored_directory_patterns;
@@ -135,7 +140,10 @@ enum {
 	PROP_IGNORED_DIRECTORIES,
 	PROP_IGNORED_DIRECTORIES_WITH_CONTENT,
 	PROP_IGNORED_FILES,
-	PROP_CRAWLING_INTERVAL
+	PROP_CRAWLING_INTERVAL,
+
+	/* Volume cleanup */
+	PROP_VOLUME_CLEANUP_THRESHOLD,
 };
 
 static ObjectToKeyFile conversions[] = {
@@ -158,7 +166,8 @@ static ObjectToKeyFile conversions[] = {
 	{ G_TYPE_POINTER, "ignored-directories",              GROUP_INDEXING, "IgnoredDirectories"        },
 	{ G_TYPE_POINTER, "ignored-directories-with-content", GROUP_INDEXING, "IgnoredDirectoriesWithContent" },
 	{ G_TYPE_POINTER, "ignored-files",                    GROUP_INDEXING, "IgnoredFiles"              },
-	{ G_TYPE_INT,	  "crawling-interval",		      GROUP_INDEXING, "CrawlingInterval"	  }
+	{ G_TYPE_INT,	  "crawling-interval",		      GROUP_INDEXING, "CrawlingInterval"	  }.
+	{ G_TYPE_INT,     "volume-cleanup-threshold",        GROUP_VOLUME_CLEANUP, "Threshold"           }
 };
 
 G_DEFINE_TYPE (TrackerConfig, tracker_config, TRACKER_TYPE_CONFIG_FILE);
@@ -324,6 +333,19 @@ tracker_config_class_init (TrackerConfigClass *klass)
 	                                                   -1,
 	                                                   365,
 	                                                   DEFAULT_CRAWLING_INTERVAL,
+	                                                   G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
+
+	/* Volume cleanup */
+	g_object_class_install_property (object_class,
+                                         PROP_VOLUME_CLEANUP_THRESHOLD,
+	                                 g_param_spec_int ("volume-cleanup-threshold",
+	                                                   "Volume cleanup threshold",
+                                                           " Number of days before stale volumes not mounted are cleaned up in the store."
+                                                           " If set to 0, cleanup always runs at startup, if -1 cleanup is"
+                                                           " disabled entirely. Maximum is 365.",
+	                                                   -1,
+	                                                   365,
+	                                                   DEFAULT_VOLUME_CLEANUP_THRESHOLD,
 	                                                   G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
 
 	g_type_class_add_private (object_class, sizeof (TrackerConfigPrivate));

@@ -71,6 +71,7 @@ GSList *       tracker_config_get_ignored_directories              (TrackerConfi
 GSList *       tracker_config_get_ignored_directories_with_content (TrackerConfig *config);
 GSList *       tracker_config_get_ignored_files                    (TrackerConfig *config);
 gint           tracker_config_get_crawling_interval                (TrackerConfig *config);
+gint           tracker_config_get_volume_cleanup_threshold         (TrackerConfig *config);
 
 void           tracker_config_set_verbosity                        (TrackerConfig *config,
                                                                     gint           value);
@@ -108,6 +109,8 @@ void           tracker_config_set_ignored_files                    (TrackerConfi
                                                                     GSList        *files);
 void           tracker_config_set_crawling_interval                (TrackerConfig *config,
                                                                     gint           interval);
+void           tracker_config_set_volume_cleanup_threshold         (TrackerConfig *config,
+                                                                    gint           ndays);
 
 /*
  * Convenience functions:

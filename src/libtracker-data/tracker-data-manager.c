@@ -3041,7 +3041,6 @@ tracker_data_manager_init (TrackerDBManagerFlags  flags,
 		/* Reset the is_new flag for all classes and properties */
 		tracker_data_ontology_import_finished ();
 
-		tracker_db_journal_commit_db_transaction ();
 		tracker_data_commit_transaction (NULL);
 
 		g_hash_table_unref (ontos_table);

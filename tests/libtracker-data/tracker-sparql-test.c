@@ -252,9 +252,7 @@ test_sparql_query (gconstpointer test_data)
 	/* load data set */
 	data_filename = g_strconcat (data_prefix, ".ttl", NULL);
 	if (g_file_test (data_filename, G_FILE_TEST_IS_REGULAR)) {
-		tracker_data_begin_transaction (NULL);
 		tracker_turtle_reader_load (data_filename, &error);
-		tracker_data_commit_transaction (NULL);
 		g_assert_no_error (error);
 	} else {
 		/* no .ttl available, assume .rq with SPARQL Update */

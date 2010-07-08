@@ -62,12 +62,7 @@ direct-test.vala.stamp: $(direct_test_VALASOURCES) $(vapi_sources)
 	$(AM_V_GEN)$(VALAC) $(GCOV_VALAFLAGS) -C $(VALAFLAGS) --pkg gio-2.0 $^
 	$(AM_V_GEN)touch $@
 
-# I need to add libtracker-data.la here, I don't understand yet why. I think
-# that means that something about libtracker-direct or libtracker-sparql is
-# wrong -- Philip
-
 direct_test_LDADD = \
-	$(top_builddir)/src/libtracker-data/libtracker-data.la \
 	$(top_builddir)/src/libtracker-direct/libtracker-direct-$(TRACKER_API_VERSION).la \
 	$(top_builddir)/src/libtracker-sparql/libtracker-sparql-$(TRACKER_API_VERSION).la \
 	$(GLIB2_LIBS)

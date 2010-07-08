@@ -47,6 +47,10 @@ libtracker-direct.vala.stamp: $(libtracker_direct_la_VALASOURCES) $(vapi_sources
 	$(AM_V_GEN)$(VALAC) $(GCOV_VALAFLAGS) -C $(VALAFLAGS) --pkg gio-2.0 -H tracker-direct.h --vapi tracker-direct-$(TRACKER_API_VERSION).vapi $^
 	$(AM_V_GEN)touch $@
 
+libtracker_direct_@TRACKER_API_VERSION@_la_LIBADD = 						\
+	$(top_builddir)/src/libtracker-data/libtracker-data.la	\
+	$(GLIB2_LIBS)
+
 BUILT_SOURCES = 					\
 	libtracker-direct.vala.stamp
 

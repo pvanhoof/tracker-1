@@ -8,7 +8,7 @@ main( string[] args )
 //	Sparql.Connection con = new Direct.Connection ();
 //	Cursor cursor = con.query ("SELECT ?u WHERE { ?u a rdfs:Class }");
 
-//	while (cursor.iter_next()) {
+//	while (cursor.next()) {
 //		int i;
 
 //		for (i = 0; i < cursor.n_columns; i++) {

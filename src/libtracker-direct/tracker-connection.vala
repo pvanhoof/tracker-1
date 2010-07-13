@@ -46,7 +46,7 @@ public class Tracker.Direct.Connection : Tracker.Sparql.Connection {
 	}
 }
 
-public Tracker.Sparql.Connection module_init (Tracker.Sparql.PluginLoader loader) {
+public Tracker.Sparql.Connection module_init () {
 	Tracker.Sparql.Connection plugin = new Tracker.Direct.Connection ();
 	return plugin;
 }

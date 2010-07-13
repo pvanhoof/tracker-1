@@ -17,12 +17,12 @@
  * Boston, MA  02110-1301, USA.
  */
 
-public class Tracker.Sparql.PluginLoader : Object {
+private class Tracker.Sparql.PluginLoader : Object {
 	static bool initialized = false;
 	static Tracker.Sparql.Connection direct = null;
 	static Tracker.Sparql.Connection bus = null;
 
-	private delegate Tracker.Sparql.Connection ModuleInitFunc (PluginLoader loader);
+	private delegate Tracker.Sparql.Connection ModuleInitFunc ();
 
 	public PluginLoader ()
 	requires (!initialized) {
@@ -124,7 +124,7 @@ public class Tracker.Sparql.PluginLoader : Object {
 		module.make_resident ();
 
 		// Call module init function
-		Tracker.Sparql.Connection c = module_init (this);
+		Tracker.Sparql.Connection c = module_init ();
 
 		debug ("Loaded module source: '%s'", module.name ());
 

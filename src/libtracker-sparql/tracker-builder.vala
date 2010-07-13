@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009, Nokia
+ * Copyright (C) 2009, Nokia <ivan.frade@nokia.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -267,9 +267,9 @@ public class Tracker.Sparql.Builder : Object {
 		object_string ("%04d-%02d-%02dT%02d:%02d:%02dZ".printf (tm.year + 1900, tm.month + 1, tm.day, tm.hour, tm.minute, tm.second));
 	}
 
-        public void object_double (double literal) {
-                object (literal.to_string ());
-        }
+	public void object_double (double literal) {
+		object (literal.to_string ());
+	}
 
 	public void object_blank_open ()
 		requires (state == State.PREDICATE || state == State.OBJECT)

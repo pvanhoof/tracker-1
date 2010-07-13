@@ -17,31 +17,11 @@
  * Boston, MA  02110-1301, USA.
  */
 
-public class Tracker.Direct.Connection : Tracker.Sparql.Connection {
-	// only single connection is currently supported per process
-	static bool initialized;
+public class Tracker.Sparql.Lookup : Object {
+	private PluginLoader plugin_loader;
 
-	public Connection ()
-	requires (!initialized) {
-		initialized = true;
-		Data.Manager.init (DBManagerFlags.READONLY, null, null, false, null, null);
+	public Lookup () {
+		debug ("Starting plugin loader");
+		plugin_loader = new PluginLoader ();
 	}
-
-	~Connection () {
-		// Clean up connection
-		Data.Manager.shutdown ();
-		initialized = false;
-	}
-
-	public override Sparql.Cursor query (string sparql) throws GLib.Error {
-		var query_object = new Sparql.Query (sparql);
-		var cursor = query_object.execute_cursor ();
-		cursor.connection = this;
-		return cursor;
-	}
-}
-
-public Tracker.Sparql.Connection module_init (Tracker.Sparql.PluginLoader loader) {
-	Tracker.Sparql.Connection plugin = new Tracker.Direct.Connection ();
-	return plugin;
 }

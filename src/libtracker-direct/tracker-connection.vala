@@ -33,11 +33,16 @@ public class Tracker.Direct.Connection : Tracker.Sparql.Connection {
 		initialized = false;
 	}
 
-	public override Sparql.Cursor query (string sparql) throws GLib.Error {
+	public override Sparql.Cursor query (string sparql, Cancellable? cancellable) throws GLib.Error {
 		var query_object = new Sparql.Query (sparql);
 		var cursor = query_object.execute_cursor ();
 		cursor.connection = this;
 		return cursor;
+	}
+
+	public async override Sparql.Cursor query_async (string sparql, Cancellable? cancellable = null) throws GLib.Error {
+		// just creating the cursor won't block
+		return query (sparql, cancellable);
 	}
 }
 

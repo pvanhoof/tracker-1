@@ -88,7 +88,7 @@ public class Tracker.Sparql.PluginLoader : Object {
 		}
 
 		string content_type = info.get_content_type ();
-		weak string mime = g_content_type_get_mime_type (content_type);
+		string mime = g_content_type_get_mime_type (content_type);
 		string expected_mime = "application/x-sharedlib";
 		
 		if (mime != expected_mime) {

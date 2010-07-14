@@ -19,8 +19,8 @@
 
 public abstract class Tracker.Sparql.Connection : Object {
 	// Query
-	public abstract Cursor query (string sparql, Cancellable? cancellable = null) throws GLib.Error;
-	public async abstract Cursor query_async (string sparql, Cancellable? cancellable = null) throws GLib.Error;
+	public abstract Cursor? query (string sparql, Cancellable? cancellable = null) throws GLib.Error;
+	public async abstract Cursor? query_async (string sparql, Cancellable? cancellable = null) throws GLib.Error;
 
 	// Update
 	public virtual void update (string sparql, Cancellable? cancellable = null) throws GLib.Error {

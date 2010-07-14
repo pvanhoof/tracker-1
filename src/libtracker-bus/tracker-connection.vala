@@ -17,36 +17,31 @@
  * Boston, MA  02110-1301, USA.
  */
 
-public class Tracker.Direct.Connection : Tracker.Sparql.Connection {
-	// only single connection is currently supported per process
+public class Tracker.Bus.Connection : Tracker.Sparql.Connection {
 	static bool initialized;
 
 	public Connection ()
 	requires (!initialized) {
 		initialized = true;
-		Data.Manager.init (DBManagerFlags.READONLY, null, null, false, null, null);
+
+		// FIXME: Implement DBus stuff
 	}
 
 	~Connection () {
 		// Clean up connection
-		Data.Manager.shutdown ();
 		initialized = false;
 	}
 
 	public override Sparql.Cursor? query (string sparql, Cancellable? cancellable) throws GLib.Error {
-		var query_object = new Sparql.Query (sparql);
-		var cursor = query_object.execute_cursor ();
-		cursor.connection = this;
-		return cursor;
+		return null;
 	}
 
 	public async override Sparql.Cursor? query_async (string sparql, Cancellable? cancellable = null) throws GLib.Error {
-		// just creating the cursor won't block
-		return query (sparql, cancellable);
+		return null;
 	}
 }
 
 public Tracker.Sparql.Connection module_init () {
-	Tracker.Sparql.Connection plugin = new Tracker.Direct.Connection ();
+	Tracker.Sparql.Connection plugin = new Tracker.Bus.Connection ();
 	return plugin;
 }

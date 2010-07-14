@@ -4,9 +4,9 @@ using Tracker.Sparql;
 int
 main( string[] args )
 {
-	Sparql.Connection con = new Tracker.Direct.Connection ();
+	Sparql.Connection con = new Tracker.Bus.Connection ();
 	Cursor cursor;
-	
+
 	try {
 		cursor = con.query ("SELECT ?u WHERE { ?u a rdfs:Class }");
 	} catch (GLib.Error e) {
@@ -28,7 +28,7 @@ main( string[] args )
 		warning ("Couldn't iterate query results: %s", e.message);
 		return -1;
 	}
-		
+
 	// Testing new API with GModule
 	
 //	print ("\n\n");

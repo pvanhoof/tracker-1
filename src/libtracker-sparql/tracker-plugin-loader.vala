@@ -60,7 +60,8 @@ private class Tracker.Sparql.PluginLoader : Object {
 		direct = load_plugins_from_path (direct_path);
 
 		// Second get bus library details
-		//string bus_path = Module.build_path (path, "libtracker-bus");
+		string bus_path = Module.build_path (dir_path, "tracker-bus-0.9");
+		bus = load_plugins_from_path (bus_path);
 
 		debug ("Finished searching for modules in folder '%s'", dir_path);
 

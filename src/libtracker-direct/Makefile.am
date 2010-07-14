@@ -16,10 +16,10 @@ lib_LTLIBRARIES = libtracker-direct-@TRACKER_API_VERSION@.la
 libtracker_directincludedir = $(includedir)/tracker-$(TRACKER_API_VERSION)/libtracker-direct
 
 libtracker_direct_la_VALASOURCES = \
-	tracker-connection.vala
+	tracker-direct.vala
 
 libtracker_direct_@TRACKER_API_VERSION@_la_SOURCES = 	\
-	libtracker-connection.vala.stamp			\
+	libtracker-direct.vala.stamp			\
 	$(libtracker_direct_la_VALASOURCES:.vala=.c)
 
 libtracker_direct_@TRACKER_API_VERSION@_la_LDFLAGS = 	\

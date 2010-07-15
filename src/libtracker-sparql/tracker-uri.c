@@ -124,7 +124,7 @@ find_conversion (const char  *format,
 }
 
 /**
- * tracker_uri_vprintf_escaped:
+ * tracker_sparql_escape_uri_vprintf:
  * @format: a standard printf() format string, but notice
  *     <link linkend="string-precision">string precision pitfalls</link>
  * @args: the list of parameters to insert into the format string
@@ -141,8 +141,8 @@ find_conversion (const char  *format,
  * Since: 0.8
  */
 gchar *
-tracker_sparql_uri_vprintf_escaped (const gchar *format,
-                                    va_list      args)
+tracker_sparql_escape_uri_vprintf (const gchar *format,
+                                   va_list      args)
 {
 	GString *format1;
 	GString *format2;
@@ -232,12 +232,12 @@ cleanup:
 }
 
 /**
- * tracker_uri_printf_escaped:
+ * tracker_sparql_escape_uri_printf:
  * @format: a standard printf() format string, but notice
  *     <link linkend="string-precision">string precision pitfalls</link>
  * @Varargs: the parameters to insert into the format string
  *
- * Calls tracker_uri_vprintf_escaped() with the @Varargs supplied.
+ * Calls tracker_sparql_escpae_uri_vprintf() with the @Varargs supplied.
 
  * Returns: a newly-allocated string holding the result which should
  * be freed with g_free() when finished with.
@@ -245,13 +245,13 @@ cleanup:
  * Since: 0.8
  **/
 gchar *
-tracker_sparql_uri_printf_escaped (const gchar *format, ...)
+tracker_sparql_escape_uri_printf (const gchar *format, ...)
 {
 	gchar *result;
 	va_list args;
 
 	va_start (args, format);
-	result = tracker_sparql_uri_vprintf_escaped (format, args);
+	result = tracker_sparql_escape_uri_vprintf (format, args);
 	va_end (args);
 
 	return result;

@@ -28,8 +28,7 @@
 #include <glib.h>
 #include <glib/gi18n.h>
 
-#include <libtracker-client/tracker-client.h>
-#include <libtracker-common/tracker-common.h>
+#include <libtracker-sparql/tracker-sparql.h>
 
 #define ABOUT	  \
 	"Tracker " PACKAGE_VERSION "\n"
@@ -79,33 +78,8 @@ get_shorthand (GHashTable  *prefixes,
 
 		return g_strdup_printf ("%s:%s", prefix, property);
 	}
-	
+
 	return g_strdup (namespace);
-}
-
-static void
-print_property_value (gpointer data,
-		      gpointer user_data)
-{
-	GHashTable *prefixes;
-	gchar **pair;
-
-	prefixes = user_data;
-	pair = data;
-
-	if (!pair[0] || !pair[1]) {
-		return;
-	}
-
-	if (G_UNLIKELY (full_namespaces)) {
-		g_print ("  '%s' = '%s'\n", pair[0], pair[1]);
-	} else {
-		gchar *shorthand;
-
-		shorthand = get_shorthand (prefixes, pair[0]);
-		g_print ("  '%s' = '%s'\n", shorthand, pair[1]);
-		g_free (shorthand);
-	}
 }
 
 static gboolean
@@ -127,9 +101,10 @@ has_valid_uri_scheme (const gchar *uri)
 }
 
 static GHashTable *
-get_prefixes (TrackerClient *client)
+get_prefixes (TrackerSparqlConnection *connection)
 {
-	GPtrArray *results;
+	TrackerSparqlCursor *cursor;
+        GError *error = NULL;
 	GHashTable *retval;
 	const gchar *query;
 
@@ -141,39 +116,34 @@ get_prefixes (TrackerClient *client)
 	/* FIXME: Would like to get this in the same SPARQL that we
 	 * use to get the info, but doesn't seem possible at the
 	 * moment with the limited string manipulation features we
-	 * support in SPARQL. 
+	 * support in SPARQL.
 	 */
-	query = "SELECT ?prefix ?ns "
+	query = "SELECT ?ns ?prefix "
 		"WHERE {"
 		"  ?ns a tracker:Namespace ;"
 		"  tracker:prefix ?prefix "
 		"}";
 
-	results = tracker_resources_sparql_query (client, query, NULL);
+	cursor = tracker_sparql_connection_query (connection, query, NULL, &error);
 
-	if (results) {
-		gint i;
+        while (tracker_sparql_cursor_next (cursor, NULL, NULL)) {
+                const gchar *key, *value;
 
-		/* First remove all parts after and including '#' */
-		for (i = 0; i < results->len; i++) {
-			gchar **data;
-			gchar *key, *value;
-			
-			data = g_ptr_array_index (results, i);
+                key = tracker_sparql_cursor_get_string (cursor, 0, NULL);
+                value = tracker_sparql_cursor_get_string (cursor, 1, NULL);
 
-			if (!data || !data[1]) {
-				continue;
-			}
+                if (!key || !value) {
+                        continue;
+                }
 
-			key = g_strndup (data[1], strlen (data[1]) - 1);
-			value = g_strdup (data[0]);
+                g_hash_table_insert (retval,
+                                     g_strndup (key, strlen (key) - 1),
+                                     g_strdup (value));
+        }
 
-			g_hash_table_insert (retval, key, value);
-		}
-
-		g_ptr_array_foreach (results, (GFunc) g_strfreev, NULL);
-		g_ptr_array_free (results, TRUE);
-	}
+        if (cursor) {
+                g_object_unref (cursor);
+        }
 
 	return retval;
 }
@@ -181,8 +151,9 @@ get_prefixes (TrackerClient *client)
 int
 main (int argc, char **argv)
 {
-	TrackerClient *client;
+	TrackerSparqlConnection *connection;
 	GOptionContext *context;
+        GError *error = NULL;
 	GHashTable *prefixes;
 	gchar **p;
 
@@ -224,18 +195,26 @@ main (int argc, char **argv)
 
 	g_option_context_free (context);
 
-	client = tracker_client_new (0, G_MAXINT);
+	g_type_init ();
 
-	if (!client) {
-		g_printerr ("%s\n",
-		            _("Could not establish a D-Bus connection to Tracker"));
+	if (!g_thread_supported ()) {
+		g_thread_init (NULL);
+	}
+
+	connection = tracker_sparql_connection_get (&error);
+
+	if (!connection) {
+		g_printerr ("%s: %s\n",
+		            _("Could not establish a connection to Tracker"),
+		            error ? error->message : _("No error given"));
+		g_clear_error (&error);
 		return EXIT_FAILURE;
 	}
 
-	prefixes = get_prefixes (client);
+	prefixes = get_prefixes (connection);
 
 	for (p = filenames; *p; p++) {
-		GPtrArray *results;
+		TrackerSparqlCursor *cursor;
 		GError *error = NULL;
 		gchar *uri;
 		gchar *query;
@@ -258,7 +237,7 @@ main (int argc, char **argv)
 
 		/* First check whether there's some entity with nie:url like this */
 		query = g_strdup_printf ("SELECT ?urn WHERE { ?urn nie:url \"%s\" }", uri);
-		results = tracker_resources_sparql_query (client, query, &error);
+                cursor = tracker_sparql_connection_query (connection, query, NULL, &error);
 		g_free (query);
 
 		if (error) {
@@ -270,24 +249,30 @@ main (int argc, char **argv)
 			continue;
 		}
 
-		if (!results || results->len == 0) {
+		if (!cursor) {
 			/* No URN matches, use uri as URN */
 			urn = g_strdup (uri);
 		} else {
-			gchar **args;
+                        if (!tracker_sparql_cursor_next (cursor, NULL, NULL)) {
+                                g_printerr ("  %s, %s\n",
+                                            _("Unable to retrieve data for URI"),
+                                            _("No error given"));
 
-			args = g_ptr_array_index (results, 0);
-			urn = g_strdup (args[0]);
+                                g_free (uri);
+                                g_free (query);
+                                g_object_unref (cursor);
+                                continue;
+                        }
 
-			g_ptr_array_foreach (results, (GFunc) g_strfreev, NULL);
-			g_ptr_array_free (results, TRUE);
+                        urn = g_strdup (tracker_sparql_cursor_get_string (cursor, 0, NULL));
+                        g_print ("  '%s'\n", urn);
 
-			g_print ("  '%s'\n", urn);
+                        g_object_unref (cursor);
 		}
 
 		query = g_strdup_printf ("SELECT ?predicate ?object WHERE { <%s> ?predicate ?object }", urn);
 
-		results = tracker_resources_sparql_query (client, query, &error);
+                cursor = tracker_sparql_connection_query (connection, query, NULL, &error);
 
 		g_free (uri);
 		g_free (query);
@@ -301,31 +286,46 @@ main (int argc, char **argv)
 			continue;
 		}
 
-		if (!results) {
+		if (!cursor) {
 			g_print ("  %s\n",
 			         _("No metadata available for that URI"));
 		} else {
-			gint length;
+                        g_print ("%s:\n", _("Results"));
 
-			length = results->len;
+                        while (tracker_sparql_cursor_next (cursor, NULL, NULL)) {
+                                const gchar *key = tracker_sparql_cursor_get_string (cursor, 0, NULL);
+                                const gchar *value = tracker_sparql_cursor_get_string (cursor, 1, NULL);
 
-			g_print (g_dngettext (NULL,
-			                      "Result: %d",
-			                      "Results: %d",
-			                      length),
-			         length);
-			g_print ("\n");
+                                if (!key || !value) {
+                                        continue;
+                                }
 
-			g_ptr_array_foreach (results, (GFunc) print_property_value, prefixes);
-			g_ptr_array_foreach (results, (GFunc) g_strfreev, NULL);
-			g_ptr_array_free (results, TRUE);
+                                /* Don't display nie:plainTextContent */
+                                if (strcmp (key, "http://www.semanticdesktop.org/ontologies/2007/01/19/nie#plainTextContent") == 0) {
+                                        continue;
+                                }
+
+                                if (G_UNLIKELY (full_namespaces)) {
+                                        g_print ("  '%s' = '%s'\n", key, value);
+                                } else {
+                                        gchar *shorthand;
+
+                                        shorthand = get_shorthand (prefixes, key);
+                                        g_print ("  '%s' = '%s'\n", shorthand, value);
+                                        g_free (shorthand);
+                                }
+                        }
+
+                        g_print ("\n");
+
+                        g_object_unref (cursor);
 		}
 
 		g_print ("\n");
 	}
 
 	g_hash_table_unref (prefixes);
-	g_object_unref (client);
+	g_object_unref (connection);
 
 	return EXIT_SUCCESS;
 }

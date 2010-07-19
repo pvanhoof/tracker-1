@@ -1202,6 +1202,7 @@ tracker_db_cursor_rewind (TrackerDBCursor *cursor)
 	g_return_if_fail (TRACKER_IS_DB_CURSOR (cursor));
 
 	sqlite3_reset (cursor->stmt);
+	cursor->finished = FALSE;
 }
 
 gboolean

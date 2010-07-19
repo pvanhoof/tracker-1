@@ -1121,7 +1121,7 @@ tracker_db_cursor_class_init (TrackerDBCursorClass *class)
 	object_class->finalize = tracker_db_cursor_finalize;
 
 	sparql_cursor_class->get_n_columns = (gint (*) (TrackerSparqlCursor *)) tracker_db_cursor_get_n_columns;
-	sparql_cursor_class->get_string = (const gchar * (*) (TrackerSparqlCursor *, gint, gint*)) tracker_db_cursor_get_string;
+	sparql_cursor_class->get_string = (const gchar * (*) (TrackerSparqlCursor *, gint, glong*)) tracker_db_cursor_get_string;
 	sparql_cursor_class->next = (gboolean (*) (TrackerSparqlCursor *, GCancellable *, GError **)) tracker_db_cursor_iter_next;
 	sparql_cursor_class->next_async = (void (*) (TrackerSparqlCursor *, GCancellable *, GAsyncReadyCallback, gpointer)) tracker_db_cursor_iter_next_async;
 	sparql_cursor_class->next_finish = (gboolean (*) (TrackerSparqlCursor *, GAsyncResult *, GError **)) tracker_db_cursor_iter_next_finish;
@@ -1293,7 +1293,7 @@ tracker_db_cursor_get_double (TrackerDBCursor *cursor,  guint column)
 
 
 const gchar*
-tracker_db_cursor_get_string (TrackerDBCursor *cursor,  guint column, gint *length)
+tracker_db_cursor_get_string (TrackerDBCursor *cursor,  guint column, glong *length)
 {
 	if (length) {
 		sqlite3_value *val = sqlite3_column_value (cursor->stmt, column);

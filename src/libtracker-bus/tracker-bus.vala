@@ -17,12 +17,8 @@
  * Boston, MA  02110-1301, USA.
  */
 
-public const string TRACKER_DBUS_SERVICE = "org.freedesktop.Tracker1";
-public const string TRACKER_DBUS_INTERFACE_RESOURCES = TRACKER_DBUS_SERVICE + ".Resources";
-public const string TRACKER_DBUS_OBJECT_RESOURCES = "/org/freedesktop/Tracker1/Resources";
-public const string TRACKER_DBUS_INTERFACE_STEROIDS = TRACKER_DBUS_SERVICE + ".Steroids";
-public const string TRACKER_DBUS_OBJECT_STEROIDS = "/org/freedesktop/Tracker1/Steroids";
-
+// Note: DBus name below can NOT be a defined string as above, compiler error
+// due to the order Vala evaluates strings and interfaces apparently.
 [DBus (name = "org.freedesktop.Tracker1.Resources")]
 private interface Tracker.Bus.Resources : GLib.Object {
 	public abstract string[,] sparql_query (string query) throws DBus.Error;

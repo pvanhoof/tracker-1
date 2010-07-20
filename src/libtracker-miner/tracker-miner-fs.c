@@ -1310,7 +1310,7 @@ ensure_iri_cache (TrackerMinerFS *fs,
 			                         "}",
 			                         uri);
 
-			tracker_miner_execute_sparql (TRACKER_MINER (fs),
+			tracker_sparql_connection_query_async (tracker_miner_get_connection (TRACKER_MINER (fs)),
 			                              query,
 			                              NULL,
 			                              cache_query_cb,
@@ -2554,7 +2554,7 @@ ensure_mtime_cache (TrackerMinerFS *fs,
 		                         uri);
 		g_free (uri);
 
-		tracker_miner_execute_sparql (TRACKER_MINER (fs),
+		tracker_sparql_connection_query_async (tracker_miner_get_connection (TRACKER_MINER (fs)),
 		                              query,
 		                              NULL,
 		                              cache_query_cb,

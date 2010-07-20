@@ -853,12 +853,10 @@ init_mount_points (TrackerMinerFiles *miner_files)
 	/* First, get all mounted volumes, according to tracker-store (SYNC!) */
 	cursor = tracker_sparql_connection_query (tracker_miner_get_connection (miner),
 	                                          "SELECT ?v WHERE { ?v a tracker:Volume ; tracker:isMounted true }",
-	                                          &error);
+	                                          NULL, &error);
 	if (error) {
 		g_critical ("Could not obtain the mounted volumes: %s", error->message);
 		g_error_free (error);
-		if (iterator)
-			tracker_result_iterator_free (iterator);
 		return;
 	}
 
@@ -891,7 +889,7 @@ init_mount_points (TrackerMinerFiles *miner_files)
 		g_hash_table_replace (volumes, g_strdup (urn), GINT_TO_POINTER (state));
 	}
 
-	tracker_result_iterator_free (iterator);
+	g_object_unref (cursor);
 
 	/* Then, get all currently mounted non-REMOVABLE volumes, according to GIO */
 	uuids = tracker_storage_get_device_uuids (priv->storage, 0, TRUE);

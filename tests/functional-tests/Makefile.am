@@ -2,14 +2,14 @@ include $(top_srcdir)/Makefile.decl
 
 SUBDIRS = data
 
-INCLUDES =									\
+INCLUDES =					\
 	-I$(top_builddir)/src/libtracker-sparql	\
 	-I$(top_builddir)/src/libtracker-direct	\
 	-I$(top_builddir)/src/libtracker-bus	\
-	$(WARN_CFLAGS)							\
-	$(DBUS_CFLAGS)							\
-	$(GLIB2_CFLAGS)							\
-	$(GIO_CFLAGS)							\
+	$(WARN_CFLAGS)				\
+	$(DBUS_CFLAGS)				\
+	$(GLIB2_CFLAGS)				\
+	$(GIO_CFLAGS)				\
 	$(GTHREAD_CFLAGS)
 
 configdir = $(datadir)/tracker-tests
@@ -49,7 +49,7 @@ bashscripts_SCRIPTS = 				\
 	@sed -e "s|@topsrcdir[@]|${top_srcdir}|" \
 	     -e "s|@libexecdir[@]|${libexecdir}|" $< > $@
 
-noinst_PROGRAMS = direct-query-test bus-query-test
+noinst_PROGRAMS = direct-query-test bus-query-test direct-update-test bus-update-test
 
 direct_query_test_VALASOURCES = direct-query-test.vala
 
@@ -57,11 +57,23 @@ direct_query_test_SOURCES = \
 	direct_query_test.vala.stamp \
 	$(direct_query_test_VALASOURCES:.vala=.c)
 
+direct_update_test_VALASOURCES = direct-update-test.vala
+
+direct_update_test_SOURCES = \
+	direct_update_test.vala.stamp \
+	$(direct_update_test_VALASOURCES:.vala=.c)
+
 bus_query_test_VALASOURCES = bus-query-test.vala
 
 bus_query_test_SOURCES = \
 	bus_query_test.vala.stamp \
 	$(bus_query_test_VALASOURCES:.vala=.c)
+
+bus_update_test_VALASOURCES = bus-update-test.vala
+
+bus_update_test_SOURCES = \
+	bus_update_test.vala.stamp \
+	$(bus_update_test_VALASOURCES:.vala=.c)
 
 direct_vapi_sources = \
 	$(top_srcdir)/src/libtracker-sparql/tracker-sparql-$(TRACKER_API_VERSION).vapi \
@@ -77,11 +89,21 @@ direct_query_test_LDADD = \
 	$(GIO_LIBS) \
 	$(GLIB2_LIBS)
 
+direct-update-test.vala.stamp: $(direct_update_test_VALASOURCES) $(direct_vapi_sources)
+	$(AM_V_GEN)$(VALAC) $(GCOV_VALAFLAGS) -C $(VALAFLAGS) --pkg gio-2.0 $^
+	$(AM_V_GEN)touch $@
+
+direct_update_test_LDADD = $(direct_query_test_LDADD)
+
 bus_vapi_sources = \
 	$(top_srcdir)/src/libtracker-sparql/tracker-sparql-$(TRACKER_API_VERSION).vapi \
 	$(top_srcdir)/src/libtracker-bus/tracker-bus-$(TRACKER_API_VERSION).vapi
 
 bus-query-test.vala.stamp: $(bus_query_test_VALASOURCES) $(bus_vapi_sources)
+	$(AM_V_GEN)$(VALAC) $(GCOV_VALAFLAGS) -C $(VALAFLAGS) --pkg gio-2.0 --pkg dbus-glib-1 $^
+	$(AM_V_GEN)touch $@
+
+bus-update-test.vala.stamp: $(bus_update_test_VALASOURCES) $(bus_vapi_sources)
 	$(AM_V_GEN)$(VALAC) $(GCOV_VALAFLAGS) -C $(VALAFLAGS) --pkg gio-2.0 --pkg dbus-glib-1 $^
 	$(AM_V_GEN)touch $@
 
@@ -93,7 +115,12 @@ bus_query_test_LDADD = \
 	$(GLIB2_LIBS) \
 	$(DBUS_LIBS)
 
-BUILT_SOURCES = direct-query-test.vala.stamp bus-query-test.vala.stamp
+bus_update_test_LDADD = $(bus_query_test_LDADD)
+
+BUILT_SOURCES = direct-query-test.vala.stamp \
+	bus-query-test.vala.stamp \
+	direct-update-test.vala.stamp \
+	bus-update-test.vala.stamp
 
 EXTRA_DIST = 					\
 	$(config_SCRIPTS) 			\

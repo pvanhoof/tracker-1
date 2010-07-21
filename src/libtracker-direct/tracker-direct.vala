@@ -21,10 +21,12 @@ public class Tracker.Direct.Connection : Tracker.Sparql.Connection {
 	// only single connection is currently supported per process
 	static bool initialized;
 
-	public Connection ()
+	public Connection () throws Sparql.Error
 	requires (!initialized) {
 		initialized = true;
-		Data.Manager.init (DBManagerFlags.READONLY, null, null, false, null, null);
+		if (!Data.Manager.init (DBManagerFlags.READONLY, null, null, false, null, null)) {
+			throw new Sparql.Error.INTERNAL ("Unable to initialize database");
+		}
 	}
 
 	~Connection () {
@@ -52,7 +54,11 @@ public class Tracker.Direct.Connection : Tracker.Sparql.Connection {
 	}
 }
 
-public Tracker.Sparql.Connection module_init () {
-	Tracker.Sparql.Connection plugin = new Tracker.Direct.Connection ();
-	return plugin;
+public Tracker.Sparql.Connection? module_init () {
+	try {
+		Tracker.Sparql.Connection plugin = new Tracker.Direct.Connection ();
+		return plugin;
+	} catch (Tracker.Sparql.Error e) {
+		return null;
+	}
 }

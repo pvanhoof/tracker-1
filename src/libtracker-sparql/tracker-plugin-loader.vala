@@ -175,7 +175,7 @@ class Tracker.Sparql.PluginLoader : Connection {
 			debug ("Loaded module source: '%s'", module.name ());
 
 			return c;
-		} catch (Error e) {
+		} catch (GLib.Error e) {
 			if (required) {
 				// plugin required => error is fatal
 				throw e;

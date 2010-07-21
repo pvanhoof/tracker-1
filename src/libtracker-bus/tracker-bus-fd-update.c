@@ -173,6 +173,8 @@ sparql_update_fast_callback (DBusPendingCall *call,
 
 		fast_async_data_free (fad);
 
+		dbus_pending_call_unref (call);
+
 		return;
 	}
 
@@ -215,6 +217,8 @@ sparql_update_fast_callback (DBusPendingCall *call,
 	dbus_message_unref (reply);
 
 	fast_async_data_free (fad);
+
+	dbus_pending_call_unref (call);
 }
 
 static DBusPendingCall *

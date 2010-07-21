@@ -259,7 +259,6 @@ main (int argc, char **argv)
                                             _("No error given"));
 
                                 g_free (uri);
-                                g_free (query);
                                 g_object_unref (cursor);
                                 continue;
                         }

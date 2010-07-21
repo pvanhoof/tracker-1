@@ -49,29 +49,29 @@ bashscripts_SCRIPTS = 				\
 	@sed -e "s|@topsrcdir[@]|${top_srcdir}|" \
 	     -e "s|@libexecdir[@]|${libexecdir}|" $< > $@
 
-noinst_PROGRAMS = direct-test bus-test
+noinst_PROGRAMS = direct-query-test bus-query-test
 
-direct_test_VALASOURCES = direct-test.vala
+direct_query_test_VALASOURCES = direct-query-test.vala
 
-direct_test_SOURCES = \
-	direct_test.vala.stamp \
-	$(direct_test_VALASOURCES:.vala=.c)
+direct_query_test_SOURCES = \
+	direct_query_test.vala.stamp \
+	$(direct_query_test_VALASOURCES:.vala=.c)
 
-bus_test_VALASOURCES = bus-test.vala
+bus_query_test_VALASOURCES = bus-query-test.vala
 
-bus_test_SOURCES = \
-	bus_test.vala.stamp \
-	$(bus_test_VALASOURCES:.vala=.c)
+bus_query_test_SOURCES = \
+	bus_query_test.vala.stamp \
+	$(bus_query_test_VALASOURCES:.vala=.c)
 
 direct_vapi_sources = \
 	$(top_srcdir)/src/libtracker-sparql/tracker-sparql-$(TRACKER_API_VERSION).vapi \
 	$(top_srcdir)/src/libtracker-direct/tracker-direct-$(TRACKER_API_VERSION).vapi
 
-direct-test.vala.stamp: $(direct_test_VALASOURCES) $(direct_vapi_sources)
+direct-query-test.vala.stamp: $(direct_query_test_VALASOURCES) $(direct_vapi_sources)
 	$(AM_V_GEN)$(VALAC) $(GCOV_VALAFLAGS) -C $(VALAFLAGS) --pkg gio-2.0 $^
 	$(AM_V_GEN)touch $@
 
-direct_test_LDADD = \
+direct_query_test_LDADD = \
 	$(top_builddir)/src/libtracker-direct/libtracker-direct.la \
 	$(top_builddir)/src/libtracker-sparql/libtracker-sparql-$(TRACKER_API_VERSION).la \
 	$(GIO_LIBS) \
@@ -81,11 +81,11 @@ bus_vapi_sources = \
 	$(top_srcdir)/src/libtracker-sparql/tracker-sparql-$(TRACKER_API_VERSION).vapi \
 	$(top_srcdir)/src/libtracker-bus/tracker-bus-$(TRACKER_API_VERSION).vapi
 
-bus-test.vala.stamp: $(bus_test_VALASOURCES) $(bus_vapi_sources)
+bus-query-test.vala.stamp: $(bus_query_test_VALASOURCES) $(bus_vapi_sources)
 	$(AM_V_GEN)$(VALAC) $(GCOV_VALAFLAGS) -C $(VALAFLAGS) --pkg gio-2.0 --pkg dbus-glib-1 $^
 	$(AM_V_GEN)touch $@
 
-bus_test_LDADD = \
+bus_query_test_LDADD = \
 	$(top_builddir)/src/libtracker-bus/libtracker-bus.la \
 	$(top_builddir)/src/libtracker-sparql/libtracker-sparql-$(TRACKER_API_VERSION).la \
 	$(top_builddir)/src/libtracker-common/libtracker-common.la \
@@ -93,7 +93,7 @@ bus_test_LDADD = \
 	$(GLIB2_LIBS) \
 	$(DBUS_LIBS)
 
-BUILT_SOURCES = direct-test.vala.stamp bus-test.vala.stamp
+BUILT_SOURCES = direct-query-test.vala.stamp bus-query-test.vala.stamp
 
 EXTRA_DIST = 					\
 	$(config_SCRIPTS) 			\

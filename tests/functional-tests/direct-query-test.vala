@@ -4,7 +4,14 @@ using Tracker.Sparql;
 int
 main( string[] args )
 {
-	TestApp app = new TestApp (new  Tracker.Direct.Connection ());
+	int res = -1;
 
-	return app.run ();
+	try {
+		TestApp app = new TestApp (new Tracker.Direct.Connection ());
+		res = app.run ();
+	} catch (Sparql.Error e) {
+		warning ("Couldn't perform test: %s", e.message);
+	}
+
+	return res;
 }

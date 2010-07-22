@@ -51,7 +51,7 @@ bashscripts_SCRIPTS = 				\
 
 noinst_PROGRAMS = direct-query-test bus-query-test default-update-test bus-update-test
 
-direct_query_test_VALASOURCES = direct-query-test.vala
+direct_query_test_VALASOURCES = shared-query-test.vala direct-query-test.vala
 
 direct_query_test_SOURCES = \
 	direct_query_test.vala.stamp \
@@ -63,7 +63,7 @@ default_update_test_SOURCES = \
 	default_update_test.vala.stamp \
 	$(default_update_test_VALASOURCES:.vala=.c)
 
-bus_query_test_VALASOURCES = bus-query-test.vala
+bus_query_test_VALASOURCES = shared-query-test.vala bus-query-test.vala
 
 bus_query_test_SOURCES = \
 	bus_query_test.vala.stamp \

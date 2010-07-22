@@ -23,16 +23,18 @@ public class Tracker.Direct.Connection : Tracker.Sparql.Connection {
 
 	public Connection () throws Sparql.Error
 	requires (!initialized) {
-		initialized = true;
 		if (!Data.Manager.init (DBManagerFlags.READONLY, null, null, false, null, null)) {
 			throw new Sparql.Error.INTERNAL ("Unable to initialize database");
 		}
+		initialized = true;
 	}
 
 	~Connection () {
 		// Clean up connection
-		Data.Manager.shutdown ();
-		initialized = false;
+		if (initialized) {
+			Data.Manager.shutdown ();
+			initialized = false;
+		}
 	}
 
 	public override Sparql.Cursor? query (string sparql, Cancellable? cancellable) throws Sparql.Error {

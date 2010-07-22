@@ -61,6 +61,19 @@
 /* Default DBus timeout to be used in requests to extractor (milliseconds) */
 #define EXTRACTOR_DBUS_TIMEOUT 60000
 
+/* If defined, will dump paranoid debug logs */
+#define PARANOID_DEBUG 1
+
+
+#ifdef PARANOID_DEBUG
+#define paranoid_debug(message, ...)	  \
+	g_debug ("***PARANOID***:%s:%d: " message, \
+	         __FILE__, __LINE__, ##__VA_ARGS__)
+#else
+#define paranoid_debug(...)
+#endif /* PARANOID_DEBUG */
+
+
 #define TRACKER_MINER_FILES_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_MINER_FILES, TrackerMinerFilesPrivate))
 
 static GQuark miner_files_error_quark = 0;
@@ -1892,6 +1905,14 @@ extractor_get_embedded_metadata_cb (DBusGProxy *proxy,
 		return;
 	}
 
+#ifdef PARANOID_DEBUG
+	{
+		gchar *uri = g_file_get_uri (data->file);
+		paranoid_debug ("<----- Finished asynchronous query for METADATA of '%s'", uri);
+		g_free (uri);
+	}
+#endif
+
 	if (sparql && *sparql) {
 		gboolean is_iri;
 		const gchar *urn;
@@ -1955,8 +1976,24 @@ extractor_get_embedded_metadata_cb (DBusGProxy *proxy,
 		g_free (uri);
 	}
 
+#ifdef PARANOID_DEBUG
+	{
+		gchar *uri = g_file_get_uri (data->file);
+		paranoid_debug ("-----> Notify Success for '%s'", uri);
+		g_free (uri);
+	}
+#endif
+
 	/* Notify about the success */
 	tracker_miner_fs_file_notify (TRACKER_MINER_FS (data->miner), data->file, NULL);
+
+#ifdef PARANOID_DEBUG
+	{
+		gchar *uri = g_file_get_uri (data->file);
+		paranoid_debug ("-----> Finished notification of success for '%s'", uri);
+		g_free (uri);
+	}
+#endif
 
 	process_file_data_free (data);
 #ifndef HAVE_DBUS_FD_PASSING
@@ -2196,6 +2233,9 @@ process_file_cb (GObject      *object,
 
 	miner_files_add_to_datasource (data->miner, file, sparql);
 
+	paranoid_debug ("<----- Finished asynchronous query for info of '%s'", uri);
+	paranoid_debug ("-----> Asynchronously querying for METADATA of '%s'", uri);
+
 	/* Next step, getting embedded metadata */
 	extractor_get_embedded_metadata (data, uri, mime_type);
 
@@ -2224,6 +2264,14 @@ miner_files_process_file (TrackerMinerFS       *fs,
 		G_FILE_ATTRIBUTE_STANDARD_SIZE ","
 		G_FILE_ATTRIBUTE_TIME_MODIFIED ","
 		G_FILE_ATTRIBUTE_TIME_ACCESS;
+
+#ifdef PARANOID_DEBUG
+	{
+		gchar *uri = g_file_get_uri (file);
+		paranoid_debug ("-----> Asynchronously querying for info of '%s'", uri);
+		g_free (uri);
+	}
+#endif
 
 	g_file_query_info_async (file,
 	                         attrs,

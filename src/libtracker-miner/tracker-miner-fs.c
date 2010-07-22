@@ -34,9 +34,21 @@
 /* If defined will print the tree from GNode while running */
 #undef ENABLE_TREE_DEBUGGING
 /* If defined will print contents of populated IRI cache while running */
-#undef PRINT_IRI_CACHE_CONTENTS
+#define PRINT_IRI_CACHE_CONTENTS 1
 /* If defined will print contents of populated mtime cache while running */
-#undef PRINT_MTIME_CACHE_CONTENTS
+#define PRINT_MTIME_CACHE_CONTENTS 1
+/* If defined, will dump paranoid debug logs */
+#define PARANOID_DEBUG 1
+
+
+#ifdef PARANOID_DEBUG
+#define paranoid_debug(message, ...)	  \
+	g_debug ("***PARANOID***:%s:%d: " message, \
+	         __FILE__, __LINE__, ##__VA_ARGS__)
+#else
+#define paranoid_debug(...)
+#endif /* PARANOID_DEBUG */
+
 
 /**
  * SECTION:tracker-miner-fs
@@ -596,6 +608,19 @@ process_data_new (GFile                *file,
 		data->builder = g_object_ref (builder);
 	}
 
+#ifdef PARANOID_DEBUG
+	{
+		gchar *uri = g_file_get_uri (file);
+
+		paranoid_debug ("Created data to process %p, for URI '%s' with urn '%s', parent_urn '%s'",
+		                data,
+		                uri,
+		                urn ? urn : "unknown",
+		                parent_urn ? parent_urn : "unknown");
+		g_free (uri);
+	}
+#endif /* PARANOID_DEBUG */
+
 	return data;
 }
 
@@ -634,16 +659,18 @@ process_data_find (TrackerMinerFS *fs,
 			 * same GFile object that's being passed, so we check for
 			 * pointer equality here, rather than doing path comparisons
 			 */
-			if(data->file == file)
+			if(data->file == file) {
 				return data;
+			}
 		} else {
 			/* Note that if there are different GFiles being
 			 * processed for the same file path, we are actually
 			 * returning the first one found, If you want exactly
 			 * the same GFile as the one as input, use the
 			 * process_data_find() method instead */
-			if (g_file_equal (data->file, file))
+			if (g_file_equal (data->file, file)) {
 				return data;
+			}
 		}
 	}
 
@@ -1034,6 +1061,14 @@ sparql_update_cb (GObject      *object,
 	priv = fs->private;
 	data = user_data;
 
+#ifdef PARANOID_DEBUG
+	{
+		gchar *uri = g_file_get_uri (data->file);
+		paranoid_debug ("Finished BATCH UPDATE for '%s'", uri);
+		g_free (uri);
+	}
+#endif
+
 	if (error) {
 		g_critical ("Could not execute sparql: %s", error->message);
 		priv->total_files_notified_error++;
@@ -1054,6 +1089,29 @@ sparql_update_cb (GObject      *object,
 			 * .gvfs mounts also!) */
 			parent = g_file_get_parent (data->file);
 
+#ifdef PARANOID_DEBUG
+			{
+				gchar *parent_uri;
+				gchar *iri_cache_parent_uri;
+				gboolean equal;
+				gboolean found;
+
+				parent_uri = parent ? g_file_get_uri (parent) : NULL;
+				iri_cache_parent_uri = g_file_get_uri (fs->private->current_iri_cache_parent);
+				equal = g_file_equal (parent, fs->private->current_iri_cache_parent);
+				found = (equal ?
+				         (g_hash_table_lookup (fs->private->iri_cache, data->file) ? TRUE : FALSE) :
+				         FALSE);
+				paranoid_debug ("[%s] [%s] Parent URI: %s, IRI cache URI: %s",
+				                equal ? "SAME" : "DIFFERENT",
+				                found ? "FOUND" : "NOT FOUND",
+				                parent_uri,
+				                iri_cache_parent_uri);
+				g_free (parent_uri);
+				g_free (iri_cache_parent_uri);
+			}
+#endif
+
 			if (parent) {
 				if (g_file_equal (parent, fs->private->current_iri_cache_parent) &&
 				    g_hash_table_lookup (fs->private->iri_cache, data->file) == NULL) {
@@ -1067,6 +1125,8 @@ sparql_update_cb (GObject      *object,
 
 				g_object_unref (parent);
 			}
+		} else {
+			paranoid_debug ("EMPTY IRI CACHE");
 		}
 	}
 
@@ -1158,6 +1218,11 @@ item_query_exists (TrackerMinerFS  *miner,
 	result = (data.iri != NULL);
 
 	g_main_loop_unref (data.main_loop);
+
+	paranoid_debug ("ITEM '%s' was %s FOUND in store (iri: %s)",
+	                uri,
+	                result ? " " : "NOT",
+	                data.iri ? data.iri : "none");
 
 	if (iri) {
 		*iri = data.iri;
@@ -1495,6 +1560,8 @@ item_add_or_update_cb (TrackerMinerFS *fs,
 			full_sparql = g_strdup (tracker_sparql_builder_get_result (data->builder));
 		}
 
+		paranoid_debug ("BATCH UPDATE (CREATE|UPDATE) for file '%s'", uri);
+
 		tracker_miner_execute_batch_update (TRACKER_MINER (fs),
 		                                    full_sparql,
 		                                    NULL,
@@ -1555,6 +1622,24 @@ item_add_or_update (TrackerMinerFS *fs,
 		}
 
 		parent_urn = fs->private->current_iri_cache_parent_urn;
+
+#ifdef PARANOID_DEBUG
+		/* Check if we are trying to update/create a file where its parent still
+		 * doesn't exist */
+		if (parent && !parent_urn) {
+			gchar *uri;
+			gchar *parent_uri;
+
+			uri = g_file_get_uri (file);
+			parent_uri = g_file_get_uri (parent);
+
+			paranoid_debug ("Adding to process item '%s' where parent '%s' still "
+			                "doesn't exist in store...", uri, parent_uri);
+			g_free (uri);
+			g_free (parent_uri);
+		}
+#endif /* PARANOID_DEBUG */
+
 		g_object_unref (parent);
 	}
 
@@ -1562,6 +1647,20 @@ item_add_or_update (TrackerMinerFS *fs,
 
 	data = process_data_new (file, urn, parent_urn, cancellable, sparql);
 	priv->processing_pool = g_list_prepend (priv->processing_pool, data);
+
+#ifdef PARANOID_DEBUG
+	{
+		gchar *uri = g_file_get_uri (file);
+
+		paranoid_debug ("New processing data added (%p) for file '%s' with "
+		                "urn '%s' and parent_urn '%s'",
+		                data,
+		                uri,
+		                urn ? urn : "unknown",
+		                parent_urn ? parent_urn : "unknown");
+		g_free (uri);
+	}
+#endif /* PARANOID_DEBUG */
 
 	if (do_process_file (fs, data)) {
 		guint length;
@@ -1631,6 +1730,8 @@ item_remove (TrackerMinerFS *fs,
 
 	data = process_data_new (file, NULL, NULL, NULL, NULL);
 	fs->private->processing_pool = g_list_prepend (fs->private->processing_pool, data);
+
+	paranoid_debug ("BATCH UPDATE (DELETE) for file '%s'", uri);
 
 	tracker_miner_execute_batch_update (TRACKER_MINER (fs),
 	                                    sparql->str,
@@ -1939,6 +2040,8 @@ item_move (TrackerMinerFS *fs,
 	data = process_data_new (file, NULL, NULL, NULL, NULL);
 	fs->private->processing_pool = g_list_prepend (fs->private->processing_pool, data);
 
+	paranoid_debug ("BATCH UPDATE (MOVE) for file '%s->%s'", source_uri, uri);
+
 	tracker_miner_execute_batch_update (TRACKER_MINER (fs),
 	                                    sparql->str,
 	                                    NULL,
@@ -1985,6 +2088,24 @@ fill_in_queue (TrackerMinerFS       *fs,
 
 		g_queue_push_tail (dir_data->nodes, node);
 
+#ifdef PARANOID_DEBUG
+		{
+			gboolean ignore;
+			gchar *uri;
+
+			uri = g_file_get_uri (file);
+			ignore = (g_object_get_qdata (G_OBJECT (file),
+			                              fs->private->quark_ignore_file) != NULL ?
+			          TRUE : FALSE);
+
+			paranoid_debug ("(Root dir) File '%s' set as %s",
+			                uri,
+			                ignore ? "IGNORED" : "NOT ignored");
+			g_free (uri);
+		}
+#endif
+
+
 		if (!g_object_get_qdata (G_OBJECT (file), fs->private->quark_ignore_file)) {
 			g_queue_push_tail (queue, g_object_ref (file));
 			return;
@@ -2010,6 +2131,23 @@ fill_in_queue (TrackerMinerFS       *fs,
 		while (children) {
 			file = children->data;
 			dir_data->n_items_processed++;
+
+#ifdef PARANOID_DEBUG
+		{
+			gboolean ignore;
+			gchar *uri;
+
+			uri = g_file_get_uri (file);
+			ignore = (g_object_get_qdata (G_OBJECT (file),
+			                              fs->private->quark_ignore_file) != NULL ?
+			          TRUE : FALSE);
+
+			paranoid_debug ("(Child) File '%s' set as %s",
+			                uri,
+			                ignore ? "IGNORED" : "NOT ignored");
+			g_free (uri);
+		}
+#endif
 
 			if (!g_object_get_qdata (G_OBJECT (file), fs->private->quark_ignore_file)) {
 				g_queue_push_tail (queue, g_object_ref (file));
@@ -3648,6 +3786,17 @@ tracker_miner_fs_file_notify (TrackerMinerFS *fs,
 
 		return;
 	}
+
+#ifdef PARANOID_DEBUG
+	{
+		gchar *uri = g_file_get_uri (file);
+
+		paranoid_debug ("NOTIFY for file '%s' received (urn: %s)",
+		                uri,
+		                data->urn ? data->urn : "unknown");
+		g_free (uri);
+	}
+#endif /* PARANOID_DEBUG */
 
 	item_add_or_update_cb (fs, data, error);
 }

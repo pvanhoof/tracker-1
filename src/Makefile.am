@@ -24,6 +24,7 @@ SUBDIRS = 					\
 	plugins					\
 	tracker-store				\
 	tracker-control				\
+	tracker-utils				\
 	tracker-extract				\
 	tracker-writeback			\
 	vapi

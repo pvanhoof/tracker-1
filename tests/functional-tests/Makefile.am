@@ -54,25 +54,25 @@ noinst_PROGRAMS = direct-query-test bus-query-test default-update-test bus-updat
 direct_query_test_VALASOURCES = shared-query-test.vala direct-query-test.vala
 
 direct_query_test_SOURCES = \
-	direct_query_test.vala.stamp \
+	direct-query-test.vala.stamp \
 	$(direct_query_test_VALASOURCES:.vala=.c)
 
 default_update_test_VALASOURCES = shared-update-test.vala default-update-test.vala
 
 default_update_test_SOURCES = \
-	default_update_test.vala.stamp \
+	default-update-test.vala.stamp \
 	$(default_update_test_VALASOURCES:.vala=.c)
 
 bus_query_test_VALASOURCES = shared-query-test.vala bus-query-test.vala
 
 bus_query_test_SOURCES = \
-	bus_query_test.vala.stamp \
+	bus-query-test.vala.stamp \
 	$(bus_query_test_VALASOURCES:.vala=.c)
 
 bus_update_test_VALASOURCES = shared-update-test.vala bus-update-test.vala
 
 bus_update_test_SOURCES = \
-	bus_update_test.vala.stamp \
+	bus-update-test.vala.stamp \
 	$(bus_update_test_VALASOURCES:.vala=.c)
 
 direct_vapi_sources = \
@@ -117,15 +117,28 @@ bus_query_test_LDADD = \
 
 bus_update_test_LDADD = $(bus_query_test_LDADD)
 
-BUILT_SOURCES = direct-query-test.vala.stamp \
-	bus-query-test.vala.stamp \
-	default-update-test.vala.stamp \
+BUILT_SOURCES = 				\
+	direct-query-test.vala.stamp 		\
+	bus-query-test.vala.stamp 		\
+	default-update-test.vala.stamp 		\
 	bus-update-test.vala.stamp
+
+MAINTAINERCLEANFILES =					\
+	$(BUILT_SOURCES)				\
+	$(bus_query_test_VALASOURCES:.vala=.c)		\
+	$(bus_update_test_VALASOURCES:.vala=.c)		\
+	$(direct_query_test_VALASOURCES:.vala=.c)	\
+	$(default_update_test_VALASOURCES:.vala=.c)
 
 EXTRA_DIST = 					\
 	$(config_SCRIPTS) 			\
 	$(bashscripts_SCRIPTS)			\
-	$(bashscripts_in_files)
+	$(bashscripts_in_files)			\
+	$(BUILT_SOURCES)			\
+	$(direct_query_test_VALASOURCES)	\
+	$(default_update_test_VALASOURCES)	\
+	$(bus_query_test_VALASOURCES)		\
+	$(bus_update_test_VALASOURCES)
 
-CLEANFILES = $(bashscripts_SCRIPTS) $(BUILD_SOURCES)
+CLEANFILES = $(bashscripts_SCRIPTS)
 

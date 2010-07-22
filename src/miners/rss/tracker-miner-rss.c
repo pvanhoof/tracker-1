@@ -528,7 +528,7 @@ feeds_retrieve_cb (GObject      *source_object,
 		channels = g_list_prepend (channels, chan);
 	}
 
-	priv = TRACKER_MINER_RSS_GET_PRIVATE (source_object);
+	priv = TRACKER_MINER_RSS_GET_PRIVATE (user_data);
 	feeds_pool_listen (priv->pool, channels);
 }
 
@@ -549,7 +549,7 @@ retrieve_and_schedule_feeds (TrackerMinerRSS *miner)
                                                sparql,
                                                NULL,
                                                feeds_retrieve_cb,
-                                               NULL);
+                                               miner);
 }
 
 static const gchar *

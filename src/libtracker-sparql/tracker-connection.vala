@@ -143,6 +143,16 @@ public abstract class Tracker.Sparql.Connection : Object {
 		warning ("Interface 'update_async' not implemented");
 	}
 
+	// UpdateBlank
+	public virtual GLib.Variant? update_blank (string sparql, Cancellable? cancellable = null) throws Sparql.Error {
+		warning ("Interface 'update_blank' not implemented");
+		return null;
+	}
+	public async virtual GLib.Variant? update_blank_async (string sparql, int priority = GLib.Priority.DEFAULT, Cancellable? cancellable = null) throws Sparql.Error {
+		warning ("Interface 'update_blank_async' not implemented");
+		return null;
+	}
+
 	// Only applies to update_async with the right priority. 
 	// Priority is used to identify batch updates.
 	public virtual void update_commit (Cancellable? cancellable = null) throws Sparql.Error {

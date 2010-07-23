@@ -33,6 +33,7 @@
 
 #include "tracker-bus-array-update.h"
 #include "tracker-bus.h"
+#include "tracker-bus-shared.h"
 
 void
 tracker_bus_array_sparql_update_blank_async (DBusGConnection       *connection,
@@ -58,17 +59,52 @@ tracker_bus_array_sparql_update_blank (DBusGConnection *connection,
                                        GError         **error)
 {
 #ifdef HAVE_DBUS_FD_PASSING
-	DBusMessage *reply;
+	DBusMessage *reply, *message;
 	GVariant *result;
+	DBusMessageIter iter;
+	DBusPendingCall *call;
 
 	g_return_val_if_fail (query != NULL, NULL);
 
-	g_critical ("tracker_bus_array_sparql_update_blank unimplemented");
-	// reply = todo
+	message = dbus_message_new_method_call (TRACKER_DBUS_SERVICE,
+	                                        TRACKER_DBUS_OBJECT_RESOURCES,
+	                                        TRACKER_DBUS_INTERFACE_RESOURCES,
+	                                        "UpdateBlank");
+
+	dbus_message_iter_init_append (message, &iter);
+	dbus_message_iter_append_basic (&iter, DBUS_TYPE_STRING, &query);
+	dbus_connection_send_with_reply (connection, message, &call, -1);
+	dbus_message_unref (message);
+
+	if (!call) {
+		g_set_error (error,
+		             TRACKER_SPARQL_ERROR,
+		             TRACKER_SPARQL_ERROR_UNSUPPORTED,
+		             "UpdateBlank Unsupported or connection disconnected");
+		return NULL;
+	}
+
+	dbus_pending_call_block (call);
+
+	reply = dbus_pending_call_steal_reply (call);
 
 	if (!reply) {
 		return NULL;
 	}
+
+	if (dbus_message_get_type (reply) == DBUS_MESSAGE_TYPE_ERROR) {
+		DBusError dbus_error;
+
+		dbus_error_init (&dbus_error);
+		dbus_set_error_from_message (&dbus_error, reply);
+		dbus_set_g_error (error, &dbus_error);
+		dbus_pending_call_unref (call);
+		dbus_error_free (&dbus_error);
+
+		return NULL;
+	}
+
+	dbus_pending_call_unref (call);
 
 	if (g_strcmp0 (dbus_message_get_signature (reply), "aaa{ss}")) {
 		g_set_error (error,
@@ -79,7 +115,8 @@ tracker_bus_array_sparql_update_blank (DBusGConnection *connection,
 		return NULL;
 	}
 
-	//result = message_to_variant (reply);
+	result = tracker_bus_message_to_variant (reply);
+
 	dbus_message_unref (reply);
 
 	return result;

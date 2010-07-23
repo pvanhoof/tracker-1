@@ -17,7 +17,8 @@
  * Boston, MA  02110-1301, USA.
  */
 #include <glib.h>
-#include <libtracker-client/tracker.h>
+#include <libtracker-sparql/tracker-sparql.h>
+#include <libtracker-bus/tracker-bus.h>
 #include <libtracker-common/tracker-common.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,7 +31,7 @@ typedef struct {
 	const gchar *query;
 } AsyncData;
 
-static TrackerClient *client;
+static TrackerSparqlConnection *connection;
 
 static void
 insert_test_data ()
@@ -56,13 +57,24 @@ insert_test_data ()
 	                                "    <urn:testdata4> a nmm:Photo ; nao:identifier \"%s\" ."
 	                                "}", longName);
 
-	tracker_resources_sparql_update (client, delete_query, NULL);
-	tracker_resources_sparql_update (client, filled_query, &error);
+	tracker_sparql_connection_update (connection, delete_query, NULL, &error);
+	g_assert (!error);
+
+	tracker_sparql_connection_update (connection, filled_query, NULL, &error);
+	g_assert (!error);
 
 	g_free (filled_query);
 	g_free (longName);
+}
 
-	g_assert (!error);
+static void
+set_force_dbus_glib (gboolean force)
+{
+	if (force) {
+		g_setenv ("TRACKER_BUS_BACKEND", "dbus-glib", true);
+	} else {
+		g_unsetenv ("TRACKER_BUS_BACKEND");
+	}
 }
 
 /*
@@ -140,94 +152,59 @@ compare_results (GPtrArray *r1, GPtrArray *r2)
 }
 */
 
-/* Runs the same query using the iterate and traditional interface, and compare
- * the results */
 static void
-test_tracker_sparql_query_iterate ()
+query_and_compare_results (const char *query)
 {
-	GPtrArray *r1;
-	TrackerResultIterator *iterator;
+	TrackerSparqlCursor *cursor_glib;
+	TrackerSparqlCursor *cursor_fd;
 	GError *error = NULL;
-	const gchar *query = "SELECT ?r nie:url(?r) WHERE {?r a nfo:FileDataObject}";
-	guint i = 0;
-	int n_rows = 0;
 
-	r1 = tracker_resources_sparql_query (client, query, &error);
+	set_force_dbus_glib (true);
+	cursor_glib = tracker_sparql_connection_query (connection, query, NULL, &error);
 
 	g_assert (!error);
 
-	iterator = tracker_resources_sparql_query_iterate (client, query, &error);
+	set_force_dbus_glib (false);
+	cursor_fd = tracker_sparql_connection_query (client, query, NULL, &error);
 
 	g_assert (!error);
 
-	while (tracker_result_iterator_next (iterator)) {
-		GStrv row;
-
-		g_assert (i < r1->len);
-
-		n_rows ++;
-
-		row = g_ptr_array_index (r1, i++);
-
-		g_assert (!g_strcmp0 (tracker_result_iterator_value (iterator, 0), row[0]));
+	while (tracker_sparql_cursor_next (cursor_glib, NULL, NULL) && tracker_sparql_cursor_next (cursor_fd, NULL, NULL)) {
+		g_assert (!g_strcmp0 (tracker_sparql_cursor_get_string (cursor_glib, 0, NULL),
+		                      tracker_sparql_cursor_get_string (cursor_fd, 0, NULL)));
 	}
 
-	g_assert (n_rows == r1->len);
+	/* Check that both cursors are at the end (same number of rows) */
+	g_assert (!tracker_sparql_cursor_next (cursor_glib, NULL, NULL));
+	g_assert (!tracker_sparql_cursor_next (cursor_fd, NULL, NULL));
 
-	tracker_result_iterator_free (iterator);
-	tracker_dbus_results_ptr_array_free (&r1);
+	g_object_unref (cursor_glib);
+	g_object_unref (cursor_fd);
 }
 
-/* Runs the same query using the iterate and traditional interface, and compare
- * the results */
+static void
+test_tracker_sparql_query_iterate () {
+	query_and_compare_results ("SELECT ?r nie:url(?r) WHERE {?r a nfo:FileDataObject}");
+}
+
 static void
 test_tracker_sparql_query_iterate_largerow ()
 {
-	GPtrArray *r1;
-	TrackerResultIterator *iterator;
-	GError *error = NULL;
-	const gchar *query = "SELECT nao:identifier(?r) WHERE {?r a nmm:Photo}";
-	guint i = 0;
-	int n_rows = 0;
-
-	r1 = tracker_resources_sparql_query (client, query, &error);
-
-	g_assert (!error);
-
-	iterator = tracker_resources_sparql_query_iterate (client, query, &error);
-
-	g_assert (!error);
-
-	while (tracker_result_iterator_next (iterator)) {
-		GStrv row;
-
-		g_assert (i < r1->len);
-
-		n_rows ++;
-
-		row = g_ptr_array_index (r1, i++);
-
-		g_assert (!g_strcmp0 (tracker_result_iterator_value (iterator, 0), row[0]));
-	}
-
-	g_assert (n_rows == r1->len);
-
-	tracker_result_iterator_free (iterator);
-	tracker_dbus_results_ptr_array_free (&r1);
+	query_and_compare_results ("SELECT nao:identifier(?r) WHERE {?r a nmm:Photo}");
 }
 
 /* Runs an invalid query */
 static void
 test_tracker_sparql_query_iterate_error ()
 {
-	TrackerResultIterator *iterator;
+	TrackerSparqlCursor *cursor;
 	GError *error = NULL;
 	const gchar *query = "bork bork bork";
 
-	iterator = tracker_resources_sparql_query_iterate (client, query, &error);
+	cursor = tracker_sparql_connection_query (client, query, NULL, &error);
 
 	/* tracker_sparql_query_iterate should return null on error */
-	g_assert (!iterator);
+	g_assert (!cursor);
 	/* error should be set, along with its message */
 	g_assert (error && error->message);
 
@@ -238,41 +215,42 @@ test_tracker_sparql_query_iterate_error ()
 static void
 test_tracker_sparql_query_iterate_empty ()
 {
-	TrackerResultIterator *iterator;
+	TrackerSparqlCursor *cursor;
 	GError *error = NULL;
 	const gchar *query = "SELECT ?r WHERE {?r a nfo:FileDataObject; nao:identifier \"thisannotationdoesnotexist\"}";
 
-	iterator = tracker_resources_sparql_query_iterate (client, query, &error);
+	cursor = tracker_sparql_connection_query (client, query, NULL, &error);
 
-	g_assert (iterator);
+	g_assert (cursor);
 	g_assert (!error);
 
-	g_assert (!tracker_result_iterator_next (iterator));
-	g_assert (!tracker_result_iterator_n_columns (iterator));
+	g_assert (!tracker_sparql_cursor_next (iterator));
+	g_assert (!tracker_sparql_cursor_n_columns (iterator));
 	if (g_test_trap_fork (0, G_TEST_TRAP_SILENCE_STDOUT | G_TEST_TRAP_SILENCE_STDERR)) {
-		tracker_result_iterator_value (iterator, 0);
+		tracker_sparql_cursor_get_string (cursor, 0, NULL);
 		exit (0);
 	}
 	g_test_trap_assert_failed ();
 
-	tracker_result_iterator_free (iterator);
+	g_object_unref (cursor);
 }
 
+/* Closes the iterator before all results are read */
 static void
 test_tracker_sparql_query_iterate_sigpipe ()
 {
-	TrackerResultIterator *iterator;
+	TrackerSparqlCursor *cursor;
 	GError *error = NULL;
 	const gchar *query = "SELECT ?r WHERE {?r a nfo:FileDataObject}";
 
-	iterator = tracker_resources_sparql_query_iterate (client, query, &error);
+	cursor = tracker_sparql_connection_query (client, query, NULL, &error);
 
-	g_assert (iterator);
+	g_assert (cursor);
 	g_assert (!error);
 
-	tracker_result_iterator_next (iterator);
+	tracker_sparql_cursor_next (cursor);
 
-	tracker_result_iterator_free (iterator);
+	g_object_unref (cursor);
 
 	return;
 }
@@ -283,7 +261,7 @@ test_tracker_sparql_update_fast_small ()
 	GError *error = NULL;
 	const gchar *query = "INSERT { _:x a nmo:Message }";
 
-	tracker_resources_sparql_update (client, query, &error);
+	tracker_sparql_connection_update (client, query, NULL, &error);
 
 	g_assert (!error);
 
@@ -303,7 +281,7 @@ test_tracker_sparql_update_fast_large ()
 
 	query = g_strdup_printf ("INSERT { _:x a nmo:Message; nao:identifier \"%s\" }", lotsOfA);
 
-	tracker_resources_sparql_update (client, query, &error);
+	tracker_sparql_connection_update (client, query, NULL, &error);
 
 	g_free (lotsOfA);
 	g_free (query);
@@ -319,7 +297,7 @@ test_tracker_sparql_update_fast_error ()
 	GError *error = NULL;
 	const gchar *query = "blork blork blork";
 
-	tracker_resources_sparql_update (client, query, &error);
+	tracker_sparql_connection_update (client, query, NULL, &error);
 
 	g_assert (error);
 	g_error_free (error);
@@ -619,33 +597,31 @@ test_tracker_sparql_update_blank_async ()
 gint
 main (gint argc, gchar **argv)
 {
-        g_type_init ();
-        g_test_init (&argc, &argv, NULL);
+	g_type_init ();
+	g_test_init (&argc, &argv, NULL);
 
-		client = tracker_client_new (0, -1);
+	connection = tracker_sparql_connection_get (NULL);
 
-		insert_test_data ();
+	insert_test_data ();
 
-        g_test_add_func ("/steroids/tracker/tracker_sparql_query_iterate", test_tracker_sparql_query_iterate);
-        g_test_add_func ("/steroids/tracker/tracker_sparql_query_iterate_largerow", test_tracker_sparql_query_iterate_largerow);
-        g_test_add_func ("/steroids/tracker/tracker_sparql_query_iterate_error", test_tracker_sparql_query_iterate_error);
-        g_test_add_func ("/steroids/tracker/tracker_sparql_query_iterate_empty", test_tracker_sparql_query_iterate_empty);
-        g_test_add_func ("/steroids/tracker/tracker_sparql_query_iterate_sigpipe", test_tracker_sparql_query_iterate_sigpipe);
-        g_test_add_func ("/steroids/tracker/tracker_sparql_update_fast_small", test_tracker_sparql_update_fast_small);
-        g_test_add_func ("/steroids/tracker/tracker_sparql_update_fast_large", test_tracker_sparql_update_fast_large);
-        g_test_add_func ("/steroids/tracker/tracker_sparql_update_fast_error", test_tracker_sparql_update_fast_error);
-        g_test_add_func ("/steroids/tracker/tracker_sparql_update_blank_fast_small", test_tracker_sparql_update_blank_fast_small);
-        g_test_add_func ("/steroids/tracker/tracker_sparql_update_blank_fast_large", test_tracker_sparql_update_blank_fast_large);
-        g_test_add_func ("/steroids/tracker/tracker_sparql_update_blank_fast_error", test_tracker_sparql_update_blank_fast_error);
-        g_test_add_func ("/steroids/tracker/tracker_sparql_update_blank_fast_no_blanks", test_tracker_sparql_update_blank_fast_no_blanks);
-        g_test_add_func ("/steroids/tracker/tracker_batch_sparql_update_fast", test_tracker_batch_sparql_update_fast);
-        g_test_add_func ("/steroids/tracker/tracker_sparql_query_iterate_async", test_tracker_sparql_query_iterate_async);
-        g_test_add_func ("/steroids/tracker/tracker_sparql_query_iterate_async_cancel", test_tracker_sparql_query_iterate_async_cancel);
-        g_test_add_func ("/steroids/tracker/tracker_sparql_update_async", test_tracker_sparql_update_async);
-        g_test_add_func ("/steroids/tracker/tracker_sparql_update_async_cancel", test_tracker_sparql_update_async_cancel);
-        g_test_add_func ("/steroids/tracker/tracker_sparql_update_blank_async", test_tracker_sparql_update_blank_async);
+	g_test_add_func ("/steroids/tracker/tracker_sparql_query_iterate", test_tracker_sparql_query_iterate);
+	g_test_add_func ("/steroids/tracker/tracker_sparql_query_iterate_largerow", test_tracker_sparql_query_iterate_largerow);
+	g_test_add_func ("/steroids/tracker/tracker_sparql_query_iterate_error", test_tracker_sparql_query_iterate_error);
+	g_test_add_func ("/steroids/tracker/tracker_sparql_query_iterate_empty", test_tracker_sparql_query_iterate_empty);
+	g_test_add_func ("/steroids/tracker/tracker_sparql_query_iterate_sigpipe", test_tracker_sparql_query_iterate_sigpipe);
+	g_test_add_func ("/steroids/tracker/tracker_sparql_update_fast_small", test_tracker_sparql_update_fast_small);
+	g_test_add_func ("/steroids/tracker/tracker_sparql_update_fast_large", test_tracker_sparql_update_fast_large);
+	g_test_add_func ("/steroids/tracker/tracker_sparql_update_fast_error", test_tracker_sparql_update_fast_error);
+	g_test_add_func ("/steroids/tracker/tracker_sparql_update_blank_fast_small", test_tracker_sparql_update_blank_fast_small);
+	g_test_add_func ("/steroids/tracker/tracker_sparql_update_blank_fast_large", test_tracker_sparql_update_blank_fast_large);
+	g_test_add_func ("/steroids/tracker/tracker_sparql_update_blank_fast_error", test_tracker_sparql_update_blank_fast_error);
+	g_test_add_func ("/steroids/tracker/tracker_sparql_update_blank_fast_no_blanks", test_tracker_sparql_update_blank_fast_no_blanks);
+	g_test_add_func ("/steroids/tracker/tracker_batch_sparql_update_fast", test_tracker_batch_sparql_update_fast);
+	g_test_add_func ("/steroids/tracker/tracker_sparql_query_iterate_async", test_tracker_sparql_query_iterate_async);
+	g_test_add_func ("/steroids/tracker/tracker_sparql_query_iterate_async_cancel", test_tracker_sparql_query_iterate_async_cancel);
+	g_test_add_func ("/steroids/tracker/tracker_sparql_update_async", test_tracker_sparql_update_async);
+	g_test_add_func ("/steroids/tracker/tracker_sparql_update_async_cancel", test_tracker_sparql_update_async_cancel);
+	g_test_add_func ("/steroids/tracker/tracker_sparql_update_blank_async", test_tracker_sparql_update_blank_async);
 
-		/* client is leaked */
-
-        return g_test_run ();
+	return g_test_run ();
 }

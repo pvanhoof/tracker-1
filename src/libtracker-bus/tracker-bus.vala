@@ -60,7 +60,7 @@ public class Tracker.Bus.Connection : Tracker.Sparql.Connection {
 			if (strcmp (Config.HAVE_DBUS_FD_PASSING_IN_VALA, "1") == 0) {
 				string env_backend = Environment.get_variable ("TRACKER_BUS_BACKEND");
 
-				if (env_backend == null || env_backend.ascii_casecmp ("steroids") == 0) {
+				if (env_backend == null || env_backend.ascii_casecmp ("dbus-glib") != 0) {
 					use_steroids = true;
 				}
 			}

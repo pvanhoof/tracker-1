@@ -269,7 +269,7 @@ tracker_bus_array_sparql_update_blank_finish (GAsyncResult     *res,
 		return NULL;
 	}
 
-	return g_object_ref (g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (res)));
+	return g_variant_ref (g_simple_async_result_get_op_res_gpointer (G_SIMPLE_ASYNC_RESULT (res)));
 #else /* HAVE_DBUS_FD_PASSING */
 	g_assert_not_reached ();
 	return NULL;

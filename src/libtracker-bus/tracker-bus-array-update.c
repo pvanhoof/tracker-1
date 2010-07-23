@@ -35,6 +35,104 @@
 #include "tracker-bus.h"
 #include "tracker-bus-shared.h"
 
+typedef struct {
+	DBusConnection *connection;
+	GCancellable *cancellable;
+	DBusPendingCall *dbus_call;
+	GSimpleAsyncResult *res;
+	gpointer user_data;
+	gulong cancelid;
+} AsyncData;
+
+
+static void
+async_data_free (gpointer data)
+{
+	AsyncData *fad = data;
+
+	if (fad) {
+		if (fad->cancellable) {
+			if (fad->cancelid != 0)
+				g_cancellable_disconnect (fad->cancellable, fad->cancelid);
+			g_object_unref (fad->cancellable);
+		}
+
+		if (fad->connection) {
+			dbus_connection_unref (fad->connection);
+		}
+
+		if (fad->res) {
+			/* Don't free, weak */
+		}
+
+		g_slice_free (AsyncData, fad);
+	}
+}
+
+static AsyncData *
+async_data_new (DBusConnection      *connection,
+                GCancellable        *cancellable,
+                gpointer             user_data)
+{
+	AsyncData *fad = g_slice_new0 (AsyncData);
+
+	fad->connection = dbus_connection_ref (connection);
+	fad->cancellable = g_object_ref (connection);
+	fad->user_data = user_data;
+
+	return fad;
+}
+
+
+
+static void
+sparql_update_callback (DBusPendingCall *call,
+                        void            *user_data)
+{
+	AsyncData *fad = user_data;
+	DBusMessage *reply;
+	GError *error = NULL;
+	GVariant *result;
+
+	/* Check for errors */
+	reply = dbus_pending_call_steal_reply (call);
+
+	if (dbus_message_get_type (reply) == DBUS_MESSAGE_TYPE_ERROR) {
+		DBusError dbus_error;
+
+		dbus_error_init (&dbus_error);
+		dbus_set_error_from_message (&dbus_error, reply);
+		dbus_set_g_error (&error, &dbus_error);
+		dbus_error_free (&dbus_error);
+
+		g_simple_async_result_set_from_error (fad->res, error);
+
+		dbus_message_unref (reply);
+
+		g_simple_async_result_complete (fad->res);
+
+		async_data_free (fad);
+
+		dbus_pending_call_unref (call);
+
+		return;
+	}
+
+	result = tracker_bus_message_to_variant (reply);
+	g_simple_async_result_set_op_res_gpointer (fad->res, result, NULL);
+	g_simple_async_result_complete (fad->res);
+	dbus_message_unref (reply);
+	g_variant_unref (result);
+
+
+	/* Clean up */
+	dbus_message_unref (reply);
+
+	async_data_free (fad);
+
+	dbus_pending_call_unref (call);
+}
+
 void
 tracker_bus_array_sparql_update_blank_async (DBusGConnection       *connection,
                                              const gchar           *query,
@@ -43,9 +141,42 @@ tracker_bus_array_sparql_update_blank_async (DBusGConnection       *connection,
                                              gpointer               user_data)
 {
 #ifdef HAVE_DBUS_FD_PASSING
+	DBusPendingCall *call;
+	DBusMessage *message;
+	AsyncData *fad;
+	DBusMessageIter iter;
+	DBusConnection *con;
 
-	g_critical ("tracker_bus_array_sparql_update_blank_async unimplemented");
-	// todo
+	g_return_if_fail (query != NULL);
+
+	con = dbus_g_connection_get_connection (connection);
+	fad = async_data_new (con, cancellable, user_data);
+
+	fad->res = g_simple_async_result_new (NULL, callback, user_data,
+	                                      tracker_bus_array_sparql_update_blank_async);
+
+
+	message = dbus_message_new_method_call (TRACKER_DBUS_SERVICE,
+	                                        TRACKER_DBUS_OBJECT_RESOURCES,
+	                                        TRACKER_DBUS_INTERFACE_RESOURCES,
+	                                        "UpdateBlank");
+
+	dbus_message_iter_init_append (message, &iter);
+	dbus_message_iter_append_basic (&iter, DBUS_TYPE_STRING, &query);
+	dbus_connection_send_with_reply (con, message, &call, -1);
+	dbus_message_unref (message);
+
+	if (!call) {
+		g_critical ("Could not initiate update: UpdateBlank Unsupported or connection disconnected");
+		g_object_unref (fad->res);
+		async_data_free (fad);
+		return;
+	}
+
+	fad->dbus_call = call;
+
+	dbus_pending_call_set_notify (call, sparql_update_callback, fad, NULL);
+
 
 #else  /* HAVE_DBUS_FD_PASSING */
 	g_assert_not_reached ();
@@ -73,7 +204,8 @@ tracker_bus_array_sparql_update_blank (DBusGConnection *connection,
 
 	dbus_message_iter_init_append (message, &iter);
 	dbus_message_iter_append_basic (&iter, DBUS_TYPE_STRING, &query);
-	dbus_connection_send_with_reply (connection, message, &call, -1);
+	dbus_connection_send_with_reply (dbus_g_connection_get_connection (connection),
+	                                 message, &call, -1);
 	dbus_message_unref (message);
 
 	if (!call) {

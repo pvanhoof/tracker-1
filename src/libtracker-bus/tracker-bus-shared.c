@@ -39,6 +39,8 @@ tracker_bus_message_to_variant (DBusMessage *message)
 	GVariantBuilder builder;
 	DBusMessageIter iter, subiter, subsubiter;
 
+	/* TODO: This is probably wrong, especially the hashtable part */
+
 	/*aaa{ss}*/
 
 	g_variant_builder_init (&builder, G_VARIANT_TYPE_ARRAY); /* a */

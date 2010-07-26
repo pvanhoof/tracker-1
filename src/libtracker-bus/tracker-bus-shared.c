@@ -72,7 +72,7 @@ tracker_bus_message_to_variant (DBusMessage *message)
 
 				g_variant_builder_add (&builder, "{ss}", key, value);
 
-				dbus_message_iter_next (&subiter);
+				dbus_message_iter_next (&s_subiter);
 
 				g_variant_builder_close (&builder);
 				g_variant_builder_close (&builder);

@@ -77,7 +77,8 @@ async_data_new (DBusConnection      *connection,
 	AsyncData *fad = g_slice_new0 (AsyncData);
 
 	fad->connection = dbus_connection_ref (connection);
-	fad->cancellable = g_object_ref (connection);
+	if (cancellable)
+		fad->cancellable = g_object_ref (cancellable);
 	fad->user_data = user_data;
 
 	return fad;
@@ -104,26 +105,14 @@ sparql_update_callback (DBusPendingCall *call,
 		dbus_set_error_from_message (&dbus_error, reply);
 		dbus_set_g_error (&error, &dbus_error);
 		dbus_error_free (&dbus_error);
-
 		g_simple_async_result_set_from_error (fad->res, error);
-
-		dbus_message_unref (reply);
-
 		g_simple_async_result_complete (fad->res);
-
-		async_data_free (fad);
-
-		dbus_pending_call_unref (call);
-
-		return;
+	} else {
+		result = tracker_bus_message_to_variant (reply);
+		g_simple_async_result_set_op_res_gpointer (fad->res, result, NULL);
+		g_simple_async_result_complete (fad->res);
+		g_variant_unref (result);
 	}
-
-	result = tracker_bus_message_to_variant (reply);
-	g_simple_async_result_set_op_res_gpointer (fad->res, result, NULL);
-	g_simple_async_result_complete (fad->res);
-	dbus_message_unref (reply);
-	g_variant_unref (result);
-
 
 	/* Clean up */
 	dbus_message_unref (reply);
@@ -159,7 +148,7 @@ tracker_bus_array_sparql_update_blank_async (DBusGConnection       *connection,
 	message = dbus_message_new_method_call (TRACKER_DBUS_SERVICE,
 	                                        TRACKER_DBUS_OBJECT_RESOURCES,
 	                                        TRACKER_DBUS_INTERFACE_RESOURCES,
-	                                        "UpdateBlank");
+	                                        "SparqlUpdateBlank");
 
 	dbus_message_iter_init_append (message, &iter);
 	dbus_message_iter_append_basic (&iter, DBUS_TYPE_STRING, &query);
@@ -200,7 +189,7 @@ tracker_bus_array_sparql_update_blank (DBusGConnection *connection,
 	message = dbus_message_new_method_call (TRACKER_DBUS_SERVICE,
 	                                        TRACKER_DBUS_OBJECT_RESOURCES,
 	                                        TRACKER_DBUS_INTERFACE_RESOURCES,
-	                                        "UpdateBlank");
+	                                        "SparqlUpdateBlank");
 
 	dbus_message_iter_init_append (message, &iter);
 	dbus_message_iter_append_basic (&iter, DBUS_TYPE_STRING, &query);

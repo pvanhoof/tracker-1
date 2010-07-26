@@ -154,7 +154,6 @@ sparql_update_fast_callback (DBusPendingCall *call,
 		result = tracker_bus_message_to_variant (reply);
 		g_simple_async_result_set_op_res_gpointer (fad->res, result, NULL);
 		g_simple_async_result_complete (fad->res);
-		dbus_message_unref (reply);
 		g_variant_unref (result);
 
 		break;

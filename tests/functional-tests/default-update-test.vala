@@ -1,7 +1,14 @@
 int
 main( string[] args )
 {
-	TestApp app = new TestApp (Tracker.Sparql.Connection.get());
+	int res = -1;
 
-	return app.run ();
+	try {
+		TestApp app = new TestApp (Tracker.Sparql.Connection.get());
+		res = app.run();
+	} catch (Tracker.Sparql.Error e) {
+		warning ("Couldn't perform test: %s", e.message);
+	}
+
+	return res;
 }

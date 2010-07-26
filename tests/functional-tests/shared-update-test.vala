@@ -63,14 +63,14 @@ public class TestApp : GLib.Object {
 		int a;
 
 		try {
-			yield con.update_async ("INSERT { <test01> a nie:InformationElement ; nie:title 'test01' }");
+			yield con.update_async ("INSERT { <test02> a nie:InformationElement ; nie:title 'test01' }");
 		} catch (Tracker.Sparql.Error ea) {
 			warning ("Couldn't update: %s", ea.message);
 			res = -1;
 		}
 
 		try {
-			cursor = con.query ("SELECT ?title WHERE { <test01> nie:title ?title }");
+			cursor = con.query ("SELECT ?title WHERE { <test02> nie:title ?title }");
 			a = iter_cursor (cursor);
 		} catch (Tracker.Sparql.Error eb) {
 			warning ("Couldn't query: %s", eb.message);
@@ -78,15 +78,12 @@ public class TestApp : GLib.Object {
 		}
 	}
 
-
-	string blank_query = "INSERT { _:a2 a nie:InformationElement  . _:b2 a nie:InformationElement . _:c2 a nie:InformationElement }";
-
 	void update_blank_query () {
 		GLib.Variant variant;
 		int a;
 
 		try {
-			variant = con.update_blank (blank_query);
+			variant = con.update_blank ("INSERT { _:a1 a nie:InformationElement  . _:b1 a nie:InformationElement . _:c1 a nie:InformationElement }");
 			a = iter_variant (variant);
 		} catch (Tracker.Sparql.Error ea) {
 			warning ("Couldn't update: %s", ea.message);
@@ -94,14 +91,12 @@ public class TestApp : GLib.Object {
 		}
 	}
 
-
-
 	async void update_blank_query_async () {
 		GLib.Variant variant;
 		int a;
 
 		try {
-			variant = yield con.update_blank_async (blank_query);
+			variant = yield con.update_blank_async ("INSERT { _:a2 a nie:InformationElement  . _:b2 a nie:InformationElement . _:c2 a nie:InformationElement }");
 			a = iter_variant (variant);
 		} catch (Tracker.Sparql.Error ea) {
 			warning ("Couldn't update: %s", ea.message);

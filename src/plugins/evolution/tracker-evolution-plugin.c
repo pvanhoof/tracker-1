@@ -75,8 +75,7 @@
 #include <e-util/e-account-utils.h>
 #endif
 
-#include <libtracker-client/tracker.h>
-#include <libtracker-client/tracker-sparql-builder.h>
+#include <libtracker-sparql/tracker-sparql.h>
 
 #include <libtracker-common/tracker-date-time.h>
 #include <libtracker-common/tracker-ontologies.h>
@@ -96,7 +95,7 @@
  * reads, never writes). We hope that's sufficient for not having to get our
  * code involved in Camel's cruel inneryard of having to lock the db_r ptr. */
 
-#define TRACKER_SERVICE                         "org.freedesktop.Tracker1"
+#define TRACKER_SERVICE                 "org.freedesktop.Tracker1"
 
 #define NIE_DATASOURCE                  TRACKER_NIE_PREFIX "DataSource"
 #define RDF_PREFIX                      TRACKER_RDF_PREFIX
@@ -125,7 +124,7 @@ G_DEFINE_TYPE (TrackerEvolutionPlugin, tracker_evolution_plugin, TRACKER_TYPE_MI
  * during registration of accounts and folders). I know this is cruel. I know. */
 
 typedef struct {
-	TrackerClient *client;
+	TrackerSparqlConnection *connection;
 	gchar *sparql;
 	gboolean commit;
 	gint prio;
@@ -187,9 +186,9 @@ typedef struct {
 	GHashTable *registered_stores;
 	GList *registered_clients;
 	EAccountList *accounts;
-	TrackerClient *client;
+	TrackerSparqlConnection *connection;
 	DBusGProxy *dbus_proxy;
-	DBusGConnection *connection;
+	DBusGConnection *dbusconnection;
 	time_t last_time;
 	gboolean resuming, paused;
 	guint total_popped, of_total;
@@ -333,7 +332,7 @@ free_pool_item (gpointer data, gpointer user_data)
 {
 	PoolItem *item = data;
 	g_free (item->sparql);
-	g_object_unref (item->client);
+	g_object_unref (item->connection);
 	g_slice_free (PoolItem, item);
 }
 
@@ -358,15 +357,21 @@ thread_pool_exec (gpointer data, gpointer user_data)
 		pool->freeup (data, pool->cancel);
 }
 
-
-static void 
-reply_void (GError *error, gpointer  user_data)
+static void
+reply_void (GObject *source_object,
+            GAsyncResult *result,
+            gpointer user_data)
 {
 	PoolItem *item = user_data;
 	ThreadPool *pool = item->pool;
+	GError *error = NULL;
+
+	tracker_sparql_connection_update_finish (TRACKER_SPARQL_CONNECTION (source_object),
+	                                         result, &error);
 
 	if (error) {
 		g_debug ("Tracker plugin: Error updating data: %s\n", error->message);
+		g_error_free (error);
 	}
 
 	g_mutex_lock (item->mutex);
@@ -393,10 +398,15 @@ exec_update (gpointer data, gpointer user_data)
 	item->has_happened = FALSE;
 
 	if (item->commit) {
-		tracker_resources_batch_commit_async (item->client, reply_void, item);
+		/* tracker_resources_batch_commit_async (item->client, reply_void, item); */
 	} else {
-		tracker_resources_batch_sparql_update_async (item->client, item->sparql,
-		                                             reply_void, item);
+
+		tracker_sparql_connection_update_async (item->connection,
+		                                        item->sparql,
+		                                        G_PRIORITY_DEFAULT,
+		                                        NULL,
+		                                        reply_void, item);
+
 	}
 
 	g_mutex_lock (item->mutex);
@@ -487,7 +497,7 @@ send_sparql_update (TrackerEvolutionPlugin *self, const gchar *sparql, gint prio
 {
 	TrackerEvolutionPluginPrivate *priv = TRACKER_EVOLUTION_PLUGIN_GET_PRIVATE (self);
 
-	if (priv->client) {
+	if (priv->connection) {
 		PoolItem *item = g_slice_new (PoolItem);
 
 		if (!sparql_pool)
@@ -497,7 +507,7 @@ send_sparql_update (TrackerEvolutionPlugin *self, const gchar *sparql, gint prio
 		item->dont_free = FALSE;
 		item->prio = prio;
 		item->commit = FALSE;
-		item->client = g_object_ref (priv->client);
+		item->connection = g_object_ref (priv->connection);
 		item->sparql = g_strdup (sparql);
 
 		thread_pool_push (sparql_pool, item, NULL);
@@ -509,7 +519,7 @@ send_sparql_commit (TrackerEvolutionPlugin *self, gboolean update)
 {
 	TrackerEvolutionPluginPrivate *priv = TRACKER_EVOLUTION_PLUGIN_GET_PRIVATE (self);
 
-	if (priv->client) {
+	if (priv->connection) {
 		PoolItem *item = g_slice_new (PoolItem);
 
 		if (update) {
@@ -532,7 +542,7 @@ send_sparql_commit (TrackerEvolutionPlugin *self, gboolean update)
 		item->dont_free = FALSE;
 		item->prio = 0;
 		item->commit = TRUE;
-		item->client = g_object_ref (priv->client);
+		item->connection = g_object_ref (priv->connection);
 		item->sparql = NULL;
 
 		thread_pool_push (sparql_pool, item, NULL);
@@ -546,7 +556,7 @@ add_contact (TrackerSparqlBuilder *sparql, const gchar *predicate, const gchar *
 
 	get_email_and_fullname (value, &email, &fullname);
 
-	email_uri = tracker_uri_printf_escaped ("mailto:%s", email);
+	email_uri = tracker_sparql_escape_uri_printf ("mailto:%s", email);
 
 	tracker_sparql_builder_subject_iri (sparql, email_uri);
 	tracker_sparql_builder_predicate (sparql, "rdf:type");
@@ -831,10 +841,10 @@ on_folder_summary_changed (CamelFolder *folder,
 			/* This is not a path but a URI, don't use the
 			 * OS's directory separator here */
 
-			uri = tracker_uri_printf_escaped ("%s/%s/%s",
-			                                  em_uri,
-			                                  camel_folder_get_full_name (folder),
-			                                  uid);
+			uri = tracker_sparql_escape_uri_printf ("%s/%s/%s",
+			                                        em_uri,
+			                                        camel_folder_get_full_name (folder),
+			                                        uid);
 
 			sparql = tracker_sparql_builder_new_update ();
 
@@ -916,10 +926,10 @@ on_folder_summary_changed (CamelFolder *folder,
 
 			/* This is not a path but a URI, don't use the OS's
 			 * directory separator here */
-			uri = tracker_uri_printf_escaped ("%s/%s/%s",
-			                                  em_uri,
-			                                  camel_folder_get_full_name (folder),
-			                                  (char*) changes->uid_removed->pdata[i]);
+			uri = tracker_sparql_escape_uri_printf ("%s/%s/%s",
+			                                        em_uri,
+			                                        camel_folder_get_full_name (folder),
+			                                        (char*) changes->uid_removed->pdata[i]);
 
 			g_string_append_printf (sparql, "DELETE FROM <%s> { <%s> a rdfs:Resource }\n ", uri, uri);
 			g_free (uri);
@@ -1036,7 +1046,7 @@ introduce_walk_folders_in_folder (TrackerEvolutionPlugin *self,
 
 				folder = g_hash_table_lookup (priv->cached_folders, iter->full_name);
 
-				uri = tracker_uri_printf_escaped ("%s/%s/%s", em_uri, iter->full_name, uid);
+				uri = tracker_sparql_escape_uri_printf ("%s/%s/%s", em_uri, iter->full_name, uid);
 
 				if (!sparql) {
 					sparql = tracker_sparql_builder_new_update ();
@@ -1205,8 +1215,8 @@ introduce_store_deal_with_deleted (TrackerEvolutionPlugin *self,
 			 * directory separator here */
 
 			g_ptr_array_add (subjects_a,
-			                 tracker_uri_printf_escaped ("%s/%s/%s", em_uri,
-			                                             mailbox, uid));
+			                 tracker_sparql_escape_uri_printf ("%s/%s/%s", em_uri,
+			                                                   mailbox, uid));
 
 			if (count > 100) {
 				more = TRUE;
@@ -1721,57 +1731,57 @@ register_client_second_half (ClientRegistry *info)
 }
 
 static void
-on_register_client_qry (GPtrArray *results,
-                        GError    *error,
-                        gpointer   user_data)
+on_register_client_qry (GObject *source_object,
+                        GAsyncResult *res,
+                        gpointer user_data)
 {
+	TrackerSparqlCursor *cursor;
 	ClientRegistry *info = user_data;
 	TrackerEvolutionPluginPrivate *priv = TRACKER_EVOLUTION_PLUGIN_GET_PRIVATE (info->self);
-	guint i;
+	GError *error = NULL;
+
+	cursor = tracker_sparql_connection_query_finish (TRACKER_SPARQL_CONNECTION (source_object),
+	                                                 res, &error);
 
 	if (error) {
 		g_warning ("%s\n", error->message);
 		g_error_free (error);
 		g_slice_free (ClientRegistry, info);
+		if (cursor) {
+			//g_object_unref (cursor);
+		}
 		return;
 	}
 
-	if (!results) {
+	if (!tracker_sparql_cursor_next (cursor, NULL, NULL)) {
 		if (priv->resuming) {
+			info->last_checkout = priv->last_time;
+		} else if (priv->resuming && priv->last_time != 0) {
 			info->last_checkout = priv->last_time;
 		} else {
 			info->last_checkout = 0;
 		}
 	} else {
-		if (results->len == 0 && priv->resuming && priv->last_time != 0) {
-			info->last_checkout = priv->last_time;
-		} else {
-			if (results->len == 0) {
-				info->last_checkout = 0;
-			} else {
-				for (i = 0; i < results->len; i++) {
-					const gchar **str = g_ptr_array_index (results, i);
-					GError *new_error = NULL;
+		do {
+			const gchar *str = tracker_sparql_cursor_get_string (cursor, 0, NULL);
+			GError *new_error = NULL;
 
-					info->last_checkout = (guint64) tracker_string_to_date (str[0], NULL, &new_error);
+			info->last_checkout = (guint64) tracker_string_to_date (str, NULL, &new_error);
 
-					if (new_error) {
-						g_warning ("%s", new_error->message);
-						g_error_free (error);
-						g_ptr_array_foreach (results, (GFunc) g_strfreev, NULL);
-						g_ptr_array_free (results, TRUE);
-						return;
-					}
-
-					break;
-				}
+			if (new_error) {
+				g_warning ("%s", new_error->message);
+				g_error_free (error);
+				//g_object_unref (cursor);
+				return;
 			}
-		}
-		g_ptr_array_foreach (results, (GFunc) g_strfreev, NULL);
-		g_ptr_array_free (results, TRUE);
+
+			break;
+		} while (tracker_sparql_cursor_next (cursor, NULL, NULL));
 	}
 
 	register_client_second_half (info);
+
+	//g_object_unref (cursor);
 }
 
 static void
@@ -1781,7 +1791,7 @@ register_client (TrackerEvolutionPlugin *self)
 	ClientRegistry *info;
 	const gchar *query;
 
-	if (!priv->client) {
+	if (!priv->connection) {
 		return;
 	}
 
@@ -1794,9 +1804,10 @@ register_client (TrackerEvolutionPlugin *self)
 	query = "SELECT ?c "
 		"WHERE { <" DATASOURCE_URN "> nie:contentLastModified ?c }";
 
-	tracker_resources_sparql_query_async (priv->client, query,
-	                                      on_register_client_qry,
-	                                      info);
+	tracker_sparql_connection_query_async (priv->connection, query,
+	                                       NULL,
+	                                       on_register_client_qry,
+	                                       info);
 }
 
 
@@ -2116,10 +2127,10 @@ name_owner_changed_cb (DBusGProxy *proxy,
 
 	if (g_strcmp0 (name, TRACKER_SERVICE) == 0) {
 		 if (tracker_is_empty_string (new_owner) && !tracker_is_empty_string (old_owner)) {
-			if (priv->client) {
-				TrackerClient *client = priv->client;
+			if (priv->connection) {
+				TrackerSparqlConnection *connection = priv->connection;
 
-				priv->client = NULL; 
+				priv->connection = NULL; 
 
 				if (sparql_pool) {
 					ThreadPool *pool = sparql_pool;
@@ -2133,13 +2144,13 @@ name_owner_changed_cb (DBusGProxy *proxy,
 					thread_pool_destroy (pool);
 				}
 
-				g_object_unref (client);
+				g_object_unref (connection);
 			}
 		}
 
 		if (tracker_is_empty_string (old_owner) && !tracker_is_empty_string (new_owner)) {
-			if (!priv->client) {
-				priv->client = tracker_client_new (0, G_MAXINT);
+			if (!priv->connection) {
+				priv->connection = tracker_sparql_connection_get (NULL);
 			}
 			register_client (user_data);
 		}
@@ -2230,10 +2241,10 @@ tracker_evolution_plugin_finalize (GObject *plugin)
 
 	g_object_unref (priv->accounts);
 
-	if (priv->client) {
-		TrackerClient *client = priv->client;
+	if (priv->connection) {
+		TrackerSparqlConnection *connection = priv->connection;
 
-		priv->client = NULL;
+		priv->connection = NULL;
 
 		if (sparql_pool) {
 			ThreadPool *pool = sparql_pool;
@@ -2247,7 +2258,7 @@ tracker_evolution_plugin_finalize (GObject *plugin)
 			thread_pool_destroy (pool);
 		}
 
-		g_object_unref (client);
+		g_object_unref (connection);
 	}
 
 	if (priv->dbus_proxy) {
@@ -2255,7 +2266,7 @@ tracker_evolution_plugin_finalize (GObject *plugin)
 	}
 
 	if (priv->connection) {
-		dbus_g_connection_unref (priv->connection);
+		dbus_g_connection_unref (priv->dbusconnection);
 	}
 
 	G_OBJECT_CLASS (tracker_evolution_plugin_parent_class)->finalize (plugin);
@@ -2285,7 +2296,7 @@ tracker_evolution_plugin_init (TrackerEvolutionPlugin *plugin)
 	EIterator *it;
 	GError *error = NULL;
 
-	priv->client = NULL;
+	priv->connection = NULL;
 	priv->last_time = 0;
 	priv->resuming = FALSE;
 	priv->paused = FALSE;
@@ -2295,13 +2306,13 @@ tracker_evolution_plugin_init (TrackerEvolutionPlugin *plugin)
 	priv->registered_stores = NULL;
 	priv->registered_clients = NULL;
 
-	priv->connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
+	priv->dbusconnection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
 
 	if (error) {
 		goto error_handler;
 	}
 
-	priv->dbus_proxy = dbus_g_proxy_new_for_name (priv->connection,
+	priv->dbus_proxy = dbus_g_proxy_new_for_name (priv->dbusconnection,
 	                                              DBUS_SERVICE_DBUS,
 	                                              DBUS_PATH_DBUS,
 	                                              DBUS_INTERFACE_DBUS);
@@ -2355,8 +2366,8 @@ miner_started (TrackerMiner *miner)
 {
 	TrackerEvolutionPluginPrivate *priv = TRACKER_EVOLUTION_PLUGIN_GET_PRIVATE (miner);
 
-	if (!priv->client) {
-		priv->client = tracker_client_new (0, G_MAXINT);
+	if (!priv->connection) {
+		priv->connection = tracker_sparql_connection_get (NULL);
 	}
 
 	dbus_g_proxy_begin_call (priv->dbus_proxy, "ListNames",
@@ -2391,10 +2402,10 @@ miner_paused (TrackerMiner *miner)
 	priv->paused = TRUE;
 	priv->last_time = 0;
 
-	if (priv->client) {
-		TrackerClient *client = priv->client;
+	if (priv->connection) {
+		TrackerSparqlConnection *connection = priv->connection;
 
-		priv->client = NULL;
+		priv->connection = NULL;
 
 		if (sparql_pool) {
 			ThreadPool *pool = sparql_pool;
@@ -2408,7 +2419,7 @@ miner_paused (TrackerMiner *miner)
 			thread_pool_destroy (pool);
 		}
 
-		g_object_unref (client);
+		g_object_unref (connection);
 
 		/* By setting this to NULL, events will still be catched by our
 		 * handlers, but the send_sparql_* calls will just ignore it.
@@ -2454,8 +2465,8 @@ miner_resumed (TrackerMiner *miner)
 	priv->total_popped = 0;
 	priv->of_total = 0;
 
-	if (!priv->client) {
-		priv->client = tracker_client_new (0, G_MAXINT);
+	if (!priv->connection) {
+		priv->connection = tracker_sparql_connection_get (NULL);
 	}
 
 	g_object_set (miner,  "progress", 0.0,  "status", _("Processing…"), NULL);

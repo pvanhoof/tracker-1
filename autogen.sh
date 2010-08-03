@@ -8,7 +8,7 @@ test -z "$srcdir" && srcdir=.
 
 PKG_NAME="tracker"
 REQUIRED_AUTOMAKE_VERSION=1.9
-REQUIRED_VALA_VERSION=0.9.3
+REQUIRED_VALA_VERSION=0.9.4
 
 (test -f $srcdir/configure.ac \
   && test -f $srcdir/README) || {

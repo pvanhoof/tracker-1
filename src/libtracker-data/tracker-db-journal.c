@@ -1167,6 +1167,14 @@ reader_next_file (GError **error)
 	if (reader.stream) {
 		g_object_unref (reader.stream);
 		reader.stream = NULL;
+
+		g_object_unref (reader.underlying_stream);
+		reader.underlying_stream = NULL;
+		if (reader.underlying_stream_info) {
+			g_object_unref (reader.underlying_stream_info);
+			reader.underlying_stream_info = NULL;
+		}
+
 	} else {
 		g_mapped_file_unref (reader.file);
 		reader.file = NULL;

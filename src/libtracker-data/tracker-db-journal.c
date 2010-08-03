@@ -1621,7 +1621,7 @@ tracker_db_journal_reader_get_statement_id (gint *g_id,
 gdouble
 tracker_db_journal_reader_get_progress (void)
 {
-	gdouble chunk = 0, total = 0, ret;
+	gdouble chunk = 0, total = 0, ret = 0;
 	guint current_file;
 	static guint total_chunks = 0;
 

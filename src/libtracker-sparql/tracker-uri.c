@@ -239,7 +239,7 @@ cleanup:
  *     <link linkend="string-precision">string precision pitfalls</link>
  * @Varargs: the parameters to insert into the format string
  *
- * Calls tracker_sparql_escpae_uri_vprintf() with the @Varargs supplied.
+ * Calls tracker_sparql_escape_uri_vprintf() with the @Varargs supplied.
  *
  * Returns: a newly-allocated string holding the result.
  *  The returned string should be freed with g_free() when no longer needed.

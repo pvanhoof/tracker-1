@@ -19,18 +19,18 @@
 
 /**
  * SECTION: tracker-sparql-connection
- * @short_description: Manage connections to the Store
+ * @short_description: Connecting to the Store
  * @title: TrackerSparqlConnection
  * @stability: Stable
  * @include: tracker-sparql.h
  *
  * <para>
- * #TrackerSparqlConnection is an object which allows setting up read-only
+ * #TrackerSparqlConnection is an object which allows setting up
  * connections to the Tracker Store.
  * </para>
  */
 
-// Convenience
+// Convenience, hidden in the documentation
 public const string TRACKER_DBUS_SERVICE = "org.freedesktop.Tracker1";
 public const string TRACKER_DBUS_INTERFACE_RESOURCES = TRACKER_DBUS_SERVICE + ".Resources";
 public const string TRACKER_DBUS_OBJECT_RESOURCES = "/org/freedesktop/Tracker1/Resources";
@@ -39,6 +39,26 @@ public const string TRACKER_DBUS_OBJECT_STATISTICS = "/org/freedesktop/Tracker1/
 public const string TRACKER_DBUS_INTERFACE_STEROIDS = TRACKER_DBUS_SERVICE + ".Steroids";
 public const string TRACKER_DBUS_OBJECT_STEROIDS = "/org/freedesktop/Tracker1/Steroids";
 
+
+/**
+ * TRACKER_SPARQL_ERROR:
+ *
+ * Error domain for Tracker Sparql. Errors in this domain will be from the
+ * #TrackerSparqlError enumeration. See #GError for more information on error
+ * domains.
+ */
+
+/**
+ * TrackerSparqlError:
+ * @TRACKER_SPARQL_ERROR_PARSE: Error parsing the SPARQL string.
+ * @TRACKER_SPARQL_UNKNOWN_CLASS: Unknown class.
+ * @TRACKER_SPARQL_UNKNOWN_PROPERTY: Unknown property.
+ * @TRACKER_SPARQL_TYPE: Wrong type.
+ * @TRACKER_SPARQL_INTERNAL: Internal error.
+ * @TRACKER_SPARQL_UNSUPPORTED: Unsupported feature or method.
+ *
+ * Possible errors reported in the operations with the #TrackerSparqlConnection.
+ */
 public errordomain Tracker.Sparql.Error {
 	PARSE,
 	UNKNOWN_CLASS,
@@ -61,6 +81,7 @@ public abstract class Tracker.Sparql.Connection : Object {
 
 	/**
 	 * tracker_sparql_connection_get:
+	 * @error: #GError for error reporting.
 	 *
 	 * Returns a new #TrackerSparqlConnection, which will use the best method
 	 * available to connect to the Tracker Store.
@@ -84,6 +105,7 @@ public abstract class Tracker.Sparql.Connection : Object {
 
 	/**
 	 * tracker_sparql_connection_get_direct:
+	 * @error: #GError for error reporting.
 	 *
 	 * Returns a new #TrackerSparqlConnection, which uses direct-access method
 	 * to connect to the Tracker Store.
@@ -325,7 +347,6 @@ public abstract class Tracker.Sparql.Connection : Object {
 	 * been commited to the store. Only applies to
 	 * tracker_sparql_connection_update_async() with the right priority
 	 * (Priority is used to identify batch updates.)
-	 * Executes asynchronously a SPARQL update on the store.
 	 */
 
 	/**
@@ -340,20 +361,85 @@ public abstract class Tracker.Sparql.Connection : Object {
 		warning ("Interface 'update_commit_async' not implemented");
 	}
 
-	// Import
+	/**
+	 * tracker_sparql_connection_import:
+	 * @self: a #TrackerSparqlConnection
+	 * @file: a #GFile
+	 * @cancellable: a #GCancellable used to cancel the operation
+	 * @error: #GError for error reporting.
+	 *
+	 * Loads a Turtle file (TTL) into the store. The API call is completely
+	 * synchronous, so it may block.
+	 */
 	public virtual void import (File file, Cancellable? cancellable = null) throws Sparql.Error {
 		warning ("Interface 'import' not implemented");
 	}
+
+	/**
+	 * tracker_sparql_connection_import_async:
+	 * @self: a #TrackerSparqlConnection
+	 * @file: a #GFile
+	 * @_callback_: user-defined #GAsyncReadyCallback to be called when
+	 *              asynchronous operation is finished.
+	 * @_user_data_: user-defined data to be passed to @_callback_
+	 * @cancellable: a #GCancellable used to cancel the operation
+	 *
+	 * Loads, asynchronously, a Turtle file (TTL) into the store.
+	 */
+
+	/**
+	 * tracker_sparql_connection_import_finish:
+	 * @self: a #TrackerSparqlConnection
+	 * @_res_: a #GAsyncResult with the result of the operation
+	 * @error: #GError for error reporting.
+	 *
+	 * Finishes the asynchronous load of the Turtle file.
+	 */
 	public async virtual void import_async (File file, Cancellable? cancellable = null) throws Sparql.Error {
 		warning ("Interface 'import_async' not implemented");
 	}
 
-	// Statistics
+	/**
+	 * tracker_sparql_connection_statistics:
+	 * @self: a #TrackerSparqlConnection
+	 * @cancellable: a #GCancellable used to cancel the operation
+	 * @error: #GError for error reporting.
+	 *
+	 * Retrieves the statistics from the Store. The API call is completely
+	 * synchronous, so it may block.
+	 *
+	 * Returns: a #TrackerSparqlCursor to iterate the reply if successful, #NULL
+	 * on error. Call g_object_unref() on the returned cursor when no longer
+	 * needed.
+	 */
 	public virtual Cursor? statistics (Cancellable? cancellable = null) throws Sparql.Error {
 		warning ("Interface 'statistics' not implemented");
 		return null;
 	}
 
+	/**
+	 * tracker_sparql_connection_statistics_async:
+	 * @self: a #TrackerSparqlConnection
+	 * @_callback_: user-defined #GAsyncReadyCallback to be called when
+	 *              asynchronous operation is finished.
+	 * @_user_data_: user-defined data to be passed to @_callback_
+	 * @cancellable: a #GCancellable used to cancel the operation
+	 *
+	 * Retrieves, asynchronously, the statistics from the Store.
+	 */
+
+	/**
+	 * tracker_sparql_connection_statistics_finish:
+	 * @self: a #TrackerSparqlConnection
+	 * @_res_: a #GAsyncResult with the result of the operation
+	 * @error: #GError for error reporting.
+	 *
+	 * Finishes the asynchronous retrieval of statistics from the Store.
+	 *
+	 * Returns: a #TrackerSparqlCursor to iterate the reply if successful, #NULL
+	 * on error. Call g_object_unref() on the returned cursor when no longer
+	 * needed.
+	 */
 	public async virtual Cursor? statistics_async (Cancellable? cancellable = null) throws Sparql.Error {
 		warning ("Interface 'statistics_async' not implemented");
 		return null;

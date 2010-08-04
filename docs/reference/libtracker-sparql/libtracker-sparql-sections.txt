@@ -67,6 +67,7 @@ tracker_sparql_builder_construct_update
 <SECTION>
 <FILE>tracker-sparql-connection</FILE>
 <TITLE>TrackerSparqlConnection</TITLE>
+TrackerSparqlError
 TrackerSparqlConnection
 tracker_sparql_connection_get
 tracker_sparql_connection_get_direct
@@ -107,4 +108,33 @@ TRACKER_DBUS_OBJECT_STEROIDS
 TRACKER_DBUS_SERVICE
 TrackerSparqlConnectionPrivate
 tracker_sparql_connection_construct
+tracker_sparql_error_quark
+</SECTION>
+
+
+<SECTION>
+<FILE>tracker-sparql-cursor</FILE>
+<TITLE>TrackerSparqlCursor</TITLE>
+TrackerSparqlCursor
+tracker_sparql_cursor_get_connection
+tracker_sparql_cursor_get_n_columns
+tracker_sparql_cursor_get_string
+tracker_sparql_cursor_get_type
+tracker_sparql_cursor_next
+tracker_sparql_cursor_next_async
+tracker_sparql_cursor_next_finish
+tracker_sparql_cursor_rewind
+tracker_sparql_cursor_set_connection
+<SUBSECTION Standard>
+TrackerSparqlCursorClass
+TRACKER_SPARQL_CURSOR
+TRACKER_SPARQL_CURSOR_CLASS
+TRACKER_SPARQL_CURSOR_GET_CLASS
+TRACKER_SPARQL_ERROR
+TRACKER_SPARQL_IS_CURSOR
+TRACKER_SPARQL_IS_CURSOR_CLASS
+TRACKER_SPARQL_TYPE_CURSOR
+<SUBSECTION Private>
+TrackerSparqlCursorPrivate
+tracker_sparql_cursor_construct
 </SECTION>

@@ -54,6 +54,12 @@ tracker_store_SOURCES =							\
 	tracker-status.c						\
 	tracker-status.h
 
+if HAVE_DBUS_FD_PASSING
+tracker_store_SOURCES +=						\
+	tracker-steroids.c						\
+	tracker-steroids.h
+endif
+
 if OS_WIN32
 tracker_store_win_libs = -lws2_32 -lkernel32
 endif
@@ -61,9 +67,7 @@ endif
 tracker_store_LDADD =							\
 	$(plugin_libs)							\
 	$(top_builddir)/src/libtracker-data/libtracker-data.la		\
-	$(top_builddir)/src/libtracker-db/libtracker-db.la 		\
 	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
-	$(top_builddir)/src/libstemmer/libstemmer.la	 		\
 	$(SQLITE3_LIBS)							\
 	$(DBUS_LIBS)							\
 	$(GIO_LIBS)							\

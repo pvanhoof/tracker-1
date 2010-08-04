@@ -121,73 +121,85 @@ read_toc (GooList  *items,
 
 		switch (link_action->getKind()) {
 			case actionGoTo: {
-				guint title_length = item->getTitleLength ();
 				LinkGoTo *gto = dynamic_cast <LinkGoTo *> (link_action);
-				GooString *named_dest = gto->getNamedDest ();
 
-				if (title_length > 0) {
-					gchar *str = unicode_to_char (item->getTitle(),
-					                              title_length);
-					g_string_append_printf (*toc, "%s ", str);
-					g_free (str);
+				if (gto) {
+					guint title_length = item->getTitleLength ();
+					GooString *named_dest = gto->getNamedDest ();
+
+					if (title_length > 0) {
+						gchar *str = unicode_to_char (item->getTitle(),
+						                              title_length);
+						g_string_append_printf (*toc, "%s ", str);
+						g_free (str);
+					}
+
+					if (named_dest)
+						g_string_append_printf (*toc, "%s ", named_dest->getCString ());
 				}
-
-				if (named_dest)
-					g_string_append_printf (*toc, "%s ", named_dest->getCString ());
 
 				break;
 			}
 
 			case actionLaunch: {
-				guint title_length = item->getTitleLength ();
 				LinkLaunch *lan = dynamic_cast <LinkLaunch *> (link_action);
-				GooString *filen, *param;
 
-				filen = lan->getFileName();
-				param = lan->getParams();
+				if (lan) {
+					guint title_length = item->getTitleLength ();
+					GooString *filen, *param;
 
-				if (title_length > 0) {
-					gchar *str = unicode_to_char (item->getTitle(),
-					                              title_length);
-					g_string_append_printf (*toc, "%s ", str);
-					g_free (str);
+					filen = lan->getFileName();
+					param = lan->getParams();
+
+					if (title_length > 0) {
+						gchar *str = unicode_to_char (item->getTitle(),
+						                              title_length);
+						g_string_append_printf (*toc, "%s ", str);
+						g_free (str);
+					}
+
+					if (filen)
+						g_string_append_printf (*toc, "%s ", filen->getCString ());
+
+					if (param)
+						g_string_append_printf (*toc, "%s ", param->getCString ());
 				}
-
-				if (filen)
-					g_string_append_printf (*toc, "%s ", filen->getCString ());
-
-				if (param)
-					g_string_append_printf (*toc, "%s ", param->getCString ());
 
 				break;
 			}
 
 			case actionURI: {
 				LinkURI *uri = dynamic_cast <LinkURI *> (link_action);
-				GooString *muri;
 
-				muri = uri->getURI();
+				if (uri) {
+					GooString *muri;
 
-				if (muri)
-					g_string_append_printf (*toc, "%s ", muri->getCString ());
+					muri = uri->getURI();
+
+					if (muri)
+						g_string_append_printf (*toc, "%s ", muri->getCString ());
+				}
 
 				break;
 			}
 
 			case actionNamed: {
-				guint title_length = item->getTitleLength ();
 				LinkNamed *named = dynamic_cast <LinkNamed *> (link_action);
-				GooString *named_dest = named->getName ();
 
-				if (title_length > 0) {
-					gchar *str = unicode_to_char (item->getTitle(),
-					                              title_length);
-					g_string_append_printf (*toc, "%s ", str);
-					g_free (str);
+				if (named) {
+					GooString *named_dest = named->getName ();
+					guint title_length = item->getTitleLength ();
+
+					if (title_length > 0) {
+						gchar *str = unicode_to_char (item->getTitle(),
+						                              title_length);
+						g_string_append_printf (*toc, "%s ", str);
+						g_free (str);
+					}
+
+					if (named_dest)
+						g_string_append_printf (*toc, "%s ", named_dest->getCString ());
 				}
-
-				if (named_dest)
-					g_string_append_printf (*toc, "%s ", named_dest->getCString ());
 
 				break;
 			}
@@ -251,42 +263,6 @@ read_outline (PDFDoc               *document,
 	}
 }
 
-static void
-insert_keywords (TrackerSparqlBuilder *metadata,
-                 gchar                *keywords)
-{
-	char *saveptr, *p;
-	size_t len;
-
-	p = keywords;
-	keywords = strchr (keywords, '"');
-
-	if (keywords) {
-		keywords++;
-	} else {
-		keywords = p;
-	}
-
-	len = strlen (keywords);
-	if (keywords[len - 1] == '"') {
-		keywords[len - 1] = '\0';
-	}
-
-	for (p = strtok_r (keywords, ",;", &saveptr);
-	     p;
-	     p = strtok_r (NULL, ",;", &saveptr)) {
-		tracker_sparql_builder_predicate (metadata, "nao:hasTag");
-
-		tracker_sparql_builder_object_blank_open (metadata);
-		tracker_sparql_builder_predicate (metadata, "a");
-		tracker_sparql_builder_object (metadata, "nao:Tag");
-
-		tracker_sparql_builder_predicate (metadata, "nao:prefLabel");
-		tracker_sparql_builder_object_unvalidated (metadata, p);
-
-		tracker_sparql_builder_object_blank_close (metadata);
-	}
-}
 
 static void
 page_get_size (Page    *page,
@@ -314,26 +290,30 @@ page_get_size (Page    *page,
 
 static gchar *
 extract_content (PDFDoc *document,
-                 guint   n_words)
+                 gsize   n_bytes)
 {
 	Page *page;
 	Catalog *catalog;
 	GString *string;
-	gint n_pages, i, words;
-	gchar *t;
+	gint n_pages, i;
+	gsize n_bytes_remaining;
+	GTimer *timer;
 
 	n_pages = document->getNumPages();
 	string = g_string_new ("");
-	words = i = 0;
+	i = 0;
+	n_bytes_remaining = n_bytes;
 	catalog = document->getCatalog();
 
-	while (i < n_pages && words < n_words) {
-		guint normalized_words = 0;
+	timer = g_timer_new ();
+
+	while (i < n_pages && n_bytes_remaining > 0 && g_timer_elapsed (timer, NULL) < 5) {
 		Gfx *gfx;
 		GooString *sel_text;
 		TextOutputDev *text_dev;
 		PDFRectangle pdf_selection;
 		gdouble height = 0, width = 0;
+		gsize len_to_validate;
 
 		page = catalog->getPage (i + 1);
 		i++;
@@ -360,23 +340,33 @@ extract_content (PDFDoc *document,
 
 		sel_text = text_dev->getSelectionText (&pdf_selection, selectionStyleWord);
 
-		t = tracker_text_normalize (sel_text->getCString (), n_words - words, &normalized_words);
+		len_to_validate = MIN (n_bytes_remaining, strlen (sel_text->getCString ()));
 
-		words += normalized_words;
-		g_string_append (string, t);
+		if (tracker_text_validate_utf8 (sel_text->getCString (),
+		                                len_to_validate,
+		                                &string,
+		                                NULL)) {
+			/* A whitespace is added to separate next strings appended */
+			g_string_append_c (string, ' ');
+		}
 
-		g_free (t);
+		/* Update accumulated UTF-8 bytes read */
+		n_bytes_remaining -= len_to_validate;
 
 		delete gfx;
 		delete text_dev;
+		delete sel_text;
 	}
+
+	g_timer_destroy (timer);
 
 	return g_string_free (string, FALSE);
 }
 
 static void
 write_pdf_data (PDFData               data,
-                TrackerSparqlBuilder *metadata)
+                TrackerSparqlBuilder *metadata,
+                GPtrArray            *keywords)
 {
 	if (!tracker_is_empty_string (data.title)) {
 		tracker_sparql_builder_predicate (metadata, "nie:title");
@@ -404,7 +394,7 @@ write_pdf_data (PDFData               data,
 	}
 
 	if (!tracker_is_empty_string (data.keywords)) {
-		insert_keywords (metadata, data.keywords);
+		tracker_keywords_parse (keywords, data.keywords);
 	}
 }
 
@@ -494,19 +484,28 @@ extract_pdf (const gchar          *uri,
              TrackerSparqlBuilder *preupdate,
              TrackerSparqlBuilder *metadata)
 {
-	TrackerFTSConfig *fts_config;
+	TrackerConfig *config;
 	TrackerXmpData *xd = NULL;
 	PDFData pd = { 0 }; /* actual data */
 	PDFData md = { 0 }; /* for merging */
 	PDFDoc *document;
 	gchar *content;
-	guint n_words;
+	gsize n_bytes;
 	Object obj;
 	Catalog *catalog;
+	GPtrArray *keywords;
+	guint i;
 
 	g_type_init ();
 
 	document = poppler_document_new_pdf_from_file (uri, NULL);
+
+	if (!document) {
+		g_warning ("Could not create PopplerDocument from uri:'%s', "
+		           "NULL returned without an error",
+		           uri);
+		return;
+	}
 
 	if (!document->isOk()) {
 		int fopen_errno;
@@ -537,13 +536,6 @@ extract_pdf (const gchar          *uri,
 		return;
 	}
 
-	if (!document) {
-		g_warning ("Could not create PopplerDocument from uri:'%s', "
-		           "NULL returned without an error",
-		           uri);
-		return;
-	}
-
 	tracker_sparql_builder_predicate (metadata, "a");
 	tracker_sparql_builder_object (metadata, "nfo:PaginatedTextDocument");
 
@@ -561,6 +553,7 @@ extract_pdf (const gchar          *uri,
 	}
 	obj.free ();
 
+	keywords = g_ptr_array_new ();
 
 	catalog = document->getCatalog ();
 	if (catalog && catalog->isOk ()) {
@@ -583,14 +576,14 @@ extract_pdf (const gchar          *uri,
 			md.date = (gchar *) tracker_coalesce_strip (3, pd.creation_date, xd->date, xd->time_original);
 			md.author = (gchar *) tracker_coalesce_strip (2, pd.author, xd->creator);
 
-			write_pdf_data (md, metadata);
+			write_pdf_data (md, metadata, keywords);
 
 			if (xd->keywords) {
-				insert_keywords (metadata, xd->keywords);
+				tracker_keywords_parse (keywords, xd->keywords);
 			}
 
 			if (xd->pdf_keywords) {
-				insert_keywords (metadata, xd->pdf_keywords);
+				tracker_keywords_parse (keywords, xd->pdf_keywords);
 			}
 
 			if (xd->publisher) {
@@ -653,7 +646,7 @@ extract_pdf (const gchar          *uri,
 					camera = g_strdup (xd->model);
 				}
 
-				tracker_sparql_builder_predicate (metadata, "nmm:camera");
+				tracker_sparql_builder_predicate (metadata, "nfo:device");
 				tracker_sparql_builder_object_unvalidated (metadata, camera);
 				g_free (camera);
 			}
@@ -780,15 +773,39 @@ extract_pdf (const gchar          *uri,
 		/* So if we are here we have NO XMP data and we just
 		 * write what we know from Poppler.
 		 */
-		write_pdf_data (pd, metadata);
+		write_pdf_data (pd, metadata, keywords);
+
+		g_free (pd.keywords);
+		g_free (pd.title);
+		g_free (pd.subject);
+		g_free (pd.creation_date);
+		g_free (pd.author);
+		g_free (pd.date);
 	}
+
+	for (i = 0; i < keywords->len; i++) {
+		gchar *p;
+
+		p = (gchar *) g_ptr_array_index (keywords, i);
+
+		tracker_sparql_builder_predicate (metadata, "nao:hasTag");
+
+		tracker_sparql_builder_object_blank_open (metadata);
+		tracker_sparql_builder_predicate (metadata, "a");
+		tracker_sparql_builder_object (metadata, "nao:Tag");
+		tracker_sparql_builder_predicate (metadata, "nao:prefLabel");
+		tracker_sparql_builder_object_unvalidated (metadata, p);
+		tracker_sparql_builder_object_blank_close (metadata);
+		g_free (p);
+	}
+	g_ptr_array_free (keywords, TRUE);
 
 	tracker_sparql_builder_predicate (metadata, "nfo:pageCount");
 	tracker_sparql_builder_object_int64 (metadata, document->getNumPages());
 
-	fts_config = tracker_main_get_fts_config ();
-	n_words = tracker_fts_config_get_max_words_to_index (fts_config);
-	content = extract_content (document, n_words);
+	config = tracker_main_get_config ();
+	n_bytes = tracker_config_get_max_bytes (config);
+	content = extract_content (document, n_bytes);
 
 	if (content) {
 		tracker_sparql_builder_predicate (metadata, "nie:plainTextContent");

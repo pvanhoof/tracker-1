@@ -25,10 +25,9 @@
 #include <libtracker-common/tracker-utils.h>
 #include <libtracker-common/tracker-ontologies.h>
 
-#include <libtracker-db/tracker-db-dbus.h>
-#include <libtracker-db/tracker-db-manager.h>
-
 #include <libtracker-data/tracker-data.h>
+#include <libtracker-data/tracker-db-dbus.h>
+#include <libtracker-data/tracker-db-manager.h>
 
 #include "tracker-dbus.h"
 #include "tracker-resources.h"
@@ -42,6 +41,10 @@
 #include "tracker-backup.h"
 #include "tracker-backup-glue.h"
 #include "tracker-marshal.h"
+
+#ifdef HAVE_DBUS_FD_PASSING
+#include "tracker-steroids.h"
+#endif
 
 static DBusGConnection *connection;
 static DBusGProxy      *gproxy;
@@ -97,10 +100,26 @@ dbus_register_object (DBusGConnection       *lconnection,
 	dbus_g_connection_register_g_object (lconnection, path, object);
 }
 
-static gboolean
-dbus_register_names (void)
+gboolean
+tracker_dbus_register_names (void)
+{
+	/* Register the service name for org.freedesktop.Tracker */
+	if (!dbus_register_service (gproxy, TRACKER_STATISTICS_SERVICE)) {
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+gboolean
+tracker_dbus_init (void)
 {
 	GError *error = NULL;
+
+	/* Don't reinitialize */
+	if (objects) {
+		return TRUE;
+	}
 
 	if (connection) {
 		g_critical ("The DBusGConnection is already set, have we already initialized?");
@@ -129,27 +148,6 @@ dbus_register_names (void)
 	                                    DBUS_PATH_DBUS,
 	                                    DBUS_INTERFACE_DBUS);
 
-	/* Register the service name for org.freedesktop.Tracker */
-	if (!dbus_register_service (gproxy, TRACKER_STATISTICS_SERVICE)) {
-		return FALSE;
-	}
-
-	return TRUE;
-}
-
-gboolean
-tracker_dbus_init (void)
-{
-	/* Don't reinitialize */
-	if (objects) {
-		return TRUE;
-	}
-
-	/* Register names and get proxy/connection details */
-	if (!dbus_register_names ()) {
-		return FALSE;
-	}
-
 	dbus_g_proxy_add_signal (gproxy, "NameOwnerChanged",
 	                         G_TYPE_STRING,
 	                         G_TYPE_STRING,
@@ -157,27 +155,6 @@ tracker_dbus_init (void)
 	                         G_TYPE_INVALID);
 
 	return TRUE;
-}
-
-void
-tracker_dbus_shutdown (void)
-{
-	tracker_dbus_set_available (FALSE);
-
-	if (backup) {
-		g_object_unref (backup);
-	}
-
-	if (notifier) {
-		g_object_unref (notifier);
-	}
-
-	if (gproxy) {
-		g_object_unref (gproxy);
-		gproxy = NULL;
-	}
-
-	connection = NULL;
 }
 
 static void
@@ -193,8 +170,14 @@ name_owner_changed_cb (DBusGProxy *proxy,
 	}
 }
 
-void
-tracker_dbus_set_available (gboolean available)
+static void
+name_owner_changed_closure (gpointer  data,
+                            GClosure *closure)
+{
+}
+
+static void
+dbus_set_available (gboolean available)
 {
 	if (available) {
 		if (!objects) {
@@ -206,6 +189,13 @@ tracker_dbus_set_available (gboolean available)
 			                                "NameOwnerChanged",
 			                                G_CALLBACK (name_owner_changed_cb),
 			                                tracker_dbus_get_object (TRACKER_TYPE_RESOURCES));
+
+#ifdef HAVE_DBUS_FD_PASSING
+			dbus_connection_remove_filter (dbus_g_connection_get_connection (connection),
+			                               tracker_steroids_connection_filter,
+			                               tracker_dbus_get_object (TRACKER_TYPE_STEROIDS));
+#endif
+
 			g_slist_foreach (objects, (GFunc) g_object_unref, NULL);
 			g_slist_free (objects);
 			objects = NULL;
@@ -213,10 +203,25 @@ tracker_dbus_set_available (gboolean available)
 	}
 }
 
-static void
-name_owner_changed_closure (gpointer  data,
-                            GClosure *closure)
+void
+tracker_dbus_shutdown (void)
 {
+	dbus_set_available (FALSE);
+
+	if (backup) {
+		g_object_unref (backup);
+	}
+
+	if (notifier) {
+		g_object_unref (notifier);
+	}
+
+	if (gproxy) {
+		g_object_unref (gproxy);
+		gproxy = NULL;
+	}
+
+	connection = NULL;
 }
 
 TrackerStatus*
@@ -288,6 +293,21 @@ tracker_dbus_register_objects (void)
 	                      &dbus_glib_tracker_resources_object_info,
 	                      TRACKER_RESOURCES_PATH);
 	objects = g_slist_prepend (objects, object);
+
+#ifdef HAVE_DBUS_FD_PASSING
+	/* Add org.freedesktop.Tracker1.Steroids */
+	object = tracker_steroids_new ();
+	if (!object) {
+		g_critical ("Could not create TrackerSteroids object to register");
+		return FALSE;
+	}
+
+	dbus_connection_add_filter (dbus_g_connection_get_connection (connection),
+	                            tracker_steroids_connection_filter,
+	                            object,
+	                            NULL);
+	objects = g_slist_prepend (objects, object);
+#endif
 
 	/* Reverse list since we added objects at the top each time */
 	objects = g_slist_reverse (objects);
@@ -367,7 +387,7 @@ tracker_dbus_register_objects (void)
 		g_free (replaced);
 
 		/* Add a org.freedesktop.Tracker1.Resources.Class */
-		object = tracker_resource_class_new (rdf_class);
+		object = tracker_resource_class_new (rdf_class, path, connection);
 		if (!object) {
 			g_critical ("Could not create TrackerResourcesClass object to register:'%s' class",
 			            rdf_class);

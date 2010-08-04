@@ -42,8 +42,8 @@
 
 #include <libtracker-miner/tracker-miner.h>
 
-#include <libtracker-db/tracker-db-manager.h>
-#include <libtracker-db/tracker-db-dbus.h>
+#include <libtracker-data/tracker-db-manager.h>
+#include <libtracker-data/tracker-db-dbus.h>
 
 #include "tracker-config.h"
 #include "tracker-dbus.h"
@@ -61,6 +61,8 @@
 	"License which can be viewed at:\n" \
 	"\n" \
 	"  http://www.gnu.org/licenses/gpl.txt\n"
+
+#define SECONDS_PER_DAY 60 * 60 * 24
 
 static GMainLoop *main_loop;
 static GSList *miners;
@@ -192,6 +194,42 @@ initialize_priority (void)
 	}
 }
 
+static gboolean
+should_crawl (TrackerConfig *config)
+{
+	gint crawling_interval;
+
+	crawling_interval = tracker_config_get_crawling_interval (config);
+
+	g_message ("Checking whether to perform mtime checks during crawling:");
+
+	if (crawling_interval == -1) {
+		g_message ("  Disabled");
+		return FALSE;
+	} else if (crawling_interval == 0) {
+		g_message ("  Enabled");
+		return TRUE;
+	} else {
+		guint64 then, now;
+		
+		then = tracker_db_manager_get_last_crawl_done ();
+
+		if (then < 1) {
+			return TRUE;
+		}
+
+		now = (guint64) time (NULL);
+
+		if (now < then + (crawling_interval * SECONDS_PER_DAY)) {
+			g_message ("  Postponed");
+			return FALSE;
+		} else {
+			g_message ("  (More than) %d days after last crawling, enabled", crawling_interval);
+			return FALSE;
+		}
+	}
+}
+
 static void
 miner_handle_next (void)
 {
@@ -240,6 +278,11 @@ miner_finished_cb (TrackerMinerFS *fs,
 		GMainLoop *main_loop = user_data;
 		g_main_loop_quit (main_loop);
 		return;
+	}
+
+	if (TRACKER_IS_MINER_FILES (fs) &&
+	    tracker_miner_fs_get_initial_crawling (fs)) {
+		tracker_db_manager_set_last_crawl_done (TRUE);
 	}
 
 	miner_handle_next ();
@@ -586,6 +629,8 @@ main (gint argc, gchar *argv[])
 
 	if (!add_file) {
 		miner_files = tracker_miner_files_new (config);
+		tracker_miner_fs_set_initial_crawling (TRACKER_MINER_FS (miner_files),
+		                                       should_crawl (config));
 	} else {
 		GFile *file;
 

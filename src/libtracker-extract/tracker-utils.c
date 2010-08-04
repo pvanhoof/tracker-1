@@ -183,7 +183,7 @@ tracker_coalesce (gint n_values,
  * Since: 0.9
  **/
 gchar *
-tracker_merge_const (const gchar *delimiter, 
+tracker_merge_const (const gchar *delimiter,
                      gint         n_values,
                      ...)
 {
@@ -239,7 +239,7 @@ tracker_merge_const (const gchar *delimiter,
  * Deprecated: 1.0: Use tracker_merge_const() instead.
  **/
 gchar *
-tracker_merge (const gchar *delimiter, 
+tracker_merge (const gchar *delimiter,
                gint         n_values,
                ...)
 {
@@ -304,6 +304,8 @@ tracker_merge (const gchar *delimiter,
  * be freed with g_free() when finished with, otherwise %NULL.
  *
  * Since: 0.8
+ *
+ * Deprecated: 1.0: Use tracker_text_validate_utf8() instead.
  **/
 gchar *
 tracker_text_normalize (const gchar *text,
@@ -345,14 +347,69 @@ tracker_text_normalize (const gchar *text,
 	}
 
 	if (n_words) {
-                if (!in_break) {
-                        /* Count the last word */
-                        words += 1;
-                }
+		if (!in_break) {
+			/* Count the last word */
+			words += 1;
+		}
 		*n_words = words;
 	}
 
 	return g_string_free (string, FALSE);
+}
+
+/**
+ * tracker_text_validate_utf8:
+ * @text: the text to validate
+ * @text_len: length of @text, or -1 if NUL-terminated
+ * @str: the string where to place the validated UTF-8 characters, or %NULL if
+ *  not needed.
+ * @valid_len: Output number of valid UTF-8 bytes found, or %NULL if not needed
+ *
+ * This function iterates through @text checking for UTF-8 validity
+ * using g_utf8_validate(), appends the first chunk of valid characters
+ * to @str, and gives the number of valid UTF-8 bytes in @valid_len.
+ *
+ * Returns: %TRUE if some bytes were found to be valid, %FALSE otherwise.
+ *
+ * Since: 0.9
+ **/
+gboolean
+tracker_text_validate_utf8 (const gchar  *text,
+                            gssize        text_len,
+                            GString     **str,
+                            gsize        *valid_len)
+{
+	gsize len_to_validate;
+
+	g_return_val_if_fail (text, FALSE);
+
+	len_to_validate = text_len >= 0 ? text_len : strlen (text);
+
+	if (len_to_validate > 0) {
+		const gchar *end = text;
+
+		/* Validate string, getting the pointer to first non-valid character
+		 *  (if any) or to the end of the string. */
+		g_utf8_validate (text, len_to_validate, &end);
+		if (end > text) {
+			/* If str output required... */
+			if (str) {
+				/* Create string to output if not already as input */
+				*str = (*str == NULL ?
+				        g_string_new_len (text, end - text) :
+				        g_string_append_len (*str, text, end - text));
+			}
+
+			/* If utf8 len output required... */
+			if (valid_len) {
+				*valid_len = end - text;
+			}
+
+			return TRUE;
+		}
+	}
+
+	return FALSE;
 }
 
 /**
@@ -777,22 +834,8 @@ tracker_date_guess (const gchar *date_string)
 	return g_strdup (date_string);
 }
 
-/**
- * tracker_getline:
- * @linebuf: Buffer to write into
- * @n: Max bytes of linebuf
- * @stream: Filestream to read from
- *
- * Reads an entire line from stream, storing the address of the buffer
- * containing  the  text into *lineptr.  The buffer is null-terminated
- * and includes the newline character, if one was found.
- *
- * Read GNU getline()'s manpage for more information
- *
- * Since: 0.9
- **/
-
 #ifndef HAVE_GETLINE
+
 static gint
 my_igetdelim (gchar  **linebuf,
               guint   *linebufsz,
@@ -847,15 +890,54 @@ my_igetdelim (gchar  **linebuf,
 	return idx;
 }
 
+/**
+ * tracker_getline:
+ * @lineptr: Buffer to write into
+ * @n: Max bytes of linebuf
+ * @stream: Filestream to read from
+ *
+ * Reads an entire line from stream, storing the address of the buffer
+ * containing  the  text into *lineptr.  The buffer is null-terminated
+ * and includes the newline character, if one was found.
+ *
+ * Read GNU getline()'s manpage for more information
+ *
+ * Returns: the number of characters read, including the delimiter
+ * character, but not including the terminating %NULL byte. This value
+ * can be used to handle embedded %NULL bytes in the line read. Upon
+ * failure, -1 is returned.
+ *
+ * Since: 0.9
+ **/
 gssize
 tracker_getline (gchar **lineptr,
                  gsize  *n,
-                 FILE *stream)
+                 FILE   *stream)
 {
 	return my_igetdelim (lineptr, n, '\n', stream);
 }
 
 #else
+
+/**
+ * tracker_getline:
+ * @lineptr: Buffer to write into
+ * @n: Max bytes of linebuf
+ * @stream: Filestream to read from
+ *
+ * Reads an entire line from stream, storing the address of the buffer
+ * containing  the  text into *lineptr.  The buffer is null-terminated
+ * and includes the newline character, if one was found.
+ *
+ * Read GNU getline()'s manpage for more information
+ *
+ * Returns: the number of characters read, including the delimiter
+ * character, but not including the terminating %NULL byte. This value
+ * can be used to handle embedded %NULL bytes in the line read. Upon
+ * failure, -1 is returned.
+ *
+ * Since: 0.9
+ **/
 gssize
 tracker_getline (gchar **lineptr,
                  gsize  *n,
@@ -863,4 +945,70 @@ tracker_getline (gchar **lineptr,
 {
 	return getline (lineptr, n, stream);
 }
+
 #endif /* HAVE_GETLINE */
+
+
+/**
+ * tracker_keywords_parse:
+ * @store: Array where to store the keywords
+ * @keywords: Keywords line to parse
+ *
+ * Parses a keywords line into store, avoiding duplicates and stripping leading
+ * and trailing spaces from keywords. Allowed delimiters are , and ;
+ *
+ * Since: 0.9
+ **/
+void
+tracker_keywords_parse (GPtrArray   *store,
+                        const gchar *keywords)
+{
+	gchar *keywords_d = g_strdup (keywords);
+	char *saveptr, *p;
+	size_t len;
+
+	p = keywords_d;
+	keywords_d = strchr (keywords_d, '"');
+
+	if (keywords_d) {
+		keywords_d++;
+	} else {
+		keywords_d = p;
+	}
+
+	len = strlen (keywords_d);
+	if (keywords_d[len - 1] == '"') {
+		keywords_d[len - 1] = '\0';
+	}
+
+	for (p = strtok_r (keywords_d, ",;", &saveptr); p;
+	     p = strtok_r (NULL, ",;", &saveptr)) {
+		guint i;
+		gboolean found = FALSE;
+		gchar *p_do = g_strdup (p);
+		gchar *p_dup = p_do;
+		guint len = strlen (p_dup);
+
+		if (*p_dup == ' ')
+			p_dup++;
+
+		if (p_dup[len-1] == ' ')
+			p_dup[len-1] = '\0';
+
+		for (i = 0; i < store->len; i++) {
+			const gchar *earlier = g_ptr_array_index (store, i);
+			if (g_strcmp0 (earlier, p_dup) == 0) {
+				found = TRUE;
+				break;
+			}
+		}
+
+		if (!found) {
+			g_ptr_array_add (store, g_strdup (p_dup));
+		}
+
+		g_free (p_do);
+	}
+
+	g_free (keywords_d);
+}

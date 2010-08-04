@@ -77,13 +77,16 @@ entry_parsed (TotemPlParser *parser, const gchar *to_uri, GHashTable *to_metadat
 	data = (PlaylistMetadata *)user_data;
 	data->track_counter++;
 
-	tracker_sparql_builder_predicate (data->metadata, "nfo:hasMediaFileListEntry");
+	if (data->track_counter == 1) {
+		/* first track, predicate needed */
+		tracker_sparql_builder_predicate (data->metadata, "nfo:hasMediaFileListEntry");
+	}
 
 	tracker_sparql_builder_object_blank_open (data->metadata);
 	tracker_sparql_builder_predicate (data->metadata, "a");
 	tracker_sparql_builder_object (data->metadata, "nfo:MediaFileListEntry");
 
-	tracker_sparql_builder_predicate (data->metadata, "nfo:entryContent");
+	tracker_sparql_builder_predicate (data->metadata, "nfo:entryUrl");
 	tracker_sparql_builder_object_unvalidated (data->metadata, to_uri);
 
 	tracker_sparql_builder_predicate (data->metadata, "nfo:listPosition");
@@ -122,7 +125,7 @@ extract_playlist (const gchar          *uri,
 	                  G_CALLBACK (entry_parsed), &data);
 
 	tracker_sparql_builder_predicate (metadata, "a");
-	tracker_sparql_builder_object (metadata, "nfo:MediaList");
+	tracker_sparql_builder_object (metadata, "nmm:Playlist");
 
 	result = totem_pl_parser_parse (pl, uri, FALSE);
 

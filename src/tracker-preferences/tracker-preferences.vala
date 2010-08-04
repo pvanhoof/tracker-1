@@ -34,7 +34,6 @@ public static CheckButton checkbutton_enable_index_on_battery_first_time;
 public static CheckButton checkbutton_enable_index_on_battery;
 public static SpinButton spinbutton_delay;
 public static CheckButton checkbutton_enable_monitoring;
-public static CheckButton checkbutton_index_mounted_directories;
 public static CheckButton checkbutton_index_removable_media;
 public static CheckButton checkbutton_index_optical_discs;
 public static Scale hscale_disk_space_limit;
@@ -50,6 +49,7 @@ public static TreeView treeview_ignored_directories;
 public static TreeView treeview_ignored_directories_with_content;
 public static TreeView treeview_ignored_files;
 public static ToggleButton togglebutton_home;
+public static Notebook notebook;
 public static RadioButton radiobutton_display_never;
 public static RadioButton radiobutton_display_active;
 public static RadioButton radiobutton_display_always;
@@ -89,10 +89,6 @@ public static void checkbutton_enable_index_on_battery_toggled_cb (CheckButton s
 
 public static void checkbutton_enable_index_on_battery_first_time_toggled_cb (CheckButton source) {
 	config.index_on_battery_first_time = source.active;
-}
-
-public static void checkbutton_index_mounted_directories_toggled_cb (CheckButton source) {
-	config.index_mounted_directories = source.active;
 }
 
 public static void checkbutton_index_removable_media_toggled_cb (CheckButton source) {
@@ -321,7 +317,17 @@ fill_in_model (ListStore model, SList<string> list)
 {
 	int position = 0;
 	foreach (string str in list) {
-		model.insert_with_values (null, position++, 0, str);
+		try {
+			model.insert_with_values (null,
+			                          position++,
+			                          0,
+			                          Filename.to_utf8 (str,
+			                                            -1,
+			                                            null,
+			                                            null));
+		} catch (GLib.ConvertError e) {
+			print ("%s", e.message);
+		}
 	}
 }
 
@@ -355,8 +361,6 @@ static int main (string[] args) {
 		spinbutton_delay.value = (double) config.initial_sleep;
 		checkbutton_enable_monitoring = builder.get_object ("checkbutton_enable_monitoring") as CheckButton;
 		checkbutton_enable_monitoring.active = config.enable_monitors;
-		checkbutton_index_mounted_directories = builder.get_object ("checkbutton_index_mounted_directories") as CheckButton;
-		checkbutton_index_mounted_directories.active = config.index_mounted_directories;
 		checkbutton_index_removable_media = builder.get_object ("checkbutton_index_removable_media") as CheckButton;
 		checkbutton_index_removable_media.active = config.index_removable_devices;
 		checkbutton_index_optical_discs = builder.get_object ("checkbutton_index_optical_discs") as CheckButton;
@@ -368,10 +372,20 @@ static int main (string[] args) {
 		hscale_throttle.set_value ((double) config.throttle);
 		togglebutton_home = builder.get_object ("togglebutton_home") as ToggleButton;
 
+		notebook = builder.get_object ("notebook") as Notebook;
+
 		radiobutton_display_never = builder.get_object ("radiobutton_display_never") as RadioButton;
 		radiobutton_display_active = builder.get_object ("radiobutton_display_active") as RadioButton;
 		radiobutton_display_always = builder.get_object ("radiobutton_display_always") as RadioButton;
 		initialize_visibility_radiobutton ();
+
+		/* Note: if the General tab ever has more config parameters than those
+		 *  of the status icon, then don't remove the page, just the status-icon
+		 *  related parameters */
+		if (!HAVE_TRACKER_STATUS_ICON) {
+			/* Page #0 is the Contents page */
+			notebook.remove_page (0);
+		}
 
 		treeview_index_recursively = builder.get_object ("treeview_index_recursively") as TreeView;
 		treeview_index_single = builder.get_object ("treeview_index_single") as TreeView;

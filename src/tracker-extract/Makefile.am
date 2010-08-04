@@ -3,6 +3,9 @@ include $(top_srcdir)/Makefile.decl
 module_flags = -module -avoid-version -no-undefined
 modulesdir = $(libdir)/tracker-$(TRACKER_API_VERSION)/extract-modules
 
+AM_CFLAGS = $(WARN_CFLAGS)
+AM_CXXFLAGS = $(WARN_CXXFLAGS)
+
 INCLUDES = 								\
 	-DLOCALEDIR=\""$(localedir)"\" 					\
 	-DTRACKER_EXTRACTORS_DIR=\"$(modulesdir)\"			\
@@ -11,8 +14,8 @@ INCLUDES = 								\
 	-I$(top_srcdir)/src 						\
 	-I$(top_builddir)/src						\
 	-I$(top_builddir)/src/libtracker-client				\
-	$(WARN_CFLAGS)							\
 	$(GLIB2_CFLAGS)							\
+	$(GIO_CFLAGS)							\
 	$(GCOV_CFLAGS)							\
 	$(GDKPIXBUF_CFLAGS)						\
 	$(GMODULE_CFLAGS) 						\
@@ -321,13 +324,14 @@ tracker_extract_SOURCES = 						\
 	tracker-dbus.h							\
 	tracker-extract.c						\
 	tracker-extract.h						\
-	tracker-fts-config.c						\
-	tracker-fts-config.h						\
+	tracker-read.c							\
+	tracker-read.h							\
 	tracker-main.c							\
 	tracker-main.h							\
 	tracker-albumart-generic.h
 
 tracker_extract_LDADD = 						\
+	$(top_builddir)/src/libtracker-extract/libtracker-extract-@TRACKER_API_VERSION@.la \
 	$(top_builddir)/src/libtracker-client/libtracker-client-@TRACKER_API_VERSION@.la \
 	$(top_builddir)/src/libtracker-miner/libtracker-miner-@TRACKER_API_VERSION@.la \
 	$(top_builddir)/src/libtracker-common/libtracker-common.la	\

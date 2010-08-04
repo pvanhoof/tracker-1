@@ -27,9 +27,8 @@
 #include <libtracker-common/tracker-dbus.h>
 #include <libtracker-common/tracker-ontologies.h>
 
-#include <libtracker-db/tracker-db-dbus.h>
-
 #include <libtracker-data/tracker-data-update.h>
+#include <libtracker-data/tracker-db-dbus.h>
 
 #include "tracker-dbus.h"
 #include "tracker-events.h"
@@ -40,13 +39,11 @@
 
 typedef struct {
 	gchar *rdf_class;
-	GPtrArray *adds, *ups, *dels;
-	GStringChunk *changed_strings;
+	gchar *dbus_path;
+	GHashTable *adds_table, *ups_table, *dels_table;
+	GArray *ups;
+	DBusConnection *connection;
 } TrackerResourceClassPrivate;
-
-typedef struct {
-	gchar *uri, *predicate;
-} ChangedItem;
 
 enum {
 	SUBJECTS_ADDED,
@@ -69,6 +66,9 @@ tracker_resource_class_class_init (TrackerResourceClassClass *klass)
 	object_class = G_OBJECT_CLASS (klass);
 
 	object_class->finalize = tracker_resource_class_finalize;
+
+	/* Not used by the code, but left here for the D-Bus introspection to work
+	 * right (for our beloved d-feet users) */
 
 	signals[SUBJECTS_ADDED] =
 		g_signal_new ("subjects-added",
@@ -116,61 +116,97 @@ tracker_resource_class_init (TrackerResourceClass *object)
 }
 
 static void
-emit_strings (TrackerResourceClass *object, gint signal_, GPtrArray *array)
+emit_strings (TrackerResourceClass *object,
+              const gchar          *signal_name,
+              GHashTable           *table)
 {
-	GStrv strings_to_emit;
-	guint i;
+	TrackerResourceClassPrivate *priv;
 
-	if (array->len > 0) {
-		strings_to_emit = (GStrv) g_malloc0  (sizeof (gchar *) * (array->len + 1));
+	priv = TRACKER_RESOURCE_CLASS_GET_PRIVATE (object);
 
-		for (i = 0; i < array->len; i++) {
-			strings_to_emit[i] = array->pdata [i];
+	if (g_hash_table_size (table) > 0) {
+		GHashTableIter table_iter;
+		gpointer key, value;
+		DBusMessageIter iter;
+		DBusMessageIter strv_iter;
+		DBusMessage *message;
+
+		message = dbus_message_new_signal (priv->dbus_path,
+		                                   TRACKER_RESOURCES_CLASS_INTERFACE,
+		                                   signal_name);
+
+		dbus_message_iter_init_append (message, &iter);
+
+		dbus_message_iter_open_container (&iter, DBUS_TYPE_ARRAY, 
+		                                  DBUS_TYPE_STRING_AS_STRING, &strv_iter);
+
+		g_hash_table_iter_init (&table_iter, table);
+		while (g_hash_table_iter_next (&table_iter, &key, &value)) {
+			dbus_message_iter_append_basic (&strv_iter, DBUS_TYPE_STRING, &key);
 		}
 
-		g_signal_emit (object, signal_, 0, strings_to_emit);
+		dbus_message_iter_close_container (&iter, &strv_iter);
 
-		/* Normal free, not a GStrv free, we free the strings later */
-		g_free (strings_to_emit);
+		dbus_connection_send (priv->connection, message, NULL);
+
+		dbus_message_unref (message);
 	}
 }
 
 static void
-emit_changed_strings (TrackerResourceClass *object, GPtrArray *array)
+emit_changed_strings (TrackerResourceClass *object,
+                      GHashTable           *table)
 {
-	GStrv stringsa_to_emit;
-	GStrv stringsb_to_emit;
+	TrackerResourceClassPrivate *priv;
 
-	guint i;
+	priv = TRACKER_RESOURCE_CLASS_GET_PRIVATE (object);
 
-	if (array->len > 0) {
-		stringsa_to_emit = (GStrv) g_malloc0  (sizeof (gchar *) * (array->len + 1));
-		stringsb_to_emit = (GStrv) g_malloc0  (sizeof (gchar *) * (array->len + 1));
+	if (g_hash_table_size (table) > 0) {
+		GHashTableIter table_iter;
+		gpointer key, value;
+		DBusMessageIter iter;
+		DBusMessageIter strv1_iter;
+		DBusMessageIter strv2_iter;
+		DBusMessage *message;
 
-		for (i = 0; i < array->len; i++) {
-			ChangedItem *item = array->pdata [i];
+		message = dbus_message_new_signal (priv->dbus_path,
+		                                   TRACKER_RESOURCES_CLASS_INTERFACE,
+		                                   "SubjectsChanged");
 
-			stringsa_to_emit[i] = item->uri;
-			stringsb_to_emit[i] = item->predicate;
+		dbus_message_iter_init_append (message, &iter);
+
+		dbus_message_iter_open_container (&iter, DBUS_TYPE_ARRAY, 
+		                                  DBUS_TYPE_STRING_AS_STRING, &strv1_iter);
+
+		g_hash_table_iter_init (&table_iter, table);
+		while (g_hash_table_iter_next (&table_iter, &key, &value)) {
+			const gchar *uri = value;
+			dbus_message_iter_append_basic (&strv1_iter, DBUS_TYPE_STRING, &uri);
 		}
 
-		g_signal_emit (object, signals[SUBJECTS_CHANGED], 0,
-		               stringsa_to_emit, stringsb_to_emit);
+		dbus_message_iter_close_container (&iter, &strv1_iter);
 
-		/* Normal free, not a GStrv free, we free the items later */
-		g_free (stringsa_to_emit);
-		g_free (stringsb_to_emit);
-	}
-}
+		dbus_message_iter_open_container (&iter, DBUS_TYPE_ARRAY, 
+		                                  DBUS_TYPE_STRING_AS_STRING, &strv2_iter);
 
-static void
-free_changed_array (GPtrArray *array)
-{
-	guint i;
-	for (i = 0; i < array->len; i++) {
-		g_slice_free (ChangedItem, array->pdata [i]);
+		g_hash_table_iter_init (&table_iter, table);
+		while (g_hash_table_iter_next (&table_iter, &key, &value)) {
+			const gchar *uri, *predicate_uri;
+			TrackerProperty *predicate;
+
+			/* key is: uri ^ predicate */
+			uri = value;
+			predicate = (gpointer) ((gsize) key ^ (gsize) uri);
+			predicate_uri = tracker_property_get_uri (predicate);
+			dbus_message_iter_append_basic (&strv2_iter, DBUS_TYPE_STRING, &predicate_uri);
+		}
+
+		dbus_message_iter_close_container (&iter, &strv2_iter);
+
+		dbus_connection_send (priv->connection, message, NULL);
+
+		dbus_message_unref (message);
 	}
-	g_ptr_array_free (array, TRUE);
 }
 
 void
@@ -180,27 +216,22 @@ tracker_resource_class_emit_events (TrackerResourceClass  *object)
 
 	priv = TRACKER_RESOURCE_CLASS_GET_PRIVATE (object);
 
-	if (priv->adds) {
-		emit_strings (object, signals[SUBJECTS_ADDED], priv->adds);
-		g_ptr_array_free (priv->adds, TRUE);
-		priv->adds = NULL;
+	if (priv->adds_table) {
+		emit_strings (object, "SubjectsAdded", priv->adds_table);
+		g_hash_table_unref (priv->adds_table);
+		priv->adds_table = NULL;
 	}
 
-	if (priv->ups) {
-		emit_changed_strings (object, priv->ups);
-		free_changed_array (priv->ups);
-		priv->ups = NULL;
+	if (priv->ups_table) {
+		emit_changed_strings (object, priv->ups_table);
+		g_hash_table_unref (priv->ups_table);
+		priv->ups_table = NULL;
 	}
 
-	if (priv->dels) {
-		emit_strings (object, signals[SUBJECTS_REMOVED], priv->dels);
-		g_ptr_array_free (priv->dels, TRUE);
-		priv->dels = NULL;
-	}
-
-	if (priv->changed_strings) {
-		g_string_chunk_free (priv->changed_strings);
-		priv->changed_strings = NULL;
+	if (priv->dels_table) {
+		emit_strings (object, "SubjectsRemoved", priv->dels_table);
+		g_hash_table_unref (priv->dels_table);
+		priv->dels_table = NULL;
 	}
 
 }
@@ -217,12 +248,16 @@ tracker_resource_class_finalize (GObject *object)
 	tracker_resource_class_emit_events ((TrackerResourceClass *) object);
 
 	g_free (priv->rdf_class);
+	g_free (priv->dbus_path);
+	dbus_connection_unref (priv->connection);
 
 	G_OBJECT_CLASS (tracker_resource_class_parent_class)->finalize (object);
 }
 
 TrackerResourceClass *
-tracker_resource_class_new (const gchar *rdf_class)
+tracker_resource_class_new (const gchar     *rdf_class,
+                            const gchar     *dbus_path,
+                            DBusGConnection *connection)
 {
 	TrackerResourceClass         *object;
 	TrackerResourceClassPrivate *priv;
@@ -232,6 +267,8 @@ tracker_resource_class_new (const gchar *rdf_class)
 	priv = TRACKER_RESOURCE_CLASS_GET_PRIVATE (object);
 
 	priv->rdf_class = g_strdup (rdf_class);
+	priv->dbus_path = g_strdup (dbus_path);
+	priv->connection = dbus_connection_ref (dbus_g_connection_get_connection (connection));
 
 	return object;
 }
@@ -247,89 +284,47 @@ tracker_resource_class_get_rdf_class (TrackerResourceClass  *object)
 	return priv->rdf_class;
 }
 
-static gboolean
-has_already (GPtrArray *array, const gchar *uri)
-{
-	guint i;
-
-	if (!array) {
-		return FALSE;
-	}
-
-	for (i = 0; i < array->len; i++) {
-		if (g_strcmp0 (g_ptr_array_index (array, i), uri) == 0) {
-			return TRUE;
-		}
-	}
-
-	return FALSE;
-}
-
-/*
-  static gboolean
-  changed_has_already (GPtrArray *array, const gchar *uri, const gchar *predicate)
-  {
-  guint i;
-
-  if (!array) {
-  return FALSE;
-  }
-
-  for (i = 0; i < array->len; i++) {
-  ChangedItem *item = g_ptr_array_index (array, i);
-  if (g_strcmp0 (item->uri, uri) == 0 && g_strcmp0 (item->predicate, predicate) == 0) {
-  return TRUE;
-  }
-  }
-
-  return FALSE;
-  }
-*/
-
 void
 tracker_resource_class_add_event (TrackerResourceClass  *object,
                                   const gchar           *uri,
-                                  const gchar           *predicate,
+                                  TrackerProperty       *predicate,
                                   TrackerDBusEventsType type)
 {
 	TrackerResourceClassPrivate *priv;
+	gpointer hash_key;
 
 	priv = TRACKER_RESOURCE_CLASS_GET_PRIVATE (object);
 
-	if (!priv->changed_strings) {
-		/* Default size a bit longer than this sample uri */
-		priv->changed_strings = g_string_chunk_new (strlen (uri) + 10);
-	}
+	/* We reuse the strings we get from tracker-events without copying
+	   to keep memory usage low. Code in tracker-resources.c guarantees
+	   that they are not freed too early. */
 
 	switch (type) {
 	case TRACKER_DBUS_EVENTS_TYPE_ADD:
-		if (!has_already (priv->adds, uri)) {
-			if (!priv->adds)
-				priv->adds = g_ptr_array_new ();
-			g_ptr_array_add (priv->adds, g_string_chunk_insert_const (priv->changed_strings, uri));
+
+		if (!priv->adds_table) {
+			priv->adds_table = g_hash_table_new (NULL, NULL);
 		}
+
+		g_hash_table_insert (priv->adds_table, (gpointer) uri, GINT_TO_POINTER (TRUE));
 		break;
-	case TRACKER_DBUS_EVENTS_TYPE_UPDATE: {
-		/* Duplicate checking slows down too much
-		   if (!changed_has_already (priv->ups, uri, predicate)) { */
-		ChangedItem *item;
+	case TRACKER_DBUS_EVENTS_TYPE_UPDATE:
 
-		item = g_slice_new (ChangedItem);
+		if (!priv->ups_table) {
+			priv->ups_table = g_hash_table_new (NULL, NULL);
+		}
 
-		item->uri = g_string_chunk_insert_const (priv->changed_strings, uri);
-		item->predicate = g_string_chunk_insert_const (priv->changed_strings, predicate);
+		hash_key = (gpointer) ((gsize) uri ^ (gsize) predicate);
 
-		if (!priv->ups)
-			priv->ups = g_ptr_array_new ();
-		g_ptr_array_add (priv->ups, item);
-	}
+		g_hash_table_insert (priv->ups_table, (gpointer) hash_key, (gpointer)  uri);
 		break;
 	case TRACKER_DBUS_EVENTS_TYPE_DELETE:
-		if (!has_already (priv->dels, uri)) {
-			if (!priv->dels)
-				priv->dels = g_ptr_array_new ();
-			g_ptr_array_add (priv->dels, g_string_chunk_insert_const (priv->changed_strings, uri));
+
+		if (!priv->dels_table) {
+			priv->dels_table = g_hash_table_new (NULL, NULL);
 		}
+
+		g_hash_table_insert (priv->dels_table, (gpointer) uri, GINT_TO_POINTER (TRUE));
 		break;
 	default:
 		break;

@@ -24,8 +24,6 @@
 33-nfo:
 * nfo:fileLastModified:
   - The miner-fs uses this property during crawling a lot
-* nfo:belongsToContainer:
-  - The miner-fs uses this property during crawling a lot
 
 34-nmo:
 * nmo:from:
@@ -42,6 +40,7 @@
 
 * nmo:sentDate:
   - Used for sorting messages when displaying all messages (or rather the last N).
+  - Secondary index for nmo:communicationChannel
 
 * nmo:conversation:
   - Used for retrieving all messages of a specific conversation.
@@ -49,6 +48,7 @@
 * nmo:communicationChannel:
   - Used for displaying all conversations on a specific channel (for example,
   all conversations with a specific contact).
+  - Secondary index on nmo:sentDate
 
 * nmo:lastMessageDate:
   - Used for sorting the list of all channels by time of last message.
@@ -68,6 +68,9 @@
 * nmm:performer:
   - Used for retrieving songs by a performer.
   - Used in cases where fts:match is done against the performer as well as the song.
+
+* nie:title domainIndex for nmm:MusicPiece
+  - Used to improve performance of ORDER BY on nie:title
 
 40-mlo:
 * mlo:location:

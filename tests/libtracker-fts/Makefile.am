@@ -4,10 +4,14 @@ SUBDIRS = 			\
 	limits			\
 	prefix
 
-noinst_PROGRAMS = $(TEST_PROGS)
+noinst_PROGRAMS = 							\
+	$(TEST_PROGS) 							\
+	tracker-parser
+
 
 TEST_PROGS += 								\
-	tracker-fts
+	tracker-fts-test 						\
+	tracker-parser-test
 
 INCLUDES = 								\
 	-DTRACKER_COMPILATION						\
@@ -17,7 +21,10 @@ INCLUDES = 								\
 	-I$(top_srcdir)/src						\
 	-I$(top_srcdir)/tests/common					\
 	-I$(top_builddir)/src						\
+	-I$(top_srcdir)/src/libtracker-client				\
 	-I$(top_builddir)/src/libtracker-client				\
+	-I$(top_srcdir)/src/libtracker-data				\
+	-I$(top_builddir)/src/libtracker-data				\
 	$(WARN_CFLAGS)							\
 	$(GCOV_CFLAGS)							\
 	$(DBUS_CFLAGS)							\
@@ -28,7 +35,6 @@ INCLUDES = 								\
 
 common_ldadd =								\
 	$(top_builddir)/src/libtracker-common/libtracker-common.la 	\
-	$(top_builddir)/src/libtracker-db/libtracker-db.la	 	\
 	$(top_builddir)/src/libtracker-data/libtracker-data.la	 	\
 	$(top_builddir)/tests/common/libtracker-testcommon.la 		\
 	$(GCOV_LIBS)							\
@@ -36,10 +42,17 @@ common_ldadd =								\
 	$(GTHREAD_LIBS)							\
 	$(GLIB2_LIBS)
 
-tracker_fts_SOURCES = 						\
-	tracker-fts-test.c
+tracker_fts_test_SOURCES = tracker-fts-test.c
 
-tracker_fts_LDADD = $(common_ldadd)
+tracker_fts_test_LDADD = $(common_ldadd)
+
+tracker_parser_test_SOURCES = tracker-parser-test.c
+
+tracker_parser_test_LDADD = $(common_ldadd)
+
+tracker_parser_SOURCES = tracker-parser.c
+
+tracker_parser_LDADD = $(common_ldadd)
 
 EXTRA_DIST = 				\
 	data.ontology			\

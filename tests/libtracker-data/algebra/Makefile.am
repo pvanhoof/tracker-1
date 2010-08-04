@@ -9,12 +9,18 @@ EXTRA_DIST = 				\
 	filter-nested-1.rq		\
 	filter-nested-2.out		\
 	filter-nested-2.rq		\
+	filter-in-1.out			\
+	filter-in-1.rq			\
+	filter-in-2.out			\
+	filter-in-2.rq			\
 	filter-placement-1.out		\
 	filter-placement-1.rq		\
 	filter-placement-2.out		\
 	filter-placement-2.rq		\
 	filter-placement-3.out		\
 	filter-placement-3.rq		\
+	filter-placement-3a.out		\
+	filter-placement-3a.rq		\
 	filter-scope-1.out		\
 	filter-scope-1.rq		\
 	opt-filter-3.ontology		\

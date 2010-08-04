@@ -1,3 +1,511 @@
+NEW in 0.9.14 - 2010-07-23
+==========================
+
+The changes are:
+
+  * Fixes: GB#616199, tracker-extract: Avoid second nie:title in msoffice/xml and oasis documents.
+  * Fixes: GB#624731, libtracker-miner: Don't emit signals while iterating hash table.
+  * Fixes: GB#624747, NB#179434: Avoid double-free in send_and_splice_async_callback()
+  * Fixes: GB#624774, Fixes memleaks in tracker-miner-fs
+  * Fixes: NB#180679, Make sure DBusGProxy is destroyed when destroying miner
+  * Fixes: NB#180236, Filter not removed when going into UNAVAILABLE
+  * Fixes: NB#179894, Reset sqlite3 stmt if detected as expired, and retry
+  * Fixes: NB#181538, Assume tar program is in $PATH
+  * NEW Feature: SPARQL, Add support for EXISTS and NOT EXISTS
+  * Ontology, NAO: Set maximum cardinality of propertyName and propertyValue to 1
+  * Ontology, maemo: Add contactGroup{Audio,Video,Vibration}Ringtone
+  * libtracker-data: Avoid reading already disposed memory
+  * libtracker-data: Improve logging after sqlite error, before aborting
+  * libtracker-data: Remove the unused contents.db
+  * libtracker-data: Remove storing of local locale for no reason
+  * libtracker-data: Do not cope with ontology changes in read-only mode
+  * libtracker-data: Do not reindex in read-only mode
+  * libtracker-data: Do not fetch resource count in read-only mode
+  * libtracker-data: Replace interrupt_thread by GCancellable
+  * libtracker-db, journal: Fix static code analysis issues
+  * libtracker-db: Merged into libtracker-data
+  * libtracker-db tests: Merged into libtracker-data tests
+  * libtracker-common: Fix double free when error splicing
+  * libtracker-common: Fix memory leaks when receiving partial reply plus errors in DBus calls
+  * libtracker-common: Fixed memleak in path_has_write_access()
+  * libtracker-client: Avoid critical, file may not have parent
+  * libtracker-client: Fix memleak, unref DBusPendingCall missing in notify callback
+  * libtracker-client: Avoid compiler warning when using FD-passing
+  * libtracker-client: Fix double free, error is freed in callback
+  * libtracker-miner: Exclude some files from coverage reports
+  * libtracker-miner: Fixed memleak in item_move()
+  * libtracker-miner: Fixed memleak in mount_guess_content_type()
+  * tracker-extract: Fix crash in albumart when pixbuf cannot be created
+  * tracker-extract, msoffice: Fixed memleak in extract_msoffice()
+  * tracker-miner-applications: Fix memleak in process_file_cb()
+  * tracker-writeback: Fixed memleak in get_playlist_type()
+
+Translations:
+  * Updated sl: Andrej Žnidaršič
+  * Updated es: Jorge González
+  * Updated zh_CN: Jessica Ban
+
+Notes:
+
+  None
+
+
+NEW in 0.9.13 - 2010-07-16
+==========================
+
+The changes are:
+
+  * Fixes: GB#624071, t-s-t: Query results is always a 2 dimensional array.
+  * Fixes: GB#623836, Avoid crashing if table of pieces is empty in the msword file
+  * Fixes: NB#176090, libtracker-miner: Don't use same parent GFile for both mtime and iri caches
+  * Fixes: NB#178825, New --feeds option in tracker-search to look for feeds
+  * Fixes: NB#178808, Default verbosity should be errors-only in tracker-store
+  * Fixes: NB#179559, Added domainIndex on nie:title for nmm:MusicPiece
+  * Fixes: NB#179798, Wrong detection of ignored directory as a directory
+  * Fixes: NB#178599, extra checks for finding the problem
+  * Fixes: NB#174590, NCO: Remove cardinality restriction in nco:title
+  * FixeS: NB#180602, Cannot detect is a song in device's local memory or not
+  * NEW Feature: Added domain specific indexes, adding a column to DB tables to avoid full table scans/joins with larger tables for performance.
+  * NEW Feature: Journal compression and rotation using 50Mb chunk sizes
+  * libtracker-fts: Fix NEAR/XX operator with more than 2 digits
+  * libtracker-fts: Useful debugging log included, disabled by default
+  * libtracker-fts: Avoid possible NULL dereference
+  * libtracker-fts: Initialize all buffers before using them
+  * libtracker-fts: Avoid segfault when using the NEAR/N operator in FTS
+  * libtracker-data: Added important debugging when changing database (drops/alters/creates/etc)
+  * libtracker-data: Call g_error() if getting max ID fails
+  * libtracker-miner: Improve logging when duplicates are found for a given uri
+  * libtracker-miner: Improved logging, instead of "Adding item", now uses "Creating"/"Updating"
+  * libtracker-miner: Improve logging for storage reporting
+  * libtracker-miner: Avoid unused variable warnings in test cases
+  * libtracker-client: Fix double free in error handling
+  * libtracker-client: Fix object_date proto in vapi
+  * libtracker-client: Mark graph as nullable in vapi
+  * tracker-miner-fs: Use 60s as default DBus timeout for requests to extractor
+  * tracker-extract: MSOffice-xml: Avoid possible NULL dereference
+  * tracker-extract: PDF: Avoid possible NULL dereference
+  * tracker-extract: Avoid warnings when compiling C++ code with C-only warning flags
+
+Translations:
+
+  * Updated de: Mario Blättermann
+  * Updated pt: Nicolau Gonçalves
+  * Updated cs: Marek Cernocky
+
+Notes:
+
+  None
+
+
+NEW in 0.9.12 - 2010-07-08
+==========================
+
+The changes are:
+
+ * Fixes: NB#175613, Avoid duplicate media files showing in databases when sending MMS'
+ * Require GLib 2.24
+ * Removed unused PKGLIBDIR defines in Makefile.ams
+ * Removed libinotify imported module and use GIO completely
+ * libtracker-common: Added common functionality for D-Bus FD passing with send_and_splice API
+ * libtracker-common: Avoid unused variable warnings in unit tests
+ * libtracker-common: Always set last_time in D-Bus client data
+ * libtracker-db: Remove unreachable code
+ * libtracker-db: Avoid results->GSList->GStrv in _dbus_query_result_to_ptr_array(), just use ->GStrv
+ * libtracker-fts: initialize all buffers before using them
+ * libtracker-fts: Avoid unneeded check, rc is always SQLITE_OK
+ * libtracker-fts  Remove unused variable in test case
+ * libtracker-miner: If mount has no volume, don't rely on is_blank for guessing content type
+ * libtracker-miner: Improve logging for storage module
+ * libtracker-miner: Added tracker-monitor test cases
+ * libtracker-miner: Avoid dead code in mount_guess_content_type()
+ * libtracker-miner: Avoid unused variable warning in unit test
+ * libtracker-client: Fixed object_date bindings in VAPI file
+ * libtracker-client: Mark graph as nullable in VAPI file
+ * tracker-store: Fix crash when not building with glibc
+ * tracker-store: Avoid potential pointer ptr->reply dereference where ptr is NULL
+ * tracker-store: Avoid unused variable warning
+ * tracker-extract: Avoid unreachable code when not using libstreamanalyzer
+ * tracker-extract: MP3: avoid deadcode, bitrate will always be greater than 0
+ * tracker-extract: PDF: check if document is returned before dereferencing it
+ * tracker-extract: Implement tracker_dbus_send_and_splice() for miner/extractor communications
+ * tracker-writeback: Avoid unused variable warning
+
+Translations:
+
+  * Updated de: Mario Blättermann
+  * Updated sl: Andrej Žnidaršič
+
+Notes:
+
+  None
+
+
+NEW in 0.9.11 - 2010-07-01
+==========================
+
+The changes are:
+
+ * Fixes: GB#511474, Remove the option to index remote mounted directories
+ * Fixes: GB#622734, too many open files error / possible file descriptor leak
+ * Fixes: GB#623203, Fix segfault when guessing content type in mounts without path
+ * Fixes: GB#616809, t-s-t shows Author as urn:uuid: in metadata bar
+ * Fixes: GB#622702, 0.8.13 does not build with gio 2.22 anymore
+ * Fixes: NB#174202, Some .pya audio files cannot be displayed in Music application after copying to device via USB.
+ * Fixes: NB#176932, Pure asf audio file is displayed in Video&TV application.
+ * Fixes: NB#177447, Remove the 'error' signal from TrackerMiner object
+ * general: Added -Wno-portability to AM_INIT_AUTOMAKE
+ * general: Bumped version requirement for GLib from 2.20 to 2.24
+ * general: Bumped version requirement for D-Bus from 1.3.0 to 1.3.1 for FD passing
+ * tracker-control: Fixed typo in --help
+ * tracker-extract: Plug leak in JPEG extractor
+ * tracker-extract: Plug leaks in MSOffice extractor
+ * tracker-extract: Plug leaks in PDF extractor
+ * tracker-extract: Plug leaks in XMP extractor
+ * tracker-extract: Plug leaks in GStreamer extractor on pipeline creation errors
+ * tracker-store: Avoid CPU hopping of main threads (GNU only platforms)
+ * tracker-store: Improve memory allocation for change events and avoid duplicates
+ * tracker-store: Always reset interrupt thread before queries AND updates
+ * tracker-store: Fix call to tracker_store_sparql_update for FD passing API
+ * tracker-miner-fs: Use TrackerMinerFS caches for application mining
+ * tracker-miner-fs: Fix various SPARQL issues for application mining
+ * libtracker-data: Fix typo in define used for FTS support
+ * libtracker-client: Updated Vala bindings
+ * libtracker-miner: Fix potential invalid read error
+ * libtracker-miner: Fix compilation if UPOWER and HAL are disabled
+ * evolution: Don't fail to add mails with spaces in the folder name
+ * function-tests: added mass storage mode test cases
+
+Translations:
+
+  * Updated et: Mattias Põldaru
+  * Updated de: Mario Blättermann
+  * Updated es: Jorge González
+  * Updated sl: Andrej Žnidaršič
+
+Notes:
+
+  None
+
+
+NEW in 0.9.10 - 2010-06-24
+==========================
+
+The changes are:
+
+  * Fixes: GB#621547, inconsistent messages on hard-reset
+  * Fixes: GB#620354, make TST history persistent
+  * Fixes: GB#621070, Re-enable volume cleanup
+  * Fixes: GB#620828, returns no e-mail results
+  * Fixes: GB#621987, Correctly handle applications in results
+  * Fixes: GB#620362, mp3 extraction crashes if year string is NULL before using atoi() with libenca enabled
+  * Fixes: GB#619868, don't recheck all monitored directories needlessly
+  * Fixes: GB#620486, Ignored files can still be found after changing tracker-miner-fs.cfg
+  * Fixes: GB#622351, Wrong initial detection of mounted state of the root partition
+  * Fixes: NB#175723, Avoid duplicates if several monitor events arrive together and store is slow
+  * Fixes: NB#170915, tracker-search for snippet is resulting in errors
+  * Fixes: NB#175957, Properly setup non-removable mounts at startup
+  * Fixes: NB#175712, tracker is listing the files under Ignore directories
+  * Fixes: NB#172813, Tracker Miner polluting dbus channels upon indexing
+  * Support --disable-tracker-fts to disable libtracker-fts and all FTS operations
+  * Support D-Bus FD passing (avoids much memory copying) thanks to the work from Adrien Bustany
+  * SPARQL: Fix generated SQL for triple block following simple optional
+  * libtracker-data: Add tests for triple block following simple optional
+  * libtracker-miner: Fixed memory leak
+  * libtracker-miner: Minor style changes
+  * tracker-miner-fs: Force recheck on IgnoredFiles changes
+  * Revert index added for nfo:belongsToContainer
+  * Revert "libtracker-data: Fixes NB#174591, Throw error on undefined variable in expressions"
+
+Translations:
+
+  None
+
+Notes:
+
+  Building Tracker from the git repository requires updated librest
+  bindings not yet released. Building the Flickr miner requires master
+  vala to be built. This can be disabled using --disable-miner-flickr.
+
+
+NEW in 0.9.9 - 2010-06-17
+=========================
+
+The changes are:
+
+  * Fixes: GB#621547, inconsistent messages on hard-reset
+  * Fixes: GB#621126, Status icon's progress bars should be at 0% on init
+  * Fixes: GB#620094, tracker-status-icon shows "search" menu item even though t-s-t is not installed
+  * Fixes: GB#621183, When mounting volume 2nd time, inotify watches don't work any more
+  * Fixes: GB#621001, tracker-miner-fs fails to initialize active mount points if CD name has whitespaces
+  * Fixes: NB#174162, Tracker's filesize returns integer which prevents to show correct file size for big files.
+  * Fixes: NB#174333, Each file is listed twice in tracker search results
+  * Fixes: NB#174591, Tracker accepts unbound variables in FILTER() expression.
+  * Fixes: NB#173673, SMS validity period property needed in nmo ontology
+  * Fixes: NB#172818, Tracker is not indexing new content on EMMC
+  * Fixes: NB#173589, tracker-store is killed due to high memory usage from large INSERTs
+  * Fixes: NB#174248, Filtering by boolean value fails
+  * configure: Fixed summary for miners (strings were blank sometimes)
+  * Ontology: Removed nrl:maxCardinality from nco:hasAffiliation (was 1)
+  * Ontology: Added tracker:isRemovable and tracker:isOptical properties
+  * libtracker-db: Database version bump (due to ontology changes)
+  * libtracker-db: Simplify DB abstraction, it is not needed
+  * libtracker-db: Add a "length" parameter to tracker_db_cursor_string
+  * libtracker-fts: Fixed libicu backend memory leak in tracker_parser_reset()
+  * libtracker-miner: Added tracker_storage_get_type_for_uuid()
+  * libtracker-miner: Update the database when config changes for optical/removable media
+  * libtracker-miner: Use GMount instead of GVolume which is for user-mountable devices only
+  * libtracker-miner: Detect removable devices using GDrive API, not guessing
+  * libtracker-miner: Ignore GMounts which are considered shadowed mounts
+  * libtracker-miner: Import GIO's system for detecting optical media more accurately
+  * tracker-store: Optimized memory use for class signals
+  * tracker-store: Optimized class signals with use of GStringChunk
+  * tracker-store: Avoid using dbus-glib for sending class signals
+  * tracker-store: Compress SubjectsChanged signal for multi-value fields
+  * tracker-extract: Slightly reduce SPARQL update size for playlists
+  * tracker-miner-fs: Force re-check of mounted path ONLY if an indexed location
+  * tracker-minre-fs: Fixed build when there is no DEVKIT or HAL
+
+Translations:
+
+  None
+
+Notes:
+
+  The database version up has been incremented, this will force a
+  reindex for any existing Tracker installation.
+
+
+NEW in 0.9.8 - 2010-06-10
+=========================
+
+The changes are:
+
+  * Fixes: NB#171657, Device manufacturer and device model XMP metadata are not extracted from mp4 video files
+  * Fixes: NB#173206, Images and videos should both have the key 'nfo:device' with the same information
+  * Fixes: NB#161449, Empty place holder in query result after copying new songs to device
+  * Fixes: NB#172414, Song without any album image is shown with some random primary image in Content Manager
+  * Fixes: NB#172652, Avoiding some missing playlists in query doesn't
+  * return anything other exist playlists in query
+  * Fixes --enable-maemo (had no effect)
+  * Updated generator scripts to include data objects for emails
+  * SPARQL: Warn instead of crash on namespaces without a prefix
+  * SPARQL: Added test for FILTER in group graph patterns
+  * SPARQL: Always generate SELECT around group graph patterns
+  * SPARQL: Only clear buffer when rolling back a transaction
+  * SPARQL: Support experimental INSERT SILENT and DELETE SILENT (don't rollback on failures during transactions)
+  * Ontology: Added tracker:defaultValue property
+  * Ontology: Added maemo:relevance default value of 1000000
+  * Functional Tests: Added script to kill store during batch commit
+  * libtracker-data: Fix error annotations in Vala bindings
+  * tracker-miner-fs: Fixed IRI cache invalidation
+  * tracker-miner-fs: Use DELETE instead of DROP GRAPH for volumes
+  * tracker-miner-fs: Separate user data from filesystem data using graphs
+  * libtracker-common: Removed public documentation for private library
+  * libtracker-db: Renamed crawling-timestamp to last-crawl.txt
+  * libtracker-db: Renamed .firstindex to first-index.txt
+  * libtracker-db: Set contents of first-index.txt to PACKAGE_VERSION
+
+Translations:
+
+  * Updated sl: Andrej Žnidaršič
+  * Updated hu: Gabor Kelemen
+  * Updated es: Jorge González
+
+Notes:
+
+  None
+
+
+NEW in 0.9.7 - 2010-06-03
+=========================
+
+Improvements / New:
+
+  General:
+  * Fixed _DATA include for Maemo ontologies, was missing \
+  * Use simple contacts instead of PersonContacts for message data generators
+
+  Functional Test:
+  * Added experimental nmo:Message query tests
+
+  Ontology:
+  * Deprecated nmm:camera for nfo:device
+  * Added nmo:ReportReadStatus class
+  * Added nmo:sentWithReportRead property
+  * Added nmo:reportReadStatus property
+  * Added nmo:read-status-read, nmo:read-status-deleted and nmo:read-status-unknown for nmo:ReportReadStatus
+  * Added nmo:mmsId property
+  * Don't use nie:hasPart subproperty for nco:key, nco:photo, nco:logo and nco:sound
+
+  libtracker-common:
+  * Added TrackerConfigFile and TrackerKeyfileObject Vala bindings
+
+  libtracker-fts:
+  * Removed tracker_parser_process_word() API
+
+  tracker-store:
+  * Added support for TRACKER_STORE_TASK_MAX_TIME environment variable to set maximum time allowed before interrupting a query
+  * Process 50 Turtle statements at once, previously was 10
+
+  tracker-miner-fs:
+  * Added 'CrawlingInterval' config option to disable or only mtime check file system after n days, default is same as previously (every startup)
+
+  tracker-miner-rss:
+  * Link against libtracker-client since we use the API
+
+Bugs:
+
+  * NB#167647 - Packages built from tracker depend on python2.5 but call /usr/bin/python
+  * GB#619498 - Check if stop word before stemming, not after
+  * GB#619929 - tracker-search shouldn't quit if stopword found
+  * GB#619535 - MaxWords configuration in FTS config is not used
+
+Translations:
+
+  * Updated de: Mario Blättermann
+  * Updated ja: Takeshi AIHANA
+
+Notes:
+
+  None
+
+
+NEW in 0.9.6 - 2010-05-27
+=========================
+
+Improvements / New:
+
+  General:
+  * Fixed libtracker-client header includes for all tracker-utils
+
+  Ontology:
+  * Added SLO (Simplified Location Ontology) for testing
+
+  libtracker-db: 
+  * Replaced unreliable sqlite3_interrupt() with another solution
+
+  libtracker-data:
+  * Fixed backup test to properly shutdown libtracker-data
+  * Improved error reporting when inserting multiple values for single valued property
+  * Don't remove temporary data asynchronously, leads to race conditions
+
+  libtracker-extract:
+  * XMP: Protect against division by zero
+  * Updated tracker_text_validate_utf8(), text_len was gsize, now it is gssize
+
+  libtracker-fts:
+  * Make sure to not keep table locked after queries
+  * Added README.parsers to explain libicu/libunistring/libglib parsing methods
+  * Removed max_words_to_index, it was unused
+  * Removed delimit_words, it was unused
+
+  tracker-extract:
+  * XMP: Fix strings that go like "n1/n2" that are xsd:double
+
+  tracker-writeback:
+  * XMP: Don't writeback fields that are typically set by the camera itself
+
+  tracker-search: 
+  * Don't append "*" to all fts:match queries
+
+Bugs:
+
+  * GB#619826 - don't clean-up search terms before storing them in history
+  * GB#526346 - please add option to disable stemming
+  * GB#560220 - New option required:ignore diacritics when indexing and searching
+  * GB#619271 - pango dependency only needed if compiling with the glib/pango parser
+  * GB#619487 - ensure that one can search terms with _underscores_
+  * GB#619630 - HTML extractor inserts several nie:title if title has an ampersand (&) character
+  * GB#619615 - Include DC ontology in gtk-doc documentation
+  * GB#619801 - We need SPARQL escaping for cases where we use g_file_info_get_display_name()
+  * GB#616540 - tracker-preferences doesn't like non-UTF8 locale
+  * NB#167449 - The attached PDF file is not displayed in the front page.
+  * NB#168740 - Tracker-Critical **: Could not execute sparql: Unable to insert multiple values for subject 
+  * NB#169460 - Added m3u playlist is not harvested by tracker in SB1
+  * NB#170142 - Same tags are extracted twice if found from DC:Subject and IPTC:keywords
+  * NB#164822 - Need property to associate a video URL with a contact
+
+Translations:
+
+  * Updated fr: Claude Paroz
+
+Notes:
+
+  None
+
+
+NEW in 0.9.5 - 2010-05-20
+=========================
+
+Improvements / New:
+
+  General:
+  * Added support for libunistring and libicu thanks for the work from Aleksander Morgado
+  * Fixed building with VPATHS where $srcdir != $builddir
+
+  SPARQL:
+  * Added tracker:id function to return the integer ID used as last sort key in queries
+
+  Ontology:
+  * Added secondary index on nmo:communicationChannel
+
+  libtracker-data:
+  * Create new contexts per tripple now, improves variable handling
+  * Added support for secondary indexes, creates a 2 column index in SQLite
+
+  libtracker-fts:
+  * Fixed word breaking (if using libicu or libunistring)
+  * Fixed word normalization (if using libicu or libunistring)
+  * Fixed word case folding (if using libicu or libunistring) 
+  * Support multi language extraction per file (if using libicu or libunistring)
+
+  libtracker-miner:
+  * Fixed IRI cache
+  * Fixed mtime cache for config directories themselves
+  * Added TrackerNetworkProvider for miners which need to know about connection status
+
+  tracker-store:
+  * Check idle handler after 
+  * Use exclusive thread for TTL imports, fixes remaining table locked issues
+
+  tracker-extract:
+  * Handle single null terminated strings in UCS2 and UTF-16 in mp3 extractor
+  * Don't do word breaking to limit FTS extraction by words, instead use bytes, faster
+  * Added specific GIF file extractor
+
+  tracker-search-tool:
+  * Fixed segfault when entering text while categories are selected
+
+Bugs:
+
+  * NB#163155 - tracker-extract is crashing while extracting album art of a mp3 file
+  * NB#169254 - GLIB CRITICAL ** GLib - g_utf8_strdown: assertion `str != NULL' failed
+  * NB#169105 - GLIB CRITICAL ** Tracker - tracker_iptc_new: assertion `len > 0' failed
+  * NB#169119 - GLIB CRITICAL ** GLib-GObject - g_object_unref: assertion `G_IS_OBJECT (object)' failed
+  * GB#619061 - add search history and auto-completion
+  * GB#616535 - miner-fs stops after crawling a little (no crash). maybe non-utf8 locale related.
+  * GB#614870 - Open t-s-t on left click
+  * GB#614610 - config behaviour regarding xdg-user-dirs doesn't work properly
+  * GB#618821 - Wrong X-GNOME-Bugzilla-Components for desktop files
+  * GB#618544 - Only install tracker-search-bar man page when enabled
+  * GB#618011 - UI problems with tracker tray icon
+  * GB#616808 - dist tarball fails to build twice in a row if --enable-gtk-doc is selected
+  * GB#491850 - Allow option to ignore stopwords
+  * GB#503366 - Cannot search number in text files
+  * GB#579756 - Unicode Normalization is broken in Indexer and/or Search
+  * GB#616836 - Use libunistring's u8_normalize() instead of GLib's g_utf8_normalize()
+
+Translations:
+
+  * Updated cs: Petr Kovar
+  * Updated de: Mario Blättermann
+  * Updated sl: Andrej Žnidaršič
+
+Notes:
+
+  None
+
+
 NEW in 0.9.4 - 2010-05-11
 =========================
 

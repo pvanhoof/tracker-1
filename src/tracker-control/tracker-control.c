@@ -33,7 +33,7 @@
 #include <glib/gstdio.h>
 
 #include <libtracker-common/tracker-common.h>
-#include <libtracker-db/tracker-db.h>
+#include <libtracker-data/tracker-data.h>
 #include <libtracker-miner/tracker-miner.h>
 
 #include "tracker-miner-files-reindex-client.h"
@@ -78,7 +78,7 @@ static GOptionEntry entries[] = {
 	  N_("Use SIGKILL to stop all matching processes, either \"store\", \"miners\" or \"all\" may be used, no parameter equals \"all\""),
 	  N_("APPS") },
 	{ "terminate", 't', G_OPTION_FLAG_OPTIONAL_ARG, G_OPTION_ARG_CALLBACK, term_option_arg_func,
-	  N_("Use SIGTERM to stop all matrhing processes, either \"store\", \"miners\" or \"all\" may be used, no parameter equals \"all\""),
+	  N_("Use SIGTERM to stop all matching processes, either \"store\", \"miners\" or \"all\" may be used, no parameter equals \"all\""),
 	  N_("APPS") },
 	{ "hard-reset", 'r', 0, G_OPTION_ARG_NONE, &hard_reset,
 	  N_("Kill all Tracker processes and remove all databases"),
@@ -401,6 +401,13 @@ main (int argc, char **argv)
 
 	if (hard_reset || soft_reset) {
 		guint log_handler_id;
+		const gchar *rotate_to = NULL;
+		TrackerDBConfig *db_config;
+		gsize chunk_size;
+		gint chunk_size_mb;
+
+
+		db_config = tracker_db_config_new ();
 
 		/* Set log handler for library messages */
 		log_handler_id = g_log_set_handler (NULL,
@@ -410,8 +417,18 @@ main (int argc, char **argv)
 
 		g_log_set_default_handler (log_handler, NULL);
 
+		chunk_size_mb = tracker_db_config_get_journal_chunk_size (db_config);
+		chunk_size = (gsize) ((gsize) chunk_size_mb * (gsize) 1024 * (gsize) 1024);
+		rotate_to = tracker_db_config_get_journal_rotate_destination (db_config);
+
 		/* This call is needed to set the journal's filename */
+
+		tracker_db_journal_set_rotating ((chunk_size_mb != -1),
+		                                 chunk_size, rotate_to);
+
 		tracker_db_journal_init (NULL, FALSE);
+
+		g_object_unref (db_config);
 
 		/* Clean up */
 		if (!tracker_db_manager_init (TRACKER_DB_MANAGER_REMOVE_ALL, NULL, FALSE)) {

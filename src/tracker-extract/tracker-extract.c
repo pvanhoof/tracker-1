@@ -25,6 +25,9 @@
 #include <gmodule.h>
 #include <gio/gio.h>
 
+#include <gio/gunixoutputstream.h>
+#include <gio/gunixinputstream.h>
+
 #include <libtracker-common/tracker-dbus.h>
 #include <libtracker-common/tracker-log.h>
 
@@ -44,6 +47,9 @@
 #define EXTRACT_FUNCTION "tracker_extract_get_data"
 
 #define MAX_EXTRACT_TIME 10
+
+#define UNKNOWN_METHOD_MESSAGE "Method \"%s\" with signature \"%s\" on " \
+                               "interface \"%s\" doesn't exist, expected \"%s\""
 
 #define TRACKER_EXTRACT_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_EXTRACT, TrackerExtractPrivate))
 
@@ -132,8 +138,8 @@ load_modules (const gchar  *force_module,
 
 	if (G_UNLIKELY (force_module)) {
 		if (!g_str_has_suffix (force_module, "." G_MODULE_SUFFIX)) {
-			force_module_checked = g_strdup_printf ("%s.%s", 
-			                                        force_module, 
+			force_module_checked = g_strdup_printf ("%s.%s",
+			                                        force_module,
 			                                        G_MODULE_SUFFIX);
 		} else {
 			force_module_checked = g_strdup (force_module);
@@ -209,15 +215,15 @@ load_modules (const gchar  *force_module,
 				}
 			}
 		} else {
-			g_warning ("Could not load module '%s': Function %s() was not found, is it exported?", 
+			g_warning ("Could not load module '%s': Function %s() was not found, is it exported?",
 			           name, EXTRACT_FUNCTION);
 		}
 
 		g_free (module_path);
 	}
 
-	if (G_UNLIKELY (force_module) && 
-	    (!*specific_extractors || (*specific_extractors)->len < 1) && 
+	if (G_UNLIKELY (force_module) &&
+	    (!*specific_extractors || (*specific_extractors)->len < 1) &&
 	    (!*generic_extractors || (*generic_extractors)->len < 1)) {
 		g_warning ("Could not force module '%s', it was not found", force_module_checked);
 		success = FALSE;
@@ -276,7 +282,9 @@ get_file_metadata (TrackerExtract         *extract,
 	TrackerExtractPrivate *priv;
 	TrackerSparqlBuilder *statements, *preupdate;
 	gchar *mime_used = NULL;
+#ifdef HAVE_LIBSTREAMANALYZER
 	gchar *content_type = NULL;
+#endif
 
 	priv = TRACKER_EXTRACT_GET_PRIVATE (extract);
 
@@ -312,11 +320,15 @@ get_file_metadata (TrackerExtract         *extract,
 		/* We know the mime */
 		mime_used = g_strdup (mime);
 		g_strstrip (mime_used);
-	} else if (content_type && *content_type) {
+	}
+#ifdef HAVE_LIBSTREAMANALYZER
+	else if (content_type && *content_type) {
 		/* We know the mime from LSA */
 		mime_used = content_type;
 		g_strstrip (mime_used);
-	} else {
+	}
+#endif /* HAVE_LIBSTREAMANALYZER */
+	else {
 		GFile *file;
 		GFileInfo *info;
 		GError *error = NULL;
@@ -615,3 +627,221 @@ tracker_extract_get_metadata (TrackerExtract         *object,
 		alarm (0);
 	}
 }
+
+#ifdef HAVE_DBUS_FD_PASSING
+static void
+get_metadata_fast (TrackerExtract *object,
+                   DBusConnection *connection,
+                   DBusMessage    *message)
+{
+	guint request_id;
+	const gchar *expected_signature;
+	TrackerExtractPrivate *priv;
+	DBusError dbus_error;
+	DBusMessage *reply;
+	const gchar *uri, *mime;
+	int fd;
+	GOutputStream *unix_output_stream;
+	GOutputStream *buffered_output_stream;
+	GDataOutputStream *data_output_stream;
+	GError *error = NULL;
+	TrackerSparqlBuilder *sparql, *preupdate;
+	gboolean extracted = FALSE;
+
+	request_id = tracker_dbus_get_next_request_id ();
+
+	expected_signature = DBUS_TYPE_STRING_AS_STRING DBUS_TYPE_STRING_AS_STRING DBUS_TYPE_UNIX_FD_AS_STRING;
+
+	if (g_strcmp0 (dbus_message_get_signature (message), expected_signature)) {
+		gchar *error_message = g_strdup_printf (UNKNOWN_METHOD_MESSAGE,
+		                                        "GetMetadataFast",
+		                                        dbus_message_get_signature (message),
+		                                        dbus_message_get_interface (message),
+		                                        expected_signature);
+		tracker_dbus_request_new (request_id,
+		                          NULL,
+		                          "%s()",
+		                          __FUNCTION__);
+
+		reply = dbus_message_new_error (message,
+		                                DBUS_ERROR_UNKNOWN_METHOD,
+		                                error_message);
+		dbus_connection_send (connection, reply, NULL);
+
+		tracker_dbus_request_failed (request_id,
+		                             NULL,
+		                             NULL,
+		                             error_message);
+
+		dbus_message_unref (reply);
+		g_free (error_message);
+
+		return;
+	}
+
+	dbus_error_init (&dbus_error);
+
+	dbus_message_get_args (message,
+	                       &dbus_error,
+	                       DBUS_TYPE_STRING, &uri,
+	                       DBUS_TYPE_STRING, &mime,
+	                       DBUS_TYPE_UNIX_FD, &fd,
+	                       DBUS_TYPE_INVALID);
+
+	if (dbus_error_is_set (&dbus_error)) {
+		tracker_dbus_request_new (request_id,
+		                          NULL,
+		                          "%s()",
+		                          __FUNCTION__);
+
+		reply = dbus_message_new_error (message, dbus_error.name, dbus_error.message);
+		dbus_connection_send (connection, reply, NULL);
+
+		tracker_dbus_request_failed (request_id,
+		                             NULL,
+		                             NULL,
+		                             dbus_error.message);
+
+		dbus_message_unref (reply);
+		dbus_error_free (&dbus_error);
+
+		return;
+	}
+
+	tracker_dbus_request_new (request_id,
+	                          NULL,
+	                          "%s(uri:'%s', mime:%s)",
+	                          __FUNCTION__,
+	                          uri,
+	                          mime);
+
+	tracker_dbus_request_debug (request_id,
+	                            NULL,
+	                            "  Resetting shutdown timeout");
+
+	priv = TRACKER_EXTRACT_GET_PRIVATE (object);
+
+	tracker_main_quit_timeout_reset ();
+	if (!priv->disable_shutdown) {
+		alarm (MAX_EXTRACT_TIME);
+	}
+
+	extracted = get_file_metadata (object, request_id, NULL, uri, mime, &preupdate, &sparql);
+
+	if (extracted) {
+		unix_output_stream = g_unix_output_stream_new (fd, TRUE);
+		buffered_output_stream = g_buffered_output_stream_new_sized (unix_output_stream,
+		                                                             64*1024);
+		data_output_stream = g_data_output_stream_new (buffered_output_stream);
+		g_data_output_stream_set_byte_order (G_DATA_OUTPUT_STREAM (data_output_stream),
+		                                     G_DATA_STREAM_BYTE_ORDER_HOST_ENDIAN);
+
+		if (tracker_sparql_builder_get_length (sparql) > 0) {
+			const gchar *preupdate_str = NULL;
+
+			if (tracker_sparql_builder_get_length (preupdate) > 0) {
+				preupdate_str = tracker_sparql_builder_get_result (preupdate);
+			}
+
+			g_data_output_stream_put_string (data_output_stream,
+			                                 preupdate_str ? preupdate_str : "",
+			                                 NULL,
+			                                 &error);
+
+			if (!error) {
+				g_data_output_stream_put_byte (data_output_stream,
+				                               0,
+				                               NULL,
+				                               &error);
+			}
+
+			if (!error) {
+				g_data_output_stream_put_string (data_output_stream,
+				                                 tracker_sparql_builder_get_result (sparql),
+				                                 NULL,
+				                                 &error);
+			}
+
+			if (!error) {
+				g_data_output_stream_put_byte (data_output_stream,
+				                               0,
+				                               NULL,
+				                               &error);
+			}
+		}
+
+		g_object_unref (sparql);
+		g_object_unref (preupdate);
+		g_object_unref (data_output_stream);
+		g_object_unref (buffered_output_stream);
+		g_object_unref (unix_output_stream);
+
+		if (error) {
+			tracker_dbus_request_failed (request_id,
+			                             NULL,
+			                             &error,
+			                             NULL);
+			reply = dbus_message_new_error (message,
+			                                TRACKER_EXTRACT_SERVICE ".GetMetadataFastError",
+			                                error->message);
+			dbus_connection_send (connection, reply, NULL);
+			dbus_message_unref (reply);
+			g_error_free (error);
+		} else {
+			tracker_dbus_request_success (request_id, NULL);
+			reply = dbus_message_new_method_return (message);
+			dbus_connection_send (connection, reply, NULL);
+			dbus_message_unref (reply);
+		}
+	} else {
+		gchar *error_message = g_strdup_printf ("Could not get any metadata for uri:'%s' and mime:'%s'", uri, mime);
+		tracker_dbus_request_failed (request_id,
+		                             NULL,
+		                             NULL,
+		                             error_message);
+		reply = dbus_message_new_error (message,
+		                                TRACKER_EXTRACT_SERVICE ".GetMetadataFastError",
+		                                error_message);
+		close (fd);
+		dbus_connection_send (connection, reply, NULL);
+		dbus_message_unref (reply);
+		g_free (error_message);
+	}
+
+	if (!priv->disable_shutdown) {
+		/* Unset alarm so the extractor doesn't die when it's idle */
+		alarm (0);
+	}
+}
+
+DBusHandlerResult
+tracker_extract_connection_filter (DBusConnection *connection,
+                                   DBusMessage    *message,
+                                   void           *user_data)
+{
+	TrackerExtract *extract;
+
+	g_return_val_if_fail (connection != NULL, DBUS_HANDLER_RESULT_NOT_YET_HANDLED);
+	g_return_val_if_fail (message != NULL, DBUS_HANDLER_RESULT_NOT_YET_HANDLED);
+
+	if (g_strcmp0 (TRACKER_EXTRACT_PATH, dbus_message_get_path (message))) {
+		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+	}
+
+	if (g_strcmp0 (TRACKER_EXTRACT_INTERFACE, dbus_message_get_interface (message))) {
+		return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+	}
+
+	/* Only check if the user_data is our TrackerExtract AFTER having checked that
+	 * the message matches expected path and interface. */
+	extract = user_data;
+	g_return_val_if_fail (TRACKER_IS_EXTRACT (extract), DBUS_HANDLER_RESULT_NOT_YET_HANDLED);
+
+	if (!g_strcmp0 ("GetMetadataFast", dbus_message_get_member (message))) {
+		get_metadata_fast (extract, connection, message);
+		return DBUS_HANDLER_RESULT_HANDLED;
+	}
+
+	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+}
+#endif /* HAVE_DBUS_FD_PASSING */

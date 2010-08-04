@@ -1,16 +1,19 @@
 include $(top_srcdir)/Makefile.decl
 
-if HAVE_LIBINOTIFY
-libinotify_dir = libinotify
+if HAVE_TRACKER_FTS
+libstemmer_dir = libstemmer
 endif
 
+if HAVE_TRACKER_FTS
+libtrackerfts_dir = libtracker-fts
+endif
+
+
 SUBDIRS = 					\
-	libstemmer				\
-	$(libinotify_dir)			\
+	$(libstemmer_dir)			\
 	libtracker-common 			\
 	libtracker-client			\
-	libtracker-fts				\
-	libtracker-db				\
+	$(libtrackerfts_dir)			\
 	libtracker-data				\
 	libtracker-extract			\
 	libtracker-miner			\

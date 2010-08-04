@@ -31,7 +31,6 @@ class Tracker.Sparql.Expression : Object {
 
 	Context context {
 		get { return query.context; }
-		set { query.context = value; }
 	}
 
 	Pattern pattern {
@@ -223,6 +222,12 @@ class Tracker.Sparql.Expression : Object {
 		}
 		sql.append (")");
 		expect (SparqlTokenType.CLOSE_PARENS);
+	}
+
+	void translate_exists (StringBuilder sql) throws SparqlError {
+		sql.append ("(");
+		pattern.translate_exists (sql);
+		sql.append (")");
 	}
 
 	internal static void append_expression_as_string (StringBuilder sql, string expression, PropertyType type) {
@@ -555,6 +560,13 @@ class Tracker.Sparql.Expression : Object {
 			sql.append_printf ("\"%s_u_offsets\"", v);
 
 			return PropertyType.STRING;
+		} else if (uri == TRACKER_NS + "id") {
+			var type = translate_expression (sql);
+			if (type != PropertyType.RESOURCE) {
+				throw get_error ("expected resource");
+			}
+
+			return PropertyType.INTEGER;
 		} else if (uri == TRACKER_NS + "cartesian-distance") {
 			sql.append ("SparqlCartesianDistance(");
 			translate_expression (sql);
@@ -778,7 +790,7 @@ class Tracker.Sparql.Expression : Object {
 			return result;
 		} else {
 			// resource
-			sql.append ("(SELECT ID FROM Resource WHERE Uri = ?)");
+			sql.append ("COALESCE((SELECT ID FROM Resource WHERE Uri = ?), 0)");
 			var binding = new LiteralBinding ();
 			binding.literal = uri;
 			query.bindings.append (binding);
@@ -838,6 +850,7 @@ class Tracker.Sparql.Expression : Object {
 
 			switch (type) {
 			case PropertyType.INTEGER:
+			case PropertyType.BOOLEAN:
 				sql.append ("?");
 				binding.data_type = type;
 				return type;
@@ -912,6 +925,10 @@ class Tracker.Sparql.Expression : Object {
 			return PropertyType.BOOLEAN;
 		case SparqlTokenType.REGEX:
 			translate_regex (sql);
+			return PropertyType.BOOLEAN;
+		case SparqlTokenType.EXISTS:
+		case SparqlTokenType.NOT:
+			translate_exists (sql);
 			return PropertyType.BOOLEAN;
 		case SparqlTokenType.COUNT:
 			next ();
@@ -1071,6 +1088,26 @@ class Tracker.Sparql.Expression : Object {
 		return PropertyType.BOOLEAN;
 	}
 
+	PropertyType translate_in (StringBuilder sql, bool not) throws SparqlError {
+
+		if (not) {
+			sql.append (" NOT");
+		}
+
+		expect (SparqlTokenType.OPEN_PARENS);
+		sql.append (" IN (");
+		if (!accept (SparqlTokenType.CLOSE_PARENS)) {
+			translate_expression_as_string (sql);
+			while (accept (SparqlTokenType.COMMA)) {
+				sql.append (", ");
+				translate_expression_as_string (sql);
+			}
+			expect (SparqlTokenType.CLOSE_PARENS);
+		}
+		sql.append (")");
+		return PropertyType.BOOLEAN;
+	}
+
 	PropertyType translate_relational_expression (StringBuilder sql) throws SparqlError {
 		long begin = sql.len;
 		// TODO: improve performance (linked list)
@@ -1088,6 +1125,11 @@ class Tracker.Sparql.Expression : Object {
 			return process_relational_expression (sql, begin, n_bindings, optype, " <= ");
 		} else if (accept (SparqlTokenType.OP_GT)) {
 			return process_relational_expression (sql, begin, n_bindings, optype, " > ");
+		} else if (accept (SparqlTokenType.OP_IN)) {
+			return translate_in (sql, false);
+		} else if (accept (SparqlTokenType.NOT)) {
+			expect (SparqlTokenType.OP_IN);
+			return translate_in (sql, true);
 		}
 		return optype;
 	}
@@ -1142,16 +1184,12 @@ class Tracker.Sparql.Expression : Object {
 		if (current () == SparqlTokenType.SELECT) {
 			// scalar subquery
 
-			context = new Context.subquery (context);
-
 			sql.append ("(");
-			var type = pattern.translate_select (sql, true);
+			var select_context = pattern.translate_select (sql, true, true);
 			sql.append (")");
 
-			context = context.parent_context;
-
 			expect (SparqlTokenType.CLOSE_PARENS);
-			return type;
+			return select_context.type;
 		}
 
 		var optype = translate_expression (sql);
@@ -1182,6 +1220,8 @@ class Tracker.Sparql.Expression : Object {
 		case SparqlTokenType.ISBLANK:
 		case SparqlTokenType.ISLITERAL:
 		case SparqlTokenType.REGEX:
+		case SparqlTokenType.EXISTS:
+		case SparqlTokenType.NOT:
 			return translate_primary_expression (sql);
 		default:
 			return translate_bracketted_expression (sql);

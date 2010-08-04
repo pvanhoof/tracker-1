@@ -25,7 +25,7 @@
 #include <stdio.h>
 
 #include <libtracker-common/tracker-common.h>
-#include <libtracker-db/tracker-db-interface.h>
+#include <libtracker-data/tracker-db-interface.h>
 
 G_BEGIN_DECLS
 
@@ -41,6 +41,7 @@ typedef void (* TrackerStoreSparqlQueryCallback)       (gpointer         data,
                                                         gpointer         user_data);
 typedef gpointer
              (* TrackerStoreSparqlQueryInThread)       (TrackerDBCursor *cursor,
+                                                        GCancellable    *cancellable,
                                                         GError          *error,
                                                         gpointer         user_data);
 typedef void (* TrackerStoreSparqlUpdateCallback)      (GError          *error,
@@ -86,6 +87,8 @@ void         tracker_store_queue_turtle_import    (GFile         *file,
 guint        tracker_store_get_queue_size         (void);
 
 void         tracker_store_unreg_batches          (const gchar   *client_id);
+
+void         tracker_store_set_active             (gboolean       active);
 
 G_END_DECLS
 

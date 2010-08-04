@@ -27,7 +27,7 @@
 #include <glib.h>
 #include <glib/gi18n.h>
 
-#include <libtracker-client/tracker.h>
+#include <libtracker-client/tracker-client.h>
 #include <libtracker-common/tracker-common.h>
 
 #define ABOUT	  \
@@ -56,6 +56,7 @@ static gboolean video_files;
 static gboolean document_files;
 static gboolean emails;
 static gboolean contacts;
+static gboolean feeds;
 static gboolean print_version;
 
 static GOptionEntry entries[] = {
@@ -72,7 +73,7 @@ static GOptionEntry entries[] = {
 	  NULL
 	},
 	{ "detailed", 'd', 0, G_OPTION_ARG_NONE, &detailed,
-	  N_("Show URNs for results (doesn't apply to --music-albums, --music-artists)"),
+	  N_("Show URNs for results (doesn't apply to --music-albums, --music-artists, --feeds)"),
 	  NULL
 	},
 	{ "all", 'a', 0, G_OPTION_ARG_NONE, &all,
@@ -119,6 +120,10 @@ static GOptionEntry entries[] = {
 	  N_("Search for contacts"),
 	  NULL
 	},
+	{ "feeds", 0, 0, G_OPTION_ARG_NONE, &feeds,
+	  N_("Search for feeds (--all has no effect on this) "),
+	  NULL
+	},
 	{ "version", 'V', 0, G_OPTION_ARG_NONE, &print_version,
 	  N_("Print version"),
 	  NULL
@@ -150,8 +155,10 @@ static gchar *
 get_fts_string (GStrv    search_words,
                 gboolean use_or_operator)
 {
+#if HAVE_TRACKER_FTS
 	GString *fts;
 	gint i, len;
+
 
 	if (!search_words) {
 		return NULL;
@@ -161,8 +168,13 @@ get_fts_string (GStrv    search_words,
 	len = g_strv_length (search_words);
 
 	for (i = 0; i < len; i++) {
-		g_string_append (fts, search_words[i]);
-		g_string_append_c (fts, '*');
+		gchar *escaped;
+
+		/* Properly escape the input string as it's going to be passed
+		 * in a sparql query */
+		escaped = tracker_sparql_escape (search_words[i]);
+
+		g_string_append (fts, escaped);
 
 		if (i < len - 1) {
 			if (use_or_operator) {
@@ -171,9 +183,15 @@ get_fts_string (GStrv    search_words,
 				g_string_append (fts, " ");
 			}
 		}
+
+		g_free (escaped);
 	}
 
 	return g_string_free (fts, FALSE);
+#else
+	/* If FTS support not enabled, always do non-fts searches */
+	return NULL;
+#endif
 }
 
 static void
@@ -838,6 +856,93 @@ get_music_albums (TrackerClient *client,
 	return TRUE;
 }
 
+static void
+get_feed_foreach (gpointer value,
+                  gpointer user_data)
+{
+	gchar **data = value;
+
+	g_print ("  '%s' (%s)\n", data[1], data[0]);
+}
+
+static gboolean
+get_feeds (TrackerClient *client,
+           GStrv          search_terms,
+           gint           search_offset,
+           gint           search_limit,
+           gboolean       use_or_operator)
+{
+	GError *error = NULL;
+	GPtrArray *results;
+	gchar *fts;
+	gchar *query;
+
+	fts = get_fts_string (search_terms, use_or_operator);
+
+	if (fts) {
+		query = g_strdup_printf ("SELECT ?feed nie:title(?feed) "
+		                         "WHERE {"
+		                         "  ?feed a mfo:FeedMessage ;"
+		                         "  fts:match \"%s\" . "
+		                         "} "
+		                         "ORDER BY ASC(nie:title(?feed)) "
+		                         "OFFSET %d "
+		                         "LIMIT %d",
+		                         fts,
+		                         search_offset,
+		                         search_limit);
+	} else {
+		query = g_strdup_printf ("SELECT ?feed nie:title(?feed) "
+		                         "WHERE {"
+		                         "  ?feed a mfo:FeedMessage ."
+		                         "} "
+		                         "ORDER BY ASC(nie:title(?feed)) "
+		                         "OFFSET %d "
+		                         "LIMIT %d",
+		                         search_offset,
+		                         search_limit);
+	}
+
+	g_free (fts);
+
+	results = tracker_resources_sparql_query (client, query, &error);
+	g_free (query);
+
+	if (error) {
+		g_printerr ("%s, %s\n",
+		            _("Could not get search results"),
+		            error->message);
+		g_error_free (error);
+
+		return FALSE;
+	}
+
+	if (!results) {
+		g_print ("%s\n",
+		         _("No feeds were found"));
+	} else {
+		g_print (g_dngettext (NULL,
+		                      "Feed: %d",
+		                      "Feeds: %d",
+		                      results->len),
+		         results->len);
+		g_print ("\n");
+
+		g_ptr_array_foreach (results,
+		                     get_feed_foreach,
+		                     NULL);
+
+		if (results->len >= search_limit) {
+			show_limit_warning ();
+		}
+
+		g_ptr_array_foreach (results, (GFunc) g_strfreev, NULL);
+		g_ptr_array_free (results, TRUE);
+	}
+
+	return TRUE;
+}
+
 static gboolean
 get_files (TrackerClient *client,
            GStrv          search_terms,
@@ -977,18 +1082,18 @@ get_all_by_search_foreach (gpointer value,
 		if (mime_type && mime_type[0] == '\0') {
 			mime_type = NULL;
 		}
-		
+
 		if (mime_type) {
 			g_print ("  %s\n"
 			         "    %s\n"
-			         "    %s\n", 
-			         urn, 
-			         mime_type, 
+			         "    %s\n",
+			         urn,
+			         mime_type,
 			         class);
 		} else {
 			g_print ("  %s\n"
-			         "    %s\n", 
-			         urn, 
+			         "    %s\n",
+			         urn,
 			         class);
 		}
 	}
@@ -1128,6 +1233,7 @@ main (int argc, char **argv)
 	}
 
 	if (!music_albums && !music_artists && !music_files &&
+	    !feeds &&
 	    !image_files &&
 	    !video_files &&
 	    !document_files &&
@@ -1154,46 +1260,56 @@ main (int argc, char **argv)
 		g_thread_init (NULL);
 	}
 
-	/* Check terms are not stopwords */
+
+#if HAVE_TRACKER_FTS
+	/* Only check stopwords if FTS is enabled */
 	if (terms) {
 		TrackerLanguage *language;
-		GHashTable *stop_words;
-		const gchar *stop_word_found;
+		gboolean stop_words_found;
 		gchar **p;
 
-		language = tracker_language_new (NULL);
-		stop_words = tracker_language_get_stop_words (language);
+		/* Check terms don't have additional quotes */
+		for (p = terms; *p; p++) {
+			gchar *term = *p;
+			gint end = strlen (term) - 1;
 
-		for (p = terms, stop_word_found = NULL; *p && !stop_word_found; p++) {
-			gpointer data;
-			gchar *up = g_utf8_strdown (*p, -1);
-
-			data = g_hash_table_lookup (stop_words, up);
-			if (data) {
-				stop_word_found = *p;
+			if ((term[0] == '"' && term[end] == '"') ||
+			    (term[0] == '\'' && term[end] == '\'')) {
+				/* We never have a quote JUST at the end */
+				term[0] = term[end] = ' ';
+				g_strstrip (term);
 			}
-			g_free (up);
 		}
 
-		if (stop_word_found) {
-			g_printerr (_("Search term '%s' is a stop word."),
-			            stop_word_found);
-			g_printerr ("\n\n");
-			g_printerr (_("Stop words are common words which are "
-			              "ignored during the indexing process."));
-			g_printerr ("\n");
-			g_printerr (_("This means this search term will never "
-			              "be found when matching FTS entries."));
-			g_printerr ("\n\n");
+		/* Check if terms are stopwords, and warn if so */
+		language = tracker_language_new (NULL);
+		stop_words_found = FALSE;
+		for (p = terms; *p; p++) {
+			gchar *down;
 
-			g_option_context_free (context);
-			g_object_unref (language);
+			down = g_utf8_strdown (*p, -1);
 
-			return EXIT_FAILURE;
+			if (tracker_language_is_stop_word (language, down)) {
+				g_printerr (_("Search term '%s' is a stop word."),
+				            down);
+				g_printerr ("\n");
+
+				stop_words_found = TRUE;
+			}
+
+			g_free (down);
+		}
+
+		if (stop_words_found) {
+			g_printerr (_("Stop words are common words which "
+			              "may be ignored during the indexing "
+			              "process."));
+			g_printerr ("\n\n");
 		}
 
 		g_object_unref (language);
 	}
+#endif
 
 	g_option_context_free (context);
 
@@ -1249,6 +1365,15 @@ main (int argc, char **argv)
 		gboolean success;
 
 		success = get_music_files (client, terms, all, offset, limit, or_operator, detailed);
+		g_object_unref (client);
+
+		return success ? EXIT_SUCCESS : EXIT_FAILURE;
+	}
+
+	if (feeds) {
+		gboolean success;
+
+		success = get_feeds (client, terms, offset, limit, or_operator);
 		g_object_unref (client);
 
 		return success ? EXIT_SUCCESS : EXIT_FAILURE;

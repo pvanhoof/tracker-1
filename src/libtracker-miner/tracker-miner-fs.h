@@ -33,6 +33,8 @@
 
 G_BEGIN_DECLS
 
+#define TRACKER_MINER_FS_GRAPH_URN "urn:uuid:472ed0cc-40ff-4e37-9c0c-062d78656540"
+
 #define TRACKER_TYPE_MINER_FS         (tracker_miner_fs_get_type())
 #define TRACKER_MINER_FS(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), TRACKER_TYPE_MINER_FS, TrackerMinerFS))
 #define TRACKER_MINER_FS_CLASS(c)     (G_TYPE_CHECK_CLASS_CAST ((c), TRACKER_TYPE_MINER_FS, TrackerMinerFSClass))
@@ -73,44 +75,55 @@ typedef struct {
 	TrackerMinerClass parent;
 
 	gboolean (* check_file)               (TrackerMinerFS       *fs,
-                                               GFile                *file);
+	                                       GFile                *file);
 	gboolean (* check_directory)          (TrackerMinerFS       *fs,
-                                               GFile                *file);
+	                                       GFile                *file);
 	gboolean (* check_directory_contents) (TrackerMinerFS       *fs,
 	                                       GFile                *parent,
 	                                       GList                *children);
 	gboolean (* process_file)             (TrackerMinerFS       *fs,
-                                               GFile                *file,
-                                               TrackerSparqlBuilder *builder,
-                                               GCancellable         *cancellable);
+	                                       GFile                *file,
+	                                       TrackerSparqlBuilder *builder,
+	                                       GCancellable         *cancellable);
 	gboolean (* ignore_next_update_file)  (TrackerMinerFS       *fs,
-                                               GFile                *file,
-                                               TrackerSparqlBuilder *builder,
-                                               GCancellable         *cancellable);
+	                                       GFile                *file,
+	                                       TrackerSparqlBuilder *builder,
+	                                       GCancellable         *cancellable);
 	gboolean (* monitor_directory)        (TrackerMinerFS       *fs,
-                                               GFile                *file);
+	                                       GFile                *file);
 	void     (* finished)                 (TrackerMinerFS       *fs);
 } TrackerMinerFSClass;
 
-GType                 tracker_miner_fs_get_type         (void) G_GNUC_CONST;
-void                  tracker_miner_fs_directory_add    (TrackerMinerFS *fs,
-                                                         GFile          *file,
-                                                         gboolean        recurse);
-gboolean              tracker_miner_fs_directory_remove (TrackerMinerFS *fs,
-                                                         GFile          *file);
-void                  tracker_miner_fs_file_add         (TrackerMinerFS *fs,
-                                                         GFile          *file);
-void                  tracker_miner_fs_file_notify      (TrackerMinerFS *fs,
-                                                         GFile          *file,
-                                                         const GError   *error);
-void                  tracker_miner_fs_set_throttle     (TrackerMinerFS *fs,
-                                                         gdouble         throttle);
-gdouble               tracker_miner_fs_get_throttle     (TrackerMinerFS *fs);
-G_CONST_RETURN gchar *tracker_miner_fs_get_urn          (TrackerMinerFS *fs,
-                                                         GFile          *file);
-G_CONST_RETURN gchar *tracker_miner_fs_get_parent_urn   (TrackerMinerFS *fs,
-                                                         GFile          *file);
-void                  tracker_miner_fs_force_recheck    (TrackerMinerFS *fs);
+GType                 tracker_miner_fs_get_type             (void) G_GNUC_CONST;
+void                  tracker_miner_fs_directory_add        (TrackerMinerFS *fs,
+                                                             GFile          *file,
+                                                             gboolean        recurse);
+gboolean              tracker_miner_fs_directory_remove     (TrackerMinerFS *fs,
+                                                             GFile          *file);
+gboolean              tracker_miner_fs_directory_remove_full (TrackerMinerFS *fs,
+                                                              GFile          *file);
+void                  tracker_miner_fs_file_add             (TrackerMinerFS *fs,
+                                                             GFile          *file);
+void                  tracker_miner_fs_file_notify          (TrackerMinerFS *fs,
+                                                             GFile          *file,
+                                                             const GError   *error);
+void                  tracker_miner_fs_set_throttle         (TrackerMinerFS *fs,
+                                                             gdouble         throttle);
+gdouble               tracker_miner_fs_get_throttle         (TrackerMinerFS *fs);
+G_CONST_RETURN gchar *tracker_miner_fs_get_urn              (TrackerMinerFS *fs,
+                                                             GFile          *file);
+G_CONST_RETURN gchar *tracker_miner_fs_get_parent_urn       (TrackerMinerFS *fs,
+                                                             GFile          *file);
+gchar                *tracker_miner_fs_query_urn            (TrackerMinerFS *fs,
+                                                             GFile          *file);
+void                  tracker_miner_fs_force_recheck        (TrackerMinerFS *fs);
+
+void                  tracker_miner_fs_set_initial_crawling (TrackerMinerFS *fs,
+                                                             gboolean        do_initial_crawling);
+gboolean              tracker_miner_fs_get_initial_crawling (TrackerMinerFS *fs);
+
+void                  tracker_miner_fs_add_directory_without_parent (TrackerMinerFS *fs,
+                                                                     GFile          *file);
 
 G_END_DECLS
 

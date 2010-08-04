@@ -3,7 +3,6 @@ include $(top_srcdir)/Makefile.decl
 INCLUDES =								\
 	-Wall								\
 	-DSHAREDIR=\""$(datadir)"\"					\
-	-DPKGLIBDIR=\""$(libdir)/tracker"\"				\
 	-DLOCALEDIR=\""$(localedir)"\" 					\
 	-DLIBEXEC_PATH=\""$(libexecdir)"\"				\
 	-DG_LOG_DOMAIN=\"Tracker\"					\
@@ -20,7 +19,7 @@ INCLUDES =								\
 
 VALAFLAGS =								\
 	--pkg gio-2.0							\
-	--pkg rest							\
+	--pkg rest-0.6							\
 	--pkg posix							\
 	--thread
 
@@ -31,6 +30,7 @@ tracker_miner_flickr_VALASOURCES =					\
 	tracker-miner-flickr.vala
 
 tracker_miner_flickr_SOURCES =						\
+	tracker-miner-flickr.vala.stamp                                 \
 	$(tracker_miner_flickr_VALASOURCES:.vala=.c)
 
 tracker_miner_flickr_LDADD =						\

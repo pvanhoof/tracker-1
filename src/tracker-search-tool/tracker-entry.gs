@@ -23,52 +23,109 @@
 uses
     Gtk
     TrackerUtils
-    
-    
+
+/* wait 0.5s after each keystroke before performing a search */
 const static RUN_DELAY : int = 500
-    
-class TrackerSearchEntry  : Gtk.Entry implements Gtk.Activatable
+
+/* acceptable length of string for history */
+const static TOO_SHORT : int = 2
+
+class TrackerSearchEntry  : ComboBoxEntry implements Gtk.Activatable
     id_invoker : uint = 0
+    entry : Entry
+    history : list of string
+    histfilename : string
+    histfile : FileStream
 
     prop Query : TrackerQuery
 
     init
-        set_icon_from_stock (EntryIconPosition.SECONDARY, STOCK_CLEAR)
-        set_icon_sensitive (EntryIconPosition.PRIMARY, false)
-        set_icon_sensitive (EntryIconPosition.SECONDARY, false)
-        set_icon_tooltip_text (EntryIconPosition.SECONDARY, _("Clear the search text"))
-        activate += entry_activate
-        changed += entry_changed
-        icon_press += def (p0, p1)
-            if p0 is EntryIconPosition.SECONDARY
-                text = "" 
-        
-        
-    def private entry_changed (editable : Editable) 
-        if Query is not null
-            if text is null
-                Query.SearchTerms = ""
-                if id_invoker != 0
-                    Source.remove (id_invoker)
-                    id_invoker = 0
-                set_icon_sensitive (EntryIconPosition.SECONDARY, false)
-            else
-                if id_invoker != 0
-                    Source.remove (id_invoker)
-                id_invoker = Timeout.add (RUN_DELAY, run_query)
+        entry = get_child() as Entry
+        entry.set_icon_from_stock (EntryIconPosition.SECONDARY, STOCK_CLEAR)
+        entry.set_icon_sensitive (EntryIconPosition.SECONDARY, true)
+        entry.set_icon_tooltip_text (EntryIconPosition.SECONDARY,
+                                     _("Clear the search text"))
 
-    def private entry_activate (entry : TrackerSearchEntry)
+        var model = new ListStore (1, typeof (string))
+        set_model(model)
+        set_text_column(0)
+
+        var completion = new EntryCompletion ()
+        completion.set_model(model)
+        completion.set_text_column(0)
+        entry.set_completion(completion)
+
+        entry.activate += entry_activate
+        entry.changed += entry_changed
+        entry.icon_press += def (p0)
+            if p0 is EntryIconPosition.SECONDARY
+                entry.text = ""
+
+        histfilename = Path.build_filename (Environment.get_user_data_dir(),
+            "tracker", "history", null)
+        var temp = ""
+        history = new list of string
+
+        /* load history from file */
+        try
+            FileUtils.get_contents(histfilename, out temp)
+            for item in temp.split("\n")
+                if item.len() > TOO_SHORT
+                    prepend_text(item)
+                    history.add(item)
+        except e : FileError
+            print (e.message)
+
+    def private entry_changed ()
+        if entry.text is null
+            Query.SearchTerms = ""
+            if id_invoker != 0
+                Source.remove (id_invoker)
+                id_invoker = 0
+        else
+            if id_invoker != 0
+                Source.remove (id_invoker)
+            id_invoker = Timeout.add (RUN_DELAY, run_query)
+
+    def private entry_activate ()
         entry.grab_focus ()
 
     def private run_query () : bool
-        if Query is not null
-            if (text is null) or (text is "")
-                set_icon_sensitive (EntryIconPosition.SECONDARY, false)
-                Query.SearchTerms = ""
-            else
-                set_icon_sensitive (EntryIconPosition.SECONDARY, true)
-                Query.SearchTerms = EscapeSparql (text, true)
+        var txt = entry.text
+        if (txt is null) or (txt is "")
+            Query.SearchTerms = ""
+            return false
+
+        Query.SearchTerms = EscapeSparql (txt, true)
+
+        history_handler(txt)
         return false
+
+    def history_handler (text : string)
+        /* remove leading and trailing whitespace before inserting items into
+         * history; this avoids having both "term" and " term " in there;
+         */
+        var txt = text.strip()
+
+        /* ensure that accented chars are represented the same way to
+         * avoid duplicated entries in history
+         */
+        txt = txt.normalize(-1, NormalizeMode.NFC)
+
+        if txt.len() > TOO_SHORT
+
+            /* do not store duplicate items in history */
+            for item in history
+                if txt == item
+                    return
+
+            history.add(txt)
+            prepend_text(txt)
+            histfile = FileStream.open(histfilename, "a")
+            if (FileStream.open(histfilename, "a") != null)
+                histfile.printf("%s\n", txt)
+            else
+                print("error: '%s' is not writable", histfilename)
 
     def sync_action_properties (action : Action)
         return

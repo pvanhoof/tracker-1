@@ -93,6 +93,27 @@ tracker_keyfile_object_default_boolean (gpointer     object,
 	return bspec->default_value;
 }
 
+const gchar*
+tracker_keyfile_object_default_string (gpointer     object,
+                                       const gchar *property)
+{
+	GObjectClass *klass;
+	GParamSpec *spec;
+	GParamSpecString *bspec;
+
+	g_return_val_if_fail (G_IS_OBJECT (object), FALSE);
+	g_return_val_if_fail (property != NULL, FALSE);
+
+	klass = G_OBJECT_GET_CLASS (object);
+	spec = g_object_class_find_property (G_OBJECT_CLASS (klass), property);
+	g_return_val_if_fail (spec != NULL, FALSE);
+
+	bspec = G_PARAM_SPEC_STRING (spec);
+	g_return_val_if_fail (bspec != NULL, FALSE);
+
+	return bspec->default_value;
+}
+
 gint
 tracker_keyfile_object_default_int (gpointer     object,
                                     const gchar *property)
@@ -241,18 +262,18 @@ tracker_keyfile_object_load_string_list (gpointer      object,
 	g_return_if_fail (key != NULL);
 
 	value = g_key_file_get_string_list (key_file, group, key, NULL, NULL);
-        l = tracker_string_list_to_gslist (value, -1);
+	l = tracker_string_list_to_gslist (value, -1);
 	g_strfreev (value);
 
-        if (G_LIKELY (!return_instead)) {
-                g_object_set (G_OBJECT (object), property, l, NULL);
+	if (G_LIKELY (!return_instead)) {
+		g_object_set (G_OBJECT (object), property, l, NULL);
 
-                /* List is copied internally */
-                g_slist_foreach (l, (GFunc) g_free, NULL);
-                g_slist_free (l);
-        } else {
-                *return_instead = l;
-        }
+		/* List is copied internally */
+		g_slist_foreach (l, (GFunc) g_free, NULL);
+		g_slist_free (l);
+	} else {
+		*return_instead = l;
+	}
 }
 
 void
@@ -274,32 +295,32 @@ tracker_keyfile_object_load_directory_list (gpointer      object,
 	g_return_if_fail (key != NULL);
 
 	value = g_key_file_get_string_list (key_file, group, key, NULL, NULL);
-        l = directory_string_list_to_gslist ((const gchar **) value);
+	l = directory_string_list_to_gslist ((const gchar **) value);
 	g_strfreev (value);
 
-        if (l) {
-                GSList *filtered;
+	if (l) {
+		GSList *filtered;
 
-                /* Should we make the basename (2nd argument) here
-                 * part of this function's API?
-                 */
-                filtered = tracker_path_list_filter_duplicates (l, ".", is_recursive);
+		/* Should we make the basename (2nd argument) here
+		 * part of this function's API?
+		 */
+		filtered = tracker_path_list_filter_duplicates (l, ".", is_recursive);
 
-                g_slist_foreach (l, (GFunc) g_free, NULL);
-                g_slist_free (l);
+		g_slist_foreach (l, (GFunc) g_free, NULL);
+		g_slist_free (l);
 
-                l = filtered;
-        }
+		l = filtered;
+	}
 
-        if (G_LIKELY (!return_instead)) {
-                g_object_set (G_OBJECT (object), property, l, NULL);
+	if (G_LIKELY (!return_instead)) {
+		g_object_set (G_OBJECT (object), property, l, NULL);
 
-                /* List is copied internally */
-                g_slist_foreach (l, (GFunc) g_free, NULL);
-                g_slist_free (l);
-        } else {
-                *return_instead = l;
-        }
+		/* List is copied internally */
+		g_slist_foreach (l, (GFunc) g_free, NULL);
+		g_slist_free (l);
+	} else {
+		*return_instead = l;
+	}
 }
 
 void

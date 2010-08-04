@@ -280,7 +280,7 @@
 #include <sqlite3.h>
 
 #include <libtracker-common/tracker-common.h>
-#include <libtracker-db/tracker-db-manager.h>
+#include <libtracker-data/tracker-db-manager.h>
 
 #include "tracker-fts.h"
 #include "tracker-fts-config.h"
@@ -310,6 +310,10 @@
 static int default_column = 0;
 #endif
 
+
+/* Define to 1 if you want to get debug logs with the parsed query,
+ * quite useful to understand the FTS syntax */
+#define PRINT_PARSED_QUERY 0
 
 /*
  * ** Default span for NEAR operators.
@@ -2330,9 +2334,13 @@ struct fulltext_vtab {
   const char *zName;		   /* virtual table name */
   int nColumn;			   /* number of columns in virtual table */
   TrackerParser *parser;	   /* tokenizer for inserts and queries */
-  gboolean stop_words;
+  gboolean enable_stemmer;
+  gboolean enable_unaccent;
+  gboolean ignore_numbers;
+  gboolean ignore_stop_words;
   int max_words;
   int min_word_length;
+  int max_word_length;
 
   /* Precompiled statements which we keep as long as the table is
   ** open.
@@ -2483,6 +2491,10 @@ get_metadata_weight (fulltext_vtab *v, int id)
   if (weight == 0) {
     weight = 1;
   }
+
+  /* We expect only one row.  We must execute another sqlite3_step()
+   * to complete the iteration; otherwise the table will remain locked. */
+  sqlite3_step (stmt);
 
   return weight;
 }
@@ -3311,7 +3323,6 @@ static int constructVtab(
   fulltext_vtab *v = 0;
   TrackerFTSConfig *config;
   TrackerLanguage *language;
-  int min_len, max_len;
 
   if (G_UNLIKELY (quark_fulltext_vtab == 0)) {
     quark_fulltext_vtab = g_quark_from_static_string ("quark_fulltext_vtab");
@@ -3367,15 +3378,20 @@ static int constructVtab(
 
   language = tracker_language_new (NULL);
 
-  min_len = tracker_fts_config_get_min_word_length (config);
-  max_len = tracker_fts_config_get_max_word_length (config);
+  v->min_word_length = tracker_fts_config_get_min_word_length (config);
+  v->max_word_length = tracker_fts_config_get_max_word_length (config);
+  v->enable_stemmer = tracker_fts_config_get_enable_stemmer (config);
+  v->enable_unaccent = tracker_fts_config_get_enable_unaccent (config);
+  v->ignore_numbers = tracker_fts_config_get_ignore_numbers (config);
+
+  /* disable stop words if TRACKER_FTS_STOP_WORDS is set to 0 - used by tests
+   *  otherwise, get value from the conf file */
+  v->ignore_stop_words = (g_strcmp0 (g_getenv ("TRACKER_FTS_STOP_WORDS"), "0") == 0 ?
+			  FALSE : tracker_fts_config_get_ignore_stop_words (config));
 
   v->max_words = tracker_fts_config_get_max_words_to_index (config);
-  v->min_word_length = min_len;
-  v->parser = tracker_parser_new (language, max_len);
 
-  /* disable stop words if TRACKER_FTS_STOP_WORDS is set to 0 - used by tests */
-  v->stop_words = g_strcmp0 (g_getenv ("TRACKER_FTS_STOP_WORDS"), "0") != 0;
+  v->parser = tracker_parser_new (language);
 
   g_object_unref (language);
 
@@ -3390,6 +3406,9 @@ static int constructVtab(
   g_static_private_set (&tracker_fts_vtab_key, v, NULL);
   g_object_set_qdata_full (object, quark_fulltext_vtab, v,
                            (GDestroyNotify) fulltext_vtab_destroy);
+
+  /* Config no longer needed */
+  g_object_unref (config);
 
   return SQLITE_OK;
 }
@@ -3662,11 +3681,23 @@ static void snippetOffsetsOfColumn(
   unsigned int iRotor = 0;             /* Index of current token */
   int iRotorBegin[FTS3_ROTOR_SZ];      /* Beginning offset of token */
   int iRotorLen[FTS3_ROTOR_SZ];        /* Length of token */
+  int nWords;
 
   pVtab = pQuery->pFts;
   nColumn = pVtab->nColumn;
 
-  tracker_parser_reset (pVtab->parser, zDoc, nDoc, FALSE, TRUE, pVtab->stop_words, FALSE);
+  FTSTRACE (("FTS parsing started for Snippets, limiting '%d' bytes to '%d' words",
+             nDoc, pVtab->max_words));
+
+  tracker_parser_reset (pVtab->parser,
+                        zDoc,
+                        nDoc,
+                        pVtab->max_word_length,
+                        pVtab->enable_stemmer,
+                        pVtab->enable_unaccent,
+                        pVtab->ignore_stop_words,
+                        TRUE,
+                        pVtab->ignore_numbers);
 
   aTerm = pQuery->pTerms;
   nTerm = pQuery->nTerms;
@@ -3676,8 +3707,8 @@ static void snippetOffsetsOfColumn(
   }
 
   prevMatch = 0;
-
-  while(1){
+  nWords = 0;
+  while(nWords < pVtab->max_words){
 //    rc = pTModule->xNext(pTCursor, &zToken, &nToken, &iBegin, &iEnd, &iPos);
 
 
@@ -3690,10 +3721,11 @@ static void snippetOffsetsOfColumn(
 
     if (!zToken) break;
 
-    if (stop_word) {
+    if (pVtab->ignore_stop_words && stop_word) {
       continue;
     }
 
+    nWords++;
 
     iRotorBegin[iRotor&FTS3_ROTOR_MASK] = iBegin;
     iRotorLen[iRotor&FTS3_ROTOR_MASK] = iEnd-iBegin;
@@ -4209,7 +4241,6 @@ static int fulltextNext(sqlite3_vtab_cursor *pCursor){
 
     dlrStep(&c->reader);
 
-    if( rc!=SQLITE_OK ) return rc;
     c->eof = 0;
     return SQLITE_OK;
   }
@@ -4362,10 +4393,24 @@ static int tokenizeSegment(
   TrackerParser *parser = v->parser;
   int firstIndex = pQuery->nTerms;
   int nTerm = 1;
+  int nWords;
+  int last_near_offset = -1;
 
-  tracker_parser_reset (parser, pSegment, nSegment, FALSE, TRUE, v->stop_words, TRUE);
+  FTSTRACE (("FTS parsing started for Segments, limiting '%d' bytes to '%d' words",
+             nSegment, v->max_words));
 
-  while( 1 ){
+  tracker_parser_reset (parser,
+                        pSegment,
+                        nSegment,
+                        v->max_word_length,
+                        v->enable_stemmer,
+                        v->enable_unaccent,
+                        v->ignore_stop_words,
+                        FALSE,
+                        v->ignore_numbers);
+
+  nWords = 0;
+  while(nWords < v->max_words){
     const char *pToken;
     int nToken, iBegin, iEnd, iPos, stop_word;
 
@@ -4378,6 +4423,13 @@ static int tokenizeSegment(
     if (!pToken) {
       break;
      }
+
+    if (last_near_offset > 0 && iEnd <= last_near_offset) {
+      /* Skip this word */
+      continue;
+    }
+
+    nWords ++;
 
 //   printf("token being indexed  is %s, pos is %d, begin is %d, end is %d and length is %d\n", pToken, iPos, iBegin, iEnd, nToken);
 
@@ -4397,6 +4449,7 @@ static int tokenizeSegment(
 	}
     }
 #endif
+
     if( !inPhrase && pQuery->nTerms>0 && nToken==2
      && pToken[0] == 'o' && pToken[1] == 'r'
     ){
@@ -4409,27 +4462,28 @@ static int tokenizeSegment(
 	&& pToken[2]=='a'
 	&& pToken[3]=='r'
     ){
-      QueryTerm *pTerm = &pQuery->pTerms[pQuery->nTerms-1];
+      QueryTerm *pTerm;
+
+      /* Make sure pQuery->pTerms is non-NULL */
+      g_return_val_if_fail (pQuery->pTerms, SQLITE_ERROR);
+
+      pTerm = &pQuery->pTerms[pQuery->nTerms-1];
       if( (iBegin+6)<nSegment
        && pSegment[iBegin+4] == '/'
        && pSegment[iBegin+5]>='0' && pSegment[iBegin+5]<='9'
       ){
 	pTerm->nNear = (pSegment[iBegin+5] - '0');
 	nToken += 2;
-	if( pSegment[iBegin+6]>='0' && pSegment[iBegin+6]<=9 ){
+	if( pSegment[iBegin+6]>='0' && pSegment[iBegin+6]<='9' ){
 	  pTerm->nNear = pTerm->nNear * 10 + (pSegment[iBegin+6] - '0');
-	  iEnd++;
-	}
-	pToken = tracker_parser_next (parser, &iPos,
-				      &iBegin,
-				      &iEnd,
-				      &stop_word,
-				      &nToken);
-	if (!pToken) {
-	  break;
+	  nToken++;
 	}
 
-
+	/* Set last near offset, so that any new word that comes
+	 * after the near which ends before this last near offset is
+	 * discarded. This is done because NEAR/10 will actually get
+	 * split into 3 words, "NEAR", "/" and "10" */
+	last_near_offset = iBegin + nToken;
       } else {
 	pTerm->nNear = SQLITE_FTS3_DEFAULT_NEAR_PARAM;
       }
@@ -4442,12 +4496,16 @@ static int tokenizeSegment(
       if (nToken < v->min_word_length) {
         continue;
       }
-      if (stop_word != 0) {
+      if (v->ignore_stop_words && stop_word) {
         continue;
       }
     }
 
     queryAdd(pQuery, pToken, nToken);
+
+    /* After queryAdd, make sure pQuery->pTerms is non-NULL */
+    g_return_val_if_fail (pQuery->pTerms, SQLITE_ERROR);
+
     if( !inPhrase && iBegin>0) {
 
    //  printf("first char is %c, prev char is %c\n", pSegment[iBegin], pSegment[iBegin-1]);
@@ -4466,6 +4524,7 @@ static int tokenizeSegment(
   }
 
   if( inPhrase && pQuery->nTerms>firstIndex ){
+    g_return_val_if_fail (pQuery->pTerms, SQLITE_ERROR);
     pQuery->pTerms[firstIndex].nPhrase = pQuery->nTerms - firstIndex - 1;
   }
 
@@ -4485,8 +4544,6 @@ static int parseQuery(
   Query *pQuery		   /* Write the parse results here. */
 ){
   int iInput, inPhrase = 0;
-  int ii;
-  QueryTerm *aTerm;
 
   if( zInput==0 ) nInput = 0;
   if( nInput<0 ) nInput = strlen(zInput);
@@ -4517,17 +4574,41 @@ static int parseQuery(
        do not report error as this may be user input */
   }
 
-  /* Modify the values of the QueryTerm.nPhrase variables to account for
-  ** the NEAR operator. For the purposes of QueryTerm.nPhrase, phrases
-  ** and tokens connected by the NEAR operator are handled as a single
-  ** phrase. See comments above the QueryTerm structure for details.
-  */
-  aTerm = pQuery->pTerms;
-  for(ii=0; ii<pQuery->nTerms; ii++){
-    if( aTerm[ii].nNear || aTerm[ii].nPhrase ){
-      while (aTerm[ii+aTerm[ii].nPhrase].nNear) {
-	aTerm[ii].nPhrase += (1 + aTerm[ii+aTerm[ii].nPhrase+1].nPhrase);
+  if (pQuery->pTerms) {
+    QueryTerm *aTerm;
+    int ii;
+
+    /* Modify the values of the QueryTerm.nPhrase variables to account for
+    ** the NEAR operator. For the purposes of QueryTerm.nPhrase, phrases
+    ** and tokens connected by the NEAR operator are handled as a single
+    ** phrase. See comments above the QueryTerm structure for details.
+    */
+    aTerm = pQuery->pTerms;
+    for(ii=0; ii<pQuery->nTerms; ii++){
+      if( aTerm[ii].nNear || aTerm[ii].nPhrase ){
+        while (aTerm[ii+aTerm[ii].nPhrase].nNear) {
+          aTerm[ii].nPhrase += (1 + aTerm[ii+aTerm[ii].nPhrase+1].nPhrase);
+        }
       }
+#if PRINT_PARSED_QUERY
+      g_debug ("\n"
+               "[Term %d] '%s' (%d)\n"
+               "      nPhrase:  %d\n"
+               "      iPhrase:  %d\n"
+               "      iColumn:  %d\n"
+               "      nNear:    %d\n"
+               "      isOr:     %s\n"
+               "      isNot:    %s\n"
+               "      isPrefix: %s\n",
+               ii, aTerm[ii].pTerm, aTerm[ii].nTerm,
+               aTerm[ii].nPhrase,
+               aTerm[ii].iPhrase,
+               aTerm[ii].iColumn,
+               aTerm[ii].nNear,
+               aTerm[ii].isOr ? "yes" : "no",
+               aTerm[ii].isNot ? "yes" : "no",
+               aTerm[ii].isPrefix ? "yes" : "no");
+#endif /* PRINT_PARSED_QUERY */
     }
   }
 
@@ -4580,6 +4661,12 @@ static int fulltextQuery(
     dataBufferInit(pResult, 0);
     return SQLITE_OK;
   }
+
+  /* Initialize empty buffers */
+  dataBufferInit (&left, 0);
+  dataBufferInit (&right, 0);
+  dataBufferInit (&or, 0);
+  dataBufferInit (&new, 0);
 
   /* Merge AND terms. */
   /* TODO(shess) I think we can early-exit if( i>nNot && left.nData==0 ). */
@@ -4813,12 +4900,29 @@ int Catid,
   TrackerParser *parser = v->parser;
   DLCollector *p;
   int nData;			 /* Size of doclist before our update. */
+  gint nText;
+  gint nWords;
 
   if (!zText) return SQLITE_OK;
 
-  tracker_parser_reset (parser, zText, strlen (zText), FALSE, TRUE, v->stop_words, FALSE);
+  nText = strlen (zText);
 
-  while( 1 ){
+  if (!nText) return SQLITE_OK;
+
+  FTSTRACE (("FTS parsing started for Terms, limiting '%d' bytes to '%d' words",
+             nText, v->max_words));
+
+  tracker_parser_reset (parser,
+                        zText,
+                        nText,
+                        v->max_word_length,
+                        v->enable_stemmer,
+                        v->enable_unaccent,
+                        v->ignore_stop_words,
+                        TRUE,
+                        v->ignore_numbers);
+  nWords = 0;
+  while(nWords < v->max_words){
 
     pToken = tracker_parser_next (parser, &iPosition,
 				  &iStartOffset,
@@ -4833,9 +4937,11 @@ int Catid,
 	continue;
    }
 
+   nWords++;
+
   // printf("token being indexed  is %s, begin is %d, end is %d and length is %d\n", pToken, iStartOffset, iEndOffset, nTokenBytes);
 
-   if (stop_word) {
+   if (v->ignore_stop_words && stop_word) {
 	continue;
    }
 

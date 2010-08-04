@@ -1,5 +1,10 @@
 tracker
 tracker-backup
 tracker-ontology
+tracker-ontology-change
 tracker-sparql
 tracker-sparql-blank
+tracker-db-dbus
+tracker-db-journal
+tracker-index-writer
+tracker-store.journal

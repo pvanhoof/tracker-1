@@ -29,11 +29,10 @@
 #include <libtracker-common/tracker-type-utils.h>
 #include <libtracker-common/tracker-ontologies.h>
 
-#include <libtracker-db/tracker-db-dbus.h>
-
 #include <libtracker-data/tracker-data-manager.h>
 #include <libtracker-data/tracker-data-query.h>
 #include <libtracker-data/tracker-data-update.h>
+#include <libtracker-data/tracker-db-dbus.h>
 
 #include "tracker-dbus.h"
 #include "tracker-marshal.h"
@@ -57,7 +56,7 @@
  * bytes plus DBusMessage's overhead. If that makes this number less
  * arbitrary for you, then fine.
  *
- * I really hope that the libdbus people get to their senses and 
+ * I really hope that the libdbus people get to their senses and
  * either stop doing their exit() nonsense in a library, and instead
  * return a clean DBusError or something, or create crystal clear
  * clarity about the maximum size of a message. And make it both so
@@ -227,19 +226,19 @@ query_callback (gpointer inthread_data, GError *error, gpointer user_data)
 		                             &error,
 		                             NULL);
 		dbus_g_method_return_error (info->context, error);
-	} else {
+	} else if (ptr) {
 		tracker_dbus_request_success (info->request_id,
 		                              info->context);
 
 		dbus_g_method_send_reply (info->context, ptr->reply);
-	}
+	} /* else, !ptr && !error... shouldn't happen */
 
 	if (ptr)
 		g_slice_free (InThreadPtr, ptr);
 }
 
 static gpointer
-query_inthread (TrackerDBCursor *cursor, GError *error, gpointer user_data)
+query_inthread (TrackerDBCursor *cursor, GCancellable *cancellable, GError *error, gpointer user_data)
 {
 	InThreadPtr *ptr = g_slice_new0 (InThreadPtr);
 	TrackerDBusMethodInfo *info = user_data;
@@ -268,7 +267,7 @@ query_inthread (TrackerDBCursor *cursor, GError *error, gpointer user_data)
 
 	cont = TRUE;
 
-	while (tracker_db_cursor_iter_next (cursor, &loop_error) && cont) {
+	while (tracker_db_cursor_iter_next (cursor, cancellable, &loop_error) && cont) {
 		DBusMessageIter cols_iter;
 		guint i;
 
@@ -283,7 +282,7 @@ query_inthread (TrackerDBCursor *cursor, GError *error, gpointer user_data)
 
 		for (i = 0; i < cols && cont; i++, length++) {
 			const gchar *result_str;
-			result_str = tracker_db_cursor_get_string (cursor, i);
+			result_str = tracker_db_cursor_get_string (cursor, i, NULL);
 
 			if (result_str == NULL)
 				result_str = "";
@@ -567,6 +566,9 @@ on_statements_committed (gpointer user_data)
 	/* Class signals feature */
 	events = tracker_events_get_pending ();
 
+	/* Do not call tracker_events_reset before calling tracker_resource_class_emit_events
+	   as we're reusing the same strings without copies */
+
 	if (events) {
 		GSList *event_sources, *l;
 		guint i;
@@ -582,7 +584,7 @@ on_statements_committed (gpointer user_data)
 			for (l = event_sources; l; l = l->next) {
 				TrackerResourceClass *class_ = l->data;
 				if (g_strcmp0 (tracker_class_get_uri (event->class), tracker_resource_class_get_rdf_class (class_)) == 0) {
-					tracker_resource_class_add_event (class_, event->subject, tracker_property_get_uri (event->predicate), event->type);
+					tracker_resource_class_add_event (class_, event->subject, event->predicate, event->type);
 					if (!to_emit) {
 						to_emit = g_hash_table_new (NULL, NULL);
 					}

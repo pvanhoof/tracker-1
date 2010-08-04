@@ -7,7 +7,7 @@
 
 rdf: a tracker:Namespace, tracker:Ontology ;
 	tracker:prefix "rdf" ;
-	nao:lastModified "2010-02-16T11:00:00Z" .
+	nao:lastModified "2010-06-29T13:00:00Z" .
 
 rdfs: a tracker:Namespace ;
 	tracker:prefix "rdfs" .
@@ -76,10 +76,19 @@ tracker:prefix a rdf:Property ;
 	rdfs:domain tracker:Namespace ;
 	rdfs:range xsd:string .
 
+tracker:domainIndex a rdf:Property ;
+	rdfs:domain rdfs:Class ;
+	rdfs:range rdf:Property .
+
 tracker:indexed a rdf:Property ;
 	nrl:maxCardinality 1 ;
 	rdfs:domain rdf:Property ;
 	rdfs:range xsd:boolean .
+
+tracker:secondaryIndex a rdf:Property ;
+	nrl:maxCardinality 1 ;
+	rdfs:domain rdf:Property ;
+	rdfs:range rdf:Property .
 
 tracker:fulltextIndexed a rdf:Property ;
 	nrl:maxCardinality 1 ;
@@ -97,7 +106,7 @@ tracker:transient a rdf:Property ;
 	rdfs:range xsd:boolean .
 
 tracker:isAnnotation a rdf:Property ;
-        rdfs:comment "The property is never embedded on physical files" ;
+	rdfs:comment "The property is never embedded on physical files" ;
 	nrl:maxCardinality 1 ;
 	rdfs:domain rdf:Property ;
 	rdfs:range xsd:boolean .
@@ -106,6 +115,11 @@ tracker:weight a rdf:Property ;
 	nrl:maxCardinality 1 ;
 	rdfs:domain rdf:Property ;
 	rdfs:range xsd:integer .
+
+tracker:defaultValue a rdf:Property ;
+	nrl:maxCardinality 1 ;
+	rdfs:domain rdf:Property ;
+	rdfs:range xsd:string .
 
 tracker:added a rdf:Property ;
 	nrl:maxCardinality 1 ;

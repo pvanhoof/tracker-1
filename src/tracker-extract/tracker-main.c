@@ -76,7 +76,7 @@ static gboolean force_internal_extractors;
 static gchar *force_module;
 static gboolean version;
 
-static TrackerFTSConfig *fts_config;
+static TrackerConfig *config;
 
 static GOptionEntry entries[] = {
 	{ "verbosity", 'v', 0,
@@ -119,7 +119,9 @@ quit_timeout_cb (gpointer user_data)
 	quit_timeout_id = 0;
 
 	if (!disable_shutdown) {
-		g_main_loop_quit (main_loop);
+		if (main_loop) {
+			g_main_loop_quit (main_loop);
+		}
 	} else {
 		g_debug ("Would have quit the mainloop");
 	}
@@ -201,7 +203,6 @@ signal_handler (int signo)
 		in_loop = TRUE;
 		disable_shutdown = FALSE;
 		quit_timeout_cb (NULL);
-
 		/* Fall through */
 	default:
 		if (g_strsignal (signo)) {
@@ -264,14 +265,10 @@ log_handler (const gchar    *domain,
 	}
 }
 
-TrackerFTSConfig *
-tracker_main_get_fts_config (void)
+TrackerConfig *
+tracker_main_get_config (void)
 {
-	if (G_UNLIKELY (!fts_config)) {
-		fts_config = tracker_fts_config_new ();
-	}
-
-	return fts_config;
+	return config;
 }
 
 
@@ -336,9 +333,9 @@ main (int argc, char *argv[])
 {
 	GOptionContext *context;
 	GError         *error = NULL;
-	TrackerConfig  *config;
 	TrackerExtract *object;
 	gchar          *log_filename = NULL;
+	GMainLoop      *my_main_loop;
 
 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
 	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
@@ -407,6 +404,8 @@ main (int argc, char *argv[])
 
 	setlocale (LC_ALL, "");
 
+	config = tracker_config_new ();
+
 	/* Set conditions when we use stand alone settings */
 	if (filename) {
 		return run_standalone ();
@@ -414,8 +413,6 @@ main (int argc, char *argv[])
 
 	/* Initialize subsystems */
 	initialize_directories ();
-
-	config = tracker_config_new ();
 
 	/* Extractor command line arguments */
 	if (verbosity > -1) {
@@ -458,6 +455,11 @@ main (int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
+#ifdef HAVE_DBUS_FD_PASSING
+	tracker_dbus_connection_add_filter (tracker_extract_connection_filter,
+	                                    object);
+#endif
+
 	g_message ("Waiting for D-Bus requests...");
 
 	tracker_albumart_init ();
@@ -466,7 +468,10 @@ main (int argc, char *argv[])
 	main_loop = g_main_loop_new (NULL, FALSE);
 	tracker_main_quit_timeout_reset ();
 	g_main_loop_run (main_loop);
-	g_main_loop_unref (main_loop);
+
+	my_main_loop = main_loop;
+	main_loop = NULL;
+	g_main_loop_unref (my_main_loop);
 
 	g_message ("Shutdown started");
 

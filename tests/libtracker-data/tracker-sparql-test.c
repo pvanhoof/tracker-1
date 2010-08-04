@@ -25,11 +25,11 @@
 #include <gio/gio.h>
 
 #include <libtracker-common/tracker-common.h>
-#include <libtracker-db/tracker-db.h>
 
 #include <libtracker-data/tracker-data-manager.h>
 #include <libtracker-data/tracker-data-query.h>
 #include <libtracker-data/tracker-data-update.h>
+#include <libtracker-data/tracker-data.h>
 #include <libtracker-data/tracker-sparql-query.h>
 
 typedef struct _TestInfo TestInfo;
@@ -51,9 +51,12 @@ const TestInfo tests[] = {
 	{ "algebra/filter-placement-1", "algebra/data-2", FALSE },
 	{ "algebra/filter-placement-2", "algebra/data-2", FALSE },
 	{ "algebra/filter-placement-3", "algebra/data-2", FALSE },
+	{ "algebra/filter-placement-3a", "algebra/data-2", FALSE },
 	{ "algebra/filter-nested-1", "algebra/data-1", FALSE },
 	{ "algebra/filter-nested-2", "algebra/data-1", FALSE },
 	{ "algebra/filter-scope-1", "algebra/data-2", FALSE },
+	{ "algebra/filter-in-1", "algebra/data-2", FALSE },
+	{ "algebra/filter-in-2", "algebra/data-2", FALSE },
 	{ "algebra/var-scope-join-1", "algebra/var-scope-join-1", FALSE },
 	{ "anon/query", "anon/data", FALSE },
 	{ "ask/ask-1", "ask/data", FALSE },
@@ -75,6 +78,7 @@ const TestInfo tests[] = {
 	{ "expr-ops/query-plus-1", "expr-ops/data", FALSE },
 	{ "expr-ops/query-unminus-1", "expr-ops/data", FALSE },
 	{ "expr-ops/query-unplus-1", "expr-ops/data", FALSE },
+	{ "expr-ops/query-res-1", "expr-ops/data", FALSE },
 	{ "functions/functions-property-1", "functions/data-1", FALSE },
 	{ "functions/functions-tracker-1", "functions/data-1", FALSE },
 	{ "functions/functions-tracker-2", "functions/data-2", FALSE },
@@ -88,7 +92,9 @@ const TestInfo tests[] = {
 	{ "graph/graph-1", "graph/data-1", FALSE },
 	{ "graph/graph-2", "graph/data-2", FALSE },
 	{ "graph/graph-3", "graph/data-3", FALSE },
+	{ "graph/graph-4", "graph/data-3", FALSE },
 	{ "optional/q-opt-complex-1", "optional/complex-data-1", FALSE },
+	{ "optional/simple-optional-triple", "optional/simple-optional-triple", FALSE },
 	{ "regex/regex-query-001", "regex/regex-data-01", FALSE },
 	{ "regex/regex-query-002", "regex/regex-data-01", FALSE },
 	{ "sort/query-sort-1", "sort/data-sort-1", FALSE },
@@ -96,8 +102,10 @@ const TestInfo tests[] = {
 	{ "sort/query-sort-3", "sort/data-sort-3", FALSE },
 	{ "sort/query-sort-4", "sort/data-sort-4", FALSE },
 	{ "sort/query-sort-5", "sort/data-sort-4", FALSE },
+	{ "sort/query-sort-6", "sort/data-sort-4", FALSE },
 	{ "subqueries/subqueries-1", "subqueries/data-1", FALSE },
 	{ "subqueries/subqueries-union-1", "subqueries/data-1", FALSE },
+	{ "subqueries/subqueries-union-2", "subqueries/data-1", FALSE },
 	/* Bracket error after WHERE */
 	{ "error/query-error-1", "error/query-error-1", TRUE, FALSE },
 	/* Unknown property */
@@ -156,8 +164,8 @@ check_result (TrackerDBResultSet *result_set,
 				_tracker_db_result_set_get_value (result_set, col, &value);
 
 				switch (G_VALUE_TYPE (&value)) {
-				case G_TYPE_INT:
-					g_string_append_printf (test_results, "\"%d\"", g_value_get_int (&value));
+				case G_TYPE_INT64:
+					g_string_append_printf (test_results, "\"%" G_GINT64_FORMAT "\"", g_value_get_int64 (&value));
 					break;
 				case G_TYPE_DOUBLE:
 					g_string_append_printf (test_results, "\"%f\"", g_value_get_double (&value));
@@ -234,6 +242,9 @@ test_sparql_query (gconstpointer test_data)
 	g_free (prefix);
 
 	test_schemas[0] = data_prefix;
+
+	tracker_db_journal_set_rotating (FALSE, G_MAXSIZE, NULL);
+
 	tracker_data_manager_init (TRACKER_DB_MANAGER_FORCE_REINDEX,
 	                           test_schemas,
 	                           NULL, FALSE, NULL, NULL, NULL);
@@ -350,7 +361,7 @@ main (int argc, char **argv)
 
 	/* clean up */
 	g_print ("Removing temporary data\n");
-	g_spawn_command_line_async ("rm -R tracker/", NULL);
+	g_spawn_command_line_sync ("rm -R tracker/", NULL, NULL, NULL, NULL);
 
 	return result;
 }

@@ -1,26 +1,33 @@
 include $(top_srcdir)/Makefile.decl
 
+# Include list of shared sources:
+#  Defines $(libtracker_miner_marshal_sources) and
+#  $(libtracker_miner_monitor_sources)
+include $(top_srcdir)/src/libtracker-miner/Makefile-shared-sources.decl
+
 noinst_PROGRAMS = $(TEST_PROGS)
 
 TEST_PROGS +=									\
 	tracker-crawler-test							\
 	tracker-miner-manager-test						\
 	tracker-password-provider-test						\
-	tracker-thumbnailer-test
+	tracker-thumbnailer-test						\
+	tracker-monitor-test
 
 INCLUDES =									\
 	-DTEST									\
 	-DG_LOG_DOMAIN=\"Tracker\"						\
-	-DPKGLIBDIR=\""$(libdir)/tracker-$(TRACKER_API_VERSION)"\"		\
 	-DLIBEXEC_PATH=\""$(libexecdir)"\"					\
 	-DTRACKER_COMPILATION							\
 	-DTEST_DATA_DIR=\""$(abs_top_srcdir)/tests/libtracker-miner/data"\"	\
 	-DTEST_MINERS_DIR=\""$(abs_top_srcdir)/tests/libtracker-miner/mock-miners"\"	\
 	-I$(top_srcdir)/src							\
-	-I$(top_srcdir)/tests/common						\
-	-I$(top_builddir)/src/tracker-store					\
 	-I$(top_builddir)/src							\
+	-I$(top_srcdir)/tests/common						\
+	-I$(top_srcdir)/src/libtracker-client					\
 	-I$(top_builddir)/src/libtracker-client					\
+	-I$(top_srcdir)/src/libtracker-miner					\
+	-I$(top_builddir)/src/libtracker-miner					\
 	$(WARN_CFLAGS)								\
 	$(GCOV_CFLAGS)								\
 	$(GLIB2_CFLAGS)								\
@@ -49,6 +56,11 @@ tracker_thumbnailer_test_SOURCES =						\
 	thumbnailer-mock.c							\
 	empty-gobject.h								\
 	empty-gobject.c
+
+tracker_monitor_test_SOURCES =							\
+	tracker-monitor-test.c							\
+	$(libtracker_miner_marshal_sources)					\
+	$(libtracker_miner_monitor_sources)
 
 tracker_miner_manager_test_VALASOURCES =					\
 	tracker-miner-mock.vala

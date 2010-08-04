@@ -152,6 +152,29 @@ iterate_alt_text (XmpPtr          xmp,
 	xmp_iterator_free (iter);
 }
 
+static gchar *
+div_str_dup (const gchar *value)
+{
+	gchar *ret;
+	gchar *ptr = strchr (value, '/');
+	if (ptr) {
+		gchar *cpy = g_strdup (value);
+		gint a, b;
+		cpy [ptr - value] = '\0';
+		a = atoi (cpy);
+		b = atoi (cpy + (ptr - value) + 1);
+		if (b != 0)
+			ret = g_strdup_printf ("%G", ((gdouble)((gdouble) a / (gdouble) b)));
+		else
+			ret = NULL;
+		g_free (cpy);
+	} else {
+		ret = g_strdup (value);
+	}
+
+	return ret;
+}
+
 /* We have a simple element, but need to iterate over the qualifiers */
 static void
 iterate_simple_qual (XmpPtr          xmp,
@@ -290,13 +313,13 @@ iterate_simple (const gchar    *uri,
 			   tracker_statement_list_insert (metadata, uri,
 			   "Image:ExposureProgram", value);*/
 		} else if (!data->exposure_time && g_ascii_strcasecmp (name, "ExposureTime") == 0) {
-			data->exposure_time = g_strdup (value);
+			data->exposure_time = div_str_dup (value);
 		} else if (!data->fnumber && g_ascii_strcasecmp (name, "FNumber") == 0) {
-			data->fnumber = g_strdup (value);
+			data->fnumber = div_str_dup (value);
 		} else if (!data->focal_length && g_ascii_strcasecmp (name, "FocalLength") == 0) {
-			data->focal_length = g_strdup (value);
+			data->focal_length = div_str_dup (value);
 		} else if (!data->iso_speed_ratings && g_ascii_strcasecmp (name, "ISOSpeedRatings") == 0) {
-			data->iso_speed_ratings = g_strdup (value);
+			data->iso_speed_ratings = div_str_dup (value);
 		} else if (!data->white_balance && g_ascii_strcasecmp (name, "WhiteBalance") == 0) {
 			data->white_balance = g_strdup (fix_white_balance (value));
 		} else if (!data->copyright && g_ascii_strcasecmp (name, "Copyright") == 0) {
@@ -618,42 +641,6 @@ tracker_xmp_free (TrackerXmpData *data)
 	g_free (data);
 }
 
-static void
-insert_keywords (TrackerSparqlBuilder *metadata,
-                 const gchar          *uri,
-                 gchar                *keywords)
-{
-	char *lasts, *keyw;
-	size_t len;
-
-	keyw = keywords;
-	keywords = strchr (keywords, '"');
-	if (keywords) {
-		keywords++;
-	} else {
-		keywords = keyw;
-	}
-
-	len = strlen (keywords);
-	if (keywords[len - 1] == '"')
-		keywords[len - 1] = '\0';
-
-	for (keyw = strtok_r (keywords, ",;", &lasts);
-	     keyw;
-	     keyw = strtok_r (NULL, ",;", &lasts)) {
-		tracker_sparql_builder_predicate (metadata, "nao:hasTag");
-
-		tracker_sparql_builder_object_blank_open (metadata);
-		tracker_sparql_builder_predicate (metadata, "a");
-		tracker_sparql_builder_object (metadata, "nao:Tag");
-
-		tracker_sparql_builder_predicate (metadata, "nao:prefLabel");
-		tracker_sparql_builder_object_unvalidated (metadata, keyw);
-
-		tracker_sparql_builder_object_blank_close (metadata);
-	}
-}
-
 /**
  * tracker_xmp_apply:
  * @metadata: the metadata object to apply XMP data to.
@@ -672,21 +659,43 @@ tracker_xmp_apply (TrackerSparqlBuilder *metadata,
                    const gchar          *uri,
                    TrackerXmpData       *data)
 {
+	GPtrArray *keywords;
+	guint i;
+
 	g_return_val_if_fail (TRACKER_IS_SPARQL_BUILDER (metadata), FALSE);
 	g_return_val_if_fail (uri != NULL, FALSE);
 	g_return_val_if_fail (data != NULL, FALSE);
 
+	keywords = g_ptr_array_new ();
+
 	if (data->keywords) {
-		insert_keywords (metadata, uri, data->keywords);
+		tracker_keywords_parse (keywords, data->keywords);
 	}
 
 	if (data->subject) {
-		insert_keywords (metadata, uri, data->subject);
+		tracker_keywords_parse (keywords, data->subject);
 	}
 
 	if (data->pdf_keywords) {
-		insert_keywords (metadata, uri, data->pdf_keywords);
+		tracker_keywords_parse (keywords, data->pdf_keywords);
 	}
+
+	for (i = 0; i < keywords->len; i++) {
+		gchar *p;
+
+		p = g_ptr_array_index (keywords, i);
+
+		tracker_sparql_builder_predicate (metadata, "nao:hasTag");
+
+		tracker_sparql_builder_object_blank_open (metadata);
+		tracker_sparql_builder_predicate (metadata, "a");
+		tracker_sparql_builder_object (metadata, "nao:Tag");
+		tracker_sparql_builder_predicate (metadata, "nao:prefLabel");
+		tracker_sparql_builder_object_unvalidated (metadata, p);
+		tracker_sparql_builder_object_blank_close (metadata);
+		g_free (p);
+	}
+	g_ptr_array_free (keywords, TRUE);
 
 	if (data->publisher) {
 		tracker_sparql_builder_predicate (metadata, "nco:publisher");
@@ -743,7 +752,7 @@ tracker_xmp_apply (TrackerSparqlBuilder *metadata,
 	if (data->make || data->model) {
 		gchar *final_camera = tracker_merge_const (" ", 2, data->make, data->model);
 
-		tracker_sparql_builder_predicate (metadata, "nmm:camera");
+		tracker_sparql_builder_predicate (metadata, "nfo:device");
 		tracker_sparql_builder_object_unvalidated (metadata, final_camera);
 		g_free (final_camera);
 	}

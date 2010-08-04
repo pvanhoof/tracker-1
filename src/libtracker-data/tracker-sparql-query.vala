@@ -113,7 +113,7 @@ namespace Tracker.Sparql {
 		// Keep track of used sql identifiers to avoid using the same for multiple SPARQL variables
 		public HashTable<string,bool> used_sql_identifiers;
 
-		public bool in_scalar_subquery;
+		public bool scalar_subquery;
 
 		public Context (Context? parent_context = null) {
 			this.parent_context = parent_context;
@@ -129,7 +129,6 @@ namespace Tracker.Sparql {
 				var_map = parent_context.var_map;
 				predicate_variable_map = parent_context.predicate_variable_map;
 				used_sql_identifiers = parent_context.used_sql_identifiers;
-				in_scalar_subquery = parent_context.in_scalar_subquery;
 			}
 		}
 
@@ -138,10 +137,10 @@ namespace Tracker.Sparql {
 			this.var_set = new HashTable<Variable,int>.full (direct_hash, direct_equal, g_object_unref, null);
 
 			select_var_set = new HashTable<Variable,int>.full (direct_hash, direct_equal, g_object_unref, null);
-			var_map = new HashTable<string,Variable>.full (str_hash, str_equal, g_free, g_object_unref);
+			var_map = parent_context.var_map;
 			predicate_variable_map = new HashTable<Variable,PredicateVariable>.full (direct_hash, direct_equal, g_object_unref, g_object_unref);
 			used_sql_identifiers = new HashTable<string,bool>.full (str_hash, str_equal, g_free, null);
-			in_scalar_subquery = true;
+			scalar_subquery = true;
 		}
 
 		internal unowned Variable get_variable (string name) {
@@ -163,6 +162,18 @@ namespace Tracker.Sparql {
 				result = variable;
 			}
 			return result;
+		}
+	}
+
+	class SelectContext : Context {
+		public PropertyType type;
+
+		public SelectContext (Context? parent_context = null) {
+			base (parent_context);
+		}
+
+		public SelectContext.subquery (Context parent_context) {
+			base.subquery (parent_context);
 		}
 	}
 }
@@ -198,6 +209,9 @@ public class Tracker.Sparql.Query : Object {
 	bool current_subject_is_var;
 	string current_predicate;
 	bool current_predicate_is_var;
+
+	// SILENT => ignore (non-syntax) errors
+	bool silent;
 
 	HashTable<string,string> prefix_map;
 
@@ -371,6 +385,10 @@ public class Tracker.Sparql.Query : Object {
 		prefix_map.insert ("fn", FN_NS);
 
 		foreach (Namespace ns in Ontologies.get_namespaces ()) {
+			if (ns.prefix == null) {
+				critical ("Namespace does not specify a prefix: %s", ns.uri);
+				continue;
+			}
 			prefix_map.insert (ns.prefix, ns.uri);
 		}
 
@@ -432,6 +450,10 @@ public class Tracker.Sparql.Query : Object {
 		prefix_map.insert ("fn", FN_NS);
 
 		foreach (Namespace ns in Ontologies.get_namespaces ()) {
+			if (ns.prefix == null) {
+				critical ("Namespace does not specify a prefix: %s", ns.uri);
+				continue;
+			}
 			prefix_map.insert (ns.prefix, ns.uri);
 		}
 
@@ -513,15 +535,11 @@ public class Tracker.Sparql.Query : Object {
 	string get_select_query () throws DBInterfaceError, SparqlError, DateError {
 		// SELECT query
 
-		context = new Context ();
-
 		// build SQL
 		var sql = new StringBuilder ();
 		pattern.translate_select (sql);
 
 		expect (SparqlTokenType.EOF);
-
-		context = context.parent_context;
 
 		return sql.str;
 	}
@@ -538,7 +556,6 @@ public class Tracker.Sparql.Query : Object {
 		// ASK query
 
 		var pattern_sql = new StringBuilder ();
-		context = new Context ();
 
 		// build SQL
 		var sql = new StringBuilder ();
@@ -550,7 +567,7 @@ public class Tracker.Sparql.Query : Object {
 
 		accept (SparqlTokenType.WHERE);
 
-		pattern.translate_group_graph_pattern (pattern_sql);
+		context = pattern.translate_group_graph_pattern (pattern_sql);
 
 		// select from results of WHERE clause
 		sql.append (" FROM (");
@@ -597,6 +614,9 @@ public class Tracker.Sparql.Query : Object {
 		if (accept (SparqlTokenType.INSERT)) {
 			delete_statements = false;
 
+			// SILENT => ignore (non-syntax) errors
+			silent = accept (SparqlTokenType.SILENT);
+
 			if (current_graph == null && accept (SparqlTokenType.INTO)) {
 				parse_from_or_into_param ();
 			}
@@ -605,13 +625,15 @@ public class Tracker.Sparql.Query : Object {
 			delete_statements = true;
 			blank = false;
 
+			// SILENT => ignore (non-syntax) errors
+			silent = accept (SparqlTokenType.SILENT);
+
 			if (current_graph == null && accept (SparqlTokenType.FROM)) {
 				parse_from_or_into_param ();
 			}
 		}
 
 		var pattern_sql = new StringBuilder ();
-		context = new Context ();
 
 		var sql = new StringBuilder ();
 
@@ -623,9 +645,11 @@ public class Tracker.Sparql.Query : Object {
 			var old_graph = current_graph;
 			current_graph = null;
 
-			pattern.translate_group_graph_pattern (pattern_sql);
+			context = pattern.translate_group_graph_pattern (pattern_sql);
 
 			current_graph = old_graph;
+		} else {
+			context = new Context ();
 		}
 
 		var after_where = get_location ();
@@ -633,7 +657,7 @@ public class Tracker.Sparql.Query : Object {
 		// build SQL
 		sql.append ("SELECT ");
 		bool first = true;
-		foreach (var variable in context.var_map.get_values ()) {
+		foreach (var variable in context.var_set.get_keys ()) {
 			if (!first) {
 				sql.append (", ");
 			} else {
@@ -676,10 +700,10 @@ public class Tracker.Sparql.Query : Object {
 				// get values of all variables to be bound
 				var var_value_map = new HashTable<string,string>.full (str_hash, str_equal, g_free, g_free);
 				int var_idx = 0;
-				foreach (string var_name in context.var_map.get_keys ()) {
+				foreach (var variable in context.var_set.get_keys ()) {
 					Value value;
 					result_set._get_value (var_idx++, out value);
-					var_value_map.insert (var_name, get_string_for_value (value));
+					var_value_map.insert (variable.name, get_string_for_value (value));
 				}
 
 				set_location (template_location);
@@ -917,12 +941,22 @@ public class Tracker.Sparql.Query : Object {
 
 	void parse_construct_object (HashTable<string,string> var_value_map) throws SparqlError, DataError, DateError {
 		string object = parse_construct_var_or_term (var_value_map);
-		if (delete_statements) {
-			// delete triple from database
-			Data.delete_statement (current_graph, current_subject, current_predicate, object);
-		} else {
-			// insert triple into database
-			Data.insert_statement (current_graph, current_subject, current_predicate, object);
+		try {
+			if (delete_statements) {
+				// delete triple from database
+				Data.delete_statement (current_graph, current_subject, current_predicate, object);
+			} else {
+				// insert triple into database
+				Data.insert_statement (current_graph, current_subject, current_predicate, object);
+			}
+		} catch (DataError e) {
+			if (!silent) {
+				throw e;
+			}
+		} catch (DateError e) {
+			if (!silent) {
+				throw e;
+			}
 		}
 	}
 
@@ -930,6 +964,8 @@ public class Tracker.Sparql.Query : Object {
 	{
 		if (value.type () == typeof (int)) {
 			return value.get_int ().to_string ();
+		} else if (value.type () == typeof (int64)) {
+			return value.get_int64 ().to_string ();
 		} else if (value.type () == typeof (double)) {
 			return value.get_double ().to_string ();
 		} else if (value.type () == typeof (string)) {

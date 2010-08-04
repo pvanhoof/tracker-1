@@ -8,7 +8,6 @@ INCLUDES = 									\
 	-DTEST									\
 	-DG_LOG_DOMAIN=\"Tracker\"						\
 	-DINDEXER_MODULES_DIR=\""$(libdir)/tracker-$(TRACKER_API_VERSION)/indexer-modules"\"	\
-	-DPKGLIBDIR=\""$(libdir)/tracker-$(TRACKER_API_VERSION)"\"		\
 	-DLIBEXEC_PATH=\""$(libexecdir)"\"					\
 	-DTRACKER_COMPILATION							\
 	-I$(top_srcdir)/src							\
@@ -29,7 +28,6 @@ tracker_metadata_utils_SOURCES = 						\
 
 tracker_metadata_utils_LDADD =	                                        	\
 	$(top_builddir)/src/libtracker-data/libtracker-data.la 			\
-	$(top_builddir)/src/libtracker-db/libtracker-db.la 			\
 	$(top_builddir)/src/libtracker-common/libtracker-common.la 		\
 	$(top_builddir)/src/libtracker-client/libtracker-client-@TRACKER_API_VERSION@.la \
 	$(top_builddir)/tests/common/libtracker-testcommon.la           	\
@@ -39,9 +37,3 @@ tracker_metadata_utils_LDADD =	                                        	\
 	$(GIO_LIBS)								\
 	$(GCOV_LIBS)								\
 	$(GLIB2_LIBS)
-
-
-if HAVE_LIBINOTIFY
-tracker_metadata_utils_LDADD +=							\
-	$(top_builddir)/src/libinotify/libinotify.la
-endif #HAVE_LIBINOTIFY

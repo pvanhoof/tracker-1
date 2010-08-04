@@ -29,16 +29,17 @@ G_BEGIN_DECLS
 
 typedef struct TrackerParser TrackerParser;
 
-TrackerParser *tracker_parser_new             (TrackerLanguage *language,
-                                               gint             max_word_length);
+TrackerParser *tracker_parser_new             (TrackerLanguage *language);
 
 void           tracker_parser_reset           (TrackerParser   *parser,
                                                const gchar     *txt,
                                                gint             txt_size,
-                                               gboolean                 delimit_words,
-                                               gboolean                 enable_stemmer,
-                                               gboolean                 enable_stop_words,
-                                               gboolean                 parse_reserved_words);
+                                               guint            max_word_length,
+                                               gboolean         enable_stemmer,
+                                               gboolean         enable_unaccent,
+                                               gboolean         ignore_stop_words,
+                                               gboolean         ignore_reserved_words,
+                                               gboolean         ignore_numbers);
 
 const gchar *  tracker_parser_next            (TrackerParser   *parser,
                                                gint            *position,
@@ -47,10 +48,6 @@ const gchar *  tracker_parser_next            (TrackerParser   *parser,
                                                gboolean        *stop_word,
                                                gint            *word_length);
 
-gchar *        tracker_parser_process_word    (TrackerParser   *parser,
-                                               const char      *word,
-                                               gint             length,
-                                               gboolean                 do_strip);
 void           tracker_parser_free            (TrackerParser   *parser);
 
 G_END_DECLS

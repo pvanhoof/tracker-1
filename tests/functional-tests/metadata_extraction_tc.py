@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.5
+#!/usr/bin/env python
 #
 # Copyright (C) 2010, Nokia <ivan.frade@nokia.com>
 #
@@ -618,7 +618,7 @@ class images(TrackerHelpers):
                                 if parm.rstrip() == 'Camera':
 					query = "SELECT ?value WHERE { \
 					?uid nie:url <%s>; \
-					nmm:camera ?value.}" %(file_uri)
+					nfo:device ?value.}" %(file_uri)
 					print query
 					results = self.query (query)
 					print results

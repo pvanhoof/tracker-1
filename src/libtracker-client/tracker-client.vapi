@@ -42,8 +42,12 @@ namespace Tracker {
 		public void load_async (string uri, Tracker.ReplyVoid callback);
 		[CCode (cname = "tracker_resources_sparql_query")]
 		public GLib.PtrArray sparql_query (string query) throws GLib.Error;
+		[CCode (cname = "tracker_resources_sparql_query_iterate")]
+		public Tracker.ResultIterator sparql_query_iterate (string query) throws GLib.Error;
 		[CCode (cname = "tracker_resources_sparql_query_async")]
 		public void sparql_query_async (string query, Tracker.ReplyGPtrArray callback);
+		[CCode (cname = "tracker_resources_sparql_query_iterate_async")]
+		public void sparql_query_iterate_async (string query, Tracker.ReplyIterator callback);
 		[CCode (cname = "tracker_resources_sparql_update")]
 		public void sparql_update (string query) throws GLib.Error;
 		[CCode (cname = "tracker_resources_sparql_update_async")]
@@ -71,19 +75,19 @@ namespace Tracker {
 		public static unowned Tracker.SparqlBuilder construct_embedded_insert (GLib.Type object_type);
 		public static unowned Tracker.SparqlBuilder construct_update (GLib.Type object_type);
 		public void delete_close ();
-		public void delete_open (string graph);
+		public void delete_open (string? graph);
 		public void drop_graph (string iri);
 		[CCode (has_construct_function = false)]
 		public SparqlBuilder.embedded_insert ();
 		public int get_length ();
 		public unowned string get_result ();
 		public void insert_close ();
-		public void insert_open (string graph);
+		public void insert_open (string? graph);
 		public void object (string s);
 		public void object_blank_close ();
 		public void object_blank_open ();
 		public void object_boolean (bool literal);
-		public void object_date (ulong literal);
+		public void object_date (ref time_t literal);
 		public void object_double (double literal);
 		public void object_int64 (int64 literal);
 		public void object_iri (string iri);
@@ -106,10 +110,20 @@ namespace Tracker {
 		WARNINGS
 	}
 
+	[Compact]
+	[CCode (cheader_filename = "libtracker-client/tracker-client.h")]
+	public class ResultIterator {
+		public int n_columns ();
+		public bool next ();
+		public unowned string value (uint column);
+	}
+
 	[CCode (cheader_filename = "libtracker-client/tracker-client.h", instance_pos = -2)]
 	public delegate void ReplyArray (string result, GLib.Error error);
 	[CCode (cheader_filename = "libtracker-client/tracker-client.h", instance_pos = -2)]
 	public delegate void ReplyGPtrArray (GLib.PtrArray result, GLib.Error error);
+	[CCode (cheader_filename = "libtracker-client/tracker-client.h", instance_pos = -2)]
+	public delegate void ReplyIterator (Tracker.ResultIterator iterator, GLib.Error error);
 	[CCode (cheader_filename = "libtracker-client/tracker-client.h", instance_pos = -2)]
 	public delegate void ReplyVoid (GLib.Error error);
 	[CCode (cheader_filename = "libtracker-client/tracker.h", instance_pos = -2)]

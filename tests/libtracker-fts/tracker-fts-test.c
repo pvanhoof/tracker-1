@@ -26,11 +26,10 @@
 
 #include <libtracker-common/tracker-ontologies.h>
 
-#include <libtracker-db/tracker-db.h>
-
 #include <libtracker-data/tracker-data-manager.h>
 #include <libtracker-data/tracker-data-query.h>
 #include <libtracker-data/tracker-data-update.h>
+#include <libtracker-data/tracker-data.h>
 #include <libtracker-data/tracker-sparql-query.h>
 
 typedef struct _TestInfo TestInfo;
@@ -72,6 +71,7 @@ test_sparql_query (gconstpointer test_data)
 	g_free (prefix);
 
 	test_schemas[0] = data_prefix;
+	tracker_db_journal_set_rotating (FALSE, G_MAXSIZE, NULL);
 	tracker_data_manager_init (TRACKER_DB_MANAGER_FORCE_REINDEX,
 	                           test_schemas,
 	                           NULL, FALSE, NULL, NULL, NULL);
@@ -227,7 +227,7 @@ main (int argc, char **argv)
 
 	/* clean up */
 	g_print ("Removing temporary data\n");
-	g_spawn_command_line_async ("rm -R tracker/", NULL);
+	g_spawn_command_line_sync ("rm -R tracker/", NULL, NULL, NULL, NULL);
 
 	return result;
 }

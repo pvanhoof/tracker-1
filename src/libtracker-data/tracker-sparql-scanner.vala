@@ -59,6 +59,10 @@ public class Tracker.SparqlScanner : Object {
 			case 'b':
 				if (matches (begin, "BY")) return SparqlTokenType.BY;
 				break;
+			case 'i':
+			case 'I':
+				if (matches (begin, "IN")) return SparqlTokenType.OP_IN;
+				break;
 			}
 			break;
 		case 3:
@@ -97,6 +101,10 @@ public class Tracker.SparqlScanner : Object {
 					if (matches (begin, "MIN")) return SparqlTokenType.MIN;
 					break;
 				}
+				break;
+			case 'N':
+			case 'n':
+				if (matches (begin, "NOT")) return SparqlTokenType.NOT;
 				break;
 			case 'S':
 			case 's':
@@ -236,6 +244,10 @@ public class Tracker.SparqlScanner : Object {
 			case 'd':
 				if (matches (begin, "DELETE")) return SparqlTokenType.DELETE;
 				break;
+			case 'E':
+			case 'e':
+				if (matches (begin, "EXISTS")) return SparqlTokenType.EXISTS;
+				break;
 			case 'F':
 			case 'f':
 				if (matches (begin, "FILTER")) return SparqlTokenType.FILTER;
@@ -254,7 +266,16 @@ public class Tracker.SparqlScanner : Object {
 				break;
 			case 'S':
 			case 's':
-				if (matches (begin, "SELECT")) return SparqlTokenType.SELECT;
+				switch (begin[1]) {
+				case 'E':
+				case 'e':
+					if (matches (begin, "SELECT")) return SparqlTokenType.SELECT;
+					break;
+				case 'I':
+				case 'i':
+					if (matches (begin, "SILENT")) return SparqlTokenType.SILENT;
+					break;
+				}
 				break;
 			}
 			break;
@@ -813,6 +834,7 @@ public enum Tracker.SparqlTokenType {
 	DOUBLE_CIRCUMFLEX,
 	DROP,
 	EOF,
+	EXISTS,
 	FALSE,
 	FILTER,
 	FROM,
@@ -834,6 +856,7 @@ public enum Tracker.SparqlTokenType {
 	MIN,
 	MINUS,
 	NAMED,
+	NOT,
 	OFFSET,
 	OP_AND,
 	OP_EQ,
@@ -844,6 +867,7 @@ public enum Tracker.SparqlTokenType {
 	OP_NE,
 	OP_NEG,
 	OP_OR,
+	OP_IN,
 	OPEN_BRACE,
 	OPEN_BRACKET,
 	OPEN_PARENS,
@@ -857,6 +881,7 @@ public enum Tracker.SparqlTokenType {
 	SAMETERM,
 	SELECT,
 	SEMICOLON,
+	SILENT,
 	STAR,
 	STR,
 	STRING_LITERAL1,
@@ -900,6 +925,7 @@ public enum Tracker.SparqlTokenType {
 		case DOUBLE_CIRCUMFLEX: return "`^^'";
 		case DROP: return "`DROP'";
 		case EOF: return "end of file";
+		case EXISTS: return "`EXISTS'";
 		case FALSE: return "`false'";
 		case FILTER: return "`FILTER'";
 		case FROM: return "`FROM'";
@@ -921,6 +947,7 @@ public enum Tracker.SparqlTokenType {
 		case MIN: return "`MIN'";
 		case MINUS: return "`-'";
 		case NAMED: return "`NAMED'";
+		case NOT: return "`NOT'";
 		case OFFSET: return "`OFFSET'";
 		case OP_AND: return "`&&'";
 		case OP_EQ: return "`='";
@@ -931,6 +958,7 @@ public enum Tracker.SparqlTokenType {
 		case OP_NE: return "`!='";
 		case OP_NEG: return "`!'";
 		case OP_OR: return "`||'";
+		case OP_IN: return "`IN'";
 		case OPEN_BRACE: return "`{'";
 		case OPEN_BRACKET: return "`['";
 		case OPEN_PARENS: return "`('";
@@ -944,6 +972,7 @@ public enum Tracker.SparqlTokenType {
 		case SAMETERM: return "`SAMETERM'";
 		case SELECT: return "`SELECT'";
 		case SEMICOLON: return "`;'";
+		case SILENT: return "`SILENT'";
 		case STAR: return "`*'";
 		case STR: return "`STR'";
 		case STRING_LITERAL1: return "string literal";

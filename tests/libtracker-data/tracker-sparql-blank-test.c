@@ -24,11 +24,10 @@
 #include <glib.h>
 #include <gio/gio.h>
 
-#include <libtracker-db/tracker-db.h>
-
 #include <libtracker-data/tracker-data-manager.h>
 #include <libtracker-data/tracker-data-query.h>
 #include <libtracker-data/tracker-data-update.h>
+#include <libtracker-data/tracker-data.h>
 #include <libtracker-data/tracker-sparql-query.h>
 
 static void
@@ -39,6 +38,8 @@ test_blank (void)
 	GHashTable *blank_nodes[2];
 
 	error = NULL;
+
+	tracker_db_journal_set_rotating (FALSE, G_MAXSIZE, NULL);
 
 	/* initialization */
 	tracker_data_manager_init (TRACKER_DB_MANAGER_FORCE_REINDEX,
@@ -115,7 +116,7 @@ main (int argc, char **argv)
 
 	/* clean up */
 	g_print ("Removing temporary data\n");
-	g_spawn_command_line_async ("rm -R tracker/", NULL);
+	g_spawn_command_line_sync ("rm -R tracker/", NULL, NULL, NULL, NULL);
 
 	return result;
 }

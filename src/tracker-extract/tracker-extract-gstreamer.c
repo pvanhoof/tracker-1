@@ -75,6 +75,19 @@ long long int llroundl(long double x);
 #define GST_TAG_FRAMERATE "framerate"
 #endif
 
+#ifndef GST_TAG_DEVICE_MODEL
+#define GST_TAG_DEVICE_MODEL "device-model"
+#endif
+
+#ifndef GST_TAG_DEVICE_MANUFACTURER
+#define GST_TAG_DEVICE_MANUFACTURER "device-manufacturer"
+#endif
+
+#ifndef GST_TAG_DEVICE_MAKE
+#define GST_TAG_DEVICE_MAKE "device-make"
+#endif
+
+
 typedef enum {
 	EXTRACT_MIME_AUDIO,
 	EXTRACT_MIME_VIDEO,
@@ -132,9 +145,10 @@ static TrackerExtractData data[] = {
 	{ "audio/*", extract_gstreamer_audio },
 	{ "video/*", extract_gstreamer_video },
 	{ "image/*", extract_gstreamer_image },
-	/* mime type guessing returns for instance video/3gpp also for 3gpp audio files */
+	/* Tell gstreamer to guess if mimetype guessing returns video also for audio files */
 	{ "video/3gpp", extract_gstreamer_guess },
 	{ "video/mp4", extract_gstreamer_guess },
+	{ "video/x-ms-asf", extract_gstreamer_guess },
 	{ NULL, NULL }
 };
 
@@ -396,18 +410,15 @@ get_embedded_album_art(MetadataExtractor *extractor)
 
 	if (value) {
 		GstBuffer    *buffer;
-		GstCaps      *caps;
 		GstStructure *caps_struct;
 
 		buffer = gst_value_get_buffer (value);
-		caps   = gst_buffer_get_caps (buffer);
 		caps_struct = gst_caps_get_structure (buffer->caps, 0);
 
 		extractor->album_art_data = buffer->data;
 		extractor->album_art_size = buffer->size;
 		extractor->album_art_mime = gst_structure_get_name (caps_struct);
 
-		gst_object_unref (caps);
 
 		return TRUE;
 	}
@@ -490,7 +501,7 @@ extract_metadata (MetadataExtractor      *extractor,
                   gchar                 **scount)
 {
 	const gchar *temp;
-	gchar *s;
+	gchar *s, *make = NULL, *model = NULL, *manuf = NULL, *make_model = NULL;
 	gboolean ret;
 	gint count;
 	gboolean needs_audio = FALSE;
@@ -746,6 +757,36 @@ extract_metadata (MetadataExtractor      *extractor,
 		add_string_gst_tag (metadata, uri, "dc:coverage", extractor->tagcache, GST_TAG_LOCATION);
 		add_y_date_gst_tag (metadata, uri, "nie:contentCreated", extractor->tagcache, GST_TAG_DATE);
 		add_string_gst_tag (metadata, uri, "nie:comment", extractor->tagcache, GST_TAG_COMMENT);
+
+		gst_tag_list_get_string (extractor->tagcache, GST_TAG_DEVICE_MODEL, &model);
+		gst_tag_list_get_string (extractor->tagcache, GST_TAG_DEVICE_MAKE, &make);
+		gst_tag_list_get_string (extractor->tagcache, GST_TAG_DEVICE_MANUFACTURER, &manuf);
+
+		if (make && model && manuf) {
+			make_model = tracker_merge_const (" ", 3, manuf, make, model);
+		} else if (make && model) {
+			make_model = tracker_merge_const (" ", 2, make, model);
+		} else if (make && manuf) {
+			make_model = tracker_merge_const (" ", 2, manuf, make);
+		} else if (model && manuf) {
+			make_model = tracker_merge_const (" ", 2, manuf, model);
+		} else if (model) {
+			make_model = g_strdup (model);
+		} else if (make) {
+			make_model = g_strdup (make);
+		} else if (manuf) {
+			make_model = g_strdup (manuf);
+		}
+
+		if (make_model) {
+			tracker_sparql_builder_predicate (metadata, "nfo:device");
+			tracker_sparql_builder_object_unvalidated (metadata, make_model);
+			g_free (make_model);
+		}
+
+		g_free (make);
+		g_free (model);
+		g_free (manuf);
 
 		if (extractor->is_content_encrypted) {
 			tracker_sparql_builder_predicate (metadata, "nfo:isContentEncrypted");
@@ -1064,37 +1105,39 @@ create_decodebin_pipeline (MetadataExtractor *extractor, const gchar *uri)
 	GstElement *filesrc  = NULL;
 	GstElement *bin      = NULL;
 
-	guint       id;
-
 	pipeline = gst_element_factory_make ("pipeline", NULL);
 	if (!pipeline) {
 		g_warning ("Failed to create GStreamer pipeline");
-		return FALSE;
+		return NULL;
 	}
 
 	filesrc = gst_element_factory_make ("giosrc", NULL);
 	if (!filesrc) {
 		g_warning ("Failed to create GStreamer giosrc");
-		return FALSE;
+		gst_object_unref (GST_OBJECT (pipeline));
+		return NULL;
 	}
 
 	bin = gst_element_factory_make ("decodebin2", "decodebin2");
 	if (!bin) {
 		g_warning ("Failed to create GStreamer decodebin");
-		return FALSE;
+		gst_object_unref (GST_OBJECT (pipeline));
+		gst_object_unref (GST_OBJECT (filesrc));
+		return NULL;
 	}
 
-	id = g_signal_connect (G_OBJECT (bin),
-	                       "new-decoded-pad",
-	                       G_CALLBACK (dbin_dpad_cb),
-	                       extractor);
+	g_signal_connect (G_OBJECT (bin),
+			  "new-decoded-pad",
+			  G_CALLBACK (dbin_dpad_cb),
+			  extractor);
 
 	gst_bin_add (GST_BIN (pipeline), filesrc);
 	gst_bin_add (GST_BIN (pipeline), bin);
 
 	if (!gst_element_link_many (filesrc, bin, NULL)) {
 		g_warning ("Could not link GStreamer elements");
-		return FALSE;
+		gst_object_unref (GST_OBJECT (pipeline));
+		return NULL;
 	}
 
 	g_object_set (G_OBJECT (filesrc), "location", uri, NULL);
@@ -1167,6 +1210,7 @@ tracker_extract_gstreamer (const gchar *uri,
 
 	if (!extractor->pipeline) {
 		g_warning ("No valid pipeline for uri %s", uri);
+		g_slice_free (MetadataExtractor, extractor);
 		return;
 	}
 
@@ -1175,11 +1219,17 @@ tracker_extract_gstreamer (const gchar *uri,
 	if (use_tagreadbin) {
 		if (!poll_for_ready (extractor, GST_STATE_PLAYING, FALSE, TRUE)) {
 			g_warning ("Error running tagreadbin");
+			gst_object_unref (GST_OBJECT (extractor->pipeline));
+			gst_object_unref (extractor->bus);
+			g_slice_free (MetadataExtractor, extractor);
 			return;
 		}
 	} else {
 		if (!poll_for_ready (extractor, GST_STATE_PAUSED, TRUE, FALSE)) {
 			g_warning ("Error running decodebin");
+			gst_object_unref (GST_OBJECT (extractor->pipeline));
+			gst_object_unref (extractor->bus);
+			g_slice_free (MetadataExtractor, extractor);
 			return;
 		}
 

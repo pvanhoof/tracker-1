@@ -91,43 +91,6 @@ struct tej_error_mgr {
 };
 
 static void
-insert_keywords (TrackerSparqlBuilder *metadata,
-                 gchar                *keywords)
-{
-	char *saveptr, *p;
-	size_t len;
-
-	p = keywords;
-	keywords = strchr (keywords, '"');
-
-	if (keywords) {
-		keywords++;
-	} else {
-		keywords = p;
-	}
-
-	len = strlen (keywords);
-	if (keywords[len - 1] == '"') {
-		keywords[len - 1] = '\0';
-	}
-
-	for (p = strtok_r (keywords, ",;", &saveptr);
-	     p;
-	     p = strtok_r (NULL, ",;", &saveptr)) {
-		tracker_sparql_builder_predicate (metadata, "nao:hasTag");
-
-		tracker_sparql_builder_object_blank_open (metadata);
-		tracker_sparql_builder_predicate (metadata, "a");
-		tracker_sparql_builder_object (metadata, "nao:Tag");
-
-		tracker_sparql_builder_predicate (metadata, "nao:prefLabel");
-		tracker_sparql_builder_object_unvalidated (metadata, p);
-
-		tracker_sparql_builder_object_blank_close (metadata);
-	}
-}
-
-static void
 extract_jpeg_error_exit (j_common_ptr cinfo)
 {
 	struct tej_error_mgr *h = (struct tej_error_mgr *) cinfo->err;
@@ -151,6 +114,8 @@ extract_jpeg (const gchar          *uri,
 	goffset size;
 	gchar *filename;
 	gchar *comment = NULL;
+	GPtrArray *keywords;
+	guint i;
 
 	filename = g_filename_from_uri (uri, NULL, NULL);
 
@@ -238,9 +203,9 @@ extract_jpeg (const gchar          *uri,
 			str = (gchar*) marker->data;
 			len = marker->data_length;
 #ifdef HAVE_LIBIPTCDATA
-			if (strncmp (PS3_NAMESPACE, str, PS3_NAMESPACE_LENGTH) == 0) {
+			if (len > 0 && strncmp (PS3_NAMESPACE, str, PS3_NAMESPACE_LENGTH) == 0) {
 				offset = iptc_jpeg_ps3_find_iptc (str, len, &sublen);
-				if (offset > 0) {
+				if (offset > 0 && sublen > 0) {
 					id = tracker_iptc_new (str + offset, sublen, uri);
 				}
 			}
@@ -330,16 +295,18 @@ extract_jpeg (const gchar          *uri,
 		g_free (uri);
 	}
 
+	keywords = g_ptr_array_new ();
+
 	if (xd->keywords) {
-		insert_keywords (metadata, xd->keywords);
+		tracker_keywords_parse (keywords, xd->keywords);
 	}
 
 	if (xd->pdf_keywords) {
-		insert_keywords (metadata, xd->pdf_keywords);
+		tracker_keywords_parse (keywords, xd->pdf_keywords);
 	}
 
 	if (xd->subject) {
-		insert_keywords (metadata, xd->subject);
+		tracker_keywords_parse (keywords, xd->subject);
 	}
 
 	if (xd->publisher) {
@@ -404,11 +371,28 @@ extract_jpeg (const gchar          *uri,
 	}
 
 	if (id->keywords) {
-		insert_keywords (metadata, id->keywords);
+		tracker_keywords_parse (keywords, id->keywords);
 	}
 
+	for (i = 0; i < keywords->len; i++) {
+		gchar *p;
+
+		p = g_ptr_array_index (keywords, i);
+
+		tracker_sparql_builder_predicate (metadata, "nao:hasTag");
+
+		tracker_sparql_builder_object_blank_open (metadata);
+		tracker_sparql_builder_predicate (metadata, "a");
+		tracker_sparql_builder_object (metadata, "nao:Tag");
+		tracker_sparql_builder_predicate (metadata, "nao:prefLabel");
+		tracker_sparql_builder_object_unvalidated (metadata, p);
+		tracker_sparql_builder_object_blank_close (metadata);
+		g_free (p);
+	}
+	g_ptr_array_free (keywords, TRUE);
+
 	if (md.camera) {
-		tracker_sparql_builder_predicate (metadata, "nmm:camera");
+		tracker_sparql_builder_predicate (metadata, "nfo:device");
 		tracker_sparql_builder_object_unvalidated (metadata, md.camera);
 	}
 
@@ -619,6 +603,7 @@ extract_jpeg (const gchar          *uri,
 	tracker_exif_free (ed);
 	tracker_xmp_free (xd);
 	tracker_iptc_free (id);
+	g_free (comment);
 
 fail:
 	tracker_file_close (f, FALSE);

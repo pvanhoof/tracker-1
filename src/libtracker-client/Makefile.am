@@ -8,6 +8,7 @@ INCLUDES = 						\
 	-I$(top_builddir)/src/libtracker-client		\
 	$(WARN_CFLAGS)					\
 	$(GLIB2_CFLAGS)					\
+	$(GIO_CFLAGS)					\
 	$(GCOV_CFLAGS)					\
 	$(DBUS_CFLAGS)
 
@@ -31,7 +32,9 @@ libtracker_client_@TRACKER_API_VERSION@_la_LDFLAGS = 	\
 	-export-symbols-regex '^tracker_.*'
 
 libtracker_client_@TRACKER_API_VERSION@_la_LIBADD =	\
+	$(top_builddir)/src/libtracker-common/libtracker-common.la \
 	$(GLIB2_LIBS) 					\
+	$(GIO_LIBS)					\
 	$(DBUS_LIBS)					\
 	$(GCOV_LIBS)					\
 	$(GOBJECT_LIBS)

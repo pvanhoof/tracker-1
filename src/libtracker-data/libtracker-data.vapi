@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009, Nokia
+ * Copyright (C) 2008-2010, Nokia
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,6 +18,52 @@
  */
 
 namespace Tracker {
+	[CCode (cheader_filename = "libtracker-data/tracker-db-manager.h")]
+	public enum DB {
+		UNKNOWN,
+		COMMON,
+		CACHE,
+		METADATA,
+		CONTENTS
+	}
+
+	[CCode (cprefix = "TRACKER_DB_", cheader_filename = "libtracker-data/tracker-db-interface.h")]
+	public errordomain DBInterfaceError {
+		QUERY_ERROR,
+		CORRUPT,
+		INTERRUPTED
+	}
+
+	[CCode (cheader_filename = "libtracker-data/tracker-db-interface.h")]
+	public interface DBInterface : GLib.Object {
+		[PrintfFormat]
+		public abstract DBStatement create_statement (...) throws DBInterfaceError;
+	}
+
+	[CCode (cheader_filename = "libtracker-data/tracker-db-manager.h")]
+	namespace DBManager {
+		public unowned DBInterface get_db_interface ();
+	}
+
+	[CCode (cheader_filename = "libtracker-data/tracker-db-interface.h")]
+	public class DBResultSet : GLib.Object {
+		public void _get_value (uint column, out GLib.Value value);
+		public bool iter_next ();
+	}
+
+	[CCode (cheader_filename = "libtracker-data/tracker-db-interface.h")]
+	public class DBCursor : GLib.Object {
+	}
+
+	[CCode (cheader_filename = "libtracker-data/tracker-db-interface.h")]
+	public interface DBStatement : GLib.Object {
+		public abstract void bind_double (int index, double value);
+		public abstract void bind_int (int index, int value);
+		public abstract void bind_text (int index, string value);
+		public abstract DBResultSet execute () throws DBInterfaceError;
+		public abstract DBCursor start_cursor () throws DBInterfaceError;
+	}
+
 	[CCode (cheader_filename = "libtracker-data/tracker-class.h")]
 	public class Class : GLib.Object {
 		public string name { get; set; }
@@ -42,6 +88,8 @@ namespace Tracker {
 		public Class range { get; set; }
 		public bool multiple_values { get; set; }
 		public bool is_inverse_functional_property { get; set; }
+		[CCode (array_length = false, array_null_terminated = true)]
+		public unowned Class[] get_domain_indexes ();
 	}
 
 	[CCode (cheader_filename = "libtracker-data/tracker-property.h")]
@@ -80,10 +128,10 @@ namespace Tracker {
 		public void begin_transaction () throws DBInterfaceError;
 		public void commit_transaction () throws DBInterfaceError;
 		public void rollback_transaction ();
-		public void delete_statement (string graph, string subject, string predicate, string object) throws DataError;
-		public void insert_statement (string graph, string subject, string predicate, string object) throws DataError;
+		public void delete_statement (string graph, string subject, string predicate, string object) throws DataError, DateError;
+		public void insert_statement (string graph, string subject, string predicate, string object) throws DataError, DateError;
 		public void insert_statement_with_uri (string graph, string subject, string predicate, string object) throws DataError;
-		public void insert_statement_with_string (string graph, string subject, string predicate, string object) throws DataError;
+		public void insert_statement_with_string (string graph, string subject, string predicate, string object) throws DataError, DateError;
 		public void delete_resource_description (string graph, string uri) throws DataError;
 		public void update_buffer_flush () throws DBInterfaceError;
 		public void update_buffer_might_flush () throws DBInterfaceError;

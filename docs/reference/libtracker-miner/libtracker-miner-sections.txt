@@ -47,6 +47,7 @@ tracker_miner_execute_update
 tracker_miner_execute_update_finish
 tracker_miner_execute_sparql
 tracker_miner_execute_sparql_finish
+tracker_miner_execute_sparql_sync
 tracker_miner_execute_batch_update
 tracker_miner_execute_batch_update_finish
 tracker_miner_commit
@@ -69,6 +70,7 @@ TrackerMinerFS
 TrackerMinerFSClass
 tracker_miner_fs_directory_add
 tracker_miner_fs_directory_remove
+tracker_miner_fs_directory_remove_full
 tracker_miner_fs_file_add
 tracker_miner_fs_file_notify
 tracker_miner_fs_set_throttle
@@ -76,6 +78,8 @@ tracker_miner_fs_get_throttle
 tracker_miner_fs_force_recheck
 tracker_miner_fs_get_parent_urn
 tracker_miner_fs_get_urn
+tracker_miner_fs_query_urn
+tracker_miner_fs_add_directory_without_parent
 <SUBSECTION Standard>
 TRACKER_MINER_FS
 TRACKER_IS_MINER_FS
@@ -136,6 +140,22 @@ tracker_password_provider_get_type
 </SECTION>
 
 <SECTION>
+<FILE>tracker-network-provider</FILE>
+TRACKER_NETWORK_PROVIDER_GET_INTERFACE
+TrackerNetworkProvider
+TrackerNetworkProviderIface
+TrackerNetworkProviderStatus
+tracker_network_provider_get
+tracker_network_provider_get_name
+tracker_network_provider_get_status
+<SUBSECTION Standard>
+TRACKER_NETWORK_PROVIDER
+TRACKER_IS_NETWORK_PROVIDER
+TRACKER_TYPE_NETWORK_PROVIDER
+tracker_network_provider_get_type
+</SECTION>
+
+<SECTION>
 <FILE>tracker-thumbnailer</FILE>
 tracker_thumbnailer_init
 tracker_thumbnailer_shutdown
@@ -151,10 +171,13 @@ tracker_thumbnailer_cleanup
 TrackerStorage
 TrackerStorageClass
 TrackerStorageType
+TRACKER_STORAGE_TYPE_IS_REMOVABLE
+TRACKER_STORAGE_TYPE_IS_OPTICAL
 tracker_storage_new
 tracker_storage_get_device_roots
 tracker_storage_get_device_uuids
 tracker_storage_get_mount_point_for_uuid
+tracker_storage_get_type_for_uuid
 tracker_storage_get_uuid_for_file
 <SUBSECTION Standard>
 TRACKER_STORAGE
@@ -165,4 +188,3 @@ TRACKER_STORAGE_CLASS
 TRACKER_IS_STORAGE_CLASS
 TRACKER_STORAGE_GET_CLASS
 </SECTION>
-

@@ -25,13 +25,13 @@
 #include <gio/gio.h>
 
 #include <libtracker-common/tracker-common.h>
-#include <libtracker-db/tracker-db.h>
 
+#include <libtracker-data/tracker-data-backup.h>
 #include <libtracker-data/tracker-data-manager.h>
 #include <libtracker-data/tracker-data-query.h>
 #include <libtracker-data/tracker-data-update.h>
+#include <libtracker-data/tracker-data.h>
 #include <libtracker-data/tracker-sparql-query.h>
-#include <libtracker-data/tracker-data-backup.h>
 
 static gint backup_calls = 0;
 static GMainLoop *loop = NULL;
@@ -105,6 +105,8 @@ test_backup_and_restore_helper (gboolean journal)
 	test_schemas[2] = g_build_path (G_DIR_SEPARATOR_S, TOP_SRCDIR, "tests", "libtracker-data", "ontologies", "90-tracker", NULL);
 	test_schemas[3] = data_prefix;
 
+	tracker_db_journal_set_rotating (FALSE, G_MAXSIZE, NULL);
+
 	tracker_data_manager_init (TRACKER_DB_MANAGER_FORCE_REINDEX,
 	                           (const gchar **) test_schemas,
 	                           NULL, FALSE, NULL, NULL, NULL);
@@ -157,6 +159,8 @@ test_backup_and_restore_helper (gboolean journal)
 	g_unlink (meta_db);
 	g_free (meta_db);
 
+	tracker_db_journal_set_rotating (FALSE, G_MAXSIZE, NULL);
+
 	tracker_data_manager_init (TRACKER_DB_MANAGER_FORCE_REINDEX,
 	                           (const gchar **) test_schemas,
 	                           NULL, FALSE, NULL, NULL, NULL);
@@ -170,6 +174,8 @@ test_backup_and_restore_helper (gboolean journal)
 	g_free (test_schemas[1]);
 
 	g_assert_cmpint (backup_calls, ==, 2);
+
+	tracker_data_manager_shutdown ();
 }
 
 static void
@@ -220,7 +226,7 @@ main (int argc, char **argv)
 
 	/* clean up */
 	g_print ("Removing temporary data\n");
-	g_spawn_command_line_async ("rm -R tracker/", NULL);
+	g_spawn_command_line_sync ("rm -R tracker/", NULL, NULL, NULL, NULL);
 
 	return result;
 }

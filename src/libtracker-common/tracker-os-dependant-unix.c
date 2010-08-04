@@ -50,6 +50,7 @@ gboolean
 tracker_spawn (gchar **argv,
                gint    timeout,
                gchar **tmp_stdout,
+               gchar **tmp_stderr,
                gint   *exit_status)
 {
 	GError      *error = NULL;
@@ -60,8 +61,10 @@ tracker_spawn (gchar **argv,
 	g_return_val_if_fail (argv[0] != NULL, FALSE);
 	g_return_val_if_fail (timeout >= 0, FALSE);
 
-	flags = G_SPAWN_SEARCH_PATH |
-		G_SPAWN_STDERR_TO_DEV_NULL;
+	flags = G_SPAWN_SEARCH_PATH;
+
+	if (tmp_stderr == NULL)
+		flags |= G_SPAWN_STDERR_TO_DEV_NULL;
 
 	if (!tmp_stdout) {
 		flags = flags | G_SPAWN_STDOUT_TO_DEV_NULL;
@@ -74,7 +77,7 @@ tracker_spawn (gchar **argv,
 	                       tracker_spawn_child_func,
 	                       GINT_TO_POINTER (timeout),
 	                       tmp_stdout,
-	                       NULL,
+	                       tmp_stderr,
 	                       exit_status,
 	                       &error);
 
@@ -90,8 +93,8 @@ tracker_spawn (gchar **argv,
 
 gboolean
 tracker_spawn_async_with_channels (const gchar **argv,
-                                   gint                  timeout,
-                                   GPid                 *pid,
+                                   gint          timeout,
+                                   GPid         *pid,
                                    GIOChannel  **stdin_channel,
                                    GIOChannel  **stdout_channel,
                                    GIOChannel  **stderr_channel)
@@ -104,6 +107,10 @@ tracker_spawn_async_with_channels (const gchar **argv,
 	g_return_val_if_fail (argv[0] != NULL, FALSE);
 	g_return_val_if_fail (timeout >= 0, FALSE);
 	g_return_val_if_fail (pid != NULL, FALSE);
+
+	/* Note: PID must be non-NULL because we're using the
+	 *  G_SPAWN_DO_NOT_REAP_CHILD option, so an explicit call to
+	 *  g_spawn_close_pid () will be needed afterwards */
 
 	result = g_spawn_async_with_pipes (NULL,
 	                                   (gchar **) argv,

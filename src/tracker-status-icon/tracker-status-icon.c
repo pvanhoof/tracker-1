@@ -599,14 +599,14 @@ miner_menu_entry_add (TrackerStatusIcon *icon,
 	gtk_misc_set_alignment (GTK_MISC (entry->name), 0.0, 0.5);
 	gtk_box_pack_start (GTK_BOX (entry->box), entry->name, TRUE, TRUE, 0);
 
-	entry->progress_percentage = gtk_label_new ("100%");
+	entry->progress_percentage = gtk_label_new ("0%");
 	gtk_misc_set_alignment (GTK_MISC (entry->progress_percentage), 1.0, 0.5);
 	gtk_box_pack_start (GTK_BOX (entry->box), entry->progress_percentage, FALSE, TRUE, 0);
 
 	entry->progress_bar = gtk_progress_bar_new ();
 	gtk_progress_bar_set_pulse_step (GTK_PROGRESS_BAR (entry->progress_bar), 0.02);
 	gtk_progress_bar_set_ellipsize (GTK_PROGRESS_BAR (entry->progress_bar), PANGO_ELLIPSIZE_END);
-	gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (entry->progress_bar), 1.00);
+	gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (entry->progress_bar), 0.00);
 
 	/* Get the font ascent for the current font and language */
 	context = gtk_widget_get_pango_context (entry->progress_bar);
@@ -640,26 +640,22 @@ miner_menu_entry_add (TrackerStatusIcon *icon,
 		gtk_widget_set_sensitive (entry->menu_item, FALSE);
 		gtk_widget_hide (entry->progress_bar);
 		gtk_widget_hide (entry->progress_percentage);
+	} else {
+		gdouble progress;
+		gchar *status;
+
+		tracker_miner_manager_get_status (priv->manager, miner, &status, &progress);
+
+		entry->status = status;
+		entry->progress = progress;
+
+		gtk_widget_show (entry->progress_bar);
+		gtk_widget_show (entry->progress_percentage);
+
+		status_icon_miner_progress_set (entry);
 	}
 
 	g_hash_table_replace (priv->miners, str, entry);
-}
-
-static void
-status_icon_initialize_miners_menu (TrackerStatusIcon *icon)
-{
-	TrackerStatusIconPrivate *priv;
-	GSList *miners, *m;
-
-	priv = TRACKER_STATUS_ICON_GET_PRIVATE (icon);
-
-	miners = tracker_miner_manager_get_available (priv->manager);
-
-	for (m = miners; m; m = m->next) {
-		miner_menu_entry_add (icon, (const gchar *) m->data);
-	}
-
-	g_slist_free (miners);
 }
 
 static void
@@ -709,6 +705,7 @@ context_menu_pause_cb (GtkMenuItem *item,
 	update_icon_status (icon);
 }
 
+#if HAVE_TRACKER_SEARCH_TOOL
 static void
 context_menu_search_cb (GtkMenuItem *item,
                         gpointer     user_data)
@@ -716,7 +713,9 @@ context_menu_search_cb (GtkMenuItem *item,
 	launch_application_on_screen (gtk_widget_get_screen (GTK_WIDGET (item)),
 	                              "tracker-search-tool");
 }
+#endif
 
+#if HAVE_TRACKER_PREFERENCES
 static void
 context_menu_preferences_cb (GtkMenuItem *item,
                              gpointer     user_data)
@@ -724,6 +723,7 @@ context_menu_preferences_cb (GtkMenuItem *item,
 	launch_application_on_screen (gtk_widget_get_screen (GTK_WIDGET (item)),
 	                              "tracker-preferences");
 }
+#endif
 
 static void
 context_menu_about_cb (GtkMenuItem *item,
@@ -737,6 +737,8 @@ context_menu_about_cb (GtkMenuItem *item,
 		"Mikael Ottela <mikael.ottela at ixonos com>",
 		"Ivan Frade <ivan.frade at nokia com>",
 		"Jamie McCracken <jamiemcc at gnome org>",
+		"Adrien Bustany <abustany at gnome org>",
+		"Aleksander Morgado <aleksander at lanedo com>",
 		"Anders Aagaard <aagaande at gmail com>",
 		"Anders Rune Jensen <anders iola dk>",
 		"Baptiste Mille-Mathias <baptist millemathias gmail com>",
@@ -801,7 +803,7 @@ context_menu_about_cb (GtkMenuItem *item,
 	gtk_show_about_dialog (NULL,
 	                       "version", PACKAGE_VERSION,
 	                       "comments", _("A notification icon application to monitor data miners for Tracker"),
-	                       "copyright", _("Copyright Tracker Authors 2005-2009"),
+	                       "copyright", _("Copyright Tracker Authors 2005-2010"),
 	                       "license", license_trans,
 	                       "wrap-license", TRUE,
 	                       "authors", authors,
@@ -819,6 +821,57 @@ context_menu_about_cb (GtkMenuItem *item,
 	g_free (license_trans);
 }
 
+static void
+status_icon_initialize_miners_menu (TrackerStatusIcon *icon)
+{
+	GtkWidget *item, *image;
+	TrackerStatusIconPrivate *priv;
+	GSList *miners, *m;
+
+	priv = TRACKER_STATUS_ICON_GET_PRIVATE (icon);
+
+#if HAVE_TRACKER_SEARCH_TOOL
+	if (g_find_program_in_path ("tracker-search-tool")) {
+		item = gtk_image_menu_item_new_with_mnemonic (_("_Search"));
+		image = gtk_image_new_from_icon_name (GTK_STOCK_FIND,
+						      GTK_ICON_SIZE_MENU);
+		gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (item), image);
+		gtk_widget_show_all (item);
+
+		gtk_menu_shell_append (GTK_MENU_SHELL (priv->miner_menu), item);
+		g_signal_connect (G_OBJECT (item), "activate",
+				  G_CALLBACK (context_menu_search_cb), icon);
+
+		item = gtk_separator_menu_item_new ();
+		gtk_menu_shell_append (GTK_MENU_SHELL (priv->miner_menu), item);
+		gtk_widget_show (item);
+	}
+#endif
+
+	/* miner entries */
+	miners = tracker_miner_manager_get_available (priv->manager);
+
+	for (m = miners; m; m = m->next) {
+		miner_menu_entry_add (icon, (const gchar *) m->data);
+	}
+	g_slist_free (miners);
+	/* miner entries end */
+
+	item = gtk_separator_menu_item_new ();
+	gtk_menu_shell_append (GTK_MENU_SHELL (priv->miner_menu), item);
+	gtk_widget_show (item);
+
+	item = gtk_check_menu_item_new_with_mnemonic (_("_Pause All Indexing"));
+	gtk_widget_show (item);
+
+	gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (item), FALSE);
+	gtk_menu_shell_append (GTK_MENU_SHELL (priv->miner_menu), item);
+	g_signal_connect (G_OBJECT (item), "toggled",
+	                  G_CALLBACK (context_menu_pause_cb), icon);
+
+	gtk_widget_show (priv->miner_menu);
+}
+
 static GtkWidget *
 status_icon_create_context_menu (TrackerStatusIcon *icon)
 {
@@ -826,31 +879,18 @@ status_icon_create_context_menu (TrackerStatusIcon *icon)
 
 	menu = gtk_menu_new ();
 
-	item = gtk_check_menu_item_new_with_mnemonic (_("_Pause All Indexing"));
-	gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (item), FALSE);
-	gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
-	g_signal_connect (G_OBJECT (item), "toggled",
-	                  G_CALLBACK (context_menu_pause_cb), icon);
-
-	item = gtk_separator_menu_item_new ();
-	gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
-
-	item = gtk_image_menu_item_new_with_mnemonic (_("_Search"));
-	image = gtk_image_new_from_icon_name (GTK_STOCK_FIND,
-	                                      GTK_ICON_SIZE_MENU);
-	gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (item), image);
-	gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
-	g_signal_connect (G_OBJECT (item), "activate",
-	                  G_CALLBACK (context_menu_search_cb), icon);
-
-	item = gtk_image_menu_item_new_with_mnemonic (_("_Preferences"));
-	image = gtk_image_new_from_icon_name (GTK_STOCK_PREFERENCES,
-	                                      GTK_ICON_SIZE_MENU);
-	gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (item), image);
-	gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
-	g_signal_connect (G_OBJECT (item), "activate",
-	                  G_CALLBACK (context_menu_preferences_cb),
-	                  icon);
+#if HAVE_TRACKER_PREFERENCES
+	if (g_find_program_in_path ("tracker-preferences")) {
+		item = gtk_image_menu_item_new_with_mnemonic (_("_Preferences"));
+		image = gtk_image_new_from_icon_name (GTK_STOCK_PREFERENCES,
+						      GTK_ICON_SIZE_MENU);
+		gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (item), image);
+		gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
+		g_signal_connect (G_OBJECT (item), "activate",
+				  G_CALLBACK (context_menu_preferences_cb),
+				  icon);
+	}
+#endif
 
 	/*
 	  item = gtk_image_menu_item_new_with_mnemonic (_("_Indexer Preferences"));

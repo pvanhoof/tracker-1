@@ -80,9 +80,6 @@ typedef struct {
 	                             const gchar  *status,
 	                             gdouble       progress);
 
-	void (* error)              (TrackerMiner *miner,
-	                             GError       *error);
-
 	void (* ignore_next_update) (TrackerMiner *miner,
 	                             const GStrv   urls);
 } TrackerMinerClass;
@@ -114,8 +111,13 @@ void             tracker_miner_execute_sparql              (TrackerMiner        
                                                             GCancellable         *cancellable,
                                                             GAsyncReadyCallback   callback,
                                                             gpointer              user_data);
-const GPtrArray* tracker_miner_execute_sparql_finish       (TrackerMiner         *miner,
+TrackerResultIterator *
+                 tracker_miner_execute_sparql_finish       (TrackerMiner         *miner,
                                                             GAsyncResult         *result,
+                                                            GError              **error);
+TrackerResultIterator *
+                 tracker_miner_execute_sparql_sync         (TrackerMiner         *miner,
+                                                            const gchar          *sparql,
                                                             GError              **error);
 void             tracker_miner_execute_batch_update        (TrackerMiner         *miner,
                                                             const gchar          *sparql,

@@ -50,7 +50,11 @@ TrackerConfig *tracker_config_new           (void);
 gboolean       tracker_config_save          (TrackerConfig *config);
 
 gint           tracker_config_get_verbosity (TrackerConfig *config);
+gint           tracker_config_get_max_bytes (TrackerConfig *config);
+
 void           tracker_config_set_verbosity (TrackerConfig *config,
+                                             gint           value);
+void           tracker_config_set_max_bytes (TrackerConfig *config,
                                              gint           value);
 
 G_END_DECLS

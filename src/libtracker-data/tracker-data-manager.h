@@ -29,9 +29,8 @@
 #include <libtracker-common/tracker-ontologies.h>
 
 #include <libtracker-data/tracker-data-update.h>
-
-#include <libtracker-db/tracker-db-interface.h>
-#include <libtracker-db/tracker-db-manager.h>
+#include <libtracker-data/tracker-db-interface.h>
+#include <libtracker-data/tracker-db-manager.h>
 
 G_BEGIN_DECLS
 
@@ -39,42 +38,47 @@ G_BEGIN_DECLS
 #error "only <libtracker-data/tracker-data.h> must be included directly."
 #endif
 
-gboolean tracker_data_manager_init                (TrackerDBManagerFlags  flags,
-                                                   const gchar          **test_schema,
-                                                   gboolean              *first_time,
-                                                   gboolean               journal_check,
-                                                   TrackerBusyCallback    busy_callback,
-                                                   gpointer               busy_user_data,
-                                                   const gchar           *busy_status);
-void     tracker_data_manager_shutdown            (void);
-gboolean tracker_data_manager_interrupt_thread    (GThread               *thread);
+gboolean tracker_data_manager_init                   (TrackerDBManagerFlags  flags,
+                                                      const gchar          **test_schema,
+                                                      gboolean              *first_time,
+                                                      gboolean               journal_check,
+                                                      TrackerBusyCallback    busy_callback,
+                                                      gpointer               busy_user_data,
+                                                      const gchar           *busy_status);
+void     tracker_data_manager_shutdown               (void);
 
-gint64   tracker_data_manager_get_db_option_int64 (const gchar           *option);
-void     tracker_data_manager_set_db_option_int64 (const gchar           *option,
-                                                   gint64                 value);
-void     tracker_data_ontology_load_statement     (const gchar           *ontology_file,
-                                                   gint                   subject_id,
-                                                   const gchar           *subject,
-                                                   const gchar           *predicate,
-                                                   const gchar           *object,
-                                                   gint                  *max_id,
-                                                   gboolean               in_update,
-                                                   GHashTable            *classes,
-                                                   GHashTable            *properties,
-                                                   GPtrArray             *seen_classes,
-                                                   GPtrArray             *seen_properties);
-void     tracker_data_ontology_import_into_db     (gboolean               is_new);
-void     tracker_data_ontology_process_statement  (const gchar           *graph,
-                                                   const gchar           *subject,
-                                                   const gchar           *predicate,
-                                                   const gchar           *object,
-                                                   gboolean               is_uri,
-                                                   gboolean               in_update,
-                                                   gboolean               ignore_nao_last_modified);
-void    tracker_data_ontology_import_finished     (void);
-void    tracker_data_ontology_process_changes     (GPtrArray             *seen_classes,
-                                                   GPtrArray             *seen_properties);
-void    tracker_data_ontology_free_seen           (GPtrArray             *seen);
+gint64   tracker_data_manager_get_db_option_int64    (const gchar           *option);
+void     tracker_data_manager_set_db_option_int64    (const gchar           *option,
+                                                      gint64                 value);
+void     tracker_data_ontology_load_statement        (const gchar           *ontology_file,
+                                                      gint                   subject_id,
+                                                      const gchar           *subject,
+                                                      const gchar           *predicate,
+                                                      const gchar           *object,
+                                                      gint                  *max_id,
+                                                      gboolean               in_update,
+                                                      GHashTable            *classes,
+                                                      GHashTable            *properties,
+                                                      GPtrArray             *seen_classes,
+                                                      GPtrArray             *seen_properties);
+void     tracker_data_ontology_import_into_db        (gboolean               is_new);
+void     tracker_data_ontology_process_statement     (const gchar           *graph,
+                                                      const gchar           *subject,
+                                                      const gchar           *predicate,
+                                                      const gchar           *object,
+                                                      gboolean               is_uri,
+                                                      gboolean               in_update,
+                                                      gboolean               ignore_nao_last_modified);
+void    tracker_data_ontology_import_finished        (void);
+void    tracker_data_ontology_process_changes_pre_db (GPtrArray             *seen_classes,
+                                                      GPtrArray             *seen_properties);
+void    tracker_data_ontology_process_changes_post_db
+                                                     (GPtrArray             *seen_classes,
+                                                      GPtrArray             *seen_properties);
+void    tracker_data_ontology_process_changes_post_import
+                                                     (GPtrArray             *seen_classes,
+                                                      GPtrArray             *seen_properties);
+void    tracker_data_ontology_free_seen              (GPtrArray             *seen);
 
 G_END_DECLS
 

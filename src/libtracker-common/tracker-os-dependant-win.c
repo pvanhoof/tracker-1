@@ -87,8 +87,8 @@ tracker_spawn (gchar **argv,
 
 gboolean
 tracker_spawn_async_with_channels (const gchar **argv,
-                                   gint                  timeout,
-                                   GPid                 *pid,
+                                   gint        timeout,
+                                   GPid        *pid,
                                    GIOChannel  **stdin_channel,
                                    GIOChannel  **stdout_channel,
                                    GIOChannel  **strerr_channel)
@@ -101,6 +101,10 @@ tracker_spawn_async_with_channels (const gchar **argv,
 	g_return_val_if_fail (argv[0] != NULL, FALSE);
 	g_return_val_if_fail (timeout > 0, FALSE);
 	g_return_val_if_fail (pid != NULL, FALSE);
+
+	/* Note: PID must be non-NULL because we're using the
+	 *  G_SPAWN_DO_NOT_REAP_CHILD option, so an explicit call to
+	 *  g_spawn_close_pid () will be needed afterwards */
 
 	result = g_spawn_async_with_pipes (NULL,
 	                                   (gchar **) argv,

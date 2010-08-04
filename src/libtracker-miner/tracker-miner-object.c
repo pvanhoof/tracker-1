@@ -90,7 +90,6 @@ enum {
 	PAUSED,
 	RESUMED,
 	PROGRESS,
-	ERROR,
 	IGNORE_NEXT_UPDATE,
 	LAST_SIGNAL
 };
@@ -221,23 +220,6 @@ tracker_miner_class_init (TrackerMinerClass *klass)
 		              G_TYPE_NONE, 2,
 		              G_TYPE_STRING,
 		              G_TYPE_DOUBLE);
-	/**
-	 * TrackerMiner::error:
-	 * @miner: the #TrackerMiner
-	 * @error: the error that happened
-	 *
-	 * The ::error signal will be emitted by TrackerMiner implementations to
-	 * indicate some error in the data mining process.
-	 **/
-	signals[ERROR] =
-		g_signal_new ("error",
-		              G_OBJECT_CLASS_TYPE (object_class),
-		              G_SIGNAL_RUN_LAST,
-		              G_STRUCT_OFFSET (TrackerMinerClass, error),
-		              NULL, NULL,
-		              g_cclosure_marshal_VOID__POINTER,
-		              G_TYPE_NONE, 1,
-		              G_TYPE_POINTER);
 
 	/**
 	 * TrackerMiner::ignore-next-update:
@@ -440,7 +422,8 @@ store_name_monitor_cb (TrackerMiner *miner,
 {
 	GError *error = NULL;
 
-	g_debug ("Tracker-store availability has changed to %d", available);
+	g_debug ("Store availability has changed to %s",
+		 available ? "AVAILABLE" : "UNAVAILABLE");
 
 	if (available && miner->private->availability_cookie != 0) {
 		tracker_miner_resume (miner,
@@ -448,7 +431,7 @@ store_name_monitor_cb (TrackerMiner *miner,
 		                      &error);
 
 		if (error) {
-			g_warning ("Error happened resuming miner: %s\n", error->message);
+			g_warning ("Error happened resuming miner, %s", error->message);
 			g_error_free (error);
 		}
 
@@ -461,7 +444,7 @@ store_name_monitor_cb (TrackerMiner *miner,
 		                                 &error);
 
 		if (error) {
-			g_warning ("Could not pause: %s", error->message);
+			g_warning ("Could not pause, %s", error->message);
 			g_error_free (error);
 		} else {
 			miner->private->availability_cookie = cookie_id;
@@ -577,9 +560,9 @@ async_call_data_update_callback (AsyncCallData *data,
 }
 
 static void
-async_call_data_query_callback (AsyncCallData   *data,
-                                const GPtrArray *query_results,
-                                GError          *error)
+async_call_data_query_callback (AsyncCallData         *data,
+                                TrackerResultIterator *iterator,
+                                GError                *error)
 {
 	GAsyncReadyCallback callback;
 	GSimpleAsyncResult *result;
@@ -598,7 +581,7 @@ async_call_data_query_callback (AsyncCallData   *data,
 		                                    data->source_function);
 	}
 
-	g_simple_async_result_set_op_res_gpointer (result, (gpointer) query_results, NULL);
+	g_simple_async_result_set_op_res_gpointer (result, (gpointer) iterator, NULL);
 	g_simple_async_result_complete (result);
 	g_object_unref (result);
 }
@@ -648,20 +631,16 @@ sparql_update_cb (GError   *error,
 }
 
 static void
-sparql_query_cb (GPtrArray *result,
+sparql_query_cb (TrackerResultIterator *iterator,
                  GError    *error,
                  gpointer   user_data)
 {
 	AsyncCallData *data = user_data;
 
-	async_call_data_query_callback (data, result, error);
+	async_call_data_query_callback (data, iterator, error);
 
 	if (error) {
 		g_error_free (error);
-	} else {
-		if (result) {
-			tracker_dbus_results_ptr_array_free (&result);
-		}
 	}
 
 	async_call_data_destroy (data, TRUE);
@@ -852,9 +831,9 @@ tracker_miner_execute_sparql (TrackerMiner        *miner,
 
 	data = async_call_data_new (miner, cancellable, callback, user_data, tracker_miner_execute_sparql);
 
-	data->id = tracker_resources_sparql_query_async (miner->private->client,
-	                                                 sparql, sparql_query_cb,
-	                                                 data);
+	data->id = tracker_resources_sparql_query_iterate_async (miner->private->client,
+	                                                         sparql, sparql_query_cb,
+	                                                         data);
 }
 
 /**
@@ -866,9 +845,9 @@ tracker_miner_execute_sparql (TrackerMiner        *miner,
  * Finishes the async operation and returns the query results. If an error
  * occured during the query, @error will be set.
  *
- * Returns: a #GPtrArray with the sparql results which should not be freed.
+ * Returns: a #TrackerResultIterator with the sparql results which should not be freed.
  **/
-const GPtrArray *
+TrackerResultIterator *
 tracker_miner_execute_sparql_finish (TrackerMiner  *miner,
                                      GAsyncResult  *result,
                                      GError       **error)
@@ -879,7 +858,33 @@ tracker_miner_execute_sparql_finish (TrackerMiner  *miner,
 		return NULL;
 	}
 
-	return (const GPtrArray*) g_simple_async_result_get_op_res_gpointer (r);
+	return (TrackerResultIterator*) g_simple_async_result_get_op_res_gpointer (r);
+}
+
+/**
+ * tracker_miner_execute_sparql_sync:
+ * @miner: a #TrackerMiner
+ * @sparql: a SPARQL query
+ * @error: a #GError
+ *
+ * Executes the SPARQL query on tracker-store and blocks until reply arrives.
+ * If an error occured during the query, @error will be set.
+ * Returns: A #TrackerResultIterator pointing before the first result row. This
+ * iterator must be disposed when done using tracker_result_iterator_free().
+ *
+ * Since: 0.9
+ **/
+TrackerResultIterator *
+tracker_miner_execute_sparql_sync (TrackerMiner  *miner,
+                                   const gchar   *sparql,
+                                   GError       **error)
+{
+	g_return_val_if_fail (TRACKER_IS_MINER (miner), NULL);
+	g_return_val_if_fail (sparql != NULL, NULL);
+
+	return tracker_resources_sparql_query_iterate (miner->private->client,
+	                                               sparql,
+	                                               error);
 }
 
 /**
@@ -1132,9 +1137,8 @@ _tracker_miner_dbus_get_progress (TrackerMiner           *miner,
 
 	tracker_dbus_request_new (request_id, context, "%s()", __PRETTY_FUNCTION__);
 
-	dbus_g_method_return (context, miner->private->progress);
-
 	tracker_dbus_request_success (request_id, context);
+	dbus_g_method_return (context, miner->private->progress);
 }
 
 void

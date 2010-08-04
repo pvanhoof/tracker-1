@@ -47,10 +47,12 @@ struct _TrackerPropertyPrivate {
 
 	TrackerPropertyType  data_type;
 	TrackerClass   *domain;
+	TrackerClass   *domain_index;
 	TrackerClass   *range;
 	gint           weight;
 	gint           id;
 	gboolean       indexed;
+	TrackerProperty *secondary_index;
 	gboolean       fulltext_indexed;
 	gboolean       fulltext_no_limit;
 	gboolean       embedded;
@@ -60,8 +62,11 @@ struct _TrackerPropertyPrivate {
 	gboolean       is_new;
 	gboolean       db_schema_changed;
 	gboolean       writeback;
+	gchar         *default_value;
+	gboolean       is_new_domain_index;
 
 	GArray        *super_properties;
+	GArray        *domain_indexes;
 };
 
 static void property_finalize     (GObject      *object);
@@ -131,6 +136,7 @@ tracker_property_init (TrackerProperty *property)
 	priv->transient = FALSE;
 	priv->multiple_values = TRUE;
 	priv->super_properties = g_array_new (TRUE, TRUE, sizeof (TrackerProperty *));
+	priv->domain_indexes = g_array_new (TRUE, TRUE, sizeof (TrackerClass *));
 
 	/* Make GET_PRIV working */
 	property->priv = priv;
@@ -155,7 +161,14 @@ property_finalize (GObject *object)
 		g_object_unref (priv->range);
 	}
 
+	if (priv->secondary_index) {
+		g_object_unref (priv->secondary_index);
+	}
+
 	g_array_free (priv->super_properties, TRUE);
+	g_array_free (priv->domain_indexes, TRUE);
+
+	g_free (priv->default_value);
 
 	(G_OBJECT_CLASS (tracker_property_parent_class)->finalize) (object);
 }
@@ -263,6 +276,21 @@ tracker_property_get_domain (TrackerProperty *property)
 	return priv->domain;
 }
 
+TrackerClass **
+tracker_property_get_domain_indexes (TrackerProperty *property)
+{
+	TrackerPropertyPrivate *priv;
+
+	/* Removed for performance:
+	 g_return_val_if_fail (TRACKER_IS_PROPERTY (property), NULL); */
+
+	g_return_val_if_fail (property != NULL, NULL);
+
+	priv = GET_PRIV (property);
+
+	return (TrackerClass ** ) priv->domain_indexes->data;
+}
+
 TrackerClass *
 tracker_property_get_range (TrackerProperty *property)
 {
@@ -311,6 +339,18 @@ tracker_property_get_indexed (TrackerProperty *property)
 	return priv->indexed;
 }
 
+TrackerProperty *
+tracker_property_get_secondary_index (TrackerProperty *property)
+{
+	TrackerPropertyPrivate *priv;
+
+	g_return_val_if_fail (TRACKER_IS_PROPERTY (property), NULL);
+
+	priv = GET_PRIV (property);
+
+	return priv->secondary_index;
+}
+
 gboolean
 tracker_property_get_fulltext_indexed (TrackerProperty *property)
 {
@@ -348,6 +388,18 @@ tracker_property_get_is_new (TrackerProperty *property)
 	priv = GET_PRIV (property);
 
 	return priv->is_new;
+}
+
+gboolean
+tracker_property_get_is_new_domain_index (TrackerProperty *property)
+{
+	TrackerPropertyPrivate *priv;
+
+	g_return_val_if_fail (TRACKER_IS_PROPERTY (property), FALSE);
+
+	priv = GET_PRIV (property);
+
+	return priv->is_new_domain_index;
 }
 
 gboolean
@@ -422,6 +474,18 @@ tracker_property_get_super_properties (TrackerProperty *property)
 	return (TrackerProperty **) priv->super_properties->data;
 }
 
+const gchar *
+tracker_property_get_default_value (TrackerProperty *property)
+{
+	TrackerPropertyPrivate *priv;
+
+	g_return_val_if_fail (TRACKER_IS_PROPERTY (property), NULL);
+
+	priv = GET_PRIV (property);
+
+	return priv->default_value;
+}
+
 void
 tracker_property_set_uri (TrackerProperty *property,
                           const gchar     *value)
@@ -494,6 +558,80 @@ tracker_property_set_domain (TrackerProperty *property,
 
 	if (value) {
 		priv->domain = g_object_ref (value);
+	}
+}
+
+void
+tracker_property_add_domain_index (TrackerProperty *property,
+                                   TrackerClass    *value)
+{
+	TrackerPropertyPrivate *priv;
+
+	g_return_if_fail (TRACKER_IS_PROPERTY (property));
+	g_return_if_fail (TRACKER_IS_CLASS (value));
+
+	priv = GET_PRIV (property);
+
+	g_array_append_val (priv->domain_indexes, value);
+}
+
+void
+tracker_property_del_domain_index (TrackerProperty *property,
+                                   TrackerClass    *value)
+{
+	TrackerClass **classes;
+	TrackerPropertyPrivate *priv;
+	gint i = 0, found = -1;
+
+	g_return_if_fail (TRACKER_IS_PROPERTY (property));
+	g_return_if_fail (TRACKER_IS_CLASS (value));
+
+	priv = GET_PRIV (property);
+
+	classes = (TrackerClass **) priv->domain_indexes->data;
+	while (*classes) {
+		if (*classes == value) {
+			found = i;
+			break;
+		}
+		i++;
+		classes++;
+	}
+
+	if (found != -1) {
+		g_array_remove_index (priv->domain_indexes, found);
+	}
+}
+
+void
+tracker_property_reset_domain_indexes (TrackerProperty *property)
+{
+	TrackerPropertyPrivate *priv;
+
+	g_return_if_fail (TRACKER_IS_PROPERTY (property));
+
+	priv = GET_PRIV (property);
+	g_array_free (priv->domain_indexes, TRUE);
+	priv->domain_indexes = g_array_new (TRUE, TRUE, sizeof (TrackerClass *));
+}
+
+void
+tracker_property_set_secondary_index (TrackerProperty *property,
+                                      TrackerProperty *value)
+{
+	TrackerPropertyPrivate *priv;
+
+	g_return_if_fail (TRACKER_IS_PROPERTY (property));
+
+	priv = GET_PRIV (property);
+
+	if (priv->secondary_index) {
+		g_object_unref (priv->secondary_index);
+		priv->secondary_index = NULL;
+	}
+
+	if (value) {
+		priv->secondary_index = g_object_ref (value);
 	}
 }
 
@@ -582,6 +720,19 @@ tracker_property_set_is_new (TrackerProperty *property,
 	priv = GET_PRIV (property);
 
 	priv->is_new = value;
+}
+
+void
+tracker_property_set_is_new_domain_index (TrackerProperty *property,
+                                          gboolean         value)
+{
+	TrackerPropertyPrivate *priv;
+
+	g_return_if_fail (TRACKER_IS_PROPERTY (property));
+
+	priv = GET_PRIV (property);
+
+	priv->is_new_domain_index = value;
 }
 
 void
@@ -693,3 +844,16 @@ tracker_property_add_super_property (TrackerProperty *property,
 	g_array_append_val (priv->super_properties, value);
 }
 
+void
+tracker_property_set_default_value (TrackerProperty *property,
+                                    const gchar     *value)
+{
+	TrackerPropertyPrivate *priv;
+
+	g_return_if_fail (TRACKER_IS_PROPERTY (property));
+
+	priv = GET_PRIV (property);
+
+	g_free (priv->default_value);
+	priv->default_value = g_strdup (value);
+}

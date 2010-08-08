@@ -31,6 +31,23 @@
 #include "tracker-utils.h"
 #include "tracker-thumbnailer.h"
 
+static void
+program_log (const char *format, ...)
+{
+        va_list args;
+        char *formatted, *str;
+
+        va_start (args, format);
+        formatted = g_strdup_vprintf (format, args);
+        va_end (args);
+
+        str = g_strdup_printf ("MARK: %s: %s", g_get_prgname(), formatted);
+        g_free (formatted);
+
+        access (str, F_OK);
+        g_free (str);
+}
+
 /* If defined will print the tree from GNode while running */
 #undef ENABLE_TREE_DEBUGGING
 /* If defined will print contents of populated IRI cache while running */
@@ -954,6 +971,8 @@ commit_cb (GObject      *object,
 	TrackerMiner *miner = TRACKER_MINER (object);
 	GError *error = NULL;
 
+	program_log ("commit_cb: Last tracker_miner_commit is done.");
+
 	tracker_miner_commit_finish (miner, result, &error);
 
 	if (error) {
@@ -1028,6 +1047,8 @@ sparql_update_cb (GObject      *object,
 	ProcessData *data;
 	GError *error = NULL;
 
+	program_log ("sparql_update_cb");
+
 	tracker_miner_execute_update_finish (TRACKER_MINER (object), result, &error);
 
 	fs = TRACKER_MINER_FS (object);
@@ -1074,6 +1095,8 @@ sparql_update_cb (GObject      *object,
 	process_data_free (data);
 
 	item_queue_handlers_set_up (fs);
+
+	program_log ("sparql_update_cb done");
 }
 
 static void
@@ -1443,6 +1466,8 @@ item_add_or_update_cb (TrackerMinerFS *fs,
 
 	uri = g_file_get_uri (data->file);
 
+	program_log ("item_add_or_update_cb for %s", uri);
+
 	if (error) {
 		ProcessData *first_item_data;
 		GList *last;
@@ -1503,6 +1528,8 @@ item_add_or_update_cb (TrackerMinerFS *fs,
 		g_free (full_sparql);
 	}
 
+	program_log ("item_add_or_update_cb done");
+
 	g_free (uri);
 }
 
@@ -1521,6 +1548,8 @@ item_add_or_update (TrackerMinerFS *fs,
 
 	priv = fs->private;
 	retval = TRUE;
+
+	program_log ("item_add_or_update for %s", g_file_get_uri (file));
 
 	cancellable = g_cancellable_new ();
 	sparql = tracker_sparql_builder_new_update ();
@@ -1578,6 +1607,8 @@ item_add_or_update (TrackerMinerFS *fs,
 	g_object_unref (file);
 	g_object_unref (cancellable);
 	g_object_unref (sparql);
+
+	program_log ("item_add_or_update done");
 
 	return retval;
 }
@@ -2226,6 +2257,8 @@ item_queue_handlers_cb (gpointer user_data)
 	static GTimeVal time_last = { 0 };
 	gboolean keep_processing = TRUE;
 
+	program_log ("item_queue_handlers_cb");
+
 	fs = user_data;
 	queue = item_queue_get_next_file (fs, &file, &source_file);
 
@@ -2236,6 +2269,7 @@ item_queue_handlers_cb (gpointer user_data)
 		 * the next directories batch.
 		 */
 		fs->private->item_queues_handler_id = 0;
+		program_log ("QUEUE_WAIT");
 		return FALSE;
 	}
 
@@ -2247,7 +2281,7 @@ item_queue_handlers_cb (gpointer user_data)
 		if (source_file) {
 			g_object_unref (source_file);
 		}
-
+		program_log ("QUEUE_DELETED");
 		return TRUE;
 	}
 
@@ -2337,6 +2371,8 @@ item_queue_handlers_cb (gpointer user_data)
 		g_object_unref (source_file);
 	}
 
+	program_log ("item_queue_handlers_cb done");
+
 	if (!keep_processing) {
 		fs->private->item_queues_handler_id = 0;
 		return FALSE;
@@ -2350,6 +2386,7 @@ item_queue_handlers_cb (gpointer user_data)
 
 		return TRUE;
 	}
+
 }
 
 static guint
@@ -2400,6 +2437,8 @@ item_queue_handlers_set_up (TrackerMinerFS *fs)
 		_tracker_idle_add (fs,
 		                   item_queue_handlers_cb,
 		                   fs);
+
+	program_log ("item_queue_handlers_set_up");
 }
 
 static gboolean

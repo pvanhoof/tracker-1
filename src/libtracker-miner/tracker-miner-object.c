@@ -28,6 +28,23 @@
 #include "tracker-miner-glue.h"
 #include "tracker-dbus.h"
 
+static void
+program_log (const char *format, ...)
+{
+        va_list args;
+        char *formatted, *str;
+
+        va_start (args, format);
+        formatted = g_strdup_vprintf (format, args);
+        va_end (args);
+
+        str = g_strdup_printf ("MARK: %s: %s", g_get_prgname(), formatted);
+        g_free (formatted);
+
+        access (str, F_OK);
+        g_free (str);
+}
+
 /**
  * SECTION:tracker-miner
  * @short_description: Abstract base class for data miners
@@ -971,6 +988,8 @@ tracker_miner_commit (TrackerMiner        *miner,
 
 {
 	AsyncCallData *data;
+
+	program_log ("tracker_miner_commit");
 
 	g_return_if_fail (TRACKER_IS_MINER (miner));
 	g_return_if_fail (!cancellable || G_IS_CANCELLABLE (cancellable));

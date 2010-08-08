@@ -63,6 +63,23 @@
 
 #define TRACKER_MINER_FILES_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_MINER_FILES, TrackerMinerFilesPrivate))
 
+static void
+program_log (const char *format, ...)
+{
+        va_list args;
+        char *formatted, *str;
+
+        va_start (args, format);
+        formatted = g_strdup_vprintf (format, args);
+        va_end (args);
+
+        str = g_strdup_printf ("MARK: %s: %s", g_get_prgname(), formatted);
+        g_free (formatted);
+
+        access (str, F_OK);
+        g_free (str);
+}
+
 static GQuark miner_files_error_quark = 0;
 
 typedef struct ProcessFileData ProcessFileData;
@@ -1882,6 +1899,8 @@ extractor_get_embedded_metadata_cb (DBusGProxy *proxy,
 	ProcessFileData *data = user_data;
 	const gchar *uuid;
 
+	program_log ("extractor_get_embedded_metadata_cb for %s", g_file_get_uri (data->file));
+
 	if (error) {
 		/* Something bad happened, notify about the error */
 		tracker_miner_fs_file_notify (TRACKER_MINER_FS (data->miner), data->file, error);
@@ -1964,6 +1983,8 @@ extractor_get_embedded_metadata_cb (DBusGProxy *proxy,
 	g_free (preupdate);
 	g_free (sparql);
 #endif /* HAVE_DBUS_FD_PASSING */
+
+	program_log ("embedded_metadata_cd done");
 }
 
 static void
@@ -2091,6 +2112,9 @@ extractor_get_embedded_metadata (ProcessFileData *data,
                                  const gchar     *uri,
                                  const gchar     *mime_type)
 {
+
+	program_log ("extractor_get_embedded_metadata for %s. Calling extractor.", uri);
+
 #ifdef HAVE_DBUS_FD_PASSING
 	get_metadata_fast_async (dbus_g_connection_get_connection (data->miner->private->connection),
 	                         uri,
@@ -2125,6 +2149,8 @@ process_file_cb (GObject      *object,
 	GError *error = NULL;
 	gboolean is_iri;
 
+	program_log ("process_file_cb");
+
 	data = user_data;
 	file = G_FILE (object);
 	sparql = data->sparql;
@@ -2141,6 +2167,8 @@ process_file_cb (GObject      *object,
 	uri = g_file_get_uri (file);
 	mime_type = g_file_info_get_content_type (file_info);
 	urn = miner_files_get_file_urn (TRACKER_MINER_FILES (data->miner), file, &is_iri);
+
+	program_log ("process_file_cb for %s. Starting to build sparql", uri);
 
 	tracker_sparql_builder_insert_silent_open (sparql, TRACKER_MINER_FS_GRAPH_URN);
 
@@ -2201,6 +2229,8 @@ process_file_cb (GObject      *object,
 
 	g_object_unref (file_info);
 	g_free (uri);
+
+	program_log ("process_file_cb done");
 }
 
 static gboolean
@@ -2211,6 +2241,8 @@ miner_files_process_file (TrackerMinerFS       *fs,
 {
 	ProcessFileData *data;
 	const gchar *attrs;
+
+	program_log ("miner_files_process_file for %s", g_file_get_uri (file));
 
 	data = g_slice_new0 (ProcessFileData);
 	data->miner = g_object_ref (fs);
@@ -2232,6 +2264,8 @@ miner_files_process_file (TrackerMinerFS       *fs,
 	                         cancellable,
 	                         process_file_cb,
 	                         data);
+
+	program_log ("miner_files_process_file done");
 
 	return TRUE;
 }
@@ -2373,6 +2407,8 @@ tracker_miner_files_check_file (GFile  *file,
 	gchar *path;
 	gboolean should_process;
 
+	program_log ("tracker_miner_files_check_file for %s", g_file_get_uri (file));
+
 	file_info = NULL;
 	should_process = FALSE;
 	basename = NULL;
@@ -2431,6 +2467,8 @@ tracker_miner_files_check_directory (GFile  *file,
 	gchar *path;
 	gboolean should_process;
 	gboolean is_hidden;
+
+	program_log ("tracker_miner_files_check_directory for %s", g_file_get_uri (file));
 
 	should_process = FALSE;
 	basename = NULL;

@@ -45,6 +45,23 @@
 #define RDF_PREFIX TRACKER_RDF_PREFIX
 #define RDF_TYPE RDF_PREFIX "type"
 
+static void
+program_log (const char *format, ...)
+{
+        va_list args;
+        char *formatted, *str;
+
+        va_start (args, format);
+        formatted = g_strdup_vprintf (format, args);
+        va_end (args);
+
+        str = g_strdup_printf ("MARK: %s: %s", g_get_prgname(), formatted);
+        g_free (formatted);
+
+        access (str, F_OK);
+        g_free (str);
+}
+
 /* I *know* that this is some arbitrary number that doesn't seem to
  * resemble anything. In fact it's what I experimentally measured to
  * be a good value on a default Debian testing which has
@@ -355,6 +372,8 @@ update_callback (GError *error, gpointer user_data)
 {
 	TrackerDBusMethodInfo *info = user_data;
 
+	program_log ("update_callback");
+
 	if (error) {
 		tracker_dbus_request_failed (info->request_id,
 		                             info->context,
@@ -378,6 +397,8 @@ tracker_resources_sparql_update (TrackerResources        *self,
 	TrackerDBusMethodInfo   *info;
 	guint                 request_id;
 	gchar                 *sender;
+
+	program_log ("tracker_resources_sparql_update");
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -407,6 +428,8 @@ static void
 update_blank_callback (GPtrArray *blank_nodes, GError *error, gpointer user_data)
 {
 	TrackerDBusMethodInfo *info = user_data;
+
+	program_log ("tracker_resources_sparql_update_blank");
 
 	if (error) {
 		tracker_dbus_request_failed (info->request_id,
@@ -486,6 +509,8 @@ tracker_resources_batch_sparql_update (TrackerResources          *self,
 	guint                 request_id;
 	gchar                 *sender;
 
+	program_log ("tracker_resources_batch_sparql_update");
+
 	request_id = tracker_dbus_get_next_request_id ();
 
 	tracker_dbus_async_return_if_fail (update != NULL, context);
@@ -515,6 +540,8 @@ batch_commit_callback (gpointer user_data)
 {
 	TrackerDBusMethodInfo *info = user_data;
 
+	program_log ("batch_commit_callback");
+
 	tracker_data_sync ();
 
 	tracker_dbus_request_success (info->request_id,
@@ -531,6 +558,8 @@ tracker_resources_batch_commit (TrackerResources         *self,
 	TrackerDBusMethodInfo *info;
 	guint                 request_id;
 	gchar                 *sender;
+
+	program_log ("tracker_resources_batch_commit");
 
 	request_id = tracker_dbus_get_next_request_id ();
 

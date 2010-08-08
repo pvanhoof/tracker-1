@@ -47,6 +47,23 @@
 #define TRACKER_STORE_QUERY_WATCHDOG_TIMEOUT 10
 #define TRACKER_STORE_MAX_TASK_TIME          30
 
+static void
+program_log (const char *format, ...)
+{
+        va_list args;
+        char *formatted, *str;
+
+        va_start (args, format);
+        formatted = g_strdup_vprintf (format, args);
+        va_end (args);
+
+        str = g_strdup_printf ("MARK: %s: %s", g_get_prgname(), formatted);
+        g_free (formatted);
+
+        access (str, F_OK);
+        g_free (str);
+}
+
 typedef struct {
 	gboolean     have_handler, have_sync_handler;
 	gboolean     batch_mode, start_log;
@@ -464,6 +481,8 @@ pool_dispatch_cb (gpointer data,
 	TrackerStorePrivate *private;
 	TrackerStoreTask *task;
 
+	program_log ("pool_dispatch_cb");
+
 #ifdef __USE_GNU
 	/* special task, only ever sent to main pool */
 	if (GPOINTER_TO_INT (data) == 1) {
@@ -558,6 +577,8 @@ pool_dispatch_cb (gpointer data,
 	} else if (task->type == TRACKER_STORE_TASK_TYPE_COMMIT) {
 		end_batch (private);
 	}
+
+	program_log ("pool_dispatch_cb done");
 
 	g_idle_add (task_finish_cb, task);
 }

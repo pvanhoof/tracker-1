@@ -360,8 +360,14 @@ class Tracker.Sparql.Pattern : Object {
 				} else {
 					sql.append (", ");
 				}
-				expression.translate_order_condition (sql);
-			} while (current () != SparqlTokenType.LIMIT && current () != SparqlTokenType.OFFSET && current () != SparqlTokenType.CLOSE_BRACE && current () != SparqlTokenType.CLOSE_PARENS && current () != SparqlTokenType.EOF);
+				string order = expression.translate_order_condition (sql);
+
+				if (accept (SparqlTokenType.COLLATE)) {
+					sql.append (" COLLATE TRACKER ");
+				}
+
+				sql.append (order);
+			} while (current () != SparqlTokenType.LIMIT && current () != SparqlTokenType.OFFSET && current () != SparqlTokenType.COLLATE && current () != SparqlTokenType.CLOSE_BRACE && current () != SparqlTokenType.CLOSE_PARENS && current () != SparqlTokenType.EOF);
 		}
 
 		int limit = -1;

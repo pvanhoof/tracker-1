@@ -180,15 +180,16 @@ class Tracker.Sparql.Expression : Object {
 		}
 	}
 
-	internal void translate_order_condition (StringBuilder sql) throws Sparql.Error {
+	internal string translate_order_condition (StringBuilder sql) throws Sparql.Error {
 		if (accept (SparqlTokenType.ASC)) {
 			translate_expression_as_order_condition (sql);
-			sql.append (" ASC");
+			return (" ASC");
 		} else if (accept (SparqlTokenType.DESC)) {
 			translate_expression_as_order_condition (sql);
-			sql.append (" DESC");
+			return (" DESC");
 		} else {
 			translate_expression_as_order_condition (sql);
+			return ("");
 		}
 	}
 

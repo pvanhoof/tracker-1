@@ -64,6 +64,9 @@ static GHashTable *id_uri_pairs;
 /* rdf:type */
 static TrackerProperty *rdf_type = NULL;
 
+/* rdfs:Resource */
+static TrackerClass *rdfs_resource = NULL;
+
 void
 tracker_ontologies_init (void)
 {
@@ -154,6 +157,11 @@ tracker_ontologies_shutdown (void)
 		rdf_type = NULL;
 	}
 
+	if (rdfs_resource) {
+		g_object_unref (rdfs_resource);
+		rdfs_resource = NULL;
+	}
+
 	initialized = FALSE;
 }
 
@@ -164,6 +172,15 @@ tracker_ontologies_get_rdf_type (void)
 
 	return rdf_type;
 }
+
+TrackerClass *
+tracker_ontologies_get_rdfs_resource (void)
+{
+	g_return_val_if_fail (rdf_type != NULL, NULL);
+
+	return rdfs_resource;
+}
+
 
 const gchar*
 tracker_ontologies_get_uri_by_id (gint id)
@@ -189,6 +206,14 @@ tracker_ontologies_add_class (TrackerClass *service)
 		g_hash_table_insert (class_uris,
 		                     g_strdup (uri),
 		                     g_object_ref (service));
+
+		if (g_strcmp0 (uri, TRACKER_RDFS_PREFIX "Resource") == 0) {
+			if (rdfs_resource) {
+				g_object_unref (rdfs_resource);
+			}
+			rdfs_resource = g_object_ref (service);
+		}
+
 	}
 }
 

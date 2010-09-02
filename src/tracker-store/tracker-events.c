@@ -137,6 +137,7 @@ tracker_events_add_delete (gint         graph_id,
                            GPtrArray   *rdf_types)
 {
 	TrackerProperty *rdf_type;
+	TrackerClass *rdfs_resource;
 
 	g_return_if_fail (rdf_types != NULL);
 	g_return_if_fail (private != NULL);
@@ -146,9 +147,11 @@ tracker_events_add_delete (gint         graph_id,
 	}
 
 	rdf_type = tracker_ontologies_get_rdf_type ();
+	rdfs_resource = tracker_ontologies_get_rdfs_resource ();
 
-	if (object_id != 0 && pred_id == tracker_property_get_id (rdf_type)) {
-		/* Resource delete
+	if ((object_id != 0 && pred_id == tracker_property_get_id (rdf_type)) &&
+	    (object_id != tracker_class_get_id (rdfs_resource))) {
+		/* Resource delete that isn't the rdfs:Resource
 		 * In case of delete, object is the rdf:type */
 		if (is_allowed (private, NULL, object_id)) {
 			TrackerClass *class = NULL;

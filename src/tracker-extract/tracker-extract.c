@@ -50,6 +50,31 @@
 
 #define TRACKER_EXTRACT_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_EXTRACT, TrackerExtractPrivate))
 
+/* Define symbol if you want to have single and total extraction times logs */
+#ifdef ENABLE_EXTRACTION_TIMES
+gdouble total_extraction_time;
+gulong  total_extracted_files;
+GTimer *extraction_timer;
+#define EXTRACTION_TIMER_START(uri) extraction_timer = g_timer_new ()
+#define EXTRACTION_TIMER_STOP(uri) do {	  \
+		gdouble current_extraction_time; \
+		g_timer_stop (extraction_timer); \
+		current_extraction_time = g_timer_elapsed (extraction_timer, NULL); \
+		g_debug ("Current extraction time for '%s': '%lf' seconds", \
+		         uri, \
+		         current_extraction_time); \
+		total_extraction_time += current_extraction_time; \
+		total_extracted_files++; \
+		g_debug ("Accumulated extraction time (%lu items): '%lf' seconds", \
+		         total_extracted_files, \
+		         total_extraction_time); \
+		g_timer_destroy (extraction_timer); \
+	} while (0)
+#else
+#define EXTRACTION_TIMER_START(uri)
+#define EXTRACTION_TIMER_STOP(uri)
+#endif
+
 extern gboolean debug;
 
 typedef struct {
@@ -485,6 +510,7 @@ tracker_extract_get_metadata_by_cmdline (TrackerExtract *object,
 {
 	guint request_id;
 	TrackerSparqlBuilder *statements, *preupdate;
+	gboolean extracted;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -499,9 +525,13 @@ tracker_extract_get_metadata_by_cmdline (TrackerExtract *object,
 
 	/* NOTE: Don't reset the timeout to shutdown here */
 
-	if (get_file_metadata (object, request_id,
-			       NULL, uri, mime,
-			       &preupdate, &statements)) {
+	EXTRACTION_TIMER_START (uri);
+	extracted = get_file_metadata (object, request_id,
+	                               NULL, uri, mime,
+	                               &preupdate, &statements);
+	EXTRACTION_TIMER_STOP (uri);
+
+	if (extracted) {
 		const gchar *preupdate_str, *statements_str;
 
 		preupdate_str = statements_str = NULL;
@@ -585,7 +615,9 @@ tracker_extract_get_metadata (TrackerExtract         *object,
 		alarm (MAX_EXTRACT_TIME);
 	}
 
+	EXTRACTION_TIMER_START (uri);
 	extracted = get_file_metadata (object, request_id, context, uri, mime, &preupdate, &sparql);
+	EXTRACTION_TIMER_STOP (uri);
 
 	if (extracted) {
 		tracker_dbus_request_success (request_id, context);
@@ -723,7 +755,9 @@ get_metadata_fast (TrackerExtract *object,
 		alarm (MAX_EXTRACT_TIME);
 	}
 
+	EXTRACTION_TIMER_START (uri);
 	extracted = get_file_metadata (object, request_id, NULL, uri, mime, &preupdate, &sparql);
+	EXTRACTION_TIMER_STOP (uri);
 
 	if (extracted) {
 		unix_output_stream = g_unix_output_stream_new (fd, TRUE);

@@ -35,6 +35,32 @@
 #define MAX_EXTRACT_TIME 10
 #define TRACKER_EXTRACT_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_EXTRACT, TrackerExtractPrivate))
 
+/* Define symbol if you want to have single and total extraction times logs */
+#ifdef ENABLE_EXTRACTION_TIMES
+gdouble total_extraction_time;
+gulong  total_extracted_files;
+GTimer *extraction_timer;
+#define EXTRACTION_TIMER_START(uri) extraction_timer = g_timer_new ()
+#define EXTRACTION_TIMER_STOP(uri) do {	  \
+		gdouble current_extraction_time; \
+		g_timer_stop (extraction_timer); \
+		current_extraction_time = g_timer_elapsed (extraction_timer, NULL); \
+		g_debug ("Current extraction time for '%s': '%lf' seconds", \
+		         uri, \
+		         current_extraction_time); \
+		total_extraction_time += current_extraction_time; \
+		total_extracted_files++; \
+		g_debug ("Accumulated extraction time (%lu items): '%lf' seconds", \
+		         total_extracted_files, \
+		         total_extraction_time); \
+		g_timer_destroy (extraction_timer); \
+	} while (0)
+#else
+#define EXTRACTION_TIMER_START(uri)
+#define EXTRACTION_TIMER_STOP(uri)
+#endif
+
+
 typedef struct {
 	GArray *specific_extractors;
 	GArray *generic_extractors;
@@ -415,7 +441,10 @@ tracker_extract_get_metadata_by_cmdline (TrackerExtract *object,
 				  mime);
 
 	/* NOTE: Don't reset the timeout to shutdown here */
+
+	EXTRACTION_TIMER_START (path);
 	values = get_file_metadata (object, request_id, path, mime);
+	EXTRACTION_TIMER_STOP (path);
 
 	if (values) {
 		g_hash_table_foreach (values, 
@@ -475,7 +504,9 @@ tracker_extract_get_metadata (TrackerExtract	     *object,
 	tracker_main_quit_timeout_reset ();
 	alarm (MAX_EXTRACT_TIME);
 
+	EXTRACTION_TIMER_START (path);
 	values = get_file_metadata (object, request_id, path, mime);
+	EXTRACTION_TIMER_STOP (path);
 
 	if (values) {
 		g_hash_table_foreach (values, 

@@ -32,10 +32,12 @@ G_BEGIN_DECLS
 gboolean        tracker_dbus_init                          (void);
 void            tracker_dbus_shutdown                      (void);
 gboolean        tracker_dbus_register_objects              (void);
-GObject        *tracker_dbus_get_object                    (GType type);
+GObject        *tracker_dbus_get_object                    (GType        type);
 TrackerStatus  *tracker_dbus_register_notifier             (void);
 gboolean        tracker_dbus_register_names                (void);
 gboolean        tracker_dbus_register_prepare_class_signal (void);
+void            tracker_dbus_add_name_watch                (const gchar *name);
+void            tracker_dbus_remove_name_watch             (const gchar *name);
 
 G_END_DECLS
 

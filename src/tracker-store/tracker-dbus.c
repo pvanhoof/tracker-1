@@ -49,6 +49,8 @@ static DBusGProxy      *gproxy;
 static GSList          *objects;
 static TrackerStatus   *notifier;
 static TrackerBackup   *backup;
+static GQuark           dbus_interface_quark = 0;
+static GQuark           name_owner_changed_signal_quark = 0;
 #ifdef HAVE_DBUS_FD_PASSING
 static TrackerSteroids *steroids;
 #endif
@@ -112,6 +114,49 @@ tracker_dbus_register_names (void)
 	return TRUE;
 }
 
+static void
+name_owner_changed_cb (const gchar *name,
+                       const gchar *old_owner,
+                       const gchar *new_owner,
+                       gpointer     user_data)
+{
+	if (tracker_is_empty_string (new_owner) && !tracker_is_empty_string (old_owner)) {
+		/* This means that old_owner got removed */
+		tracker_resources_unreg_batches (user_data, old_owner);
+	}
+}
+
+static DBusHandlerResult
+message_filter (DBusConnection *connection,
+                DBusMessage    *message,
+                gpointer        user_data)
+{
+	const char *tmp;
+	GQuark interface, member;
+	int message_type;
+
+	tmp = dbus_message_get_interface (message);
+	interface = tmp ? g_quark_try_string (tmp) : 0;
+	tmp = dbus_message_get_member (message);
+	member = tmp ? g_quark_try_string (tmp) : 0;
+	message_type = dbus_message_get_type (message);
+
+	if (interface == dbus_interface_quark &&
+		message_type == DBUS_MESSAGE_TYPE_SIGNAL &&
+		member == name_owner_changed_signal_quark) {
+			const gchar *name, *prev_owner, *new_owner;
+			if (dbus_message_get_args (message, NULL,
+			                           DBUS_TYPE_STRING, &name,
+			                           DBUS_TYPE_STRING, &prev_owner,
+			                           DBUS_TYPE_STRING, &new_owner,
+			                           DBUS_TYPE_INVALID)) {
+			name_owner_changed_cb (name, prev_owner, new_owner, user_data);
+		}
+	}
+
+	return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+}
+
 gboolean
 tracker_dbus_init (void)
 {
@@ -149,32 +194,55 @@ tracker_dbus_init (void)
 	                                    DBUS_PATH_DBUS,
 	                                    DBUS_INTERFACE_DBUS);
 
-	dbus_g_proxy_add_signal (gproxy, "NameOwnerChanged",
-	                         G_TYPE_STRING,
-	                         G_TYPE_STRING,
-	                         G_TYPE_STRING,
-	                         G_TYPE_INVALID);
+	dbus_interface_quark = g_quark_from_static_string ("org.freedesktop.DBus");
+	name_owner_changed_signal_quark = g_quark_from_static_string ("NameOwnerChanged");
+
+	dbus_connection_add_filter (dbus_g_connection_get_connection (connection),
+	                            message_filter, NULL, NULL);
 
 	return TRUE;
 }
 
-static void
-name_owner_changed_cb (DBusGProxy *proxy,
-                       gchar      *name,
-                       gchar      *old_owner,
-                       gchar      *new_owner,
-                       gpointer    user_data)
+static gchar *
+get_name_owner_changed_match_rule (const gchar *name)
 {
-	if (tracker_is_empty_string (new_owner) && !tracker_is_empty_string (old_owner)) {
-		/* This means that old_owner got removed */
-		tracker_resources_unreg_batches (user_data, old_owner);
-	}
+	return g_strdup_printf ("type='signal',"
+	                        "sender='" DBUS_SERVICE_DBUS "',"
+	                        "interface='" DBUS_INTERFACE_DBUS "',"
+	                        "path='" DBUS_PATH_DBUS "',"
+	                        "member='NameOwnerChanged',"
+	                        "arg0='%s'", name);
 }
 
-static void
-name_owner_changed_closure (gpointer  data,
-                            GClosure *closure)
+void
+tracker_dbus_add_name_watch (const gchar *name)
 {
+	gchar *match_rule;
+
+	g_return_if_fail (connection != NULL);
+
+	match_rule = get_name_owner_changed_match_rule (name);
+	dbus_bus_add_match (dbus_g_connection_get_connection (connection),
+	                    match_rule, NULL);
+	if (!dbus_bus_name_has_owner (dbus_g_connection_get_connection (connection),
+	                              name, NULL)) {
+		/* Ops, the name went away before we could receive NameOwnerChanged for it */
+		name_owner_changed_cb ("", name, name, NULL);
+	}
+	g_free (match_rule);
+}
+
+void
+tracker_dbus_remove_name_watch (const gchar *name)
+{
+	gchar *match_rule;
+
+	g_return_if_fail (connection != NULL);
+
+	match_rule = get_name_owner_changed_match_rule (name);
+	dbus_bus_remove_match (dbus_g_connection_get_connection (connection),
+	                       match_rule, NULL);
+	g_free (match_rule);
 }
 
 static void
@@ -185,32 +253,25 @@ dbus_set_available (gboolean available)
 			tracker_dbus_register_objects ();
 		}
 	} else {
-                GSList *l;
-
-                if (objects) {
-                        dbus_g_proxy_disconnect_signal (gproxy,
-                                                        "NameOwnerChanged",
-                                                        G_CALLBACK (name_owner_changed_cb),
-                                                        tracker_dbus_get_object (TRACKER_TYPE_RESOURCES));
-                }
+		GSList *l;
 
 #ifdef HAVE_DBUS_FD_PASSING
-                if (steroids) {
+		if (steroids) {
 			dbus_connection_remove_filter (dbus_g_connection_get_connection (connection),
 			                               tracker_steroids_connection_filter,
 			                               steroids);
 			g_object_unref (steroids);
 			steroids = NULL;
-                }
+		}
 #endif
 
-                for (l = objects; l; l = l->next) {
-                        dbus_g_connection_unregister_g_object (connection, l->data);
-                        g_object_unref (l->data);
-                }
+		for (l = objects; l; l = l->next) {
+			dbus_g_connection_unregister_g_object (connection, l->data);
+			g_object_unref (l->data);
+		}
 
-                g_slist_free (objects);
-                objects = NULL;
+		g_slist_free (objects);
+		objects = NULL;
 	}
 }
 
@@ -218,6 +279,9 @@ void
 tracker_dbus_shutdown (void)
 {
 	dbus_set_available (FALSE);
+
+	dbus_connection_remove_filter (dbus_g_connection_get_connection (connection),
+	                               message_filter, NULL);
 
 	if (backup) {
 		dbus_g_connection_unregister_g_object (connection, G_OBJECT (backup));
@@ -291,11 +355,6 @@ tracker_dbus_register_objects (void)
 		g_critical ("Could not create TrackerResources object to register");
 		return FALSE;
 	}
-
-	dbus_g_proxy_connect_signal (gproxy, "NameOwnerChanged",
-	                             G_CALLBACK (name_owner_changed_cb),
-	                             object,
-	                             name_owner_changed_closure);
 
 	dbus_register_object (connection,
 	                      gproxy,

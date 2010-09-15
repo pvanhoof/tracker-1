@@ -39,6 +39,7 @@
 
 #include "tracker-store.h"
 #include "tracker-events.h"
+#include "tracker-dbus.h"
 
 #define TRACKER_STORE_MAX_CONCURRENT_QUERIES               2
 
@@ -327,6 +328,10 @@ task_finish_cb (gpointer data)
 		task->destroy (task->user_data);
 	}
 
+	if (task->client_id) {
+		tracker_dbus_remove_name_watch (task->client_id);
+	}
+
 	store_task_free (task);
 
 	sched (private);
@@ -484,6 +489,7 @@ tracker_store_sparql_query (const gchar *sparql,
 	task->callback.query.in_thread = in_thread;
 	task->destroy = destroy;
 	task->client_id = g_strdup (client_id);
+	tracker_dbus_add_name_watch (task->client_id);
 
 	g_queue_push_tail (private->query_queues[priority], task);
 
@@ -513,6 +519,7 @@ tracker_store_sparql_update (const gchar *sparql,
 	task->callback.update_callback = callback;
 	task->destroy = destroy;
 	task->client_id = g_strdup (client_id);
+	tracker_dbus_add_name_watch (task->client_id);
 
 	g_queue_push_tail (private->update_queues[priority], task);
 
@@ -542,6 +549,7 @@ tracker_store_sparql_update_blank (const gchar *sparql,
 	task->callback.update_blank_callback = callback;
 	task->destroy = destroy;
 	task->client_id = g_strdup (client_id);
+	tracker_dbus_add_name_watch (task->client_id);
 
 	g_queue_push_tail (private->update_queues[priority], task);
 
@@ -570,6 +578,7 @@ tracker_store_queue_turtle_import (GFile                      *file,
 	task->callback.update_callback = callback;
 	task->destroy = destroy;
 	task->client_id = g_strdup (client_id);
+	tracker_dbus_add_name_watch (task->client_id);
 
 	g_queue_push_tail (private->update_queues[TRACKER_STORE_PRIORITY_TURTLE], task);
 
@@ -606,7 +615,12 @@ unreg_task (TrackerStoreTask *task,
 	} else if (task->type == TRACKER_STORE_TASK_TYPE_TURTLE) {
 		task->callback.turtle_callback (error, task->user_data);
 	}
+
 	task->destroy (task->user_data);
+
+	if (task->client_id) {
+		tracker_dbus_remove_name_watch (task->client_id);
+	}
 
 	store_task_free (task);
 }
@@ -650,7 +664,7 @@ tracker_store_unreg_batches (const gchar *client_id)
 
 				if (!error) {
 					g_set_error (&error, TRACKER_DBUS_ERROR, 0,
-						     "Client disappeared");
+					             "Client disappeared");
 				}
 
 				unreg_task (task, error);
@@ -671,7 +685,7 @@ tracker_store_unreg_batches (const gchar *client_id)
 
 				if (!error) {
 					g_set_error (&error, TRACKER_DBUS_ERROR, 0,
-						     "Client disappeared");
+					             "Client disappeared");
 				}
 
 				unreg_task (task, error);

@@ -30,6 +30,7 @@ typedef struct {
 	DBusGConnection *connection;
 	DBusGProxy *gproxy;
 	GHashTable *name_monitors;
+	TrackerMiner *miner; /* weak */
 } DBusData;
 
 static GQuark dbus_data = 0;
@@ -179,6 +180,10 @@ dbus_data_destroy (gpointer data)
 
 	dd = data;
 
+	/* dd->miner is weak */
+	dbus_connection_remove_filter (dbus_g_connection_get_connection (dd->connection),
+	                               message_filter, dd->miner);
+
 	if (dd->gproxy) {
 		g_object_unref (dd->gproxy);
 	}
@@ -250,6 +255,7 @@ dbus_data_create (TrackerMiner          *miner,
 	data = g_slice_new0 (DBusData);
 	/* Connection object is a shared one, so we need to keep our own
 	 * reference to it */
+	data->miner = miner;
 	data->connection = dbus_g_connection_ref (connection);
 	data->gproxy = gproxy;
 	data->name_monitors = g_hash_table_new_full (g_str_hash,

@@ -30,6 +30,8 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <grp.h>
+#include <pwd.h>
 
 #include <glib/gstdio.h>
 
@@ -247,6 +249,93 @@ db_type_to_string (TrackerDB db)
 	}
 
 	return enum_value->value_nick;
+}
+
+static void
+db_path_set_owner_and_group (const gchar *nice_filename,
+                             const gchar *path,
+                             uid_t        owner_id,
+                             gid_t        group_id)
+{
+	g_message ("Setting file ownership of '%s' to uid=%d gid=%d",
+	           nice_filename, owner_id, group_id);
+
+	if (chown (path, owner_id, group_id) == -1 && errno == 1) {
+		g_warning ("Can't set owner of '%s' to uid=%d, trying to set just group to gid=%d",
+		           nice_filename, owner_id, group_id);
+		if (chown (path, -1, group_id) == -1) {
+			g_warning ("Can't set just group of '%s' to gid=%d either",
+			           nice_filename, group_id);
+		}
+	}
+}
+
+static void
+db_interfaces_set_file_permissions (void)
+{
+	guint i;
+	uid_t owner_id = -1;
+	gid_t group_id = -1;
+	gchar *rot_dir = NULL;
+	gboolean do_rotating = FALSE;
+	const gchar *journal_filename;
+	gsize cz;
+#ifdef DB_FILE_OWNER_OWNERSHIP
+	struct passwd *usr;
+#endif /* DB_FILE_OWNER_OWNERSHIP */
+#ifdef DB_FILE_GROUP_OWNERSHIP
+	struct group *grp;
+
+	grp = getgrnam (DB_FILE_GROUP_OWNERSHIP);
+	if (grp) {
+		group_id = grp->gr_gid;
+	} else {
+		g_warning ("UNIX group '" DB_FILE_GROUP_OWNERSHIP "' does not exist while trying to set group owner of database files");
+	}
+#endif /* DB_FILE_GROUP_OWNERSHIP */
+
+#ifdef DB_FILE_OWNER_OWNERSHIP
+	usr = getpwnam (DB_FILE_OWNER_OWNERSHIP);
+	if (usr) {
+		owner_id = usr->pw_uid;
+	} else {
+		g_warning ("UNIX user '" DB_FILE_OWNER_OWNERSHIP "' does not exist while trying to set owner of database files");
+	}
+#endif /* DB_FILE_OWNER_OWNERSHIP */
+
+	tracker_db_journal_get_rotating (&do_rotating, &cz, &rot_dir);
+	journal_filename = tracker_db_journal_get_filename ();
+
+	if (owner_id != -1 || group_id != -1) {
+		for (i = 1; i < G_N_ELEMENTS (dbs); i++)
+			db_path_set_owner_and_group (dbs[i].file, dbs[i].abs_filename, owner_id, group_id);
+		if (do_rotating)
+			db_path_set_owner_and_group ("Journal rotating dir", rot_dir, owner_id, group_id);
+		db_path_set_owner_and_group ("User data dir", user_data_dir, owner_id, group_id);
+		db_path_set_owner_and_group ("Data dir", data_dir, owner_id, group_id);
+		db_path_set_owner_and_group ("Journal", journal_filename, owner_id, group_id);
+	}
+
+#ifdef DB_FILE_PERMISSIONS
+	for (i = 1; i < G_N_ELEMENTS (dbs); i++) {
+		g_message ("Setting file permissions of '%s''", dbs[i].file);
+		chmod (dbs[i].abs_filename, DB_FILE_PERMISSIONS);
+	}
+
+	g_message ("Setting file permissions of '%s'", data_dir);
+	chmod (data_dir, DB_FILE_PERMISSIONS | S_IXUSR | S_IXGRP);
+	g_message ("Setting file permissions of '%s''", user_data_dir);
+	chmod (user_data_dir, DB_FILE_PERMISSIONS | S_IXUSR | S_IXGRP);
+	if (do_rotating) {
+		g_message ("Setting file permissions of '%s''", rot_dir);
+		chmod (rot_dir, DB_FILE_PERMISSIONS | S_IXUSR | S_IXGRP);
+	}
+	/* Don't set permissions for journal file, tracker-db-journal.c
+	 * does that itself in db_journal_init_file (rw for user+group) */
+
+#endif /* DB_FILE_PERMISSIONS */
+
+	g_free (rot_dir);
 }
 
 static TrackerDBInterface *
@@ -647,6 +736,8 @@ db_recreate_all (void)
 		dbs[i].iface = db_interface_create (i);
 	}
 
+	db_interfaces_set_file_permissions ();
+
 	/* We don't close the dbs in the same loop as before
 	 * becase some databases need other databases
 	 * attached to be created correctly.
@@ -795,7 +886,7 @@ tracker_db_manager_init (TrackerDBManagerFlags  flags,
 		/* Fill absolute path for the database */
 		dir = location_to_directory (dbs[i].location);
 
-                g_free (dbs[i].abs_filename);
+		g_free (dbs[i].abs_filename);
 		dbs[i].abs_filename = g_build_filename (dir, dbs[i].file, NULL);
 
 		/* Check we have each database in place, if one is
@@ -879,6 +970,7 @@ tracker_db_manager_init (TrackerDBManagerFlags  flags,
 		g_free (journal_filename);
 
 		if (!must_recreate && g_file_test (in_use_filename, G_FILE_TEST_EXISTS)) {
+			gboolean created_one = FALSE;
 			gsize size = 0;
 
 			g_message ("Didn't shut down cleanly last time, doing integrity checks");
@@ -901,6 +993,7 @@ tracker_db_manager_init (TrackerDBManagerFlags  flags,
 				}
 
 				dbs[i].iface = db_interface_create (i);
+				created_one = TRUE;
 				dbs[i].mtime = tracker_file_get_mtime (dbs[i].abs_filename);
 
 				loaded = TRUE;
@@ -921,6 +1014,10 @@ tracker_db_manager_init (TrackerDBManagerFlags  flags,
 					}
 					g_object_unref (cursor);
 				}
+			}
+
+			if (created_one) {
+				db_interfaces_set_file_permissions ();
 			}
 		}
 
@@ -952,17 +1049,18 @@ tracker_db_manager_init (TrackerDBManagerFlags  flags,
 			dbs[i].iface = db_interface_create (i);
 			dbs[i].mtime = tracker_file_get_mtime (dbs[i].abs_filename);
 		}
+		db_interfaces_set_file_permissions ();
 	}
 
 	if ((flags & TRACKER_DB_MANAGER_READONLY) == 0) {
 		/* do not create in-use file for read-only mode (direct access) */
 		in_use_file = g_open (in_use_filename,
-			              O_WRONLY | O_APPEND | O_CREAT | O_SYNC,
-			              S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+		                      O_WRONLY | O_APPEND | O_CREAT | O_SYNC,
+		                      S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
 
 		if (in_use_file >= 0) {
-		        fsync (in_use_file);
-		        close (in_use_file);
+			fsync (in_use_file);
+			close (in_use_file);
 		}
 	}
 

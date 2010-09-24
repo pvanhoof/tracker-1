@@ -296,6 +296,34 @@ fi
 AM_CONDITIONAL(HAVE_LIBSTREAMANALYZER, test "$have_libstreamanalyzer" = "yes")
 
 ####################################################################
+# Database UNIX group, owner and file permissions
+####################################################################
+
+AC_ARG_WITH([db-file-group-ownership],
+            AS_HELP_STRING([--db-file-group-ownership],
+                           [UNIX group name for the database files]))
+
+AC_ARG_WITH([db-file-owner-ownership],
+            AS_HELP_STRING([--db-file-owner-ownership],
+                           [UNIX owner name for the database files]))
+
+AC_ARG_WITH([db-file-permissions],
+            AS_HELP_STRING([--db-file-permissions],
+                           [UNIX file permissions for the database files]))
+
+if test "x$with_db_file_group_ownership" != "x" ; then
+   AC_DEFINE_UNQUOTED(DB_FILE_GROUP_OWNERSHIP, "$with_db_file_group_ownership", [UNIX group for the database files])
+fi
+
+if test "x$with_db_file_owner_ownership" != "x" ; then
+   AC_DEFINE_UNQUOTED(DB_FILE_OWNER_OWNERSHIP, "$with_db_file_owner_ownership", [UNIX owner for the database files])
+fi
+
+if test "x$with_db_file_permissions" != "x" ; then
+   AC_DEFINE_UNQUOTED(DB_FILE_PERMISSIONS, ($with_db_file_permissions), [UNIX file permissions for the database files])
+fi
+
+####################################################################
 # DBus Service
 ####################################################################
 

@@ -730,6 +730,7 @@ tracker_db_interface_sqlite_finalize (GObject *object)
 	g_message ("Closed sqlite3 database:'%s'", db_interface->filename);
 
 	g_free (db_interface->filename);
+	g_free (db_interface->busy_status);
 
 	tracker_collation_shutdown (db_interface->collator);
 

@@ -61,18 +61,21 @@ static TrackerExtractData data[] = {
 	{ NULL, NULL }
 };
 
-/**
- * Philip ported this from a poppler-glib based version to a C++ libpopler
- * version because the TextOutputDev allows us to extract text and metadata much
- * faster than the default CairoOutputDev that poppler-glib uses in case it got
- * compiled with support for Cairo. Regretfully can't this be selected at
- * runtime in the poppler-glib bindings. Apologies to the GObject/GLib fans. */
+/*
+ * Philip ported this from a poppler-glib based version to a C++
+ * libpopler version because the TextOutputDev allows us to extract
+ * text and metadata much faster than the default CairoOutputDev that
+ * poppler-glib uses in case it got compiled with support for Cairo.
+ * Regretfully can't this be selected at runtime in the poppler-glib
+ * bindings. Apologies to the GObject/GLib fans.
+ */
 
 static gchar *
 unicode_to_char (Unicode *unicode,
                  int      len)
 {
 	static UnicodeMap *uMap = NULL;
+
 	if (uMap == NULL) {
 		GooString *enc = new GooString("UTF-8");
 		uMap = globalParams->getUnicodeMap(enc);
@@ -85,8 +88,8 @@ unicode_to_char (Unicode *unicode,
 	int i, n;
 
 	for (i = 0; i < len; ++i) {
-		n = uMap->mapUnicode(unicode[i], buf, sizeof(buf));
-		gstr.append(buf, n);
+		n = uMap->mapUnicode (unicode[i], buf, sizeof(buf));
+		gstr.append (buf, n);
 	}
 
 	return g_strdup (gstr.getCString ());
@@ -98,8 +101,9 @@ read_toc (GooList  *items,
 {
 	guint length, i;
 
-	if (!items)
+	if (!items) {
 		return;
+	}
 
 	if (!*toc) {
 		*toc = g_string_new ("");
@@ -120,114 +124,130 @@ read_toc (GooList  *items,
 		}
 
 		switch (link_action->getKind()) {
-			case actionGoTo: {
-				LinkGoTo *gto = dynamic_cast <LinkGoTo *> (link_action);
+		case actionGoTo: {
+			LinkGoTo *gto = dynamic_cast <LinkGoTo *> (link_action);
 
-				if (gto) {
-					guint title_length = item->getTitleLength ();
-					GooString *named_dest = gto->getNamedDest ();
+			if (gto) {
+				GooString *named_dest;
+				guint title_length;
 
-					if (title_length > 0) {
-						gchar *str = unicode_to_char (item->getTitle(),
-						                              title_length);
-						g_string_append_printf (*toc, "%s ", str);
-						g_free (str);
-					}
-
-					if (named_dest)
-						g_string_append_printf (*toc, "%s ", named_dest->getCString ());
-				}
-
-				break;
-			}
-
-			case actionLaunch: {
-				LinkLaunch *lan = dynamic_cast <LinkLaunch *> (link_action);
-
-				if (lan) {
-					guint title_length = item->getTitleLength ();
-					GooString *filen, *param;
-
-					filen = lan->getFileName();
-					param = lan->getParams();
-
-					if (title_length > 0) {
-						gchar *str = unicode_to_char (item->getTitle(),
-						                              title_length);
-						g_string_append_printf (*toc, "%s ", str);
-						g_free (str);
-					}
-
-					if (filen)
-						g_string_append_printf (*toc, "%s ", filen->getCString ());
-
-					if (param)
-						g_string_append_printf (*toc, "%s ", param->getCString ());
-				}
-
-				break;
-			}
-
-			case actionURI: {
-				LinkURI *uri = dynamic_cast <LinkURI *> (link_action);
-
-				if (uri) {
-					GooString *muri;
-
-					muri = uri->getURI();
-
-					if (muri)
-						g_string_append_printf (*toc, "%s ", muri->getCString ());
-				}
-
-				break;
-			}
-
-			case actionNamed: {
-				LinkNamed *named = dynamic_cast <LinkNamed *> (link_action);
-
-				if (named) {
-					GooString *named_dest = named->getName ();
-					guint title_length = item->getTitleLength ();
-
-					if (title_length > 0) {
-						gchar *str = unicode_to_char (item->getTitle(),
-						                              title_length);
-						g_string_append_printf (*toc, "%s ", str);
-						g_free (str);
-					}
-
-					if (named_dest)
-						g_string_append_printf (*toc, "%s ", named_dest->getCString ());
-				}
-
-				break;
-			}
-
-			case actionMovie: {
-				guint title_length = item->getTitleLength ();
+				title_length = item->getTitleLength ();
+				named_dest = gto->getNamedDest ();
 
 				if (title_length > 0) {
-					gchar *str = unicode_to_char (item->getTitle(),
-					                              title_length);
+					gchar *str;
+
+					str = unicode_to_char (item->getTitle(), title_length);
 					g_string_append_printf (*toc, "%s ", str);
 					g_free (str);
 				}
 
-				break;
+				if (named_dest)
+					g_string_append_printf (*toc, "%s ", named_dest->getCString ());
 			}
 
-			case actionRendition:
-			case actionSound:
-			case actionJavaScript:
-			case actionUnknown:
-			case actionGoToR:
-				/* Do nothing */
-				break;
+			break;
 		}
 
-		if (item->hasKids ())
+		case actionLaunch: {
+			LinkLaunch *lan = dynamic_cast <LinkLaunch *> (link_action);
+
+			if (lan) {
+				GooString *filen, *param;
+				guint title_length;
+
+				filen = lan->getFileName();
+				param = lan->getParams();
+				title_length = item->getTitleLength ();
+
+				if (title_length > 0) {
+					gchar *str;
+
+					str = unicode_to_char (item->getTitle (), title_length);
+					g_string_append_printf (*toc, "%s ", str);
+					g_free (str);
+				}
+
+				if (filen) {
+					g_string_append_printf (*toc, "%s ", filen->getCString ());
+				}
+
+				if (param) {
+					g_string_append_printf (*toc, "%s ", param->getCString ());
+				}
+			}
+
+			break;
+		}
+
+		case actionURI: {
+			LinkURI *uri = dynamic_cast <LinkURI *> (link_action);
+
+			if (uri) {
+				GooString *muri;
+
+				muri = uri->getURI ();
+
+				if (muri) {
+					g_string_append_printf (*toc, "%s ", muri->getCString ());
+				}
+			}
+
+			break;
+		}
+
+		case actionNamed: {
+			LinkNamed *named = dynamic_cast <LinkNamed *> (link_action);
+
+			if (named) {
+				GooString *named_dest;
+				guint title_length;
+
+				named_dest = named->getName ();
+				title_length = item->getTitleLength ();
+
+				if (title_length > 0) {
+					gchar *str;
+
+					str = unicode_to_char (item->getTitle(), title_length);
+					g_string_append_printf (*toc, "%s ", str);
+					g_free (str);
+				}
+
+				if (named_dest) {
+					g_string_append_printf (*toc, "%s ", named_dest->getCString ());
+				}
+			}
+
+			break;
+		}
+
+		case actionMovie: {
+			guint title_length = item->getTitleLength ();
+
+			if (title_length > 0) {
+				gchar *str;
+
+				str = unicode_to_char (item->getTitle (), title_length);
+				g_string_append_printf (*toc, "%s ", str);
+				g_free (str);
+			}
+
+			break;
+		}
+
+		case actionRendition:
+		case actionSound:
+		case actionJavaScript:
+		case actionUnknown:
+		case actionGoToR:
+			/* Do nothing */
+			break;
+		}
+
+		if (item->hasKids ()) {
 			read_toc (item->getKids (), toc);
+		}
 	}
 
 }
@@ -240,7 +260,7 @@ read_outline (PDFDoc               *document,
 	GString *toc = NULL;
 	GooList *items;
 
-	outline = document->getOutline();
+	outline = document->getOutline ();
 
 	if (!outline) {
 		return;
@@ -248,19 +268,22 @@ read_outline (PDFDoc               *document,
 
 	items = outline->getItems ();
 
-	if (items == NULL)
+	if (items == NULL) {
 		return;
+	}
 
 	read_toc (items, &toc);
 
-	if (toc) {
-		if (toc->len > 0) {
-			tracker_sparql_builder_predicate (metadata, "nfo:tableOfContents");
-			tracker_sparql_builder_object_unvalidated (metadata, toc->str);
-		}
-
-		g_string_free (toc, TRUE);
+	if (!toc) {
+		return;
 	}
+
+	if (toc->len > 0) {
+		tracker_sparql_builder_predicate (metadata, "nfo:tableOfContents");
+		tracker_sparql_builder_object_unvalidated (metadata, toc->str);
+	}
+
+	g_string_free (toc, TRUE);
 }
 
 
@@ -269,23 +292,26 @@ page_get_size (Page    *page,
                gdouble *width,
                gdouble *height)
 {
-  gdouble page_width, page_height;
-  gint rotate;
+	gdouble page_width, page_height;
+	gint rotate;
 
-  rotate = page->getRotate ();
+	rotate = page->getRotate ();
 
-  if (rotate == 90 || rotate == 270) {
-    page_height = page->getCropWidth ();
-    page_width = page->getCropHeight ();
-  } else {
-    page_width = page->getCropWidth ();
-    page_height = page->getCropHeight ();
-  }
+	if (rotate == 90 || rotate == 270) {
+		page_height = page->getCropWidth ();
+		page_width = page->getCropHeight ();
+	} else {
+		page_width = page->getCropWidth ();
+		page_height = page->getCropHeight ();
+	}
 
-  if (width != NULL)
-    *width = page_width;
-  if (height != NULL)
-    *height = page_height;
+	if (width != NULL) {
+		*width = page_width;
+	}
+
+	if (height != NULL) {
+		*height = page_height;
+	}
 }
 
 static gchar *
@@ -321,15 +347,15 @@ extract_content (PDFDoc *document,
 		text_dev = new TextOutputDev (NULL, gTrue, gFalse, gFalse);
 		gfx = page->createGfx (text_dev,
 		                       72.0, 72.0, 0,
-		                       gFalse, /* useMediaBox */
-		                       gTrue, /* Crop */
+		                       gFalse,  /* useMediaBox */
+		                       gTrue,   /* Crop */
 		                       -1, -1, -1, -1,
-		                       gFalse, /* printing */
+		                       gFalse,  /* printing */
 		                       catalog,
 		                       NULL, NULL, NULL, NULL);
 
-		page->display(gfx);
-		text_dev->endPage();
+		page->display (gfx);
+		text_dev->endPage ();
 
 		page_get_size (page, &width, &height);
 
@@ -398,10 +424,9 @@ write_pdf_data (PDFData               data,
 	}
 }
 
-
-static PDFDoc*
-poppler_document_new_pdf_from_file (const char  *uri,
-                                    const char  *password)
+static PDFDoc *
+new_pdf_from_file (const char *uri,
+                   const char *password)
 {
 	PDFDoc *newDoc;
 	GooString *filename_g;
@@ -409,12 +434,13 @@ poppler_document_new_pdf_from_file (const char  *uri,
 	gchar *filename;
 
 	if (!globalParams) {
-		globalParams = new GlobalParams();
+		globalParams = new GlobalParams ();
 	}
 
 	filename = g_filename_from_uri (uri, NULL, NULL);
-	if (!filename)
+	if (!filename) {
 		return NULL;
+	}
 
 	filename_g = new GooString (filename);
 	g_free (filename);
@@ -424,10 +450,14 @@ poppler_document_new_pdf_from_file (const char  *uri,
 		if (g_utf8_validate (password, -1, NULL)) {
 			gchar *password_latin;
 
-			password_latin = g_convert (password, -1,
+			password_latin = g_convert (password,
+			                            -1,
 			                            "ISO-8859-1",
 			                            "UTF-8",
-			                            NULL, NULL, NULL);
+			                            NULL,
+			                            NULL,
+			                            NULL);
+
 			password_g = new GooString (password_latin);
 			g_free (password_latin);
 		} else {
@@ -435,20 +465,21 @@ poppler_document_new_pdf_from_file (const char  *uri,
 		}
 	}
 
-	newDoc = new PDFDoc(filename_g, password_g, password_g);
+	newDoc = new PDFDoc (filename_g, password_g, password_g);
 	delete password_g;
 
 	return newDoc;
 }
 
-static gchar*
-info_dict_get_string (Dict *info_dict, const gchar *key)
+static gchar *
+info_dict_get_string (Dict        *info_dict,
+                      const gchar *key)
 {
 	Object obj;
 	GooString *goo_value;
 	gchar *result;
 
-	if (!info_dict->lookup ((gchar *)key, &obj)->isString ()) {
+	if (!info_dict->lookup ((gchar*) key, &obj)->isString ()) {
 		obj.free ();
 		return NULL;
 	}
@@ -458,7 +489,11 @@ info_dict_get_string (Dict *info_dict, const gchar *key)
 	if (goo_value->hasUnicodeMarker()) {
 		result = g_convert (goo_value->getCString () + 2,
 		                    goo_value->getLength () - 2,
-		                    "UTF-8", "UTF-16BE", NULL, NULL, NULL);
+		                    "UTF-8",
+		                    "UTF-16BE",
+		                    NULL,
+		                    NULL,
+		                    NULL);
 	} else {
 		int len;
 		gunichar *ucs4_temp;
@@ -466,9 +501,11 @@ info_dict_get_string (Dict *info_dict, const gchar *key)
 
 		len = goo_value->getLength ();
 		ucs4_temp = g_new (gunichar, len + 1);
+
 		for (i = 0; i < len; ++i) {
-			ucs4_temp[i] = pdfDocEncoding[(unsigned char)goo_value->getChar(i)];
+			ucs4_temp[i] = pdfDocEncoding[(unsigned char) goo_value->getChar (i)];
 		}
+
 		ucs4_temp[i] = 0;
 		result = g_ucs4_to_utf8 (ucs4_temp, -1, NULL, NULL, NULL);
 		g_free (ucs4_temp);
@@ -498,7 +535,7 @@ extract_pdf (const gchar          *uri,
 
 	g_type_init ();
 
-	document = poppler_document_new_pdf_from_file (uri, NULL);
+	document = new_pdf_from_file (uri, NULL);
 
 	if (!document) {
 		g_warning ("Could not create PopplerDocument from uri:'%s', "
@@ -507,29 +544,30 @@ extract_pdf (const gchar          *uri,
 		return;
 	}
 
-	if (!document->isOk()) {
+	if (!document->isOk ()) {
 		int fopen_errno;
+
 		switch (document->getErrorCode()) {
-			case errEncrypted:
-				tracker_sparql_builder_predicate (metadata, "a");
-				tracker_sparql_builder_object (metadata, "nfo:PaginatedTextDocument");
-				tracker_sparql_builder_predicate (metadata, "nfo:isContentEncrypted");
-				tracker_sparql_builder_object_boolean (metadata, TRUE);
-				break;
-			case errBadCatalog:
-				g_warning ("Couldn't create PopplerDocument from uri:'%s', Failed to read the document catalog", uri);
-				break;
-			case errDamaged:
-				g_warning ("Couldn't create PopplerDocument from uri:'%s', PDF document is damaged", uri);
-				break;
-			case errOpenFile:
-				fopen_errno = document->getFopenErrno();
-				g_warning ("Couldn't create PopplerDocument from uri:'%s', %s",
-				           uri, g_strerror (fopen_errno));
-				break;
-			default:
-				g_warning ("Couldn't create PopplerDocument from uri:'%s', no error given", uri);
-				break;
+		case errEncrypted:
+			tracker_sparql_builder_predicate (metadata, "a");
+			tracker_sparql_builder_object (metadata, "nfo:PaginatedTextDocument");
+			tracker_sparql_builder_predicate (metadata, "nfo:isContentEncrypted");
+			tracker_sparql_builder_object_boolean (metadata, TRUE);
+			break;
+		case errBadCatalog:
+			g_warning ("Couldn't create PopplerDocument from uri:'%s', Failed to read the document catalog", uri);
+			break;
+		case errDamaged:
+			g_warning ("Couldn't create PopplerDocument from uri:'%s', PDF document is damaged", uri);
+			break;
+		case errOpenFile:
+			fopen_errno = document->getFopenErrno ();
+			g_warning ("Couldn't create PopplerDocument from uri:'%s', %s",
+			           uri, g_strerror (fopen_errno));
+			break;
+		default:
+			g_warning ("Couldn't create PopplerDocument from uri:'%s', no error given", uri);
+			break;
 		}
 
 		delete document;
@@ -542,7 +580,9 @@ extract_pdf (const gchar          *uri,
 	document->getDocInfo (&obj);
 	if (obj.isDict ()) {
 		gchar *creation_date;
-		Dict *info_dict = obj.getDict();
+		Dict *info_dict;
+
+		info_dict = obj.getDict();
 		pd.title = info_dict_get_string (info_dict, "Title");
 		pd.author = info_dict_get_string (info_dict, "Author");
 		pd.subject = info_dict_get_string (info_dict, "Subject");
@@ -557,18 +597,19 @@ extract_pdf (const gchar          *uri,
 
 	catalog = document->getCatalog ();
 	if (catalog && catalog->isOk ()) {
-		GooString *s = catalog->readMetadata ();
-		if (s != NULL) {
+		GooString *str = catalog->readMetadata ();
+
+		if (str != NULL) {
 			const gchar *xml;
 
-			xml = s->getCString();
+			xml = str->getCString ();
 			xd = tracker_xmp_new (xml, strlen (xml), uri);
 
 			if (!xd) {
 				xd = g_new0 (TrackerXmpData, 1);
 			}
 
-			delete s;
+			delete str;
 
 			/* The casts here are well understood and known */
 			md.title = (gchar *) tracker_coalesce_strip (4, pd.title, xd->title, xd->title2, xd->pdf_title);
@@ -797,7 +838,7 @@ extract_pdf (const gchar          *uri,
 	for (i = 0; i < keywords->len; i++) {
 		gchar *p;
 
-		p = (gchar *) g_ptr_array_index (keywords, i);
+		p = (gchar*) g_ptr_array_index (keywords, i);
 
 		tracker_sparql_builder_predicate (metadata, "nao:hasTag");
 

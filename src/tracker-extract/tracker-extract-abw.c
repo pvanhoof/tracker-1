@@ -67,6 +67,10 @@ extract_abw (const gchar          *uri,
 		line = NULL;
 		length = 0;
 
+#ifdef HAVE_POSIX_FADVISE
+		posix_fadvise (fileno (f), 0, 0, POSIX_FADV_SEQUENTIAL);
+#endif /* HAVE_POSIX_FADVISE */
+
 		tracker_sparql_builder_predicate (metadata, "a");
 		tracker_sparql_builder_object (metadata, "nfo:Document");
 

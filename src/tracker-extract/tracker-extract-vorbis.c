@@ -118,6 +118,10 @@ extract_vorbis (const char *uri,
 		return;
 	}
 
+#ifdef HAVE_POSIX_FADVISE
+	posix_fadvise (fileno (f), 0, 0, POSIX_FADV_RANDOM);
+#endif /* HAVE_POSIX_FADVISE */
+
 	if (ov_open (f, &vf, NULL, 0) < 0) {
 		tracker_file_close (f, FALSE);
 		return;

@@ -22,6 +22,7 @@
 
 #include <stdio.h>
 #include <setjmp.h>
+#include <fcntl.h>
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE /* strcasestr() */
@@ -133,6 +134,10 @@ extract_jpeg (const gchar          *uri,
 	if (!f) {
 		return;
 	}
+
+#ifdef HAVE_POSIX_FADVISE
+	posix_fadvise (fileno (f), 0, 0, POSIX_FADV_RANDOM);
+#endif /* HAVE_POSIX_FADVISE */
 
 	tracker_sparql_builder_predicate (metadata, "a");
 	tracker_sparql_builder_object (metadata, "nfo:Image");

@@ -26,6 +26,10 @@
 #include <glib.h>
 #include <gio/gio.h>
 
+#ifdef HAVE_POSIX_FADVISE
+#include <gio/gfiledescriptorbased.h>
+#endif /* HAVE_POSIX_FADVISE */
+
 #include <libtracker-extract/tracker-extract.h>
 
 #include "tracker-read.h"
@@ -167,14 +171,27 @@ process_whole_string (GString  *s,
  **/
 gchar *
 tracker_read_text_from_stream (GInputStream *stream,
-                               gsize       max_bytes,
-                               gboolean    try_locale_if_not_utf8)
+                               gsize         max_bytes,
+                               gboolean      try_locale_if_not_utf8)
 {
 	GString *s = NULL;
 	gsize n_bytes_remaining = max_bytes;
 
 	g_return_val_if_fail (stream, NULL);
 	g_return_val_if_fail (max_bytes > 0, NULL);
+
+#ifdef HAVE_POSIX_FADVISE
+	if (G_IS_FILE_DESCRIPTOR_BASED (stream)) {
+		int fd;
+
+		fd = g_file_descriptor_based_get_fd (G_FILE_DESCRIPTOR_BASED (stream));
+
+		if (fd > 0) {
+			posix_fadvise (fd, 0, max_bytes, POSIX_FADV_SEQUENTIAL);
+		}
+	}
+#endif /* HAVE_POSIX_FADVISE */
+
 
 	/* Reading in chunks of BUFFER_SIZE
 	 *   Loop is halted whenever one of this conditions is met:
@@ -245,6 +262,10 @@ tracker_read_text_from_fd (gint     fd,
 		close (fd);
 		return NULL;
 	}
+
+#ifdef HAVE_POSIX_FADVISE
+	posix_fadvise (fd, 0, max_bytes, POSIX_FADV_SEQUENTIAL);
+#endif /* HAVE_POSIX_FADVISE */
 
 	/* Reading in chunks of BUFFER_SIZE
 	 *   Loop is halted whenever one of this conditions is met:

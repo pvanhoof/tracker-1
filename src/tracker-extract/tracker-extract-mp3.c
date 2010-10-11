@@ -2019,6 +2019,10 @@ extract_mp3 (const gchar          *uri,
 	}
 #endif
 
+#ifdef HAVE_POSIX_FADVISE
+	posix_fadvise (fd, 0, 0, POSIX_FADV_RANDOM);
+#endif /* HAVE_POSIX_FADVISE */
+
 #ifndef G_OS_WIN32
 	/* We don't use GLib's mmap because size can not be specified */
 	buffer = mmap (NULL,

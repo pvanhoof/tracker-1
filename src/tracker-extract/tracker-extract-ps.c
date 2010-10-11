@@ -211,8 +211,6 @@ extract_ps_from_filestream (FILE *f,
 	}
 }
 
-
-
 static void
 extract_ps (const gchar          *uri,
             TrackerSparqlBuilder *preupdate,
@@ -228,6 +226,10 @@ extract_ps (const gchar          *uri,
 	if (!f) {
 		return;
 	}
+
+#ifdef HAVE_POSIX_FADVISE
+	posix_fadvise (fileno (f), 0, 0, POSIX_FADV_SEQUENTIAL);
+#endif /* HAVE_POSIX_FADVISE */
 
 	/* Extract from filestream! */
 	g_debug ("Extracting PS '%s'...", uri);

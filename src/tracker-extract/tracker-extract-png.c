@@ -24,6 +24,8 @@
 #define _GNU_SOURCE
 #endif
 
+#include <fcntl.h>
+
 #include <png.h>
 
 #include <libtracker-common/tracker-file-utils.h>
@@ -509,6 +511,10 @@ extract_png (const gchar          *uri,
 	if (!f) {
 		return;
 	}
+
+#ifdef HAVE_POSIX_FADVISE
+	posix_fadvise (fileno (f), 0, size, POSIX_FADV_RANDOM);
+#endif /* HAVE_POSIX_FADVISE */
 
 	png_ptr = png_create_read_struct (PNG_LIBPNG_VER_STRING,
 	                                  NULL,

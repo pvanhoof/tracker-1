@@ -47,6 +47,8 @@ public class Tracker.Bus.Connection : Tracker.Sparql.Connection {
 		try {
 			connection = DBus.Bus.get (DBus.BusType.SESSION);
 
+			connection.get_connection().setup_with_main(MainContext.get_thread_default());
+
 			// FIXME: Ideally we would just get these as and when we need them
 			resources_object = (Resources) connection.get_object (TRACKER_DBUS_SERVICE,
 			                                                      TRACKER_DBUS_OBJECT_RESOURCES,

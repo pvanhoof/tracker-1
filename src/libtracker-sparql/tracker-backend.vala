@@ -61,6 +61,7 @@ class Tracker.Sparql.Backend : Connection {
 	requires (is_constructed) {
 		try {
 			var connection = DBus.Bus.get (DBus.BusType.SESSION);
+			connection.get_connection().setup_with_main(MainContext.get_thread_default());
 			var status = (Tracker.Backend.Status) connection.get_object (TRACKER_DBUS_SERVICE,
 			                                                             TRACKER_DBUS_OBJECT_STATUS,
 			                                                             TRACKER_DBUS_INTERFACE_STATUS);
@@ -81,6 +82,7 @@ class Tracker.Sparql.Backend : Connection {
 	requires (is_constructed) {
 		try {
 			var connection = DBus.Bus.get (DBus.BusType.SESSION);
+			connection.get_connection().setup_with_main(MainContext.get_thread_default());
 			var status = (Tracker.Backend.Status) connection.get_object (TRACKER_DBUS_SERVICE,
 			                                                             TRACKER_DBUS_OBJECT_STATUS,
 			                                                             TRACKER_DBUS_INTERFACE_STATUS);

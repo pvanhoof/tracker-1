@@ -33,6 +33,8 @@ private interface Tracker.Bus.Statistics : GLib.Object {
 // Imported DBus FD API until we have support with Vala
 public extern Tracker.Sparql.Cursor tracker_bus_fd_query (DBus.Connection connection, string query, Cancellable? cancellable) throws Tracker.Sparql.Error, DBus.Error, GLib.IOError;
 
+extern unowned DBus.Connection dbus_connection_get_g_connection (DBus.RawConnection raw);
+
 // Actual class definition
 public class Tracker.Bus.Connection : Tracker.Sparql.Connection {
 	static DBus.Connection connection;
@@ -45,9 +47,11 @@ public class Tracker.Bus.Connection : Tracker.Sparql.Connection {
 		initialized = true;
 		
 		try {
-			connection = DBus.Bus.get (DBus.BusType.SESSION);
+			var raw_error = DBus.RawError ();
+			var raw_connection = DBus.RawBus.get (DBus.BusType.SESSION, ref raw_error);
 
-			connection.get_connection().setup_with_main(MainContext.get_thread_default());
+			raw_connection.setup_with_main(MainContext.get_thread_default());
+			connection = dbus_connection_get_g_connection (raw_connection);
 
 			// FIXME: Ideally we would just get these as and when we need them
 			resources_object = (Resources) connection.get_object (TRACKER_DBUS_SERVICE,

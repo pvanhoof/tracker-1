@@ -24,6 +24,8 @@ interface Tracker.Backend.Status : GLib.Object {
 	public abstract async void wait_async () throws DBus.Error;
 }
 
+extern unowned DBus.Connection dbus_connection_get_g_connection (DBus.RawConnection raw);
+
 class Tracker.Sparql.Backend : Connection {
 	static bool is_constructed = false;
 	static bool is_initialized = false;
@@ -60,8 +62,11 @@ class Tracker.Sparql.Backend : Connection {
 	public override void init () throws Sparql.Error
 	requires (is_constructed) {
 		try {
-			var connection = DBus.Bus.get (DBus.BusType.SESSION);
-			connection.get_connection().setup_with_main(MainContext.get_thread_default());
+			var raw_error = DBus.RawError ();
+			var raw_connection = DBus.RawBus.get (DBus.BusType.SESSION, ref raw_error);
+
+			raw_connection.setup_with_main(MainContext.get_thread_default());
+			var connection = dbus_connection_get_g_connection (raw_connection);
 			var status = (Tracker.Backend.Status) connection.get_object (TRACKER_DBUS_SERVICE,
 			                                                             TRACKER_DBUS_OBJECT_STATUS,
 			                                                             TRACKER_DBUS_INTERFACE_STATUS);
@@ -81,8 +86,11 @@ class Tracker.Sparql.Backend : Connection {
 	public async override void init_async () throws Sparql.Error
 	requires (is_constructed) {
 		try {
-			var connection = DBus.Bus.get (DBus.BusType.SESSION);
-			connection.get_connection().setup_with_main(MainContext.get_thread_default());
+			var raw_error = DBus.RawError ();
+			var raw_connection = DBus.RawBus.get (DBus.BusType.SESSION, ref raw_error);
+
+			raw_connection.setup_with_main(MainContext.get_thread_default());
+			var connection = dbus_connection_get_g_connection (raw_connection);
 			var status = (Tracker.Backend.Status) connection.get_object (TRACKER_DBUS_SERVICE,
 			                                                             TRACKER_DBUS_OBJECT_STATUS,
 			                                                             TRACKER_DBUS_INTERFACE_STATUS);

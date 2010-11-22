@@ -2490,11 +2490,11 @@ create_decomposed_metadata_property_table (TrackerDBInterface *iface,
 			}
 
 			sql = g_string_new ("");
-			g_string_append_printf (sql, "CREATE %sTABLE \"%s_%s\" ("
+			g_string_append_printf (sql, "CREATE TABLE %s\"%s_%s\" ("
 			                             "ID INTEGER NOT NULL, "
 			                             "\"%s\" %s NOT NULL, "
 			                             "\"%s:graph\" INTEGER",
-			                             transient ? "TEMPORARY " : "",
+			                             transient ? "IF NOT EXISTS transient." : "",
 			                             service_name,
 			                             field_name,
 			                             field_name,

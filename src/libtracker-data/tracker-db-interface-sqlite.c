@@ -51,6 +51,7 @@ struct TrackerDBInterface {
 	GObject parent_instance;
 
 	gchar *filename;
+	gchar *transient_filename;
 	sqlite3 *db;
 
 	GHashTable *dynamic_statements;
@@ -127,6 +128,7 @@ static gboolean            db_cursor_iter_next               (TrackerDBCursor   
 enum {
 	PROP_0,
 	PROP_FILENAME,
+	PROP_TRANSIENT_FILENAME,
 	PROP_RO
 };
 
@@ -530,13 +532,21 @@ static void
 open_database (TrackerDBInterface *db_interface)
 {
 	int mode;
+	sqlite3 *transient = NULL;
 
 	g_assert (db_interface->filename != NULL);
+	g_assert (db_interface->transient_filename != NULL);
 
 	if (!db_interface->ro) {
 		mode = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
 	} else {
 		mode = SQLITE_OPEN_READONLY;
+	}
+
+	if (sqlite3_open_v2 (db_interface->transient_filename, &transient, mode | SQLITE_OPEN_NOMUTEX, NULL) != SQLITE_OK) {
+		g_critical ("Could not open transient sqlite3 database:'%s'", db_interface->transient_filename);
+	} else {
+		sqlite3_close (transient);
 	}
 
 	if (sqlite3_open_v2 (db_interface->filename, &db_interface->db, mode | SQLITE_OPEN_NOMUTEX, NULL) != SQLITE_OK) {
@@ -626,6 +636,9 @@ tracker_db_interface_sqlite_set_property (GObject       *object,
 	case PROP_RO:
 		db_iface->ro = g_value_get_boolean (value);
 		break;
+	case PROP_TRANSIENT_FILENAME:
+		db_iface->transient_filename = g_value_dup_string (value);
+		break;
 	case PROP_FILENAME:
 		db_iface->filename = g_value_dup_string (value);
 		break;
@@ -651,6 +664,9 @@ tracker_db_interface_sqlite_get_property (GObject    *object,
 	case PROP_FILENAME:
 		g_value_set_string (value, db_iface->filename);
 		break;
+	case PROP_TRANSIENT_FILENAME:
+		g_value_set_string (value, db_iface->transient_filename);
+		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 	}
@@ -675,6 +691,7 @@ close_database (TrackerDBInterface *db_interface)
 #endif
 
 	rc = sqlite3_close (db_interface->db);
+
 	g_warn_if_fail (rc == SQLITE_OK);
 }
 
@@ -731,6 +748,7 @@ tracker_db_interface_sqlite_finalize (GObject *object)
 
 	g_message ("Closed sqlite3 database:'%s'", db_interface->filename);
 
+	g_free (db_interface->transient_filename);
 	g_free (db_interface->filename);
 	g_free (db_interface->busy_status);
 
@@ -754,6 +772,14 @@ tracker_db_interface_class_init (TrackerDBInterfaceClass *class)
 	                                 g_param_spec_string ("filename",
 	                                                      "DB filename",
 	                                                      "DB filename",
+	                                                      NULL,
+	                                                      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+
+	g_object_class_install_property (object_class,
+	                                 PROP_TRANSIENT_FILENAME,
+	                                 g_param_spec_string ("transient-filename",
+	                                                      "DB transient-filename",
+	                                                      "DB transient-filename",
 	                                                      NULL,
 	                                                      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
@@ -1107,6 +1133,7 @@ create_result_set_from_stmt (TrackerDBInterface  *interface,
 			sqlite3_close (interface->db);
 
 			g_unlink (interface->filename);
+			g_unlink (interface->transient_filename);
 
 			g_error ("SQLite experienced an error with file:'%s'. "
 			         "It is either NOT a SQLite database or it is "
@@ -1191,18 +1218,22 @@ tracker_db_interface_execute_vquery (TrackerDBInterface  *db_interface,
 }
 
 TrackerDBInterface *
-tracker_db_interface_sqlite_new (const gchar *filename)
+tracker_db_interface_sqlite_new (const gchar *filename,
+                                 const gchar *transient_filename)
 {
 	return g_object_new (TRACKER_TYPE_DB_INTERFACE,
 	                     "filename", filename,
+	                     "transient-filename", transient_filename,
 	                     NULL);
 }
 
 TrackerDBInterface *
-tracker_db_interface_sqlite_new_ro (const gchar *filename)
+tracker_db_interface_sqlite_new_ro (const gchar *filename,
+                                    const gchar *transient_filename)
 {
 	return g_object_new (TRACKER_TYPE_DB_INTERFACE,
 	                     "filename", filename,
+	                     "transient-filename", filename,
 	                     "read-only", TRUE,
 	                     NULL);
 }

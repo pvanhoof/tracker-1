@@ -19,6 +19,9 @@
 
 #include "config.h"
 
+#include <sys/types.h>
+#include <pwd.h>
+
 #include <string.h>
 #include <stdlib.h>
 #include <regex.h>
@@ -155,6 +158,7 @@ static gpointer              db_type_enum_class_pointer;
 static TrackerDBManagerFlags old_flags = 0;
 static guint                 s_cache_size;
 static guint                 u_cache_size;
+static gchar                *transient_filename = NULL;
 
 static GStaticPrivate        interface_data_key = G_STATIC_PRIVATE_INIT;
 
@@ -215,11 +219,12 @@ db_set_params (TrackerDBInterface *iface,
 	pragmas_file = g_getenv ("TRACKER_PRAGMAS_FILE");
 
 	if (pragmas_file && g_file_get_contents (pragmas_file, &queries, NULL, NULL)) {
+		gchar *query;
 		g_debug ("PRAGMA's from file: %s", pragmas_file);
-		gchar *query = strtok (queries, "\n");
+		query = strtok (queries, "\n");
 		while (query) {
 			g_debug ("  INIT query: %s", query);
-			tracker_db_interface_execute_query (iface, NULL, query);
+			tracker_db_interface_execute_query (iface, NULL, "%s", query);
 			query = strtok (NULL, "\n");
 		}
 		g_free (queries);
@@ -289,11 +294,15 @@ db_interface_get (TrackerDB  type,
 	           path,
 	           db_type_to_string (type));
 
-	iface = tracker_db_interface_sqlite_new (path);
+	iface = tracker_db_interface_sqlite_new (path, transient_filename);
 
 	db_set_params (iface,
 	               dbs[type].cache_size,
 	               dbs[type].page_size);
+
+	db_exec_no_reply (iface,
+	                  "ATTACH '%s' as 'transient'",
+	                  transient_filename);
 
 	return iface;
 }
@@ -685,6 +694,50 @@ db_recreate_all (void)
 	db_set_locale (setlocale (LC_COLLATE, NULL));
 }
 
+static void
+tracker_db_manager_prepare_transient (gboolean readonly)
+{
+	gchar *shm_path;
+	struct passwd *pwd;
+
+	shm_path = g_build_filename (G_DIR_SEPARATOR_S "dev", "shm", NULL);
+
+	g_free (transient_filename);
+
+	if (g_file_test (shm_path, G_FILE_TEST_IS_DIR)) {
+		g_free (shm_path);
+		shm_path = g_build_filename (G_DIR_SEPARATOR_S "dev", "shm", g_get_user_name (), NULL);
+		transient_filename = g_build_filename (shm_path,
+		                                       "tracker-transient.db",
+		                                       NULL);
+	} else {
+		g_free (shm_path);
+		shm_path = g_build_path (g_get_tmp_dir (), g_get_user_name (), NULL);
+		transient_filename = g_build_filename (g_get_tmp_dir (),
+		                                       g_get_user_name (),
+		                                       "tracker-transient.db",
+		                                       NULL);
+	}
+
+	if (!readonly) {
+		if (!g_file_test (shm_path, G_FILE_TEST_IS_DIR)) {
+			g_mkdir_with_parents (shm_path, S_IRUSR | S_IWUSR | S_IXUSR |
+			                                S_IRGRP | S_IWGRP | S_IXGRP);
+		} else {
+			g_chmod (shm_path, S_IRUSR | S_IWUSR | S_IXUSR |
+			                   S_IRGRP | S_IWGRP | S_IXGRP);
+		}
+
+		pwd = getpwnam (g_get_user_name ());
+
+		if (pwd != NULL) {
+			chown (shm_path, pwd->pw_uid, -1);
+		}
+	}
+
+	g_free (shm_path);
+}
+
 void
 tracker_db_manager_init_locations (void)
 {
@@ -709,6 +762,8 @@ tracker_db_manager_init_locations (void)
 		dir = location_to_directory (dbs[i].location);
 		dbs[i].abs_filename = g_build_filename (dir, dbs[i].file, NULL);
 	}
+
+	tracker_db_manager_prepare_transient (TRUE);
 
 	locations_initialized = TRUE;
 }
@@ -839,6 +894,8 @@ tracker_db_manager_init (TrackerDBManagerFlags  flags,
 			need_reindex = TRUE;
 		}
 	}
+
+	tracker_db_manager_prepare_transient (flags & TRACKER_DB_MANAGER_READONLY);
 
 	locations_initialized = TRUE;
 
@@ -1058,6 +1115,8 @@ tracker_db_manager_shutdown (void)
 		}
 	}
 
+	g_free (transient_filename);
+	transient_filename = NULL;
 	g_free (data_dir);
 	data_dir = NULL;
 	g_free (user_data_dir);
@@ -1416,11 +1475,15 @@ tracker_db_manager_get_db_interfaces (gint num, ...)
 		TrackerDB db = va_arg (args, TrackerDB);
 
 		if (!connection) {
-			connection = tracker_db_interface_sqlite_new (dbs[db].abs_filename);
-
+			connection = tracker_db_interface_sqlite_new (dbs[db].abs_filename,
+			                                              transient_filename);
 			db_set_params (connection,
 			               dbs[db].cache_size,
 			               dbs[db].page_size);
+
+			db_exec_no_reply (connection,
+			                  "ATTACH '%s' as 'transient'",
+			                  transient_filename);
 
 		} else {
 			db_exec_no_reply (connection,
@@ -1439,7 +1502,7 @@ static TrackerDBInterface *
 tracker_db_manager_get_db_interfaces_ro (gint num, ...)
 {
 	gint                n_args;
-	va_list                     args;
+	va_list             args;
 	TrackerDBInterface *connection = NULL;
 
 	g_return_val_if_fail (initialized != FALSE, NULL);
@@ -1449,10 +1512,16 @@ tracker_db_manager_get_db_interfaces_ro (gint num, ...)
 		TrackerDB db = va_arg (args, TrackerDB);
 
 		if (!connection) {
-			connection = tracker_db_interface_sqlite_new_ro (dbs[db].abs_filename);
+			connection = tracker_db_interface_sqlite_new_ro (dbs[db].abs_filename,
+			                                                 transient_filename);
 			db_set_params (connection,
 			               dbs[db].cache_size,
 			               dbs[db].page_size);
+
+			db_exec_no_reply (connection,
+			                  "ATTACH '%s' as 'transient'",
+			                  transient_filename);
+
 		} else {
 			db_exec_no_reply (connection,
 			                  "ATTACH '%s' as '%s'",

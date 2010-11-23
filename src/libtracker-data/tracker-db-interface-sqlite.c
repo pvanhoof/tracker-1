@@ -532,10 +532,10 @@ static void
 open_database (TrackerDBInterface *db_interface)
 {
 	int mode;
-	sqlite3 *transient = NULL;
+	/* sqlite3 *transient = NULL; */
 
 	g_assert (db_interface->filename != NULL);
-	g_assert (db_interface->transient_filename != NULL);
+	/* g_assert (db_interface->transient_filename != NULL); */
 
 	if (!db_interface->ro) {
 		mode = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
@@ -543,11 +543,12 @@ open_database (TrackerDBInterface *db_interface)
 		mode = SQLITE_OPEN_READONLY;
 	}
 
+	/*
 	if (sqlite3_open_v2 (db_interface->transient_filename, &transient, mode | SQLITE_OPEN_NOMUTEX, NULL) != SQLITE_OK) {
 		g_critical ("Could not open transient sqlite3 database:'%s'", db_interface->transient_filename);
 	} else {
 		sqlite3_close (transient);
-	}
+	} */
 
 	if (sqlite3_open_v2 (db_interface->filename, &db_interface->db, mode | SQLITE_OPEN_NOMUTEX, NULL) != SQLITE_OK) {
 		g_critical ("Could not open sqlite3 database:'%s'", db_interface->filename);
@@ -1223,7 +1224,7 @@ tracker_db_interface_sqlite_new (const gchar *filename,
 {
 	return g_object_new (TRACKER_TYPE_DB_INTERFACE,
 	                     "filename", filename,
-	                     "transient-filename", transient_filename,
+	                     /* "transient-filename", transient_filename, */
 	                     NULL);
 }
 
@@ -1233,7 +1234,7 @@ tracker_db_interface_sqlite_new_ro (const gchar *filename,
 {
 	return g_object_new (TRACKER_TYPE_DB_INTERFACE,
 	                     "filename", filename,
-	                     "transient-filename", filename,
+	                     /* "transient-filename", filename, */
 	                     "read-only", TRUE,
 	                     NULL);
 }

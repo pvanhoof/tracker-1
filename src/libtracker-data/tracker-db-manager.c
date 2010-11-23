@@ -274,6 +274,16 @@ db_type_to_string (TrackerDB db)
 	return enum_value->value_nick;
 }
 
+static void
+db_prepare_transient (TrackerDBInterface *iface)
+{
+	/* Sadly this is actually slower
+	 * db_exec_no_reply (iface,
+	 *                   "ATTACH '%s' as 'transient'",
+	 *                   transient_filename);
+	 */
+}
+
 static TrackerDBInterface *
 db_interface_get (TrackerDB  type,
                   gboolean  *create)
@@ -296,13 +306,11 @@ db_interface_get (TrackerDB  type,
 
 	iface = tracker_db_interface_sqlite_new (path, transient_filename);
 
+	db_prepare_transient (iface);
+
 	db_set_params (iface,
 	               dbs[type].cache_size,
 	               dbs[type].page_size);
-
-	db_exec_no_reply (iface,
-	                  "ATTACH '%s' as 'transient'",
-	                  transient_filename);
 
 	return iface;
 }
@@ -697,7 +705,7 @@ db_recreate_all (void)
 static void
 tracker_db_manager_prepare_transient (gboolean readonly)
 {
-	gchar *shm_path;
+/*	gchar *shm_path;
 	struct passwd *pwd;
 
 	shm_path = g_build_filename (G_DIR_SEPARATOR_S "dev", "shm", NULL);
@@ -735,7 +743,7 @@ tracker_db_manager_prepare_transient (gboolean readonly)
 		}
 	}
 
-	g_free (shm_path);
+	g_free (shm_path); */
 }
 
 void
@@ -1478,9 +1486,7 @@ tracker_db_manager_get_db_interfaces (gint num, ...)
 			connection = tracker_db_interface_sqlite_new (dbs[db].abs_filename,
 			                                              transient_filename);
 
-			db_exec_no_reply (connection,
-			                  "ATTACH '%s' as 'transient'",
-			                  transient_filename);
+			db_prepare_transient (connection);
 
 			db_set_params (connection,
 			               dbs[db].cache_size,
@@ -1515,9 +1521,8 @@ tracker_db_manager_get_db_interfaces_ro (gint num, ...)
 		if (!connection) {
 			connection = tracker_db_interface_sqlite_new_ro (dbs[db].abs_filename,
 			                                                 transient_filename);
-			db_exec_no_reply (connection,
-			                  "ATTACH '%s' as 'transient'",
-			                  transient_filename);
+
+			db_prepare_transient (connection);
 
 			db_set_params (connection,
 			               dbs[db].cache_size,

@@ -2424,15 +2424,15 @@ create_decomposed_metadata_property_table (TrackerDBInterface *iface,
 {
 	const char *field_name;
 	const char *sql_type;
-	gboolean    transient;
+	gboolean    some_bool;
 
 	field_name = tracker_property_get_name (property);
 
-	transient = !sql_type_for_single_value;
+	some_bool = !sql_type_for_single_value;
 
-	if (!transient) {
-		transient = tracker_property_get_transient (property);
-	}
+	/* if (!some_bool) {
+		some_bool = tracker_property_get_transient (property);
+	} */
 
 	switch (tracker_property_get_data_type (property)) {
 	case TRACKER_PROPERTY_TYPE_STRING:
@@ -2456,7 +2456,7 @@ create_decomposed_metadata_property_table (TrackerDBInterface *iface,
 	if (!in_update || (in_update && (tracker_property_get_is_new (property) ||
 	                                 tracker_property_get_is_new_domain_index (property, service) ||
 	                                 tracker_property_get_db_schema_changed (property)))) {
-		if (transient || tracker_property_get_multiple_values (property)) {
+		if (some_bool || tracker_property_get_multiple_values (property)) {
 			GString *sql;
 			GString *in_col_sql = NULL;
 			GString *sel_col_sql = NULL;
@@ -2494,7 +2494,7 @@ create_decomposed_metadata_property_table (TrackerDBInterface *iface,
 			                             "ID INTEGER NOT NULL, "
 			                             "\"%s\" %s NOT NULL, "
 			                             "\"%s:graph\" INTEGER",
-			                             transient ? "IF NOT EXISTS transient." : "",
+			                             some_bool ? "IF NOT EXISTS transient." : "",
 			                             service_name,
 			                             field_name,
 			                             field_name,
@@ -3000,7 +3000,7 @@ create_decomposed_metadata_tables (TrackerDBInterface *iface,
 	}
 }
 
-static void
+/* static void
 create_decomposed_transient_metadata_tables (TrackerDBInterface *iface)
 {
 	TrackerProperty **properties;
@@ -3020,7 +3020,7 @@ create_decomposed_transient_metadata_tables (TrackerDBInterface *iface)
 			domain = tracker_property_get_domain (property);
 			service_name = tracker_class_get_name (domain);
 
-			/* create the TEMPORARY table */
+			* create the TEMPORARY table *
 			create_decomposed_metadata_property_table (iface, property,
 			                                           service_name,
 			                                           domain,
@@ -3028,7 +3028,7 @@ create_decomposed_transient_metadata_tables (TrackerDBInterface *iface)
 			                                           FALSE);
 		}
 	}
-}
+} */
 
 static void
 tracker_data_ontology_import_finished (void)
@@ -3389,7 +3389,7 @@ tracker_data_manager_init (TrackerDBManagerFlags  flags,
 
 		/* Load ontology from database into memory */
 		db_get_static_data (iface);
-		create_decomposed_transient_metadata_tables (iface);
+		/* create_decomposed_transient_metadata_tables (iface); */
 		check_ontology = TRUE;
 
 		/* This is a no-op when FTS is disabled */

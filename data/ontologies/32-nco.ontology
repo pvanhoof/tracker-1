@@ -686,6 +686,7 @@ nco:imStatusMessage a rdf:Property ;
 	rdfs:label "imStatusMessage" ;
 	rdfs:comment "A feature common in most IM systems. A message left by the user for all his/her contacts to see." ;
 	nrl:maxCardinality 1 ;
+	tracker:transient true ;
 	rdfs:domain nco:IMAddress ;
 	rdfs:range xsd:string .
 
@@ -777,6 +778,7 @@ nco:imContactPresence a rdf:Property ;
 nco:imPresence a rdf:Property ;
 	rdfs:label "imPresence" ;
 	nrl:maxCardinality 1 ;
+	tracker:transient true ;
 	rdfs:domain nco:IMAddress ;
 	rdfs:range nco:PresenceStatus .
 
@@ -784,6 +786,7 @@ nco:presenceLastModified a rdf:Property ;
 	rdfs:label "Presence last modified";
 	rdfs:comment "Timestamp of the last change in the presence status";
 	nrl:maxCardinality 1;
+	tracker:transient true ;
 	rdfs:domain nco:IMAddress ;
 	rdfs:range xsd:dateTime .
 

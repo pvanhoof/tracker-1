@@ -1477,13 +1477,14 @@ tracker_db_manager_get_db_interfaces (gint num, ...)
 		if (!connection) {
 			connection = tracker_db_interface_sqlite_new (dbs[db].abs_filename,
 			                                              transient_filename);
-			db_set_params (connection,
-			               dbs[db].cache_size,
-			               dbs[db].page_size);
 
 			db_exec_no_reply (connection,
 			                  "ATTACH '%s' as 'transient'",
 			                  transient_filename);
+
+			db_set_params (connection,
+			               dbs[db].cache_size,
+			               dbs[db].page_size);
 
 		} else {
 			db_exec_no_reply (connection,
@@ -1514,13 +1515,14 @@ tracker_db_manager_get_db_interfaces_ro (gint num, ...)
 		if (!connection) {
 			connection = tracker_db_interface_sqlite_new_ro (dbs[db].abs_filename,
 			                                                 transient_filename);
+			db_exec_no_reply (connection,
+			                  "ATTACH '%s' as 'transient'",
+			                  transient_filename);
+
 			db_set_params (connection,
 			               dbs[db].cache_size,
 			               dbs[db].page_size);
 
-			db_exec_no_reply (connection,
-			                  "ATTACH '%s' as 'transient'",
-			                  transient_filename);
 
 		} else {
 			db_exec_no_reply (connection,

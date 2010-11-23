@@ -1839,11 +1839,13 @@ resource_buffer_switch (const gchar *graph,
 			}
 		}
 
+if (FALSE) {
 		g_value_init (&gvalue, G_TYPE_INT64);
 		g_value_set_int64 (&gvalue, tracker_data_update_get_next_modseq ());
 		cache_insert_value ("rdfs:Resource", "tracker:modified", &gvalue,
 		                    0,
 		                    FALSE, FALSE, FALSE);
+}
 	}
 }
 

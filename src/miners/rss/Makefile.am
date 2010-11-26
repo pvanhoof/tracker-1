@@ -14,7 +14,11 @@ libexec_PROGRAMS = tracker-miner-rss
 tracker_miner_rss_SOURCES =                            \
 	tracker-main.c                                 \
 	tracker-miner-rss.h                            \
-	tracker-miner-rss.c
+	tracker-miner-rss.c                            \
+	tracker-wrap-feed-channel.h                    \
+	tracker-wrap-feed-channel.c                    \
+	tracker-wrap-feed-enclosure.h                  \
+	tracker-wrap-feed-enclosure.c
 
 tracker_miner_rss_LDADD =                              \
 	$(top_builddir)/src/libtracker-sparql/libtracker-sparql-@TRACKER_API_VERSION@.la \

@@ -77,7 +77,6 @@ G_DEFINE_TYPE(TrackerResources, tracker_resources, G_TYPE_OBJECT)
 #define TRACKER_RESOURCES_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_RESOURCES, TrackerResourcesPrivate))
 
 enum {
-	WRITEBACK,
 	GRAPHUPDATED,
 	LAST_SIGNAL
 };
@@ -110,16 +109,6 @@ tracker_resources_class_init (TrackerResourcesClass *klass)
 	object_class = G_OBJECT_CLASS (klass);
 
 	object_class->finalize = tracker_resources_finalize;
-
-	signals[WRITEBACK] =
-		g_signal_new ("writeback",
-		              G_OBJECT_CLASS_TYPE (object_class),
-		              G_SIGNAL_RUN_LAST,
-		              G_STRUCT_OFFSET (TrackerResourcesClass, writeback),
-		              NULL, NULL,
-		              g_cclosure_marshal_VOID__BOXED,
-		              G_TYPE_NONE, 1,
-		              TRACKER_TYPE_INT_ARRAY_MAP);
 
 	/* This is just for introspection to work */
 	signals[GRAPHUPDATED] =
@@ -600,6 +589,60 @@ emit_graph_updated (TrackerResources *self,
 	return FALSE;
 }
 
+static void
+call_writeback (TrackerResources *self,
+                GHashTable       *writebacks)
+{
+	TrackerResourcesPrivate *priv;
+	DBusMessageIter iter, sub_iter, sub_sub_iter, dict_iter;
+	DBusMessage *message;
+	GHashTableIter hiter;
+	gpointer key, value;
+
+	priv = TRACKER_RESOURCES_GET_PRIVATE (self);
+
+	message = dbus_message_new_method_call (TRACKER_WRITEBACK_SERVICE,
+	                                        TRACKER_WRITEBACK_PATH,
+	                                        TRACKER_WRITEBACK_INTERFACE,
+	                                        "Writeback");
+
+	dbus_message_iter_init_append (message, &iter);
+
+	dbus_message_iter_open_container (&iter, DBUS_TYPE_ARRAY,
+	                                  "{iai}", &sub_iter);
+
+	g_hash_table_iter_init (&hiter, writebacks);
+
+	while (g_hash_table_iter_next (&hiter, &key, &value)) {
+		GArray *rdf_types = value;
+		gint subject_id = GPOINTER_TO_INT (key);
+		gint i;
+
+		dbus_message_iter_open_container (&sub_iter, DBUS_TYPE_DICT_ENTRY,
+		                                  NULL, &dict_iter);
+
+		dbus_message_iter_append_basic (&dict_iter, DBUS_TYPE_INT32, &subject_id);
+
+		dbus_message_iter_open_container (&dict_iter, DBUS_TYPE_ARRAY,
+		                                  "i", &sub_sub_iter);
+
+		for (i = 0; i < rdf_types->len; i++) {
+			guint class_id = g_array_index (rdf_types, gint, i);
+			dbus_message_iter_append_basic (&sub_sub_iter, DBUS_TYPE_INT32, &class_id);
+		}
+
+		dbus_message_iter_close_container (&dict_iter, &sub_sub_iter);
+
+		dbus_message_iter_close_container (&sub_iter, &dict_iter);
+	}
+
+	dbus_message_iter_close_container (&iter, &sub_iter);
+
+	dbus_connection_send (priv->connection, message, NULL);
+
+	dbus_message_unref (message);
+}
+
 static gboolean
 on_emit_signals (gpointer user_data)
 {
@@ -631,7 +674,7 @@ on_emit_signals (gpointer user_data)
 
 	if (writebacks) {
 		had_any = TRUE;
-		g_signal_emit (resources, signals[WRITEBACK], 0, writebacks);
+		call_writeback (user_data, writebacks);
 	}
 
 	tracker_writeback_reset_ready ();

@@ -25,6 +25,10 @@
 
 #include <libtracker-common/tracker-dbus.h>
 
+#define TRACKER_WRITEBACK_SERVICE        "org.freedesktop.Tracker1.Writeback"
+#define TRACKER_WRITEBACK_PATH           "/org/freedesktop/Tracker1/Writeback"
+#define TRACKER_WRITEBACK_INTERFACE      "org.freedesktop.Tracker1.Writeback"
+
 G_BEGIN_DECLS
 
 typedef GStrv (*TrackerWritebackGetPredicatesFunc) (void);

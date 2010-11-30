@@ -25,15 +25,7 @@
 
 #define TRACKER_WRITEBACK_DISPATCHER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_WRITEBACK_DISPATCHER, TrackerWritebackDispatcherPrivate))
 
-#define TRACKER_SERVICE                 "org.freedesktop.Tracker1"
-#define TRACKER_RESOURCES_OBJECT        "/org/freedesktop/Tracker1/Resources"
-#define TRACKER_INTERFACE_RESOURCES     "org.freedesktop.Tracker1.Resources"
-
-#define DBUS_MATCH_STR	  \
-	"type='signal', " \
-	"sender='" TRACKER_SERVICE "', " \
-	"path='" TRACKER_RESOURCES_OBJECT "', " \
-	"interface='" TRACKER_INTERFACE_RESOURCES "'"
+#define TRACKER_WRITEBACK_INTERFACE      "org.freedesktop.Tracker1.Writeback"
 
 typedef struct {
 	GMainContext *context;
@@ -98,14 +90,14 @@ tracker_writeback_dispatcher_class_init (TrackerWritebackDispatcherClass *klass)
 }
 
 static void
-handle_writeback_signal (TrackerWritebackDispatcher *dispatcher,
-                         DBusMessage                *message)
+handle_writeback_method_call (TrackerWritebackDispatcher *dispatcher,
+                              DBusMessage                *message)
 {
 	DBusMessageIter iter;
 	gchar *signature;
 	int arg_type;
 
-	g_message ("Got writeback DBus signal");
+	g_message ("Got writeback DBus call");
 
 	if (!dbus_message_iter_init (message, &iter)) {
 		g_critical ("  Message had no arguments");
@@ -166,12 +158,12 @@ message_filter (DBusConnection *connection,
                 DBusMessage    *message,
                 gpointer        user_data)
 {
-	if (dbus_message_is_signal (message,
-	                            TRACKER_INTERFACE_RESOURCES,
-	                            "Writeback")) {
+	if (dbus_message_is_method_call (message,
+	                                 TRACKER_WRITEBACK_INTERFACE,
+	                                 "Writeback")) {
 		TrackerWritebackDispatcher *dispatcher = user_data;
 
-		handle_writeback_signal (dispatcher, message);
+		handle_writeback_method_call (dispatcher, message);
 
 		return DBUS_HANDLER_RESULT_HANDLED;
 	}
@@ -236,18 +228,6 @@ setup_dbus_connection (TrackerWritebackDispatcher *dispatcher,
 		return NULL;
 	}
 
-	/* Add match to receive writeback signals */
-	dbus_bus_add_match (connection, DBUS_MATCH_STR, &error);
-
-	if (dbus_error_is_set (&error)) {
-		g_critical ("Could not add match rules, %s", error.message);
-		dbus_error_free (&error);
-		dbus_connection_close (connection);
-		dbus_connection_unref (connection);
-
-		return NULL;
-	}
-
 	/* Set up with the thread context */
 	dbus_connection_setup_with_g_main (connection, context);
 
@@ -263,17 +243,8 @@ static void
 tracker_writeback_dispatcher_finalize (GObject *object)
 {
 	TrackerWritebackDispatcherPrivate *priv;
-	DBusError error;
 
 	priv = TRACKER_WRITEBACK_DISPATCHER_GET_PRIVATE (object);
-	dbus_error_init (&error);
-
-	dbus_bus_remove_match (priv->connection, DBUS_MATCH_STR, &error);
-
-	if (dbus_error_is_set (&error)) {
-		g_critical ("Could not remove match rules, %s", error.message);
-		dbus_error_free (&error);
-	}
 
 	dbus_connection_remove_filter (priv->connection, message_filter, object);
 	dbus_connection_unref (priv->connection);

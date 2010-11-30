@@ -26,7 +26,6 @@
 
 #include "tracker-writeback-consumer.h"
 #include "tracker-writeback-dbus.h"
-#include "tracker-writeback-glue.h"
 #include "tracker-writeback-module.h"
 #include "tracker-marshal.h"
 

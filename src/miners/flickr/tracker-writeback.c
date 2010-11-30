@@ -36,6 +36,7 @@ static DBusGProxy *proxy_resources;
 static GList *writeback_callbacks;
 static guint writeback_callback_id;
 
+/*
 static void
 writeback_cb (DBusGProxy       *proxy,
               const GHashTable *resources,
@@ -50,7 +51,7 @@ writeback_cb (DBusGProxy       *proxy,
 		cb = l->data;
 		cb->func (resources, cb->data);
 	}
-}
+} */
 
 void
 tracker_writeback_init (void)
@@ -66,6 +67,7 @@ tracker_writeback_init (void)
 		return;
 	}
 
+/*
 	proxy_resources =
 		dbus_g_proxy_new_for_name (connection,
 		                           TRACKER_DBUS_SERVICE,
@@ -76,6 +78,8 @@ tracker_writeback_init (void)
 	                         "Writeback",
 	                         TRACKER_TYPE_INT_ARRAY_MAP,
 	                         G_TYPE_INVALID);
+*/
+
 }
 
 void
@@ -109,14 +113,14 @@ tracker_writeback_connect (TrackerWritebackCallback callback,
 
 	g_return_val_if_fail (callback != NULL, 0);
 
-	/* Connect the DBus signal if needed */
+	/* Connect the DBus signal if needed 
 	if (!writeback_callbacks) {
 		dbus_g_proxy_connect_signal (proxy_resources,
 		                             "Writeback",
 		                             G_CALLBACK (writeback_cb),
 		                             NULL,
 		                             NULL);
-	}
+	} */
 
 	cb = g_slice_new0 (WritebackCallback);
 	cb->id = ++writeback_callback_id;
@@ -146,11 +150,11 @@ tracker_writeback_disconnect (guint handle)
 		}
 	}
 
-	/* Disconnect the DBus signal if not needed anymore */
+	/* Disconnect the DBus signal if not needed anymore 
 	if (!writeback_callbacks) {
 		dbus_g_proxy_disconnect_signal (proxy_resources,
 		                                "Writeback",
 		                                G_CALLBACK (writeback_cb),
 		                                NULL);
-	}
+	} */
 }

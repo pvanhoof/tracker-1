@@ -566,6 +566,21 @@ tracker_store_get_queue_size (void)
 	return result;
 }
 
+guint
+tracker_store_get_queue_size_for_priority (TrackerStorePriority priority)
+{
+	TrackerStorePrivate *private;
+	guint result = 0;
+
+	private = g_static_private_get (&private_key);
+	g_return_val_if_fail (private != NULL, 0);
+
+	result += g_queue_get_length (private->query_queues[priority]);
+	result += g_queue_get_length (private->update_queues[priority]);
+
+	return result;
+}
+
 static void
 unreg_task (TrackerStoreTask *task,
             GError           *error)

@@ -52,40 +52,41 @@ typedef void (* TrackerStoreSparqlUpdateBlankCallback) (GPtrArray       *blank_n
 typedef void (* TrackerStoreTurtleCallback)            (GError          *error,
                                                         gpointer         user_data);
 
-void         tracker_store_init                   (void);
-void         tracker_store_shutdown               (void);
-void         tracker_store_sparql_query           (const gchar   *sparql,
-                                                   TrackerStorePriority priority,
-                                                   TrackerStoreSparqlQueryInThread in_thread,
-                                                   TrackerStoreSparqlQueryCallback callback,
-                                                   const gchar   *client_id,
-                                                   gpointer       user_data,
-                                                   GDestroyNotify destroy);
-void         tracker_store_sparql_update          (const gchar   *sparql,
-                                                   TrackerStorePriority priority,
-                                                   TrackerStoreSparqlUpdateCallback callback,
-                                                   const gchar   *client_id,
-                                                   gpointer       user_data,
-                                                   GDestroyNotify destroy);
-void         tracker_store_sparql_update_blank    (const gchar   *sparql,
-                                                   TrackerStorePriority priority,
-                                                   TrackerStoreSparqlUpdateBlankCallback callback,
-                                                   const gchar   *client_id,
-                                                   gpointer       user_data,
-                                                   GDestroyNotify destroy);
-void         tracker_store_queue_turtle_import    (GFile         *file,
-                                                   TrackerStoreTurtleCallback callback,
-                                                   const gchar   *client_id,
-                                                   gpointer       user_data,
-                                                   GDestroyNotify destroy);
+void         tracker_store_init                        (void);
+void         tracker_store_shutdown                    (void);
+void         tracker_store_sparql_query                (const gchar                      *sparql,
+                                                        TrackerStorePriority              priority,
+                                                        TrackerStoreSparqlQueryInThread   in_thread,
+                                                        TrackerStoreSparqlQueryCallback   callback,
+                                                        const gchar                      *client_id,
+                                                        gpointer                          user_data,
+                                                        GDestroyNotify                    destroy);
+void         tracker_store_sparql_update               (const gchar                      *sparql,
+                                                        TrackerStorePriority              priority,
+                                                        TrackerStoreSparqlUpdateCallback  callback,
+                                                        const gchar                      *client_id,
+                                                        gpointer                          user_data,
+                                                        GDestroyNotify                    destroy);
+void         tracker_store_sparql_update_blank         (const gchar                      *sparql,
+                                                        TrackerStorePriority              priority,
+                                                        TrackerStoreSparqlUpdateBlankCallback callback,
+                                                        const gchar                      *client_id,
+                                                        gpointer                          user_data,
+                                                        GDestroyNotify                    destroy);
+void         tracker_store_queue_turtle_import         (GFile                            *file,
+                                                        TrackerStoreTurtleCallback        callback,
+                                                        const gchar                      *client_id,
+                                                        gpointer                          user_data,
+                                                        GDestroyNotify                    destroy);
 
-guint        tracker_store_get_queue_size         (void);
+guint        tracker_store_get_queue_size              (void);
+guint        tracker_store_get_queue_size_for_priority (TrackerStorePriority              priority);
 
-void         tracker_store_unreg_batches          (const gchar   *client_id);
+void         tracker_store_unreg_batches               (const gchar                      *client_id);
 
-void         tracker_store_set_active             (gboolean       active,
-                                                   GDestroyNotify callback,
-                                                   gpointer       user_data);
+void         tracker_store_set_active                  (gboolean                          active,
+                                                        GDestroyNotify                    callback,
+                                                        gpointer                          user_data);
 
 G_END_DECLS
 

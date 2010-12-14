@@ -85,12 +85,15 @@ enum {
 typedef struct {
 	DBusConnection *connection;
 	guint signal_timeout;
+	gboolean freeze_emission;
+	gpointer signal_user_data;
 } TrackerResourcesPrivate;
 
 typedef struct {
 	DBusGMethodInvocation *context;
 	guint request_id;
 	DBusMessage *reply;
+	TrackerResources *self;
 } TrackerDBusMethodInfo;
 
 typedef struct {
@@ -100,6 +103,8 @@ typedef struct {
 } InThreadPtr;
 
 static void tracker_resources_finalize (GObject *object);
+static gboolean on_emit_signals (gpointer user_data);
+
 static guint signals[LAST_SIGNAL] = { 0 };
 
 static void
@@ -384,15 +389,69 @@ update_callback (GError *error, gpointer user_data)
 	dbus_g_method_return (info->context);
 }
 
+static void
+freeze_signal_emission (TrackerResourcesPrivate *priv)
+{
+	g_source_remove (priv->signal_timeout);
+	priv->signal_timeout =  0;
+	priv->freeze_emission = TRUE;
+}
+
+static void
+thaw_signal_emission (TrackerResourcesPrivate *priv,
+                      gboolean                 restart,
+                      gboolean                 with_user_data,
+                      gpointer                 user_data)
+{
+	if (restart && priv->signal_timeout == 0) {
+		if (with_user_data) {
+			priv->signal_user_data = user_data;
+		}
+		priv->signal_timeout = g_timeout_add_seconds (TRACKER_SIGNALS_SECONDS_PER_EMIT,
+		                                              on_emit_signals,
+		                                              priv->signal_user_data);
+	}
+	priv->freeze_emission = FALSE;
+}
+
+static void
+update_batch_callback (GError *error, gpointer user_data)
+{
+	TrackerDBusMethodInfo *info = user_data;
+
+	if (tracker_store_get_queue_size_for_priority (TRACKER_STORE_PRIORITY_LOW) == 0) {
+		TrackerResourcesPrivate *priv = TRACKER_RESOURCES_GET_PRIVATE (info->self);
+
+		thaw_signal_emission (priv, TRUE, FALSE, NULL);
+	}
+
+	g_object_unref (info->self);
+
+	if (error) {
+		tracker_dbus_request_failed (info->request_id,
+		                             info->context,
+		                             &error,
+		                             NULL);
+		dbus_g_method_return_error (info->context, error);
+		return;
+	}
+
+	tracker_dbus_request_success (info->request_id,
+	                              info->context);
+	dbus_g_method_return (info->context);
+}
+
+
 void
 tracker_resources_sparql_update (TrackerResources        *self,
                                  const gchar             *update,
                                  DBusGMethodInvocation   *context,
                                  GError                 **error)
 {
-	TrackerDBusMethodInfo   *info;
-	guint                 request_id;
-	gchar                 *sender;
+	TrackerDBusMethodInfo *info;
+	guint request_id;
+	gchar *sender;
+	TrackerResourcesPrivate *priv;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -410,6 +469,10 @@ tracker_resources_sparql_update (TrackerResources        *self,
 	info->context = context;
 
 	sender = dbus_g_method_get_sender (context);
+
+	priv = TRACKER_RESOURCES_GET_PRIVATE (self);
+
+	thaw_signal_emission (priv, FALSE, FALSE, NULL);
 
 	tracker_store_sparql_update (update, TRACKER_STORE_PRIORITY_HIGH,
 	                             update_callback, sender,
@@ -443,9 +506,10 @@ tracker_resources_sparql_update_blank (TrackerResources       *self,
                                        DBusGMethodInvocation  *context,
                                        GError                **error)
 {
-	TrackerDBusMethodInfo   *info;
-	guint                 request_id;
-	gchar                 *sender;
+	TrackerDBusMethodInfo *info;
+	guint request_id;
+	gchar *sender;
+	TrackerResourcesPrivate *priv;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -463,6 +527,10 @@ tracker_resources_sparql_update_blank (TrackerResources       *self,
 	info->context = context;
 
 	sender = dbus_g_method_get_sender (context);
+
+	priv = TRACKER_RESOURCES_GET_PRIVATE (self);
+
+	thaw_signal_emission (priv, FALSE, FALSE, NULL);
 
 	tracker_store_sparql_update_blank (update, TRACKER_STORE_PRIORITY_HIGH,
 	                                   update_blank_callback, sender,
@@ -497,9 +565,10 @@ tracker_resources_batch_sparql_update (TrackerResources          *self,
                                        DBusGMethodInvocation     *context,
                                        GError                   **error)
 {
-	TrackerDBusMethodInfo   *info;
-	guint                 request_id;
-	gchar                 *sender;
+	TrackerDBusMethodInfo *info;
+	guint request_id;
+	gchar *sender;
+	TrackerResourcesPrivate *priv;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -511,15 +580,22 @@ tracker_resources_batch_sparql_update (TrackerResources          *self,
 	                          __FUNCTION__,
 	                          update);
 
+	priv = TRACKER_RESOURCES_GET_PRIVATE (self);
+
 	info = g_slice_new (TrackerDBusMethodInfo);
 
 	info->request_id = request_id;
 	info->context = context;
+	info->self = g_object_ref (self);
 
 	sender = dbus_g_method_get_sender (context);
 
+	if (!priv->freeze_emission && priv->signal_timeout != 0) {
+		freeze_signal_emission (priv);
+	}
+
 	tracker_store_sparql_update (update, TRACKER_STORE_PRIORITY_LOW,
-	                             update_callback, sender,
+	                             update_batch_callback, sender,
 	                             info, destroy_method_info);
 
 	g_free (sender);
@@ -662,11 +738,7 @@ on_statements_committed (gpointer user_data)
 		tracker_class_transact_events (class);
 	}
 
-	if (priv->signal_timeout == 0) {
-		priv->signal_timeout = g_timeout_add_seconds (TRACKER_SIGNALS_SECONDS_PER_EMIT,
-		                                              on_emit_signals,
-		                                              user_data);
-	}
+	thaw_signal_emission (priv, !priv->freeze_emission, TRUE, user_data);
 
 	/* Writeback feature */
 	tracker_writeback_transact ();

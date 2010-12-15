@@ -85,7 +85,7 @@ enum {
 typedef struct {
 	DBusConnection *connection;
 	guint signal_timeout;
-	gboolean freeze_emission;
+	gboolean freeze_emission, signal_configured;
 	gpointer signal_user_data;
 } TrackerResourcesPrivate;
 
@@ -392,26 +392,36 @@ update_callback (GError *error, gpointer user_data)
 static void
 freeze_signal_emission (TrackerResourcesPrivate *priv)
 {
-	g_source_remove (priv->signal_timeout);
-	priv->signal_timeout =  0;
+	if (priv->signal_timeout != 0) {
+		g_source_remove (priv->signal_timeout);
+		priv->signal_timeout =  0;
+	}
 	priv->freeze_emission = TRUE;
 }
 
 static void
-thaw_signal_emission (TrackerResourcesPrivate *priv,
-                      gboolean                 restart,
-                      gboolean                 with_user_data,
-                      gpointer                 user_data)
+thaw_signal_emission (TrackerResourcesPrivate *priv, gboolean restart)
 {
-	if (restart && priv->signal_timeout == 0) {
-		if (with_user_data) {
-			priv->signal_user_data = user_data;
-		}
+	priv->freeze_emission = FALSE;
+	if (restart && priv->signal_configured) {
 		priv->signal_timeout = g_timeout_add_seconds (TRACKER_SIGNALS_SECONDS_PER_EMIT,
 		                                              on_emit_signals,
 		                                              priv->signal_user_data);
 	}
-	priv->freeze_emission = FALSE;
+}
+
+static void
+configure_signal_emission (TrackerResourcesPrivate *priv,
+                           gpointer                 user_data)
+{
+	if (priv->signal_timeout == 0) {
+		priv->signal_user_data = user_data;
+		priv->signal_configured = TRUE;
+		if (!priv->freeze_emission) {
+			/* Function shares the exact same code, accidentally */
+			thaw_signal_emission (priv, TRUE);
+		}
+	}
 }
 
 static void
@@ -422,7 +432,7 @@ update_batch_callback (GError *error, gpointer user_data)
 	if (tracker_store_get_queue_size_for_priority (TRACKER_STORE_PRIORITY_LOW) == 0) {
 		TrackerResourcesPrivate *priv = TRACKER_RESOURCES_GET_PRIVATE (info->self);
 
-		thaw_signal_emission (priv, TRUE, FALSE, NULL);
+		thaw_signal_emission (priv, TRUE);
 	}
 
 	g_object_unref (info->self);
@@ -472,7 +482,7 @@ tracker_resources_sparql_update (TrackerResources        *self,
 
 	priv = TRACKER_RESOURCES_GET_PRIVATE (self);
 
-	thaw_signal_emission (priv, FALSE, FALSE, NULL);
+	thaw_signal_emission (priv, FALSE);
 
 	tracker_store_sparql_update (update, TRACKER_STORE_PRIORITY_HIGH,
 	                             update_callback, sender,
@@ -530,7 +540,7 @@ tracker_resources_sparql_update_blank (TrackerResources       *self,
 
 	priv = TRACKER_RESOURCES_GET_PRIVATE (self);
 
-	thaw_signal_emission (priv, FALSE, FALSE, NULL);
+	thaw_signal_emission (priv, FALSE);
 
 	tracker_store_sparql_update_blank (update, TRACKER_STORE_PRIORITY_HIGH,
 	                                   update_blank_callback, sender,
@@ -590,7 +600,7 @@ tracker_resources_batch_sparql_update (TrackerResources          *self,
 
 	sender = dbus_g_method_get_sender (context);
 
-	if (!priv->freeze_emission && priv->signal_timeout != 0) {
+	if (!priv->freeze_emission) {
 		freeze_signal_emission (priv);
 	}
 
@@ -738,7 +748,7 @@ on_statements_committed (gpointer user_data)
 		tracker_class_transact_events (class);
 	}
 
-	thaw_signal_emission (priv, !priv->freeze_emission, TRUE, user_data);
+	configure_signal_emission (priv, user_data);
 
 	/* Writeback feature */
 	tracker_writeback_transact ();

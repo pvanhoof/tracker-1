@@ -1,6 +1,8 @@
 test-update-array-performance
 test-class-signal-performance
 test-class-signal-performance.c
+test-class-signal-performance-batch
+test-class-signal-performance-batch.c
 test-class-signal
 test-class-signal.c
 test-shared-query.c

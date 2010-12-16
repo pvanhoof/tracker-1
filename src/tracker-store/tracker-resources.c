@@ -482,7 +482,16 @@ tracker_resources_sparql_update (TrackerResources        *self,
 
 	priv = TRACKER_RESOURCES_GET_PRIVATE (self);
 
-	thaw_signal_emission (priv, FALSE);
+	/* If it was frozen (previous call was a batch_update, then immediately
+	 * restart the signal, as on_statements_committed will happen in a gidle
+	 * and that means that if a new batch_update happens, we'll be frozen
+	 * again before on_statements_committed can unfreeze us - I know, awkward */
+
+	if (!priv->signal_configured && priv->freeze_emission) {
+		configure_signal_emission (priv, self);
+	}
+
+	thaw_signal_emission (priv, priv->freeze_emission);
 
 	tracker_store_sparql_update (update, TRACKER_STORE_PRIORITY_HIGH,
 	                             update_callback, sender,

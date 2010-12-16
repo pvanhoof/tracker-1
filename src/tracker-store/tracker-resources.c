@@ -452,6 +452,23 @@ update_batch_callback (GError *error, gpointer user_data)
 }
 
 
+static void
+shared_thaw_signal (TrackerResources *self)
+{
+	TrackerResourcesPrivate *priv = TRACKER_RESOURCES_GET_PRIVATE (self);
+
+	/* If it was frozen (previous call was a batch_update, then immediately
+	 * restart the signal, as on_statements_committed will happen in a gidle
+	 * and that means that if a new batch_update happens, we'll be frozen
+	 * again before on_statements_committed can unfreeze us - I know, awkward */
+
+	if (!priv->signal_configured && priv->freeze_emission) {
+		configure_signal_emission (priv, self);
+	}
+
+	thaw_signal_emission (priv, priv->freeze_emission);
+}
+
 void
 tracker_resources_sparql_update (TrackerResources        *self,
                                  const gchar             *update,
@@ -461,7 +478,6 @@ tracker_resources_sparql_update (TrackerResources        *self,
 	TrackerDBusMethodInfo *info;
 	guint request_id;
 	gchar *sender;
-	TrackerResourcesPrivate *priv;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -480,18 +496,7 @@ tracker_resources_sparql_update (TrackerResources        *self,
 
 	sender = dbus_g_method_get_sender (context);
 
-	priv = TRACKER_RESOURCES_GET_PRIVATE (self);
-
-	/* If it was frozen (previous call was a batch_update, then immediately
-	 * restart the signal, as on_statements_committed will happen in a gidle
-	 * and that means that if a new batch_update happens, we'll be frozen
-	 * again before on_statements_committed can unfreeze us - I know, awkward */
-
-	if (!priv->signal_configured && priv->freeze_emission) {
-		configure_signal_emission (priv, self);
-	}
-
-	thaw_signal_emission (priv, priv->freeze_emission);
+	shared_thaw_signal (self);
 
 	tracker_store_sparql_update (update, TRACKER_STORE_PRIORITY_HIGH,
 	                             update_callback, sender,
@@ -528,7 +533,6 @@ tracker_resources_sparql_update_blank (TrackerResources       *self,
 	TrackerDBusMethodInfo *info;
 	guint request_id;
 	gchar *sender;
-	TrackerResourcesPrivate *priv;
 
 	request_id = tracker_dbus_get_next_request_id ();
 
@@ -547,20 +551,7 @@ tracker_resources_sparql_update_blank (TrackerResources       *self,
 
 	sender = dbus_g_method_get_sender (context);
 
-	priv = TRACKER_RESOURCES_GET_PRIVATE (self);
-
-	priv = TRACKER_RESOURCES_GET_PRIVATE (self);
-
-	/* If it was frozen (previous call was a batch_update, then immediately
-	 * restart the signal, as on_statements_committed will happen in a gidle
-	 * and that means that if a new batch_update happens, we'll be frozen
-	 * again before on_statements_committed can unfreeze us - I know, awkward */
-
-	if (!priv->signal_configured && priv->freeze_emission) {
-		configure_signal_emission (priv, self);
-	}
-
-	thaw_signal_emission (priv, priv->freeze_emission);
+	shared_thaw_signal (self);
 
 	tracker_store_sparql_update_blank (update, TRACKER_STORE_PRIORITY_HIGH,
 	                                   update_blank_callback, sender,

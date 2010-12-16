@@ -24,26 +24,6 @@ const int max_signals = 1000;
 // const int max_signals = 10000;
 const string title_data = "title";
 
-// Always start this test AFTER DOING tracker-control -r. The test IS NOT
-// deleting existing resources, so you CAN'T RUN IT TWICE unless you clear
-// the database before starting it the second time.
-
-// Testreport of Aug 25, 2010 by Philip
-// ------------------------------------
-// On Aug 25 the difference between using tracker-store on master and the
-// tracker-store of class-signal, and then letting this wait until all 10000
-// (in case of max_signals = 10000) insert queries' signals arrived (you'll
-// have in total 20002 events in the signals in both tracker-store versions)
-// was: 20s for class-signals (new class signal) and 23s for master (old class
-// signals). Measured using this performance test.
-//
-// Memory usage of class-signal (new class signal)'s tracker-store:
-// Low: VmRSS: 8860 Kb -- Max: VmRSS: 14116 kB
-//
-// Memory usage of master (old class signal)'s tracker-store:
-// Low: VmRSS: 8868 Kb -- Max: VmRSS: 14060 kB
-
-
 struct Event {
 	int graph_id;
 	int subject_id;
@@ -58,6 +38,10 @@ private interface Resources : GLib.Object {
 
 	[DBus (name = "BatchSparqlUpdate")]
 	public abstract async void batch_sparql_update_async (string query) throws Sparql.Error, DBus.Error;
+
+	[DBus (name = "SparqlUpdate")]
+	public abstract async void sparql_update_async (string query) throws Sparql.Error, DBus.Error;
+
 }
 
 [DBus (name = "org.freedesktop.Tracker1.Resources.Class")]
@@ -130,11 +114,20 @@ public class TestApp {
 
 	private void insert_data () {
 		int i;
+		for (i = 0; i <= max_signals; i++) {
+			string upqry = "DELETE { <%d> a rdfs:Resource }".printf(i);
+			resources_object.sparql_update_async (upqry);
+		}
 
 		t.start();
 		for (i = 0; i <= max_signals; i++) {
 			string upqry = "INSERT { <%d> a nmm:MusicPiece ; nie:title '%s %d' }".printf(i, title_data, i);
-			resources_object.batch_sparql_update_async (upqry);
+
+			if (i == max_signals / 2) {
+				resources_object.sparql_update_async (upqry);
+			} else {
+				resources_object.batch_sparql_update_async (upqry);
+			}
 		}
 	}
 

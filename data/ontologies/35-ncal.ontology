@@ -12,7 +12,7 @@
 
 ncal: a tracker:Namespace, tracker:Ontology ;
 	tracker:prefix "ncal" ;
-	nao:lastModified "2010-10-20T11:22:00Z" .
+	nao:lastModified "2011-01-11T12:27:00Z" .
 
 ncal:UnionParentClass a rdfs:Class ;
 	rdfs:label "UnionParentClass" ;
@@ -966,6 +966,7 @@ ncal:birthday a rdf:Property ;
 	rdfs:label "birthday event" ;
 	rdfs:comment "links a contact with the calendar event of his birthday. (NCAL version)" ;
 	rdfs:domain nco:Contact ;
+	nrl:maxCardinality 1 ;
 	rdfs:range ncal:Event .
 
 ncal:anniversary a rdf:Property ;

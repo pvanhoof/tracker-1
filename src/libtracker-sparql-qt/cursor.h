@@ -43,30 +43,31 @@ public:
 		Boolean
 	};
 
-	~Cursor();
+	virtual ~Cursor();
 
 	Cursor(const Cursor &other);
 	Cursor& operator=(const Cursor &other);
 
-	bool getBoolean(int column) const;
-	double getDouble(int column) const;
-	qint64 getInteger(int column) const;
-	QString getString(int column) const;
-	ValueType getValueType(int column) const;
-	QString getVariableName(int column) const;
-	bool isBound(int column) const;
-	bool next();
-	void rewind();
-	int nColumns() const;
+	virtual bool getBoolean(int column) const;
+	virtual double getDouble(int column) const;
+	virtual qint64 getInteger(int column) const;
+	virtual QString getString(int column) const;
+	virtual ValueType getValueType(int column) const;
+	virtual QString getVariableName(int column) const;
+	virtual bool isBound(int column) const;
+	virtual bool next();
+	virtual void rewind();
+	virtual int nColumns() const;
 
-	bool valid() const;
+	virtual bool valid() const;
 	Error error() const;
 
-private:
+protected:
 	friend class Connection;
 	Cursor();
 	Cursor(TrackerSparqlCursor *cursor, GError *error);
 
+private:
 	QExplicitlySharedDataPointer<CursorPrivate> d;
 };
 

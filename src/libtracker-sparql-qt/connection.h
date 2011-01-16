@@ -34,7 +34,7 @@ public:
 	Connection(const Connection &other);
 	Connection& operator=(const Connection &other);
 
-	~Connection();
+	virtual ~Connection();
 
 	static const int HighPriority;
 	static const int DefaultPriority;
@@ -42,18 +42,19 @@ public:
 	static const int DefaultIdlePriority;
 	static const int LowPriority;
 
-	void load(const QFile &file);
-	Cursor query(const QString &sparql);
-	Cursor statistics();
-	void update(const QString &sparql, int priority = DefaultPriority);
-	QList<QList<QHash<QString, QString> > > updateBlank(const QString &sparql, int priority = DefaultPriority);
+	virtual void load(const QFile &file);
+	virtual Cursor query(const QString &sparql);
+	virtual Cursor statistics();
+	virtual void update(const QString &sparql, int priority = DefaultPriority);
+	virtual QList<QList<QHash<QString, QString> > > updateBlank(const QString &sparql, int priority = DefaultPriority);
 
-	bool valid() const;
+	virtual bool valid() const;
 	Error error() const;
 
-private:
+protected:
 	Connection();
 
+private:
 	QExplicitlySharedDataPointer<ConnectionPrivate> d;
 	static Connection *m_instance;
 };

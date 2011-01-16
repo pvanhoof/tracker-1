@@ -2196,6 +2196,7 @@ AC_CONFIG_FILES([
 	examples/libtracker-miner/Makefile
 	examples/rss-reader/Makefile
 	examples/class-signal/Makefile
+	examples/libtracker-sparql-qt/Makefile
 ])
 
 AC_OUTPUT

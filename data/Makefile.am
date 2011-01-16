@@ -66,7 +66,14 @@ pkgconfig_DATA =                                       \
 	tracker-extract-$(TRACKER_API_VERSION).pc      \
 	tracker-miner-$(TRACKER_API_VERSION).pc
 
+if HAVE_LIBTRACKER_SPARQL_QT
+pkgconfig_DATA += tracker-sparql-qt-$(TRACKER_API_VERSION).pc
+endif
+
 tracker-sparql-$(TRACKER_API_VERSION).pc: tracker-sparql.pc
+	cp $< $@
+
+tracker-sparql-qt-$(TRACKER_API_VERSION).pc: tracker-sparql-qt.pc
 	cp $< $@
 
 tracker-client-$(TRACKER_API_VERSION).pc: tracker-client.pc
@@ -82,6 +89,7 @@ CLEANFILES =                                           \
 	$(autostart_DATA)                              \
 	$(desktop_in_files)                            \
 	tracker-sparql-$(TRACKER_API_VERSION).pc       \
+	tracker-sparql-qt-$(TRACKER_API_VERSION).pc    \
 	tracker-client-$(TRACKER_API_VERSION).pc       \
 	tracker-extract-$(TRACKER_API_VERSION).pc      \
 	tracker-miner-$(TRACKER_API_VERSION).pc

@@ -481,6 +481,14 @@ PKG_CHECK_MODULES(TRACKER_NAUTILUS_EXTENSION, [$TRACKER_NAUTILUS_EXTENSION_REQUI
                   [have_tracker_nautilus_extension=yes],
                   [have_tracker_nautilus_extension=no])
 
+# Check requirements for libtracker-sparql-qt
+LIBTRACKER_SPARQL_QT_REQUIRED="glib-2.0   >= $GLIB_REQUIRED
+                               QtCore     >= $QT_REQUIRED"
+
+PKG_CHECK_MODULES(LIBTRACKER_SPARQL_QT, [$LIBTRACKER_SPARQL_QT_REQUIRED],
+                  [have_libtracker_sparql_qt=yes],
+                  [have_libtracker_sparql_qt=no])
+
 # Check for D-Bus requirements (for tests/examples only)
 PKG_CHECK_MODULES(TRACKER_DBUS,
                   [gio-unix-2.0 >= $GLIB_REQUIRED
@@ -1360,6 +1368,25 @@ fi
 
 AM_CONDITIONAL(HAVE_TRACKER_EXPLORER, test "$have_tracker_explorer" = "yes")
 
+##################################################################
+# Check for libtracker-sparql-qt
+##################################################################
+
+AC_ARG_ENABLE([libtracker-sparql-qt],
+              AS_HELP_STRING([--enable-libtracker-sparql-qt],
+                             [enable libtracker-sparql-qt[[default=auto]]]),,
+              [enable_libtracker_sparql_qt=auto])
+
+if test "x$enable_libtracker_sparql_qt" != "xno" ; then
+   if test "x$have_libtracker_sparql_qt" != "xyes"; then
+      AC_MSG_ERROR([Couldn't find libtracker-sparql-qt dependencies ($LIBTRACKER_SPARQL_QT_REQUIRED).])
+   fi
+else
+   have_libtracker_sparql_qt="no  (disabled)"
+fi
+
+AM_CONDITIONAL(HAVE_LIBTRACKER_SPARQL_QT, test "$have_libtracker_sparql_qt" = "yes")
+
 ####################################################################
 ####################################################################
 ####################################################################
@@ -2036,6 +2063,7 @@ AC_CONFIG_FILES([
 	data/miners/Makefile
 	data/ontologies/Makefile
 	data/tracker-sparql.pc
+	data/tracker-sparql-qt.pc
 	data/tracker-client.pc
 	data/tracker-extract.pc
 	data/tracker-miner.pc
@@ -2060,6 +2088,7 @@ AC_CONFIG_FILES([
 	src/libstemmer/Makefile
 	src/libtracker-common/Makefile
 	src/libtracker-sparql/Makefile
+	src/libtracker-sparql-qt/Makefile
 	src/libtracker-bus/Makefile
 	src/libtracker-direct/Makefile
 	src/libtracker-data/Makefile
@@ -2240,4 +2269,5 @@ Frameworks / Options:
 
 	Support Maemo                           $enable_maemo
         Support Guaranteed Metadata             $enable_guarantee_metadata (e.g. guess nie:title from files)
+	Build libtracker-sparql-qt              $have_libtracker_sparql_qt
 "

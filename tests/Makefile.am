@@ -18,3 +18,7 @@ endif
 if HAVE_TRACKER_FTS
 SUBDIRS += libtracker-fts
 endif
+
+if HAVE_LIBTRACKER_SPARQL_QT
+SUBDIRS += libtracker-sparql-qt
+endif

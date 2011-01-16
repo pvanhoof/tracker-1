@@ -2148,6 +2148,7 @@ AC_CONFIG_FILES([
 	tests/libtracker-fts/limits/Makefile
 	tests/libtracker-fts/prefix/Makefile
 	tests/libtracker-sparql/Makefile
+	tests/libtracker-sparql-qt/Makefile
 	tests/functional-tests/Makefile
 	tests/functional-tests/ipc/Makefile
 	tests/functional-tests/common/Makefile

@@ -2424,7 +2424,6 @@ create_decomposed_metadata_property_table (TrackerDBInterface *iface,
 			                             "ID INTEGER NOT NULL, "
 			                             "\"%s\" %s NOT NULL, "
 			                             "\"%s:graph\" INTEGER",
-/*			                             transient ? "TEMPORARY " : "", */
 			                             transient ? "" : "",
 			                             service_name,
 			                             field_name,

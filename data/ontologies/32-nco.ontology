@@ -11,7 +11,7 @@
 
 nco: a tracker:Namespace, tracker:Ontology ;
 	tracker:prefix "nco" ;
-	nao:lastModified "2011-01-25T13:30:00Z" .
+	nao:lastModified "2011-01-25T17:11:00Z" .
 
 nco:Role a rdfs:Class ;
 	rdfs:label "Role" ;
@@ -667,6 +667,7 @@ nco:imStatusMessage a rdf:Property ;
 	rdfs:comment "A feature common in most IM systems. A message left by the user for all his/her contacts to see." ;
 	nrl:maxCardinality 1 ;
 	rdfs:domain nco:IMAddress ;
+	tracker:transient true ;
 	rdfs:range xsd:string .
 
 nco:imDisplayName a rdf:Property ;
@@ -718,6 +719,7 @@ nco:imPresence a rdf:Property ;
 	rdfs:label "imPresence" ;
 	nrl:maxCardinality 1 ;
 	rdfs:domain nco:IMAddress ;
+	tracker:transient true ;
 	rdfs:range nco:PresenceStatus .
 
 nco:presenceLastModified a rdf:Property ;
@@ -725,6 +727,7 @@ nco:presenceLastModified a rdf:Property ;
 	rdfs:comment "Timestamp of the last change in the presence status";
 	nrl:maxCardinality 1;
 	rdfs:domain nco:IMAddress ;
+	tracker:transient true ;
 	rdfs:range xsd:dateTime .
 
 nco:IMCapability a rdfs:Class ;

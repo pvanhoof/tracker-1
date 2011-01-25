@@ -11,7 +11,7 @@
 
 nco: a tracker:Namespace, tracker:Ontology ;
 	tracker:prefix "nco" ;
-	nao:lastModified "2010-01-18T17:50:00Z" .
+	nao:lastModified "2011-01-25T11:44:00Z" .
 
 nco:Role a rdfs:Class ;
 	rdfs:label "Role" ;
@@ -789,12 +789,14 @@ nco:imContactPresence a rdf:Property ;
 	nao:deprecated true ;
 	nrl:maxCardinality 1;
 	rdfs:domain nco:IMContact ;
+	tracker:transient true ;
 	rdfs:range nco:PresenceStatus .
 
 nco:imPresence a rdf:Property ;
 	rdfs:label "imPresence" ;
 	nrl:maxCardinality 1 ;
 	rdfs:domain nco:IMAddress ;
+	tracker:transient true ;
 	rdfs:range nco:PresenceStatus .
 
 nco:presenceLastModified a rdf:Property ;

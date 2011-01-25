@@ -2014,7 +2014,7 @@ tracker_data_delete_statement (const gchar  *graph,
 	if (object && g_strcmp0 (predicate, RDF_PREFIX "type") == 0) {
 		class = tracker_ontologies_get_class_by_uri (object);
 		if (class != NULL) {
-			if (!in_journal_replay) {
+			if (!in_journal_replay && !tracker_property_get_transient (field)) {
 				tracker_db_journal_append_delete_statement_id (
 				       (graph != NULL ? query_resource_id (graph) : 0),
 				       resource_buffer->id,
@@ -2033,7 +2033,7 @@ tracker_data_delete_statement (const gchar  *graph,
 		field = tracker_ontologies_get_property_by_uri (predicate);
 		if (field != NULL) {
 			change = delete_metadata_decomposed (field, object, 0, error);
-			if (!in_journal_replay && change) {
+			if (!in_journal_replay && change && !tracker_property_get_transient (field)) {
 				if (tracker_property_get_data_type (field) == TRACKER_PROPERTY_TYPE_RESOURCE) {
 
 					pred_id = tracker_property_get_id (field);
@@ -2255,7 +2255,7 @@ tracker_data_insert_statement_with_uri (const gchar            *graph,
 			return;
 		}
 
-		if (!in_journal_replay) {
+		if (!in_journal_replay && !tracker_property_get_transient (property)) {
 			graph_id = (graph != NULL ? query_resource_id (graph) : 0);
 			final_prop_id = (prop_id != 0) ? prop_id : tracker_data_query_resource_id (predicate);
 			object_id = query_resource_id (object);
@@ -2291,7 +2291,7 @@ tracker_data_insert_statement_with_uri (const gchar            *graph,
 		}
 	}
 
-	if (!in_journal_replay && change) {
+	if (!in_journal_replay && change && !tracker_property_get_transient (property)) {
 		tracker_db_journal_append_insert_statement_id (
 			(graph != NULL ? query_resource_id (graph) : 0),
 			resource_buffer->id,
@@ -2367,7 +2367,7 @@ tracker_data_insert_statement_with_string (const gchar            *graph,
 		}
 	}
 
-	if (!in_journal_replay && change) {
+	if (!in_journal_replay && change && !tracker_property_get_transient (property)) {
 		if (!tried) {
 			graph_id = (graph != NULL ? query_resource_id (graph) : 0);
 			pred_id = (pred_id != 0) ? pred_id : tracker_data_query_resource_id (predicate);

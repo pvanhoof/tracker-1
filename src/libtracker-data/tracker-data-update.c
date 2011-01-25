@@ -1903,10 +1903,11 @@ cache_delete_resource_type (TrackerClass *class,
 }
 
 static void
-resource_buffer_switch (const gchar *graph,
-                        gint         graph_id,
-                        const gchar *subject,
-                        gint         subject_id)
+resource_buffer_switch (const gchar     *graph,
+                        gint             graph_id,
+                        const gchar     *subject,
+                        gint             subject_id,
+                        TrackerProperty *property)
 {
 	if (in_journal_replay) {
 		/* journal replay only provides subject id
@@ -1933,6 +1934,7 @@ resource_buffer_switch (const gchar *graph,
 
 		/* subject not yet in cache, retrieve or create ID */
 		resource_buffer = g_slice_new0 (TrackerDataUpdateBufferResource);
+
 		if (subject != NULL) {
 			subject_dup = g_strdup (subject);
 			resource_buffer->subject = subject_dup;
@@ -1962,6 +1964,15 @@ resource_buffer_switch (const gchar *graph,
 				graph_id = ensure_resource_id (graph, NULL);
 			}
 		}
+
+		if (!property || !tracker_property_get_transient (property)) {
+			GValue gvalue = { 0 };
+			g_value_init (&gvalue, G_TYPE_INT64);
+			g_value_set_int64 (&gvalue, tracker_data_update_get_next_modseq ());
+			cache_insert_value ("rdfs:Resource", "tracker:modified", &gvalue,
+			                    0,
+			                    FALSE, FALSE, FALSE);
+		}
 	}
 }
 
@@ -1989,12 +2000,14 @@ tracker_data_delete_statement (const gchar  *graph,
 		return;
 	}
 
-	resource_buffer_switch (graph, 0, subject, subject_id);
+	field = tracker_ontologies_get_property_by_uri (predicate);
+
+	resource_buffer_switch (graph, 0, subject, subject_id, field);
 
 	if (object && g_strcmp0 (predicate, RDF_PREFIX "type") == 0) {
 		class = tracker_ontologies_get_class_by_uri (object);
 		if (class != NULL) {
-			if (!in_journal_replay) {
+			if (!in_journal_replay && !tracker_property_get_transient (field)) {
 				tracker_db_journal_append_delete_statement_id (
 				       (graph != NULL ? query_resource_id (graph) : 0),
 				       resource_buffer->id,
@@ -2010,10 +2023,9 @@ tracker_data_delete_statement (const gchar  *graph,
 		gint pred_id = 0, graph_id = 0, object_id = 0;
 		gboolean tried = FALSE;
 
-		field = tracker_ontologies_get_property_by_uri (predicate);
 		if (field != NULL) {
 			change = delete_metadata_decomposed (field, object, 0, error);
-			if (!in_journal_replay && change) {
+			if (!in_journal_replay && change && !tracker_property_get_transient (field)) {
 				if (tracker_property_get_data_type (field) == TRACKER_PROPERTY_TYPE_RESOURCE) {
 
 					pred_id = tracker_property_get_id (field);
@@ -2072,6 +2084,7 @@ static gboolean
 tracker_data_insert_statement_common (const gchar            *graph,
                                       const gchar            *subject,
                                       const gchar            *predicate,
+                                      TrackerProperty        *property,
                                       const gchar            *object,
                                       GError                **error)
 {
@@ -2113,7 +2126,7 @@ tracker_data_insert_statement_common (const gchar            *graph,
 		return FALSE;
 	}
 
-	resource_buffer_switch (graph, 0, subject, 0);
+	resource_buffer_switch (graph, 0, subject, 0, property);
 
 	return TRUE;
 }
@@ -2214,7 +2227,7 @@ tracker_data_insert_statement_with_uri (const gchar            *graph,
 		}
 	}
 
-	if (!tracker_data_insert_statement_common (graph, subject, predicate, object, &actual_error)) {
+	if (!tracker_data_insert_statement_common (graph, subject, predicate, property, object, &actual_error)) {
 		if (actual_error) {
 			g_propagate_error (error, actual_error);
 			return;
@@ -2235,7 +2248,7 @@ tracker_data_insert_statement_with_uri (const gchar            *graph,
 			return;
 		}
 
-		if (!in_journal_replay) {
+		if (!in_journal_replay && !tracker_property_get_transient (property)) {
 			graph_id = (graph != NULL ? query_resource_id (graph) : 0);
 			final_prop_id = (prop_id != 0) ? prop_id : tracker_data_query_resource_id (predicate);
 			object_id = query_resource_id (object);
@@ -2271,12 +2284,12 @@ tracker_data_insert_statement_with_uri (const gchar            *graph,
 		}
 	}
 
-	if (!in_journal_replay && change) {
+	if (!in_journal_replay && change && !tracker_property_get_transient (property)) {
 		tracker_db_journal_append_insert_statement_id (
-			(graph != NULL ? query_resource_id (graph) : 0),
-			resource_buffer->id,
-			final_prop_id,
-			object_id);
+		       (graph != NULL ? query_resource_id (graph) : 0),
+		       resource_buffer->id,
+		       final_prop_id,
+		       object_id);
 	}
 }
 
@@ -2312,7 +2325,7 @@ tracker_data_insert_statement_with_string (const gchar            *graph,
 		pred_id = tracker_property_get_id (property);
 	}
 
-	if (!tracker_data_insert_statement_common (graph, subject, predicate, object, &actual_error)) {
+	if (!tracker_data_insert_statement_common (graph, subject, predicate, property, object, &actual_error)) {
 		if (actual_error) {
 			g_propagate_error (error, actual_error);
 			return;
@@ -2347,7 +2360,7 @@ tracker_data_insert_statement_with_string (const gchar            *graph,
 		}
 	}
 
-	if (!in_journal_replay && change) {
+	if (!in_journal_replay && change && !tracker_property_get_transient (property)) {
 		if (!tried) {
 			graph_id = (graph != NULL ? query_resource_id (graph) : 0);
 			pred_id = (pred_id != 0) ? pred_id : tracker_data_query_resource_id (predicate);
@@ -2656,7 +2669,7 @@ tracker_data_replay_journal (TrackerBusyCallback  busy_callback,
 			}
 
 			if (property) {
-				resource_buffer_switch (NULL, graph_id, NULL, subject_id);
+				resource_buffer_switch (NULL, graph_id, NULL, subject_id, NULL);
 
 				cache_set_metadata_decomposed (property, object, 0, NULL, graph_id, &new_error);
 
@@ -2694,7 +2707,7 @@ tracker_data_replay_journal (TrackerBusyCallback  busy_callback,
 				if (tracker_property_get_data_type (property) != TRACKER_PROPERTY_TYPE_RESOURCE) {
 					g_warning ("Journal replay error: 'property with ID %d does not account URIs'", predicate_id);
 				} else {
-					resource_buffer_switch (NULL, graph_id, NULL, subject_id);
+					resource_buffer_switch (NULL, graph_id, NULL, subject_id, NULL);
 
 					if (property == rdf_type) {
 						uri = tracker_ontologies_get_uri_by_id (object_id);
@@ -2737,7 +2750,7 @@ tracker_data_replay_journal (TrackerBusyCallback  busy_callback,
 			}
 			last_operation_type = -1;
 
-			resource_buffer_switch (NULL, graph_id, NULL, subject_id);
+			resource_buffer_switch (NULL, graph_id, NULL, subject_id, NULL);
 
 			uri = tracker_ontologies_get_uri_by_id (predicate_id);
 			if (uri) {
@@ -2795,7 +2808,7 @@ tracker_data_replay_journal (TrackerBusyCallback  busy_callback,
 
 			if (property) {
 
-				resource_buffer_switch (NULL, graph_id, NULL, subject_id);
+				resource_buffer_switch (NULL, graph_id, NULL, subject_id, NULL);
 
 				if (property == rdf_type) {
 					uri = tracker_ontologies_get_uri_by_id (object_id);

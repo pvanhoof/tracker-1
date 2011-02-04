@@ -407,9 +407,11 @@ applet_new (PanelApplet *parent_applet)
 	ui_path = g_build_filename (PKGDATADIR,
 	                            "tracker-search-bar-menu.xml",
 	                            NULL);
+#if 0
 	panel_applet_setup_menu_from_file (PANEL_APPLET (applet->parent),
 	                                   ui_path,
 	                                   action_group);
+#endif
 	g_free (ui_path);
 	g_object_unref (action_group);
 
@@ -447,6 +449,7 @@ applet_factory (PanelApplet *applet,
 	return FALSE;
 }
 
+#if 0
 /*
  * Generate the boilerplate to hook into GObject/Bonobo.
  */
@@ -455,3 +458,10 @@ PANEL_APPLET_OUT_PROCESS_FACTORY ("SearchBarFactory",
                                   "SearchBar",
                                   applet_factory,
                                   NULL)
+#else
+int
+main (int argc, char *argv[])
+{
+	return 0;
+}
+#endif

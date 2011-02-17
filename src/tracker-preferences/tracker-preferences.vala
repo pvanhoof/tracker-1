@@ -332,7 +332,7 @@ static int main (string[] args) {
 	Gtk.init (ref args);
 
 	try {
-		config = new Config.with_domain ("tracker-miner-fs");
+		config = new Config ();
 
 		var builder = new Builder ();
 		builder.add_from_file (TRACKER_DATADIR + Path.DIR_SEPARATOR_S + "tracker-preferences.ui");

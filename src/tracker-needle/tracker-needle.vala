@@ -51,7 +51,6 @@ public class Tracker.Needle {
 	private int size_small = 0;
 	private int size_medium = 0;
 	private int size_big = 0;
-	static bool current_view = true;
 	static bool current_find_in = true;
 
 	public Needle () {
@@ -184,16 +183,26 @@ public class Tracker.Needle {
 		return false;
 	}
 
-	private ListStore? get_store_for_active_view () {
+	private Widget? get_active_view () {
 		if (view_icons.active) {
-			return sw_icons.store;
+			return sw_icons;
 		} else if (view_filelist.active) {
-			return sw_filelist.store;
+			return sw_filelist;
 		} else if (view_categories.active) {
-			return sw_categories.store;
+			return sw_categories;
 		}
 
-		debug ("No views active to get store?!?!");
+		debug ("No views active?!?!");
+		return null;
+	}
+
+	private ListStore? get_active_view_store () {
+		Widget view = get_active_view ();
+
+		if (view) {
+			return view.store;
+		}
+
 		return null;
 	}
 
@@ -205,81 +214,69 @@ public class Tracker.Needle {
 		last_search_id = Timeout.add_seconds (1, search_run);
 	}
 
-	private async void search_simple (ListStore store) requires (store != null) {
+	private async void search_simple (Widget view)
+	requires (view != null) {
 		Tracker.Query query = new Tracker.Query ();
 		Tracker.Sparql.Cursor cursor = null;
 
+		if (find_in_contents.active) {
+			query.type = Tracker.Query.Type.ALL;
+		} else {
+			query.type = Tracker.Query.Type.ALL_ONLY_IN_TITLES;
+		}
+		
 		query.limit = 1000;
 		query.criteria = search.get_text ();
+
+		view.query = query;
 
 		debug ("Doing simple search using store:%p", store);
 
 		try {
-			if (find_in_contents.active) {
-				cursor = yield query.perform_async (query.Type.ALL);
-			} else {
-				cursor = yield query.perform_async (query.Type.ALL_ONLY_IN_TITLES);
-			}
+			cursor = yield query.count_async (query.type);
 
 			if (cursor == null) {
 				search_finished (store);
 				return;
 			}
 
-			store.clear ();
+			view.store.clear ();
+
+			int64 count = 0;
+			bool success = yield cursor.next_async ();
+
+			if (!success) {
+				search_finished (store);
+				return;
+			}
+
+			count = cursor.get_integer (0);
+			debug ("--> %lld", count);
 
 			var screen = window.get_screen ();
 			var theme = IconTheme.get_for_screen (screen);
+			var default_image = tracker_pixbuf_new_from_name (theme, "text-x-generic", size_small);
 
-			while (true) {
-				bool b = yield cursor.next_async ();
-				if (!b) {
-					break;
-				}
-
-				for (int i = 0; i < cursor.n_columns; i++) {
-					if (i == 0) {
-						debug ("--> %s", cursor.get_string (i));
-					} else {
-						debug ("  --> %s", cursor.get_string (i));
-					}
-				}
-
-				// Get icon
-				string urn = cursor.get_string (0);
-				string _file = cursor.get_string (1);
-				string title = cursor.get_string (2);
-				string _file_time = cursor.get_string (3);
-				string _file_size = cursor.get_string (4);
-				string tooltip = cursor.get_string (7);
-				Gdk.Pixbuf pixbuf_small = tracker_pixbuf_new_from_file (theme, _file, size_small, false);
-				Gdk.Pixbuf pixbuf_big = tracker_pixbuf_new_from_file (theme, _file, size_big, false);
-				string file_size = GLib.format_size_for_display (_file_size.to_int());
-				string file_time = tracker_time_format_from_iso8601 (_file_time);
-
-				// Insert into model
+			// Populate shell entries here and populate on expose to avoid
+			// load times being too long with many items
+			for (int i = 0; i < count; i++) {
 				TreeIter iter;
 
-				// FIXME: should optimise this a bit more, inserting 2 images into a list eek
-				store.append (out iter);
-				store.set (iter,
-					       0, pixbuf_small, // Small Image
-					       1, pixbuf_big,   // Large Image
-					       2, urn,          // URN
-					       3, _file,        // URL
-					       4, title,        // Title
-					       5, null,         // Subtitle
-					       6, file_time,    // Column2: Time
-					       7, file_size,    // Column3: Size
-					       8, tooltip,      // Tooltip
-					       -1);
+				view.store.append (out iter);
+				view.store.set (iter,
+				                0, default_image,// Small Image
+				                1, null,         // Large Image
+				                2, null,         // URN
+				                3, null,         // URL
+				                4, "...",        // Title
+				                5, null,         // Subtitle
+				                6, null,         // Column2: Time
+				                7, null,         // Column3: Size
+				                8, _("Loading"), // Tooltip
+				                -1);
 			}
-		} catch (GLib.Error e) {
-			warning ("Could not iterate query results: %s", e.message);
-			search_finished (store);
-			return;
-		}
 
+		// FIXME: hookup from outside too in view
 		search_finished (store);
 	}
 
@@ -308,8 +305,10 @@ public class Tracker.Needle {
 
 			Tracker.Sparql.Cursor cursor;
 
-			query.limit = 1000;
 			query.criteria = search.get_text ();
+			
+//			query.limit = 1000;
+
 
 			try {
 				cursor = yield query.perform_async (type);
@@ -495,9 +494,15 @@ public class Tracker.Needle {
 	private bool search_run () {
 		last_search_id = 0;
 
+		Widget view = get_active_view ();
+		
+		if (view == null) {
+			return false;
+		}
+
 		string str = search.get_text ();
 		string criteria = str.strip ();
-		ListStore store = get_store_for_active_view ();
+		ListStore store = view.store ();
 
 		if (criteria.length < 1) {
 			if (store != null) {
@@ -539,7 +544,7 @@ public class Tracker.Needle {
 		if (view_categories.active) {
 			search_detailed (store);
 		} else {
-			search_simple (store);
+			search_simple (view);
 		}
 
 		return false;
@@ -568,11 +573,11 @@ public class Tracker.Needle {
 		find_in_titles.visible = show_find_in;
 
 		search_run ();
-		//current_view = rows;
 	}
 
 	private void find_in_toggled () {
-		if (current_find_in == find_in_contents.active) {
+		if (!find_in_contents.active &&
+			!find_in_titles.active) {
 			return;
 		}
 
@@ -583,8 +588,6 @@ public class Tracker.Needle {
 			debug ("Find in toggled to 'titles'");
 			search_run ();
 		}
-
-		current_find_in = find_in_contents.active;
 	}
 
 	private void launch_selected (TreeModel model, TreePath path, int col) {

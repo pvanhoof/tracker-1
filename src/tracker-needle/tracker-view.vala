@@ -32,10 +32,21 @@ public class Tracker.View : ScrolledWindow {
 		private set;
 	}
 
+	public Query.Type query_type {
+		get; set;
+	}
+
 	public ListStore store {
 		get;
 		private set;
 	}
+
+	public Tracker.View view {
+		get; set;
+	}
+
+	// So we have 1 cursor per range of results 1->50
+	private Tracker.Sparql.Cursor[] cursors = null;
 
 	private Widget view = null;
 
@@ -44,9 +55,11 @@ public class Tracker.View : ScrolledWindow {
 
 		display = _display;
 
+		// Default to this
+		find = Find.IN_TITLES;
+
 		if (_store != null) {
 			store = _store;
-			debug ("using store:%p", store);
 		} else {
 			// Setup treeview
 			store = new ListStore (10,
@@ -60,7 +73,6 @@ public class Tracker.View : ScrolledWindow {
 			                       typeof (string),      // Column 3
 			                       typeof (string),      // Tooltip
 			                       typeof (bool));       // Category hint
-			debug ("Creating store:%p", store);
 		}
 
 		switch (display) {
@@ -96,6 +108,10 @@ public class Tracker.View : ScrolledWindow {
 		}
 
 		base.show_all ();
+	}
+
+	public ~View() {
+		// FIXME: clean up array of cursors
 	}
 
 	private void setup_model () {
@@ -217,15 +233,89 @@ public class Tracker.View : ScrolledWindow {
 		}
 	}
 
+	private void get_cursor_for_index (int index)
+	requires (index >= 0) {
+		// So index is the real index in the list.
+		try {
+			cursor = yield query.perform_async (query_type);
+
+			if (cursor == null) {
+				search_finished (store);
+				return;
+			}
+
+			while (true) {
+				success = yield cursor.next_async ();
+				if (!success) {
+					break;
+				}
+			}
+
+			// Debugging
+//			for (int i = 0; i < cursor.n_columns; i++) {
+//				if (i == 0) {
+//					debug ("--> %s", cursor.get_string (i));
+//				} else {
+//					debug ("  --> %s", cursor.get_string (i));
+//				}
+//			}
+
+			debug ("--> %s", cursor.get_string (1));
+
+//				string urn = cursor.get_string (0);
+//				string _file = cursor.get_string (1);
+//				string title = cursor.get_string (2);
+//				string _file_time = cursor.get_string (3);
+//				string _file_size = cursor.get_string (4);
+//				string tooltip = cursor.get_string (7);
+//				Gdk.Pixbuf pixbuf_small = tracker_pixbuf_new_from_file (theme, _file, size_small, false);
+//				Gdk.Pixbuf pixbuf_big = tracker_pixbuf_new_from_file (theme, _file, size_big, false);
+//				string file_size = GLib.format_size_for_display (_file_size.to_int());
+//				string file_time = tracker_time_format_from_iso8601 (_file_time);
+
+				// FIXME: should optimise this a bit more, inserting 2 images into a list eek
+//				store.append (out iter);
+//				store.set (iter,
+//					       0, pixbuf_small, // Small Image
+//					       1, pixbuf_big,   // Large Image
+//					       2, urn,          // URN
+//					       3, _file,        // URL
+//					       4, title,        // Title
+//					       5, null,         // Subtitle
+//					       6, file_time,    // Column2: Time
+//					       7, file_size,    // Column3: Size
+//					       8, tooltip,      // Tooltip
+//					       -1);
+
+		} catch (GLib.Error e) {
+			warning ("Could not iterate query results: %s", e.message);
+			search_finished (store);
+			return;
+		}
+	}
+
+	private void get_details () {
+	}
+
 	private void cell_renderer_func (CellLayout   cell_layout,
 	                                 CellRenderer cell,
 	                                 TreeModel    tree_model,
 	                                 TreeIter     iter) {
 		Gdk.Color color;
 		Style style;
-		bool show_row_hint;
+		string title = null;
+		bool show_row_hint = false;
 
-		tree_model.get (iter, 9, out show_row_hint, -1);
+		tree_model.get (iter,
+		                4, out title,
+		                9, out show_row_hint,
+		                -1);
+
+		if (title == "...") {
+			TreePath path = tree_model.get_path (iter);
+			int index = path.get_indices ()[0];
+			debug ("expose for item %d", index);
+		}
 
 		style = view.get_style ();
 

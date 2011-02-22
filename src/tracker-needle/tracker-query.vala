@@ -53,6 +53,50 @@ public class Tracker.Query {
 		}
 	}
 
+	public async Sparql.Cursor? count_async (Type query_type, Cancellable? cancellable = null) throws IOError
+	requires (connection != null) {
+		Sparql.Cursor cursor = null;
+
+		if (criteria == null || criteria.length < 1) {
+			warning ("Criteria was NULL or an empty string, no query performed");
+			return null;
+		}
+
+		if (limit < 1) {
+			warning ("Limit was < 1, no query performed");
+			return null;
+		}
+
+		string criteria_escaped = Tracker.Sparql.escape_string (criteria);
+
+		switch (query_type) {
+		case Type.ALL:
+			query = @"SELECT COUNT(?u) WHERE { ?u fts:match \"$criteria_escaped\" . ?u nfo:belongsToContainer ?c ; tracker:available true . } OFFSET $offset LIMIT $limit";
+			break;
+			
+		case Type.ALL_ONLY_IN_TITLES:
+			query = @"SELECT COUNT(?u) WHERE { ?u a nfo:FileDataObject ; nfo:belongsToContainer ?c ; tracker:available true . FILTER(fn:contains(nfo:fileName(?u), \"$criteria_escaped\")) } OFFSET $offset LIMIT $limit";
+			break;
+		}
+
+		debug ("Running query: '%s'", query);
+
+		try {
+			cursor = yield connection.query_async (query, null);
+		} catch (Sparql.Error ea) {
+			warning ("Could not run Sparql query: %s", ea.message);
+		} catch (GLib.IOError eb) {
+			warning ("Could not run Sparql query: %s", eb.message);
+		} catch (GLib.DBusError ec) {
+			warning ("Could not run Sparql query: %s", ec.message);
+		}
+
+		debug ("Done");
+
+		return cursor;
+
+	}
+
 	public async Sparql.Cursor? perform_async (Type query_type, Cancellable? cancellable = null) throws IOError
 	requires (connection != null) {
 		Sparql.Cursor cursor = null;

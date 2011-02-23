@@ -72,7 +72,7 @@ static const gchar introspection_xml[] =
 
 extern gboolean debug;
 
-typedef struct {
+struct TrackerExtractPrivate {
 	GArray *specific_extractors;
 	GArray *generic_extractors;
 	gboolean disable_shutdown;
@@ -81,18 +81,22 @@ typedef struct {
 	GDBusConnection *d_connection;
 	GDBusNodeInfo *introspection_data;
 	guint registration_id;
-} TrackerExtractPrivate;
+	GHashTable *unknown_mime_types;
+	GTimer *accumulated;
+};
 
 typedef struct {
 	const GModule *module;
 	const TrackerExtractData *edata;
 	GPatternSpec *pattern; /* For a fast g_pattern_match() */
-	gint extracted_count;
-	gint failed_count;
+	guint extracted_count;
+	guint failed_count;
+	GTimer *accumulated;
 } ModuleData;
 
-static void tracker_extract_finalize (GObject *object);
-static void report_statistics        (GObject *object);
+static void tracker_extract_finalize  (GObject *object);
+static void report_statistics         (GObject *object);
+static void dispose_module_data_array (GArray  *array);
 
 G_DEFINE_TYPE(TrackerExtract, tracker_extract, G_TYPE_OBJECT)
 
@@ -111,6 +115,7 @@ tracker_extract_class_init (TrackerExtractClass *klass)
 static void
 tracker_extract_init (TrackerExtract *object)
 {
+	object->priv = TRACKER_EXTRACT_GET_PRIVATE (object);
 #ifdef HAVE_LIBSTREAMANALYZER
 	tracker_topanalyzer_init ();
 #endif /* HAVE_STREAMANALYZER */
@@ -120,7 +125,6 @@ static void
 tracker_extract_finalize (GObject *object)
 {
 	TrackerExtractPrivate *priv;
-	gint i;
 
 	priv = TRACKER_EXTRACT_GET_PRIVATE (object);
 
@@ -128,101 +132,136 @@ tracker_extract_finalize (GObject *object)
 		report_statistics (object);
 	}
 
+	if (priv->accumulated) {
+		g_timer_destroy (priv->accumulated);
+	}
+
 #ifdef HAVE_LIBSTREAMANALYZER
 	tracker_topanalyzer_shutdown ();
 #endif /* HAVE_STREAMANALYZER */
 
-	for (i = 0; i < priv->specific_extractors->len; i++) {
-		ModuleData *mdata;
+	dispose_module_data_array (priv->specific_extractors);
+	dispose_module_data_array (priv->generic_extractors);
 
-		mdata = &g_array_index (priv->specific_extractors, ModuleData, i);
-		g_pattern_spec_free (mdata->pattern);
-	}
-	g_array_free (priv->specific_extractors, TRUE);
-
-	for (i = 0; i < priv->generic_extractors->len; i++) {
-		ModuleData *mdata;
-
-		mdata = &g_array_index (priv->generic_extractors, ModuleData, i);
-		g_pattern_spec_free (mdata->pattern);
-	}
-	g_array_free (priv->generic_extractors, TRUE);
+	if (priv->unknown_mime_types)
+		g_hash_table_destroy (priv->unknown_mime_types);
 
 	G_OBJECT_CLASS (tracker_extract_parent_class)->finalize (object);
+}
+
+static void
+report_statistics_for_group (GArray *group)
+{
+	GHashTable *reported = NULL;
+	gint i;
+
+	reported = g_hash_table_new (g_direct_hash, g_direct_equal);
+
+	for (i = 0; i < group->len; i++) {
+		ModuleData *mdata;
+		const gchar *name;
+
+		mdata = &g_array_index (group, ModuleData, i);
+		name = g_module_name ((GModule*) mdata->module);
+
+		if ((mdata->extracted_count > 0 || mdata->failed_count > 0) &&
+		    !g_hash_table_lookup (reported, name)) {
+			const gchar *name_without_path;
+
+			name_without_path = strrchr (name, G_DIR_SEPARATOR) + 1;
+
+			g_message ("    Module: '%s', extracted: %u, failures: %u, time(seconds): %lf",
+			           name_without_path,
+			           mdata->extracted_count,
+			           mdata->failed_count,
+			           g_timer_elapsed (mdata->accumulated, NULL));
+
+			g_hash_table_insert (reported, (gpointer) name, GINT_TO_POINTER(1));
+		}
+	}
+
+	if (g_hash_table_size (reported) < 1) {
+		g_message ("    No files handled");
+	}
+
+	g_hash_table_destroy (reported);
 }
 
 static void
 report_statistics (GObject *object)
 {
 	TrackerExtractPrivate *priv;
-	GHashTable *reported = NULL;
-	gint i;
 
 	priv = TRACKER_EXTRACT_GET_PRIVATE (object);
 
 	g_message ("--------------------------------------------------");
 	g_message ("Statistics:");
 	g_message ("  Specific Extractors:");
-
-	reported = g_hash_table_new (g_direct_hash, g_direct_equal);
-
-	for (i = 0; i < priv->specific_extractors->len; i++) {
-		ModuleData *mdata;
-		const gchar *name;
-
-		mdata = &g_array_index (priv->specific_extractors, ModuleData, i);
-		name = g_module_name ((GModule*) mdata->module);
-
-		if ((mdata->extracted_count > 0 || mdata->failed_count > 0) &&
-		    !g_hash_table_lookup (reported, name)) {
-			const gchar *name_without_path;
-
-			name_without_path = strrchr (name, G_DIR_SEPARATOR) + 1;
-
-			g_message ("    Module:'%s', extracted:%d, failures:%d",
-			           name_without_path,
-			           mdata->extracted_count,
-			           mdata->failed_count);
-			g_hash_table_insert (reported, (gpointer) name, GINT_TO_POINTER(1));
-		}
-	}
-
-	if (g_hash_table_size (reported) < 1) {
-		g_message ("    No files handled");
-	}
-
-	g_hash_table_remove_all (reported);
-
+	report_statistics_for_group (priv->specific_extractors);
 	g_message ("  Generic Extractors:");
+	report_statistics_for_group (priv->generic_extractors);
+	g_message ("  Unknown:");
+	if (priv->unknown_mime_types) {
+		GHashTableIter iter;
+		gpointer key, value;
 
-	for (i = 0; i < priv->generic_extractors->len; i++) {
-		ModuleData *mdata;
-		const gchar *name;
-
-		mdata = &g_array_index (priv->generic_extractors, ModuleData, i);
-		name = g_module_name ((GModule*) mdata->module);
-
-		if ((mdata->extracted_count > 0 || mdata->failed_count > 0) &&
-		    !g_hash_table_lookup (reported, name)) {
-			const gchar *name_without_path;
-
-			name_without_path = strrchr (name, G_DIR_SEPARATOR) + 1;
-
-			g_message ("    Module:'%s', extracted:%d, failed:%d",
-			           name_without_path,
-			           mdata->extracted_count,
-			           mdata->failed_count);
-			g_hash_table_insert (reported, (gpointer) name, GINT_TO_POINTER(1));
+		g_hash_table_iter_init (&iter, priv->unknown_mime_types);
+		while (g_hash_table_iter_next (&iter, &key, &value)) {
+			g_message ("    Mime: '%s' failures: %u",
+			           (gchar *)key,
+			           GPOINTER_TO_UINT (value));
 		}
-	}
-
-	if (g_hash_table_size (reported) < 1) {
-		g_message ("    No files handled");
+	} else {
+		g_message ("    None");
 	}
 
 	g_message ("--------------------------------------------------");
+	g_message ("Total time spent processing requests: %lf seconds",
+	           priv->accumulated ? g_timer_elapsed (priv->accumulated, NULL) : 0.0);
+}
 
-	g_hash_table_unref (reported);
+static void
+count_unknown_mime_type (TrackerExtract *extract,
+                         const gchar    *mime)
+{
+	gpointer count;
+
+	if (G_UNLIKELY (!extract->priv->unknown_mime_types)) {
+		extract->priv->unknown_mime_types = g_hash_table_new_full (g_str_hash,
+		                                                           g_str_equal,
+		                                                           g_free,
+		                                                           NULL);
+		count = NULL;
+	} else {
+		count = g_hash_table_lookup (extract->priv->unknown_mime_types,
+		                             mime);
+	}
+
+	if (!count) {
+		g_hash_table_insert (extract->priv->unknown_mime_types,
+		                     g_strdup (mime),
+		                     GUINT_TO_POINTER (1));
+	} else {
+		g_hash_table_replace (extract->priv->unknown_mime_types,
+		                      g_strdup (mime),
+		                      GUINT_TO_POINTER (GPOINTER_TO_UINT (count) + 1));
+	}
+}
+
+static void
+dispose_module_data_array (GArray *array)
+{
+	guint i;
+
+	for (i = 0; i < array->len; i++) {
+		ModuleData *mdata;
+
+		mdata = &g_array_index (array, ModuleData, i);
+		g_pattern_spec_free (mdata->pattern);
+		if (mdata->accumulated)
+			g_timer_destroy (mdata->accumulated);
+	}
+	g_array_free (array, TRUE);
 }
 
 static gboolean
@@ -502,6 +541,7 @@ get_file_metadata (TrackerExtract         *extract,
 		guint i;
 		glong length;
 		gchar *reversed;
+		guint matches = 0;
 
 		/* Using a reversed string while pattern matching is faster
 		 * if we have lots of patterns with wildcards.
@@ -521,11 +561,20 @@ get_file_metadata (TrackerExtract         *extract,
 			if (g_pattern_match (mdata->pattern, length, mime_used, reversed)) {
 				gint items;
 
+				matches++;
 				tracker_dbus_request_comment (request,
 				                              "  Extracting with module:'%s'",
 				                              g_module_name ((GModule*) mdata->module));
 
+				if (G_UNLIKELY (!mdata->accumulated)) {
+					mdata->accumulated = g_timer_new ();
+				} else {
+					g_timer_continue (mdata->accumulated);
+				}
+
 				(*edata->func) (uri, preupdate, statements);
+
+				g_timer_stop (mdata->accumulated);
 
 				items = tracker_sparql_builder_get_length (statements);
 
@@ -561,11 +610,20 @@ get_file_metadata (TrackerExtract         *extract,
 			if (g_pattern_match (mdata->pattern, length, mime_used, reversed)) {
 				gint items;
 
+				matches++;
 				tracker_dbus_request_comment (request,
 				                              "  Extracting with module:'%s'",
 				                              g_module_name ((GModule*) mdata->module));
 
+				if (G_UNLIKELY (!mdata->accumulated)) {
+					mdata->accumulated = g_timer_new ();
+				} else {
+					g_timer_continue (mdata->accumulated);
+				}
+
 				(*edata->func) (uri, preupdate, statements);
+
+				g_timer_stop (mdata->accumulated);
 
 				items = tracker_sparql_builder_get_length (statements);
 
@@ -593,9 +651,11 @@ get_file_metadata (TrackerExtract         *extract,
 		}
 
 		tracker_dbus_request_comment (request,
-		                              "  Could not find any extractors to handle metadata type "
-		                              "(mime: %s)",
-		                              mime_used);
+		                              "  Could not find any extractors to correctly handle "
+		                              "file with mime type '%s' (%u extractors tried)",
+		                              mime_used, matches);
+		if (matches == 0)
+			count_unknown_mime_type (extract, mime_used);
 
 		g_free (mime_used);
 		g_free (reversed);
@@ -912,7 +972,15 @@ handle_method_call (GDBusConnection       *connection,
                     GDBusMethodInvocation *invocation,
                     gpointer               user_data)
 {
-	TrackerExtract *extract = user_data;
+	TrackerExtract *extract;
+
+	extract = user_data;
+
+	if (G_UNLIKELY (!extract->priv->accumulated)) {
+		extract->priv->accumulated = g_timer_new ();
+	} else {
+		g_timer_continue (extract->priv->accumulated);
+	}
 
 	if (g_strcmp0 (method_name, "GetPid") == 0) {
 		handle_method_call_get_pid (extract, invocation, parameters);
@@ -925,6 +993,8 @@ handle_method_call (GDBusConnection       *connection,
 	} else {
 		g_assert_not_reached ();
 	}
+
+	g_timer_stop (extract->priv->accumulated);
 }
 
 static GVariant *

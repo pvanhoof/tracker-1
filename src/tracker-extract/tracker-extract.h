@@ -37,9 +37,11 @@ G_BEGIN_DECLS
 
 typedef struct TrackerExtract      TrackerExtract;
 typedef struct TrackerExtractClass TrackerExtractClass;
+typedef struct TrackerExtractPrivate TrackerExtractPrivate;
 
 struct TrackerExtract {
 	GObject parent;
+	TrackerExtractPrivate *priv;
 };
 
 struct TrackerExtractClass {

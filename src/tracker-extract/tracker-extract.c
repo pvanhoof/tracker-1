@@ -61,8 +61,8 @@ static const gchar introspection_xml[] =
   "      <arg type='s' name='embedded' direction='out' />"
   "    </method>"
   "    <method name='GetMetadataFast'>"
-  "      <arg type='s' name='uri' direction='in' />"
-  "      <arg type='s' name='mime' direction='in' />"
+  "      <arg type='as' name='uri' direction='in' />"
+  "      <arg type='as' name='mime' direction='in' />"
   "      <arg type='h' name='fd' direction='in' />"
   "    </method>"
   "  </interface>"
@@ -772,30 +772,25 @@ handle_method_call_get_metadata_fast (TrackerExtract        *object,
 	TrackerDBusRequest *request;
 	TrackerExtractPrivate *priv;
 	GDBusMessage *reply;
-	const gchar *uri, *mime;
+	gchar **uris = NULL, **mimes = NULL;
 	int fd, index_fd;
-	GOutputStream *unix_output_stream;
+	GOutputStream *unix_output_stream = NULL;
 	GOutputStream *buffered_output_stream;
 	GDataOutputStream *data_output_stream;
 	GError *error = NULL;
-	TrackerSparqlBuilder *sparql, *preupdate;
-	gboolean extracted = FALSE;
 	GDBusMessage *method_message;
 	GDBusConnection *connection;
 	GUnixFDList *fd_list;
+	guint i;
 
 	connection = g_dbus_method_invocation_get_connection (invocation);
 	method_message = g_dbus_method_invocation_get_message (invocation);
 
-	g_variant_get (parameters, "(&s&sh)", &uri, &mime, &index_fd);
+	g_variant_get (parameters, "(^a&s^a&sh)", &uris, &mimes, &index_fd);
 
 	fd_list = g_dbus_message_get_unix_fd_list (method_message);
 
-	request = tracker_g_dbus_request_begin (invocation,
-	                                        "%s(uri:'%s', mime:%s)",
-	                                        __FUNCTION__,
-	                                        uri,
-	                                        mime);
+	request = tracker_g_dbus_request_begin (invocation, "%s", __FUNCTION__);
 
 	if ((fd = g_unix_fd_list_get (fd_list, index_fd, &error)) == -1) {
 		tracker_dbus_request_end (request, error);
@@ -806,28 +801,52 @@ handle_method_call_get_metadata_fast (TrackerExtract        *object,
 		goto bail_out;
 	}
 
-	tracker_dbus_request_debug (request,
-	                            "  Resetting shutdown timeout");
+	tracker_dbus_request_debug (request, "  Resetting shutdown timeout");
 
 	priv = TRACKER_EXTRACT_GET_PRIVATE (object);
 
 	tracker_main_quit_timeout_reset ();
-	if (!priv->disable_shutdown) {
-		alarm (MAX_EXTRACT_TIME);
-	}
 
-	extracted = get_file_metadata (object, request, NULL, uri, mime, &preupdate, &sparql);
+	unix_output_stream = g_unix_output_stream_new (fd, TRUE);
+	buffered_output_stream = g_buffered_output_stream_new_sized (unix_output_stream,
+	                                                             64*1024);
+	data_output_stream = g_data_output_stream_new (buffered_output_stream);
+	g_data_output_stream_set_byte_order (G_DATA_OUTPUT_STREAM (data_output_stream),
+	                                     G_DATA_STREAM_BYTE_ORDER_HOST_ENDIAN);
 
-	if (extracted) {
-		unix_output_stream = g_unix_output_stream_new (fd, TRUE);
-		buffered_output_stream = g_buffered_output_stream_new_sized (unix_output_stream,
-		                                                             64*1024);
-		data_output_stream = g_data_output_stream_new (buffered_output_stream);
-		g_data_output_stream_set_byte_order (G_DATA_OUTPUT_STREAM (data_output_stream),
-		                                     G_DATA_STREAM_BYTE_ORDER_HOST_ENDIAN);
+	for (i = 0; uris[i] != NULL && mimes[i] != NULL && error == NULL; i++) {
+		gboolean extracted = FALSE;
+		const gchar *uri = (const gchar *) uris[i];
+		const gchar *mime = (const gchar *) mimes[i];
+		TrackerSparqlBuilder *sparql, *preupdate;
+		gint len;
 
-		if (tracker_sparql_builder_get_length (sparql) > 0) {
+		if (!priv->disable_shutdown) {
+			alarm (MAX_EXTRACT_TIME);
+		}
+
+		extracted = get_file_metadata (object, request, NULL, uri, mime, &preupdate, &sparql);
+
+		if (!priv->disable_shutdown) {
+			/* Unset alarm so the extractor doesn't die when it's idle */
+			alarm (0);
+		}
+
+		if (extracted) {
+			len = tracker_sparql_builder_get_length (sparql);
+		}
+
+		if (extracted && len > 0) {
 			const gchar *preupdate_str = NULL;
+
+			g_data_output_stream_put_byte (data_output_stream,
+			                               'r',
+			                               NULL,
+			                               &error);
+
+			if (error) {
+				break;
+			}
 
 			if (tracker_sparql_builder_get_length (preupdate) > 0) {
 				preupdate_str = tracker_sparql_builder_get_result (preupdate);
@@ -838,68 +857,107 @@ handle_method_call_get_metadata_fast (TrackerExtract        *object,
 			                                 NULL,
 			                                 &error);
 
-			if (!error) {
-				g_data_output_stream_put_byte (data_output_stream,
-				                               0,
-				                               NULL,
-				                               &error);
+			if (error) {
+				break;
 			}
 
-			if (!error) {
-				g_data_output_stream_put_string (data_output_stream,
-				                                 tracker_sparql_builder_get_result (sparql),
-				                                 NULL,
-				                                 &error);
+			g_data_output_stream_put_byte (data_output_stream,
+			                               0,
+			                               NULL,
+			                               &error);
+
+			if (error) {
+				break;
 			}
 
-			if (!error) {
-				g_data_output_stream_put_byte (data_output_stream,
-				                               0,
-				                               NULL,
-				                               &error);
+			g_data_output_stream_put_string (data_output_stream,
+			                                 tracker_sparql_builder_get_result (sparql),
+			                                 NULL,
+			                                 &error);
+
+			if (error) {
+				break;
 			}
-		}
 
-		g_object_unref (sparql);
-		g_object_unref (preupdate);
-		g_object_unref (data_output_stream);
-		g_object_unref (buffered_output_stream);
-		g_object_unref (unix_output_stream);
+			g_data_output_stream_put_byte (data_output_stream,
+			                               0,
+			                               NULL,
+			                               &error);
 
-		if (error) {
-			tracker_dbus_request_end (request, error);
-			reply = g_dbus_message_new_method_error_literal (method_message,
-			                                                 TRACKER_EXTRACT_SERVICE ".GetMetadataFastError",
-			                                                 error->message);
-			g_error_free (error);
+			if (error) {
+				break;
+			}
+
+			g_object_unref (sparql);
+			g_object_unref (preupdate);
+
 		} else {
-			tracker_dbus_request_end (request, NULL);
-			reply = g_dbus_message_new_method_reply (method_message);
+			GError *internal_error;
+
+			g_data_output_stream_put_byte (data_output_stream,
+			                               'e',
+			                               NULL,
+			                               &error);
+
+			if (error) {
+				break;
+			}
+
+			internal_error = g_error_new (TRACKER_DBUS_ERROR, 0,
+			                              "Could not get any metadata for uri:'%s' and mime:'%s'",
+			                              uri, mime);
+
+			g_data_output_stream_put_string (data_output_stream,
+			                                 internal_error->message,
+			                                 NULL,
+			                                 &error);
+			g_error_free (internal_error);
+
+			if (error) {
+				break;
+			}
+
+			g_data_output_stream_put_byte (data_output_stream,
+			                               0,
+			                               NULL,
+			                               &error);
+
+			if (error) {
+				break;
+			}
 		}
-	} else {
-		error = g_error_new (TRACKER_DBUS_ERROR, 0,
-		                     "Could not get any metadata for uri:'%s' and mime:'%s'", uri, mime);
+	}
+
+	g_object_unref (data_output_stream);
+	g_object_unref (buffered_output_stream);
+	g_object_unref (unix_output_stream);
+
+bail_out:
+
+	if (!unix_output_stream) {
+		close (fd);
+	}
+
+	if (error) {
 		tracker_dbus_request_end (request, error);
 		reply = g_dbus_message_new_method_error_literal (method_message,
 		                                                 TRACKER_EXTRACT_SERVICE ".GetMetadataFastError",
 		                                                 error->message);
 		g_error_free (error);
-		close (fd);
+	} else {
+		tracker_dbus_request_end (request, NULL);
+		reply = g_dbus_message_new_method_reply (method_message);
 	}
-
-bail_out:
 
 	g_dbus_connection_send_message (connection, reply,
 	                                G_DBUS_SEND_MESSAGE_FLAGS_NONE,
 	                                NULL, NULL);
 
+	g_free (uris);
+	g_free (mimes);
+
 	g_object_unref (fd_list);
 	g_object_unref (reply);
-
-	if (!priv->disable_shutdown) {
-		/* Unset alarm so the extractor doesn't die when it's idle */
-		alarm (0);
-	}
 }
 
 static void

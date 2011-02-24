@@ -2064,38 +2064,59 @@ static void
 get_metadata_fast_async_callback (SendAndSpliceData *data)
 {
 	if (!data->error) {
-		void *buffer;
+		const gchar *preupdate = NULL;
+		const gchar *sparql = NULL;
+		const gchar *buffer;
 		gssize buffer_size;
 		gsize preupdate_length;
 		GError *error = NULL;
-		const gchar *preupdate = NULL;
-		const gchar *sparql = NULL;
+		gchar code;
 
 		buffer = g_memory_output_stream_get_data (G_MEMORY_OUTPUT_STREAM (data->output_stream));
 		buffer_size = g_memory_output_stream_get_data_size (G_MEMORY_OUTPUT_STREAM (data->output_stream));
 
 		if (buffer_size == 0) {
-			(* data->callback) (NULL, NULL, NULL, data->user_data);
+			error = g_error_new_literal (miner_files_error_quark,
+			                             0,
+			                             "Invalid data received from GetMetadataFast");
 		} else {
-			preupdate = buffer;
-			preupdate_length = strnlen (preupdate, buffer_size);
+			code = buffer[0];
 
-			if (preupdate_length < buffer_size && preupdate[buffer_size - 1] == '\0') {
-				/* sparql is stored just after preupdate in the original buffer */
-				sparql = preupdate + preupdate_length + 1;
+			if (code == 'r') {
+
+				/* This still works atm because we still work one by one at
+				 * flush_extract_queue_shared. We need to read only one result,
+				 * no need for a loop yet. */
+
+				preupdate = buffer + 1;
+				preupdate_length = strnlen (preupdate, buffer_size);
+
+				if (preupdate_length < buffer_size && preupdate[buffer_size - 1] == '\0') {
+					/* sparql is stored just after preupdate in the original buffer */
+					sparql = preupdate + preupdate_length + 1;
+				} else {
+					preupdate = NULL;
+					error = g_error_new_literal (miner_files_error_quark,
+					                             0,
+					                             "Invalid data received from GetMetadataFast");
+				}
 			} else {
-				preupdate = NULL;
+				const gchar *error_message;
+
+				error_message = buffer + 1;
+
 				error = g_error_new_literal (miner_files_error_quark,
 				                             0,
-				                             "Invalid data received from GetMetadataFast");
+				                             error_message);
 			}
-
-			(* data->callback) (preupdate, sparql, error, data->user_data);
 		}
+
+		(* data->callback) (preupdate, sparql, error, data->user_data);
 
 		g_clear_error (&error);
 
 	} else {
+		/* D-Bus or request-wide error */
 		(* data->callback) (NULL, NULL, data->error, data->user_data);
 	}
 
@@ -2186,6 +2207,8 @@ get_metadata_fast_async (GDBusConnection *connection,
 	GDBusMessage *message;
 	GUnixFDList *fd_list;
 	int pipefd[2];
+	const gchar *uris[2];
+	const gchar *mime_types[2];
 
 	g_return_if_fail (connection);
 	g_return_if_fail (uri);
@@ -2204,9 +2227,15 @@ get_metadata_fast_async (GDBusConnection *connection,
 
 	fd_list = g_unix_fd_list_new ();
 
-	g_dbus_message_set_body (message, g_variant_new ("(ssh)",
-	                                                 uri,
-	                                                 mime_type,
+	uris[0] = uri;
+	uris[1] = NULL;
+
+	mime_types[0] = mime_type;
+	mime_types[1] = NULL;
+
+	g_dbus_message_set_body (message, g_variant_new ("(^as^ash)",
+	                                                 uris,
+	                                                 mime_types,
 	                                                 g_unix_fd_list_append (fd_list,
 	                                                                        pipefd[1],
 	                                                                        NULL)));

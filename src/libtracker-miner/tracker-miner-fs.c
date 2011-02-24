@@ -2656,6 +2656,8 @@ item_queue_handlers_cb (gpointer user_data)
 		tracker_processing_pool_buffer_flush (fs->private->processing_pool,
 		                                      "Queue handlers WAIT");
 
+		tracker_miner_fs_flush_wait (fs);
+
 		return FALSE;
 	}
 
@@ -2759,6 +2761,8 @@ item_queue_handlers_cb (gpointer user_data)
 		/* Flush any possible pending update here */
 		tracker_processing_pool_buffer_flush (fs->private->processing_pool,
 		                                      "Queue handlers NONE");
+
+		tracker_miner_fs_flush_wait (fs);
 
 		tracker_thumbnailer_send ();
 		/* No more files left to process */
@@ -4181,6 +4185,26 @@ check_file_parents (TrackerMinerFS *fs,
 	g_list_free (parents);
 
 	return TRUE;
+}
+
+/**
+ * tracker_miner_fs_flush_wait:
+ * @fs: a #TrackerMinerFS
+ *
+ * Flushes the items that are queued and that we are waiting on
+ *
+ * Since: 0.10.1
+ **/
+void
+tracker_miner_fs_flush_wait (TrackerMinerFS *fs)
+{
+	void (*m_flush) (TrackerMinerFS *fs);
+
+	m_flush = TRACKER_MINER_FS_GET_CLASS (fs)->flush_wait;
+
+	if (m_flush) {
+		m_flush (fs);
+	}
 }
 
 /**

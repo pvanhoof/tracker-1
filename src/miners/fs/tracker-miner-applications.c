@@ -57,7 +57,6 @@ static gboolean miner_applications_monitor_directory       (TrackerMinerFS      
                                                             GFile                *file);
 static void     miner_applications_finalize                (GObject              *object);
 
-
 static GQuark miner_applications_error_quark = 0;
 
 typedef struct ProcessApplicationData ProcessApplicationData;

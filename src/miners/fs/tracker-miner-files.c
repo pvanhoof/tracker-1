@@ -90,6 +90,14 @@ typedef struct {
 	fast_async_cb callback;
 } SendAndSpliceData;
 
+typedef struct {
+	gchar *uri;
+	gchar *mime_type;
+	GCancellable *cancellable;
+	fast_async_cb callback;
+	ProcessFileData *user_data;
+} ExtractQueueItem;
+
 struct TrackerMinerFilesPrivate {
 	TrackerConfig *config;
 	TrackerStorage *storage;
@@ -123,6 +131,9 @@ struct TrackerMinerFilesPrivate {
 	gboolean mount_points_initialized;
 
 	guint stale_volumes_check_id;
+
+	GPtrArray *extract_queue;
+	guint extract_queue_id;
 };
 
 enum {
@@ -235,6 +246,8 @@ static void        miner_files_add_removable_or_optical_directory (TrackerMinerF
                                                                    const gchar       *mount_path,
                                                                    const gchar       *uuid);
 
+static void        miner_files_flush_wait                         (TrackerMinerFS *miner);
+
 static GInitableIface* miner_files_initable_parent_iface;
 
 G_DEFINE_TYPE_WITH_CODE (TrackerMinerFiles, tracker_miner_files, TRACKER_TYPE_MINER_FS,
@@ -259,6 +272,7 @@ tracker_miner_files_class_init (TrackerMinerFilesClass *klass)
 	miner_fs_class->process_file_attributes = miner_files_process_file_attributes;
 	miner_fs_class->ignore_next_update_file = miner_files_ignore_next_update_file;
 	miner_fs_class->finished = miner_files_finished;
+	miner_fs_class->flush_wait = miner_files_flush_wait;
 
 	g_object_class_install_property (object_class,
 	                                 PROP_CONFIG,
@@ -2060,20 +2074,24 @@ get_metadata_fast_async_callback (SendAndSpliceData *data)
 		buffer = g_memory_output_stream_get_data (G_MEMORY_OUTPUT_STREAM (data->output_stream));
 		buffer_size = g_memory_output_stream_get_data_size (G_MEMORY_OUTPUT_STREAM (data->output_stream));
 
-		preupdate = buffer;
-		preupdate_length = strnlen (preupdate, buffer_size);
-
-		if (preupdate_length < buffer_size && preupdate[buffer_size - 1] == '\0') {
-			/* sparql is stored just after preupdate in the original buffer */
-			sparql = preupdate + preupdate_length + 1;
+		if (buffer_size == 0) {
+			(* data->callback) (NULL, NULL, NULL, data->user_data);
 		} else {
-			preupdate = NULL;
-			error = g_error_new_literal (miner_files_error_quark,
-			                             0,
-			                             "Invalid data received from GetMetadataFast");
-		}
+			preupdate = buffer;
+			preupdate_length = strnlen (preupdate, buffer_size);
 
-		(* data->callback) (preupdate, sparql, error, data->user_data);
+			if (preupdate_length < buffer_size && preupdate[buffer_size - 1] == '\0') {
+				/* sparql is stored just after preupdate in the original buffer */
+				sparql = preupdate + preupdate_length + 1;
+			} else {
+				preupdate = NULL;
+				error = g_error_new_literal (miner_files_error_quark,
+				                             0,
+				                             "Invalid data received from GetMetadataFast");
+			}
+
+			(* data->callback) (preupdate, sparql, error, data->user_data);
+		}
 
 		g_clear_error (&error);
 
@@ -2236,19 +2254,113 @@ get_metadata_fast_async (GDBusConnection *connection,
 }
 
 static void
-extractor_get_embedded_metadata (ProcessFileData *data,
-                                 const gchar     *uri,
-                                 const gchar     *mime_type)
+free_queue_item (ExtractQueueItem *item)
 {
-	get_metadata_fast_async (data->miner->private->connection,
-	                         uri,
-	                         mime_type,
-	                         data->cancellable,
-	                         extractor_get_embedded_metadata_cb,
-	                         data);
+	g_free (item->uri);
+	g_free (item->mime_type);
+	g_object_unref (item->cancellable);
+	g_slice_free (ExtractQueueItem, item);
+}
 
-	g_signal_connect (data->cancellable, "cancelled",
-	                  G_CALLBACK (extractor_get_embedded_metadata_cancel), data);
+static void
+flush_extract_queue_shared (TrackerMinerFiles *miner)
+{
+	guint i;
+	GPtrArray *queue = miner->private->extract_queue;
+	GDBusConnection *connection = miner->private->connection;
+
+	if (!queue || queue->len == 0) {
+		return;
+	}
+
+	for (i = 0; i < queue->len; i++) {
+		ExtractQueueItem *item = g_ptr_array_index (queue, i);
+
+		get_metadata_fast_async (connection,
+		                         item->uri,
+		                         item->mime_type,
+		                         item->cancellable,
+		                         item->callback,
+		                         item->user_data);
+	}
+
+	g_ptr_array_remove_range (queue, 0, queue->len);
+}
+
+static gboolean
+flush_extract_queue_idle (gpointer user_data)
+{
+	flush_extract_queue_shared (user_data);
+	return FALSE;
+}
+
+static void
+flush_extract_queue_destroy (gpointer user_data)
+{
+	TrackerMinerFiles *miner = user_data;
+	miner->private->extract_queue_id = 0;
+	g_object_unref (miner);
+}
+
+static void
+miner_files_flush_wait (TrackerMinerFS *miner)
+{
+	flush_extract_queue_shared (TRACKER_MINER_FILES (miner));
+}
+
+static void
+get_metadata_fast_queue_async (TrackerMinerFiles *miner,
+                               const gchar       *uri,
+                               const gchar       *mime_type,
+                               GCancellable      *cancellable,
+                               fast_async_cb      callback,
+                               ProcessFileData   *user_data)
+{
+	ExtractQueueItem *item;
+
+	if (!miner->private->extract_queue) {
+		miner->private->extract_queue = g_ptr_array_new_with_free_func ((GDestroyNotify) free_queue_item);
+	}
+
+	item = g_slice_new (ExtractQueueItem);
+	item->uri = g_strdup (uri);
+	item->mime_type = g_strdup (mime_type);
+	item->cancellable = g_object_ref (cancellable);
+	item->callback = callback;
+	item->user_data = user_data;
+
+	g_ptr_array_add (miner->private->extract_queue, item);
+
+	if (miner->private->extract_queue->len > 5) {
+		flush_extract_queue_shared (miner);
+	} else {
+		if (!miner->private->extract_queue_id) {
+			/* Automatic flush each second */
+			miner->private->extract_queue_id = g_timeout_add_seconds_full (G_PRIORITY_DEFAULT, 10,
+			                                                               flush_extract_queue_idle,
+			                                                               g_object_ref (miner),
+			                                                               flush_extract_queue_destroy);
+		}
+	}
+}
+
+static void
+extractor_get_embedded_metadata (TrackerMinerFiles *miner,
+                                 GCancellable      *cancellable,
+                                 const gchar       *uri,
+                                 const gchar       *mime_type,
+                                 gpointer           user_data)
+{
+	get_metadata_fast_queue_async (miner,
+	                               uri,
+	                               mime_type,
+	                               cancellable,
+	                               extractor_get_embedded_metadata_cb,
+	                               user_data);
+
+	g_signal_connect (cancellable, "cancelled",
+	                  G_CALLBACK (extractor_get_embedded_metadata_cancel),
+	                  user_data);
 }
 
 static void
@@ -2342,7 +2454,7 @@ process_file_cb (GObject      *object,
 
 	if (!is_directory) {
 		/* Next step, if NOT a directory, get embedded metadata */
-		extractor_get_embedded_metadata (data, uri, mime_type);
+		extractor_get_embedded_metadata (data->miner, data->cancellable, uri, mime_type, data);
 	} else {
 		/* For directories, don't request embedded metadata extraction.
 		 * We setup an idle so that we keep the previous behavior. */

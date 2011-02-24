@@ -104,6 +104,8 @@ typedef struct {
 	                                       GFile                *file,
 	                                       TrackerSparqlBuilder *builder,
 	                                       GCancellable         *cancellable);
+	void     (* flush_wait)               (TrackerMinerFS       *fs);
+
 } TrackerMinerFSClass;
 
 GType                 tracker_miner_fs_get_type             (void) G_GNUC_CONST;
@@ -133,6 +135,7 @@ G_CONST_RETURN gchar *tracker_miner_fs_get_parent_urn       (TrackerMinerFS *fs,
 gchar                *tracker_miner_fs_query_urn            (TrackerMinerFS *fs,
                                                              GFile          *file);
 void                  tracker_miner_fs_force_recheck        (TrackerMinerFS *fs);
+void                  tracker_miner_fs_flush_wait           (TrackerMinerFS *fs);
 
 void                  tracker_miner_fs_set_mtime_checking   (TrackerMinerFS *fs,
                                                              gboolean        check_mtimes);

@@ -39,6 +39,10 @@
 #include "tracker-db-interface-sqlite.h"
 #include "tracker-db-manager.h"
 
+#ifdef TIMING_ENABLE_TRACE
+#warning Time measurements are enabled in tracker-db-interface-sqlite
+#endif /* TIMING_ENABLE_TRACE */
+
 #define UNKNOWN_STATUS 0.5
 
 typedef struct {
@@ -78,6 +82,11 @@ struct TrackerDBInterface {
 	TrackerBusyCallback busy_callback;
 	gpointer busy_user_data;
 	gchar *busy_status;
+
+#ifdef TIMING_ENABLE_TRACE
+	GTimer *accumulated;
+	guint timeout_id;
+#endif /* TIMING_ENABLE_TRACE */
 };
 
 struct TrackerDBInterfaceClass {
@@ -495,10 +504,37 @@ function_sparql_regex (sqlite3_context *context,
 	sqlite3_result_int (context, ret);
 }
 
+#ifdef TIMING_ENABLE_TRACE
+static gboolean
+stmt_step_accumulated_time_report_cb (gpointer data)
+{
+	TrackerDBInterface *iface = data;
+
+	if (iface->accumulated)
+		g_message ("  Interface '%p' spent '%lf' seconds stepping stmts",
+		           iface,
+		           g_timer_elapsed (iface->accumulated, NULL));
+	return TRUE;
+}
+#endif /* TIMING_ENABLE_TRACE */
+
 static inline int
-stmt_step (sqlite3_stmt *stmt)
+stmt_step (TrackerDBInterface *iface, sqlite3_stmt *stmt)
 {
 	int result;
+
+#ifdef TIMING_ENABLE_TRACE
+	if (G_UNLIKELY (!iface->timeout_id)) {
+		iface->timeout_id = g_timeout_add_seconds (60,
+		                                           stmt_step_accumulated_time_report_cb,
+		                                           iface);
+	}
+	if (G_UNLIKELY (!iface->accumulated)) {
+		iface->accumulated = g_timer_new ();
+	} else {
+		g_timer_continue (iface->accumulated);
+	}
+#endif /* TIMING_ENABLE_TRACE */
 
 	result = sqlite3_step (stmt);
 
@@ -517,6 +553,10 @@ stmt_step (sqlite3_stmt *stmt)
 		sqlite3_reset (stmt);
 		result = sqlite3_step (stmt);
 	}
+
+#ifdef TIMING_ENABLE_TRACE
+	g_timer_stop (iface->accumulated);
+#endif /* TIMING_ENABLE_TRACE */
 
 	return result;
 }
@@ -709,6 +749,21 @@ close_database (TrackerDBInterface *db_interface)
 		rc = sqlite3_close (db_interface->db);
 		g_warn_if_fail (rc == SQLITE_OK);
 	}
+
+#ifdef TIMING_ENABLE_TRACE
+	if (db_interface->timeout_id) {
+		g_source_remove (db_interface->timeout_id);
+		db_interface->timeout_id = 0;
+	}
+
+	if (db_interface->accumulated) {
+		g_message ("  Interface '%p' spent a total time of '%lf' seconds stepping stmts",
+		           db_interface,
+		           g_timer_elapsed (db_interface->accumulated, NULL));
+		g_timer_destroy (db_interface->accumulated);
+		db_interface->accumulated = NULL;
+	}
+#endif /* TIMING_ENABLE_TRACE */
 }
 
 void
@@ -1079,7 +1134,7 @@ execute_stmt (TrackerDBInterface  *interface,
 		} else {
 			/* only one statement can be active at the same time per interface */
 			interface->cancellable = cancellable;
-			result = stmt_step (stmt);
+			result = stmt_step (interface, stmt);
 
 			interface->cancellable = NULL;
 		}
@@ -1524,7 +1579,7 @@ db_cursor_iter_next (TrackerDBCursor *cursor,
 		} else {
 			/* only one statement can be active at the same time per interface */
 			iface->cancellable = cancellable;
-			result = stmt_step (cursor->stmt);
+			result = stmt_step (iface, cursor->stmt);
 			iface->cancellable = NULL;
 		}
 

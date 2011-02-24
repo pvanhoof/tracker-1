@@ -2366,7 +2366,7 @@ get_metadata_fast_queue_async (TrackerMinerFiles *miner,
 	} else {
 		if (!miner->private->extract_queue_id) {
 			/* Automatic flush each second */
-			miner->private->extract_queue_id = g_timeout_add_seconds_full (G_PRIORITY_DEFAULT, 10,
+			miner->private->extract_queue_id = g_timeout_add_seconds_full (G_PRIORITY_DEFAULT, 1,
 			                                                               flush_extract_queue_idle,
 			                                                               g_object_ref (miner),
 			                                                               flush_extract_queue_destroy);

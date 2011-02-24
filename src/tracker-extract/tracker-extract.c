@@ -41,6 +41,10 @@
 #include "tracker-topanalyzer.h"
 #endif /* HAVE_STREAMANALYZER */
 
+#ifdef TIMING_ENABLE_TRACE
+#warning Time measurements are enabled in tracker-extract
+#endif /* TIMING_ENABLE_TRACE */
+
 #define EXTRACT_FUNCTION "tracker_extract_get_data"
 
 #define MAX_EXTRACT_TIME 10
@@ -82,7 +86,9 @@ struct TrackerExtractPrivate {
 	GDBusNodeInfo *introspection_data;
 	guint registration_id;
 	GHashTable *unknown_mime_types;
+#ifdef TIMING_ENABLE_TRACE
 	GTimer *accumulated;
+#endif /* TIMING_ENABLE_TRACE */
 };
 
 typedef struct {
@@ -91,7 +97,9 @@ typedef struct {
 	GPatternSpec *pattern; /* For a fast g_pattern_match() */
 	guint extracted_count;
 	guint failed_count;
+#ifdef TIMING_ENABLE_TRACE
 	GTimer *accumulated;
+#endif /* TIMING_ENABLE_TRACE */
 } ModuleData;
 
 static void tracker_extract_finalize  (GObject *object);
@@ -132,9 +140,11 @@ tracker_extract_finalize (GObject *object)
 		report_statistics (object);
 	}
 
+#ifdef TIMING_ENABLE_TRACE
 	if (priv->accumulated) {
 		g_timer_destroy (priv->accumulated);
 	}
+#endif /* TIMING_ENABLE_TRACE */
 
 #ifdef HAVE_LIBSTREAMANALYZER
 	tracker_topanalyzer_shutdown ();
@@ -170,11 +180,18 @@ report_statistics_for_group (GArray *group)
 
 			name_without_path = strrchr (name, G_DIR_SEPARATOR) + 1;
 
+#ifdef TIMING_ENABLE_TRACE
 			g_message ("    Module: '%s', extracted: %u, failures: %u, time(seconds): %lf",
 			           name_without_path,
 			           mdata->extracted_count,
 			           mdata->failed_count,
 			           g_timer_elapsed (mdata->accumulated, NULL));
+#else
+			g_message ("    Module: '%s', extracted: %u, failures: %u",
+			           name_without_path,
+			           mdata->extracted_count,
+			           mdata->failed_count);
+#endif /* TIMING_ENABLE_TRACE */
 
 			g_hash_table_insert (reported, (gpointer) name, GINT_TO_POINTER(1));
 		}
@@ -214,10 +231,12 @@ report_statistics (GObject *object)
 	} else {
 		g_message ("    None");
 	}
-
 	g_message ("--------------------------------------------------");
+
+#ifdef TIMING_ENABLE_TRACE
 	g_message ("Total time spent processing requests: %lf seconds",
 	           priv->accumulated ? g_timer_elapsed (priv->accumulated, NULL) : 0.0);
+#endif /* TIMING_ENABLE_TRACE */
 }
 
 static void
@@ -258,8 +277,10 @@ dispose_module_data_array (GArray *array)
 
 		mdata = &g_array_index (array, ModuleData, i);
 		g_pattern_spec_free (mdata->pattern);
+#ifdef TIMING_ENABLE_TRACE
 		if (mdata->accumulated)
 			g_timer_destroy (mdata->accumulated);
+#endif /* TIMING_ENABLE_TRACE */
 	}
 	g_array_free (array, TRUE);
 }
@@ -566,15 +587,18 @@ get_file_metadata (TrackerExtract         *extract,
 				                              "  Extracting with module:'%s'",
 				                              g_module_name ((GModule*) mdata->module));
 
+#ifdef TIMING_ENABLE_TRACE
 				if (G_UNLIKELY (!mdata->accumulated)) {
 					mdata->accumulated = g_timer_new ();
 				} else {
 					g_timer_continue (mdata->accumulated);
 				}
-
 				(*edata->func) (uri, preupdate, statements);
-
 				g_timer_stop (mdata->accumulated);
+#else
+				/* No time measurements */
+				(*edata->func) (uri, preupdate, statements);
+#endif /* TIMING_ENABLE_TRACE */
 
 				items = tracker_sparql_builder_get_length (statements);
 
@@ -615,15 +639,18 @@ get_file_metadata (TrackerExtract         *extract,
 				                              "  Extracting with module:'%s'",
 				                              g_module_name ((GModule*) mdata->module));
 
+#ifdef TIMING_ENABLE_TRACE
 				if (G_UNLIKELY (!mdata->accumulated)) {
 					mdata->accumulated = g_timer_new ();
 				} else {
 					g_timer_continue (mdata->accumulated);
 				}
-
 				(*edata->func) (uri, preupdate, statements);
-
 				g_timer_stop (mdata->accumulated);
+#else
+				/* No time measurements */
+				(*edata->func) (uri, preupdate, statements);
+#endif /* TIMING_ENABLE_TRACE */
 
 				items = tracker_sparql_builder_get_length (statements);
 
@@ -976,11 +1003,13 @@ handle_method_call (GDBusConnection       *connection,
 
 	extract = user_data;
 
+#ifdef TIMING_ENABLE_TRACE
 	if (G_UNLIKELY (!extract->priv->accumulated)) {
 		extract->priv->accumulated = g_timer_new ();
 	} else {
 		g_timer_continue (extract->priv->accumulated);
 	}
+#endif /* TIMING_ENABLE_TRACE */
 
 	if (g_strcmp0 (method_name, "GetPid") == 0) {
 		handle_method_call_get_pid (extract, invocation, parameters);
@@ -994,7 +1023,9 @@ handle_method_call (GDBusConnection       *connection,
 		g_assert_not_reached ();
 	}
 
+#ifdef TIMING_ENABLE_TRACE
 	g_timer_stop (extract->priv->accumulated);
+#endif /* TIMING_ENABLE_TRACE */
 }
 
 static GVariant *

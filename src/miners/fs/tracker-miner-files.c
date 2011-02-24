@@ -78,27 +78,17 @@ typedef void (*fast_async_cb) (const gchar *preupdate,
                                GError      *error,
                                gpointer     user_data);
 
-typedef void (*TrackerDBusSendAndSpliceCallback) (void     *buffer,
-                                                  gssize    buffer_size,
-                                                  GError   *error, /* Don't free */
-                                                  gpointer  user_data);
-
 typedef struct {
 	GInputStream *unix_input_stream;
 	GInputStream *buffered_input_stream;
 	GOutputStream *output_stream;
-	TrackerDBusSendAndSpliceCallback callback;
 	GCancellable *cancellable;
 	gpointer user_data;
 	gboolean splice_finished;
 	gboolean dbus_finished;
 	GError *error;
-} SendAndSpliceData;
-
-typedef struct {
 	fast_async_cb callback;
-	gpointer user_data;
-} FastAsyncData;
+} SendAndSpliceData;
 
 struct TrackerMinerFilesPrivate {
 	TrackerConfig *config;
@@ -2056,63 +2046,60 @@ extractor_skip_embedded_metadata_idle (gpointer user_data)
 	return FALSE;
 }
 
-static SendAndSpliceData *
-send_and_splice_data_new (GInputStream                     *unix_input_stream,
-                          GInputStream                     *buffered_input_stream,
-                          GOutputStream                    *output_stream,
-                          GCancellable                     *cancellable,
-                          TrackerDBusSendAndSpliceCallback  callback,
-                          gpointer                          user_data)
-{
-	SendAndSpliceData *data;
-
-	data = g_slice_new0 (SendAndSpliceData);
-	data->unix_input_stream = unix_input_stream;
-	data->buffered_input_stream = buffered_input_stream;
-	data->output_stream = output_stream;
-	if (cancellable) {
-		data->cancellable = g_object_ref (cancellable);
-	}
-	data->callback = callback;
-	data->user_data = user_data;
-
-	return data;
-}
-
 static void
-send_and_splice_data_free (SendAndSpliceData *data)
+get_metadata_fast_async_callback (SendAndSpliceData *data)
 {
+	if (!data->error) {
+		void *buffer;
+		gssize buffer_size;
+		gsize preupdate_length;
+		GError *error = NULL;
+		const gchar *preupdate = NULL;
+		const gchar *sparql = NULL;
+
+		buffer = g_memory_output_stream_get_data (G_MEMORY_OUTPUT_STREAM (data->output_stream));
+		buffer_size = g_memory_output_stream_get_data_size (G_MEMORY_OUTPUT_STREAM (data->output_stream));
+
+		preupdate = buffer;
+		preupdate_length = strnlen (preupdate, buffer_size);
+
+		if (preupdate_length < buffer_size && preupdate[buffer_size - 1] == '\0') {
+			/* sparql is stored just after preupdate in the original buffer */
+			sparql = preupdate + preupdate_length + 1;
+		} else {
+			preupdate = NULL;
+			error = g_error_new_literal (miner_files_error_quark,
+			                             0,
+			                             "Invalid data received from GetMetadataFast");
+		}
+
+		(* data->callback) (preupdate, sparql, error, data->user_data);
+
+		g_clear_error (&error);
+
+	} else {
+		(* data->callback) (NULL, NULL, data->error, data->user_data);
+	}
+
 	g_object_unref (data->unix_input_stream);
 	g_object_unref (data->buffered_input_stream);
 	g_object_unref (data->output_stream);
+
 	if (data->cancellable) {
 		g_object_unref (data->cancellable);
 	}
+
 	if (data->error) {
 		g_error_free (data->error);
 	}
+
 	g_slice_free (SendAndSpliceData, data);
 }
 
 static void
-dbus_send_and_splice_async_finish (SendAndSpliceData *data)
-{
-	if (!data->error) {
-		(* data->callback) (g_memory_output_stream_get_data (G_MEMORY_OUTPUT_STREAM (data->output_stream)),
-		                    g_memory_output_stream_get_data_size (G_MEMORY_OUTPUT_STREAM (data->output_stream)),
-		                    NULL,
-		                    data->user_data);
-	} else {
-		(* data->callback) (NULL, -1, data->error, data->user_data);
-	}
-
-	send_and_splice_data_free (data);
-}
-
-static void
-send_and_splice_splice_callback (GObject      *source,
-                                 GAsyncResult *result,
-                                 gpointer      user_data)
+get_metadata_fast_splice_callback (GObject      *source,
+                                   GAsyncResult *result,
+                                   gpointer      user_data)
 {
 	SendAndSpliceData *data = user_data;
 	GError *error = NULL;
@@ -2130,14 +2117,14 @@ send_and_splice_splice_callback (GObject      *source,
 	data->splice_finished = TRUE;
 
 	if (data->dbus_finished) {
-		dbus_send_and_splice_async_finish (data);
+		get_metadata_fast_async_callback (data);
 	}
 }
 
 static void
-send_and_splice_dbus_callback (GObject      *source,
-                               GAsyncResult *result,
-                               gpointer      user_data)
+get_metadata_fast_dbus_callback (GObject      *source,
+                                 GAsyncResult *result,
+                                 gpointer      user_data)
 {
 	SendAndSpliceData *data = user_data;
 	GDBusMessage *reply;
@@ -2165,124 +2152,8 @@ send_and_splice_dbus_callback (GObject      *source,
 	data->dbus_finished = TRUE;
 
 	if (data->splice_finished) {
-		dbus_send_and_splice_async_finish (data);
+		get_metadata_fast_async_callback (data);
 	}
-}
-
-static gboolean
-dbus_send_and_splice_async (GDBusConnection                  *connection,
-                            GDBusMessage                     *message,
-                            int                               fd,
-                            GCancellable                     *cancellable,
-                            TrackerDBusSendAndSpliceCallback  callback,
-                            gpointer                          user_data)
-{
-	SendAndSpliceData *data;
-	GInputStream *unix_input_stream;
-	GInputStream *buffered_input_stream;
-	GOutputStream *output_stream;
-
-	g_return_val_if_fail (connection != NULL, FALSE);
-	g_return_val_if_fail (message != NULL, FALSE);
-	g_return_val_if_fail (fd > 0, FALSE);
-	g_return_val_if_fail (callback != NULL, FALSE);
-
-	unix_input_stream = g_unix_input_stream_new (fd, TRUE);
-	buffered_input_stream = g_buffered_input_stream_new_sized (unix_input_stream,
-	                                                           DBUS_PIPE_BUFFER_SIZE);
-	output_stream = g_memory_output_stream_new (NULL, 0, g_realloc, g_free);
-
-	data = send_and_splice_data_new (unix_input_stream,
-	                                 buffered_input_stream,
-	                                 output_stream,
-	                                 cancellable,
-	                                 callback,
-	                                 user_data);
-
-	g_dbus_connection_send_message_with_reply (connection,
-	                                           message,
-	                                           G_DBUS_SEND_MESSAGE_FLAGS_NONE,
-	                                           -1,
-	                                           NULL,
-	                                           cancellable,
-	                                           send_and_splice_dbus_callback,
-	                                           data);
-
-	g_output_stream_splice_async (data->output_stream,
-	                              data->buffered_input_stream,
-	                              G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |
-	                              G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
-	                              0,
-	                              data->cancellable,
-	                              send_and_splice_splice_callback,
-	                              data);
-
-	return TRUE;
-}
-
-static FastAsyncData*
-fast_async_data_new (fast_async_cb  callback,
-                     gpointer       user_data)
-{
-	FastAsyncData *data;
-
-	data = g_slice_new0 (FastAsyncData);
-
-	data->callback = callback;
-	data->user_data = user_data;
-
-	return data;
-}
-
-static void
-fast_async_data_free (FastAsyncData *data)
-{
-	g_slice_free (FastAsyncData, data);
-}
-
-static void
-get_metadata_fast_cb (void     *buffer,
-                      gssize    buffer_size,
-                      GError   *error,
-                      gpointer  user_data)
-{
-	FastAsyncData *data;
-	ProcessFileData *process_data;
-	gboolean free_error = FALSE;
-	const gchar *preupdate = NULL;
-	const gchar *sparql = NULL;
-
-	data = user_data;
-	process_data = data->user_data;
-
-	if (!error && buffer_size) {
-		gsize preupdate_length;
-
-		preupdate = buffer;
-		preupdate_length = strnlen (preupdate, buffer_size);
-		if (preupdate_length < buffer_size && preupdate[buffer_size - 1] == '\0') {
-			/* sparql is stored just after preupdate in the original buffer */
-			sparql = preupdate + preupdate_length + 1;
-		} else {
-			error = g_error_new_literal (miner_files_error_quark,
-			                             0,
-			                             "Invalid data received from GetMetadataFast");
-			free_error = TRUE;
-		}
-	}
-
-	if (G_UNLIKELY (error)) {
-		if (error->code != G_IO_ERROR_CANCELLED) {
-			(* data->callback) (NULL, NULL, error, process_data);
-		}
-		if (free_error) {
-			g_error_free (error);
-		}
-	} else {
-		(* data->callback) (preupdate, sparql, NULL, data->user_data);
-	}
-
-	fast_async_data_free (data);
 }
 
 static void
@@ -2293,9 +2164,9 @@ get_metadata_fast_async (GDBusConnection *connection,
                          fast_async_cb    callback,
                          ProcessFileData *user_data)
 {
+	SendAndSpliceData *data;
 	GDBusMessage *message;
 	GUnixFDList *fd_list;
-	FastAsyncData *data;
 	int pipefd[2];
 
 	g_return_if_fail (connection);
@@ -2329,15 +2200,37 @@ get_metadata_fast_async (GDBusConnection *connection,
 
 	g_object_unref (fd_list);
 
-	data = fast_async_data_new (callback,
-	                            user_data);
+	data = g_slice_new0 (SendAndSpliceData);
 
-	dbus_send_and_splice_async (connection,
-	                            message,
-	                            pipefd[0],
-	                            cancellable,
-	                            get_metadata_fast_cb,
-	                            data);
+	data->unix_input_stream = g_unix_input_stream_new (pipefd[0], TRUE);
+	data->buffered_input_stream = g_buffered_input_stream_new_sized (data->unix_input_stream,
+	                                                                 DBUS_PIPE_BUFFER_SIZE);
+	data->output_stream = g_memory_output_stream_new (NULL, 0, g_realloc, g_free);
+
+	if (cancellable) {
+		data->cancellable = g_object_ref (cancellable);
+	}
+
+	data->callback = callback;
+	data->user_data = user_data;
+
+	g_dbus_connection_send_message_with_reply (connection,
+	                                           message,
+	                                           G_DBUS_SEND_MESSAGE_FLAGS_NONE,
+	                                           -1,
+	                                           NULL,
+	                                           cancellable,
+	                                           get_metadata_fast_dbus_callback,
+	                                           data);
+
+	g_output_stream_splice_async (data->output_stream,
+	                              data->buffered_input_stream,
+	                              G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE |
+	                              G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET,
+	                              0,
+	                              data->cancellable,
+	                              get_metadata_fast_splice_callback,
+	                              data);
 
 	g_object_unref (message);
 }

@@ -819,7 +819,6 @@ handle_method_call_get_metadata_fast (TrackerExtract        *object,
 		const gchar *uri = (const gchar *) uris[i];
 		const gchar *mime = (const gchar *) mimes[i];
 		TrackerSparqlBuilder *sparql, *preupdate;
-		gint len;
 
 		if (!priv->disable_shutdown) {
 			alarm (MAX_EXTRACT_TIME);
@@ -833,11 +832,8 @@ handle_method_call_get_metadata_fast (TrackerExtract        *object,
 		}
 
 		if (extracted) {
-			len = tracker_sparql_builder_get_length (sparql);
-		}
-
-		if (extracted && len > 0) {
 			const gchar *preupdate_str = NULL;
+			const gchar *sparql_str = NULL;
 
 			g_data_output_stream_put_byte (data_output_stream,
 			                               'r',
@@ -870,8 +866,12 @@ handle_method_call_get_metadata_fast (TrackerExtract        *object,
 				break;
 			}
 
+			if (tracker_sparql_builder_get_length (sparql) > 0) {
+				sparql_str = tracker_sparql_builder_get_result (sparql);
+			}
+
 			g_data_output_stream_put_string (data_output_stream,
-			                                 tracker_sparql_builder_get_result (sparql),
+			                                 sparql_str ? sparql_str : "",
 			                                 NULL,
 			                                 &error);
 

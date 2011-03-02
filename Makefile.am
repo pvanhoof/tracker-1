@@ -93,6 +93,7 @@ DISTCHECK_CONFIGURE_FLAGS =                            \
 	--enable-libgsf                                \
 	--enable-playlist                              \
 	--enable-tracker-preferences                   \
+	--enable-instrospection			       \
 	--with-enca
 
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}

@@ -9,6 +9,8 @@ AM_VALAFLAGS =                                         \
 	--header tracker-sparql.h                      \
 	--vapi tracker-sparql-$(TRACKER_API_VERSION).vapi \
 	--pkg gio-2.0 --pkg gmodule-2.0 --pkg posix    \
+	--gir TrackerSparql-1.0.gir 		       \
+	--library TrackerSparql-1.0		       \
 	$(BUILD_VALAFLAGS)                             \
 	config.vapi                                    \
 	$(top_srcdir)/src/vapi/glib-2.0-fixes.vapi
@@ -22,13 +24,16 @@ AM_CPPFLAGS =                                          \
 
 libtracker_sparqlincludedir = $(includedir)/tracker-$(TRACKER_API_VERSION)/libtracker-sparql
 
-libtracker_sparql_@TRACKER_API_VERSION@_la_SOURCES =   \
-	tracker-builder.vala                           \
-	tracker-connection.vala                        \
-	tracker-cursor.vala                            \
-	tracker-backend.vala                           \
-	tracker-utils.vala                             \
-	tracker-uri.c                                  \
+libtracker_sparql_VALASOURCES =   			\
+	tracker-builder.vala                           	\
+	tracker-connection.vala                        	\
+	tracker-cursor.vala                            	\
+	tracker-backend.vala                           	\
+	tracker-utils.vala
+
+libtracker_sparql_@TRACKER_API_VERSION@_la_SOURCES =   	\
+	$(libtracker_sparql_VALASOURCES) 		\
+	tracker-uri.c                                   \
 	tracker-init.c
 
 libtracker_sparql_@TRACKER_API_VERSION@_la_LIBADD =    \
@@ -44,6 +49,14 @@ libtracker_sparqlinclude_HEADERS =                     \
 
 tracker-sparql-$(TRACKER_API_VERSION).deps: tracker-sparql.deps
 	$(AM_V_GEN)cp $^ $@
+
+# Gir for Gobject introspection
+TrackerSparql-1.0.gir: $(libtracker_sparql_VALASOURCES)
+	$(VALAC) -C $(AM_VALAFLAGS) $^
+	touch $@
+
+TrackerSparql_1_0_gir_NAMESPACE = "TrackerSparql"
+TrackerSparql_1_0_gir_VERSION = "1.0"
 
 # Vala bindings
 vapidir = $(datadir)/vala/vapi
@@ -64,3 +77,25 @@ EXTRA_DIST =                                           \
 	tracker-sparql-$(TRACKER_API_VERSION).vapi     \
 	tracker-sparql-$(TRACKER_API_VERSION).deps     \
 	tracker-sparql.deps
+
+if HAVE_INTROSPECTION
+girdir = @INTROSPECTION_GIRDIR@
+
+gir_DATA = \
+	TrackerSparql-1.0.gir
+
+typelibdir = @INTROSPECTOIN_TYPELIBDIR@
+typelib_DATA = \
+	TrackerSparql-1.0.typelib
+
+TrackerSparql-1.0.typelib: TrackerSparql-1.0.gir
+	@INTROSPECTION_COMPILER@ --shared-library=libtracker-sparql-@TRACKER_API_VERSION@ -o $@ $^
+
+EXTRA_DIST += TrackerSparql-1.0.gir
+
+MAINTAINERCLEANFILES += TrackerSparql-1.0.gir
+
+CLEANFILES = TrackerSparql-1.0.typelib
+
+endif
+

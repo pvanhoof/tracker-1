@@ -2059,6 +2059,38 @@ extractor_skip_embedded_metadata_idle (gpointer user_data)
 }
 
 static void
+send_and_splice_data_free (SendAndSpliceData *data)
+{
+	g_object_unref (data->unix_input_stream);
+	g_object_unref (data->buffered_input_stream);
+	g_object_unref (data->output_stream);
+
+	g_ptr_array_unref (data->items);
+
+	if (data->error) {
+		g_error_free (data->error);
+	}
+
+	g_slice_free (SendAndSpliceData, data);
+}
+
+static SendAndSpliceData*
+send_and_splice_data_new (int        fd,
+                          GPtrArray *queue)
+{
+	SendAndSpliceData *data = g_slice_new0 (SendAndSpliceData);
+
+	data->unix_input_stream = g_unix_input_stream_new (fd, TRUE);
+	data->buffered_input_stream = g_buffered_input_stream_new_sized (data->unix_input_stream,
+	                                                                 DBUS_PIPE_BUFFER_SIZE);
+	data->output_stream = g_memory_output_stream_new (NULL, 0, g_realloc, g_free);
+
+	data->items = queue;
+
+	return data;
+}
+
+static void
 flush_extract_queue_async_callback (SendAndSpliceData *data)
 {
 	if (!data->error) {
@@ -2136,17 +2168,7 @@ flush_extract_queue_async_callback (SendAndSpliceData *data)
 		}
 	}
 
-	g_object_unref (data->unix_input_stream);
-	g_object_unref (data->buffered_input_stream);
-	g_object_unref (data->output_stream);
-
-	g_ptr_array_unref (data->items);
-
-	if (data->error) {
-		g_error_free (data->error);
-	}
-
-	g_slice_free (SendAndSpliceData, data);
+	send_and_splice_data_free (data);
 }
 
 static void
@@ -2209,14 +2231,32 @@ flush_extract_queue_dbus_callback (GObject      *source,
 	}
 }
 
-
 static void
 free_queue_item (ExtractQueueItem *item)
 {
 	g_free (item->uri);
 	g_free (item->mime_type);
 	g_object_unref (item->cancellable);
+
 	g_slice_free (ExtractQueueItem, item);
+}
+
+static ExtractQueueItem*
+queue_item_new (const gchar     *uri,
+                const gchar     *mime_type,
+                GCancellable    *cancellable,
+                fast_async_cb    callback,
+                ProcessFileData *user_data)
+{
+	ExtractQueueItem *item = g_slice_new (ExtractQueueItem);
+
+	item->uri = g_strdup (uri);
+	item->mime_type = g_strdup (mime_type);
+	item->cancellable = g_object_ref (cancellable);
+	item->callback = callback;
+	item->user_data = user_data;
+
+	return item;
 }
 
 static void
@@ -2277,14 +2317,8 @@ flush_extract_queue_shared (TrackerMinerFiles *miner)
 
 	g_object_unref (fd_list);
 
-	data = g_slice_new0 (SendAndSpliceData);
+	data = send_and_splice_data_new (pipefd[0], queue);
 
-	data->unix_input_stream = g_unix_input_stream_new (pipefd[0], TRUE);
-	data->buffered_input_stream = g_buffered_input_stream_new_sized (data->unix_input_stream,
-	                                                                 DBUS_PIPE_BUFFER_SIZE);
-	data->output_stream = g_memory_output_stream_new (NULL, 0, g_realloc, g_free);
-
-	data->items = queue;
 
 	/* Note about timeouts that tracker-extract's alarm() would exit the service's
 	 * process resulting in a timeout DBus error message too (if alarm is triggered) */
@@ -2352,12 +2386,11 @@ get_metadata_fast_queue_async (TrackerMinerFiles *miner,
 		miner->private->extract_queue = g_ptr_array_new_with_free_func ((GDestroyNotify) free_queue_item);
 	}
 
-	item = g_slice_new (ExtractQueueItem);
-	item->uri = g_strdup (uri);
-	item->mime_type = g_strdup (mime_type);
-	item->cancellable = g_object_ref (cancellable);
-	item->callback = callback;
-	item->user_data = user_data;
+	item = queue_item_new (uri,
+	                       mime_type,
+	                       cancellable,
+	                       callback,
+	                       user_data);
 
 	g_ptr_array_add (miner->private->extract_queue, item);
 

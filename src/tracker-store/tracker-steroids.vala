@@ -182,16 +182,27 @@ public class Tracker.Steroids : Object {
 
 			var builder = new VariantBuilder ((VariantType) "as");
 
+			var queries = new StringBuilder ();
+			
 			for (i = 0; i < query_count; i++) {
 				request.debug ("query: %s", query_array[i]);
+				queries.append (query_array[i]);
+				queries.append_c (' ');
 
+				builder.add ("s", "");
+				builder.add ("s", "");
+			}
+
+			if (true) {
 				try {
-					yield Tracker.Store.sparql_update (query_array[i], Tracker.Store.Priority.HIGH, sender);
-					builder.add ("s", "");
-					builder.add ("s", "");
+					// yield Tracker.Store.sparql_update (query_array[i], Tracker.Store.Priority.HIGH, sender);
+					yield Tracker.Store.sparql_update (queries.str, Tracker.Store.Priority.HIGH, sender);
+//					builder.add ("s", "");
+//					builder.add ("s", "");
 				} catch (Error e1) {
-					builder.add ("s", "org.freedesktop.Tracker1.SparqlError.Internal");
-					builder.add ("s", e1.message);
+//					builder.add ("s", "org.freedesktop.Tracker1.SparqlError.Internal");
+//					builder.add ("s", e1.message);
+					critical ("BLA!");
 				}
 
 			}

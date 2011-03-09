@@ -88,7 +88,8 @@ gboolean     tracker_db_journal_append_insert_statement_id   (gint         g_id,
 gboolean     tracker_db_journal_append_update_statement      (gint         g_id,
                                                               gint         s_id,
                                                               gint         p_id,
-                                                              const gchar *object);
+                                                              const gchar *object,
+                                                              GValueArray *objects);
 gboolean     tracker_db_journal_append_update_statement_id   (gint         g_id,
                                                               gint         s_id,
                                                               gint         p_id,
@@ -118,7 +119,8 @@ gboolean     tracker_db_journal_reader_get_resource          (gint         *id,
 gboolean     tracker_db_journal_reader_get_statement         (gint         *g_id,
                                                               gint         *s_id,
                                                               gint         *p_id,
-                                                              const gchar **object);
+                                                              const gchar **object,
+                                                              GValueArray **objects);
 gboolean     tracker_db_journal_reader_get_statement_id      (gint         *g_id,
                                                               gint         *s_id,
                                                               gint         *p_id,

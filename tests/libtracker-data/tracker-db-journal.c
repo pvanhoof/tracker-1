@@ -256,7 +256,7 @@ test_read_functions (void)
 	type = tracker_db_journal_reader_get_type ();
 	g_assert_cmpint (type, ==, TRACKER_DB_JOURNAL_INSERT_STATEMENT);
 
-	result = tracker_db_journal_reader_get_statement (NULL, &s_id, &p_id, &str);
+	result = tracker_db_journal_reader_get_statement (NULL, &s_id, &p_id, &str, NULL);
 	g_assert_cmpint (result, ==, TRUE);
 	g_assert_cmpint (s_id, ==, 15);
 	g_assert_cmpint (p_id, ==, 16);

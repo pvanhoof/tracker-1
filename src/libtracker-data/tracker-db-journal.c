@@ -899,7 +899,8 @@ db_journal_writer_append_update_statement (JournalWriter *jwriter,
                                            gint           g_id,
                                            gint           s_id,
                                            gint           p_id,
-                                           const gchar   *object)
+                                           const gchar   *object,
+                                           GValueArray   *objects)
 {
 	gint o_len;
 	DataFormat df;
@@ -909,7 +910,6 @@ db_journal_writer_append_update_statement (JournalWriter *jwriter,
 	g_return_val_if_fail (g_id >= 0, FALSE);
 	g_return_val_if_fail (s_id > 0, FALSE);
 	g_return_val_if_fail (p_id > 0, FALSE);
-	g_return_val_if_fail (object != NULL, FALSE);
 
 	o_len = strlen (object);
 	if (g_id == 0) {
@@ -933,6 +933,8 @@ db_journal_writer_append_update_statement (JournalWriter *jwriter,
 	jwriter->cur_entry_amount++;
 	jwriter->cur_block_len += size;
 
+	/* TODO: Write objects in case of a set */
+
 	return TRUE;
 }
 
@@ -940,14 +942,16 @@ gboolean
 tracker_db_journal_append_update_statement (gint         g_id,
                                             gint         s_id,
                                             gint         p_id,
-                                            const gchar *object)
+                                            const gchar *object,
+                                            GValueArray *objects)
 {
 	if (current_transaction_format == TRANSACTION_FORMAT_ONTOLOGY) {
 		return TRUE;
 	}
 
 	return db_journal_writer_append_update_statement (&writer,
-	                                                  g_id, s_id, p_id, object);
+	                                                  g_id, s_id, p_id,
+	                                                  object, objects);
 }
 
 static gboolean
@@ -1818,7 +1822,8 @@ gboolean
 tracker_db_journal_reader_get_statement (gint         *g_id,
                                          gint         *s_id,
                                          gint         *p_id,
-                                         const gchar **object)
+                                         const gchar **object,
+                                         GValueArray **objects)
 {
 	g_return_val_if_fail (reader.file != NULL || reader.stream != NULL, FALSE);
 	g_return_val_if_fail (reader.type == TRACKER_DB_JOURNAL_INSERT_STATEMENT ||
@@ -1832,6 +1837,8 @@ tracker_db_journal_reader_get_statement (gint         *g_id,
 	*s_id = reader.s_id;
 	*p_id = reader.p_id;
 	*object = reader.object;
+
+	/* TODO: Read objects in case of TRACKER_DB_JOURNAL_UPDATE_STATEMENT of a set */
 
 	return TRUE;
 }

@@ -212,7 +212,7 @@ public class Tracker.Sparql.Query : Object {
 	internal Context context;
 
 	bool delete_statements;
-	bool update_statements;
+	public bool update_statements;
 
 	int bnodeid = 0;
 	// base UUID used for blank nodes
@@ -590,7 +590,6 @@ public class Tracker.Sparql.Query : Object {
 		}
 
 		bool delete_statements;
-		bool update_statements;
 
 		if (accept (SparqlTokenType.INSERT)) {
 			delete_statements = false;
@@ -684,7 +683,6 @@ public class Tracker.Sparql.Query : Object {
 		var cursor = exec_sql_cursor (sql.str, null, null, false);
 
 		this.delete_statements = delete_statements;
-		this.update_statements = update_statements;
 
 		// iterate over all solutions
 		while (cursor.next ()) {
@@ -785,6 +783,27 @@ public class Tracker.Sparql.Query : Object {
 	}
 
 	bool anon_blank_node_open = false;
+
+	ValueArray? parse_construct_graph_node (HashTable<string,string> var_value_map) throws Sparql.Error, DateError {
+		ValueArray result = null;
+
+		expect (SparqlTokenType.OPEN_PARENS);
+
+		while (true) {
+			Value chunk = Value (typeof (string));
+			if (accept (SparqlTokenType.CLOSE_PARENS)) {
+				break;
+			}
+			next();
+			chunk.take_string (get_last_string ());
+			if (result == null) {
+				result = new ValueArray (5);
+			}
+			result.append (chunk);
+		}
+
+		return result;
+	}
 
 	string? parse_construct_var_or_term (HashTable<string,string> var_value_map) throws Sparql.Error, DateError {
 		string result = "";
@@ -916,8 +935,16 @@ public class Tracker.Sparql.Query : Object {
 	}
 
 	void parse_construct_object (HashTable<string,string> var_value_map) throws Sparql.Error, DateError {
-		string object = parse_construct_var_or_term (var_value_map);
-		if (current_subject == null || current_predicate == null || object == null) {
+		string object = null;
+		ValueArray objects = null;
+
+		if (update_statements && current() == SparqlTokenType.OPEN_PARENS) {
+			objects = parse_construct_graph_node (var_value_map);
+		} else {
+			object = parse_construct_var_or_term (var_value_map);
+		}
+
+		if (current_subject == null || current_predicate == null || (!update_statements && object == null)) {
 			// the SPARQL specification says that triples containing unbound variables
 			// should be excluded from the output RDF graph of CONSTRUCT
 			return;
@@ -925,7 +952,8 @@ public class Tracker.Sparql.Query : Object {
 		try {
 			if (update_statements) {
 				// update triple in database
-				Data.update_statement (current_graph, current_subject, current_predicate, object);
+				// TODO: last argument is for collections
+				Data.update_statement (current_graph, current_subject, current_predicate, object, objects);
 			} else if (delete_statements) {
 				// delete triple from database
 				Data.delete_statement (current_graph, current_subject, current_predicate, object);

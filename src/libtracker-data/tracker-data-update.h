@@ -73,6 +73,7 @@ void     tracker_data_update_statement              (const gchar               *
                                                      const gchar               *subject,
                                                      const gchar               *predicate,
                                                      const gchar               *object,
+                                                     GValueArray               *objects,
                                                      GError                   **error);
 void     tracker_data_begin_transaction             (GError                   **error);
 void     tracker_data_begin_ontology_transaction    (GError                   **error);

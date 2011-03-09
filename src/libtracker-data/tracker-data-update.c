@@ -762,7 +762,7 @@ tracker_data_resource_buffer_flush (GError **error)
 	TrackerDataUpdateBufferProperty *property;
 	GHashTableIter                  iter;
 	const gchar                    *table_name;
-	gint                            i, param;
+	gint                            i, y, param;
 	GError                         *actual_error = NULL;
 
 	iface = tracker_db_manager_get_db_interface ();
@@ -774,70 +774,124 @@ tracker_data_resource_buffer_flush (GError **error)
 				property = &g_array_index (table->properties, TrackerDataUpdateBufferProperty, i);
 
 				if (table->update_value) {
-					g_critical ("Unimplemented SPARQL Update UPDATE feature called");
 
-					g_set_error_literal (error, TRACKER_SPARQL_ERROR, TRACKER_SPARQL_ERROR_UNSUPPORTED,
-					                     "Unimplemented SPARQL Update UPDATE feature called");
+					g_critical ("Unimplemented feature, SPARQL REPLACE for multi-value");
 
-					continue;
-
-				} else if (table->delete_value) {
-					/* delete rows for multiple value properties */
-					stmt = tracker_db_interface_create_statement (iface, TRACKER_DB_STATEMENT_CACHE_TYPE_UPDATE, &actual_error,
-					                                              "DELETE FROM \"%s\" WHERE ID = ? AND \"%s\" = ?",
-					                                              table_name,
-					                                              property->name);
-				} else if (property->date_time) {
-					stmt = tracker_db_interface_create_statement (iface, TRACKER_DB_STATEMENT_CACHE_TYPE_UPDATE, &actual_error,
-					                                              "INSERT OR IGNORE INTO \"%s\" (ID, \"%s\", \"%s:localDate\", \"%s:localTime\", \"%s:graph\") VALUES (?, ?, ?, ?, ?)",
-					                                              table_name,
-					                                              property->name,
-					                                              property->name,
-					                                              property->name,
-					                                              property->name);
-				} else {
-					stmt = tracker_db_interface_create_statement (iface, TRACKER_DB_STATEMENT_CACHE_TYPE_UPDATE, &actual_error,
-					                                              "INSERT OR IGNORE INTO \"%s\" (ID, \"%s\", \"%s:graph\") VALUES (?, ?, ?)",
-					                                              table_name,
-					                                              property->name,
-					                                              property->name);
-				}
-
-				if (actual_error) {
-					g_propagate_error (error, actual_error);
 					return;
-				}
 
-				param = 0;
+					stmt = tracker_db_interface_create_statement (iface, TRACKER_DB_STATEMENT_CACHE_TYPE_UPDATE, &actual_error,
+					                                              "DELETE FROM \"%s\" WHERE ID = ?",
+					                                              table_name);
 
-				tracker_db_statement_bind_int (stmt, param++, resource_buffer->id);
-				statement_bind_gvalue (stmt, &param, &property->value);
+					tracker_db_statement_execute (stmt, &actual_error);
+					g_object_unref (stmt);
 
-				if (property->graph != 0) {
-					tracker_db_statement_bind_int (stmt, param++, property->graph);
+					if (actual_error) {
+						g_propagate_error (error, actual_error);
+						return;
+					}
+
+					statement_bind_gvalue (stmt, &param, &property->value);
+
+					stmt = tracker_db_interface_create_statement (iface, TRACKER_DB_STATEMENT_CACHE_TYPE_UPDATE, &actual_error,
+					                                              "UPDATE \"%s\" SET \"%s\" = ? WHERE ID = ?",
+					                                              table_name,
+					                                              property->name);
+
+					if (actual_error) {
+						g_propagate_error (error, actual_error);
+						return;
+					}
+
+					/* TODO: loop over set */
+					for (y = 0; y < 0; y++) {
+						if (property->date_time) {
+							stmt = tracker_db_interface_create_statement (iface, TRACKER_DB_STATEMENT_CACHE_TYPE_UPDATE, &actual_error,
+							                                              "INSERT OR IGNORE INTO \"%s\" (ID, \"%s\", \"%s:localDate\", \"%s:localTime\", \"%s:graph\") VALUES (?, ?, ?, ?, ?)",
+							                                              table_name,
+							                                              property->name,
+							                                              property->name,
+							                                              property->name,
+							                                              property->name);
+						} else {
+							stmt = tracker_db_interface_create_statement (iface, TRACKER_DB_STATEMENT_CACHE_TYPE_UPDATE, &actual_error,
+							                                              "INSERT OR IGNORE INTO \"%s\" (ID, \"%s\", \"%s:graph\") VALUES (?, ?, ?)",
+							                                              table_name,
+							                                              property->name,
+							                                              property->name);
+						}
+
+						param = 0;
+
+						tracker_db_statement_bind_int (stmt, param++, resource_buffer->id);
+						/* TODO: add values[i]
+						 statement_bind_gvalue (stmt, &param, &property->values[i]); */
+
+						if (property->graph != 0) {
+							tracker_db_statement_bind_int (stmt, param++, property->graph);
+						} else {
+							tracker_db_statement_bind_null (stmt, param++);
+						}
+
+						tracker_db_statement_execute (stmt, &actual_error);
+						g_object_unref (stmt);
+
+						if (actual_error) {
+							g_propagate_error (error, actual_error);
+							return;
+						}
+					}
 				} else {
-					tracker_db_statement_bind_null (stmt, param++);
+					if (table->delete_value) {
+						/* delete rows for multiple value properties */
+						stmt = tracker_db_interface_create_statement (iface, TRACKER_DB_STATEMENT_CACHE_TYPE_UPDATE, &actual_error,
+						                                              "DELETE FROM \"%s\" WHERE ID = ? AND \"%s\" = ?",
+						                                              table_name,
+						                                              property->name);
+					} else if (property->date_time) {
+						stmt = tracker_db_interface_create_statement (iface, TRACKER_DB_STATEMENT_CACHE_TYPE_UPDATE, &actual_error,
+						                                              "INSERT OR IGNORE INTO \"%s\" (ID, \"%s\", \"%s:localDate\", \"%s:localTime\", \"%s:graph\") VALUES (?, ?, ?, ?, ?)",
+						                                              table_name,
+						                                              property->name,
+						                                              property->name,
+						                                              property->name,
+						                                              property->name);
+					} else {
+						stmt = tracker_db_interface_create_statement (iface, TRACKER_DB_STATEMENT_CACHE_TYPE_UPDATE, &actual_error,
+						                                              "INSERT OR IGNORE INTO \"%s\" (ID, \"%s\", \"%s:graph\") VALUES (?, ?, ?)",
+						                                              table_name,
+						                                              property->name,
+						                                              property->name);
+					}
+
+					if (actual_error) {
+						g_propagate_error (error, actual_error);
+						return;
+					}
+
+					param = 0;
+
+					tracker_db_statement_bind_int (stmt, param++, resource_buffer->id);
+					statement_bind_gvalue (stmt, &param, &property->value);
+
+					if (property->graph != 0) {
+						tracker_db_statement_bind_int (stmt, param++, property->graph);
+					} else {
+						tracker_db_statement_bind_null (stmt, param++);
+					}
+
+					tracker_db_statement_execute (stmt, &actual_error);
+					g_object_unref (stmt);
+
+					if (actual_error) {
+						g_propagate_error (error, actual_error);
+						return;
+					}
 				}
 
-				tracker_db_statement_execute (stmt, &actual_error);
-				g_object_unref (stmt);
-
-				if (actual_error) {
-					g_propagate_error (error, actual_error);
-					return;
-				}
 			}
 		} else {
 			GString *sql, *values_sql;
-
-			if (table->update_value) {
-				g_critical ("Unimplemented SPARQL Update UPDATE feature called");
-
-				g_set_error_literal (error, TRACKER_SPARQL_ERROR, TRACKER_SPARQL_ERROR_UNSUPPORTED,
-				                     "Unimplemented SPARQL Update UPDATE feature called");
-
-				continue;
-			}
 
 			if (table->delete_row) {
 				/* remove entry from rdf:type table */
@@ -877,6 +931,8 @@ tracker_data_resource_buffer_flush (GError **error)
 
 				continue;
 			}
+
+			/* table->update_value should also work with this */
 
 			if (table->insert) {
 				sql = g_string_new ("INSERT INTO \"");
@@ -934,14 +990,14 @@ tracker_data_resource_buffer_flush (GError **error)
 				g_string_append (values_sql, ")");
 
 				stmt = tracker_db_interface_create_statement (iface, TRACKER_DB_STATEMENT_CACHE_TYPE_UPDATE, &actual_error,
-					                                      "%s %s", sql->str, values_sql->str);
+				                                              "%s %s", sql->str, values_sql->str);
 				g_string_free (sql, TRUE);
 				g_string_free (values_sql, TRUE);
 			} else {
 				g_string_append (sql, " WHERE ID = ?");
 
 				stmt = tracker_db_interface_create_statement (iface, TRACKER_DB_STATEMENT_CACHE_TYPE_UPDATE, &actual_error,
-					                                      "%s", sql->str);
+				                                              "%s", sql->str);
 				g_string_free (sql, TRUE);
 			}
 

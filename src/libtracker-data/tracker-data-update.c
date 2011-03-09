@@ -783,20 +783,11 @@ tracker_data_resource_buffer_flush (GError **error)
 					                                              "DELETE FROM \"%s\" WHERE ID = ?",
 					                                              table_name);
 
+					param = 0;
+					tracker_db_statement_bind_int (stmt, param++, resource_buffer->id);
+
 					tracker_db_statement_execute (stmt, &actual_error);
 					g_object_unref (stmt);
-
-					if (actual_error) {
-						g_propagate_error (error, actual_error);
-						return;
-					}
-
-					statement_bind_gvalue (stmt, &param, &property->value);
-
-					stmt = tracker_db_interface_create_statement (iface, TRACKER_DB_STATEMENT_CACHE_TYPE_UPDATE, &actual_error,
-					                                              "UPDATE \"%s\" SET \"%s\" = ? WHERE ID = ?",
-					                                              table_name,
-					                                              property->name);
 
 					if (actual_error) {
 						g_propagate_error (error, actual_error);

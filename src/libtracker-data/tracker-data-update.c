@@ -990,13 +990,13 @@ static void resource_buffer_free (TrackerDataUpdateBufferResource *resource)
 }
 
 void
-tracker_data_update_buffer_flush (gboolean   delete_statements,
-                                  GError   **error)
+tracker_data_update_buffer_flush (GError   **error)
 {
 	GHashTableIter iter;
 	GError *actual_error = NULL;
 
-	if (in_journal_replay || delete_statements) {
+	if (update_buffer.resources_by_id) {
+		/* For in_journal_replay and delete_statement */
 		g_hash_table_iter_init (&iter, update_buffer.resources_by_id);
 		while (g_hash_table_iter_next (&iter, NULL, (gpointer*) &resource_buffer)) {
 			tracker_data_resource_buffer_flush (&actual_error);
@@ -1007,7 +1007,9 @@ tracker_data_update_buffer_flush (gboolean   delete_statements,
 		}
 
 		g_hash_table_remove_all (update_buffer.resources_by_id);
-	} else {
+	}
+
+	if (update_buffer.resources) {
 		g_hash_table_iter_init (&iter, update_buffer.resources);
 		while (g_hash_table_iter_next (&iter, NULL, (gpointer*) &resource_buffer)) {
 			tracker_data_resource_buffer_flush (&actual_error);
@@ -1019,17 +1021,17 @@ tracker_data_update_buffer_flush (gboolean   delete_statements,
 
 		g_hash_table_remove_all (update_buffer.resources);
 	}
+
 	resource_buffer = NULL;
 }
 
 void
-tracker_data_update_buffer_might_flush (gboolean   delete_statements,
-                                        GError   **error)
+tracker_data_update_buffer_might_flush (GError   **error)
 {
 	/* avoid high memory usage by update buffer */
 	if (g_hash_table_size (update_buffer.resources) +
 	    g_hash_table_size (update_buffer.resources_by_id) >= 1000) {
-		tracker_data_update_buffer_flush (delete_statements, error);
+		tracker_data_update_buffer_flush (error);
 	}
 }
 
@@ -2075,7 +2077,7 @@ resource_buffer_switch (const gchar *graph,
 		/* large INSERTs with thousands of resources could lead to
 		   high peak memory usage due to the update buffer
 		   flush the buffer if it already contains 1000 resources */
-		tracker_data_update_buffer_might_flush (in_delete_statement, NULL);
+		tracker_data_update_buffer_might_flush (NULL);
 
 		/* subject not yet in cache, retrieve or create ID */
 		resource_buffer = g_slice_new0 (TrackerDataUpdateBufferResource);
@@ -2995,7 +2997,7 @@ tracker_data_commit_transaction (GError **error)
 
 	iface = tracker_db_manager_get_db_interface ();
 
-	tracker_data_update_buffer_flush (FALSE, &actual_error);
+	tracker_data_update_buffer_flush (&actual_error);
 	if (actual_error) {
 		tracker_data_rollback_transaction ();
 		g_propagate_error (error, actual_error);
@@ -3222,7 +3224,7 @@ tracker_data_replay_journal (TrackerBusyCallback   busy_callback,
 			tracker_data_begin_transaction_for_replay (tracker_db_journal_reader_get_time (), NULL);
 		} else if (type == TRACKER_DB_JOURNAL_END_TRANSACTION) {
 			GError *new_error = NULL;
-			tracker_data_update_buffer_might_flush (FALSE, &new_error);
+			tracker_data_update_buffer_might_flush (&new_error);
 
 			tracker_data_commit_transaction (&new_error);
 			if (new_error) {
@@ -3243,7 +3245,7 @@ tracker_data_replay_journal (TrackerBusyCallback   busy_callback,
 			tracker_db_journal_reader_get_statement (&graph_id, &subject_id, &predicate_id, &object);
 
 			if (last_operation_type == -1) {
-				tracker_data_update_buffer_flush (FALSE, &new_error);
+				tracker_data_update_buffer_flush (&new_error);
 				if (new_error) {
 					g_warning ("Journal replay error: '%s'", new_error->message);
 					g_clear_error (&new_error);
@@ -3282,7 +3284,7 @@ tracker_data_replay_journal (TrackerBusyCallback   busy_callback,
 			tracker_db_journal_reader_get_statement_id (&graph_id, &subject_id, &predicate_id, &object_id);
 
 			if (last_operation_type == -1) {
-				tracker_data_update_buffer_flush (FALSE, &new_error);
+				tracker_data_update_buffer_flush (&new_error);
 				if (new_error) {
 					g_warning ("Journal replay error: '%s'", new_error->message);
 					g_clear_error (&new_error);
@@ -3338,7 +3340,7 @@ tracker_data_replay_journal (TrackerBusyCallback   busy_callback,
 			tracker_db_journal_reader_get_statement (&graph_id, &subject_id, &predicate_id, &object);
 
 			if (last_operation_type == 1) {
-				tracker_data_update_buffer_flush (FALSE, &new_error);
+				tracker_data_update_buffer_flush (&new_error);
 				if (new_error) {
 					g_warning ("Journal replay error: '%s'", new_error->message);
 					g_clear_error (&new_error);
@@ -3389,7 +3391,7 @@ tracker_data_replay_journal (TrackerBusyCallback   busy_callback,
 			tracker_db_journal_reader_get_statement_id (&graph_id, &subject_id, &predicate_id, &object_id);
 
 			if (last_operation_type == 1) {
-				tracker_data_update_buffer_flush (FALSE, &new_error);
+				tracker_data_update_buffer_flush (&new_error);
 				if (new_error) {
 					g_warning ("Journal replay error: '%s'", new_error->message);
 					g_clear_error (&new_error);

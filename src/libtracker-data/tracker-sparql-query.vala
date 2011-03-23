@@ -715,7 +715,7 @@ public class Tracker.Sparql.Query : Object {
 				update_blank_nodes.add_value (blank_nodes);
 			}
 
-			Data.update_buffer_might_flush (delete_statements);
+			Data.update_buffer_might_flush ();
 		}
 
 		if (!data) {
@@ -724,7 +724,7 @@ public class Tracker.Sparql.Query : Object {
 		}
 
 		// ensure possible WHERE clause in next part gets the correct results
-		Data.update_buffer_flush (delete_statements);
+		Data.update_buffer_flush ();
 		bindings = null;
 
 		context = context.parent_context;

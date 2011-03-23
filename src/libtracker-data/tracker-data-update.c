@@ -2115,22 +2115,17 @@ resource_buffer_switch (const gchar *graph,
 
 void
 tracker_data_delete_statement (const gchar  *graph,
-                               const gchar  *subject,
-                               gint          s_id,
+                               gint          subject_id,
                                const gchar  *predicate,
                                const gchar  *object,
                                GError      **error)
 {
 	TrackerClass       *class;
-	gint                subject_id = 0;
 	gboolean            change = FALSE;
 
-	g_return_if_fail (s_id != 0 || subject != NULL);
 	g_return_if_fail (predicate != NULL);
 	g_return_if_fail (object != NULL);
 	g_return_if_fail (in_transaction);
-
-	subject_id = (s_id != 0) ? s_id : query_resource_id (subject);
 
 	if (subject_id == 0) {
 		/* subject not in database */
@@ -2225,7 +2220,7 @@ tracker_data_delete_statement (const gchar  *graph,
 				TrackerStatementDelegate *delegate;
 
 				delegate = g_ptr_array_index (delete_callbacks, n);
-				delegate->callback (graph_id, graph, subject_id, subject,
+				delegate->callback (graph_id, graph, subject_id, NULL,
 				                    pred_id, object_id,
 				                    object,
 				                    resource_buffer->types,

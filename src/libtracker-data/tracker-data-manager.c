@@ -432,7 +432,8 @@ update_property_value (const gchar      *ontology_path,
 				}
 
 				if (!unsup_onto_err) {
-					tracker_data_delete_statement (NULL, subject, 0, predicate, str, &error);
+					gint subject_id = tracker_data_query_resource_id (subject);
+					tracker_data_delete_statement (NULL, subject_id, predicate, str, &error);
 					if (!error)
 						tracker_data_update_buffer_flush (&error);
 				}
@@ -1285,7 +1286,7 @@ check_for_deleted_domain_index (TrackerClass *class)
 			tracker_property_del_domain_index (prop, class);
 			tracker_class_del_domain_index (class, prop);
 
-			tracker_data_delete_statement (NULL, tracker_class_get_uri (class), 0,
+			tracker_data_delete_statement (NULL, tracker_class_get_id (class),
 			                               TRACKER_PREFIX "domainIndex",
 			                               tracker_property_get_uri (prop),
 			                               &error);

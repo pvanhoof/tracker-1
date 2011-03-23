@@ -50,8 +50,7 @@ GQuark   tracker_data_error_quark                   (void);
 
 /* Metadata */
 void     tracker_data_delete_statement              (const gchar               *graph,
-                                                     const gchar               *subject,
-                                                     gint                       s_id,
+                                                     gint                       subject_id,
                                                      const gchar               *predicate,
                                                      const gchar               *object,
                                                      GError                   **error);

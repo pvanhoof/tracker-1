@@ -798,31 +798,35 @@ public class Tracker.Sparql.Query : Object {
 		int s_id = 0;
 
 		if (current () == SparqlTokenType.VAR) {
-			string as_str;
-
 			next ();
-			as_str = var_value_map.lookup (get_last_string ().substring (1));
+			result = var_value_map.lookup (get_last_string ().substring (1));
 
 			if (for_del_sub) {
-				s_id = as_str.to_int ();
-				result = null;
-			} else {
-				result = as_str;
+				s_id = result.to_int ();
 			}
-
 		} else if (current () == SparqlTokenType.IRI_REF) {
 			next ();
 			result = get_last_string (1);
+
+			if (for_del_sub) {
+				s_id = Data.query_resource_id (result);
+			}
 		} else if (current () == SparqlTokenType.PN_PREFIX) {
 			// prefixed name with namespace foo:bar
 			next ();
 			string ns = get_last_string ();
 			expect (SparqlTokenType.COLON);
 			result = resolve_prefixed_name (ns, get_last_string ().substring (1));
+			if (for_del_sub) {
+				s_id = Data.query_resource_id (result);
+			}
 		} else if (current () == SparqlTokenType.COLON) {
 			// prefixed name without namespace :bar
 			next ();
 			result = resolve_prefixed_name ("", get_last_string ().substring (1));
+			if (for_del_sub) {
+				s_id = Data.query_resource_id (result);
+			}
 		} else if (accept (SparqlTokenType.BLANK_NODE)) {
 			// _:foo
 			expect (SparqlTokenType.COLON);
@@ -962,7 +966,7 @@ public class Tracker.Sparql.Query : Object {
 				Data.update_statement (current_graph, current_subject, current_predicate, object);
 			} else if (delete_statements) {
 				// delete triple from database
-				Data.delete_statement (current_graph, current_subject, current_subject_id, current_predicate, object);
+				Data.delete_statement (current_graph, current_subject_id, current_predicate, object);
 			} else {
 				// insert triple into database
 				Data.insert_statement (current_graph, current_subject, current_predicate, object);

@@ -197,6 +197,7 @@ public class Tracker.Sparql.Query : Object {
 
 	string current_graph;
 	string current_subject;
+	int current_subject_id;
 	bool current_subject_is_var;
 	string current_predicate;
 	bool current_predicate_is_var;
@@ -258,7 +259,9 @@ public class Tracker.Sparql.Query : Object {
 			sha1, sha1.substring (8), sha1.substring (12), sha1.substring (16), sha1.substring (20));
 	}
 
-	internal string generate_bnodeid (string? user_bnodeid) {
+	internal string generate_bnodeid (string? user_bnodeid, out int id) {
+		int resource_id = 0;
+
 		// user_bnodeid is NULL for anonymous nodes
 		if (user_bnodeid == null) {
 			return ":%d".printf (++bnodeid);
@@ -275,7 +278,7 @@ public class Tracker.Sparql.Query : Object {
 			uri = get_uuid_for_name (base_uuid, user_bnodeid);
 
 			if (blank_nodes != null) {
-				while (Data.query_resource_id (uri) > 0) {
+				while ((resource_id = Data.query_resource_id (uri)) > 0) {
 					// uri collision, generate new UUID
 					uchar[] new_base_uuid = new uchar[16];
 					uuid_generate (new_base_uuid);
@@ -284,6 +287,8 @@ public class Tracker.Sparql.Query : Object {
 
 				blank_nodes.insert (user_bnodeid, uri);
 			}
+
+			id = resource_id;
 
 			return uri;
 		}
@@ -666,7 +671,11 @@ public class Tracker.Sparql.Query : Object {
 			if (variable.binding == null) {
 				throw get_error ("use of undefined variable `%s'".printf (variable.name));
 			}
-			Expression.append_expression_as_string (sql, variable.sql_expression, variable.binding.data_type);
+			if (delete_statements){
+				Expression.append_expression_as_int (sql, variable.sql_expression, variable.binding.data_type);
+			} else {
+				Expression.append_expression_as_string (sql, variable.sql_expression, variable.binding.data_type);
+			}
 		}
 
 		if (first) {
@@ -706,7 +715,7 @@ public class Tracker.Sparql.Query : Object {
 				update_blank_nodes.add_value (blank_nodes);
 			}
 
-			Data.update_buffer_might_flush ();
+			Data.update_buffer_might_flush (delete_statements);
 		}
 
 		if (!data) {
@@ -715,7 +724,7 @@ public class Tracker.Sparql.Query : Object {
 		}
 
 		// ensure possible WHERE clause in next part gets the correct results
-		Data.update_buffer_flush ();
+		Data.update_buffer_flush (delete_statements);
 		bindings = null;
 
 		context = context.parent_context;
@@ -752,12 +761,13 @@ public class Tracker.Sparql.Query : Object {
 		while (current () != SparqlTokenType.CLOSE_BRACE) {
 			if (accept (SparqlTokenType.GRAPH)) {
 				var old_graph = current_graph;
-				current_graph = parse_construct_var_or_term (var_value_map);
+				int id;
+				current_graph = parse_construct_var_or_term (var_value_map, out id, false);
 
 				expect (SparqlTokenType.OPEN_BRACE);
 
 				while (current () != SparqlTokenType.CLOSE_BRACE) {
-					current_subject = parse_construct_var_or_term (var_value_map);
+					current_subject = parse_construct_var_or_term (var_value_map, out current_subject_id, delete_statements);
 					parse_construct_property_list_not_empty (var_value_map);
 					if (!accept (SparqlTokenType.DOT)) {
 						// no triples following
@@ -769,7 +779,7 @@ public class Tracker.Sparql.Query : Object {
 
 				current_graph = old_graph;
 			} else {
-				current_subject = parse_construct_var_or_term (var_value_map);
+				current_subject = parse_construct_var_or_term (var_value_map, out current_subject_id, delete_statements);
 				parse_construct_property_list_not_empty (var_value_map);
 				if (!accept (SparqlTokenType.DOT) && current () != SparqlTokenType.GRAPH) {
 					// neither GRAPH nor triples following
@@ -783,11 +793,23 @@ public class Tracker.Sparql.Query : Object {
 
 	bool anon_blank_node_open = false;
 
-	string? parse_construct_var_or_term (HashTable<string,string> var_value_map) throws Sparql.Error, DateError {
+	string? parse_construct_var_or_term (HashTable<string,string> var_value_map, out int id, bool for_del_sub) throws Sparql.Error, DateError {
 		string result = "";
+		int s_id = 0;
+
 		if (current () == SparqlTokenType.VAR) {
+			string as_str;
+
 			next ();
-			result = var_value_map.lookup (get_last_string ().substring (1));
+			as_str = var_value_map.lookup (get_last_string ().substring (1));
+
+			if (for_del_sub) {
+				s_id = as_str.to_int ();
+				result = null;
+			} else {
+				result = as_str;
+			}
+
 		} else if (current () == SparqlTokenType.IRI_REF) {
 			next ();
 			result = get_last_string (1);
@@ -804,7 +826,7 @@ public class Tracker.Sparql.Query : Object {
 		} else if (accept (SparqlTokenType.BLANK_NODE)) {
 			// _:foo
 			expect (SparqlTokenType.COLON);
-			result = generate_bnodeid (get_last_string ().substring (1));
+			result = generate_bnodeid (get_last_string ().substring (1), out s_id);
 		} else if (current () == SparqlTokenType.MINUS) {
 			next ();
 			if (current () == SparqlTokenType.INTEGER ||
@@ -847,21 +869,27 @@ public class Tracker.Sparql.Query : Object {
 			anon_blank_node_open = true;
 			next ();
 
-			result = generate_bnodeid (null);
+			result = generate_bnodeid (null, out s_id);
 
+			int old_subject_id = current_subject_id;
 			string old_subject = current_subject;
 			bool old_subject_is_var = current_subject_is_var;
 
+			current_subject_id = s_id;
 			current_subject = result;
 			parse_construct_property_list_not_empty (var_value_map);
 			expect (SparqlTokenType.CLOSE_BRACKET);
 			anon_blank_node_open = false;
 
+			current_subject_id = old_subject_id;
 			current_subject = old_subject;
 			current_subject_is_var = old_subject_is_var;
 		} else {
 			throw get_error ("expected variable or term");
 		}
+
+		id = s_id;
+
 		return result;
 	}
 
@@ -913,19 +941,28 @@ public class Tracker.Sparql.Query : Object {
 	}
 
 	void parse_construct_object (HashTable<string,string> var_value_map) throws Sparql.Error, DateError {
-		string object = parse_construct_var_or_term (var_value_map);
-		if (current_subject == null || current_predicate == null || object == null) {
-			// the SPARQL specification says that triples containing unbound variables
-			// should be excluded from the output RDF graph of CONSTRUCT
-			return;
+		int id;
+		string object = parse_construct_var_or_term (var_value_map, out id, false);
+
+		// the SPARQL specification says that triples containing unbound variables
+		// should be excluded from the output RDF graph of CONSTRUCT
+		if (delete_statements) {
+			if (current_subject_id == 0 || current_predicate == null || object == null) {
+				return;
+			}
+		} else {
+			if (current_subject == null || current_predicate == null || object == null) {
+				return;
+			}
 		}
+
 		try {
 			if (update_statements) {
 				// update triple in database
 				Data.update_statement (current_graph, current_subject, current_predicate, object);
 			} else if (delete_statements) {
 				// delete triple from database
-				Data.delete_statement (current_graph, current_subject, current_predicate, object);
+				Data.delete_statement (current_graph, current_subject, current_subject_id, current_predicate, object);
 			} else {
 				// insert triple into database
 				Data.insert_statement (current_graph, current_subject, current_predicate, object);

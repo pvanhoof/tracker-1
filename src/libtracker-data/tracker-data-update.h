@@ -51,6 +51,7 @@ GQuark   tracker_data_error_quark                   (void);
 /* Metadata */
 void     tracker_data_delete_statement              (const gchar               *graph,
                                                      const gchar               *subject,
+                                                     gint                       s_id,
                                                      const gchar               *predicate,
                                                      const gchar               *object,
                                                      GError                   **error);
@@ -86,8 +87,10 @@ void     tracker_data_update_sparql                 (const gchar               *
 GVariant *
          tracker_data_update_sparql_blank           (const gchar               *update,
                                                      GError                   **error);
-void     tracker_data_update_buffer_flush           (GError                   **error);
-void     tracker_data_update_buffer_might_flush     (GError                   **error);
+void     tracker_data_update_buffer_flush           (gboolean                   delete_statements,
+                                                     GError                   **error);
+void     tracker_data_update_buffer_might_flush     (gboolean                   delete_statements,
+                                                     GError                   **error);
 void     tracker_data_load_turtle_file              (GFile                     *file,
                                                      GError                   **error);
 

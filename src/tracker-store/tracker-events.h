@@ -34,14 +34,12 @@ void           tracker_events_init              (void);
 void           tracker_events_shutdown          (void);
 void           tracker_events_add_insert        (gint         graph_id,
                                                  gint         subject_id,
-                                                 const gchar *subject,
                                                  gint         pred_id,
                                                  gint         object_id,
                                                  const gchar *object,
                                                  GPtrArray   *rdf_types);
 void           tracker_events_add_delete        (gint         graph_id,
                                                  gint         subject_id,
-                                                 const gchar *subject,
                                                  gint         pred_id,
                                                  gint         object_id,
                                                  const gchar *object,

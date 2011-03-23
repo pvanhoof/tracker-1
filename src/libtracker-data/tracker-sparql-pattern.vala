@@ -485,9 +485,10 @@ class Tracker.Sparql.Pattern : Object {
 			next ();
 			result = query.resolve_prefixed_name ("", get_last_string ().substring (1));
 		} else if (accept (SparqlTokenType.BLANK_NODE)) {
+			int id;
 			// _:foo
 			expect (SparqlTokenType.COLON);
-			result = query.generate_bnodeid (get_last_string ().substring (1));
+			result = query.generate_bnodeid (get_last_string ().substring (1), out id);
 		} else if (current () == SparqlTokenType.STRING_LITERAL1) {
 			result = expression.parse_string_literal ();
 		} else if (current () == SparqlTokenType.STRING_LITERAL2) {
@@ -512,9 +513,10 @@ class Tracker.Sparql.Pattern : Object {
 			next ();
 			result = "false";
 		} else if (current () == SparqlTokenType.OPEN_BRACKET) {
+			int id;
 			next ();
 
-			result = query.generate_bnodeid (null);
+			result = query.generate_bnodeid (null, out id);
 
 			string old_subject = current_subject;
 			bool old_subject_is_var = current_subject_is_var;

@@ -990,12 +990,13 @@ static void resource_buffer_free (TrackerDataUpdateBufferResource *resource)
 }
 
 void
-tracker_data_update_buffer_flush (GError **error)
+tracker_data_update_buffer_flush (gboolean   delete_statements,
+                                  GError   **error)
 {
 	GHashTableIter iter;
 	GError *actual_error = NULL;
 
-	if (in_journal_replay) {
+	if (in_journal_replay || delete_statements) {
 		g_hash_table_iter_init (&iter, update_buffer.resources_by_id);
 		while (g_hash_table_iter_next (&iter, NULL, (gpointer*) &resource_buffer)) {
 			tracker_data_resource_buffer_flush (&actual_error);
@@ -1022,12 +1023,13 @@ tracker_data_update_buffer_flush (GError **error)
 }
 
 void
-tracker_data_update_buffer_might_flush (GError **error)
+tracker_data_update_buffer_might_flush (gboolean   delete_statements,
+                                        GError   **error)
 {
 	/* avoid high memory usage by update buffer */
 	if (g_hash_table_size (update_buffer.resources) +
 	    g_hash_table_size (update_buffer.resources_by_id) >= 1000) {
-		tracker_data_update_buffer_flush (error);
+		tracker_data_update_buffer_flush (delete_statements, error);
 	}
 }
 
@@ -2049,9 +2051,10 @@ static void
 resource_buffer_switch (const gchar *graph,
                         gint         graph_id,
                         const gchar *subject,
-                        gint         subject_id)
+                        gint         subject_id,
+                        gboolean     in_delete_statement)
 {
-	if (in_journal_replay) {
+	if (in_journal_replay || in_delete_statement) {
 		/* journal replay only provides subject id
 		   resource_buffer->subject is only used in error messages and callbacks
 		   both should never occur when in journal replay */
@@ -2072,7 +2075,7 @@ resource_buffer_switch (const gchar *graph,
 		/* large INSERTs with thousands of resources could lead to
 		   high peak memory usage due to the update buffer
 		   flush the buffer if it already contains 1000 resources */
-		tracker_data_update_buffer_might_flush (NULL);
+		tracker_data_update_buffer_might_flush (in_delete_statement, NULL);
 
 		/* subject not yet in cache, retrieve or create ID */
 		resource_buffer = g_slice_new0 (TrackerDataUpdateBufferResource);
@@ -2096,7 +2099,7 @@ resource_buffer_switch (const gchar *graph,
 		resource_buffer->predicates = g_hash_table_new_full (g_direct_hash, g_direct_equal, g_object_unref, (GDestroyNotify) g_value_array_free);
 		resource_buffer->tables = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, (GDestroyNotify) cache_table_free);
 
-		if (in_journal_replay) {
+		if (in_journal_replay || in_delete_statement) {
 			g_hash_table_insert (update_buffer.resources_by_id, GINT_TO_POINTER (subject_id), resource_buffer);
 		} else {
 			g_hash_table_insert (update_buffer.resources, subject_dup, resource_buffer);
@@ -2111,6 +2114,7 @@ resource_buffer_switch (const gchar *graph,
 void
 tracker_data_delete_statement (const gchar  *graph,
                                const gchar  *subject,
+                               gint          s_id,
                                const gchar  *predicate,
                                const gchar  *object,
                                GError      **error)
@@ -2119,19 +2123,19 @@ tracker_data_delete_statement (const gchar  *graph,
 	gint                subject_id = 0;
 	gboolean            change = FALSE;
 
-	g_return_if_fail (subject != NULL);
+	g_return_if_fail (s_id != 0 || subject != NULL);
 	g_return_if_fail (predicate != NULL);
 	g_return_if_fail (object != NULL);
 	g_return_if_fail (in_transaction);
 
-	subject_id = query_resource_id (subject);
+	subject_id = (s_id != 0) ? s_id : query_resource_id (subject);
 
 	if (subject_id == 0) {
 		/* subject not in database */
 		return;
 	}
 
-	resource_buffer_switch (graph, 0, subject, subject_id);
+	resource_buffer_switch (graph, 0, NULL, subject_id, TRUE);
 
 	if (object && g_strcmp0 (predicate, RDF_PREFIX "type") == 0) {
 		class = tracker_ontologies_get_class_by_uri (object);
@@ -2274,7 +2278,7 @@ tracker_data_insert_statement_common (const gchar            *graph,
 		return FALSE;
 	}
 
-	resource_buffer_switch (graph, 0, subject, 0);
+	resource_buffer_switch (graph, 0, subject, 0, FALSE);
 
 	return TRUE;
 }
@@ -2991,7 +2995,7 @@ tracker_data_commit_transaction (GError **error)
 
 	iface = tracker_db_manager_get_db_interface ();
 
-	tracker_data_update_buffer_flush (&actual_error);
+	tracker_data_update_buffer_flush (FALSE, &actual_error);
 	if (actual_error) {
 		tracker_data_rollback_transaction ();
 		g_propagate_error (error, actual_error);
@@ -3218,7 +3222,7 @@ tracker_data_replay_journal (TrackerBusyCallback   busy_callback,
 			tracker_data_begin_transaction_for_replay (tracker_db_journal_reader_get_time (), NULL);
 		} else if (type == TRACKER_DB_JOURNAL_END_TRANSACTION) {
 			GError *new_error = NULL;
-			tracker_data_update_buffer_might_flush (&new_error);
+			tracker_data_update_buffer_might_flush (FALSE, &new_error);
 
 			tracker_data_commit_transaction (&new_error);
 			if (new_error) {
@@ -3239,7 +3243,7 @@ tracker_data_replay_journal (TrackerBusyCallback   busy_callback,
 			tracker_db_journal_reader_get_statement (&graph_id, &subject_id, &predicate_id, &object);
 
 			if (last_operation_type == -1) {
-				tracker_data_update_buffer_flush (&new_error);
+				tracker_data_update_buffer_flush (FALSE, &new_error);
 				if (new_error) {
 					g_warning ("Journal replay error: '%s'", new_error->message);
 					g_clear_error (&new_error);
@@ -3253,7 +3257,7 @@ tracker_data_replay_journal (TrackerBusyCallback   busy_callback,
 			}
 
 			if (property) {
-				resource_buffer_switch (NULL, graph_id, NULL, subject_id);
+				resource_buffer_switch (NULL, graph_id, NULL, subject_id, FALSE);
 
 				if (type == TRACKER_DB_JOURNAL_UPDATE_STATEMENT) {
 					cache_update_metadata_decomposed (property, object, 0, NULL, graph_id, &new_error);
@@ -3278,7 +3282,7 @@ tracker_data_replay_journal (TrackerBusyCallback   busy_callback,
 			tracker_db_journal_reader_get_statement_id (&graph_id, &subject_id, &predicate_id, &object_id);
 
 			if (last_operation_type == -1) {
-				tracker_data_update_buffer_flush (&new_error);
+				tracker_data_update_buffer_flush (FALSE, &new_error);
 				if (new_error) {
 					g_warning ("Journal replay error: '%s'", new_error->message);
 					g_clear_error (&new_error);
@@ -3295,7 +3299,7 @@ tracker_data_replay_journal (TrackerBusyCallback   busy_callback,
 				if (tracker_property_get_data_type (property) != TRACKER_PROPERTY_TYPE_RESOURCE) {
 					g_warning ("Journal replay error: 'property with ID %d does not account URIs'", predicate_id);
 				} else {
-					resource_buffer_switch (NULL, graph_id, NULL, subject_id);
+					resource_buffer_switch (NULL, graph_id, NULL, subject_id, FALSE);
 
 					if (property == rdf_type) {
 						uri = tracker_ontologies_get_uri_by_id (object_id);
@@ -3334,7 +3338,7 @@ tracker_data_replay_journal (TrackerBusyCallback   busy_callback,
 			tracker_db_journal_reader_get_statement (&graph_id, &subject_id, &predicate_id, &object);
 
 			if (last_operation_type == 1) {
-				tracker_data_update_buffer_flush (&new_error);
+				tracker_data_update_buffer_flush (FALSE, &new_error);
 				if (new_error) {
 					g_warning ("Journal replay error: '%s'", new_error->message);
 					g_clear_error (&new_error);
@@ -3342,7 +3346,7 @@ tracker_data_replay_journal (TrackerBusyCallback   busy_callback,
 			}
 			last_operation_type = -1;
 
-			resource_buffer_switch (NULL, graph_id, NULL, subject_id);
+			resource_buffer_switch (NULL, graph_id, NULL, subject_id, FALSE);
 
 			uri = tracker_ontologies_get_uri_by_id (predicate_id);
 			if (uri) {
@@ -3385,7 +3389,7 @@ tracker_data_replay_journal (TrackerBusyCallback   busy_callback,
 			tracker_db_journal_reader_get_statement_id (&graph_id, &subject_id, &predicate_id, &object_id);
 
 			if (last_operation_type == 1) {
-				tracker_data_update_buffer_flush (&new_error);
+				tracker_data_update_buffer_flush (FALSE, &new_error);
 				if (new_error) {
 					g_warning ("Journal replay error: '%s'", new_error->message);
 					g_clear_error (&new_error);
@@ -3400,7 +3404,7 @@ tracker_data_replay_journal (TrackerBusyCallback   busy_callback,
 
 			if (property) {
 
-				resource_buffer_switch (NULL, graph_id, NULL, subject_id);
+				resource_buffer_switch (NULL, graph_id, NULL, subject_id, FALSE);
 
 				if (property == rdf_type) {
 					uri = tracker_ontologies_get_uri_by_id (object_id);

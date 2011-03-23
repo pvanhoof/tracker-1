@@ -60,7 +60,6 @@ void
 tracker_writeback_check (gint         graph_id,
                          const gchar *graph,
                          gint         subject_id,
-                         const gchar *subject,
                          gint         pred_id,
                          gint         object_id,
                          const gchar *object,

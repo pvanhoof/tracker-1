@@ -25,7 +25,7 @@ namespace Tracker {
 	namespace Writeback {
 		public void init (WritebackGetPredicatesFunc callback);
 		public void shutdown ();
-		public void check (int graph_id, string graph, int subject_id, string subject, int pred_id, int object_id, string object, GLib.PtrArray rdf_types);
+		public void check (int graph_id, string graph, int subject_id, int pred_id, int object_id, string object, GLib.PtrArray rdf_types);
 		public unowned GLib.HashTable<int, GLib.Array<int>> get_ready ();
 		public void reset_pending ();
 		public void reset_ready ();

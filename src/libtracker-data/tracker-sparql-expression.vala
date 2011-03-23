@@ -300,6 +300,31 @@ class Tracker.Sparql.Expression : Object {
 		}
 	}
 
+	internal static void append_expression_as_int (StringBuilder sql, string expression, PropertyType type) {
+		long begin = sql.len;
+		sql.append (expression);
+		convert_expression_to_int (sql, type, begin);
+	}
+
+	static void convert_expression_to_int (StringBuilder sql, PropertyType type, long begin) {
+		switch (type) {
+		case PropertyType.STRING:
+		case PropertyType.INTEGER:
+		case PropertyType.RESOURCE:
+		case PropertyType.BOOLEAN:
+		case PropertyType.DATETIME:
+			// nothing to convert
+			// do not use CAST to convert integers to strings as this breaks use
+			// of index when sorting by variable introduced in select expression
+			break;
+		default:
+			// let sqlite convert the expression to integer
+			sql.insert (begin, "CAST (");
+			sql.append (" AS INTEGER)");
+			break;
+		}
+	}
+
 	void translate_expression_as_string (StringBuilder sql) throws Sparql.Error {
 		switch (current ()) {
 		case SparqlTokenType.IRI_REF:

@@ -53,7 +53,6 @@ tracker_events_get_total (gboolean and_reset)
 void
 tracker_events_add_insert (gint         graph_id,
                            gint         subject_id,
-                           const gchar *subject,
                            gint         pred_id,
                            gint         object_id,
                            const gchar *object,
@@ -83,7 +82,6 @@ tracker_events_add_insert (gint         graph_id,
 void
 tracker_events_add_delete (gint         graph_id,
                            gint         subject_id,
-                           const gchar *subject,
                            gint         pred_id,
                            gint         object_id,
                            const gchar *object,

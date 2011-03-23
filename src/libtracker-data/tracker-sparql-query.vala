@@ -701,15 +701,25 @@ public class Tracker.Sparql.Query : Object {
 
 			// get values of all variables to be bound
 			var var_value_map = new HashTable<string,string>.full (str_hash, str_equal, g_free, g_free);
+			HashTable<string,int> var_subject_map = null;
+
+			if (delete_statements) {
+				var_subject_map = new HashTable<string,int>.full (str_hash, str_equal, g_free, null);
+			}
+
 			int var_idx = 0;
 			foreach (var variable in context.var_set.get_keys ()) {
-				var_value_map.insert (variable.name, cursor.get_string (var_idx++));
+				if (delete_statements) {
+					var_subject_map.insert (variable.name, (int) cursor.get_integer (var_idx++));
+				} else {
+					var_value_map.insert (variable.name, cursor.get_string (var_idx++));
+				}
 			}
 
 			set_location (template_location);
 
 			// iterate over each triple in the template
-			parse_construct_triples_block (var_value_map);
+			parse_construct_triples_block (var_value_map, var_subject_map);
 
 			if (blank && update_blank_nodes != null) {
 				update_blank_nodes.add_value (blank_nodes);
@@ -755,19 +765,19 @@ public class Tracker.Sparql.Query : Object {
 		}
 	}
 
-	void parse_construct_triples_block (HashTable<string,string> var_value_map) throws Sparql.Error, DateError {
+	void parse_construct_triples_block (HashTable<string,string> var_value_map, HashTable<string,int>? var_subject_map) throws Sparql.Error, DateError {
 		expect (SparqlTokenType.OPEN_BRACE);
 
 		while (current () != SparqlTokenType.CLOSE_BRACE) {
 			if (accept (SparqlTokenType.GRAPH)) {
 				var old_graph = current_graph;
 				int id;
-				current_graph = parse_construct_var_or_term (var_value_map, out id, false);
+				current_graph = parse_construct_var_or_term (var_value_map, null, out id, false);
 
 				expect (SparqlTokenType.OPEN_BRACE);
 
 				while (current () != SparqlTokenType.CLOSE_BRACE) {
-					current_subject = parse_construct_var_or_term (var_value_map, out current_subject_id, delete_statements);
+					current_subject = parse_construct_var_or_term (var_value_map, var_subject_map, out current_subject_id, delete_statements);
 					parse_construct_property_list_not_empty (var_value_map);
 					if (!accept (SparqlTokenType.DOT)) {
 						// no triples following
@@ -779,7 +789,7 @@ public class Tracker.Sparql.Query : Object {
 
 				current_graph = old_graph;
 			} else {
-				current_subject = parse_construct_var_or_term (var_value_map, out current_subject_id, delete_statements);
+				current_subject = parse_construct_var_or_term (var_value_map, var_subject_map, out current_subject_id, delete_statements);
 				parse_construct_property_list_not_empty (var_value_map);
 				if (!accept (SparqlTokenType.DOT) && current () != SparqlTokenType.GRAPH) {
 					// neither GRAPH nor triples following
@@ -793,16 +803,16 @@ public class Tracker.Sparql.Query : Object {
 
 	bool anon_blank_node_open = false;
 
-	string? parse_construct_var_or_term (HashTable<string,string> var_value_map, out int id, bool for_del_sub) throws Sparql.Error, DateError {
+	string? parse_construct_var_or_term (HashTable<string,string> var_value_map, HashTable<string,int>? var_subject_map, out int id, bool for_del_sub) throws Sparql.Error, DateError {
 		string result = "";
 		int s_id = 0;
 
 		if (current () == SparqlTokenType.VAR) {
 			next ();
-			result = var_value_map.lookup (get_last_string ().substring (1));
-
 			if (for_del_sub) {
-				s_id = result.to_int ();
+				s_id = (int) var_subject_map.lookup (get_last_string ().substring (1));
+			} else {
+				result = var_value_map.lookup (get_last_string ().substring (1));
 			}
 		} else if (current () == SparqlTokenType.IRI_REF) {
 			next ();
@@ -946,7 +956,7 @@ public class Tracker.Sparql.Query : Object {
 
 	void parse_construct_object (HashTable<string,string> var_value_map) throws Sparql.Error, DateError {
 		int id;
-		string object = parse_construct_var_or_term (var_value_map, out id, false);
+		string object = parse_construct_var_or_term (var_value_map, null, out id, false);
 
 		// the SPARQL specification says that triples containing unbound variables
 		// should be excluded from the output RDF graph of CONSTRUCT

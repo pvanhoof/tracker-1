@@ -84,7 +84,7 @@ girdir = @INTROSPECTION_GIRDIR@
 gir_DATA = \
 	Tracker-1.0.gir
 
-typelibdir = @INTROSPECTOIN_TYPELIBDIR@
+typelibdir = @INTROSPECTION_TYPELIBDIR@
 typelib_DATA = \
 	Tracker-1.0.typelib
 

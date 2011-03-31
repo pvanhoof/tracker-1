@@ -24,38 +24,20 @@
 #include <libtracker-common/tracker-utils.h>
 #include <libtracker-common/tracker-encoding.h>
 
-
-static gchar *
-tracker_test_helpers_get_encoding_detection_bin (void)
+static void
+test_encoding_guessing ()
 {
+	gchar *output;
 	GMappedFile *file = NULL;
-	gchar *nonutf8_str, *prefix, *filen;
+	gchar *prefix, *filen;
 
 	prefix = g_build_path (G_DIR_SEPARATOR_S, TOP_SRCDIR, "tests", "libtracker-common", NULL);
 	filen = g_build_filename (prefix, "encoding-detect.bin", NULL);
 
 	file = g_mapped_file_new (filen, FALSE, NULL);
-	nonutf8_str = g_strdup (g_mapped_file_get_contents (file));
-	nonutf8_str [g_mapped_file_get_length (file) -1] = '\0';
-#if GLIB_CHECK_VERSION(2,22,0)
-	g_mapped_file_unref (file);
-#else
-	g_mapped_file_free (file);
-#endif
 
-	g_free (prefix);
-	g_free (filen);
-
-	return nonutf8_str;
-}
-
-static void
-test_encoding_guessing ()
-{
-	gchar *input = tracker_test_helpers_get_encoding_detection_bin ();
-	gchar *output;
-
-	output = tracker_encoding_guess (input, 70);
+	output = tracker_encoding_guess (g_mapped_file_get_contents (file),
+	                                 g_mapped_file_get_length (file));
 
 #ifdef HAVE_MEEGOTOUCH
 #	ifdef HAVE_ENCA
@@ -69,8 +51,13 @@ test_encoding_guessing ()
 	g_assert_cmpstr (output, ==, "UTF-8");
 #endif
 
+#if GLIB_CHECK_VERSION(2,22,0)
+	g_mapped_file_unref (file);
+#else
+	g_mapped_file_free (file);
+#endif
+
 	g_free (output);
-	g_free (input);
 }
 
 

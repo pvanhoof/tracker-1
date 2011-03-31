@@ -39,17 +39,7 @@ test_encoding_guessing ()
 	output = tracker_encoding_guess (g_mapped_file_get_contents (file),
 	                                 g_mapped_file_get_length (file));
 
-#ifdef HAVE_MEEGOTOUCH
-#	ifdef HAVE_ENCA
-		g_assert_cmpstr (output, ==, "CP1251");
-#	else
-		g_assert_cmpstr (output, ==, "UTF-8");
-#	endif
-#elifdef HAVE_ENCA
-	g_assert_cmpstr (output, ==, "CP1251");
-#else
 	g_assert_cmpstr (output, ==, "UTF-8");
-#endif
 
 #if GLIB_CHECK_VERSION(2,22,0)
 	g_mapped_file_unref (file);
@@ -57,6 +47,8 @@ test_encoding_guessing ()
 	g_mapped_file_free (file);
 #endif
 
+	g_free (prefix);
+	g_free (filen);
 	g_free (output);
 }
 

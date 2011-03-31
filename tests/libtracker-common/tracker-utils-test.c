@@ -18,57 +18,110 @@
  *
  */
 
+#include "config.h"
+
 #include <glib-object.h>
 #include <libtracker-common/tracker-utils.h>
+#include <libtracker-common/tracker-encoding.h>
+
+
+static gchar *
+tracker_test_helpers_get_encoding_detection_bin (void)
+{
+	GMappedFile *file = NULL;
+	gchar *nonutf8_str, *prefix, *filen;
+
+	prefix = g_build_path (G_DIR_SEPARATOR_S, TOP_SRCDIR, "tests", "libtracker-common", NULL);
+	filen = g_build_filename (prefix, "encoding-detect.bin", NULL);
+
+	file = g_mapped_file_new (filen, FALSE, NULL);
+	nonutf8_str = g_strdup (g_mapped_file_get_contents (file));
+	nonutf8_str [g_mapped_file_get_length (file) -1] = '\0';
+#if GLIB_CHECK_VERSION(2,22,0)
+	g_mapped_file_unref (file);
+#else
+	g_mapped_file_free (file);
+#endif
+
+	g_free (prefix);
+	g_free (filen);
+
+	return nonutf8_str;
+}
+
+static void
+test_encoding_guessing ()
+{
+	gchar *input = tracker_test_helpers_get_encoding_detection_bin ();
+	gchar *output;
+
+	output = tracker_encoding_guess (input, 70);
+
+#ifdef HAVE_MEEGOTOUCH
+#	ifdef HAVE_ENCA
+		g_assert_cmpstr (output, ==, "CP1251");
+#	else
+		g_assert_cmpstr (output, ==, "UTF-8");
+#	endif
+#elifdef HAVE_ENCA
+	g_assert_cmpstr (output, ==, "CP1251");
+#else
+	g_assert_cmpstr (output, ==, "UTF-8");
+#endif
+
+	g_free (output);
+	g_free (input);
+}
+
 
 static void
 test_seconds_to_string ()
 {
-        gchar *result;
+	gchar *result;
 
-        result = tracker_seconds_to_string (0, TRUE);
-        g_assert_cmpstr (result, ==, "less than one second");
-        g_free (result);
+	result = tracker_seconds_to_string (0, TRUE);
+	g_assert_cmpstr (result, ==, "less than one second");
+	g_free (result);
 
-        result = tracker_seconds_to_string (0.1, TRUE);
-        g_assert_cmpstr (result, ==, "less than one second");
-        g_free (result);
+	result = tracker_seconds_to_string (0.1, TRUE);
+	g_assert_cmpstr (result, ==, "less than one second");
+	g_free (result);
 
-        result = tracker_seconds_to_string (59.9, TRUE);
-        g_assert_cmpstr (result, ==, "59s");
-        g_free (result);
+	result = tracker_seconds_to_string (59.9, TRUE);
+	g_assert_cmpstr (result, ==, "59s");
+	g_free (result);
 
-        result = tracker_seconds_to_string (60, TRUE);
-        g_assert_cmpstr (result, ==, "01m");
-        g_free (result);
+	result = tracker_seconds_to_string (60, TRUE);
+	g_assert_cmpstr (result, ==, "01m");
+	g_free (result);
 
-        result = tracker_seconds_to_string (100.12, TRUE);
-        g_assert_cmpstr (result, ==, "01m 40s");
-        g_free (result);
+	result = tracker_seconds_to_string (100.12, TRUE);
+	g_assert_cmpstr (result, ==, "01m 40s");
+	g_free (result);
 
-        result = tracker_seconds_to_string (100, FALSE);
-        g_assert_cmpstr (result, ==, "01 minute 40 seconds");
-        g_free (result);
+	result = tracker_seconds_to_string (100, FALSE);
+	g_assert_cmpstr (result, ==, "01 minute 40 seconds");
+	g_free (result);
 
-        result = tracker_seconds_to_string (1000000, TRUE);
-        g_assert_cmpstr (result, ==, "11d 13h 46m 40s");
-        g_free (result);
+	result = tracker_seconds_to_string (1000000, TRUE);
+	g_assert_cmpstr (result, ==, "11d 13h 46m 40s");
+	g_free (result);
 
-        result = tracker_seconds_to_string (1000000000, TRUE);
-        g_assert_cmpstr (result, ==, "11574d 01h 46m 40s");
-        g_free (result);
+	result = tracker_seconds_to_string (1000000000, TRUE);
+	g_assert_cmpstr (result, ==, "11574d 01h 46m 40s");
+	g_free (result);
 
 }
 
 static void
 test_seconds_estimate_to_string ()
 {
-        gchar *result;
+	gchar *result;
 
-        result = tracker_seconds_estimate_to_string (60, TRUE, 60, 120);
-        g_assert_cmpstr (result, ==, "02m");
-        g_free (result);
-        g_print ("%s\n", result);
+	result = tracker_seconds_estimate_to_string (60, TRUE, 60, 120);
+	g_assert_cmpstr (result, ==, "02m");
+	g_free (result);
+	g_print ("%s\n", result);
 }
 
 int
@@ -77,11 +130,14 @@ main (int argc, char **argv)
 	g_type_init ();
 	g_test_init (&argc, &argv, NULL);
 
-	g_test_add_func ("/libtracker-extract/tracker-utils/seconds_to_string",
+	g_test_add_func ("/libtracker-common/tracker-utils/seconds_to_string",
 	                 test_seconds_to_string);
 
-	g_test_add_func ("/libtracker-extract/tracker-utils/seconds_estimate_to_string",
+	g_test_add_func ("/libtracker-common/tracker-utils/seconds_estimate_to_string",
 	                 test_seconds_estimate_to_string);
 
-        return g_test_run ();
+	g_test_add_func ("/libtracker-common/tracker-encoding/encoding_guessing",
+	                 test_encoding_guessing);
+
+	return g_test_run ();
 }

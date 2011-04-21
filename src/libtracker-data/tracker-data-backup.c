@@ -378,7 +378,13 @@ tracker_data_backup_restore (GFile                *journal,
 		g_strfreev (argv);
 
 		tracker_db_manager_init_locations ();
-		tracker_db_journal_init (NULL, FALSE);
+		tracker_db_journal_init (NULL, FALSE, &internal_error);
+
+		if (internal_error) {
+			tracker_db_manager_restore_from_temp ();
+			g_propagate_error (error, internal_error);
+			goto handler;
+		}
 
 		if (info->error) {
 			tracker_db_manager_restore_from_temp ();
@@ -386,7 +392,13 @@ tracker_data_backup_restore (GFile                *journal,
 			tracker_db_manager_remove_temp ();
 		}
 
-		tracker_db_journal_shutdown ();
+		tracker_db_journal_shutdown (&internal_error);
+
+		if (internal_error) {
+			tracker_db_manager_restore_from_temp ();
+			g_propagate_error (error, internal_error);
+			goto handler;
+		}
 
 		tracker_data_manager_init (flags, test_schemas, &is_first, TRUE,
 		                           select_cache_size, update_cache_size,
@@ -415,6 +427,8 @@ tracker_data_backup_restore (GFile                *journal,
 		g_propagate_error (error, info->error);
 		info->error = NULL;
 	}
+
+handler:
 
 	free_backup_save_info (info);
 }

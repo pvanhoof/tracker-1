@@ -1208,7 +1208,7 @@ tracker_db_journal_commit_db_transaction (GError **error)
 #endif /* GLib check */
 	}
 
-	/* Only report the first error here */
+	/* Coalesces the two error reports: */
 	if (n_error) {
 		g_propagate_error (error, n_error);
 		if (nn_error) {

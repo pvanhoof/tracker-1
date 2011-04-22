@@ -337,6 +337,7 @@ tracker_data_backup_restore (GFile                *journal,
 		gchar **argv;
 		gint exit_status;
 		guint select_cache_size, update_cache_size;
+		GError *n_error = NULL;
 
 		flags = tracker_db_manager_get_flags (&select_cache_size, &update_cache_size);
 
@@ -378,12 +379,17 @@ tracker_data_backup_restore (GFile                *journal,
 		g_strfreev (argv);
 
 		tracker_db_manager_init_locations ();
-		tracker_db_journal_init (NULL, FALSE, &internal_error);
+		tracker_db_journal_init (NULL, FALSE, &n_error);
 
-		if (internal_error) {
-			tracker_db_manager_restore_from_temp ();
-			g_propagate_error (error, internal_error);
-			goto handler;
+		if (n_error) {
+			if (!info->error) {
+				g_propagate_error (&info->error, n_error);
+			} else {
+				g_warning ("Ignored error while initializing journal during backup (another higher priority error already took place): %s",
+				           n_error->message ? n_error->message : "No error given");
+				g_error_free (n_error);
+			}
+			n_error = NULL;
 		}
 
 		if (info->error) {
@@ -392,12 +398,12 @@ tracker_data_backup_restore (GFile                *journal,
 			tracker_db_manager_remove_temp ();
 		}
 
-		tracker_db_journal_shutdown (&internal_error);
+		tracker_db_journal_shutdown (&n_error);
 
-		if (internal_error) {
-			tracker_db_manager_restore_from_temp ();
-			g_propagate_error (error, internal_error);
-			goto handler;
+		if (n_error) {
+			g_warning ("Ignored error while shuting down journal during backup: %s",
+			           n_error->message ? n_error->message : "No error given");
+			g_error_free (n_error);
 		}
 
 		tracker_data_manager_init (flags, test_schemas, &is_first, TRUE,
@@ -427,8 +433,6 @@ tracker_data_backup_restore (GFile                *journal,
 		g_propagate_error (error, info->error);
 		info->error = NULL;
 	}
-
-handler:
 
 	free_backup_save_info (info);
 }

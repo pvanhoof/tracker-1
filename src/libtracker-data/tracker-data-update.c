@@ -2964,6 +2964,7 @@ tracker_data_begin_transaction (GError **error)
 			tracker_db_journal_start_ontology_transaction (resource_time, &n_error);
 
 			if (n_error) {
+				tracker_db_interface_end_db_transaction (iface, NULL);
 				g_propagate_error (error, n_error);
 				return;
 			}

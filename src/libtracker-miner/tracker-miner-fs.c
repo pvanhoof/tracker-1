@@ -3475,9 +3475,10 @@ crawler_check_file_cb (TrackerCrawler *crawler,
 {
 	TrackerMinerFS *fs = user_data;
 
-	if (!fs->private->been_crawled &&
-	    (!fs->private->mtime_checking ||
-	     !fs->private->initial_crawling)) {
+	if ((fs->private->current_directory->flags & TRACKER_DIRECTORY_CHECK_MTIME) == 0 &&
+	    (!fs->private->been_crawled &&
+	     (!fs->private->mtime_checking ||
+	      !fs->private->initial_crawling))) {
 		return FALSE;
 	}
 
@@ -3512,9 +3513,10 @@ crawler_check_directory_cb (TrackerCrawler *crawler,
 	} else {
 		gboolean should_change_index;
 
-		if (!fs->private->been_crawled &&
-		    (!fs->private->mtime_checking ||
-		     !fs->private->initial_crawling)) {
+		if ((fs->private->current_directory->flags & TRACKER_DIRECTORY_CHECK_MTIME) == 0 &&
+		    (!fs->private->been_crawled &&
+		     (!fs->private->mtime_checking ||
+		      !fs->private->initial_crawling))) {
 			should_change_index = FALSE;
 		} else {
 			should_change_index = should_change_index_for_file (fs, file);
@@ -3577,7 +3579,9 @@ crawler_check_directory_contents_cb (TrackerCrawler *crawler,
 		 * -First crawl has already been done OR
 		 * -mtime_checking is TRUE.
 		 */
-		if (fs->private->been_crawled || fs->private->mtime_checking) {
+		if (fs->private->been_crawled ||
+		    (fs->private->current_directory->flags & TRACKER_DIRECTORY_CHECK_MTIME) != 0 ||
+		    fs->private->mtime_checking) {
 			/* Set quark so that before trying to add the item we first
 			 * check for its existence. */
 			g_object_set_qdata (G_OBJECT (parent),

@@ -48,6 +48,7 @@ typedef struct _TrackerMinerFSPrivate TrackerMinerFSPrivate;
 typedef enum {
 	TRACKER_DIRECTORY_NONE              = 0,
 	TRACKER_DIRECTORY_RECURSE           = 1 << 0,
+	TRACKER_DIRECTORY_CHECK_MTIME       = 1 << 1
 } TrackerDirectoryFlags;
 
 /**

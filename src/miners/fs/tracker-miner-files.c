@@ -1206,16 +1206,20 @@ mount_point_added_cb (TrackerStorage *storage,
 				 *  then add the config path to re-check */
 				g_message ("  Re-check of configured path '%s' needed (recursively)",
 				           (gchar *) l->data);
-				tracker_miner_fs_directory_add (TRACKER_MINER_FS (user_data),
-				                                config_file, TRUE);
+				tracker_miner_fs_directory_add_full (TRACKER_MINER_FS (user_data),
+				                                     config_file,
+				                                     TRACKER_DIRECTORY_RECURSE |
+				                                     TRACKER_DIRECTORY_CHECK_MTIME);
 			} else if (g_file_has_prefix (mount_point_file, config_file)) {
 				/* If the mount path is contained inside the config path,
 				 *  then add the mount path to re-check */
 				g_message ("  Re-check of path '%s' needed (inside configured path '%s')",
 				           mount_point,
 				           (gchar *) l->data);
-				tracker_miner_fs_directory_add (TRACKER_MINER_FS (user_data),
-				                                mount_point_file, TRUE);
+				tracker_miner_fs_directory_add_full (TRACKER_MINER_FS (user_data),
+				                                     mount_point_file,
+				                                     TRACKER_DIRECTORY_RECURSE |
+				                                     TRACKER_DIRECTORY_CHECK_MTIME);
 			}
 			g_object_unref (config_file);
 		}
@@ -1232,8 +1236,10 @@ mount_point_added_cb (TrackerStorage *storage,
 			    g_file_has_prefix (config_file, mount_point_file)) {
 				g_message ("  Re-check of configured path '%s' needed (non-recursively)",
 				           (gchar *) l->data);
-				tracker_miner_fs_directory_add (TRACKER_MINER_FS (user_data),
-				                                config_file, FALSE);
+				tracker_miner_fs_directory_add_full (TRACKER_MINER_FS (user_data),
+				                                     config_file,
+				                                     TRACKER_DIRECTORY_NONE |
+				                                     TRACKER_DIRECTORY_CHECK_MTIME);
 			}
 			g_object_unref (config_file);
 		}
@@ -3046,7 +3052,9 @@ miner_files_add_removable_or_optical_directory (TrackerMinerFiles *mf,
 	                    GINT_TO_POINTER (TRUE));
 
 	g_message ("  Adding removable/optical: '%s'", mount_path);
-	tracker_miner_fs_directory_add (TRACKER_MINER_FS (mf),
-	                                mount_point_file, TRUE);
+	tracker_miner_fs_directory_add_full (TRACKER_MINER_FS (mf),
+	                                     mount_point_file,
+	                                     TRACKER_DIRECTORY_RECURSE |
+	                                     TRACKER_DIRECTORY_CHECK_MTIME);
 	g_object_unref (mount_point_file);
 }

@@ -1207,8 +1207,7 @@ mount_point_added_cb (TrackerStorage *storage,
 				g_message ("  Re-check of configured path '%s' needed (recursively)",
 				           (gchar *) l->data);
 				tracker_miner_fs_directory_add (TRACKER_MINER_FS (user_data),
-				                                config_file,
-				                                TRUE);
+				                                config_file, TRUE);
 			} else if (g_file_has_prefix (mount_point_file, config_file)) {
 				/* If the mount path is contained inside the config path,
 				 *  then add the mount path to re-check */
@@ -1216,8 +1215,7 @@ mount_point_added_cb (TrackerStorage *storage,
 				           mount_point,
 				           (gchar *) l->data);
 				tracker_miner_fs_directory_add (TRACKER_MINER_FS (user_data),
-				                                mount_point_file,
-				                                TRUE);
+				                                mount_point_file, TRUE);
 			}
 			g_object_unref (config_file);
 		}
@@ -1235,8 +1233,7 @@ mount_point_added_cb (TrackerStorage *storage,
 				g_message ("  Re-check of configured path '%s' needed (non-recursively)",
 				           (gchar *) l->data);
 				tracker_miner_fs_directory_add (TRACKER_MINER_FS (user_data),
-				                                config_file,
-				                                FALSE);
+				                                config_file, FALSE);
 			}
 			g_object_unref (config_file);
 		}
@@ -3050,7 +3047,6 @@ miner_files_add_removable_or_optical_directory (TrackerMinerFiles *mf,
 
 	g_message ("  Adding removable/optical: '%s'", mount_path);
 	tracker_miner_fs_directory_add (TRACKER_MINER_FS (mf),
-	                                mount_point_file,
-	                                TRUE);
+	                                mount_point_file, TRUE);
 	g_object_unref (mount_point_file);
 }

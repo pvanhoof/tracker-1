@@ -45,6 +45,11 @@ G_BEGIN_DECLS
 typedef struct _TrackerMinerFS        TrackerMinerFS;
 typedef struct _TrackerMinerFSPrivate TrackerMinerFSPrivate;
 
+typedef enum {
+	TRACKER_DIRECTORY_NONE              = 0,
+	TRACKER_DIRECTORY_RECURSE           = 1 << 0,
+} TrackerDirectoryFlags;
+
 /**
  * TrackerMinerFS:
  *
@@ -110,6 +115,9 @@ GType                 tracker_miner_fs_get_type             (void) G_GNUC_CONST;
 void                  tracker_miner_fs_directory_add        (TrackerMinerFS *fs,
                                                              GFile          *file,
                                                              gboolean        recurse);
+void                  tracker_miner_fs_directory_add_full   (TrackerMinerFS        *fs,
+                                                             GFile                 *file,
+                                                             TrackerDirectoryFlags  flags);
 gboolean              tracker_miner_fs_directory_remove     (TrackerMinerFS *fs,
                                                              GFile          *file);
 gboolean              tracker_miner_fs_directory_remove_full (TrackerMinerFS *fs,

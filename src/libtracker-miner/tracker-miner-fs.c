@@ -119,8 +119,8 @@ typedef struct {
 
 typedef struct {
 	GFile    *file;
-	guint     recurse : 1;
-	guint     ref_count : 7;
+	guint16   ref_count;
+	guint16   flags;
 } DirectoryData;
 
 typedef struct {
@@ -288,8 +288,8 @@ static void           miner_paused                        (TrackerMiner         
 static void           miner_resumed                       (TrackerMiner         *miner);
 static void           miner_ignore_next_update            (TrackerMiner         *miner,
                                                            const GStrv           subjects);
-static DirectoryData *directory_data_new                  (GFile                *file,
-                                                           gboolean              recurse);
+static DirectoryData *directory_data_new                  (GFile                 *file,
+                                                           TrackerDirectoryFlags  flags);
 static DirectoryData *directory_data_ref                  (DirectoryData        *dd);
 static void           directory_data_unref                (DirectoryData        *dd);
 static ItemMovedData *item_moved_data_new                 (GFile                *file,
@@ -996,15 +996,15 @@ miner_ignore_next_update (TrackerMiner *miner, const GStrv urls)
 
 
 static DirectoryData *
-directory_data_new (GFile    *file,
-                    gboolean  recurse)
+directory_data_new (GFile                 *file,
+                    TrackerDirectoryFlags  flags)
 {
 	DirectoryData *dd;
 
 	dd = g_slice_new (DirectoryData);
 
 	dd->file = g_object_ref (file);
-	dd->recurse = recurse;
+	dd->flags = flags;
 	dd->ref_count = 1;
 
 	return dd;
@@ -1349,7 +1349,8 @@ find_config_directory (TrackerMinerFS *fs,
 		dirs = dirs->next;
 
 		if (g_file_equal (data->file, file) ||
-		    (data->recurse && (g_file_has_prefix (file, data->file)))) {
+		    ((data->flags & TRACKER_DIRECTORY_RECURSE) != 0 &&
+		     g_file_has_prefix (file, data->file))) {
 			return data;
 		}
 	}
@@ -3742,6 +3743,7 @@ crawl_directories_cb (gpointer user_data)
 {
 	TrackerMinerFS *fs = user_data;
 	gchar *path, *path_utf8;
+	gboolean recurse;
 	gchar *str;
 
 	if (fs->private->current_directory) {
@@ -3783,7 +3785,9 @@ crawl_directories_cb (gpointer user_data)
 	path_utf8 = g_filename_to_utf8 (path, -1, NULL, NULL, NULL);
 	g_free (path);
 
-	if (fs->private->current_directory->recurse) {
+	recurse = (fs->private->current_directory->flags & TRACKER_DIRECTORY_RECURSE) != 0;
+
+	if (recurse) {
 		str = g_strdup_printf ("Crawling recursively directory '%s'", path_utf8);
 	} else {
 		str = g_strdup_printf ("Crawling single directory '%s'", path_utf8);
@@ -3804,7 +3808,7 @@ crawl_directories_cb (gpointer user_data)
 
 	if (tracker_crawler_start (fs->private->crawler,
 	                           fs->private->current_directory->file,
-	                           fs->private->current_directory->recurse)) {
+	                           recurse)) {
 		/* Crawler when restart the idle function when done */
 		fs->private->is_crawling = TRUE;
 		fs->private->crawl_directories_id = 0;
@@ -3885,7 +3889,7 @@ should_recurse_for_directory (TrackerMinerFS *fs,
 
 		data = dirs->data;
 
-		if (data->recurse &&
+		if ((data->flags & TRACKER_DIRECTORY_RECURSE) != 0 &&
 		    (g_file_equal (file, data->file) ||
 		     g_file_has_prefix (file, data->file))) {
 			/* File is inside a recursive dir */
@@ -3909,7 +3913,7 @@ directory_compare_cb (gconstpointer a,
 	DirectoryData *ddb = (DirectoryData *) b;
 
 	return (g_file_equal (dda->file, ddb->file) ||
-	        (dda->recurse &&
+	        ((dda->flags & TRACKER_DIRECTORY_RECURSE) != 0 &&
 	         g_file_has_prefix (ddb->file, dda->file))) ? 0 : -1;
 }
 
@@ -3922,11 +3926,14 @@ static void
 tracker_miner_fs_directory_add_internal (TrackerMinerFS *fs,
                                          GFile          *file)
 {
+	TrackerDirectoryFlags flags = 0;
 	DirectoryData *data;
-	gboolean recurse;
 
-	recurse = should_recurse_for_directory (fs, file);
-	data = directory_data_new (file, recurse);
+	if (should_recurse_for_directory (fs, file)) {
+		flags |= TRACKER_DIRECTORY_RECURSE;
+	}
+
+	data = directory_data_new (file, flags);
 
 	/* Only add if not already there */
 	if (!g_list_find_custom (fs->private->directories,
@@ -3957,12 +3964,34 @@ tracker_miner_fs_directory_add (TrackerMinerFS *fs,
                                 GFile          *file,
                                 gboolean        recurse)
 {
+	g_return_if_fail (TRACKER_IS_MINER_FS (fs));
+	g_return_if_fail (G_IS_FILE (file));
+
+	tracker_miner_fs_directory_add_full (fs, file, TRACKER_DIRECTORY_RECURSE);
+}
+
+/**
+ * tracker_miner_fs_directory_add_full:
+ * @fs: a #TrackerMinerFS
+ * @file: #GFile for the directory to inspect
+ * @flags: flags affecting inspection
+ *
+ * Tells the filesystem miner to inspect a directory, performing the
+ * actions specified in @flags.
+ *
+ * Since: 0.10
+ **/
+void
+tracker_miner_fs_directory_add_full (TrackerMinerFS        *fs,
+                                     GFile                 *file,
+                                     TrackerDirectoryFlags  flags)
+{
 	DirectoryData *dir_data;
 
 	g_return_if_fail (TRACKER_IS_MINER_FS (fs));
 	g_return_if_fail (G_IS_FILE (file));
 
-	dir_data = directory_data_new (file, recurse);
+	dir_data = directory_data_new (file, flags);
 
 	/* New directory to add in config_directories? */
 	if (!g_list_find_custom (fs->private->config_directories,

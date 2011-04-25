@@ -3557,7 +3557,11 @@ crawler_check_directory_contents_cb (TrackerCrawler *crawler,
 	g_signal_emit (fs, signals[CHECK_DIRECTORY_CONTENTS], 0, parent, children, &process);
 
 	if (process) {
-		g_signal_emit (fs, signals[MONITOR_DIRECTORY], 0, parent, &add_monitor);
+		if ((fs->private->current_directory->flags & TRACKER_DIRECTORY_MONITOR) != 0) {
+			add_monitor = TRUE;
+		} else {
+			g_signal_emit (fs, signals[MONITOR_DIRECTORY], 0, parent, &add_monitor);
+		}
 
 		/* If the directory crawled doesn't have ANY file, we need to
 		 * force a mtime cache reload using the given directory as input

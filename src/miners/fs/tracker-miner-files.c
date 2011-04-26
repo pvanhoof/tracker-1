@@ -1514,12 +1514,21 @@ update_directories_from_new_config (TrackerMinerFS *mf,
                                     gboolean        recurse)
 {
 	TrackerMinerFilesPrivate *priv;
+	TrackerDirectoryFlags flags = 0;
 	GSList *sl;
 
 	priv = TRACKER_MINER_FILES_GET_PRIVATE (mf);
 
 	g_message ("Updating %s directories changed from configuration",
 	           recurse ? "recursive" : "single");
+
+	if (recurse) {
+		flags |= TRACKER_DIRECTORY_RECURSE;
+	}
+
+	if (tracker_config_get_enable_monitors (TRACKER_MINER_FILES (mf)->private->config)) {
+		flags |= TRACKER_DIRECTORY_MONITOR;
+	}
 
 	/* First remove all directories removed from the config */
 	for (sl = old_dirs; sl; sl = sl->next) {
@@ -1557,7 +1566,7 @@ update_directories_from_new_config (TrackerMinerFS *mf,
 			                    priv->quark_directory_config_root,
 			                    GINT_TO_POINTER (TRUE));
 
-			tracker_miner_fs_directory_add (TRACKER_MINER_FS (mf), file, recurse);
+			tracker_miner_fs_directory_add_full (TRACKER_MINER_FS (mf), file, flags);
 			g_object_unref (file);
 		}
 	}

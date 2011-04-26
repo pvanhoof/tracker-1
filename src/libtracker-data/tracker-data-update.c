@@ -3034,7 +3034,7 @@ tracker_data_commit_transaction (GError **error)
 		if (actual_error) {
 			/* Can't write in journal anymore; quite a serious problem */
 			g_propagate_error (error, actual_error);
-			return;
+			/* Don't return, remainder of the function cleans things up */
 		}
 	}
 

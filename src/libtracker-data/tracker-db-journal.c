@@ -1197,13 +1197,15 @@ tracker_db_journal_commit_db_transaction (GError **error)
 {
 	gboolean ret;
 	GError *n_error = NULL;
-	GError *nn_error = NULL;
 
 	g_return_val_if_fail (current_transaction_format != TRANSACTION_FORMAT_NONE, FALSE);
 
 	if (current_transaction_format == TRANSACTION_FORMAT_ONTOLOGY) {
 		ret = db_journal_writer_commit_db_transaction (&ontology_writer, &n_error);
-		db_journal_writer_shutdown (&ontology_writer, &nn_error);
+		if (n_error) {
+			g_propagate_error (error, n_error);
+		}
+		db_journal_writer_shutdown (&ontology_writer, n_error ? NULL : &n_error);
 	} else {
 		ret = db_journal_writer_commit_db_transaction (&writer, &n_error);
 
@@ -1219,11 +1221,6 @@ tracker_db_journal_commit_db_transaction (GError **error)
 	/* Coalesces the two error reports: */
 	if (n_error) {
 		g_propagate_error (error, n_error);
-		if (nn_error) {
-			g_error_free (nn_error);
-		}
-	} else if (nn_error) {
-		g_propagate_error (error, nn_error);
 	}
 
 	current_transaction_format = TRANSACTION_FORMAT_NONE;

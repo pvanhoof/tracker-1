@@ -470,6 +470,10 @@ miner_files_initable_init (GInitable     *initable,
 		flags |= TRACKER_DIRECTORY_MONITOR;
 	}
 
+	if (tracker_miner_fs_get_mtime_checking (TRACKER_MINER_FS (mf))) {
+		flags |= TRACKER_DIRECTORY_CHECK_MTIME;
+	}
+
 	miner_files_add_directories (mf, mounts, dirs, flags);
 
 	/* And now on to recursive ones */

@@ -334,20 +334,68 @@ miner_files_initable_iface_init (GInitableIface *iface)
 	iface->init = miner_files_initable_init;
 }
 
+static void
+miner_files_add_directories (TrackerMinerFiles     *mf,
+                             GSList                *mounts,
+                             GSList                *dirs,
+                             TrackerDirectoryFlags  flags)
+{
+	for (; dirs; dirs = dirs->next) {
+		GFile *file;
+
+		/* Do some simple checks for silly locations */
+		if (strcmp (dirs->data, "/dev") == 0 ||
+		    strcmp (dirs->data, "/lib") == 0 ||
+		    strcmp (dirs->data, "/proc") == 0 ||
+		    strcmp (dirs->data, "/sys") == 0) {
+			continue;
+		}
+
+		if (g_str_has_prefix (dirs->data, g_get_tmp_dir ())) {
+			continue;
+		}
+
+		/* Make sure we don't crawl volumes. */
+		if (mounts) {
+			gboolean found = FALSE;
+			GSList *m;
+
+			for (m = mounts; m && !found; m = m->next) {
+				found = strcmp (m->data, dirs->data) == 0;
+			}
+
+			if (found) {
+				g_message ("  Duplicate found:'%s' - same as removable device path",
+				           (gchar*) dirs->data);
+				continue;
+			}
+		}
+
+		g_message ("  Adding:'%s'", (gchar*) dirs->data);
+
+		file = g_file_new_for_path (dirs->data);
+		g_object_set_qdata (G_OBJECT (file),
+		                    mf->private->quark_directory_config_root,
+		                    GINT_TO_POINTER (TRUE));
+
+		tracker_miner_fs_directory_add_full (TRACKER_MINER_FS (mf), file, flags);
+		g_object_unref (file);
+	}
+}
+
 static gboolean
 miner_files_initable_init (GInitable     *initable,
                            GCancellable  *cancellable,
                            GError       **error)
 {
 	TrackerMinerFiles *mf;
-	TrackerMinerFS *fs;
+	TrackerDirectoryFlags flags = 0;
 	GError *inner_error = NULL;
 	GSList *mounts = NULL;
 	GSList *dirs;
 	GSList *m;
 
 	mf = TRACKER_MINER_FILES (initable);
-	fs = TRACKER_MINER_FS (initable);
 
 	/* Chain up parent's initable callback before calling child's one */
 	if (!miner_files_initable_parent_iface->init (initable, cancellable, &inner_error)) {
@@ -411,52 +459,16 @@ miner_files_initable_init (GInitable     *initable,
 
 	g_message ("Setting up directories to iterate from config (IndexSingleDirectory)");
 
-	/* Fill in directories to inspect */
+	/* Fill in single directories to inspect */
 	dirs = tracker_config_get_index_single_directories (mf->private->config);
 
 	/* Copy in case of config changes */
 	mf->private->index_single_directories = tracker_gslist_copy_with_string_data (dirs);
 
-	for (; dirs; dirs = dirs->next) {
-		GFile *file;
+	miner_files_add_directories (mf, mounts, dirs, flags);
 
-		/* Do some simple checks for silly locations */
-		if (strcmp (dirs->data, "/dev") == 0 ||
-		    strcmp (dirs->data, "/lib") == 0 ||
-		    strcmp (dirs->data, "/proc") == 0 ||
-		    strcmp (dirs->data, "/sys") == 0) {
-			continue;
-		}
-
-		if (g_str_has_prefix (dirs->data, g_get_tmp_dir ())) {
-			continue;
-		}
-
-		/* Make sure we don't crawl volumes. */
-		if (mounts) {
-			gboolean found = FALSE;
-
-			for (m = mounts; m && !found; m = m->next) {
-				found = strcmp (m->data, dirs->data) == 0;
-			}
-
-			if (found) {
-				g_message ("  Duplicate found:'%s' - same as removable device path",
-				           (gchar*) dirs->data);
-				continue;
-			}
-		}
-
-		g_message ("  Adding:'%s'", (gchar*) dirs->data);
-
-		file = g_file_new_for_path (dirs->data);
-		g_object_set_qdata (G_OBJECT (file),
-		                    mf->private->quark_directory_config_root,
-		                    GINT_TO_POINTER (TRUE));
-
-		tracker_miner_fs_directory_add (fs, file, FALSE);
-		g_object_unref (file);
-	}
+	/* And now on to recursive ones */
+	flags |= TRACKER_DIRECTORY_RECURSE;
 
 	g_message ("Setting up directories to iterate from config (IndexRecursiveDirectory)");
 
@@ -465,46 +477,7 @@ miner_files_initable_init (GInitable     *initable,
 	/* Copy in case of config changes */
 	mf->private->index_recursive_directories = tracker_gslist_copy_with_string_data (dirs);
 
-	for (; dirs; dirs = dirs->next) {
-		GFile *file;
-
-		/* Do some simple checks for silly locations */
-		if (strcmp (dirs->data, "/dev") == 0 ||
-		    strcmp (dirs->data, "/lib") == 0 ||
-		    strcmp (dirs->data, "/proc") == 0 ||
-		    strcmp (dirs->data, "/sys") == 0) {
-			continue;
-		}
-
-		if (g_str_has_prefix (dirs->data, g_get_tmp_dir ())) {
-			continue;
-		}
-
-		/* Make sure we don't crawl volumes. */
-		if (mounts) {
-			gboolean found = FALSE;
-
-			for (m = mounts; m && !found; m = m->next) {
-				found = strcmp (m->data, dirs->data) == 0;
-			}
-
-			if (found) {
-				g_message ("  Duplicate found:'%s' - same as removable device path",
-				           (gchar*) dirs->data);
-				continue;
-			}
-		}
-
-		g_message ("  Adding:'%s'", (gchar*) dirs->data);
-
-		file = g_file_new_for_path (dirs->data);
-		g_object_set_qdata (G_OBJECT (file),
-		                    mf->private->quark_directory_config_root,
-		                    GINT_TO_POINTER (TRUE));
-
-		tracker_miner_fs_directory_add (fs, file, TRUE);
-		g_object_unref (file);
-	}
+	miner_files_add_directories (mf, mounts, dirs, flags);
 
 	/* Add mounts */
 	g_message ("Setting up directories to iterate from devices/discs");

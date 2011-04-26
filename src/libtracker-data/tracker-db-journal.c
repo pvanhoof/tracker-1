@@ -1202,6 +1202,7 @@ tracker_db_journal_commit_db_transaction (GError **error)
 
 	if (current_transaction_format == TRANSACTION_FORMAT_ONTOLOGY) {
 		ret = db_journal_writer_commit_db_transaction (&ontology_writer, &n_error);
+		/* Coalesces the two error reports: */
 		db_journal_writer_shutdown (&ontology_writer, n_error ? NULL : &n_error);
 	} else {
 		ret = db_journal_writer_commit_db_transaction (&writer, &n_error);
@@ -1215,7 +1216,6 @@ tracker_db_journal_commit_db_transaction (GError **error)
 #endif /* GLib check */
 	}
 
-	/* Coalesces the two error reports: */
 	if (n_error) {
 		g_propagate_error (error, n_error);
 	}

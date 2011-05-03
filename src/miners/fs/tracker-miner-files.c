@@ -1957,6 +1957,8 @@ extractor_get_embedded_metadata_cb (const gchar *preupdate,
 {
 	ProcessFileData *data = user_data;
 	const gchar *uuid;
+	gboolean is_iri;
+	const gchar *urn;
 
 	if (error) {
 		tracker_sparql_builder_graph_close (data->sparql);
@@ -1968,12 +1970,21 @@ extractor_get_embedded_metadata_cb (const gchar *preupdate,
 		return;
 	}
 
+	urn = miner_files_get_file_urn (data->miner, data->file, &is_iri);
+
+	/* Laying the link between the IE and the DO. We use IE = DO, don't do this
+	 * in case of error so that we can distinguish between succeeded and failed
+	 * files with sparql queries */
+	tracker_sparql_builder_predicate (data->sparql, "a");
+	tracker_sparql_builder_object (data->sparql, "nie:InformationElement");
+	tracker_sparql_builder_predicate (data->sparql, "nie:isStoredAs");
+	if (is_iri) {
+		tracker_sparql_builder_object_iri (data->sparql, urn);
+	} else {
+		tracker_sparql_builder_object (data->sparql, urn);
+	}
+
 	if (sparql && *sparql) {
-		gboolean is_iri;
-		const gchar *urn;
-
-		urn = miner_files_get_file_urn (data->miner, data->file, &is_iri);
-
 		if (is_iri) {
 			gchar *str;
 
@@ -2429,7 +2440,6 @@ process_file_cb (GObject      *object,
 
 	tracker_sparql_builder_predicate (sparql, "a");
 	tracker_sparql_builder_object (sparql, "nfo:FileDataObject");
-	tracker_sparql_builder_object (sparql, "nie:InformationElement");
 
 	is_directory = (g_file_info_get_file_type (file_info) == G_FILE_TYPE_DIRECTORY ?
 	                TRUE : FALSE);
@@ -2457,14 +2467,6 @@ process_file_cb (GObject      *object,
 	time_ = g_file_info_get_attribute_uint64 (file_info, G_FILE_ATTRIBUTE_TIME_ACCESS);
 	tracker_sparql_builder_predicate (sparql, "nfo:fileLastAccessed");
 	tracker_sparql_builder_object_date (sparql, (time_t *) &time_);
-
-	/* Laying the link between the IE and the DO. We use IE = DO */
-	tracker_sparql_builder_predicate (sparql, "nie:isStoredAs");
-	if (is_iri) {
-		tracker_sparql_builder_object_iri (sparql, urn);
-	} else {
-		tracker_sparql_builder_object (sparql, urn);
-	}
 
 	/* The URL of the DataObject (because IE = DO, this is correct) */
 	tracker_sparql_builder_predicate (sparql, "nie:url");

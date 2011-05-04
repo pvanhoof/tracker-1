@@ -27,6 +27,7 @@ _:a1 a nie:DataObject .
 _:a2 a nie:DataSource .
 
 _:a3 a nie:InformationElement .
+_:a3 a nie:DataObject .
 
 _:a3 nie:generator "stringly data for nie:generator" .
 _:a3 nie:description "stringly data for nie:description" .

@@ -105,12 +105,13 @@ on_query_finished (GObject      *source_object,
 			g_message ("Removing media-art file %s: no album exists that has "
 			           "more than one song for this media-art cache", name);
 			to_remove = g_list_prepend (to_remove, (gpointer) full);
+		} else {
+			g_free (full);
 		}
-
-		g_free (full);
 	}
 
 	g_list_foreach (to_remove, (GFunc) g_unlink, NULL);
+	g_list_foreach (to_remove, (GFunc) g_free, NULL);
 	g_list_free (to_remove);
 
 on_error:

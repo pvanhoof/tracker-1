@@ -143,7 +143,7 @@ on_error:
  * @mime_type: mime-type of the file
  *
  * Adds a new request to tell the albumart subsystem that @uri was removed.
- * Stored requests can be processed with tracker_thumbnailer_process().
+ * Stored requests can be processed with tracker_albumart_check_cleanup().
  *
  * Returns: #TRUE if successfully stored to be reported, #FALSE otherwise.
  *
@@ -192,7 +192,7 @@ on_timer_destroy (gpointer data)
 }
 
 /**
- * tracker_albumart_process:
+ * tracker_albumart_check_cleanup:
  *
  * Process all stored albumart requests.
  *

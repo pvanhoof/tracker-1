@@ -103,7 +103,7 @@ on_query_finished (GObject      *source_object,
 
 		if (!value) {
 			g_message ("Removing media-art file %s: no album exists that has "
-			           "more than one song for this media-art cache", name);
+			           "any songs for this media-art cache", name);
 			to_remove = g_list_prepend (to_remove, (gpointer) full);
 		} else {
 			g_free (full);
@@ -157,7 +157,7 @@ tracker_albumart_remove_add (const gchar *uri,
 
 	g_return_val_if_fail (uri != NULL, FALSE);
 
-	if (!mime_type || (g_str_has_prefix (mime_type, "video/") || g_str_has_prefix (mime_type, "audio/"))) {
+	if (mime_type && (g_str_has_prefix (mime_type, "video/") || g_str_has_prefix (mime_type, "audio/"))) {
 		had_any = TRUE;
 	}
 

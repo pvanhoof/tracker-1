@@ -33,4 +33,4 @@ gboolean tracker_albumart_remove_add    (const gchar             *uri,
 void     tracker_albumart_check_cleanup (TrackerSparqlConnection *connection);
 G_END_DECLS
 
-#endif /* __LIBTRACKER_MINER_THUMBNAILER_H__ */
+#endif /* __LIBTRACKER_MINER_ALBUMART_H__ */

@@ -82,6 +82,8 @@ albumart_strip_find_next_block (const gchar    *original,
  * albumart path with it. Certain characters and charactersets will be stripped
  * and a newly allocated string returned which you must free with g_free.
  *
+ * Returns: copy of original but then stripped
+ *
  * Since: 0.10.4
  */
 gchar *

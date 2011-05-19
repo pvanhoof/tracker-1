@@ -24,10 +24,10 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 
-#include "tracker-albumart.h"
-
 #include <libtracker-common/tracker-albumart.h>
 #include <libtracker-sparql/tracker-sparql.h>
+
+#include "tracker-albumart.h"
 
 static gboolean had_any = FALSE;
 static guint timer_id = 0;

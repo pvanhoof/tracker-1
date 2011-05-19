@@ -147,7 +147,7 @@ on_error:
  *
  * Returns: #TRUE if successfully stored to be reported, #FALSE otherwise.
  *
- * Since: 0.8
+ * Since: 0.10.4
  */
 gboolean
 tracker_albumart_remove_add (const gchar *uri,
@@ -196,7 +196,7 @@ on_timer_destroy (gpointer data)
  *
  * Process all stored albumart requests.
  *
- * Since: 0.10
+ * Since: 0.10.4
  */
 void
 tracker_albumart_check_cleanup (TrackerSparqlConnection *connection)

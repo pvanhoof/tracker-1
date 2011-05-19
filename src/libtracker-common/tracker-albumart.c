@@ -82,7 +82,7 @@ albumart_strip_find_next_block (const gchar    *original,
  * albumart path with it. Certain characters and charactersets will be stripped
  * and a newly allocated string returned which you must free with g_free.
  *
- * Since: 0.10
+ * Since: 0.10.4
  */
 gchar *
 tracker_albumart_strip_invalid_entities (const gchar *original)
@@ -210,7 +210,7 @@ albumart_checksum_for_data (GChecksumType  checksum_type,
  * Get the path to albumart for a given album or song. Newly allocated data in
  * @path and @local_uri must be freed with g_free.
  *
- * Since: 0.10
+ * Since: 0.10.4
  */
 void
 tracker_albumart_get_path (const gchar  *artist,

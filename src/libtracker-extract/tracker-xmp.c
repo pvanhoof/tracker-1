@@ -688,6 +688,7 @@ tracker_xmp_free (TrackerXmpData *data)
 	g_free (data->gps_altitude_ref);
 	g_free (data->gps_latitude);
 	g_free (data->gps_longitude);
+	g_free (data->gps_direction);
 
 	g_free (data);
 }

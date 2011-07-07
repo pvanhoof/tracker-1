@@ -125,6 +125,11 @@ typedef struct {
 } ItemMovedData;
 
 typedef struct {
+	GFile *file;
+	/* TODO */
+} ItemWritebackData;
+
+typedef struct {
 	GFile    *file;
 	guint     recurse : 1;
 	guint     ref_count : 7;
@@ -176,6 +181,7 @@ struct _TrackerMinerFSPrivate {
 	GQueue         *items_updated;
 	GQueue         *items_deleted;
 	GQueue         *items_moved;
+	GQueue         *items_writeback;
 #ifdef EVENT_QUEUE_ENABLE_TRACE
 	guint           queue_status_timeout_id;
 #endif /* EVENT_QUEUE_ENABLE_TRACE */
@@ -250,7 +256,8 @@ typedef enum {
 	QUEUE_DELETED,
 	QUEUE_MOVED,
 	QUEUE_IGNORE_NEXT_UPDATE,
-	QUEUE_WAIT
+	QUEUE_WAIT,
+	QUEUE_WRITEBACK
 } QueueState;
 
 enum {
@@ -302,6 +309,7 @@ static void           directory_data_unref                (DirectoryData        
 static ItemMovedData *item_moved_data_new                 (GFile                *file,
                                                            GFile                *source_file);
 static void           item_moved_data_free                (ItemMovedData        *data);
+static void           item_writeback_data_free            (ItemWritebackData    *data);
 static void           monitor_item_created_cb             (TrackerMonitor       *monitor,
                                                            GFile                *file,
                                                            gboolean              is_directory,
@@ -673,6 +681,7 @@ tracker_miner_fs_init (TrackerMinerFS *object)
 	priv->items_updated = g_queue_new ();
 	priv->items_deleted = g_queue_new ();
 	priv->items_moved = g_queue_new ();
+	priv->items_writeback = g_queue_new ();
 
 #ifdef EVENT_QUEUE_ENABLE_TRACE
 	priv->queue_status_timeout_id = g_timeout_add_seconds (EVENT_QUEUE_STATUS_TIMEOUT_SECS,
@@ -801,6 +810,9 @@ fs_finalize (GObject *object)
 
 	g_queue_foreach (priv->items_updated, (GFunc) g_object_unref, NULL);
 	g_queue_free (priv->items_updated);
+
+	g_queue_foreach (priv->items_writeback, (GFunc) item_writeback_data_free, NULL);
+	g_queue_free (priv->items_writeback);
 
 	g_queue_foreach (priv->items_created, (GFunc) g_object_unref, NULL);
 	g_queue_free (priv->items_created);
@@ -986,6 +998,7 @@ miner_resumed (TrackerMiner *miner)
 	if (g_queue_get_length (fs->priv->items_deleted) > 0 ||
 	    g_queue_get_length (fs->priv->items_created) > 0 ||
 	    g_queue_get_length (fs->priv->items_updated) > 0 ||
+	    g_queue_get_length (fs->priv->items_writeback) > 0 ||
 	    g_queue_get_length (fs->priv->items_moved) > 0) {
 		item_queue_handlers_set_up (fs);
 	}
@@ -1127,6 +1140,25 @@ item_moved_data_free (ItemMovedData *data)
 	g_object_unref (data->file);
 	g_object_unref (data->source_file);
 	g_slice_free (ItemMovedData, data);
+}
+
+static ItemWritebackData *
+item_writeback_data_new (GFile *file)
+{
+	ItemWritebackData *data;
+
+	/* TODO */
+	data = g_slice_new (ItemWritebackData);
+	data->file = g_object_ref (file);
+
+	return data;
+}
+
+static void
+item_writeback_data_free (ItemWritebackData *data)
+{
+	g_object_unref (data->file);
+	g_slice_free (ItemWritebackData, data);
 }
 
 static void
@@ -2428,6 +2460,7 @@ item_queue_get_next_file (TrackerMinerFS  *fs,
                           GFile          **source_file)
 {
 	ItemMovedData *data;
+	ItemWritebackData *wdata;
 	GFile *queue_file;
 
 	/* Deleted items first */
@@ -2618,6 +2651,22 @@ item_queue_get_next_file (TrackerMinerFS  *fs,
 		return QUEUE_MOVED;
 	}
 
+	wdata = g_queue_pop_head (fs->priv->items_writeback);
+	if (wdata) {
+		*file = g_object_ref (data->file);
+
+		*file = queue_file;
+		*source_file = NULL;
+
+		trace_eq_pop_head ("WRITEBACK", queue_file);
+
+		/* TODO */
+
+		item_writeback_data_free (wdata);
+
+		return QUEUE_WRITEBACK;
+	}
+
 	*file = NULL;
 	*source_file = NULL;
 
@@ -2642,6 +2691,7 @@ item_queue_get_progress (TrackerMinerFS *fs,
 	items_to_process += g_queue_get_length (fs->priv->items_deleted);
 	items_to_process += g_queue_get_length (fs->priv->items_created);
 	items_to_process += g_queue_get_length (fs->priv->items_updated);
+	items_to_process += g_queue_get_length (fs->priv->items_writeback);
 	items_to_process += g_queue_get_length (fs->priv->items_moved);
 
 	g_queue_foreach (fs->priv->crawled_directories,
@@ -3296,15 +3346,30 @@ compare_moved_files (gconstpointer a,
 	return 1;
 }
 
-/* Checks previous created/updated/deleted/moved queues for
+static gint
+compare_writeback_files (gconstpointer a,
+                         gconstpointer b)
+{
+	const ItemWritebackData *data = a;
+	GFile *file = G_FILE (b);
+
+	/* Compare with dest file */
+	if (g_file_equal (data->file, file)) {
+		return 0;
+	}
+
+	return 1;
+}
+
+/* Checks previous created/updated/deleted/moved/writeback queues for
  * monitor events. Returns TRUE if the item should still
  * be added to the queue.
  */
 static gboolean
 check_item_queues (TrackerMinerFS *fs,
-		   QueueState      queue,
-		   GFile          *file,
-		   GFile          *other_file)
+                   QueueState      queue,
+                   GFile          *file,
+                   GFile          *other_file)
 {
 	GList *elem;
 
@@ -3328,6 +3393,12 @@ check_item_queues (TrackerMinerFS *fs,
 		if (g_queue_find_custom (fs->priv->items_created, file, compare_files) ||
 		    g_queue_find_custom (fs->priv->items_updated, file, compare_files)) {
 			g_debug ("  Found previous unhandled CREATED/UPDATED event");
+			return FALSE;
+		}
+	case QUEUE_WRITEBACK:
+		/* No further updates after a previous created/updated event */
+		if (g_queue_find_custom (fs->priv->items_writeback, file, compare_writeback_files)) {
+			g_debug ("  Found previous unhandled WRITEBACK event");
 			return FALSE;
 		}
 
@@ -4492,6 +4563,42 @@ tracker_miner_fs_check_file (TrackerMinerFS *fs,
 	g_free (path);
 }
 
+
+/**
+ * tracker_miner_fs_writeback_file:
+ * @fs: a #TrackerMinerFS
+ * @file: #GFile for the file to check
+ *
+ * Tells the filesystem miner to writeback a file.
+ *
+ * Since: 0.10.20
+ **/
+void
+tracker_miner_fs_writeback_file (TrackerMinerFS *fs,
+                                 GFile          *file)
+{
+	gchar *path;
+	ItemWritebackData *data;
+
+	g_return_if_fail (TRACKER_IS_MINER_FS (fs));
+	g_return_if_fail (G_IS_FILE (file));
+
+	path = g_file_get_path (file);
+
+	g_debug ("%s (WRITEBACK) (requested by application)",
+	         path);
+
+	trace_eq_push_tail ("UPDATED", file, "Requested by application");
+
+	data = item_writeback_data_new (file);
+	g_queue_push_tail (fs->priv->items_updated,
+	                   data);
+
+	item_queue_handlers_set_up (fs);
+
+	g_free (path);
+}
+
 /**
  * tracker_miner_fs_check_directory:
  * @fs: a #TrackerMinerFS
@@ -4898,6 +5005,7 @@ tracker_miner_fs_has_items_to_process (TrackerMinerFS *fs)
 	if (g_queue_get_length (fs->priv->items_deleted) > 0 ||
 	    g_queue_get_length (fs->priv->items_created) > 0 ||
 	    g_queue_get_length (fs->priv->items_updated) > 0 ||
+	    g_queue_get_length (fs->priv->items_writeback) > 0 ||
 	    g_queue_get_length (fs->priv->items_moved) > 0) {
 		return TRUE;
 	}
@@ -5033,6 +5141,7 @@ miner_fs_queues_status_trace_timeout_cb (gpointer data)
 	miner_fs_trace_queue_with_files (fs, "UPDATED", fs->priv->items_updated);
 	miner_fs_trace_queue_with_files (fs, "DELETED", fs->priv->items_deleted);
 	miner_fs_trace_queue_with_data  (fs, "MOVED",   fs->priv->items_moved);
+	miner_fs_trace_queue_with_files (fs, "WRITEBACK", fs->priv->items_writeback);
 
 	return TRUE;
 }

@@ -38,28 +38,28 @@ enum {
 
 #define TRACKER_WRITEBACK_LISTENER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), TRACKER_TYPE_WRITEBACK_LISTENER, TrackerWritebackListenerPrivate))
 
-static void     writeback_set_property    (GObject              *object,
-                                           guint                 param_id,
-                                           const GValue         *value,
-                                           GParamSpec           *pspec);
-static void     writeback_get_property    (GObject              *object,
-                                           guint                 param_id,
-                                           GValue               *value,
-                                           GParamSpec           *pspec);
-static void     writeback_finalize        (GObject              *object);
-static gboolean writeback_initable_init   (GInitable            *initable,
-                                           GCancellable         *cancellable,
-                                           GError              **error);
+static void     writeback_listener_set_property    (GObject              *object,
+                                                    guint                 param_id,
+                                                    const GValue         *value,
+                                                    GParamSpec           *pspec);
+static void     writeback_listener_get_property    (GObject              *object,
+                                                    guint                 param_id,
+                                                    GValue               *value,
+                                                    GParamSpec           *pspec);
+static void     writeback_listener_finalize        (GObject              *object);
+static gboolean writeback_listener_initable_init   (GInitable            *initable,
+                                                    GCancellable         *cancellable,
+                                                    GError              **error);
 
 static void
-writeback_initable_iface_init (GInitableIface *iface)
+writeback_listener_initable_iface_init (GInitableIface *iface)
 {
-	iface->init = writeback_initable_init;
+	iface->init = writeback_listener_initable_init;
 }
 
 G_DEFINE_TYPE_WITH_CODE (TrackerWritebackListener, tracker_writeback_listener, G_TYPE_OBJECT,
                          G_IMPLEMENT_INTERFACE (G_TYPE_INITABLE,
-                                                writeback_initable_iface_init));
+                                                writeback_listener_initable_iface_init));
 
 static void
 tracker_writeback_listener_class_init (TrackerWritebackListenerClass *klass)
@@ -68,9 +68,9 @@ tracker_writeback_listener_class_init (TrackerWritebackListenerClass *klass)
 
 	object_class = G_OBJECT_CLASS (klass);
 
-	object_class->finalize = writeback_finalize;
-	object_class->set_property = writeback_set_property;
-	object_class->get_property = writeback_get_property;
+	object_class->finalize = writeback_listener_finalize;
+	object_class->set_property = writeback_listener_set_property;
+	object_class->get_property = writeback_listener_get_property;
 
 	g_object_class_install_property (object_class,
 	                                 PROP_FILES_MINER,
@@ -84,10 +84,10 @@ tracker_writeback_listener_class_init (TrackerWritebackListenerClass *klass)
 }
 
 static void
-writeback_set_property (GObject      *object,
-                    guint         param_id,
-                    const GValue *value,
-                    GParamSpec   *pspec)
+writeback_listener_set_property (GObject      *object,
+                                 guint         param_id,
+                                 const GValue *value,
+                                 GParamSpec   *pspec)
 {
 	TrackerWritebackListenerPrivate *priv;
 
@@ -105,10 +105,10 @@ writeback_set_property (GObject      *object,
 
 
 static void
-writeback_get_property (GObject    *object,
-                    guint       param_id,
-                    GValue     *value,
-                    GParamSpec *pspec)
+writeback_listener_get_property (GObject    *object,
+                                 guint       param_id,
+                                 GValue     *value,
+                                 GParamSpec *pspec)
 {
 	TrackerWritebackListenerPrivate *priv;
 
@@ -125,7 +125,7 @@ writeback_get_property (GObject    *object,
 }
 
 static void
-writeback_finalize (GObject *object)
+writeback_listener_finalize (GObject *object)
 {
 	TrackerWritebackListenerPrivate *priv = TRACKER_WRITEBACK_LISTENER_GET_PRIVATE (object);
 
@@ -143,9 +143,9 @@ tracker_writeback_listener_init (TrackerWritebackListener *object)
 }
 
 static gboolean
-writeback_initable_init (GInitable    *initable,
-                         GCancellable *cancellable,
-                         GError       **error)
+writeback_listener_initable_init (GInitable    *initable,
+                                  GCancellable *cancellable,
+                                  GError       **error)
 {
 	TrackerWritebackListenerPrivate *priv;
 	GError *internal_error = NULL;

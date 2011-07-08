@@ -2930,6 +2930,10 @@ item_queue_handlers_cb (gpointer user_data)
 	case QUEUE_IGNORE_NEXT_UPDATE:
 		keep_processing = item_ignore_next_update (fs, file, source_file);
 		break;
+	case QUEUE_WRITEBACK:
+		/* All work is already done at an earlier stage */
+		keep_processing = TRUE;
+		break;
 	default:
 		g_assert_not_reached ();
 	}

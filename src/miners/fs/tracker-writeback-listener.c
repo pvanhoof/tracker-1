@@ -300,7 +300,7 @@ sparql_query_cb (GObject      *object,
 			g_ptr_array_add (results, row);
 		}
 
-		if (results->len > 0) {
+		if (results != NULL && results->len > 0) {
 			tracker_miner_fs_writeback_file (TRACKER_MINER_FS (priv->files_miner),
 			                                 file,
 			                                 results);
@@ -416,7 +416,7 @@ on_writeback_cb (GDBusConnection      *connection,
 
 	priv = TRACKER_WRITEBACK_LISTENER_GET_PRIVATE (self);
 
-	g_variant_get (parameters, "a{iai}", &iter1);
+	g_variant_get (parameters, "(a{iai})", &iter1);
 	while (g_variant_iter_loop (iter1, "{iai}", &subject_id, &iter2)) {
 		GString *query;
 		gboolean comma = FALSE;

@@ -2491,7 +2491,26 @@ item_queue_get_next_file (TrackerMinerFS  *fs,
 	ItemWritebackData *wdata;
 	GFile *queue_file;
 
-	/* Deleted items first */
+	/* Writeback items first */
+	wdata = g_queue_pop_head (fs->priv->items_writeback);
+	if (wdata) {
+		gboolean success = FALSE;
+
+		*file = g_object_ref (wdata->file);
+		*source_file = NULL;
+
+		trace_eq_pop_head ("WRITEBACK", wdata->file);
+
+		g_signal_emit (fs, signals[WRITEBACK_FILE], 0,
+		               wdata->file, wdata->results,
+		               &success);
+
+		item_writeback_data_free (wdata);
+
+		return QUEUE_WRITEBACK;
+	}
+
+	/* Deleted items second */
 	queue_file = g_queue_pop_head (fs->priv->items_deleted);
 	if (queue_file) {
 		*source_file = NULL;
@@ -2677,21 +2696,6 @@ item_queue_get_next_file (TrackerMinerFS  *fs,
 		*source_file = g_object_ref (data->source_file);
 		item_moved_data_free (data);
 		return QUEUE_MOVED;
-	}
-
-	wdata = g_queue_pop_head (fs->priv->items_writeback);
-	if (wdata) {
-		*file = g_object_ref (wdata->file);
-		*source_file = NULL;
-
-		trace_eq_pop_head ("WRITEBACK", wdata->file);
-
-		g_signal_emit (fs, signals[WRITEBACK_FILE], 0,
-		               wdata->file, wdata->results);
-
-		item_writeback_data_free (wdata);
-
-		return QUEUE_WRITEBACK;
 	}
 
 	*file = NULL;

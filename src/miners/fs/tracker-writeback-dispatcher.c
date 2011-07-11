@@ -28,7 +28,9 @@
 
 typedef struct {
 	TrackerMinerFiles *files_miner;
-	GDBusConnection *connection;
+	GDBusConnection *d_connection;
+	TrackerSparqlConnection *connection;
+	gulong signal_id;
 } TrackerWritebackDispatcherPrivate;
 
 enum {
@@ -50,6 +52,11 @@ static void     writeback_dispatcher_finalize        (GObject              *obje
 static gboolean writeback_dispatcher_initable_init   (GInitable            *initable,
                                                       GCancellable         *cancellable,
                                                       GError              **error);
+static gboolean writeback_dispatcher_writeback_file  (TrackerMinerFS       *fs,
+                                                      GFile                *file,
+                                                      GPtrArray            *results,
+                                                      gpointer              user_data);
+
 
 static void
 writeback_dispatcher_initable_iface_init (GInitableIface *iface)
@@ -129,11 +136,21 @@ writeback_dispatcher_finalize (GObject *object)
 {
 	TrackerWritebackDispatcherPrivate *priv = TRACKER_WRITEBACK_DISPATCHER_GET_PRIVATE (object);
 
+	if (priv->signal_id != 0 && g_signal_handler_is_connected (object, priv->signal_id)) {
+		g_signal_handler_disconnect (object, priv->signal_id);
+	}
+
 	if (priv->connection) {
 		g_object_unref (priv->connection);
 	}
 
-	g_object_unref (priv->files_miner);
+	if (priv->d_connection) {
+		g_object_unref (priv->d_connection);
+	}
+
+	if (priv->files_miner) {
+		g_object_unref (priv->files_miner);
+	}
 }
 
 
@@ -144,27 +161,40 @@ tracker_writeback_dispatcher_init (TrackerWritebackDispatcher *object)
 
 static gboolean
 writeback_dispatcher_initable_init (GInitable    *initable,
-                         GCancellable *cancellable,
-                         GError       **error)
+                                    GCancellable *cancellable,
+                                    GError       **error)
 {
 	TrackerWritebackDispatcherPrivate *priv;
 	GError *internal_error = NULL;
 
 	priv = TRACKER_WRITEBACK_DISPATCHER_GET_PRIVATE (initable);
 
-	priv->connection = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, &internal_error);
+	priv->connection = tracker_sparql_connection_get (NULL, &internal_error);
 
 	if (internal_error) {
 		g_propagate_error (error, internal_error);
 		return FALSE;
 	}
 
+	priv->d_connection = g_bus_get_sync (G_BUS_TYPE_SESSION, NULL, &internal_error);
+
+	if (internal_error) {
+		g_propagate_error (error, internal_error);
+		return FALSE;
+	}
+
+	priv->signal_id = g_signal_connect_object (priv->files_miner,
+	                                           "writeback-file",
+	                                           G_CALLBACK (writeback_dispatcher_writeback_file),
+	                                           initable,
+	                                           G_CONNECT_AFTER);
+
 	return TRUE;
 }
 
 TrackerWritebackDispatcher *
 tracker_writeback_dispatcher_new (TrackerMinerFiles  *miner_files,
-                                GError            **error)
+                                  GError            **error)
 {
 	GObject *miner;
 	GError *internal_error = NULL;
@@ -183,5 +213,39 @@ tracker_writeback_dispatcher_new (TrackerMinerFiles  *miner_files,
 	return (TrackerWritebackDispatcher *) miner;
 }
 
-	// tracker_miner_fs_writeback_file (TRACKER_MINER_FS (miner_files), file, ...);
+static gboolean
+writeback_dispatcher_writeback_file (TrackerMinerFS *fs,
+                                     GFile          *file,
+                                     GPtrArray      *results,
+                                     gpointer        user_data)
+{
+	TrackerWritebackDispatcher *self = user_data;
+	TrackerWritebackDispatcherPrivate *priv;
+	// GError *internal_error = NULL;
+	gchar *uri;
+	guint i;
+
+	priv = TRACKER_WRITEBACK_DISPATCHER_GET_PRIVATE (self);
+
+	uri = g_file_get_uri (file);
+	g_print ("Writeback: %s with:\n", uri);
+
+	for (i = 0; i< results->len; i++) {
+		GStrv row = g_ptr_array_index (results, i);
+		guint y;
+
+		g_print ("\t");
+		for (y = 0; row[y] != NULL; y++) {
+			if (y != 0) {
+				g_print (",");
+			}
+			g_print ("%d=%s", y, row[y]);
+		}
+		g_print ("\n");
+	}
+
+	g_free (uri);
+
+	return TRUE;
+}
 

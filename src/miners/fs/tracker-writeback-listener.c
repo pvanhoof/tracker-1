@@ -445,7 +445,6 @@ on_writeback_cb (GDBusConnection      *connection,
 		                                       data);
 
 		g_string_free (query, TRUE);
-		g_variant_iter_free (iter2);
 	}
 
 	g_variant_iter_free (iter1);

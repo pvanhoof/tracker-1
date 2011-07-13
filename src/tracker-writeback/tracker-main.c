@@ -119,7 +119,7 @@ main (int   argc,
 #warning todo here
 
 	// get correct value from config here
-	tracker_controller_new (9999, &error);
+	controller = tracker_controller_new (9999, &error);
 
 	if (error) {
 		g_critical ("Error creating controller: %s", error->message);

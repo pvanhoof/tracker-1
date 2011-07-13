@@ -83,7 +83,8 @@ static const gchar *introspection_xml =
 	"    </method>"
 	"    <method name='PerformWriteback'>"
 	"      <arg type='s' name='uri' direction='in' />"
-	"      <arg type='a{sas}' name='results' direction='in' />"
+	"      <arg type='as' name='rdf_types' direction='in' />"
+	"      <arg type='aas' name='results' direction='in' />"
 	"    </method>"
 	"    <method name='CancelTasks'>"
 	"      <arg type='as' name='uri' direction='in' />"
@@ -96,11 +97,12 @@ enum {
 	PROP_SHUTDOWN_TIMEOUT,
 };
 
-static void	tracker_controller_initable_iface_init  (GInitableIface     *iface);
-static gboolean tracker_controller_dbus_start       (TrackerController  *controller,
-                                                     GError            **error);
-static void	tracker_controller_dbus_stop            (TrackerController  *controller);
-
+static void     tracker_controller_initable_iface_init  (GInitableIface     *iface);
+static gboolean tracker_controller_dbus_start           (TrackerController  *controller,
+                                                         GError            **error);
+static void     tracker_controller_dbus_stop            (TrackerController  *controller);
+static gboolean tracker_controller_start                (TrackerController  *controller,
+                                                         GError            **error);
 
 G_DEFINE_TYPE_WITH_CODE (TrackerController, tracker_controller, G_TYPE_OBJECT,
                          G_IMPLEMENT_INTERFACE (G_TYPE_INITABLE,
@@ -137,7 +139,7 @@ tracker_controller_finalize (GObject *object)
 	tracker_controller_dbus_stop (controller);
 
 	g_object_unref (priv->storage);
-	g_object_unref (priv->modules);
+	g_hash_table_unref (priv->modules);
 
 	g_main_loop_unref (priv->main_loop);
 	g_main_context_unref (priv->context);
@@ -392,8 +394,7 @@ perform_writeback_cb (GObject      *object,
 
 //	if (info) {
 	if (TRUE) {
-		g_dbus_method_invocation_return_value (data->invocation,
-		                                       g_variant_new ("(b)", TRUE));
+		g_dbus_method_invocation_return_value (data->invocation, NULL);
 
 		tracker_dbus_request_end (data->request, NULL);
 	} else {
@@ -444,15 +445,38 @@ handle_method_call_perform_writeback (TrackerController     *controller,
 	GPtrArray *results = NULL;
 	GHashTableIter iter;
 	gpointer key, value;
-	const gchar * const *rdf_types;
+	GVariantIter *iter1, *iter2, *iter3;
+	GArray *rdf_types_array;
+	GStrv rdf_types;
+	gchar *rdf_type = NULL;
 
 	priv = controller->priv;
 
-	g_variant_get (parameters, "(&sa{&sa&s})", &subject, &results);
+	results = g_ptr_array_new_with_free_func ((GDestroyNotify) g_strfreev);
+	g_variant_get (parameters, "(&sasaas)", &subject, &iter1, &iter2);
 
-#warning todo here
+	rdf_types_array = g_array_new (TRUE, TRUE, sizeof (gchar *));
+	while (g_variant_iter_loop (iter1, "&s", &rdf_type)) {
+		g_array_append_val (rdf_types_array, rdf_type);
+	}
 
-	rdf_types = NULL; // todo, get from results
+	rdf_types = (GStrv) rdf_types_array->data;
+	g_array_free (rdf_types_array, FALSE);
+
+	while (g_variant_iter_loop (iter2, "as", &iter3)) {
+		GArray *row_array = g_array_new (TRUE, TRUE, sizeof (gchar *));
+		gchar *cell = NULL;
+
+		while (g_variant_iter_loop (iter3, "&s", &cell)) {
+			g_array_append_val (row_array, cell);
+		}
+
+		g_ptr_array_add (results, row_array->data);
+		g_array_free (row_array, FALSE);
+	}
+
+	g_variant_iter_free (iter1);
+	g_variant_iter_free (iter2);
 
 	reset_shutdown_timeout (controller);
 	request = tracker_dbus_request_begin (NULL, "%s (%s)", __FUNCTION__, subject);
@@ -489,6 +513,7 @@ handle_method_call_perform_writeback (TrackerController     *controller,
 	// todo: make this really async
 	perform_writeback_cb (NULL, NULL, data);
 
+	g_free (rdf_types);
 }
 
 static void
@@ -744,7 +769,7 @@ tracker_controller_thread_func (gpointer user_data)
 	return NULL;
 }
 
-gboolean
+static gboolean
 tracker_controller_start (TrackerController  *controller,
                           GError            **error)
 {

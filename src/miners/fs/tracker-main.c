@@ -752,7 +752,7 @@ main (gint argc, gchar *argv[])
 		return EXIT_FAILURE;
 	}
 
-	tracker_writeback_init (miner_files, &error);
+	tracker_writeback_init (TRACKER_MINER_FILES (miner_files), &error);
 
 	if (error) {
 		g_critical ("Couldn't create writeback handling: '%s'",

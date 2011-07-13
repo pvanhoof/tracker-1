@@ -25,6 +25,14 @@
 
 #include "tracker-writeback-dispatcher.h"
 
+#define TRACKER_WRITEBACK_SERVICE   "org.freedesktop.Tracker1.Writeback"
+#define TRACKER_WRITEBACK_PATH      "/org/freedesktop/Tracker1/Writeback"
+#define TRACKER_WRITEBACK_INTERFACE "org.freedesktop.Tracker1.Writeback"
+
+typedef struct {
+	GFile *file;
+	TrackerMinerFS *fs;
+} WritebackFileData;
 
 typedef struct {
 	TrackerMinerFiles *files_miner;
@@ -52,8 +60,9 @@ static void     writeback_dispatcher_finalize        (GObject              *obje
 static gboolean writeback_dispatcher_initable_init   (GInitable            *initable,
                                                       GCancellable         *cancellable,
                                                       GError              **error);
-static gboolean writeback_dispatcher_writeback_file  (TrackerMinerFS       *fs,
+static void writeback_dispatcher_writeback_file      (TrackerMinerFS       *fs,
                                                       GFile                *file,
+                                                      GStrv                 rdf_types,
                                                       GPtrArray            *results,
                                                       gpointer              user_data);
 
@@ -213,39 +222,93 @@ tracker_writeback_dispatcher_new (TrackerMinerFiles  *miner_files,
 	return (TrackerWritebackDispatcher *) miner;
 }
 
-static gboolean
+static void
+writeback_file_finished  (GObject      *source_object,
+                          GAsyncResult *res,
+                          gpointer      user_data)
+{
+	WritebackFileData *data = user_data;
+	GError *error = NULL;
+
+	g_dbus_connection_call_finish (G_DBUS_CONNECTION (source_object),
+	                               res, &error);
+
+	tracker_miner_fs_writeback_notify (data->fs, data->file, error);
+
+	g_object_unref (data->fs);
+	g_object_unref (data->file);
+	g_free (data);
+}
+
+static void
 writeback_dispatcher_writeback_file (TrackerMinerFS *fs,
                                      GFile          *file,
+                                     GStrv           rdf_types,
                                      GPtrArray      *results,
                                      gpointer        user_data)
 {
 	TrackerWritebackDispatcher *self = user_data;
 	TrackerWritebackDispatcherPrivate *priv;
-	// GError *internal_error = NULL;
 	gchar *uri;
 	guint i;
+	GVariantBuilder builder;
+	WritebackFileData *data = g_new (WritebackFileData, 1);
 
 	priv = TRACKER_WRITEBACK_DISPATCHER_GET_PRIVATE (self);
 
 	uri = g_file_get_uri (file);
 	g_print ("Writeback: %s with:\n", uri);
 
+	g_variant_builder_init (&builder, G_VARIANT_TYPE ("(sasaas)"));
+
+	g_variant_builder_add (&builder, "s", uri);
+
+	g_variant_builder_open (&builder, G_VARIANT_TYPE ("as"));
+	for (i = 0; rdf_types[i] != NULL; i++) {
+		g_variant_builder_add (&builder, "s", rdf_types[i]);
+	}
+	g_variant_builder_close (&builder);
+
+	g_variant_builder_open (&builder, G_VARIANT_TYPE ("aas"));
+
 	for (i = 0; i< results->len; i++) {
 		GStrv row = g_ptr_array_index (results, i);
 		guint y;
 
+		g_variant_builder_open (&builder, G_VARIANT_TYPE ("as"));
+
 		g_print ("\t");
 		for (y = 0; row[y] != NULL; y++) {
+			g_variant_builder_add (&builder, "s", row[y]);
+
 			if (y != 0) {
 				g_print (",");
 			}
 			g_print ("%d=%s", y, row[y]);
 		}
 		g_print ("\n");
+
+		g_variant_builder_close (&builder);
 	}
 
-	g_free (uri);
+	g_variant_builder_close (&builder);
 
-	return TRUE;
+	data->fs = g_object_ref (fs);
+	data->file = g_object_ref (file);
+
+	g_dbus_connection_call (priv->d_connection,
+	                        TRACKER_WRITEBACK_SERVICE,
+	                        TRACKER_WRITEBACK_PATH,
+	                        TRACKER_WRITEBACK_INTERFACE,
+	                        "PerformWriteback",
+	                        g_variant_ref_sink (g_variant_builder_end (&builder)),
+	                        NULL,
+	                        G_DBUS_CALL_FLAGS_NONE,
+	                        -1,
+	                        NULL,
+	                        (GAsyncReadyCallback) writeback_file_finished,
+	                        data);
+
+	g_free (uri);
 }
 

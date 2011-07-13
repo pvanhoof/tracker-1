@@ -127,14 +127,6 @@ main (int   argc,
 		return EXIT_FAILURE;
 	}
 
-	tracker_controller_start (controller, &error);
-
-	if (error) {
-		g_critical ("Error starting controller: %s", error->message);
-		g_error_free (error);
-		return EXIT_FAILURE;
-	}
-
 	g_message ("Main thread is: %p", g_thread_self ());
 
 	loop = g_main_loop_new (NULL, FALSE);

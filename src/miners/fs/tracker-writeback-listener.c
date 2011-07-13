@@ -303,6 +303,7 @@ sparql_query_cb (GObject      *object,
 		if (results != NULL && results->len > 0) {
 			tracker_miner_fs_writeback_file (TRACKER_MINER_FS (priv->files_miner),
 			                                 file,
+			                                 data->rdf_types,
 			                                 results);
 		} else {
 			g_message ("  No files qualify for updates");

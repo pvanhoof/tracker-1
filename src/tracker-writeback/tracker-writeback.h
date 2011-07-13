@@ -50,8 +50,6 @@ GType               tracker_controller_get_type (void) G_GNUC_CONST;
 
 TrackerController * tracker_controller_new   (guint               shutdown_timeout,
                                               GError            **error);
-gboolean            tracker_controller_start (TrackerController  *controller,
-                                              GError            **error);
 
 G_END_DECLS
 

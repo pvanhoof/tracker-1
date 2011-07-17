@@ -342,7 +342,9 @@ handle_method_call_get_association_data (TrackerMinerWeb       *miner,
 		g_error_free (local_error);
 	} else {
 		tracker_dbus_request_end (request, NULL);
-		g_dbus_method_invocation_return_value (invocation, variant_from_hashtable (association_data));
+		GVariant *hash_variant = variant_from_hashtable (association_data);
+		GVariant *tuple = g_variant_new_tuple (&hash_variant, 1);
+		g_dbus_method_invocation_return_value (invocation, tuple);
 
 		/* This was commented out before GDBus port too
 		 * g_hash_table_unref (association_data); */
@@ -354,11 +356,15 @@ handle_method_call_associate (TrackerMinerWeb       *miner,
                               GDBusMethodInvocation *invocation,
                               GVariant              *parameters)
 {
-	GHashTable *association_data;
+	GHashTable *association_data = 0;
 	GError *local_error = NULL;
 	TrackerDBusRequest *request;
 
-	association_data = hashtable_from_variant (parameters);
+	if (g_variant_n_children (parameters) != 0) {
+		GVariant *hash_variant = g_variant_get_child_value (parameters, 0);
+
+		association_data = hashtable_from_variant (hash_variant);
+	}
 
 	request = tracker_g_dbus_request_begin (invocation, "%s()", __PRETTY_FUNCTION__);
 

@@ -22,6 +22,7 @@
 #include <sys/mman.h>
 
 #include <glib-object.h>
+#include <gio/gio.h>
 
 #include "tracker-password-provider.h"
 
@@ -352,6 +353,17 @@ load_password_file (TrackerPasswordProviderKeyfile  *kf,
 
 	filename = g_build_filename (directory, KEYFILE_FILENAME, NULL);
 	g_free (directory);
+
+	GFile *password_file = g_file_new_for_path (filename);
+
+	if (!g_file_query_exists (password_file, NULL)) {
+		g_object_unref (password_file);
+		g_free (filename);
+
+		return TRUE;
+	}
+
+	g_object_unref (password_file);
 
 	priv = TRACKER_PASSWORD_PROVIDER_KEYFILE_GET_PRIVATE (kf);
 

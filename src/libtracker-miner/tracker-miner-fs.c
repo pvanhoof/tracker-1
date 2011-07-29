@@ -234,6 +234,8 @@ struct _TrackerMinerFSPrivate {
 	/* Files to check if no longer exist */
 	GHashTable     *check_removed;
 
+	TrackerIndexingTree *indexing_tree;
+
 	/* Config directories where we should force mtime checking, regardless of
 	 * the global mtime check configuration. */
 	GList          *forced_mtime_check_directories;
@@ -751,6 +753,9 @@ tracker_miner_fs_init (TrackerMinerFS *object)
 	priv->task_pool = tracker_task_pool_new (DEFAULT_WAIT_POOL_LIMIT);
 	priv->writeback_pool = tracker_task_pool_new (DEFAULT_WAIT_POOL_LIMIT);
 
+	/* Create the indexing tree */
+	priv->indexing_tree = tracker_indexing_tree_new ();
+
 	/* Set up the crawlers now we have config and hal */
 	priv->crawler = tracker_crawler_new ();
 
@@ -769,6 +774,7 @@ tracker_miner_fs_init (TrackerMinerFS *object)
 	g_signal_connect (priv->crawler, "finished",
 	                  G_CALLBACK (crawler_finished_cb),
 	                  object);
+
 
 	/* Set up the monitor */
 	priv->monitor = tracker_monitor_new ();
@@ -935,6 +941,8 @@ fs_finalize (GObject *object)
 	if (priv->check_removed) {
 		g_hash_table_unref (priv->check_removed);
 	}
+
+	g_object_unref (priv->indexing_tree);
 
 #ifdef EVENT_QUEUE_ENABLE_TRACE
 	if (priv->queue_status_timeout_id)
@@ -5520,6 +5528,24 @@ tracker_miner_fs_add_directory_without_parent (TrackerMinerFS *fs,
 	/* We add the parent of the input file */
 	fs->priv->dirs_without_parent = g_list_prepend (fs->priv->dirs_without_parent,
 	                                                   parent);
+}
+
+/**
+ * tracker_miner_fs_get_indexing_tree:
+ * @fs: a #TrackerMinerFS
+ *
+ * Returns the #TrackerIndexingTree which determines
+ * what files/directories are indexed by @fs
+ *
+ * Returns: (transfer none): The #TrackerIndexingTree
+ *          holding the indexing configuration
+ **/
+TrackerIndexingTree *
+tracker_miner_fs_get_indexing_tree (TrackerMinerFS *fs)
+{
+	g_return_val_if_fail (TRACKER_IS_MINER_FS (fs), NULL);
+
+	return fs->priv->indexing_tree;
 }
 
 /* Returns TRUE if the given GFile is actually the REAL parent

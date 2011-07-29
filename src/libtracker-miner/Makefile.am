@@ -63,6 +63,8 @@ libtracker_miner_@TRACKER_API_VERSION@_la_SOURCES =    \
 	$(crawler_sources)			       \
 	$(miner_sources)			       \
 	$(private_sources)			       \
+	tracker-indexing-tree.c                        \
+	tracker-indexing-tree.h                        \
 	tracker-network-provider.c                     \
 	tracker-password-provider.c                    \
 	tracker-thumbnailer.c                          \
@@ -73,6 +75,7 @@ libtracker_miner_@TRACKER_API_VERSION@_la_SOURCES =    \
 libtracker_minerinclude_HEADERS =                      \
 	tracker-albumart.h                             \
 	tracker-crawler.h                              \
+	tracker-indexing-tree.h                        \
 	tracker-miner.h                                \
 	tracker-miner-common.h                         \
 	tracker-miner-object.h                         \
@@ -86,7 +89,7 @@ libtracker_minerinclude_HEADERS =                      \
 
 libtracker_miner_@TRACKER_API_VERSION@_la_LDFLAGS =    \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
-	-export-symbols-regex '^tracker_(miner|thumbnailer|crawler|storage|password_provider|network_provider)_.*'
+	-export-symbols-regex '^tracker_(miner|thumbnailer|crawler|storage|password_provider|network_provider|indexing_tree)_.*'
 
 libtracker_miner_@TRACKER_API_VERSION@_la_LIBADD =     \
 	$(top_builddir)/src/libtracker-common/libtracker-common.la \

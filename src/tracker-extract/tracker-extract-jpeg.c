@@ -361,6 +361,10 @@ tracker_extract_get_metadata (const gchar          *uri,
 		tracker_sparql_builder_object_unvalidated (metadata, xd->license);
 	}
 
+        if (xd->regions) {
+                tracker_xmp_apply_regions (preupdate, metadata, where, uri, xd);
+        }
+
 	if (id->keywords) {
 		tracker_keywords_parse (keywords, id->keywords);
 	}

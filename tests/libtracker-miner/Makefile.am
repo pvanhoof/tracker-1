@@ -21,7 +21,8 @@ TEST_PROGS += \
 	tracker-miner-manager-test \
 	tracker-password-provider-test \
 	tracker-thumbnailer-test \
-	tracker-monitor-test
+	tracker-monitor-test \
+	tracker-indexing-tree-test
 
 AM_CPPFLAGS = \
 	$(BUILD_CFLAGS) \
@@ -77,6 +78,9 @@ tracker_monitor_test_SOURCES = \
 	$(libtracker_miner_marshal_sources) \
 	$(libtracker_miner_monitor_sources) \
 	tracker-monitor-test.c
+
+tracker_indexing_tree_test_SOURCES = \
+	tracker-indexing-tree-test.c
 
 noinst_HEADERS = \
 	$(libtracker_miner_marshal_headers) \

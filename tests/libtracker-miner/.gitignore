@@ -6,3 +6,4 @@ tracker-miner-mock.[ch]
 tracker-monitor-test
 tracker-thumbnailer-test
 tracker-password-provider-test
+tracker-indexing-tree-test

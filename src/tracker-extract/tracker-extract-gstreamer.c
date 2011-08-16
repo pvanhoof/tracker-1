@@ -620,11 +620,9 @@ extract_metadata (MetadataExtractor      *extractor,
 				g_free (composer);
 			}
 
-			add_geolocation_tags (metadata, preupdate, extractor->tagcache);
 		}
 
 		/* Audio */
-
 		if (extractor->mime == EXTRACT_MIME_AUDIO) {
 			gst_tag_list_get_string (extractor->tagcache, GST_TAG_ALBUM, &albumname);
 		}
@@ -888,6 +886,9 @@ extract_metadata (MetadataExtractor      *extractor,
 		g_free (artist_uri);
 
 		add_string_gst_tag (metadata, uri, "nfo:codec", extractor->tagcache, GST_TAG_AUDIO_CODEC);
+
+		/* Add geo location information regardless of mime type */
+		add_geolocation_tags (metadata, preupdate, extractor->tagcache);
 	} else if (extractor->mime == EXTRACT_MIME_GUESS) {
 		g_warning ("Cannot guess real stream type if no tags were read! "
 		           "Defaulting to Video.");

@@ -410,6 +410,8 @@ add_geolocation_tags (TrackerSparqlBuilder *metadata,
 	gdouble lat, lon, alt;
 	gboolean has_coords;
 
+	g_debug ("Retriving geolocation...");
+
 	country = city = sublocation = NULL;
 	has_coords = (gst_tag_list_get_double (tag_list, GST_TAG_GEO_LOCATION_LATITUDE, &lat) &&
 		      gst_tag_list_get_double (tag_list, GST_TAG_GEO_LOCATION_LONGITUDE, &lon) &&
@@ -1734,13 +1736,18 @@ tracker_extract_gstreamer (const gchar          *uri,
 	extractor->album_art_size = 0;
 	extractor->album_art_mime = NULL;
 
+	g_debug ("GStreamer backend in use:");
+
 #if defined(GSTREAMER_BACKEND_TAGREADBIN)
+	g_debug ("  Tagreadbin");
 	if (!tagreadbin_init_and_run (extractor, uri))
 		return;
 #elif defined(GSTREAMER_BACKEND_DECODEBIN2)
+	g_debug ("  Decodebin2");
 	if (!decodebin2_init_and_run (extractor, uri))
 		return;
 #else /* DISCOVERER/GUPnP-DLNA */
+	g_debug ("  Discoverer/GUPnp-DLNA");
 	if (!discoverer_init_and_run (extractor, uri))
 		return;
 #endif

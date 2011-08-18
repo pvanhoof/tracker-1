@@ -303,7 +303,7 @@ albumart_heuristic (const gchar *artist,
 				gchar *found;
 
 				found = g_build_filename (dirname, name, NULL);
-					
+
 				if (g_str_has_suffix (name_strdown, "jpeg") ||
 				    g_str_has_suffix (name_strdown, "jpg")) {
 
@@ -355,7 +355,7 @@ albumart_heuristic (const gchar *artist,
 								if (g_strcmp0 (sum1, sum2) == 0) {
 									/* If album-space-md5.jpg is the same as found,
 									 * make a symlink */
-									
+
 									if (symlink (album_path, target) != 0) {
 										perror ("symlink() error");
 										retval = FALSE;
@@ -496,7 +496,7 @@ albumart_set (const unsigned char *buffer,
 
 			/* If album-space-md5.jpg doesn't exist, make one and make a symlink
 			 * to album-md5-md5.jpg */
-			
+
 			if (retval && symlink(album_path, local_path) != 0) {
 				perror ("symlink() error");
 				retval = FALSE;
@@ -515,7 +515,7 @@ albumart_set (const unsigned char *buffer,
 
 				/* If album-space-md5.jpg is the same as buffer, make a symlink
 				 * to album-md5-md5.jpg */
-				
+
 				if (g_strcmp0 (sum1, sum2) == 0) {
 					if (symlink (album_path, local_path) != 0) {
 						perror ("symlink() error");
@@ -525,7 +525,7 @@ albumart_set (const unsigned char *buffer,
 					}
 				} else {
 					/* If album-space-md5.jpg isn't the same as buffer, make a
-				 	 * new album-md5-md5.jpg */
+					 * new album-md5-md5.jpg */
 					retval = tracker_albumart_buffer_to_jpeg (buffer, len, mime, local_path);
 				}
 

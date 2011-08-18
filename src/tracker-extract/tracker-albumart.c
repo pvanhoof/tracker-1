@@ -138,7 +138,7 @@ file_get_checksum_if_exists (GChecksumType   checksum_type,
 			}
 		}
 
-		while ((rsize = g_input_stream_read (G_INPUT_STREAM (stream), buffer, 1024, NULL, NULL)) != 0) {
+		while ((rsize = g_input_stream_read (G_INPUT_STREAM (stream), buffer, 1024, NULL, NULL)) > 0) {
 			g_checksum_update (checksum, buffer, rsize);
 		}
 

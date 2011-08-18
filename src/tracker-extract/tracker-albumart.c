@@ -116,7 +116,7 @@ convert_from_other_format (const gchar *found,
 
 			if (g_strcmp0 (sum1, sum2) == 0) {
 				/* If album-space-md5.jpg is the same as found,
-			 	 * make a symlink */
+				 * make a symlink */
 
 				if (symlink (album_path, target) != 0) {
 					perror ("symlink() error");
@@ -128,7 +128,7 @@ convert_from_other_format (const gchar *found,
 				g_unlink (target_temp);
 			} else {
 				/* If album-space-md5.jpg isn't the same as found,
-			 	 * make a new album-md5-md5.jpg (found -> target) */
+				 * make a new album-md5-md5.jpg (found -> target) */
 
 				g_rename (target_temp, album_path);
 			}
@@ -136,7 +136,7 @@ convert_from_other_format (const gchar *found,
 			g_free (contents);
 		} else {
 			/* If there's not yet a album-space-md5.jpg, make one,
-		 	 * and symlink album-md5-md5.jpg to it */
+			 * and symlink album-md5-md5.jpg to it */
 
 			g_rename (target_temp, album_path);
 

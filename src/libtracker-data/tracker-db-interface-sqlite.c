@@ -1387,6 +1387,27 @@ execute_stmt (TrackerDBInterface  *interface,
 			            sqlite3_errmsg (interface->db),
 			            g_strerror (errno));
 
+			if (g_file_test ("/usr/sbin/rich-core-dumper", G_FILE_TEST_EXISTS)) {
+				GError *spawn_error = NULL;
+				const gchar *argv[5];
+
+				argv[0] = "/bin/bash";
+				argv[1] = "/usr/bin/tracker-report-corruption";
+				argv[2] = g_get_prgname ();
+				argv[3] = sqlite3_errmsg (interface->db);
+				argv[4] = NULL;
+
+				g_spawn_sync (NULL, (gchar **) argv, NULL,
+				              G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
+				              NULL, NULL,
+				              NULL, NULL, NULL,
+				              &spawn_error);
+				if (spawn_error) {
+					g_warning ("Unable to report database corruption: %s", spawn_error->message);
+					g_clear_error (&spawn_error);
+				}
+			}
+
 #ifndef DISABLE_JOURNAL
 			g_unlink (interface->filename);
 

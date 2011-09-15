@@ -12,7 +12,7 @@
 
 maemo: a tracker:Namespace, tracker:Ontology ;
 	tracker:prefix "maemo" ;
-	nao:lastModified "2011-04-20T13:43:00Z" .
+	nao:lastModified "2011-09-21T16:57:00Z" .
 
 maemo:SoftwareWidget a rdfs:Class ;
 	rdfs:label "Widget" ;
@@ -113,3 +113,12 @@ maemo:PostalAddress a rdfs:Class ;
 	rdfs:label "PostalAddress" ;
 	rdfs:comment "Postal Address. Class inspired by TYPE=postal parameter of the ADR property defined in RFC 2426 sec. 3.2.1" ;
 	rdfs:subClassOf nco:PostalAddress .
+
+# Resources related to online services (recognition)
+
+maemo:oviEntityId a rdf:Property ;
+	rdfs:label "OVI Entity ID" ;
+	rdfs:comment "Nokia OVI service entity ID for identification" ;
+	nrl:maxCardinality 1 ;
+	rdfs:domain nfo:Media ;
+	rdfs:range xsd:string .

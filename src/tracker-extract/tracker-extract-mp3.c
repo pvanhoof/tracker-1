@@ -101,6 +101,7 @@ typedef struct {
 	gint track_count;
 	gint set_number;
 	gint set_count;
+	gchar *ovi_entityid;
 } id3v2tag;
 
 typedef enum {
@@ -145,6 +146,7 @@ typedef enum {
 	ID3V24_TPUB,
 	ID3V24_TRCK,
 	ID3V24_TPOS,
+	ID3V24_TXXX,
 	ID3V24_TYER,
 } id3v24frame;
 
@@ -172,6 +174,7 @@ typedef struct {
 	gint track_count;
 	gint set_number;
 	gint set_count;
+	const gchar *ovi_entityid;
 
 	unsigned char *albumart_data;
 	size_t albumart_size;
@@ -222,6 +225,7 @@ static const struct {
 	{ "TPOS", ID3V24_TPOS },
 	{ "TPUB", ID3V24_TPUB },
 	{ "TRCK", ID3V24_TRCK },
+	{ "TXXX", ID3V24_TXXX },
 	{ "TYER", ID3V24_TYER },
 };
 
@@ -1283,6 +1287,41 @@ get_id3v24_tags (id3v24frame           frame,
 		break;
 	}
 
+	case ID3V24_TXXX: {
+		gchar *word;
+		gchar *prop;
+		gchar text_encode;
+		const gchar *text_desc;
+		const gchar *text;
+		guint offset;
+		gint text_desc_len;
+
+		text_encode   =  data[pos + 0]; /* $xx */
+		text_desc     = &data[pos + 1]; /* <text string according to encoding> $00 (00) */
+		text_desc_len = id3v2_strlen (text_encode, text_desc, csize - 1);
+
+		offset        = 1 + text_desc_len + id3v2_nul_size (text_encode);
+		text          = &data[pos + offset]; /* <full text string according to encoding> */
+
+		prop = id3v24_text_to_utf8 (text_encode, text_desc, text_desc_len, info);
+		word = id3v24_text_to_utf8 (text_encode, text, csize - offset, info);
+
+		if (!tracker_is_empty_string (word) &&
+		    !tracker_is_empty_string (prop)) {
+			g_strstrip (word);
+
+			if (strcmp (prop, "OVI/EntityId") == 0) {
+				tag->ovi_entityid = word;
+			}
+
+			g_free (prop);
+		} else {
+			g_free (word);
+			g_free (prop);
+		}
+		break;
+	}
+
 	default: {
 		gchar *word;
 
@@ -1467,6 +1506,41 @@ get_id3v23_tags (id3v24frame           frame,
 			g_free (word);
 		}
 
+		break;
+	}
+
+	case ID3V24_TXXX: {
+		gchar *word;
+		gchar *prop;
+		gchar text_encode;
+		const gchar *text_desc;
+		const gchar *text;
+		guint offset;
+		gint text_desc_len;
+
+		text_encode   =  data[pos + 0]; /* $xx */
+		text_desc     = &data[pos + 1]; /* <text string according to encoding> $00 (00) */
+		text_desc_len = id3v2_strlen (text_encode, text_desc, csize - 1);
+
+		offset        = 1 + text_desc_len + id3v2_nul_size (text_encode);
+		text          = &data[pos + offset]; /* <full text string according to encoding> */
+
+		prop = id3v24_text_to_utf8 (text_encode, text_desc, text_desc_len, info);
+		word = id3v24_text_to_utf8 (text_encode, text, csize - offset, info);
+
+		if (!tracker_is_empty_string (word) &&
+		    !tracker_is_empty_string (prop)) {
+			g_strstrip (word);
+
+			if (strcmp (prop, "OVI/EntityId") == 0) {
+				tag->ovi_entityid = word;
+			}
+
+			g_free (prop);
+		} else {
+			g_free (word);
+			g_free (prop);
+		}
 		break;
 	}
 
@@ -2222,6 +2296,10 @@ tracker_extract_get_metadata (TrackerExtractInfo *info)
 	                                        md.id3v23.encoded_by,
 	                                        md.id3v22.encoded_by);
 
+	md.ovi_entityid = tracker_coalesce_strip (3, md.id3v24.ovi_entityid,
+	                                          md.id3v23.ovi_entityid,
+	                                          md.id3v22.ovi_entityid);
+
 	if (md.id3v24.track_number != 0) {
 		md.track_number = md.id3v24.track_number;
 	} else if (md.id3v23.track_number != 0) {
@@ -2436,6 +2514,11 @@ tracker_extract_get_metadata (TrackerExtractInfo *info)
 	if (md.encoded_by) {
 		tracker_sparql_builder_predicate (metadata, "nfo:encodedBy");
 		tracker_sparql_builder_object_unvalidated (metadata, md.encoded_by);
+	}
+
+	if (md.ovi_entityid) {
+		tracker_sparql_builder_predicate (metadata, "maemo:oviEntityId");
+		tracker_sparql_builder_object_unvalidated (metadata, md.ovi_entityid);
 	}
 
 	if (md.track_number > 0) {

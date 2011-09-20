@@ -121,34 +121,41 @@ class WritebackBasicDataTest (CommonTrackerWritebackTest):
         #FILENAME = "test-writeback-monitored/writeback-test-1.jpeg"
         self.__writeback_test (self.get_test_filename_jpeg (), "image/jpeg", "nie:title")
 
+    @expectedFailureBug("NB#283448")
     def test_002_jpeg_description (self):
         #FILENAME = "test-writeback-monitored/writeback-test-1.jpeg"
         self.__writeback_test (self.get_test_filename_jpeg (), "image/jpeg", "nie:description")
 
+    @expectedFailureBug("NB#283448")
     def test_003_jpeg_keyword (self):
         #FILENAME = "test-writeback-monitored/writeback-test-1.jpeg"
         self.__writeback_test (self.get_test_filename_jpeg (), "image/jpeg",
                                "nie:keyword", "nao:hasTag")
 
+    @expectedFailureBug("NB#283448")
     def test_004_jpeg_hasTag (self):
         #FILENAME = "test-writeback-monitored/writeback-test-1.jpeg"
         self.__writeback_hasTag_test (self.get_test_filename_jpeg (), "image/jpeg")
 
         
     # TIFF tests
+    @expectedFailureBug("NB#283448")
     def test_011_tiff_title (self):
         #FILANAME = "test-writeback-monitored/writeback-test-2.tif"
         self.__writeback_test (self.get_test_filename_tiff (), "image/tiff", "nie:title")
 
+    @expectedFailureBug("NB#283448")
     def test_012_tiff_description (self):
         FILENAME = "test-writeback-monitored/writeback-test-2.tif"
         self.__writeback_test (self.get_test_filename_tiff (), "image/tiff", "nie:description")
         
+    @expectedFailureBug("NB#283448")
     def test_013_tiff_keyword (self):
         FILENAME = "test-writeback-monitored/writeback-test-2.tif"
         self.__writeback_test (self.get_test_filename_tiff (), "image/tiff",
                                "nie:keyword", "nao:hasTag")
 
+    @expectedFailureBug("NB#283448")
     def test_014_tiff_hasTag (self):
         FILENAME = "test-writeback-monitored/writeback-test-2.tif"
         self.__writeback_hasTag_test (self.get_test_filename_tiff (), "image/tiff")

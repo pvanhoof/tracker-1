@@ -38,7 +38,6 @@ typedef struct {
 
 typedef struct {
 	TrackerWritebackListener *self;
-	guint amount;
 	GStrv rdf_types;
 } QueryData;
 

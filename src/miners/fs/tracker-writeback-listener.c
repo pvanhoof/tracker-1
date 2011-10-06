@@ -445,6 +445,8 @@ delayed_loop_idle (gpointer user_data)
 
 		g_string_free (query, TRUE);
 
+		g_variant_iter_free (iter2);
+
 		return TRUE;
 	}
 

@@ -30,10 +30,12 @@
 #include <jpeglib.h>
 
 #include <libtracker-common/tracker-common.h>
+#include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-extract/tracker-extract.h>
 #include <libtracker-sparql/tracker-sparql.h>
 
 #include "tracker-main.h"
+#include "tracker-config.h"
 
 #define CM_TO_INCH              0.393700787
 
@@ -109,7 +111,7 @@ guess_dlna_profile (gint          width,
                     const gchar **dlna_profile,
                     const gchar **dlna_mimetype)
 {
-	gchar *profile = NULL;
+	const gchar *profile = NULL;
 
 	if (dlna_profile) {
 		*dlna_profile = NULL;
@@ -148,6 +150,13 @@ guess_dlna_profile (gint          width,
 	return FALSE;
 }
 
+static gint
+path_is_in_path (gconstpointer a,
+                 gconstpointer b)
+{
+	return tracker_path_is_in_path (b, a) ? 0 : 1;
+}
+
 static void
 extract_jpeg (const gchar          *uri,
               TrackerSparqlBuilder *preupdate,
@@ -174,6 +183,13 @@ extract_jpeg (const gchar          *uri,
 	size = tracker_file_get_size (filename);
 
 	if (size < 18) {
+		g_free (filename);
+		return;
+	}
+
+	if (g_slist_find_custom (tracker_config_get_ignore_images_under (
+	                            tracker_main_get_config()),
+	                         filename, path_is_in_path)) {
 		g_free (filename);
 		return;
 	}

@@ -34,8 +34,11 @@
 #include <gif_lib.h>
 
 #include <libtracker-common/tracker-common.h>
-
+#include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-extract/tracker-extract.h>
+
+#include "tracker-main.h"
+#include "tracker-config.h"
 
 #define XMP_MAGIC_TRAILER_LENGTH 256
 #define EXTENSION_RECORD_COMMENT_BLOCK_CODE 0xFE
@@ -542,6 +545,12 @@ read_metadata (TrackerSparqlBuilder *preupdate,
 	tracker_xmp_free (xd);
 }
 
+static gint
+path_is_in_path (gconstpointer a,
+                 gconstpointer b)
+{
+	return tracker_path_is_in_path (b, a) ? 0 : 1;
+}
 
 static void
 extract_gif (const gchar          *uri,
@@ -557,6 +566,13 @@ extract_gif (const gchar          *uri,
 	size = tracker_file_get_size (filename);
 
 	if (size < 64) {
+		g_free (filename);
+		return;
+	}
+
+	if (g_slist_find_custom (tracker_config_get_ignore_images_under (
+	                            tracker_main_get_config()),
+	                         filename, path_is_in_path)) {
 		g_free (filename);
 		return;
 	}

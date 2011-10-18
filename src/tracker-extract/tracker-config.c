@@ -19,7 +19,15 @@
 
 #include "config.h"
 
+#include <string.h>
+#include <stdlib.h>
+
+#include <glib.h>
+#include <gio/gio.h>
+
 #include <libtracker-common/tracker-keyfile-object.h>
+#include <libtracker-common/tracker-file-utils.h>
+#include <libtracker-common/tracker-type-utils.h>
 
 #include "tracker-config.h"
 
@@ -37,6 +45,7 @@ typedef struct {
 	/* General */
 	gint verbosity;
 	gint max_bytes;
+	GSList   *ignore_images_under;
 } TrackerConfigPrivate;
 
 typedef struct {
@@ -67,12 +76,14 @@ enum {
 
 	/* General */
 	PROP_VERBOSITY,
-	PROP_MAX_BYTES
+	PROP_MAX_BYTES,
+	PROP_IGNORE_IMAGES_UNDER,
 };
 
 static ObjectToKeyFile conversions[] = {
-	{ G_TYPE_INT,     "verbosity",          GROUP_GENERAL,  "Verbosity"       },
-	{ G_TYPE_INT,     "max-bytes",          GROUP_GENERAL,  "MaxBytes"        },
+	{ G_TYPE_INT,     "verbosity",           GROUP_GENERAL,  "Verbosity"         },
+	{ G_TYPE_INT,     "max-bytes",           GROUP_GENERAL,  "MaxBytes"          },
+	{ G_TYPE_POINTER, "ignore-images-under", GROUP_GENERAL,  "IgnoreImagesUnder" },
 };
 
 G_DEFINE_TYPE (TrackerConfig, tracker_config, TRACKER_TYPE_CONFIG_FILE);
@@ -108,6 +119,13 @@ tracker_config_class_init (TrackerConfigClass *klass)
 	                                                   DEFAULT_MAX_BYTES,
 	                                                   G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
 
+	g_object_class_install_property (object_class,
+	                                 PROP_IGNORE_IMAGES_UNDER,
+	                                 g_param_spec_pointer ("ignore-images-under",
+	                                                       "Ignore images under",
+	                                                       " List of directories to NOT extract images in (separator=;)",
+	                                                       G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
+
 	g_type_class_add_private (object_class, sizeof (TrackerConfigPrivate));
 }
 
@@ -132,6 +150,11 @@ config_set_property (GObject      *object,
 	case PROP_MAX_BYTES:
 		tracker_config_set_max_bytes (TRACKER_CONFIG (object),
 		                              g_value_get_int (value));
+		break;
+
+	case PROP_IGNORE_IMAGES_UNDER:
+		tracker_config_set_ignore_images_under (TRACKER_CONFIG (object),
+		                                        g_value_get_pointer (value));
 		break;
 
 	default:
@@ -160,6 +183,10 @@ config_get_property (GObject    *object,
 		g_value_set_int (value, priv->max_bytes);
 		break;
 
+	case PROP_IGNORE_IMAGES_UNDER:
+		g_value_set_pointer (value, priv->ignore_images_under);
+		break;
+
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
 		break;
@@ -169,9 +196,12 @@ config_get_property (GObject    *object,
 static void
 config_finalize (GObject *object)
 {
-	/* For now we do nothing here, we left this override in for
-	 * future expansion.
-	 */
+	TrackerConfigPrivate *priv;
+
+	priv = TRACKER_CONFIG_GET_PRIVATE (object);
+
+	g_slist_foreach (priv->ignore_images_under, (GFunc) g_free, NULL);
+	g_slist_free (priv->ignore_images_under);
 
 	(G_OBJECT_CLASS (tracker_config_parent_class)->finalize) (object);
 }
@@ -212,7 +242,16 @@ config_create_with_defaults (TrackerConfig *config,
 			                        tracker_keyfile_object_default_int (config,
 			                                                            conversions[i].property));
 			break;
+		case G_TYPE_POINTER: {
+				const gchar *string_list[] = { NULL };
 
+				g_key_file_set_string_list (key_file,
+				                            conversions[i].group,
+				                            conversions[i].key,
+				                            string_list,
+				                            G_N_ELEMENTS (string_list));
+			}
+			break;
 		default:
 			g_assert_not_reached ();
 		}
@@ -240,12 +279,12 @@ config_load (TrackerConfig *config)
 	}
 
 	for (i = 0; i < G_N_ELEMENTS (conversions); i++) {
-		gboolean has_key;
+		/* gboolean has_key;
 
 		has_key = g_key_file_has_key (file->key_file,
 		                              conversions[i].group,
 		                              conversions[i].key,
-		                              NULL);
+		                              NULL); */
 
 		switch (conversions[i].type) {
 		case G_TYPE_INT:
@@ -255,6 +294,71 @@ config_load (TrackerConfig *config)
 			                                 conversions[i].group,
 			                                 conversions[i].key);
 			break;
+
+		case G_TYPE_POINTER: {
+			GSList *new_dirs, *old_dirs, *l;
+			gboolean equal;
+
+			if (strcmp (conversions[i].property, "ignore-images-under") == 0) {
+				tracker_keyfile_object_load_directory_list (G_OBJECT (file),
+				                                            conversions[i].property,
+				                                            file->key_file,
+				                                            conversions[i].group,
+				                                            conversions[i].key,
+				                                            FALSE,
+				                                            &new_dirs);
+
+				for (l = new_dirs; l; l = l->next) {
+					const gchar *path_to_use;
+
+					/* Must be a special dir */
+					if (strcmp (l->data, "&DESKTOP") == 0) {
+						path_to_use = g_get_user_special_dir (G_USER_DIRECTORY_DESKTOP);
+					} else if (strcmp (l->data, "&DOCUMENTS") == 0) {
+						path_to_use = g_get_user_special_dir (G_USER_DIRECTORY_DOCUMENTS);
+					} else if (strcmp (l->data, "&DOWNLOAD") == 0) {
+						path_to_use = g_get_user_special_dir (G_USER_DIRECTORY_DOWNLOAD);
+					} else if (strcmp (l->data, "&MUSIC") == 0) {
+						path_to_use = g_get_user_special_dir (G_USER_DIRECTORY_MUSIC);
+					} else if (strcmp (l->data, "&PICTURES") == 0) {
+						path_to_use = g_get_user_special_dir (G_USER_DIRECTORY_PICTURES);
+					} else if (strcmp (l->data, "&PUBLIC_SHARE") == 0) {
+						path_to_use = g_get_user_special_dir (G_USER_DIRECTORY_PUBLIC_SHARE);
+					} else if (strcmp (l->data, "&TEMPLATES") == 0) {
+						path_to_use = g_get_user_special_dir (G_USER_DIRECTORY_TEMPLATES);
+					} else if (strcmp (l->data, "&VIDEOS") == 0) {
+						path_to_use = g_get_user_special_dir (G_USER_DIRECTORY_VIDEOS);
+					} else {
+						path_to_use = NULL;
+					}
+
+					if (path_to_use) {
+						g_free (l->data);
+						l->data = g_strdup (path_to_use);
+					}
+				}
+			} else {
+				tracker_keyfile_object_load_string_list (G_OBJECT (file),
+				                                         conversions[i].property,
+				                                         file->key_file,
+				                                         conversions[i].group,
+				                                         conversions[i].key,
+				                                         &new_dirs);
+			}
+
+			g_object_get (config, conversions[i].property, &old_dirs, NULL);
+
+			equal = tracker_gslist_with_string_data_equal (new_dirs, old_dirs);
+
+			if (!equal) {
+				g_object_set (config, conversions[i].property, new_dirs, NULL);
+			}
+
+			g_slist_foreach (new_dirs, (GFunc) g_free, NULL);
+			g_slist_free (new_dirs);
+
+			break;
+		}
 
 		default:
 			g_assert_not_reached ();
@@ -287,6 +391,61 @@ config_save (TrackerConfig *config)
 			                                 file->key_file,
 			                                 conversions[i].group,
 			                                 conversions[i].key);
+			break;
+
+		case G_TYPE_POINTER:
+			if (strcmp (conversions[i].property, "ignore-images-under") == 0) {
+				GSList *dirs, *l;
+
+				g_object_get (config, conversions[i].property, &dirs, NULL);
+
+				for (l = dirs; l; l = l->next) {
+					const gchar *path_to_use;
+
+					/* FIXME: This doesn't work
+					 * perfectly, what if DESKTOP
+					 * and DOCUMENTS are in the
+					 * same place? Then this
+					 * breaks. Need a better
+					 * solution at some point.
+					 */
+					if (g_strcmp0 (l->data, g_get_home_dir ()) == 0) {
+						/* Home dir gets straight into configuration,
+						 * regardless of having XDG dirs pointing to it.
+						 */
+						path_to_use = "$HOME";
+					} else if (g_strcmp0 (l->data, g_get_user_special_dir (G_USER_DIRECTORY_DESKTOP)) == 0) {
+						path_to_use = "&DESKTOP";
+					} else if (g_strcmp0 (l->data, g_get_user_special_dir (G_USER_DIRECTORY_DOCUMENTS)) == 0) {
+						path_to_use = "&DOCUMENTS";
+					} else if (g_strcmp0 (l->data, g_get_user_special_dir (G_USER_DIRECTORY_DOWNLOAD)) == 0) {
+						path_to_use = "&DOWNLOAD";
+					} else if (g_strcmp0 (l->data, g_get_user_special_dir (G_USER_DIRECTORY_MUSIC)) == 0) {
+						path_to_use = "&MUSIC";
+					} else if (g_strcmp0 (l->data, g_get_user_special_dir (G_USER_DIRECTORY_PICTURES)) == 0) {
+						path_to_use = "&PICTURES";
+					} else if (g_strcmp0 (l->data, g_get_user_special_dir (G_USER_DIRECTORY_PUBLIC_SHARE)) == 0) {
+						path_to_use = "&PUBLIC_SHARE";
+					} else if (g_strcmp0 (l->data, g_get_user_special_dir (G_USER_DIRECTORY_TEMPLATES)) == 0) {
+						path_to_use = "&TEMPLATES";
+					} else if (g_strcmp0 (l->data, g_get_user_special_dir (G_USER_DIRECTORY_VIDEOS)) == 0) {
+						path_to_use = "&VIDEOS";
+					} else {
+						path_to_use = NULL;
+					}
+
+					if (path_to_use) {
+						g_free (l->data);
+						l->data = g_strdup (path_to_use);
+					}
+				}
+			}
+
+			tracker_keyfile_object_save_string_list (file,
+			                                         conversions[i].property,
+			                                         file->key_file,
+			                                         conversions[i].group,
+			                                         conversions[i].key);
 			break;
 
 		default:
@@ -323,6 +482,19 @@ tracker_config_get_verbosity (TrackerConfig *config)
 
 	return priv->verbosity;
 }
+
+GSList *
+tracker_config_get_ignore_images_under (TrackerConfig *config)
+{
+	TrackerConfigPrivate *priv;
+
+	g_return_val_if_fail (TRACKER_IS_CONFIG (config), NULL);
+
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
+
+	return priv->ignore_images_under;
+}
+
 
 void
 tracker_config_set_verbosity (TrackerConfig *config,
@@ -371,4 +543,37 @@ tracker_config_set_max_bytes (TrackerConfig *config,
 
 	priv->max_bytes = value;
 	g_object_notify (G_OBJECT (config), "max-bytes");
+}
+
+void
+tracker_config_set_ignore_images_under (TrackerConfig *config,
+                                        GSList        *roots)
+{
+	TrackerConfigPrivate *priv;
+	GSList *l;
+	gboolean equal;
+
+	g_return_if_fail (TRACKER_IS_CONFIG (config));
+
+	priv = TRACKER_CONFIG_GET_PRIVATE (config);
+
+	l = priv->ignore_images_under;
+
+	equal = tracker_gslist_with_string_data_equal (roots, l);
+
+	if (!roots) {
+		priv->ignore_images_under = NULL;
+	} else {
+		priv->ignore_images_under =
+			tracker_gslist_copy_with_string_data (roots);
+	}
+
+	g_slist_foreach (l, (GFunc) g_free, NULL);
+	g_slist_free (l);
+
+	if (equal) {
+		return;
+	}
+
+	g_object_notify (G_OBJECT (config), "ignore-images-under");
 }

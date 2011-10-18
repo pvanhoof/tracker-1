@@ -51,11 +51,16 @@ gboolean       tracker_config_save          (TrackerConfig *config);
 
 gint           tracker_config_get_verbosity (TrackerConfig *config);
 gint           tracker_config_get_max_bytes (TrackerConfig *config);
+GSList *       tracker_config_get_ignore_images_under
+                                            (TrackerConfig *config);
 
 void           tracker_config_set_verbosity (TrackerConfig *config,
                                              gint           value);
 void           tracker_config_set_max_bytes (TrackerConfig *config,
                                              gint           value);
+void           tracker_config_set_ignore_images_under
+                                            (TrackerConfig *config,
+                                             GSList        *files);
 
 G_END_DECLS
 

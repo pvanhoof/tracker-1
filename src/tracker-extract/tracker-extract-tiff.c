@@ -35,7 +35,11 @@
 
 #include <tiffio.h>
 #include <libtracker-common/tracker-common.h>
+#include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-extract/tracker-extract.h>
+
+#include "tracker-main.h"
+#include "tracker-config.h"
 
 #define CM_TO_INCH          0.393700787
 
@@ -263,6 +267,13 @@ tag_to_string (TIFF    *image,
 	return NULL;
 }
 
+static gint
+path_is_in_path (gconstpointer a,
+                 gconstpointer b)
+{
+	return tracker_path_is_in_path (b, a) ? 0 : 1;
+}
+
 static void
 extract_tiff (const gchar          *uri,
               TrackerSparqlBuilder *preupdate,
@@ -293,6 +304,13 @@ extract_tiff (const gchar          *uri,
 #endif /* HAVE_EXEMPI */
 
 	filename = g_filename_from_uri (uri, NULL, NULL);
+
+	if (g_slist_find_custom (tracker_config_get_ignore_images_under (
+	                            tracker_main_get_config()),
+	                         filename, path_is_in_path)) {
+		g_free (filename);
+		return;
+	}
 
 	fd = g_open (filename, O_RDONLY | O_NOATIME, 0);
 	if (fd == -1 && errno == EPERM) {

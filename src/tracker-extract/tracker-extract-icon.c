@@ -22,6 +22,9 @@
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-extract/tracker-extract.h>
 
+#include "tracker-main.h"
+#include "tracker-config.h"
+
 static void extract_icon (const gchar          *filename,
                           TrackerSparqlBuilder *preupdate,
                           TrackerSparqlBuilder *metadata);
@@ -133,6 +136,13 @@ find_max_width_and_height (const gchar *uri,
 	return TRUE;
 }
 
+static gint
+path_is_in_path (gconstpointer a,
+                 gconstpointer b)
+{
+	return tracker_path_is_in_path (b, a) ? 0 : 1;
+}
+
 static void
 extract_icon (const gchar          *uri,
               TrackerSparqlBuilder *preupdate,
@@ -140,6 +150,18 @@ extract_icon (const gchar          *uri,
 {
 	guint max_width;
 	guint max_height;
+	gchar *filename;
+
+	filename = g_filename_from_uri (uri, NULL, NULL);
+
+	if (g_slist_find_custom (tracker_config_get_ignore_images_under (
+	                            tracker_main_get_config()),
+	                         filename, path_is_in_path)) {
+		g_free (filename);
+		return;
+	}
+
+	g_free (filename);
 
 	/* The Windows Icon file format may contain the same icon with different
 	 * sizes inside, so there's no clear way of setting single width and

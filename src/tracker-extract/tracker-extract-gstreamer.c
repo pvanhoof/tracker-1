@@ -51,9 +51,13 @@
 #include <gst/tag/tag.h>
 
 #include <libtracker-common/tracker-common.h>
+#include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-extract/tracker-extract.h>
 
 #include "tracker-albumart.h"
+
+#include "tracker-main.h"
+#include "tracker-config.h"
 
 /* We wait this long (seconds) for NULL state before freeing */
 #define TRACKER_EXTRACT_GUARD_TIMEOUT 3
@@ -1716,6 +1720,13 @@ tagreadbin_init_and_run (MetadataExtractor *extractor,
 
 #endif /* GSTREAMER_BACKEND_TAGREADBIN */
 
+static gint
+path_is_in_path (gconstpointer a,
+                 gconstpointer b)
+{
+	return tracker_path_is_in_path (b, a) ? 0 : 1;
+}
+
 static void
 tracker_extract_gstreamer (const gchar          *uri,
                            TrackerSparqlBuilder *preupdate,
@@ -1724,9 +1735,21 @@ tracker_extract_gstreamer (const gchar          *uri,
 {
 	MetadataExtractor *extractor;
 	gchar *artist, *album, *scount;
+	gchar *filename;
 
 	g_return_if_fail (uri);
 	g_return_if_fail (metadata);
+
+	filename = g_filename_from_uri (uri, NULL, NULL);
+
+	if (g_slist_find_custom (tracker_config_get_ignore_images_under (
+	                            tracker_main_get_config()),
+	                         filename, path_is_in_path)) {
+		g_free (filename);
+		return;
+	}
+
+	g_free (filename);
 
 	gst_init (NULL, NULL);
 

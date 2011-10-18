@@ -30,6 +30,9 @@
 #include <libtracker-common/tracker-date-time.h>
 #include <libtracker-extract/tracker-extract.h>
 
+#include "tracker-main.h"
+#include "tracker-config.h"
+
 #define RFC1123_DATE_FORMAT "%d %B %Y %H:%M:%S %z"
 #define CM_TO_INCH          0.393700787
 
@@ -708,7 +711,7 @@ guess_dlna_profile (gint          depth,
                     const gchar **dlna_profile,
                     const gchar **dlna_mimetype)
 {
-	gchar *profile = NULL;
+	const gchar *profile = NULL;
 
 	if (dlna_profile) {
 		*dlna_profile = NULL;
@@ -743,6 +746,13 @@ guess_dlna_profile (gint          depth,
 	return FALSE;
 }
 
+static gint
+path_is_in_path (gconstpointer a,
+                 gconstpointer b)
+{
+	return tracker_path_is_in_path (b, a) ? 0 : 1;
+}
+
 static void
 extract_png (const gchar          *uri,
              TrackerSparqlBuilder *preupdate,
@@ -765,6 +775,13 @@ extract_png (const gchar          *uri,
 	size = tracker_file_get_size (filename);
 
 	if (size < 64) {
+		return;
+	}
+
+	if (g_slist_find_custom (tracker_config_get_ignore_images_under (
+	                            tracker_main_get_config()),
+	                         filename, path_is_in_path)) {
+		g_free (filename);
 		return;
 	}
 

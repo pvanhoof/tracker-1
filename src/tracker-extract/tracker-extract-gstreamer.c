@@ -1735,21 +1735,10 @@ tracker_extract_gstreamer (const gchar          *uri,
 {
 	MetadataExtractor *extractor;
 	gchar *artist, *album, *scount;
-	gchar *filename;
 
 	g_return_if_fail (uri);
 	g_return_if_fail (metadata);
 
-	filename = g_filename_from_uri (uri, NULL, NULL);
-
-	if (g_slist_find_custom (tracker_config_get_ignore_images_under (
-	                            tracker_main_get_config()),
-	                         filename, path_is_in_path)) {
-		g_free (filename);
-		return;
-	}
-
-	g_free (filename);
 
 	gst_init (NULL, NULL);
 
@@ -1829,6 +1818,19 @@ extract_gstreamer_image (const gchar          *uri,
                          TrackerSparqlBuilder *preupdate,
                          TrackerSparqlBuilder *metadata)
 {
+	gchar *filename;
+
+	filename = g_filename_from_uri (uri, NULL, NULL);
+
+	if (g_slist_find_custom (tracker_config_get_ignore_images_under (
+	                            tracker_main_get_config()),
+	                         filename, path_is_in_path)) {
+		g_free (filename);
+		return;
+	}
+
+	g_free (filename);
+
 	tracker_extract_gstreamer (uri, preupdate, metadata, EXTRACT_MIME_IMAGE);
 }
 
@@ -1837,6 +1839,19 @@ extract_gstreamer_svg (const gchar          *uri,
                        TrackerSparqlBuilder *preupdate,
                        TrackerSparqlBuilder *metadata)
 {
+	gchar *filename;
+
+	filename = g_filename_from_uri (uri, NULL, NULL);
+
+	if (g_slist_find_custom (tracker_config_get_ignore_images_under (
+	                            tracker_main_get_config()),
+	                         filename, path_is_in_path)) {
+		g_free (filename);
+		return;
+	}
+
+	g_free (filename);
+
 	tracker_extract_gstreamer (uri, preupdate, metadata, EXTRACT_MIME_SVG);
 }
 

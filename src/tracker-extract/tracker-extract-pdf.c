@@ -203,32 +203,47 @@ extract_content (PopplerDocument *document,
 	       g_timer_elapsed (timer, NULL) < 5) {
 		PopplerPage *page;
 		gsize written_bytes;
-		gchar *text;
+			   gchar *text;
+		PopplerRectangle rectangle = {0, 0, 0, 0};
+		double height = 0, piece;
+		gint part;
 
 		page = poppler_document_get_page (document, i);
 		i++;
 
-		text = poppler_page_get_text (page);
+		poppler_page_get_size (page, &rectangle.x2, &height);
+		piece = height / 10;
 
-		if (!text) {
-			g_object_unref (page);
-			continue;
+		for (part = 1; part <= 10 && g_timer_elapsed (timer, NULL) < 105; part++) {
+
+			rectangle.y1 = piece * (part - 1);
+			rectangle.y2 = piece * part;
+
+
+			text = poppler_page_get_selected_text (page, POPPLER_SELECTION_GLYPH, &rectangle);
+
+			g_print ("from %f to %f took %fs\n", rectangle.y1, rectangle.y2, g_timer_elapsed (timer, NULL));
+
+			if (!text) {
+				continue;
+			}
+
+			if (tracker_text_validate_utf8 (text,
+			                                MIN (strlen (text), remaining_bytes),
+			                                &string,
+			                                &written_bytes)) {
+				g_string_append_c (string, ' ');
+			}
+
+			remaining_bytes -= written_bytes;
+
+			g_debug ("Extracted %" G_GSIZE_FORMAT " bytes from page %d, "
+			         "%" G_GSIZE_FORMAT " bytes remaining",
+			         written_bytes, i, remaining_bytes);
+
+			g_free (text);
 		}
 
-		if (tracker_text_validate_utf8 (text,
-		                                MIN (strlen (text), remaining_bytes),
-		                                &string,
-		                                &written_bytes)) {
-			g_string_append_c (string, ' ');
-		}
-
-		remaining_bytes -= written_bytes;
-
-		g_debug ("Extracted %" G_GSIZE_FORMAT " bytes from page %d, "
-		         "%" G_GSIZE_FORMAT " bytes remaining",
-		         written_bytes, i, remaining_bytes);
-
-		g_free (text);
 		g_object_unref (page);
 	}
 

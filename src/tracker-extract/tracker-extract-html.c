@@ -230,6 +230,14 @@ parser_characters (void          *data,
 }
 
 G_MODULE_EXPORT gboolean
+tracker_extract_module_init (TrackerModuleThreadAwareness  *thread_awareness_ret,
+                             GError                       **error)
+{
+	*thread_awareness_ret = TRACKER_MODULE_MULTI_THREAD;
+	return TRUE;
+}
+
+G_MODULE_EXPORT gboolean
 tracker_extract_get_metadata (TrackerExtractInfo *info)
 {
 	TrackerSparqlBuilder *metadata;

@@ -581,20 +581,23 @@ ucs2_to_utf8(const gchar *data, guint len)
 static gboolean
 get_genre_number (const char *str, guint *genre)
 {
-	static GRegex *regex1 = NULL;
-	static GRegex *regex2 = NULL;
+	static GStaticPrivate regex_array_data = G_STATIC_PRIVATE_INIT;
+	GRegex **regex_array;
 	GMatchInfo *info = NULL;
 	gchar *result = NULL;
 
-	if (!regex1) {
-		regex1 = g_regex_new ("\\(([0-9]+)\\)", 0, 0, NULL);
+	regex_array = g_static_private_get (&regex_array_data);
+
+	if (!regex_array) {
+		regex_array = g_new0 (GRegex*, 2);
+		regex_array[0] = g_regex_new ("\\(([0-9]+)\\)", 0, 0, NULL);
+		regex_array[1] = g_regex_new ("([0-9]+)\\z", 0, 0, NULL);
+
+		g_static_private_set (&regex_array_data,
+				      regex_array, NULL);
 	}
 
-	if (!regex2) {
-		regex2 = g_regex_new ("([0-9]+)\\z", 0, 0, NULL);
-	}
-
-	if (g_regex_match (regex1, str, 0, &info)) {
+	if (g_regex_match (regex_array[0], str, 0, &info)) {
 		result = g_match_info_fetch (info, 1);
 		if (result) {
 			*genre = atoi (result);
@@ -606,7 +609,7 @@ get_genre_number (const char *str, guint *genre)
 
 	g_match_info_free (info);
 
-	if (g_regex_match (regex2, str, 0, &info)) {
+	if (g_regex_match (regex_array[1], str, 0, &info)) {
 		result = g_match_info_fetch (info, 1);
 		if (result) {
 			*genre = atoi (result);
@@ -2059,6 +2062,14 @@ parse_id3v2 (const gchar          *data,
 	} while (!done);
 
 	return offset;
+}
+
+G_MODULE_EXPORT gboolean
+tracker_extract_module_init (TrackerModuleThreadAwareness  *thread_awareness_ret,
+                             GError                       **error)
+{
+	*thread_awareness_ret = TRACKER_MODULE_MULTI_THREAD;
+	return TRUE;
 }
 
 G_MODULE_EXPORT gboolean

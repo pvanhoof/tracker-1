@@ -1039,22 +1039,29 @@ tracker_db_interface_sqlite_fts_update_rollback (TrackerDBInterface *db_interfac
 void
 tracker_db_interface_sqlite_reset_collator (TrackerDBInterface *db_interface)
 {
+	gpointer newcollator;
+
 	g_debug ("Resetting collator in db interface %p", db_interface);
 
-	if (db_interface->collator) {
-		tracker_collation_shutdown (db_interface->collator);
-	}
+	newcollator = tracker_collation_init ();
 
-	db_interface->collator = tracker_collation_init ();
 	/* This will overwrite any other collation set before, if any */
 	if (sqlite3_create_collation (db_interface->db,
 	                              TRACKER_COLLATION_NAME,
 	                              SQLITE_UTF8,
 	                              db_interface->collator,
-	                              tracker_collation_utf8) != SQLITE_OK)
-	{
+	                              tracker_collation_utf8) == SQLITE_OK) {
+		/* replacing collator was successful, shut down old collator */
+		if (db_interface->collator) {
+			tracker_collation_shutdown (db_interface->collator);
+		}
+
+		db_interface->collator = newcollator;
+	} else {
 		g_critical ("Couldn't set collation function: %s",
 		            sqlite3_errmsg (db_interface->db));
+
+		tracker_collation_shutdown (newcollator);
 	}
 }
 

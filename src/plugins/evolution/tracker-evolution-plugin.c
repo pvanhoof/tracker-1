@@ -30,8 +30,7 @@
 /* FIXME: Shouldn't include this but we need it for EMailSession */
 #include <mail/mail-ops.h>
 #else
-/* According to mbarnes this should be libemail-engine/e-mail-session.h, guessing this is a 3.2 vs 3.5 issue. */
-#include <mail/e-mail-session.h>
+#include <libemail-engine/e-mail-session.h>
 #endif
 
 #include "tracker-evolution-plugin.h"

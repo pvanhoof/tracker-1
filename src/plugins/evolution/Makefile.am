@@ -8,9 +8,9 @@ AM_CPPFLAGS =                                          \
 	-DLOCALEDIR="\"$(localedir)\""                 \
 	$(TRACKER_MINER_EVOLUTION_CFLAGS)
 
-eplugindir = $(TRACKER_MINER_EVOLUTION_INSTALL_DIR)
+moduledir = $(TRACKER_MINER_EVOLUTION_INSTALL_DIR)
 
-eplugin_LTLIBRARIES = liborg-freedesktop-Tracker-evolution-plugin.la
+module_LTLIBRARIES = liborg-freedesktop-Tracker-evolution-plugin.la
 
 # module_flags = -module -avoid-version -no-undefined
 

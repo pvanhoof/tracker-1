@@ -1147,10 +1147,7 @@ if test "x$have_tracker_miner_evolution" = "xyes"; then
                AS_HELP_STRING([--with-evolution-plugin-dir],
                               [path to Evolution plugin directory]))
    if test "x$with_evolution_plugin_dir" = "x" ; then
-      tracker_miner_evolution_install_dir=`$PKG_CONFIG $evolution_plugin_name --variable=privlibdir`
-      if test -n "$tracker_miner_evolution_install_dir" ; then
-         tracker_miner_evolution_install_dir="$tracker_miner_evolution_install_dir/modules"
-      fi
+      tracker_miner_evolution_install_dir=`$PKG_CONFIG --variable=moduledir evolution-shell-3.0`
    else
       tracker_miner_evolution_install_dir="$with_tracker_miner_evolution_install_dir"
    fi

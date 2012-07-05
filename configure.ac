@@ -180,10 +180,10 @@ LIBEXIF_REQUIRED=0.6
 LIBGSF_REQUIRED=1.13
 LIBOSINFO_REQUIRED=0.0.2
 EXEMPI_REQUIRED=2.1.0
-EVO_REQUIRED=2.32.0
-EVO_SHELL_REQUIRED=2.32.0
-EDS_REQUIRED=2.32.0
-CAMEL_REQUIRED=2.32.0
+EVO_REQUIRED=3.2
+EVO_SHELL_REQUIRED=3.2
+EDS_REQUIRED=3.2
+CAMEL_REQUIRED=3.2
 # Unlikely version for now, Nepomuk integration isn't finished in streamanalyzer atm
 LIBSTREAMANALYZER_REQUIRED=0.7.0
 GEE_REQUIRED=0.3
@@ -371,37 +371,6 @@ if test -z "$evolution_plugin_name" && test "x$have_tracker_miner_evolution" = "
 
    AC_DEFINE(EVOLUTION_SHELL_3_2, 1, [Use new evolution-shell API])
    AC_DEFINE(EVOLUTION_SHELL_2_91, 1, [Use new evolution-shell API])
-fi
-
-# Third test for 2_91
-TRACKER_MINER_EVOLUTION_2_91_REQUIRED="glib-2.0                  >= $GLIB_REQUIRED
-                                       evolution-shell-3.0
-                                       evolution-plugin-3.0
-                                       evolution-data-server-1.2 >= $EDS_REQUIRED
-                                       camel-1.2                 >= $CAMEL_REQUIRED"
-
-PKG_CHECK_MODULES(TRACKER_MINER_EVOLUTION, [$TRACKER_MINER_EVOLUTION_2_91_REQUIRED],
-                  [have_tracker_miner_evolution=yes],
-                  [have_tracker_miner_evolution=no])
-
-if test -z "$evolution_plugin_name" && test "x$have_tracker_miner_evolution" = "xyes"; then
-   evolution_plugin_name="evolution-plugin-3.0"
-   AC_DEFINE(EVOLUTION_SHELL_2_91, 1, [Use new evolution-shell API])
-fi
-
-# Fourth test others (do we really want support for anything < 3.2)?
-TRACKER_MINER_EVOLUTION_LAST_REQUIRED="glib-2.0                  >= $GLIB_REQUIRED
-                                       evolution-shell           >= $EVO_SHELL_REQUIRED
-                                       evolution-plugin          >= $EVO_REQUIRED
-                                       evolution-data-server-1.2 >= $EDS_REQUIRED
-                                       camel-1.2                 >= $CAMEL_REQUIRED"
-
-PKG_CHECK_MODULES(TRACKER_MINER_EVOLUTION, [$TRACKER_MINER_EVOLUTION_LAST_REQUIRED],
-                  [have_tracker_miner_evolution=yes],
-                  [have_tracker_miner_evolution=no])
-
-if test -z "$evolution_plugin_name" && test "x$have_tracker_miner_evolution" = "xyes"; then
-   evolution_plugin_name="evolution-plugin"
 fi
 
 # Check requirements for tracker-miner-thunderbird
@@ -1178,7 +1147,10 @@ if test "x$have_tracker_miner_evolution" = "xyes"; then
                AS_HELP_STRING([--with-evolution-plugin-dir],
                               [path to Evolution plugin directory]))
    if test "x$with_evolution_plugin_dir" = "x" ; then
-      tracker_miner_evolution_install_dir=`$PKG_CONFIG $evolution_plugin_name --variable=plugindir`
+      tracker_miner_evolution_install_dir=`$PKG_CONFIG $evolution_plugin_name --variable=privlibdir`
+      if test -n "$tracker_miner_evolution_install_dir" ; then
+         tracker_miner_evolution_install_dir="$tracker_miner_evolution_install_dir/modules"
+      fi
    else
       tracker_miner_evolution_install_dir="$with_tracker_miner_evolution_install_dir"
    fi

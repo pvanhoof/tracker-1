@@ -8,18 +8,7 @@ AM_CPPFLAGS =                                          \
 	-DLOCALEDIR="\"$(localedir)\""                 \
 	$(TRACKER_MINER_EVOLUTION_CFLAGS)
 
-%.eplug.in: %.eplug.xml
-	LC_ALL=C $(INTLTOOL_MERGE) -x -u /tmp $< $@
-
-%.eplug: %.eplug.in
-	sed -e "s|+PLUGIN_INSTALL_DIR+|$(TRACKER_MINER_EVOLUTION_INSTALL_DIR)|" \
-	    -e "s|+GETTEXT_PACKAGE+|$(GETTEXT_PACKAGE)|" \
-	    -e "s|+LOCALEDIR+|$(localedir)|"           \
-	    $< > $@
-
 eplugindir = $(TRACKER_MINER_EVOLUTION_INSTALL_DIR)
-
-eplugin_DATA = org-freedesktop-Tracker-evolution-plugin.eplug
 
 eplugin_LTLIBRARIES = liborg-freedesktop-Tracker-evolution-plugin.la
 
@@ -38,13 +27,6 @@ liborg_freedesktop_Tracker_evolution_plugin_la_LIBADD = \
 	$(TRACKER_MINER_EVOLUTION_LIBS)
 
 @INTLTOOL_DESKTOP_RULE@
-
-BUILT_SOURCES =                                        \
-	$(eplugin_DATA)
-
-CLEANFILES =                                           \
-	$(BUILT_SOURCES)                               \
-	$(eplugin_DATA)
 
 EXTRA_DIST =                                           \
 	org-freedesktop-Tracker-evolution-plugin.eplug.xml

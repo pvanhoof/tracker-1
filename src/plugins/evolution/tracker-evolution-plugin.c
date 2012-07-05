@@ -25,13 +25,7 @@
 #include <glib/gi18n-lib.h>
 
 #include <camel/camel.h>
-
-#if 0
-/* FIXME: Shouldn't include this but we need it for EMailSession */
-#include <mail/mail-ops.h>
-#else
 #include <libemail-engine/e-mail-session.h>
-#endif
 
 #include "tracker-evolution-plugin.h"
 
@@ -87,21 +81,6 @@ enum {
 	PROP_MAIL_SESSION
 };
 
-static EMailSession *
-tracker_miner_evolution_ref_mail_session (TrackerMinerEvolution *miner)
-{
-	return g_weak_ref_get (&miner->priv->mail_session);
-}
-
-static void
-tracker_miner_evolution_set_mail_session (TrackerMinerEvolution *miner,
-                                          EMailSession          *mail_session)
-{
-	g_return_if_fail (E_IS_MAIL_SESSION (mail_session));
-
-	g_weak_ref_set (&miner->priv->mail_session, mail_session);
-}
-
 static void
 miner_evolution_initable_iface_init (GInitableIface *iface)
 {
@@ -125,6 +104,84 @@ miner_evolution_initable_init (GInitable     *initable,
 	return TRUE;
 }
 
+static EMailSession *
+miner_evolution_ref_mail_session (TrackerMinerEvolution *miner)
+{
+	TrackerMinerEvolutionPrivate *priv = TRACKER_MINER_EVOLUTION_GET_PRIVATE (miner);
+
+	return g_weak_ref_get (&priv->mail_session);
+}
+
+static void
+miner_evolution_set_mail_session (TrackerMinerEvolution *miner,
+                                  EMailSession          *mail_session)
+{
+	TrackerMinerEvolutionPrivate *priv = TRACKER_MINER_EVOLUTION_GET_PRIVATE (miner);
+
+	g_return_if_fail (E_IS_MAIL_SESSION (mail_session));
+
+	g_weak_ref_set (&priv->mail_session, mail_session);
+}
+
+static GList *
+miner_evolution_list_mail_stores (TrackerMinerEvolution *miner)
+{
+	EMailSession *mail_session;
+	ESourceRegistry *registry;
+	GList *list, *link;
+	GList *stores = NULL;
+	const gchar *extension_name;
+
+	/* This is just demonstration code showing how to build
+	 * a list of available CamelStores with the new EDS API. */
+	mail_session = miner_evolution_ref_mail_session (miner);
+
+	/* You'll probably also want to listen for "source-added"
+	 * and "source-removed" signals from the ESourceRegistry. */
+	registry = e_mail_session_get_registry (mail_session);
+
+	/* List all ESources having a [Mail Account] extension. */
+	extension_name = E_SOURCE_EXTENSION_MAIL_ACCOUNT;
+	list = e_source_registry_list_sources (registry, extension_name);
+
+	for (link = list; link != NULL; link = g_list_next (link)) {
+		ESource *source = E_SOURCE (link->data);
+		CamelService *service;
+		const gchar *uid;
+
+		uid = e_source_get_uid (source);
+
+		/* Skip Search Folders. */
+		if (g_strcmp0 (uid, E_MAIL_SESSION_VFOLDER_UID) == 0)
+			continue;
+
+		/* CamelServices share the same UID as the corresponding
+		 * ESource, so we can just query the CamelSession by the
+		 * mail account ESource UID. */
+		service = camel_session_get_service (CAMEL_SESSION (mail_session), uid);
+
+		/* The service returned should be a CamelStore. */
+		if (!CAMEL_IS_STORE (service)) {
+			g_warning ("Expected a CamelStore for UID:'%s' but instead got %s",
+			           uid, 
+			           service ? G_OBJECT_TYPE_NAME (service) : "");
+			continue;
+		}
+
+		/* Reference the service so it doesn't disappear on us. */
+		stores = g_list_prepend (stores, g_object_ref (service));
+
+		g_debug ("Found %s ('%s')",
+		         G_OBJECT_TYPE_NAME (service),
+		         camel_service_get_display_name (service));
+	}
+
+	g_list_free_full (list, (GDestroyNotify) g_object_unref);
+	g_object_unref (mail_session);
+
+	return stores;
+}
+
 static void
 tracker_miner_evolution_set_property (GObject      *object,
                                       guint         property_id,
@@ -133,9 +190,8 @@ tracker_miner_evolution_set_property (GObject      *object,
 {
 	switch (property_id) {
 		case PROP_MAIL_SESSION:
-			tracker_miner_evolution_set_mail_session (
-				TRACKER_MINER_EVOLUTION (object),
-				g_value_get_object (value));
+			miner_evolution_set_mail_session (TRACKER_MINER_EVOLUTION (object),
+			                                  g_value_get_object (value));
 			return;
 	}
 
@@ -150,10 +206,8 @@ tracker_miner_evolution_get_property (GObject    *object,
 {
 	switch (property_id) {
 		case PROP_MAIL_SESSION:
-			g_value_take_object (
-				value,
-				tracker_miner_evolution_ref_mail_session (
-				TRACKER_MINER_EVOLUTION (object)));
+			g_value_take_object (value,
+			                     miner_evolution_ref_mail_session (TRACKER_MINER_EVOLUTION (object)));
 			return;
 	}
 
@@ -166,8 +220,8 @@ tracker_miner_evolution_finalize (GObject *plugin)
 	TrackerMinerEvolutionPrivate *priv = TRACKER_MINER_EVOLUTION_GET_PRIVATE (plugin);
 
 	if (priv->sparql_cancel) {
-		/* We reuse the cancellable */
 		g_cancellable_cancel (priv->sparql_cancel);
+		g_object_unref (priv->sparql_cancel);
 	}
 
 	if (priv->timer_since_stopped) {
@@ -175,14 +229,17 @@ tracker_miner_evolution_finalize (GObject *plugin)
 		priv->timer_since_stopped = NULL;
 	}
 
-	if (priv->sparql_cancel) {
-		g_cancellable_cancel (priv->sparql_cancel);
-		g_object_unref (priv->sparql_cancel);
-	}
-
 	g_weak_ref_set (&priv->mail_session, NULL);
 
 	G_OBJECT_CLASS (tracker_miner_evolution_parent_class)->finalize (plugin);
+}
+
+static void
+tracker_miner_evolution_constructed (GObject *object)
+{
+	G_OBJECT_CLASS (tracker_miner_evolution_parent_class)->constructed (object);
+
+	miner_evolution_list_mail_stores (TRACKER_MINER_EVOLUTION (object));
 }
 
 static void
@@ -201,6 +258,7 @@ tracker_miner_evolution_class_init (TrackerMinerEvolutionClass *klass)
 	object_class->set_property = tracker_miner_evolution_set_property;
 	object_class->get_property = tracker_miner_evolution_get_property;
 	object_class->finalize = tracker_miner_evolution_finalize;
+	object_class->constructed = tracker_miner_evolution_constructed;
 
 	g_type_class_add_private (object_class, sizeof (TrackerMinerEvolutionPrivate));
 
@@ -219,19 +277,19 @@ tracker_miner_evolution_class_init (TrackerMinerEvolutionClass *klass)
 static void
 tracker_miner_evolution_init (TrackerMinerEvolution *plugin)
 {
-	plugin->priv = TRACKER_MINER_EVOLUTION_GET_PRIVATE (plugin);
+	TrackerMinerEvolutionPrivate *priv = TRACKER_MINER_EVOLUTION_GET_PRIVATE (plugin);
 
-	plugin->priv->sparql_cancel = g_cancellable_new ();
+	priv->sparql_cancel = g_cancellable_new ();
 
-	plugin->priv->resuming = FALSE;
-	plugin->priv->paused = FALSE;
+	priv->resuming = FALSE;
+	priv->paused = FALSE;
 }
 
 static void
-on_tracker_store_appeared (GDBusConnection *d_connection,
-                           const gchar     *name,
-                           const gchar     *name_owner,
-                           gpointer         user_data)
+store_appeared (GDBusConnection *d_connection,
+                const gchar     *name,
+                const gchar     *name_owner,
+                gpointer         user_data)
 
 {
 	TrackerMinerEvolutionPrivate *priv = TRACKER_MINER_EVOLUTION_GET_PRIVATE (user_data);
@@ -252,7 +310,7 @@ miner_start_watching (TrackerMiner *miner)
 	priv->watch_name_id = g_bus_watch_name (G_BUS_TYPE_SESSION,
 	                                        TRACKER_SERVICE,
 	                                        G_BUS_NAME_WATCHER_FLAGS_NONE,
-	                                        on_tracker_store_appeared,
+	                                        store_appeared,
 	                                        NULL,
 	                                        miner,
 	                                        NULL);
@@ -335,55 +393,11 @@ miner_resumed (TrackerMiner *miner)
 
 
 
-
-
-
-
-
-
-#if 0
-
-/*
- * Extensible
- */
-#include <libebackend/libebackend.h>
-
-G_DEFINE_TYPE_WITH_CODE (ECustomWidget, e_custom_widget, GTK_TYPE_WIDGET,
-                         G_IMPLEMENT_INTERFACE (E_TYPE_EXTENSIBLE, NULL))
-
-static void
-e_custom_widget_constructed (GObject *object)
-{
-        /* Initialization code goes here... */
-
-        e_extensible_load_extensions (E_EXTENSIBLE (object));
-}
-
-#endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /*
  * Extension
  */
 #include <shell/e-shell.h>
-
-/* Commented out for now because this doesn't exist with 3.2. */
-#if 0
 #include <libebackend/libebackend.h>
-#endif
 
 typedef struct _ETracker ETracker;
 typedef struct _ETrackerClass ETrackerClass;
@@ -411,13 +425,10 @@ e_tracker_constructed (GObject *object)
         EExtensible *extensible;
 	GError *error = NULL;
 
+	g_debug ("Creating new TrackerMinerEvolution object");
+
         /* This retrieves the EShell instance we're extending. */
         extensible = e_extension_get_extensible (E_EXTENSION (object));
-
-        /* This prints "Hello world from EShell!" */
-        g_debug ("ETracker derives from %s!", G_OBJECT_TYPE_NAME (extensible));
-
-	g_debug ("Creating new TrackerMinerEvolution object");
 
 	manager = g_initable_new (TRACKER_TYPE_MINER_EVOLUTION,
 	                          NULL,

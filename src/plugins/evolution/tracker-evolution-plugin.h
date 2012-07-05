@@ -38,7 +38,7 @@ typedef struct TrackerMinerEvolutionPrivate TrackerMinerEvolutionPrivate;
 
 struct TrackerMinerEvolution {
 	TrackerMiner parent;
-	TrackerMinerEvolutionPrivate *priv;
+	/* TrackerMinerEvolutionPrivate *priv; */
 };
 
 struct TrackerMinerEvolutionClass {

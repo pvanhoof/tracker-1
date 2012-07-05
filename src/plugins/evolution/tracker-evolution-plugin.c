@@ -48,7 +48,7 @@
 
 #define TRACKER_MINER_EVOLUTION_GET_PRIVATE(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), TRACKER_TYPE_MINER_EVOLUTION, TrackerMinerEvolutionPrivate))
 
-typedef struct {
+struct TrackerMinerEvolutionPrivate {
 	gboolean resuming;
 	gboolean paused;
 	gint total_popped;
@@ -56,7 +56,12 @@ typedef struct {
 	gint watch_name_id;
 	GCancellable *sparql_cancel;
 	GTimer *timer_since_stopped;
-} TrackerMinerEvolutionPrivate;
+
+	/* Keep only a weak reference to the EMailSession
+	 * since our own lifetime is bound to it, and we
+	 * don't want to be holding the last reference. */
+	GWeakRef mail_session;
+};
 
 /* Prototype declarations */
 static void     miner_evolution_initable_iface_init (GInitableIface         *iface);
@@ -76,6 +81,26 @@ static TrackerMinerEvolution *manager = NULL;
 G_DEFINE_TYPE_WITH_CODE (TrackerMinerEvolution, tracker_miner_evolution, TRACKER_TYPE_MINER,
                          G_IMPLEMENT_INTERFACE (G_TYPE_INITABLE,
                                                 miner_evolution_initable_iface_init));
+
+enum {
+	PROP_0,
+	PROP_MAIL_SESSION
+};
+
+static EMailSession *
+tracker_miner_evolution_ref_mail_session (TrackerMinerEvolution *miner)
+{
+	return g_weak_ref_get (&miner->priv->mail_session);
+}
+
+static void
+tracker_miner_evolution_set_mail_session (TrackerMinerEvolution *miner,
+                                          EMailSession          *mail_session)
+{
+	g_return_if_fail (E_IS_MAIL_SESSION (mail_session));
+
+	g_weak_ref_set (&miner->priv->mail_session, mail_session);
+}
 
 static void
 miner_evolution_initable_iface_init (GInitableIface *iface)
@@ -101,6 +126,41 @@ miner_evolution_initable_init (GInitable     *initable,
 }
 
 static void
+tracker_miner_evolution_set_property (GObject      *object,
+                                      guint         property_id,
+                                      const GValue *value,
+                                      GParamSpec   *pspec)
+{
+	switch (property_id) {
+		case PROP_MAIL_SESSION:
+			tracker_miner_evolution_set_mail_session (
+				TRACKER_MINER_EVOLUTION (object),
+				g_value_get_object (value));
+			return;
+	}
+
+	G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+}
+
+static void
+tracker_miner_evolution_get_property (GObject    *object,
+                                      guint       property_id,
+                                      GValue     *value,
+                                      GParamSpec *pspec)
+{
+	switch (property_id) {
+		case PROP_MAIL_SESSION:
+			g_value_take_object (
+				value,
+				tracker_miner_evolution_ref_mail_session (
+				TRACKER_MINER_EVOLUTION (object)));
+			return;
+	}
+
+	G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+}
+
+static void
 tracker_miner_evolution_finalize (GObject *plugin)
 {
 	TrackerMinerEvolutionPrivate *priv = TRACKER_MINER_EVOLUTION_GET_PRIVATE (plugin);
@@ -120,6 +180,8 @@ tracker_miner_evolution_finalize (GObject *plugin)
 		g_object_unref (priv->sparql_cancel);
 	}
 
+	g_weak_ref_set (&priv->mail_session, NULL);
+
 	G_OBJECT_CLASS (tracker_miner_evolution_parent_class)->finalize (plugin);
 }
 
@@ -136,20 +198,33 @@ tracker_miner_evolution_class_init (TrackerMinerEvolutionClass *klass)
 	miner_class->paused  = miner_paused;
 	miner_class->resumed = miner_resumed;
 
+	object_class->set_property = tracker_miner_evolution_set_property;
+	object_class->get_property = tracker_miner_evolution_get_property;
 	object_class->finalize = tracker_miner_evolution_finalize;
 
 	g_type_class_add_private (object_class, sizeof (TrackerMinerEvolutionPrivate));
+
+	g_object_class_install_property (
+		object_class,
+		PROP_MAIL_SESSION,
+		g_param_spec_object (
+			"mail-session",
+			"Mail Session",
+			"Evolution mail session",
+			E_TYPE_MAIL_SESSION,
+			G_PARAM_READWRITE |
+			G_PARAM_CONSTRUCT_ONLY));
 }
 
 static void
 tracker_miner_evolution_init (TrackerMinerEvolution *plugin)
 {
-	TrackerMinerEvolutionPrivate *priv = TRACKER_MINER_EVOLUTION_GET_PRIVATE (plugin);
+	plugin->priv = TRACKER_MINER_EVOLUTION_GET_PRIVATE (plugin);
 
-	priv->sparql_cancel = g_cancellable_new ();
+	plugin->priv->sparql_cancel = g_cancellable_new ();
 
-	priv->resuming = FALSE;
-	priv->paused = FALSE;
+	plugin->priv->resuming = FALSE;
+	plugin->priv->paused = FALSE;
 }
 
 static void
@@ -348,6 +423,7 @@ e_tracker_constructed (GObject *object)
 	                          NULL,
 	                          &error,
 	                          "name", "Emails",
+	                          "mail-session", E_MAIL_SESSION (extensible),
 	                          NULL);
 
 	if (error) {

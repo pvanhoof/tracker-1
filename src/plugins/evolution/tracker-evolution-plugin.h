@@ -34,9 +34,11 @@ G_BEGIN_DECLS
 
 typedef struct TrackerMinerEvolution TrackerMinerEvolution;
 typedef struct TrackerMinerEvolutionClass TrackerMinerEvolutionClass;
+typedef struct TrackerMinerEvolutionPrivate TrackerMinerEvolutionPrivate;
 
 struct TrackerMinerEvolution {
 	TrackerMiner parent;
+	TrackerMinerEvolutionPrivate *priv;
 };
 
 struct TrackerMinerEvolutionClass {

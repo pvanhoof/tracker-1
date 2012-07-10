@@ -45,10 +45,14 @@
 struct TrackerMinerEvolutionPrivate {
 	gboolean resuming;
 	gboolean paused;
+
 	gint total_popped;
 	gint of_total;
 	gint watch_name_id;
-	GCancellable *sparql_cancel;
+
+	GCancellable *sparql_cancellable;
+	GCancellable *camel_cancellable;
+
 	GTimer *timer_since_stopped;
 
 	/* Keep only a weak reference to the EMailSession
@@ -105,7 +109,7 @@ miner_evolution_initable_init (GInitable     *initable,
 }
 
 static EMailSession *
-miner_evolution_ref_mail_session (TrackerMinerEvolution *miner)
+miner_ref_mail_session (TrackerMinerEvolution *miner)
 {
 	TrackerMinerEvolutionPrivate *priv = TRACKER_MINER_EVOLUTION_GET_PRIVATE (miner);
 
@@ -113,8 +117,8 @@ miner_evolution_ref_mail_session (TrackerMinerEvolution *miner)
 }
 
 static void
-miner_evolution_set_mail_session (TrackerMinerEvolution *miner,
-                                  EMailSession          *mail_session)
+miner_set_mail_session (TrackerMinerEvolution *miner,
+                        EMailSession          *mail_session)
 {
 	TrackerMinerEvolutionPrivate *priv = TRACKER_MINER_EVOLUTION_GET_PRIVATE (miner);
 
@@ -123,8 +127,133 @@ miner_evolution_set_mail_session (TrackerMinerEvolution *miner,
 	g_weak_ref_set (&priv->mail_session, mail_session);
 }
 
+static gboolean
+should_index_folder (CamelMessageFlags flags)
+{
+	if (flags & CAMEL_MESSAGE_DELETED) {
+		return FALSE;
+	}
+
+	if (flags & CAMEL_MESSAGE_DRAFT) {
+		return FALSE;
+	}
+
+	if (flags & CAMEL_MESSAGE_JUNK) {
+		return FALSE;
+	}
+
+	if (flags & CAMEL_MESSAGE_SECURE) {
+		return FALSE;
+	}
+
+	if (flags & CAMEL_MESSAGE_HIDDEN) {
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static void miner_list_folders (TrackerMinerEvolution *miner,
+                                CamelStore            *store,
+                                const gchar           *folder_name);
+
+static void
+miner_list_folder_info_cb (GObject      *source_object,
+                           GAsyncResult *res,
+                           gpointer      user_data)
+{
+	GError *error = NULL;
+	CamelFolderInfo *info, *iter;
+	TrackerMinerEvolution *miner;
+	TrackerMinerEvolutionPrivate *priv;
+	gboolean ignore;
+	gint level = 0;
+
+	miner = TRACKER_MINER_EVOLUTION (user_data);
+
+	info = camel_store_get_folder_info_finish (CAMEL_STORE (source_object),
+	                                           res,
+	                                           &error);
+
+	if (error) {
+		g_warning ("Call to camel_store_get_folder_info_finish() failed, %s\n",
+		           error->message ? error->message : "no error given");
+		if (info) {
+			camel_folder_info_free (info);
+		}
+		g_clear_error (&error);
+		g_object_unref (miner);
+		return;
+	}
+
+	priv = TRACKER_MINER_EVOLUTION_GET_PRIVATE (miner);
+
+	for (iter = info, ignore = TRUE;
+	     iter != NULL && ignore == FALSE;
+	     iter = iter->next) {
+		g_debug ("[%d] Folder information for '%s' (display name '%s'), unread:%d, total:%d. Next:%p, Child:%p",
+		         level,
+		         info->full_name,
+		         info->display_name,
+		         info->unread,
+		         info->total,
+		         info->next,
+		         info->child);
+
+		if (g_cancellable_is_cancelled (priv->camel_cancellable)) {
+			g_debug ("[%d]  Cancellable Cancelled, doing nothing",
+			         level);
+			ignore = TRUE;
+			continue;
+		}
+
+		if (!should_index_folder (info->flags)) {
+			g_debug ("[%d]  Not indexing, special folder",
+			         level);
+			/* Handle Next... */
+			continue;
+		}
+
+		/* Handle Child before Next */
+		if (info->child) {
+			miner_list_folders (miner, CAMEL_STORE (source_object), info->full_name);
+		}
+	}
+
+	camel_folder_info_free (info);
+	g_object_unref (miner);
+}
+
+static void
+miner_list_folders (TrackerMinerEvolution *miner,
+                    CamelStore            *store,
+                    const gchar           *folder_name)
+{
+	TrackerMinerEvolutionPrivate *priv = TRACKER_MINER_EVOLUTION_GET_PRIVATE (miner);
+	CamelStoreGetFolderInfoFlags flags =
+		CAMEL_STORE_FOLDER_INFO_FAST |
+		CAMEL_STORE_FOLDER_INFO_RECURSIVE |
+		CAMEL_STORE_FOLDER_INFO_SUBSCRIBED;
+
+	camel_store_get_folder_info (store,
+	                             folder_name,
+	                             flags,
+	                             G_PRIORITY_DEFAULT,
+	                             priv->camel_cancellable,
+	                             miner_list_folder_info_cb,
+	                             g_object_ref (miner));
+
+/* 	camel_store_get_folder (store, */
+/* 	                        folder_name, */
+/* 	                        0, */
+/* 	                        G_PRIORITY_DEFAULT, */
+/* 	                        priv->camel_cancellable, */
+/* 	                        miner_list_folders_cb, */
+/* 	                        NULL); */
+}
+
 static GList *
-miner_evolution_list_mail_stores (TrackerMinerEvolution *miner)
+miner_list_mail_stores (TrackerMinerEvolution *miner)
 {
 	EMailSession *mail_session;
 	ESourceRegistry *registry;
@@ -134,7 +263,7 @@ miner_evolution_list_mail_stores (TrackerMinerEvolution *miner)
 
 	/* This is just demonstration code showing how to build
 	 * a list of available CamelStores with the new EDS API. */
-	mail_session = miner_evolution_ref_mail_session (miner);
+	mail_session = miner_ref_mail_session (miner);
 
 	/* You'll probably also want to listen for "source-added"
 	 * and "source-removed" signals from the ESourceRegistry. */
@@ -174,6 +303,8 @@ miner_evolution_list_mail_stores (TrackerMinerEvolution *miner)
 		g_debug ("Found %s ('%s')",
 		         G_OBJECT_TYPE_NAME (service),
 		         camel_service_get_display_name (service));
+
+		miner_list_folders (miner, CAMEL_STORE (service), NULL);
 	}
 
 	g_list_free_full (list, (GDestroyNotify) g_object_unref);
@@ -190,8 +321,8 @@ tracker_miner_evolution_set_property (GObject      *object,
 {
 	switch (property_id) {
 		case PROP_MAIL_SESSION:
-			miner_evolution_set_mail_session (TRACKER_MINER_EVOLUTION (object),
-			                                  g_value_get_object (value));
+			miner_set_mail_session (TRACKER_MINER_EVOLUTION (object),
+			                        g_value_get_object (value));
 			return;
 	}
 
@@ -207,7 +338,7 @@ tracker_miner_evolution_get_property (GObject    *object,
 	switch (property_id) {
 		case PROP_MAIL_SESSION:
 			g_value_take_object (value,
-			                     miner_evolution_ref_mail_session (TRACKER_MINER_EVOLUTION (object)));
+			                     miner_ref_mail_session (TRACKER_MINER_EVOLUTION (object)));
 			return;
 	}
 
@@ -219,9 +350,14 @@ tracker_miner_evolution_finalize (GObject *plugin)
 {
 	TrackerMinerEvolutionPrivate *priv = TRACKER_MINER_EVOLUTION_GET_PRIVATE (plugin);
 
-	if (priv->sparql_cancel) {
-		g_cancellable_cancel (priv->sparql_cancel);
-		g_object_unref (priv->sparql_cancel);
+	if (priv->sparql_cancellable) {
+		g_cancellable_cancel (priv->sparql_cancellable);
+		g_object_unref (priv->sparql_cancellable);
+	}
+
+	if (priv->camel_cancellable) {
+		g_cancellable_cancel (priv->camel_cancellable);
+		g_object_unref (priv->camel_cancellable);
 	}
 
 	if (priv->timer_since_stopped) {
@@ -239,7 +375,7 @@ tracker_miner_evolution_constructed (GObject *object)
 {
 	G_OBJECT_CLASS (tracker_miner_evolution_parent_class)->constructed (object);
 
-	miner_evolution_list_mail_stores (TRACKER_MINER_EVOLUTION (object));
+	miner_list_mail_stores (TRACKER_MINER_EVOLUTION (object));
 }
 
 static void
@@ -279,7 +415,8 @@ tracker_miner_evolution_init (TrackerMinerEvolution *plugin)
 {
 	TrackerMinerEvolutionPrivate *priv = TRACKER_MINER_EVOLUTION_GET_PRIVATE (plugin);
 
-	priv->sparql_cancel = g_cancellable_new ();
+	priv->sparql_cancellable = g_cancellable_new ();
+	priv->camel_cancellable = g_cancellable_new ();
 
 	priv->resuming = FALSE;
 	priv->paused = FALSE;
@@ -328,9 +465,9 @@ miner_stop_watching (TrackerMiner *miner)
 		priv->timer_since_stopped = g_timer_new ();
 	}
 
-	if (priv->sparql_cancel) {
+	if (priv->sparql_cancellable) {
 		/* We reuse the cancellable */
-		g_cancellable_cancel (priv->sparql_cancel);
+		g_cancellable_cancel (priv->sparql_cancellable);
 	}
 }
 

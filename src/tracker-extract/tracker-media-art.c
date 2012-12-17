@@ -35,7 +35,7 @@
 #include <glib/gstdio.h>
 #include <gio/gio.h>
 
-#include <libtracker-miner/tracker-miner.h>
+#include <libtracker-extract/tracker-extract.h>
 #include <libtracker-common/tracker-file-utils.h>
 #include <libtracker-common/tracker-date-time.h>
 #include <libtracker-common/tracker-media-art.h>

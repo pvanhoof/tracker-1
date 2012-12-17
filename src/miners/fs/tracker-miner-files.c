@@ -44,6 +44,7 @@
 
 #include <libtracker-extract/tracker-module-manager.h>
 #include <libtracker-extract/tracker-extract-client.h>
+#include <libtracker-extract/tracker-storage.h>
 
 #include "tracker-power.h"
 #include "tracker-miner-files.h"

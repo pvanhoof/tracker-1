@@ -17,11 +17,11 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#ifndef __LIBTRACKER_MINER_STORAGE_H__
-#define __LIBTRACKER_MINER_STORAGE_H__
+#ifndef __LIBTRACKER_EXTRACT_STORAGE_H__
+#define __LIBTRACKER_EXTRACT_STORAGE_H__
 
-#if !defined (__LIBTRACKER_MINER_H_INSIDE__) && !defined (TRACKER_COMPILATION)
-#error "Only <libtracker-miner/tracker-miner.h> can be included directly."
+#if !defined (__LIBTRACKER_EXTRACT_INSIDE__) && !defined (TRACKER_COMPILATION)
+#error "Only <libtracker-extract/tracker-extract.h> can be included directly."
 #endif
 
 #include <glib-object.h>
@@ -115,4 +115,4 @@ const gchar *      tracker_storage_get_uuid_for_file        (TrackerStorage     
 
 G_END_DECLS
 
-#endif /* __LIBTRACKER_MINER_STORAGE_H__ */
+#endif /* __LIBTRACKER_EXTRACT_STORAGE_H__ */

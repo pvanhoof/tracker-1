@@ -21,7 +21,7 @@
 #include "tracker-writeback-module.h"
 
 #include <libtracker-common/tracker-common.h>
-#include <libtracker-miner/tracker-miner.h>
+#include <libtracker-extract/tracker-extract.h>
 #include <libtracker-sparql/tracker-sparql.h>
 
 #include <gio/gio.h>

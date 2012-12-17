@@ -52,9 +52,7 @@ private_sources = 				       \
 	tracker-task-pool.h                            \
 	tracker-task-pool.c                            \
 	tracker-sparql-buffer.h                        \
-	tracker-sparql-buffer.c                        \
-	tracker-storage.c                              \
-	tracker-storage.h                              
+	tracker-sparql-buffer.c                        
 
 miner_sources = 				       \
 	$(libtracker_miner_monitor_sources)            \
@@ -103,7 +101,6 @@ libtracker_minerinclude_HEADERS =                      \
 	tracker-miner-web.h                            \
 	tracker-network-provider.h                     \
 	tracker-password-provider.h                    \
-	tracker-storage.h                              \
 	tracker-thumbnailer.h
 
 libtracker_miner_@TRACKER_API_VERSION@_la_LDFLAGS =    \
@@ -119,6 +116,7 @@ libtracker_miner_@TRACKER_API_VERSION@_la_LIBADD =     \
 	libtracker-miner-private.la \
 	$(top_builddir)/src/libtracker-common/libtracker-common.la \
 	$(top_builddir)/src/libtracker-sparql-backend/libtracker-sparql-@TRACKER_API_VERSION@.la \
+	$(top_builddir)/src/libtracker-extract/libtracker-extract-@TRACKER_API_VERSION@.la \
 	-lm                                            \
 	$(BUILD_LIBS)                                  \
 	$(LIBTRACKER_MINER_LIBS)

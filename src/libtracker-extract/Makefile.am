@@ -1,5 +1,16 @@
 include $(top_srcdir)/Makefile.decl
 
+# Include list of shared sources:
+#  Defines:
+#    $(libtracker_extract_marshal_sources)
+#    $(libtracker_extract_marshal_headers)
+#
+# Headers and sources are split for the tests to build
+# with make distcheck.
+#
+
+include Makefile-shared-sources.decl
+
 AM_CPPFLAGS =                                          \
 	$(BUILD_CFLAGS)                                \
 	-I$(top_srcdir)/src                            \
@@ -13,6 +24,8 @@ lib_LTLIBRARIES = libtracker-extract-@TRACKER_API_VERSION@.la
 libtracker_extractincludedir=$(includedir)/tracker-$(TRACKER_API_VERSION)/libtracker-extract/
 
 libtracker_extract_@TRACKER_API_VERSION@_la_SOURCES =  \
+	$(libtracker_extract_marshal_sources)          \
+	$(libtracker_extract_marshal_headers)          \
 	tracker-data.h                                 \
 	tracker-encoding.c                             \
 	tracker-exif.c                                 \
@@ -29,7 +42,11 @@ libtracker_extract_@TRACKER_API_VERSION@_la_SOURCES =  \
 	tracker-module-manager.h                       \
 	tracker-utils.c                                \
 	tracker-xmp.c                                  \
-	tracker-xmp.h
+	tracker-xmp.h                                  \
+	tracker-storage.c                              \
+	tracker-storage.h                              \
+	tracker-extract-sparql.c                       \
+	tracker-extract-sparql.h
 
 noinst_HEADERS =
 
@@ -44,7 +61,22 @@ libtracker_extractinclude_HEADERS =                    \
 	tracker-iptc.h                                 \
 	tracker-module-manager.h                       \
 	tracker-utils.h                                \
-	tracker-xmp.h
+	tracker-xmp.h                                  \
+	tracker-storage.h                              \
+	tracker-extract-sparql.h
+
+
+$(top_builddir)/src/libtracker-extract/tracker-marshal.h: tracker-marshal.list
+	$(AM_V_GEN)$(GLIB_GENMARSHAL) $< --prefix=tracker_marshal --header > $@
+
+$(top_builddir)/src/libtracker-extract/tracker-marshal.c: tracker-marshal.list
+	$(AM_V_GEN)(echo "#include \"tracker-marshal.h\""; \
+		    $(GLIB_GENMARSHAL) $< --prefix=tracker_marshal --body) > $@
+
+
+BUILT_SOURCES =                                          \
+	$(libtracker_extract_marshal_sources)            \
+	$(libtracker_extract_marshal_headers)
 
 if HAVE_ENCA
 libtracker_extract_@TRACKER_API_VERSION@_la_SOURCES += \
@@ -97,6 +129,8 @@ gir_DATA = $(INTROSPECTION_GIRS)
 
 typelibdir = $(libdir)/girepository-1.0
 typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
+
+EXTRA_DIST = tracker-marshal.list
 
 CLEANFILES = $(gir_DATA) $(typelib_DATA)
 endif

@@ -28,6 +28,7 @@
 #include <glib/gi18n.h>
 
 #include <libtracker-sparql/tracker-sparql.h>
+#include <libtracker-extract/tracker-extract.h>
 
 #define ABOUT \
 	"Tracker " PACKAGE_VERSION "\n"
@@ -49,6 +50,9 @@ static gboolean parse_list_indexes  (const gchar  *option_name,
                                      GError      **error);
 
 static gchar *file;
+static gchar *metadata_file_path;
+static gchar *metadata_graph_urn;
+static gchar *metadata_dest_url;
 static gchar *query;
 static gboolean update;
 static gboolean list_classes;
@@ -63,6 +67,18 @@ static GOptionEntry   entries[] = {
 	{ "file", 'f', 0, G_OPTION_ARG_FILENAME, &file,
 	  N_("Path to use to run a query or update from file"),
 	  N_("FILE"),
+	},
+	{ "metadata-file-path", 'm', 0, G_OPTION_ARG_FILENAME, &metadata_file_path,
+	  N_("Path to use to get metadata as a sparql insert query for (uses tracker-extract)"),
+	  N_("FILE"),
+	},
+	{ "metadata-graph-urn", 'g', 0, G_OPTION_ARG_FILENAME, &metadata_graph_urn,
+	  N_("Graph to use to get metadata as a sparql insert query for (uses tracker-extract)"),
+	  N_("URN"),
+	},
+	{ "metadata-dest-url", 'd', 0, G_OPTION_ARG_FILENAME, &metadata_dest_url,
+	  N_("Destination URL to use to get metadata as a sparql insert query for (uses tracker-extract)"),
+	  N_("URL"),
 	},
 	{ "query", 'q', 0, G_OPTION_ARG_STRING, &query,
 	  N_("SPARQL query"),
@@ -227,6 +243,25 @@ print_cursor (TrackerSparqlCursor *cursor,
 	}
 }
 
+static void
+on_metadata_get_sparql_finished (GObject *none, GAsyncResult *result, gpointer user_data)
+{
+	GMainLoop *loop = user_data;
+	GError *error = NULL;
+	gchar *sparql = tracker_extract_get_sparql_finish (result, &error);
+
+	if (error == NULL) {
+		g_print ("%s", sparql);
+		g_free (sparql);
+	} else {
+		g_error("%s", error->message);
+	}
+
+	g_clear_error (&error);
+
+	g_main_loop_quit (loop);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -255,7 +290,8 @@ main (int argc, char **argv)
 	}
 
 	if (!list_classes && !list_class_prefixes && !list_properties &&
-	    !list_notifies && !list_indexes && !search && !file && !query) {
+	    !list_notifies && !list_indexes && !search && !file && !query &&
+	    !metadata_file_path) {
 		error_message = _("An argument must be supplied");
 	} else if (file && query) {
 		error_message = _("File and query can not be used together");
@@ -551,6 +587,15 @@ main (int argc, char **argv)
 		g_free (path_in_utf8);
 	}
 
+	if (metadata_file_path) {
+		GMainLoop *loop = g_main_loop_new (NULL, FALSE);
+		tracker_extract_get_sparql (metadata_file_path,
+		                            metadata_dest_url, metadata_graph_urn,
+		                            time(0), time(0),
+		                            on_metadata_get_sparql_finished, loop);
+		g_main_loop_run (loop);
+	}
+	
 	if (query) {
 		if (G_UNLIKELY (update)) {
 			tracker_sparql_connection_update (connection, query, 0, NULL, &error);

@@ -34,6 +34,8 @@
 #include "tracker-iptc.h"
 #include "tracker-utils.h"
 #include "tracker-xmp.h"
+#include "tracker-storage.h"
+#include "tracker-extract-sparql.h"
 
 #undef __LIBTRACKER_EXTRACT_INSIDE__
 

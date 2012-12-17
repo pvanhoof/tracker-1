@@ -1,0 +1,10 @@
+
+# Includes sources that will be shared with the
+# testers in test/libtracker-extract
+
+libtracker_extract_marshal_sources =                              \
+	$(top_builddir)/src/libtracker-extract/tracker-marshal.c
+
+libtracker_extract_marshal_headers =                              \
+	$(top_builddir)/src/libtracker-extract/tracker-marshal.h
+

@@ -26,7 +26,6 @@
 
 #include <libtracker-common/tracker-common.h>
 #include <libtracker-extract/tracker-extract.h>
-#include <libtracker-miner/tracker-miner.h>
 #include <gio/gio.h>
 
 #ifdef STAYALIVE_ENABLE_TRACE

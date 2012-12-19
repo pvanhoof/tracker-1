@@ -721,7 +721,8 @@ handle_method_call_get_metadata_fast (TrackerController     *controller,
 			data = metadata_data_new (controller, uri, mime, invocation, request);
 			data->fd = fd;
 
-			tracker_extract_file (priv->extractor, uri, mime, graph,
+			tracker_extract_file (priv->extractor, uri, mime,
+			                      strlen(graph) == 0 ? NULL : graph,
 			                      data->cancellable,
 			                      get_metadata_fast_cb, data);
 			priv->ongoing_tasks = g_list_prepend (priv->ongoing_tasks, data);

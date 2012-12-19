@@ -35,6 +35,7 @@ typedef struct {
 	time_t last_access;
 	gboolean last_mod_set;
 	gboolean last_access_set;
+	gboolean available;
 } ExtractionData;
 
 static GSimpleAsyncResult*
@@ -214,15 +215,16 @@ on_fileinfo_received (GObject *file, GAsyncResult *result, gpointer user_data)
 		tracker_sparql_builder_object_iri (sparql, removable_device_urn);
 
 		tracker_sparql_builder_predicate (sparql, "tracker:available");
-		tracker_sparql_builder_object_boolean (sparql, TRUE);
+		tracker_sparql_builder_object_boolean (sparql, data->available);
 
 		g_free (removable_device_urn);
 		g_object_unref (dest_file);
 
 		if (tracker_extract_module_manager_mimetype_is_handled (mime_type)) {
 			/* Next step, if handled by the extractor, get embedded metadata */
-			tracker_extract_client_get_metadata (data->file, mime_type, data->graph_urn, NULL,
-			                                     extractor_get_embedded_metadata_cb,
+			tracker_extract_client_get_metadata (data->file, mime_type,
+			                                     data->graph_urn ? data->graph_urn : "",
+			                                     NULL, extractor_get_embedded_metadata_cb,
 			                                     data);
 		} else {
 			gchar *sparql_s;
@@ -366,10 +368,13 @@ tracker_extract_get_sparql (const gchar *temp_file,
                             const gchar *graph,
                             time_t last_mod,
                             time_t last_access,
+                            gboolean available,
                             GAsyncReadyCallback callback,
                             gpointer user_data)
 {
 	ExtractionData *data = g_new0(ExtractionData, 1);
+
+	data->available = available;
 
 	if (graph) {
 		data->graph_urn = g_strdup (graph);
@@ -391,7 +396,11 @@ tracker_extract_get_sparql (const gchar *temp_file,
 
 	data->storage = tracker_storage_new ();
 	data->file = g_file_new_for_path(temp_file);
-	data->url = g_strdup (dest_url);
+	if (dest_url) {
+		data->url = g_strdup (dest_url);
+	} else {
+		data->url = g_file_get_uri (data->file);
+	}
 	data->simple = g_simple_async_result_new (NULL, callback, user_data, tracker_extract_get_sparql);
 
 	tracker_sparql_connection_get_async (NULL, on_get_connection, data);

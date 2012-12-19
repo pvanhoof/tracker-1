@@ -53,6 +53,9 @@ static gchar *file;
 static gchar *metadata_file_path;
 static gchar *metadata_graph_urn;
 static gchar *metadata_dest_url;
+static gchar *metadata_last_accessed;
+static gchar *metadata_last_modified;
+static gboolean metadata_available;
 static gchar *query;
 static gboolean update;
 static gboolean list_classes;
@@ -79,6 +82,18 @@ static GOptionEntry   entries[] = {
 	{ "metadata-dest-url", 'd', 0, G_OPTION_ARG_FILENAME, &metadata_dest_url,
 	  N_("Destination URL to use to get metadata as a sparql insert query for (uses tracker-extract)"),
 	  N_("URL"),
+	},
+	{ "metadata-available", 'a', 0, G_OPTION_ARG_NONE, &metadata_available,
+	  N_("Value for tracker:available"),
+	  NULL,
+	},
+	{ "metadata-last-accessed", 'c', 0, G_OPTION_ARG_STRING, &metadata_last_accessed,
+	  N_("Last accessed value"),
+	  N_("ISO8601"),
+	},
+	{ "metadata-last-modified", 'm', 0, G_OPTION_ARG_STRING, &metadata_last_modified,
+	  N_("Last modified value"),
+	  N_("ISO8601"),
 	},
 	{ "query", 'q', 0, G_OPTION_ARG_STRING, &query,
 	  N_("SPARQL query"),
@@ -589,9 +604,21 @@ main (int argc, char **argv)
 
 	if (metadata_file_path) {
 		GMainLoop *loop = g_main_loop_new (NULL, FALSE);
+		time_t last_accessed = 0;
+		time_t last_modified = 0;
+		GTimeVal val;
+
+		if (metadata_last_accessed && g_time_val_from_iso8601 (metadata_last_accessed, &val)) {
+			last_accessed = val.tv_sec;
+		}
+
+		if (metadata_last_modified && g_time_val_from_iso8601 (metadata_last_modified, &val)) {
+			last_modified = val.tv_sec;
+		}
+
 		tracker_extract_get_sparql (metadata_file_path,
 		                            metadata_dest_url, metadata_graph_urn,
-		                            time(0), time(0),
+		                            last_modified, last_accessed, metadata_available,
 		                            on_metadata_get_sparql_finished, loop);
 		g_main_loop_run (loop);
 	}

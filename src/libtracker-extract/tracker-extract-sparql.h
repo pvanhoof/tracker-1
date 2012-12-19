@@ -36,6 +36,7 @@ void   tracker_extract_get_sparql        (const gchar         *temp_file,
                                           const gchar         *graph,
                                           time_t               last_mod,
                                           time_t               last_access,
+                                          gboolean             available,
                                           GAsyncReadyCallback  callback,
                                           gpointer             user_data);
 

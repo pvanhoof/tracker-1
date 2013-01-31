@@ -101,8 +101,8 @@ gboolean              tracker_miner_fs_directory_remove     (TrackerMinerFS *fs,
                                                              GFile          *file);
 gboolean              tracker_miner_fs_directory_remove_full (TrackerMinerFS *fs,
                                                               GFile          *file);
-void                  tracker_miner_fs_mount_add        (TrackerMinerFS *fs,
-                                                         GMount          *mount);
+void                  tracker_miner_fs_mount_add            (TrackerMinerFS *fs,
+                                                             GMount          *mount);
 void                  tracker_miner_fs_check_file_with_priority (TrackerMinerFS *fs,
                                                                  GFile          *file,
                                                                  gint            priority,

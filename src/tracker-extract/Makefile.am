@@ -500,8 +500,6 @@ tracker_extract_SOURCES = \
 	$(marshal_sources) \
 	tracker-config.c \
 	tracker-config.h \
-	tracker-controller.c \
-	tracker-controller.h \
 	tracker-extract.c \
 	tracker-extract.h \
 	tracker-extract-decorator.c \

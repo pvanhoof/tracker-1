@@ -61,6 +61,8 @@ miner_sources = 				       \
 	$(libtracker_miner_monitor_headers)            \
 	tracker-decorator.c                            \
 	tracker-decorator.h                            \
+	tracker-decorator-fs.c                         \
+	tracker-decorator-fs.h                         \
 	tracker-miner-dbus.h                           \
 	tracker-miner-enum-types.c                     \
 	tracker-miner-enum-types.h                     \
@@ -94,6 +96,7 @@ libtracker_miner_@TRACKER_API_VERSION@_la_SOURCES =    \
 libtracker_minerinclude_HEADERS =                      \
 	tracker-crawler.h                              \
 	tracker-decorator.h                            \
+	tracker-decorator-fs.h                         \
 	tracker-indexing-tree.h                        \
 	tracker-media-art.h                            \
 	tracker-miner.h                                \
